@@ -15,6 +15,7 @@ New in version 1.20
 * Add detection of Linux 2.5
 * Allow arbitrary value of HZ in Linux kernel
 * Fix for chrony.spec on SuSE (Paul Elliot)
+* Fix handling of initstepslew if no servers are listed (John Hasler)
 
 New in version 1.19
 ===================

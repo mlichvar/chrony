@@ -1,5 +1,5 @@
 /*
-  $Header: /cvs/src/chrony/conf.c,v 1.42 2003/03/27 23:45:47 richard Exp $
+  $Header: /cvs/src/chrony/conf.c,v 1.43 2003/09/19 22:44:06 richard Exp $
 
   =======================================================================
 
@@ -570,20 +570,18 @@ parse_initstepslew(const char *line)
   const char *p;
   char hostname[HOSTNAME_LEN+1];
   int n;
+  int threshold;
   unsigned long ip_addr;
 
-  do_init_stepslew = 1;
   n_init_srcs = 0;
   p = line;
 
-  if (sscanf(p, "%d%n", &init_slew_threshold, &n) == 1) {
+  if (sscanf(p, "%d%n", &threshold, &n) == 1) {
     p += n;
   } else {
     LOG(LOGS_WARN, LOGF_Configure, "Could not parse initstepslew threshold at line %d", line_number);
-    init_slew_threshold = -1;
     return;
   }
-    
   while (*p) {
     if (sscanf(p, "%" SHOSTNAME_LEN "s%n", hostname, &n) == 1) {
       ip_addr = DNS_Name2IPAddress(hostname);
@@ -593,17 +591,21 @@ parse_initstepslew(const char *line)
       }
       
       if (n_init_srcs >= MAX_INIT_SRCS) {
-        return;
+        break;
       }
 
     } else {
       /* If we get invalid trailing syntax, forget it ... */
-      return;
+      break;
     }
-
     p += n;
   }
-
+  if (n_init_srcs > 0) {
+    do_init_stepslew = 1;
+    init_slew_threshold = threshold;
+  } else {
+    LOG(LOGS_WARN, LOGF_Configure, "No usable initstepslew servers at line %d\n", line_number);
+  }
 }
 
 /* ================================================== */

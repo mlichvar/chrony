@@ -193,7 +193,8 @@ Juergen Hannken-Illjes <hannken@eis.cs.tu-bs.de>
 
 John Hasler <john@dhh.gt.org>
     Changes to support 64 bit machines (i.e. those where
-    sizeof(unsigned long) > 4)
+      sizeof(unsigned long) > 4)
+    Bug fix to initstepslew directive
 
 Liam Hatton <me@liamhatton.com>
     Advice on configuring for Linux on PPC
@@ -238,6 +239,6 @@ sorry I can't identify all of you individually.
 Version control information
 ===========================
 
-$Header: /cvs/src/chrony/README,v 1.27 2003/07/01 20:56:23 richard Exp $
+$Header: /cvs/src/chrony/README,v 1.28 2003/09/19 22:44:06 richard Exp $
 
 vim:tw=72
