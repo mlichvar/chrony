@@ -1,5 +1,5 @@
 /*
-  $Header: /cvs/src/chrony/sys_linux.c,v 1.42 2003/07/17 21:22:23 richard Exp $
+  $Header: /cvs/src/chrony/sys_linux.c,v 1.43 2003/07/17 21:23:09 richard Exp $
 
   =======================================================================
 
@@ -786,23 +786,6 @@ get_version_specific_details(void)
 }
 
 /* ================================================== */
-/* Set denorms to flush to zero instead of trapping. */
-
-#if defined(__SH5__)
-static void enable_flush_denorms(void)
-{
-  float fpscr;
-  unsigned long ifpscr;
-  asm volatile("fgetscr %0" : "=f" (fpscr));
-  asm volatile("fmov.sl %1, %0" : "=r" (ifpscr) : "f" (fpscr));
-  ifpscr |= 0x40000;
-  asm volatile("fmov.ls %1, %0" : "=f" (fpscr) : "r" (ifpscr));
-  asm volatile("fputscr %0" : : "f" (fpscr));
-  return;
-}
-#endif
-
-/* ================================================== */
 /* Initialisation code for this module */
 
 void
@@ -810,10 +793,6 @@ SYS_Linux_Initialise(void)
 {
   offset_register = 0.0;
   fast_slewing = 0;
-
-#if defined(__SH5__)
-  enable_flush_denorms();
-#endif
 
   get_version_specific_details();
 
