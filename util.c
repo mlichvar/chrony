@@ -1,5 +1,5 @@
 /*
-  $Header: /cvs/src/chrony/util.c,v 1.21 2003/09/22 21:22:30 richard Exp $
+  $Header: /cvs/src/chrony/util.c,v 1.22 2003/09/28 22:21:17 richard Exp $
 
   =======================================================================
 
@@ -273,7 +273,7 @@ UTI_IPToDottedQuad(unsigned long ip)
   c = (ip>> 8) & 0xff;
   d = (ip>> 0) & 0xff;
   result = NEXT_BUFFER;
-  snprintf(result, sizeof(result), "%ld.%ld.%ld.%ld", a, b, c, d);
+  snprintf(result, BUFFER_LENGTH, "%ld.%ld.%ld.%ld", a, b, c, d);
   return result;
 }
 
