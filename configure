@@ -241,17 +241,11 @@ case $SYSTEM in
         EXTRA_OBJECTS="sys_linux.o wrap_adjtimex.o rtc_linux.o"
         SYSDEFS="-DLINUX"
         echo "Configuring for " $SYSTEM
-        if [ -r /usr/include/linux/spinlock.h ]; then
-            SYSDEFS="$SYSDEFS -DHAS_SPINLOCK_H"
-            echo "The system has <spinlock.h>, using that"
-        else
-            echo "The system does not have <spinlock.h>, using private definition for spinlock_t"
+        if [ "${MACHINE}" = "alpha" ]; then
+           echo "Enabling -mieee"
+           # FIXME: Should really test for GCC
+           SYSDEFS="$SYSDEFS -mieee -DALPHA"
         fi
-	if [ "${MACHINE}" = "alpha" ]; then
-	   echo "Enabling -mieee"
-	   # FIXME: Should really test for GCC
-	   SYSDEFS="$SYSDEFS -mieee -DALPHA"
-	fi
     ;;
 
     BSD/386-i[3456]86 )

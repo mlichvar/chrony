@@ -154,6 +154,9 @@ There have also been reports that just replacing the file
 /usr/src/linux/spinlock.h by the equivalent file from a vanilla kernel source
 tree is sufficient to fix the problem.
 
+Note : from version 1.21 onwards, this problem no longer exists.  The kernel
+header files are no longer included.
+
 S: Selection of NTP servers
 Q: I have several computers on a LAN.  Should I make one the master, or make them all clients of an external server?
 I think the best configuration is to make one computer the master, with the
