@@ -24,7 +24,7 @@ act as an RFC1305-compatible NTP server.
 %setup
 
 %build
-./configure --prefix=%{_prefix}
+./configure --prefix=%{_prefix} --mandir=%{_mandir}
 make CC=gcc CFLAGS=-O2 prefix=%{_prefix}
 make chrony.txt prefix=%{_prefix}
 make chrony.info prefix=%{_prefix}

@@ -14,6 +14,7 @@ New in version 1.20
 * Fix for Linux on SH-5 (floating point denorm handling).
 * Add detection of Linux 2.5
 * Allow arbitrary value of HZ in Linux kernel
+* Fix for chrony.spec on SuSE (Paul Elliot)
 
 New in version 1.19
 ===================
