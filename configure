@@ -1,12 +1,12 @@
 #!/bin/sh
 #
-# $Header: /cvs/src/chrony/configure,v 1.28 2003/07/01 20:53:00 richard Exp $
+# $Header: /cvs/src/chrony/configure,v 1.29 2003/09/22 21:22:30 richard Exp $
 #
 # =======================================================================
 #
 # chronyd/chronyc - Programs for keeping computer clocks accurate.
 #
-# #COPYRIGHT#
+# Copyright (C) Richard P. Curnow  1997-2003
 #
 # =======================================================================
 

@@ -1,12 +1,12 @@
 /*
-  $Header: /cvs/src/chrony/reference.c,v 1.41 2003/09/21 23:11:06 richard Exp $
+  $Header: /cvs/src/chrony/reference.c,v 1.42 2003/09/22 21:22:30 richard Exp $
 
   =======================================================================
 
   chronyd/chronyc - Programs for keeping computer clocks accurate.
 
  **********************************************************************
- * Copyright (C) Richard P. Curnow  1997-2002
+ * Copyright (C) Richard P. Curnow  1997-2003
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
