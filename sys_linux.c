@@ -1,5 +1,5 @@
 /*
-  $Header: /cvs/src/chrony/sys_linux.c,v 1.44 2003/09/22 21:22:30 richard Exp $
+  $Header: /cvs/src/chrony/sys_linux.c,v 1.45 2003/10/04 19:56:40 richard Exp $
 
   =======================================================================
 
@@ -661,6 +661,10 @@ get_version_specific_details(void)
   nominal_tick = (1000000L + (hz/2))/hz; /* Mirror declaration in kernel */
   slew_delta_tick = nominal_tick / 12;
   max_tick_bias = nominal_tick / 10;
+
+  LOG(LOGS_INFO, LOGF_SysLinux, "set_config_hz=%d hz=%d shift_hz=%d basic_freq_scale=%.8f nominal_tick=%d slew_delta_tick=%d max_tick_bias=%d",
+      set_config_hz, hz, shift_hz, basic_freq_scale, nominal_tick, slew_delta_tick, max_tick_bias);
+
 
   /* The basic_freq_scale comes from:
      * the kernel increments the usec counter HZ times per second (if the timer
