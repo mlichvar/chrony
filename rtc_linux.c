@@ -1,5 +1,5 @@
 /*
-  $Header: /cvs/src/chrony/rtc_linux.c,v 1.30 2003/04/01 20:07:20 richard Exp $
+  $Header: /cvs/src/chrony/rtc_linux.c,v 1.31 2003/09/14 21:55:23 richard Exp $
 
   =======================================================================
 
@@ -596,6 +596,10 @@ RTC_Linux_Initialise(void)
       case 2:
       case 3:
       case 4:
+      case 5:
+      case 6:
+      case 7:
+      case 8:
         break; /* OK for all patch levels */
     } 
   }
