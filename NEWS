@@ -11,7 +11,6 @@ New in version 1.20
 * Merge support for 64bit architectures
 * Don't link -lm if it's not needed
 * Fix Solaris build (broken by 64bit change)
-* Fix for Linux on SH-5 (floating point denorm handling).
 * Add detection of Linux 2.5
 * Allow arbitrary value of HZ in Linux kernel
 * Fix for chrony.spec on SuSE (Paul Elliot)
