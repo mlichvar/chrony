@@ -1,6 +1,6 @@
 ##################################################
 #
-# $Header: /cvs/src/chrony/Makefile.in,v 1.47 2003/04/07 21:43:54 richard Exp $
+# $Header: /cvs/src/chrony/Makefile.in,v 1.48 2003/09/19 22:48:26 richard Exp $
 #
 # =======================================================================
 #
@@ -101,6 +101,8 @@ install: chronyd chronyc
 	[ -d $(DESTDIR)$(MANDIR)/man5 ] || mkdir -p $(DESTDIR)$(MANDIR)/man5
 	[ -d $(DESTDIR)$(MANDIR)/man8 ] || mkdir -p $(DESTDIR)$(MANDIR)/man8
 	[ -d $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony ] || mkdir -p $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony
+	if [ -f $(DESTDIR)$(INSTALL_PREFIX)/sbin/chronyd ]; then rm -f $(DESTDIR)$(INSTALL_PREFIX)/sbin/chronyd ; fi
+	if [ -f $(DESTDIR)$(INSTALL_PREFIX)/bin/chronyc ]; then rm -f $(DESTDIR)$(INSTALL_PREFIX)/bin/chronyc ; fi
 	cp chronyd $(DESTDIR)$(INSTALL_PREFIX)/sbin/chronyd
 	chmod 555 $(DESTDIR)$(INSTALL_PREFIX)/sbin/chronyd
 	cp chronyc $(DESTDIR)$(INSTALL_PREFIX)/bin/chronyc
