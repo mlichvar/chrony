@@ -1,5 +1,5 @@
 /*
-  $Header: /cvs/src/chrony/sys_linux.c,v 1.41 2003/07/01 20:56:23 richard Exp $
+  $Header: /cvs/src/chrony/sys_linux.c,v 1.42 2003/07/17 21:22:23 richard Exp $
 
   =======================================================================
 
@@ -757,6 +757,11 @@ get_version_specific_details(void)
         case 3:
         case 4:
         case 5:
+        case 6:
+          /* Let's be optimistic that these will be the same until proven
+             otherwise :-) */
+        case 7:
+        case 8:
           /* These seem to be like 2.0.32 */
           freq_scale = (hz==100) ? (128.0 / 128.125) : basic_freq_scale;
           have_readonly_adjtime = 0;
