@@ -17,6 +17,7 @@ New in version 1.20
 * Fix handling of initstepslew if no servers are listed (John Hasler)
 * Fix install rule in Makefile if chronyd is in use (Juliusz Chroboczek)
 * Replace sprintf by snprintf to remove risk of buffer overrun (John Hasler)
+* Add --help to configure script
 
 New in version 1.19
 ===================

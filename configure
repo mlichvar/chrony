@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $Header: /cvs/src/chrony/configure,v 1.29 2003/09/22 21:22:30 richard Exp $
+# $Header: /cvs/src/chrony/configure,v 1.30 2003/09/22 21:53:57 richard Exp $
 #
 # =======================================================================
 #
@@ -106,6 +106,52 @@ EOF
   echo $result
 }
 #}}}
+#{{{ usage
+usage () {
+  cat <<EOF;
+\`configure' configures tdl to adapt to many kinds of systems.
+
+Usage: ./configure [OPTION]...
+
+Defaults for the options are specified in brackets.
+
+Configuration:
+  -h, --help              display this help and exit
+
+Installation directories:
+  --prefix=PREFIX         install architecture-independent files in PREFIX
+                          [/usr/local]
+
+By default, \`make install' will install all the files in
+\`/usr/local/bin', \`/usr/local/lib' etc.  You can specify
+an installation prefix other than \`/usr/local' using \`--prefix',
+for instance \`--prefix=$HOME'.
+
+For better control, use the options below.
+  --disable-readline     Don't try to use GNU readline
+  --readline-dir=DIR     Specify parent of readline include and lib directories
+  --readline-inc-dir=DIR Specify where readline include directory is
+  --readline-lib-dir=DIR Specify where readline lib directory is
+  --with-ncurses-library=DIR Specify where ncurses lib directory is
+
+Fine tuning of the installation directories:
+  --infodir=DIR          info documentation [PREFIX/info]
+  --mandir=DIR           man documentation [PREFIX/man]
+
+Some influential environment variables:
+  CC          C compiler command
+  CFLAGS      C compiler flags
+  LDFLAGS     linker flags, e.g. -L<lib dir> if you have libraries in a
+              nonstandard directory <lib dir>
+
+Use these variables to override the choices made by \`configure' or to help
+it to find libraries and programs with nonstandard names/locations.
+
+Report bugs to <rc@rc0.org.uk>.
+EOF
+
+}
+#}}}
 
 # ======================================================================
 
@@ -159,6 +205,10 @@ do
     ;;
     --mandir=* )
       SETMANDIR=`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --help | -h )
+      usage
+      exit 0
     ;;
     * )
     echo "Unrecognized option : " $option
@@ -310,4 +360,7 @@ sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
 	s%@MANDIR@%${MANDIR}%;\
 	s%@INFODIR@%${INFODIR}%;"\
 	< Makefile.in > Makefile
+
+# =======================================================================
+# vim:et:sw=2:ht=2:sts=2:fdm=marker:cms=#%s
 
