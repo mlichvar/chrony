@@ -1,5 +1,5 @@
 /*
-  $Header: /cvs/src/chrony/sources.c,v 1.31 2003/03/24 23:35:43 richard Exp $
+  $Header: /cvs/src/chrony/sources.c,v 1.32 2003/09/21 23:11:06 richard Exp $
 
   =======================================================================
 
@@ -770,7 +770,7 @@ void
 SRC_DumpSources(void)
 {
   FILE *out;
-  int direc_len;
+  int direc_len, file_len;
   char *filename;
   unsigned int a, b, c, d;
   int i;
@@ -778,7 +778,8 @@ SRC_DumpSources(void)
 
   direc = CNF_GetDumpDir();
   direc_len = strlen(direc);
-  filename = MallocArray(char, direc_len+24); /* a bit of slack */
+  file_len = direc_len + 24;
+  filename = MallocArray(char, file_len); /* a bit of slack */
   if (mkdir_and_parents(direc)) {
     for (i=0; i<n_sources; i++) {
       a = (sources[i]->ref_id) >> 24;
@@ -786,7 +787,7 @@ SRC_DumpSources(void)
       c = ((sources[i]->ref_id) >> 8) & 0xff;
       d = ((sources[i]->ref_id)) & 0xff;
       
-      sprintf(filename, "%s/%d.%d.%d.%d.dat", direc, a, b, c, d);
+      snprintf(filename, file_len-1, "%s/%d.%d.%d.%d.dat", direc, a, b, c, d);
       out = fopen(filename, "w");
       if (!out) {
         LOG(LOGS_WARN, LOGF_Sources, "Could not open dump file %s", filename);
@@ -811,7 +812,7 @@ SRC_ReloadSources(void)
   unsigned int a, b, c, d;
   int i;
   char *dumpdir;
-  int dumpdirlen;
+  int dumpdirlen, filelen;
 
   for (i=0; i<n_sources; i++) {
     a = (sources[i]->ref_id) >> 24;
@@ -821,8 +822,9 @@ SRC_ReloadSources(void)
 
     dumpdir = CNF_GetDumpDir();
     dumpdirlen = strlen(dumpdir);
-    filename = MallocArray(char, dumpdirlen+24);
-    sprintf(filename, "%s/%d.%d.%d.%d.dat", dumpdir, a, b, c, d);
+    filelen = dumpdirlen + 24;
+    filename = MallocArray(char, filelen);
+    snprintf(filename, filelen-1, "%s/%d.%d.%d.%d.dat", dumpdir, a, b, c, d);
     in = fopen(filename, "r");
     if (!in) {
       LOG(LOGS_WARN, LOGF_Sources, "Could not open dump file %s", filename);

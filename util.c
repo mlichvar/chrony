@@ -1,5 +1,5 @@
 /*
-  $Header: /cvs/src/chrony/util.c,v 1.19 2003/03/24 23:35:43 richard Exp $
+  $Header: /cvs/src/chrony/util.c,v 1.20 2003/09/21 23:11:06 richard Exp $
 
   =======================================================================
 
@@ -232,7 +232,7 @@ UTI_TimevalToString(struct timeval *tv)
   stm = *gmtime((time_t *) &(tv->tv_sec));
   strftime(buffer, sizeof(buffer), "%a %x %X", &stm);
   result = NEXT_BUFFER;
-  sprintf(result, "%s.%06ld", buffer, (unsigned long)(tv->tv_usec));
+  snprintf(result, sizeof(buffer), "%s.%06ld", buffer, (unsigned long)(tv->tv_usec));
   return result;
 }
 
@@ -273,7 +273,7 @@ UTI_IPToDottedQuad(unsigned long ip)
   c = (ip>> 8) & 0xff;
   d = (ip>> 0) & 0xff;
   result = NEXT_BUFFER;
-  sprintf(result, "%ld.%ld.%ld.%ld", a, b, c, d);
+  snprintf(result, sizeof(result), "%ld.%ld.%ld.%ld", a, b, c, d);
   return result;
 }
 

@@ -1,5 +1,5 @@
 /*
-  $Header: /cvs/src/chrony/logging.c,v 1.13 2003/03/24 23:35:43 richard Exp $
+  $Header: /cvs/src/chrony/logging.c,v 1.14 2003/09/21 23:11:06 richard Exp $
 
   =======================================================================
 
@@ -87,7 +87,7 @@ LOG_Line_Function(LOG_Severity severity, LOG_Facility facility, const char *form
   char buf[2048];
   va_list other_args;
   va_start(other_args, format);
-  vsprintf(buf, format, other_args);
+  vsnprintf(buf, sizeof(buf), format, other_args);
   va_end(other_args);
 #ifdef WINNT
   if (logfile) {
@@ -122,7 +122,7 @@ LOG_Fatal_Function(LOG_Facility facility, const char *format, ...)
   char buf[2048];
   va_list other_args;
   va_start(other_args, format);
-  vsprintf(buf, format, other_args);
+  vsnprintf(buf, sizeof(buf), format, other_args);
   va_end(other_args);
 
 #ifdef WINNT

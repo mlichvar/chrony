@@ -198,6 +198,7 @@ John Hasler <john@dhh.gt.org>
     Changes to support 64 bit machines (i.e. those where
       sizeof(unsigned long) > 4)
     Bug fix to initstepslew directive
+    Fix to remove potential buffer overrun errors.
 
 Liam Hatton <me@liamhatton.com>
     Advice on configuring for Linux on PPC
@@ -242,6 +243,6 @@ sorry I can't identify all of you individually.
 Version control information
 ===========================
 
-$Header: /cvs/src/chrony/README,v 1.29 2003/09/19 22:48:26 richard Exp $
+$Header: /cvs/src/chrony/README,v 1.30 2003/09/21 23:11:06 richard Exp $
 
 vim:tw=72

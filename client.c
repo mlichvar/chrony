@@ -1,5 +1,5 @@
 /*
-  $Header: /cvs/src/chrony/client.c,v 1.66 2003/01/20 22:52:07 richard Exp $
+  $Header: /cvs/src/chrony/client.c,v 1.67 2003/09/21 23:11:06 richard Exp $
 
   =======================================================================
 
@@ -76,7 +76,8 @@ time_to_log_form(time_t t)
 
 
   stm = *gmtime(&t);
-  sprintf(buffer, "%2d%s%02d %02d:%02d:%02d",
+  snprintf(buffer, sizeof(buffer),
+          "%2d%s%02d %02d:%02d:%02d",
           stm.tm_mday, months[stm.tm_mon], stm.tm_year % 100,
           stm.tm_hour, stm.tm_min, stm.tm_sec);
 
@@ -94,7 +95,7 @@ UTI_IPToDottedQuad(unsigned long ip)
   b = (ip>>16) & 0xff;
   c = (ip>> 8) & 0xff;
   d = (ip>> 0) & 0xff;
-  sprintf(result, "%ld.%ld.%ld.%ld", a, b, c, d);
+  snprintf(result, sizeof(result), "%ld.%ld.%ld.%ld", a, b, c, d);
   return result;
 }
 
@@ -1456,7 +1457,7 @@ process_cmd_sources(char *line)
 
           hostname_buf[25] = 0;
           if (no_dns) {
-            sprintf(hostname_buf, "%s", UTI_IPToDottedQuad(ip_addr));
+            snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_IPToDottedQuad(ip_addr));
           } else {
             dns_lookup = DNS_IPAddress2Name(ip_addr);
             strncpy(hostname_buf, dns_lookup, 25);
@@ -1578,7 +1579,7 @@ process_cmd_sourcestats(char *line)
 
           hostname_buf[25] = 0;
           if (no_dns) {
-            sprintf(hostname_buf, "%s", UTI_IPToDottedQuad(ip_addr));
+            snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_IPToDottedQuad(ip_addr));
           } else {
             dns_lookup = DNS_IPAddress2Name(ip_addr);
             strncpy(hostname_buf, dns_lookup, 25);
@@ -1918,7 +1919,8 @@ process_cmd_clients(char *line)
               last_cmd_hit_ago = ntohl(reply.data.client_accesses.clients[j].last_cmd_hit_ago);
 
               if (no_dns) {
-                sprintf(hostname_buf, "%s", UTI_IPToDottedQuad(ip));
+                snprintf(hostname_buf, sizeof(hostname_buf), 
+                         "%s", UTI_IPToDottedQuad(ip));
               } else {
                 dns_lookup = DNS_IPAddress2Name(ip);
                 hostname_buf[25] = 0;
@@ -2042,7 +2044,8 @@ process_cmd_clients(char *line)
               last_cmd_hit_ago = ntohl(reply.data.client_accesses_by_index.clients[j].last_cmd_hit_ago);
 
               if (no_dns) {
-                sprintf(hostname_buf, "%s", UTI_IPToDottedQuad(ip));
+                snprintf(hostname_buf, sizeof(hostname_buf),
+                         "%s", UTI_IPToDottedQuad(ip));
               } else {
                 dns_lookup = DNS_IPAddress2Name(ip);
                 hostname_buf[25] = 0;

@@ -1,5 +1,5 @@
 /*
-  $Header: /cvs/src/chrony/nameserv.c,v 1.13 2002/02/28 23:27:11 richard Exp $
+  $Header: /cvs/src/chrony/nameserv.c,v 1.14 2003/09/21 23:11:06 richard Exp $
 
   =======================================================================
 
@@ -80,7 +80,7 @@ DNS_IPAddress2Name(unsigned long ip_addr)
       b = (ip_addr >> 16) & 0xff;
       c = (ip_addr >>  8) & 0xff;
       d = (ip_addr)       & 0xff;
-      sprintf(buffer, "%u.%u.%u.%u", a, b, c, d);
+      snprintf(buffer, sizeof(buffer), "%u.%u.%u.%u", a, b, c, d);
       return buffer;
     } else {
       return host->h_name;

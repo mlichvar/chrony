@@ -1,5 +1,5 @@
 /*
-  $Header: /cvs/src/chrony/conf.c,v 1.43 2003/09/19 22:44:06 richard Exp $
+  $Header: /cvs/src/chrony/conf.c,v 1.44 2003/09/21 23:11:06 richard Exp $
 
   =======================================================================
 
@@ -561,8 +561,8 @@ parse_cmdport(const char *line)
 
 /* ================================================== */
 
-#define HOSTNAME_LEN 255
-#define SHOSTNAME_LEN "255"
+#define HOSTNAME_LEN 2047
+#define SHOSTNAME_LEN "2047"
 
 static void
 parse_initstepslew(const char *line)
@@ -650,8 +650,8 @@ parse_logchange(const char *line)
 
 /* ================================================== */
 
-#define BUFLEN 127
-#define SBUFLEN "127"
+#define BUFLEN 2047
+#define SBUFLEN "2047"
 
 static void
 parse_mailonchange(const char *line)

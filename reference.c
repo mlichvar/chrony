@@ -1,5 +1,5 @@
 /*
-  $Header: /cvs/src/chrony/reference.c,v 1.40 2003/03/24 23:35:43 richard Exp $
+  $Header: /cvs/src/chrony/reference.c,v 1.41 2003/09/21 23:11:06 richard Exp $
 
   =======================================================================
 
@@ -280,7 +280,7 @@ maybe_log_offset(double offset)
 
   if (do_mail_change &&
       (abs_offset > mail_change_threshold)) {
-    sprintf(buffer, "%s %." S_MAX_USER_LEN "s", MAIL_PROGRAM, mail_change_user);
+    snprintf(buffer, sizeof(buffer), "%s %." S_MAX_USER_LEN "s", MAIL_PROGRAM, mail_change_user);
     p = popen(buffer, "w");
     if (p) {
       if (gethostname(host, sizeof(host)) < 0) {
