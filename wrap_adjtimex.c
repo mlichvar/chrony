@@ -36,15 +36,8 @@
 
 #define _LOOSE_KERNEL_NAMES
 
-#include <linux/time.h>
-#include <linux/timex.h>
-#include <asm/param.h>
-
+#include "chrony_timex.h"
 #include "wrap_adjtimex.h"
-
-/* This doesn't seem to be in any include files !! */
-
-extern int adjtimex(struct timex *);
 
 int
 TMX_SetTick(long tick)
