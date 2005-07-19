@@ -2,10 +2,25 @@
 # $Header: /cvs/src/chrony/build_kit,v 1.13 2003/01/12 23:50:54 richard Exp $
 # Perl script for building a release
 
+# Have to run it in the current directory
+if (($0 ne "build_kit") && ($0 ne "./build_kit")) {
+  die "Have to be in the checked-out directory to run build_kit";
+}
+
+$here=`pwd`;
+chomp $here;
+$version=$here;
+$version =~ s,^.*/chrony-([^/]+)$,$1, || die "Didn't recognize directory name";
+print "Building kit for version $version\n";
+
 chmod 0755, "configure";
 
+# Overwrite normal version.h file with version-specific one
+open (OUT, ">version.txt");
+print OUT $version."\n";
+close OUT;
+
 # Construct chrony.spec file
-$version = $ARGV[0] || die "No version on command line";
 open (IN, "<chrony.spec.sample");
 open (OUT, ">chrony.spec");
 while (<IN>) {

@@ -86,7 +86,7 @@ clean :
 	-rm -f *.o *.s chronyc chronyd core *~
 
 version.h : version.txt
-	sed -e 's/[$$]Name: \(.*\) [$$]/\1/;' < version.txt > version.h
+	./mkversion
 
 
 # For install, don't use the install command, because its switches

@@ -1,0 +1,15 @@
+#!/bin/sh
+
+rm -f version.h
+echo "#ifndef VERSION_H" > version.h
+echo "#define VERSION_H 1" >> version.h
+
+if [ -f version.txt ]; then
+	ver=`cat version.txt`
+	echo "#define PROGRAM_VERSION_STRING \"$ver\"" >> version.h
+else
+	echo "#define PROGRAM_VERSION_STRING \"DEVELOPMENT\"" >> version.h
+fi
+
+echo "#endif /* VERSION_H */" >> version.h
+
