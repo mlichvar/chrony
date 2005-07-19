@@ -836,7 +836,11 @@ compiled into the kernel).  An estimate is made of the RTC error at a
 particular RTC second, and the rate at which the RTC gains or loses time
 relative to true time.
 
-The RTC is fully supported in 2.2 and 2.4 kernels.
+The RTC is fully supported in 2.2, 2.4 and 2.6 kernels.
+
+On 2.6 kernels, if your motherboard has a HPET, you need to enable the
+@samp{HPET_EMULATE_RTC} option in your kernel configuration.  Otherwise, chrony
+will not be able to interact with the RTC device and will give up using it.
 
 For kernels in the 2.0 series prior to 2.0.32, the kernel was set up to
 trim the RTC every 11 minutes.  This would be disasterous for

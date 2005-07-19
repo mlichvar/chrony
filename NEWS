@@ -1,3 +1,11 @@
+New in version 1.21
+===================
+
+* Don't include Linux kernel header files any longer : allows chrony to compile
+  on recent distros.
+* Stop trying to use RTC if continuous streams of error messages would occur
+  (Linux with HPET).
+
 New in version 1.20
 ===================
 

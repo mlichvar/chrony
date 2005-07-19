@@ -867,9 +867,19 @@ read_from_device(void *any)
 
   status = read(fd, &data, sizeof(data));
   if (status < 0) {
+    /* This looks like a bad error : the file descriptor was indicating it was
+     * ready to read but we couldn't read anything.  Give up. */
     LOG(LOGS_ERR, LOGF_RtcLinux, "Could not read flags %s : %s", CNF_GetRtcDevice(), strerror(errno));
     error = 1;
-    goto turn_off_interrupt;
+    SCH_RemoveInputFileHandler(fd);
+    switch_interrupts(0); /* Likely to raise error too, but just to be sure... */
+    close(fd);
+    fd = -1;
+    if (logfile) {
+      fclose(logfile);
+      logfile = NULL;
+    }
+    return;
   }    
 
   if ((data & RTC_UIE) == RTC_UIE) {
