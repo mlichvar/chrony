@@ -30,10 +30,16 @@ while (<IN>) {
 close (IN);
 close (OUT);
 
-unlink "chrony.spec.sample";
 
 # Requires the makeinfo from texinfo v4
 system("makeinfo --no-headers --number-sections -o chrony.txt chrony.texi");
+system ("rm -rf ./{arch}");
+system ("rm -rf ./.arch-ids");
+unlink "chrony.spec.sample";
 unlink("build_kit");
-unlink("LICINS");
+
+chdir ("..");
+system ("tar cvf - chrony-$version | gzip -9 > chrony-$version.tar.gz");
+system ("gpg -b -a -o chrony-$version-tar-gz-asc.txt chrony-$version.tar.gz");
+
 
