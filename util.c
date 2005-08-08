@@ -232,7 +232,7 @@ UTI_TimevalToString(struct timeval *tv)
   stm = *gmtime((time_t *) &(tv->tv_sec));
   strftime(buffer, sizeof(buffer), "%a %x %X", &stm);
   result = NEXT_BUFFER;
-  snprintf(result, sizeof(buffer), "%s.%06ld", buffer, (unsigned long)(tv->tv_usec));
+  snprintf(result, BUFFER_LENGTH, "%s.%06ld", buffer, (unsigned long)(tv->tv_usec));
   return result;
 }
 
