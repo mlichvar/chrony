@@ -35,7 +35,7 @@
 
 #if defined (SOLARIS) || defined(SUNOS) || defined(LINUX) || defined(__NetBSD__)
 
-#if !defined(__NetBSD__)
+#if !defined(__NetBSD__) && !defined(__FreeBSD__)
 #include <alloca.h>
 #endif
 #include <assert.h>
@@ -43,7 +43,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <float.h>
+#if !defined(__FreeBSD__)
 #include <malloc.h>
+#endif
 #include <math.h>
 #include <netdb.h>
 #include <netinet/in.h>

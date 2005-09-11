@@ -248,7 +248,7 @@ case $SYSTEM in
         fi
     ;;
 
-    BSD/386-i[3456]86 )
+    BSD/386-i[3456]86|FreeBSD-i386 )
         # Antti Jrvinen <costello@iki.fi> reported that this system can
         # be supported with the SunOS 4.x driver files.
         EXTRA_OBJECTS="sys_sunos.o strerror.o"
