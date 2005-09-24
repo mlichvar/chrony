@@ -15,7 +15,8 @@
 #define CHRONY_IOC_NONE	0U
 #define CHRONY_IOC_WRITE	1U
 #define CHRONY_IOC_READ	2U
-#elif defined(__alpha__) || defined(__sparc__) || defined(__mips__) || defined(__ppc__) || defined(__ppc64__) || defined(__sparc64__)
+
+#elif defined(__alpha__) || defined(__sparc__) || defined(__ppc__) || defined(__ppc64__) || defined(__sparc64__)
 #define CHRONY_IOC_NRBITS	8
 #define CHRONY_IOC_TYPEBITS	8
 #define CHRONY_IOC_SIZEBITS	13
@@ -24,6 +25,16 @@
 #define CHRONY_IOC_NONE        1U
 #define CHRONY_IOC_READ        2U
 #define CHRONY_IOC_WRITE       4U
+
+#elif defined(__mips__) || defined(__mips32__)
+#define CHRONY_IOC_NRBITS       8
+#define CHRONY_IOC_TYPEBITS     8
+#define CHRONY_IOC_SIZEBITS     13
+#define CHRONY_IOC_DIRBITS      3
+#define CHRONY_IOC_NONE         1U
+#define CHRONY_IOC_READ         2U
+#define CHRONY_IOC_WRITE        4U
+
 #else
 #error "I don't know the values of the _IOC_* constants for your architecture"
 #endif
