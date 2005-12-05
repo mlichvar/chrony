@@ -2319,7 +2319,11 @@ process_line(char *line)
   /* Check for line being blank */
   p = line;
   while (*p && isspace((unsigned char)*p)) p++;
-  if (!*p) return quit;
+  if (!*p) {
+    fflush(stderr);
+    fflush(stdout);
+    return quit;
+  };
 
   if (!strncmp(p, "offline", 7)) {
     do_normal_submit = process_cmd_offline(&tx_message, p+7);
@@ -2480,7 +2484,8 @@ process_line(char *line)
       }
     }
   }
-
+  fflush(stderr);
+  fflush(stdout);
   return quit;
 }
 
