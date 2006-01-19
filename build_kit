@@ -1,0 +1,24 @@
+#!/usr/bin/env perl
+# $Header: /cvs/src/chrony/build_kit,v 1.13 2003/01/12 23:50:54 richard Exp $
+# Perl script for building a release
+
+chmod 0755, "configure";
+
+# Construct chrony.spec file
+$version = $ARGV[0] || die "No version on command line";
+open (IN, "<chrony.spec.sample");
+open (OUT, ">chrony.spec");
+while (<IN>) {
+  s/\@\@VERSION\@\@/$version/;
+  print OUT;
+}
+close (IN);
+close (OUT);
+
+unlink "chrony.spec.sample";
+
+# Requires the makeinfo from texinfo v4
+system("makeinfo --no-headers --number-sections -o chrony.txt chrony.texi");
+unlink("build_kit");
+unlink("LICINS");
+

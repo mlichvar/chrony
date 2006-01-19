@@ -1,0 +1,111 @@
+.TH CHRONYD 8 "August 10, 2001" chrony "System Administration"
+.SH NAME
+chronyd \- chrony background daemon
+
+.SH SYNOPSIS
+.B chronyd
+[\fIOPTIONS\fR]
+
+.SH DESCRIPTION
+\fIchrony\fR is a pair of programs for maintaining the accuracy of computer
+clocks. \fBchronyd\fR is a background daemon program that can be started at boot
+time.
+
+\fBchronyd\fR is a daemon which runs in background on the
+system.  It obtains measurements (e.g. via the network) of the
+system's offset relative to other systems, and adjusts the system
+time accordingly.  For isolated systems, the user can periodically
+enter the correct time by hand (using \fIchronyc\fR).  In either case,
+\fBchronyd\fR determines the rate at which the computer
+gains or loses time, and compensates for this.
+
+.SH USAGE
+\fBchronyd\fR is usually started at boot-time and requires superuser
+priviliges.
+
+If \fBchronyd\fR has been installed to its default location
+\fI/usr/local/sbin/chronyd\fR, starting it is simply a matter of entering the
+command:
+
+\fI/usr/local/sbin/chronyd\fR
+
+Information messages and warnings will be logged to syslog.
+
+
+.SH OPTIONS
+A summary of the options supported by \fBchronyd\fR is included below.
+
+.TP
+.B \-d
+When run in this mode, the program will not detach itself from the
+terminal, and all messages will be sent to the terminal instead of
+to syslog.
+.TP
+\fB\-f\fR \fIconf-file\fR
+This option can be used to specify an alternate location for the
+configuration file (default \fI/etc/chrony.conf\fR).
+.TP
+.B \-r
+This option will reload sample histories for each of the servers being used.
+These histories are created by using the \fIdump\fR command in \fIchronyc\fR,
+or by setting the \fIdumponexit\fR directive in the configuration file.  This
+option is useful if you want to stop and restart \fBchronyd\fR briefly for any
+reason, e.g. to install a new version.  However, it only makes sense on
+systems where the kernel can maintain clock compensation whilst not under
+\fBchronyd\fR's control.  The only version where this happens so far is Linux.
+On systems where this is not the case, e.g. Solaris and SunOS the option
+should not be used.
+.TP
+.B \-s
+This option will set the system clock from the computer's real-time
+clock.  This is analogous to supplying the \fI-s\fR flag to the
+\fI/sbin/clock\fR program during the Linux boot sequence.
+
+Support for real-time clocks is limited at present - the criteria
+are described in the section on the \fIrtcfile\fR directive in the
+documentation supplied with the distribution.
+
+If \fBchronyd\fR cannot support the real time clock on your computer,
+this option cannot be used and a warning message will be logged to
+the syslog.
+
+If used in conjunction with the \fB-r\fR flag, \fBchronyd\fR will attempt
+to preserve the old samples after setting the system clock from
+the real time clock.  This can be used to allow \fBchronyd\fR to
+perform long term averaging of the gain or loss rate across system
+reboots, and is useful for dial-up systems that are shut down when
+not in use.  For this to work well, it relies on \fBchronyd\fR having
+been able to determine accurate statistics for the difference
+between the real time clock and system clock last time the
+computer was on.
+.TP
+.B \-v
+This option displays \fBchronyd\fR's version number to the terminal and exits
+
+.SH FILES
+\fI/etc/chrony.conf\fR
+
+.SH VERSION
+Version 1.17
+
+.SH BUGS
+To report bugs, please contact the author and/or visit \fIhttp://chrony.sunsite.dk/\fR
+
+.SH "SEE ALSO"
+\fBchronyd\fR is documented in detail in the documentation supplied with the
+distribution (\fIchrony.txt\fR and \fIchrony.texi\fR) and is also available
+from \fIhttp://go.to/chrony\fR
+
+.BR chrony(1),
+.BR chronyc(1),
+.BR chrony.conf(5),
+.BR clock(8),
+.BR xntpd(8),
+.BR ntpd(8)
+
+.SH AUTHOR
+Richard Curnow <rc@rc0.org.uk>
+
+This man-page was written by Jan Schaumann <jschauma@netmeister.org> as part
+of "The Missing Man Pages Project".  Please see
+\fIhttp://www.netmeister.org/misc/m2p2/index.html\fR for details.

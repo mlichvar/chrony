@@ -1,0 +1,65 @@
+.TH CHRONY 1 "August 10, 2001" chrony "User's Manual"
+.SH NAME
+chrony \- programs for keeping computer clocks accurate
+
+.SH SYNOPSIS
+\fBchronyc\fR [\fIOPTIONS\fR]
+
+\fBchronyd\fR [\fIOPTIONS\fR]
+
+.SH DESCRIPTION
+\fBchrony\fR is a pair of programs for keeping computer clocks accurate.
+\fIchronyd\fR is a background (daemon) program and \fIchronyc\fR is a
+command-line interface to it. Time reference sources for chronyd can be
+RFC1305 NTP servers, human (via keyboard and \fIchronyc\fR), or the computer's
+real-time clock at boot time (Linux only). chronyd can determine the rate at
+which the computer gains or loses time and compensate for it while no external
+reference is present. Its use of NTP servers can be switched on and off
+(through \fIchronyc\fR) to support computers with dial-up/intermittent access
+to the Internet, and it can also act as an RFC1305-compatible NTP server.
+
+.SH USAGE
+\fIchronyc\fR is a command-line interface program which can be used to
+monitor \fIchronyd\fR's performance and to change various operating
+parateters whilst it is running.
+
+\fIchronyd\fR's main function is to obtain measurements of the true (UTC)
+time from one of several sources, and correct the system clock
+accordingly.  It also works out the rate at which the system clock
+gains or loses time and uses this information to keep it accurate
+between measurements from the reference.
+
+The reference time can be derived from either Network Time Protocol
+(NTP) servers (preferred), or wristwatch-and-keyboard (via \fIchronyc\fR).
+The main source of information about the Network Time Protocol is
+\fIhttp://www.eecis.udel.edu/~ntp\fR.
+
+It is designed so that it can work on computers which only have
+intermittent access to reference sources, for example computers which
+use a dial-up account to access the Internet.  Of course, it will work
+on computers with permanent connections too.
+
+In addition, for Linux 2.0.x (for x >= 32) or 2.2 onwards, chronyd can monitor
+the system's real time clock performance, so the system can maintain accurate
+time even across reboots.
+
+Typical accuracies available between 2 machines are
+
+On an ethernet LAN : 100-200 microseconds, often much better
+On a V32bis dial-up modem connection : 10's of milliseconds (from one
+session to the next)
+
+\fIchronyd\fR can also operate as an RFC1305-compatible NTP server and peer.
+
+.SH "SEE ALSO"
+.BR chronyc(1),
+.BR chrony(1)
+
+.I http://chrony.sunsite.dk/
+
+.SH AUTHOR
+Richard Curnow <rc@rc0.org.uk>
+
+This man-page was written by Jan Schaumann <jschauma@netmeister.org> as part
+of "The Missing Man Pages Project".  Please see
+\fIhttp://www.netmeister.org/misc/m2p2/index.html\fR for details.

@@ -1,0 +1,21 @@
+#!/usr/bin/bash
+
+# $1 is chrony password.
+# $2 is hostname to add or hostname=ipaddres
+# $3-$9 is rest of extra server parameters
+
+FIRST="$1"
+HOST="$2"
+shift 2
+
+#remaining parameters a the other paramaters to server command
+#excluding "offline"
+ARGS="$*"
+
+#if none use default taken from chrony documentation.
+DEF="minpoll 5 maxpoll 10 maxdelay 0.4"
+
+DARGS=${ARGS:-$DEF}
+
+CHRONYPASSWORD=$FIRST \
+/usr/local/bin/DNSchrony.pl -a  "$HOST" "$DARGS"

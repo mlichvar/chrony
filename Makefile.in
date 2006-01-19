@@ -1,0 +1,161 @@
+##################################################
+#
+# $Header: /cvs/src/chrony/Makefile.in,v 1.47 2003/04/07 21:43:54 richard Exp $
+#
+# =======================================================================
+#
+# chronyd/chronyc - Programs for keeping computer clocks accurate.
+# 
+# Copyright (C) Richard P. Curnow  1997-2003
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of version 2 of the GNU General Public License as
+# published by the Free Software Foundation.
+# 
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+#
+# =======================================================================
+#
+# Makefile template
+
+INSTALL_PREFIX=@INSTALL_PREFIX@
+MANDIR=@MANDIR@
+INFODIR=@INFODIR@
+
+CC = @CC@
+CCWARNFLAGS = @CCWARNFLAGS@
+OPTFLAGS = @CFLAGS@ @EXTRA_DEFS@
+
+DESTDIR=
+
+OBJS = util.o sched.o regress.o local.o \
+	sys.o main.o ntp_io.o ntp_core.o ntp_sources.o \
+	sources.o sourcestats.o reference.o \
+	logging.o conf.o cmdmon.o md5.o keys.o \
+	nameserv.o acquire.o manual.o addrfilt.o \
+	cmdparse.o mkdirpp.o rtc.o pktlength.o clientlog.o \
+	broadcast.o
+
+EXTRA_OBJS=@EXTRA_OBJECTS@
+
+CLI_OBJS = client.o md5.o nameserv.o getdate.o cmdparse.o \
+           pktlength.o
+
+SRCS = $(patsubst %.o,%.c,$(OBJS))
+EXTRA_SRCS = $(patsubst %.o,%.c,$(EXTRA_OBJS))
+
+CLI_SRCS = $(patsubst %.o,%.c,$(CLI_OBJS))
+
+LIBS = @LIBS@
+
+EXTRA_LIBS=@EXTRA_LIBS@
+EXTRA_CLI_LIBS=@EXTRA_CLI_LIBS@
+
+DEFS=@SYSDEFS@
+
+CFLAGS = $(CCWARNFLAGS) $(OPTFLAGS)
+
+# Until we have a main procedure we can link, just build object files
+# to test compilation
+
+all : chronyd chronyc
+
+chronyd : $(OBJS) $(EXTRA_OBJS)
+	$(CC) $(OPTFLAGS) -o chronyd $(OBJS) $(EXTRA_OBJS) $(LIBS) $(EXTRA_LIBS)
+
+chronyc : $(CLI_OBJS)
+	$(CC) $(OPTFLAGS) -o chronyc $(CLI_OBJS) @READLINE_LINK@ $(LIBS) $(EXTRA_CLI_LIBS)
+
+client.o : client.c
+	$(CC) $(CFLAGS) $(DEFS) @READLINE_COMPILE@ -c $<
+
+.depend : 
+	gcc -MM $(SRCS) $(EXTRA_SRCS) > .depend
+
+distclean :
+	-rm -f *.o *.s chronyc chronyd core options.h Makefile *~
+
+clean :
+	-rm -f *.o *.s chronyc chronyd core *~
+
+version.h : version.txt
+	sed -e 's/[$$]Name: \(.*\) [$$]/\1/;' < version.txt > version.h
+
+
+# For install, don't use the install command, because its switches
+# seem to vary between systems.
+
+install: chronyd chronyc
+	[ -d $(DESTDIR)$(INSTALL_PREFIX) ] || mkdir -p $(DESTDIR)$(INSTALL_PREFIX)
+	[ -d $(DESTDIR)$(INSTALL_PREFIX)/sbin ] || mkdir -p $(DESTDIR)$(INSTALL_PREFIX)/sbin
+	[ -d $(DESTDIR)$(INSTALL_PREFIX)/bin ] || mkdir -p $(DESTDIR)$(INSTALL_PREFIX)/bin
+	[ -d $(DESTDIR)$(INSTALL_PREFIX)/doc ] || mkdir -p $(DESTDIR)$(INSTALL_PREFIX)/doc
+	[ -d $(DESTDIR)$(MANDIR)/man1 ] || mkdir -p $(DESTDIR)$(MANDIR)/man1
+	[ -d $(DESTDIR)$(MANDIR)/man5 ] || mkdir -p $(DESTDIR)$(MANDIR)/man5
+	[ -d $(DESTDIR)$(MANDIR)/man8 ] || mkdir -p $(DESTDIR)$(MANDIR)/man8
+	[ -d $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony ] || mkdir -p $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony
+	cp chronyd $(DESTDIR)$(INSTALL_PREFIX)/sbin/chronyd
+	chmod 555 $(DESTDIR)$(INSTALL_PREFIX)/sbin/chronyd
+	cp chronyc $(DESTDIR)$(INSTALL_PREFIX)/bin/chronyc
+	chmod 555 $(DESTDIR)$(INSTALL_PREFIX)/bin/chronyc
+	cp chrony.txt $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/chrony.txt
+	chmod 444 $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/chrony.txt
+	cp COPYING $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/COPYING
+	chmod 444 $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/COPYING
+	cp README $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/README
+	chmod 444 $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/README
+	cp chrony.1 $(DESTDIR)$(MANDIR)/man1
+	chmod 444 $(DESTDIR)$(MANDIR)/man1/chrony.1
+	cp chronyc.1 $(DESTDIR)$(MANDIR)/man1
+	chmod 444 $(DESTDIR)$(MANDIR)/man1/chronyc.1
+	cp chronyd.8 $(DESTDIR)$(MANDIR)/man8
+	chmod 444 $(DESTDIR)$(MANDIR)/man8/chronyd.8
+	cp chrony.conf.5 $(DESTDIR)$(MANDIR)/man5
+	chmod 444 $(DESTDIR)$(MANDIR)/man5/chrony.conf.5
+
+%.o : %.c
+	$(CC) $(CFLAGS) $(DEFS) -c $<
+
+%.s : %.c
+	$(CC) $(CFLAGS) $(DEFS) -S $<
+
+main.o logging.o client.o : version.h
+
+# makeinfo v4 required to generate plain text and html
+MAKEINFO:=makeinfo
+
+install-docs : docs
+	[ -d $(DESTDIR)$(INSTALL_PREFIX)/doc ] || mkdir -p $(DESTDIR)$(INSTALL_PREFIX)/doc
+	cp chrony.txt $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/chrony.txt
+	chown root $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/chrony.txt
+	chmod 444 $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/chrony.txt
+	cp chrony.html $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/chrony.html
+	chown root $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/chrony.html
+	chmod 444 $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/chrony.html
+	[ -d $(DESTDIR)$(INFODIR) ] || mkdir -p $(DESTDIR)$(INFODIR)
+	cp chrony.info* $(DESTDIR)$(INFODIR)
+	chown root $(DESTDIR)$(INFODIR)/chrony.info*
+	chmod 444 $(DESTDIR)$(INFODIR)/chrony.info*
+
+docs : chrony.txt chrony.html chrony.info
+
+chrony.txt : chrony.texi
+	$(MAKEINFO) --no-headers --number-sections -o chrony.txt chrony.texi
+
+chrony.html : chrony.texi
+	$(MAKEINFO) --no-split --html --number-sections -o chrony.html chrony.texi
+
+chrony.info : chrony.texi
+	$(MAKEINFO) chrony.texi
+
+# This is only relevant if you're maintaining the website!
+faq.php : faq.txt faqgen.pl
+	perl faqgen.pl < faq.txt > faq.php
+

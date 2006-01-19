@@ -1,0 +1,53 @@
+/*
+  $Header: /cvs/src/chrony/rtc_linux.h,v 1.13 2002/02/28 23:27:13 richard Exp $
+
+  ======================================================================
+
+  chronyd/chronyc - Programs for keeping computer clocks accurate.
+
+ **********************************************************************
+ * Copyright (C) Richard P. Curnow  1997-2002
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ * 
+ **********************************************************************
+
+  ======================================================================
+
+  */
+
+#ifndef _GOT_RTC_LINUX_H
+#define _GOT_RTC_LINUX_H
+
+#include "reports.h"
+
+#if defined LINUX
+
+extern int RTC_Linux_Initialise(void);
+extern void RTC_Linux_Finalise(void);
+extern void RTC_Linux_TimePreInit(void);
+extern void RTC_Linux_TimeInit(void (*after_hook)(void *), void *anything);
+extern void RTC_Linux_StartMeasurements(void);
+
+/* 0=success, 1=no driver, 2=can't write file */
+extern int RTC_Linux_WriteParameters(void);
+
+extern int RTC_Linux_GetReport(RPT_RTC_Report *report);
+extern int RTC_Linux_Trim(void);
+
+extern void RTC_Linux_CycleLogFile(void);
+
+#endif /* defined LINUX */
+
+#endif /* _GOT_RTC_LINUX_H */

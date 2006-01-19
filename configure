@@ -1,0 +1,313 @@
+#!/bin/sh
+#
+# $Header: /cvs/src/chrony/configure,v 1.28 2003/07/01 20:53:00 richard Exp $
+#
+# =======================================================================
+#
+# chronyd/chronyc - Programs for keeping computer clocks accurate.
+#
+# #COPYRIGHT#
+#
+# =======================================================================
+
+# This configure script determines the operating system type and version
+
+if [ "x${CC}" = "x" ]; then
+  MYCC="gcc"
+else
+  MYCC="${CC}"
+fi
+
+if [ "x${CFLAGS}" = "x" ]; then
+  MYCFLAGS="-O2 -g"
+else
+  MYCFLAGS="${CFLAGS}"
+fi
+
+# ======================================================================
+# FUNCTIONS
+
+#{{{ test_for_sqrt
+test_for_sqrt () {
+# 0 : doesn't need -lm
+# 1 : needs -lm
+# 2 : doesn't even link with -lm
+
+  cat >docheck.c <<EOF;
+#include <math.h>
+int main(int argc, char **argv) {
+  return (int) sqrt((double)argc);
+}
+EOF
+
+  ${MYCC} ${MYCFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
+  if [ $? -eq 0 ]
+  then
+    ${MYCC} ${MYCFLAGS} -o docheck docheck.o >/dev/null 2>&1
+    if [ $? -eq 0 ]
+    then
+      result=0
+    else
+      ${MYCC} ${MYCFLAGS} -o docheck docheck.o -lm >/dev/null 2>&1
+      if [ $? -eq 0 ]
+      then
+        result=1
+      else
+        result=2
+      fi
+    fi
+  else
+    result=2
+  fi
+
+  rm -f docheck.c docheck.o docheck
+  echo $result
+}
+#}}}
+#{{{ test_for_stdint_h
+test_for_stdint_h () {
+  cat >docheck.c <<EOF;
+#include <stdint.h>
+int main(int argc, char **argv) {
+  return 0;
+}
+EOF
+
+  ${MYCC} ${MYCFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
+  if [ $? -eq 0 ]
+  then
+    result=0
+  else
+    result=1
+  fi
+
+  rm -f docheck.c docheck.o
+  echo $result
+}
+#}}}
+#{{{ test_for_inttypes_h
+test_for_inttypes_h () {
+  cat >docheck.c <<EOF;
+#include <inttypes.h>
+int main(int argc, char **argv) {
+  return 0;
+}
+EOF
+
+  ${MYCC} ${MYCFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
+  if [ $? -eq 0 ]
+  then
+    result=0
+  else
+    result=1
+  fi
+
+  rm -f docheck.c docheck.o
+  echo $result
+}
+#}}}
+
+# ======================================================================
+
+
+
+OPERATINGSYSTEM=`uname -s`
+VERSION=`uname -r`
+MACHINE=`uname -m`
+
+SYSTEM=${OPERATINGSYSTEM}-${MACHINE}
+
+EXTRA_LIBS=""
+EXTRA_CLI_LIBS=""
+EXTRA_OBJECTS=""
+EXTRA_DEFS=""
+INSTALL_PREFIX=/usr/local
+SYSDEFS=""
+
+# Support for readline (on by default)
+feat_readline=1
+readline_lib=""
+readline_inc=""
+ncurses_lib=""
+
+SETINFODIR=""
+SETMANDIR=""
+
+for option
+do
+    case "$option" in
+    --prefix=* | --install_prefix=* )
+      INSTALL_PREFIX=`echo $option | sed -e 's/[^=]*=//;'`
+    ;;
+    --trace )
+      EXTRA_DEFS="-DTRACEON"
+    ;;
+    --disable-readline )
+      feat_readline=0
+    ;;
+    --with-readline-library=* )
+      readline_lib=-L`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --with-readline-includes=* )
+      readline_inc=-I`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --with-ncurses-library=* )
+      ncurses_lib=-L`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --infodir=* )
+      SETINFODIR=`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --mandir=* )
+      SETMANDIR=`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    * )
+    echo "Unrecognized option : " $option
+    esac
+done
+
+case $SYSTEM in
+    SunOS-sun4* )
+    case $VERSION in
+        4.* )
+            EXTRA_OBJECTS="sys_sunos.o strerror.o"
+            EXTRA_LIBS="-lkvm"
+            SYSDEFS="-DSUNOS"
+            echo "Configuring for SunOS (" $SYSTEM "version" $VERSION ")"
+        ;;
+        5.* )
+            EXTRA_OBJECTS="sys_solaris.o"
+            EXTRA_LIBS="-lsocket -lnsl -lkvm -lelf"
+            EXTRA_CLI_LIBS="-lsocket -lnsl"
+            SYSDEFS="-DSOLARIS"
+            echo "Configuring for Solaris (" $SYSTEM "SunOS version" $VERSION ")"
+            if [ $VERSION = "5.3" ]; then
+                SYSDEFS="$SYSDEFS -DHAS_NO_BZERO"
+                echo "Using memset() instead of bzero()"
+            fi
+        ;;
+    esac
+    ;;
+    Linux* )
+        EXTRA_OBJECTS="sys_linux.o wrap_adjtimex.o rtc_linux.o"
+        SYSDEFS="-DLINUX"
+        echo "Configuring for " $SYSTEM
+        if [ -r /usr/include/linux/spinlock.h ]; then
+            SYSDEFS="$SYSDEFS -DHAS_SPINLOCK_H"
+            echo "The system has <spinlock.h>, using that"
+        else
+            echo "The system does not have <spinlock.h>, using private definition for spinlock_t"
+        fi
+	if [ "${MACHINE}" = "alpha" ]; then
+	   echo "Enabling -mieee"
+	   # FIXME: Should really test for GCC
+	   SYSDEFS="$SYSDEFS -mieee -DALPHA"
+	fi
+    ;;
+
+    BSD/386-i[3456]86 )
+        # Antti Jrvinen <costello@iki.fi> reported that this system can
+        # be supported with the SunOS 4.x driver files.
+        EXTRA_OBJECTS="sys_sunos.o strerror.o"
+        EXTRA_LIBS="-lkvm"
+        SYSDEFS="-DSUNOS"
+        echo "Configuring for BSD/386 (using SunOS driver)"
+    ;;
+    NetBSD-* )
+        EXTRA_OBJECTS="sys_netbsd.o"
+        EXTRA_LIBS="-lkvm"
+        SYSDEFS=""
+        echo "Configuring for $SYSTEM"
+    ;;
+    SunOS-i86pc* )                                          
+        # Doug Woodward <dougw@whistler.com> reported that this configuration
+        # works for Solaris 2.8 / SunOS 5.8 on x86 platforms
+        EXTRA_OBJECTS="sys_solaris.o"                
+        EXTRA_LIBS="-lsocket -lnsl -lkvm -lelf"      
+        EXTRA_CLI_LIBS="-lsocket -lnsl"                              
+        SYSDEFS="-DSOLARIS"                               
+        echo "Configuring for Solaris (" $SYSTEM "SunOS version" $VERSION ")" 
+    ;;                                                                        
+    CYGWIN32_NT-i[3456]86 )
+        EXTRA_OBJECTS="sys_winnt.o"
+        EXTRA_LIBS=""
+        SYSDEFS="-DWINNT"
+        echo "Configuring for Windows NT (Cygwin32)"
+    ;;
+    * )
+        echo "Sorry, I don't know how to build this software on your system."
+        exit 1
+    ;;
+esac
+
+printf "Checking if sqrt() needs -lm : "
+case `test_for_sqrt`
+in
+0)
+  printf "No\n"
+  LIBS=""
+;;
+1)
+  printf "Yes\n"
+  LIBS="-lm"
+;;
+*)
+  printf "\nCan't compile/link a program which uses sqrt(), bailing out\n"
+  exit 1
+;;
+esac
+
+printf "Checking for <stdint.h> : "
+if [ `test_for_stdint_h` -eq 0 ]; then
+  printf "Yes\n"
+  SYSDEFS="${SYSDEFS} -DHAS_STDINT_H"
+else
+  printf "No\n"
+fi
+
+printf "Checking for <inttypes.h> : "
+if [ `test_for_inttypes_h` -eq 0 ]; then
+  printf "Yes\n"
+  SYSDEFS="${SYSDEFS} -DHAS_INTTYPES_H"
+else
+  printf "No\n"
+fi
+
+if [ "x${MYCC}" = "xgcc" ]; then
+  CCWARNFLAGS="-Wmissing-prototypes -Wall"
+else
+  CCWARNFLAGS=""
+fi
+
+if [ $feat_readline = "1" ]; then
+  READLINE_COMPILE="-DFEAT_READLINE=1 $readline_inc"
+  READLINE_LINK="$readline_lib $ncurses_lib -lreadline -lncurses"
+else
+  READLINE_COMPILE=""
+  READLINE_LINK=""
+fi
+
+MANDIR=${INSTALL_PREFIX}/man
+INFODIR=${INSTALL_PREFIX}/info
+if [ "x$SETINFODIR" != "x" ]; then
+  INFODIR=$SETINFODIR
+fi
+if [ "x$SETMANDIR" != "x" ]; then
+  MANDIR=$SETMANDIR
+fi
+
+sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
+	s%@CC@%${MYCC}%;\
+	s%@CFLAGS@%${MYCFLAGS}%;\
+	s%@CCWARNFLAGS@%${CCWARNFLAGS}%;\
+	s%@LIBS@%${LIBS}%;\
+	s%@EXTRA_LIBS@%${EXTRA_LIBS}%;\
+	s%@SYSDEFS@%${SYSDEFS}%;\
+	s%@EXTRA_DEFS@%${EXTRA_DEFS}%;\
+	s%@EXTRA_CLI_LIBS@%${EXTRA_CLI_LIBS}%;\
+	s%@READLINE_COMPILE@%${READLINE_COMPILE}%;\
+	s%@READLINE_LINK@%${READLINE_LINK}%;\
+	s%@INSTALL_PREFIX@%${INSTALL_PREFIX}%;\
+	s%@MANDIR@%${MANDIR}%;\
+	s%@INFODIR@%${INFODIR}%;"\
+	< Makefile.in > Makefile
+

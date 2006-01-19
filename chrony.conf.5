@@ -1,0 +1,49 @@
+.TH chrony.conf 5 "August 10, 2001" chrony "Configuration Files"
+.SH NAME
+chrony.conf \- chronyd configuration file
+
+.SH SYNOPSIS
+.B /etc/chrony.conf
+
+.SH DESCRIPTION
+\fIchrony\fR is a pair of programs for maintaining the accuracy of computer
+clocks. \fIchronyd\fR is a background daemon program that can be started at
+boot time.
+
+Assuming that you have found some servers, you need to set up a
+configuration file to run \fIchrony\fR.  The (compiled-in) default location
+for this file is \fB/etc/chrony.conf\fR.  Assuming that your ntp servers
+are called `a.b.c' and `d.e.f', your \fBchrony.conf\fR file could contain
+as a minimum
+
+     server a.b.c
+     server d.e.f
+     server g.h.i
+
+However, you will probably want to include some of the other directives
+described in detail in the documentation supplied with the distribution
+(\fIchrony.txt\fR and \fIchrony.texi\fR). The following directives will be
+particularly useful : `driftfile', `commandkey', `keyfile'.  The smallest
+useful configuration file would look something like
+
+     server a.b.c
+     server d.e.f
+     server g.h.i
+     keyfile /etc/chrony.keys
+     commandkey 1
+     driftfile /etc/chrony.drift
+
+
+.SH "SEE ALSO"
+.BR chrony(1),
+.BR chronyc(1),
+.BR chronyd(1)
+
+.I http://chrony.sunsite.dk/
+
+.SH AUTHOR
+Richard Curnow <rc@rc0.org.uk>
+
+This man-page was written by Jan Schaumann <jschauma@netmeister.org> as part of "The Missing
+Man Pages Project".  Please see \fIhttp://www.netmeister.org/misc/m2p2/index.html\fR
+for details.

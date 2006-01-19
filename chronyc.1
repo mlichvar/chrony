@@ -1,0 +1,56 @@
+.TH CHRONYC 1 "August 10, 2001" chrony "User's Manual"
+.SH NAME
+chronyc \- command-line interface for chronyd
+
+.SH SYNOPSIS
+.B chronyc
+[\fIOPTIONS\fR]
+
+.SH DESCRIPTION
+\fIchrony\fR is a pair of programs for maintaining the accuracy of computer
+clocks.
+
+\fBchronyc\fR is a command-line interface program which can be used to
+monitor \fIchronyd\fR's performance and to change various operating
+parateters whilst it is running.
+
+.SH USAGE
+A detailed description of all commands supported by \fBchronyc\fR is available
+via the documentation supplied with the distribution (\fIchrony.txt\fR and
+\fIchrony.texi\fR).
+
+.SH OPTIONS
+A summary of the options supported by \fBchronyc\fR is included below.
+
+.TP
+\fB\-h\fR \fIhostname\fR
+specify hostname
+.TP
+\fB\-p\fR \fIport-number\fR
+specify port-number
+.TP
+\fB\-n\fR
+display raw IP addresses (don't attempt to look up hostnames)
+.TP \fIcommand\fR
+specify command.  If no command is given, chronyc will read commands
+interactively.
+
+
+.SH VERSION
+1.17
+
+.SH BUGS
+To report bugs, please contact the author and/or visit \fIhttp://go.to/chrony\fR
+
+.SH "SEE ALSO"
+.BR chronyd(1),
+.BR chrony(1)
+
+.I http://chrony.sunsite.dk/
+
+.SH AUTHOR
+Richard Curnow <rc@rc0.org.uk>
+
+This man-page was written by Jan Schaumann <jschauma@netmeister.org> as part of "The Missing
+Man Pages Project".  Please see \fIhttp://www.netmeister.org/misc/m2p2/index.html\fR
+for details.

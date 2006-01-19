@@ -1,0 +1,166 @@
+                Copyright (C) Paul Elliott 2002
+
+
+DNSchrony.pl version -2.0
+
+Problem: If you look at the list of secondary NTP servers:
+http://www.eecis.udel.edu/~mills/ntp/clock2.htm
+
+you will find statements like this:
+
+"Note: IP addresses are subject to change; please use DNS"
+
+These servers represent a problem for chrony. Chrony is a program
+designed to work on hosts with an intermittent connection to the
+internet. Often no DNS is available when chrony starts. As chrony
+is currently designed, chronyd never sees a DNS host name. If a
+user specifies one when using chronyc's "add server" command, the
+DNS lookup is done by chronyc and an IP address is passed to chronyd.
+
+One can imagine I suppose, a redesign to chrony in which chronyd
+keeps track of DNS changes. But this has problems, all the time
+chronyd is fooling around with DNS, it would not be keeping track
+of its prime function, what the clocks and NTP servers are saying.
+This could result in poorer performance. Or perhaps you say that
+chronyd should be multi threaded. One thread to fool with DNS
+and another to keep track of time. But this introduces a great
+deal of complexity, and complexity is the enemy of elegant robust
+code. Besides, Richard probably has better things to do.
+
+I have attempted to address this problem with a humble perl script,
+which I now release under the GPL: DNSchrony.pl
+
+PLEA FOR HELP FROM EXPERIENCED PERL HACKERS.
+
+Please go thru the code and find errors and improvements.
+I am not quite an polished perl hacker. Please fix bugs and
+make improvements. It needs better documentation. Someone
+who knows how, put in some POD.
+
+END OF PLEA
+
+Philosophy of DNSchrony.pl: keep a list of servers that use
+DNS. From time to time, hopefully when DNS is up, go thru
+the list lookup all the hostnames and see if any ip addresses have
+changed. If any have changed, update our list and do chronyc
+"delete" and "add server" commands so that chronyd now talks to
+the right NTP server.
+
+Additional nuance: keep the list in /etc/chrony.conf in the
+form of comments starting with "#" and "server" commands
+legal in a chrony.conf file. Format of a list entry:
+
+# hostname
+server IP-ADDRESS extra server parameters
+
+These entries are delimited by special comments that allow
+DNSchrony.pl to find them and also tell humans not to mess with them.
+
+Example of such a section of a chrony.conf file:
+
+dumpdir /var/log/chrony
+rtcfile /etc/chrony.rtc
+
+## DNSchrony dynamic dns server section. DO NOT EDIT
+## per entry FORMAT:
+##        |--------------------------------------------|
+##        |#HOSTNAME                                   |
+##        |server IP-ADDRESS extra-params [ offline ]  |
+##        |--------------------------------------------|
+# tock.greyware.com
+server 208.14.208.44 minpoll 5 maxpoll 10 maxdelay 0.4 offline
+# tick.greyware.com
+server 208.14.208.19 minpoll 5 maxpoll 10 maxdelay 0.4 offline
+# ntppub.tamu.edu
+server 128.194.254.9 minpoll 5 maxpoll 10 maxdelay 0.4 offline
+## END OF DNSchrony dynamic dns server section.
+
+This allows the list of dynamic DNS servers to be preserved
+when chronyd is stoped/started.
+
+All servers that do not have ip addresses subject to change
+should be put in the regular part of chrony.conf as described
+in the chrony documentation.
+
+Security philosophy: DNSchrony does no security checking but
+relies on other security factors.
+
+Users without the privilege to modify /etc/chrony.conf and the
+directory /etc will be unable to use DNSchrony to do so, because
+of file protections. DNSchrony passes thru passwords to chronyc.
+Users that do not know the correct chronyc  password will be
+unable to get chronyd do do anything. Thus, DNSchrony passes
+the buck to these other security features.
+
+INSTALLATION:
+
+copy the files:  DNSchronyADD DNSchronyUPDATE DNSchronyDELETE DNSchrony.pl
+to /usr/local/bin. Backup the file /etc/chrony.conf leave hosts
+with static ip addresses in this file.
+
+DNSchrony uses the following perl modules. See that they are installed.
+Get them from CPAN if needed.
+
+Net::DNS, Tie::Syslog, Getopt::Std, Socket, File.
+
+Cause DNSchronyUPDATE bash script to run from time to time when DNS
+is working. If you have a dialup, one way to do this would be to
+modify your /etc/ppp/ip-up.local file as follows:
+
+cat <<EOF | /usr/local/bin/chronyc
+password mysecret
+online
+EOF
+# update all of the dynamic servers and save the result.
+# do not wait for response
+
+nohup /usr/local/bin/DNSchronyUPDATE mysecret >/dev/null 2>&1 &
+
+Since this file contains the chronyc password you will want to set the
+file permissions so that just everybody will not be able to read
+it. But you already did that when you put in the chronyc command.  Any
+other way to make DNSchronyUPDATE run perodicly when DNS is up will
+also work.
+
+To add a server with a varying IP address one could run:
+/usr/local/bin/DNSchronyADD mysecret tock.greyware.com
+
+or if you want to specify different server parameters you
+could say:
+
+/usr/local/bin/DNSchronyADD mysecret tock.greyware.com "minpoll 10 maxpoll 20 maxdelay 0.8"
+
+The DNSchronyADD's default for these parameters is:
+"minpoll 5 maxpoll 10 maxdelay 0.4" values that are often shown
+as examples in the chrony documentation.
+
+If DNS is not running now but you know the IP address, you can say:
+/usr/local/bin/DNSchronyADD mysecret tock.greyware.com=208.14.208.44
+
+Of course, the IP address will be checked next time DNSchronyUPDATE
+runs.
+
+To delete dynamic DNS a server:
+/usr/local/bin/DNSchronyDELETE mysecret tock.greyware.com
+
+To change parameters delete and re-add.
+
+Of course, in all of the above "mysecret" is your chronyc password
+which SHOULD NOT BE "mysecret".
+----------------------------------------------
+DNSchrony.pl is covered by the GPL
+#                Copyright (C) Paul Elliott 2002
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#   SEE COPYING FOR DETAILS

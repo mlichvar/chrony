@@ -1,0 +1,3979 @@
+\input texinfo
+@c {{{ Main header stuff
+@afourwide
+@paragraphindent 0
+@setfilename chrony.info
+@settitle User guide for the chrony suite
+@c @setchapternewpage off
+
+@ifinfo
+@dircategory Net Utilities
+@direntry
+* chrony: (chrony).			How to use chronyd and chronyc
+* chronyd: (chrony)Starting chronyd.	Reference for chronyd
+* chronyc: (chrony)Running chronyc.	Reference for chronyc
+@end direntry
+@end ifinfo
+
+@titlepage
+@sp 10
+@title The chrony suite
+@subtitle This manual describes how to use
+@subtitle the programs chronyd and chronyc
+@author Richard P. Curnow
+@page
+@vskip 0pt plus 1filll
+Copyright @copyright{} 1997-1999 Richard P. Curnow
+@end titlepage
+@c }}}
+@c {{{ Top node
+@node Top
+@top
+@menu
+* Introduction::                What the chrony suite does
+* Installation::                How to compile and install the software
+* Typical scenarios::           How to configure the software for some common cases
+* Usage reference::             Reference manual
+* Porting guide::               Hints to help with porting the software
+* GPL::                         The GNU General Public License
+@end menu
+@c }}}
+@c {{{ Ch:Introduction
+@c {{{ Chapter top
+@node Introduction
+@chapter Introduction
+@menu
+* Overview::                    What the programs do
+* Acknowledgements::            Credit where credit is due
+* Availability::                Where to get the software
+* Other time synchronisation packages::  Comparision with other software
+* Distribution and warranty::   There is no warranty
+* Bug reporting::               How to report bugs and make suggestions
+* Contributing::                Areas where contributions are particularly welcome
+@end menu
+@c }}}
+@c {{{ S:Overview
+@node Overview
+@section Overview
+Chrony is a software package for maintaining the accuracy of computer
+system clocks.  It consists of a pair of programs :
+
+@itemize @bullet
+@item @code{chronyd}.  This is a daemon which runs in background on the
+system.  It obtains measurements (e.g. via the network) of the system's
+offset relative to other systems, and adjusts the system time
+accordingly.  For isolated systems, the user can periodically enter the
+correct time by hand (using @code{chronyc}).  In either case,
+@code{chronyd} determines the rate at which the computer gains or loses
+time, and compensates for this.
+
+@code{chronyd} can also act as an NTP server, and provide a time-of-day service
+to other computers.  A typical set-up is to run @code{chronyd} on a gateway
+computer that has a dial-up link to the Internet, and use it to serve time to
+computers on a private LAN sitting behind the gateway.  The IP addresses that
+can act as clients of @code{chronyd} can be tightly controlled.  The default is
+no client access.
+
+@item @code{chronyc}.  This is a command-line driven control and
+monitoring program.  An administrator can use this to fine-tune various
+parameters within the daemon, add or delete servers etc whilst the
+daemon is running.
+
+The IP addresses from which @code{chronyc} clients may connect can be tightly
+controlled.  The default is just the computer that @code{chronyd} itself is
+running on.
+@end itemize
+@c }}}
+@c {{{ S:Acknowledgments
+@node Acknowledgements
+@section Acknowledgements
+
+The @code{chrony} suite makes use of the algorithm known as @emph{RSA
+Data Security, Inc. MD5 Message-Digest Algorithm} for authenticating
+messages between different machines on the network.
+
+In writing the @code{chronyd} program, extensive use has been made of
+RFC1305, written by David Mills.  I have occasionally referred to the
+@code{xntp} suite's source code to check details of the protocol that
+the RFC did not make absolutely clear.  The core algorithms in
+@code{chronyd} are all completely distinct from @code{xntp}, however.
+@c }}}
+@c {{{ S:Availability
+@node Availability
+@section Availability
+@menu
+* Getting the software::        Where can I get the software from?
+* Platforms::                   Which platforms will it run on?
+@end menu
+
+
+@node Getting the software
+@subsection Getting the software
+Links on @uref{http://chrony.sunsite.dk/download.php, the
+chrony home page} describe how to obtain the software.
+
+
+@node Platforms
+@subsection Platforms
+Although most of the program is portable between
+Unix-like systems, there are parts that have to be tailored to each
+specific vendor's system.  These are the parts that interface with the
+operating system's facilities for adjusting the system clock;
+different operating systems may provide different function calls to
+achieve this, and even where the same function is used it may have
+different quirks in its behaviour.
+
+The software is known to work in the following environments:
+@itemize @bullet
+@item Linux/i386 and Linux/ppc.  The software is known to work on Linux 2.0.x,
+2.2.x and 2.4.x.  Prior to 2.0.31, the real time clock can't be used.
+
+@item NetBSD
+@item BSD/386
+
+@item Solaris 2.3/2.5/2.5.1/2.6/2.7/2.8 on Sparc (Sparc 20, Ultrasparc) and
+i386
+
+@item SunOS 4.1.4 on Sparc 2 and Sparc20.
+@end itemize
+
+Closely related systems may work too, but they have not been tested.
+
+Porting the software to other system (particularly to those supporting
+an @code{adjtime} system call) should not be difficult, however it
+requires access to such systems to test out the driver.
+@c }}}
+@c {{{ S:Other programs
+@node Other time synchronisation packages
+@section Relationship to other software packages
+@menu
+* Comparison with xntpd::       
+* Comparison with timed::       
+@end menu
+
+@node Comparison with xntpd
+@subsection xntpd
+The `reference' implementation of the Network Time Protocol is the
+program @code{xntpd}, available via
+@uref{http://www.eecis.udel.edu/~ntp, The NTP home page}.
+
+@code{xntpd} is designed to support all the operating modes defined by
+RFC1305, and has driver support for a large number of reference clocks
+(such as GPS receivers) that can be connected directly to a computer,
+thereby providing a so-called 'stratum 1' server.
+
+Things @code{chronyd} can do that @code{xntpd} can't:
+
+@itemize @bullet
+@item
+@code{chronyd} can perform usefully in an environment where access to
+the time reference is intermittent.  @code{chronyd} estimates
+@emph{both} the current time offset @emph{and} the rate at which the
+computer's clock gains or loses time, and can use that rate estimate to
+trim the clock after the reference disappears.  @code{xntpd} corrects
+any time offset by speeding up and slowing down the computer clock, and
+so could be left with a significant rate error if the reference
+disappears whilst it is trying to correct a big offset.
+
+@item
+@code{chronyd} provides support for isolated networks whether the only
+method of time correction is manual entry (e.g. by the administrator
+looking at a clock).  @code{chronyd} can look at the errors corrected at
+different updates to work out the rate at which the computer gains or
+loses time, and use this estimate to trim the computer clock
+subsequently.
+
+@item
+@code{chronyd} provides support to work out the gain or loss rate of the
+`real-time clock', i.e. the clock that maintains the time when the
+computer is turned off.  It can use this data when the system boots to
+set the system time from a corrected version of the real-time clock.
+These real-time clock facilities are only available on certain releases
+of Linux, so far.
+
+@item
+The @code{xntpd} program is supported by other programs to carry out
+certain functions.  @code{ntpdate} is used to provide an initial
+correction to the system clock based on a `one-shot' sampling of other
+NTP servers.  @code{tickadj} is used to adjust certain operating system
+parameters to make @code{xntpd} work better.  All this functionality is
+integrated into @code{chronyd}.
+@end itemize
+
+Things @code{xntpd} can do that @code{chronyd} can't:
+
+@itemize @bullet
+@item
+@code{xntpd} supports a range of different hardware reference clocks
+(GPS, atomic etc) that can be connected to a computer to provide a
+`stratum-1' server.  @code{chronyd} does not support any such hardware
+@emph{yet}; I don't have access to any to do any development work.
+However, the software architecture should allow such equipment to be
+interfaced at a later date.
+
+@item
+@code{xntpd} supports effectively all of RFC1305, including broadcast /
+multicast clients, leap seconds, and extra encryption schemes for
+authenticating data packets.
+
+@item
+@code{xntpd} has been ported to more types of computer / operating
+system (so far).
+
+@item
+xntpd is designed to work solely with integer arithmetic (i.e. does not
+require floating point support from its host).
+@end itemize
+
+@node Comparison with timed
+@subsection timed
+@code{timed} is a program that is part of the BSD networking suite.  It
+uses broadcast packets to find all machines running the daemon within a
+subnet.  The machines elect a master which periodically measures the
+system clock offsets of the other computers using ICMP timestamps.
+Corrections are sent to each member as a result of this process.
+
+Problems that may arise with @code{timed} are :
+
+@itemize @bullet
+@item
+Because it uses broadcasts, it is not possible to isolate its
+functionality to a particular group of computers; there is a risk of
+upsetting other computers on the same network (e.g. where a whole
+company is on the same subnet but different departments are independent
+from the point of view of administering their computers.)
+@item
+The update period appears to be 10 minutes.  Computers can build up
+significant offsets relative to each other in that time.  If a
+computer can estimate its rate of drift it can keep itself closer to
+the other computers between updates by adjusting its clock every few
+seconds.  @code{timed} does not seem to do this.
+@item
+@code{timed} does not have any integrated capability for feeding
+real-time into its estimates, or for estimating the average rate of time
+loss/gain of the machines relative to real-time (unless one of the
+computers in the group has access to an external reference and is always
+appointed as the `master').
+@end itemize
+
+@code{timed} does have the benefit over @code{chronyd} that for isolated
+networks of computers, they will track the `majority vote' time.  For
+such isolated networks, @code{chronyd} requires one computer to be the
+`master' with the others slaved to it.  If the master has a particular
+defective clock, the whole set of computers will tend to slip relative
+to real time (but they @emph{will} stay accurate relative to one
+another).
+@c }}}
+@c {{{ S:Rights + warranty
+@node Distribution and warranty
+@section Distribution rights and (lack of) warranty
+
+Chrony may be distributed in accordance with the GNU General Public License
+version 2, reproduced in @xref{GPL}.
+
+@c }}}
+@c {{{ S:Bug reporting + suggestions
+@node Bug reporting
+@section Bug reporting and suggestions
+
+If you think you've found a bug in chrony, or have a suggestion, please let me
+know.  My primary current email address is @email{rc@@rc0.org.uk}.  If that
+fails, you could try finding me through one of the chrony mailing lists, or by
+looking up my name on a search engine.
+
+I can't promise a timescale to fix a bug; it depends a lot on the how complex
+the bug is to track down, as I have a lot of other calls on my time : 2 young
+children, my job, and indeed other free/open source software projects.
+However, I do intend to look into problems when time allows.
+
+Another source of information to try is the chrony users mailing list.  You can
+join this by sending an empty message to
+@email{chrony-users-subscribe@@sunsite.dk}.  Only subscribers can post to
+the list.
+
+When you are reporting a bug, please send me all the information you can.
+Unfortunately, chrony has proven to be one of those programs where it is very
+difficult to reproduce bugs in a different environment.  So I may have to
+interact with you quite a lot to obtain enough extra logging and tracing to
+pin-point the problem in some cases.  Please be patient and plan for this!
+
+Of course, if you can debug the problem yourself and send me a source code
+patch to fix it, I will be very grateful!
+
+@c }}}
+@c {{{ S:Contributions
+@node Contributing
+@section Contributions
+
+Although chrony is now a fairly mature and established project, there are still
+areas that could be improved.  If you can program in C and have some expertise
+in these areas, you might be able to fill the gaps.
+
+Particular areas I know need addressing are :
+
+@enumerate
+@item Porting to other Unices
+
+This involves creating equivalents of sys_solaris.c, sys_linux.c etc for the
+new system.  Note, the Linux driver has been reported as working on a range of
+different architectures (Alpha, Sparc, MIPS as well as x86 of course).
+
+@item Porting to Windows NT
+
+I did a small amount of work on this under Cygwin.  Only the sorting out of the
+include files has really been achieved so far.  The two main areas still to
+address are
+
+@enumerate
+@item The system clock driver.
+@item How to make chronyd into an NT service (i.e. what to replace fork(),
+setsid() etc with so that chronyd can be automatically started in the system
+bootstrap.
+@end enumerate
+
+@item Hardware clock support
+
+@item Automation of the trimrtc and writertc mechanisms
+
+Currently, the RTC trimming mechanism is a manual operation, because there has
+to be a reasonable guarantee that the system will stay up for a reasonable
+length of time afterwards.  (If it is shut down too soon, a poor
+characterisation of the RTC drift rate will be stored on disc, giving a bad
+system clock error when the system is next booted.)
+
+To make chrony more automated for the non-expert user, it would be useful if
+this problem could be avoided so that trimrtc could be done automatically (e.g.
+in a crontab, or as part of the ip-up or ip-down scripts.)
+
+@end enumerate
+@c }}}
+@c }}}
+@c {{{ Ch:Installation
+@node Installation
+@chapter Installation
+
+@c {{{ main introduction text
+The software is distributed as source code which has to be compiled.
+The source code is supplied in the form of a gzipped tar file, which
+unpacks to a subdirectory identifying the name and version of the
+program.
+
+After unpacking the source code, change directory into it, and type
+
+@example
+./configure
+@end example
+
+This is a shell script that automatically determines the system type.
+There is a single optional parameter, @code{--prefix} which indicates
+the directory tree where the software should be installed.  For example,
+
+@example
+./configure --prefix=/opt/free
+@end example
+
+will install the @code{chronyd} daemon into /opt/free/sbin and the
+chronyc control program into /opt/free/bin.  The default value for the
+prefix is /usr/local.
+
+The configure script assumes you want to use gcc as your compiler.
+If you want to use a different compiler, you can configure this way:
+
+@example
+CC=cc CFLAGS=-O ./configure --prefix=/opt/free
+@end example
+
+for Bourne-family shells, or
+    
+@example
+setenv CC cc
+setenv CFLAGS -O
+./configure --prefix=/opt/free
+@end example
+
+for C-family shells.
+
+If the software cannot (yet) be built on your system, an error message
+will be shown.  Otherwise, the files @file{options.h} and
+@file{Makefile} will be generated.
+
+By default, chronyc will be built to make use of the readline library.  If you
+don't want this, specify the --disable-readline flag to configure.  If you have
+readline and/or ncurses installed in a non-standard location, please refer to
+@pxref{readline support} for information.
+
+Now type
+
+@example
+make
+@end example
+
+to build the programs.
+
+If you want to build the manual in plain text, HTML and info versions, type
+
+@example
+make docs
+@end example
+
+Once the programs have been successfully compiled, they need to be
+installed in their target locations.  This step normally needs to be
+performed by the superuser, and requires the following command to be
+entered.
+
+@example
+make install
+@end example
+
+This will install the binaries, plain text manual and manpages.
+
+To install the HTML and info versions of the manual as well, enter the command
+
+@example
+make install-docs
+@end example
+
+If you want chrony to appear in the top level info directory listing, you need
+to run the @command{install-info} command manually after this step.
+@command{install-info} takes 2 arguments.  The first is the path to the
+@file{chrony.info} file you have just installed.  This will be the argument you
+gave to --prefix when you configured (@file{/usr/local} by default), with
+@file{/info/chrony.info} on the end.  The second argument is the location of
+the file called @file{dir}.  This will typically be @file{/usr/info/dir}.  So
+the typical command line would be
+
+@example
+install-info /usr/local/info/chrony.info /usr/info/dir
+@end example
+    
+Now that the software is successfully installed, the next step is to
+set up a configuration file.  The contents of this depend on the
+network environment in which the computer operates.  Typical scenarios
+are described in the following section of the document.
+@c }}}
+@menu
+* readline support::            If readline or ncurses in in a non-standard place
+* package builders::            Extra options useful to package builders
+@end menu
+@c {{{ readline support
+@node readline support
+@section Support for the readline library
+By default, chronyc is built to make use of the readline library.  This allows
+you to use the cursor keys to replay and edit old commands.  If you don't want
+to use readline (in which case chronyc will use a minimal command line
+interface), invoke configure like this:
+
+@example
+./configure --disable-readline other-options...
+@end example
+
+If you have readline and/or ncurses installed in locations that aren't normally searched by the compiler and linker, you need extra options if you want readline to be used:
+
+@table @samp
+@item --with-readline-includes=directory_name
+This defines the name of the directory above the one where @file{readline.h}
+is.  @file{readline.h} is assumed to be in a @file{readline} subdirectory of
+the named directory.
+
+@item --with-readline-library=directory_name
+This defines the directory containing the @file{libreadline.a} or
+@file{libreadline.so} file.
+
+@item --with-ncurses-library=directory_name
+This defines the directory containing the @file{libncurses.a} or
+@file{libncurses.so} file.
+@end table
+
+@c }}}
+@c {{{
+@node package builders
+@section Extra options for package builders
+The configure and make procedures have some extra options that may be useful if
+you are building a distribution package for chrony.
+
+The --infodir=DIR option to configure specifies a different install directory
+for the info files.  This overrides the @file{info} subdirectory of the
+argument to the --prefix option.  For example, you might use
+
+@example
+./configure --prefix=/usr --infodir=/usr/share/info
+@end example
+
+The --mandir=DIR option to configure specifies a different install directory
+for the man pages.  This overrides the @file{man} subdirectory of the
+argument to the --prefix option.
+
+@example
+./configure --prefix=/usr --infodir=/usr/share/info --mandir=/usr/share/man
+@end example
+
+to set both options together.
+
+The final option is the DESTDIR option to the make command.  For example, you
+could use the commands
+
+@example
+./configure --prefix=/usr --infodir=/usr/share/info --mandir=/usr/share/man
+make all docs
+make install DESTDIR=./tmp
+cd tmp
+tar cvf - . | gzip -9 > chrony.tar.gz
+@end example
+
+to build a package.  When untarred within the root directory, this will install
+the files to the intended final locations.
+
+@c }}}
+
+@c }}}
+@c {{{ Ch:Typical operating scenarios
+@c {{{ Chapter top
+@node Typical scenarios
+@chapter Typical operating scenarios
+@menu
+* Computers on the net::        Your computer is permanently on the Internet (or on
+                                a private network with NTP servers)
+* Infrequent connection::       You connect to the Internet sometimes (e.g. via a modem)
+* Isolated networks::           You have an isolated network with no reference clocks
+* Dial-up home PCs::            Additional considerations if you turn your computer off
+                                when it's not in use.
+* Configuration options overview::  Overview of some configuration options.
+@end menu
+@c }}}
+@c {{{ S:Permanent connection
+@node Computers on the net
+@section Computers connected to the internet
+In this section we discuss how to configure chrony for computers that
+have permanent connections to the internet (or to any network
+containing true NTP servers which ultimately derive their time from a
+reference clock).
+
+To operate in this mode, you will need to know the names of the NTP
+server machines you wish to use.  You may be able to find names of
+suitable servers by one of the following methods:
+
+@itemize @bullet
+@item Your institution may already operate servers on its network.
+Contact your system administrator to find out.
+
+@item Your ISP probably has one or more NTP servers available for its
+customers.
+
+@item Somewhere under the NTP homepage there is a list of public
+stratum 1 and stratum 2 servers.  You should find one or more servers
+that are near to you --- check that their access policy allows you to
+use their facilities.
+@end itemize
+
+Assuming that you have found some servers, you need to set up a
+configuration file to run chrony.  The (compiled-in) default location
+for this file is @file{/etc/chrony.conf}.  Assuming that your ntp
+servers are called @code{a.b.c} and @code{d.e.f}, your
+@file{chrony.conf} file could contain as a minimum
+
+@example
+server a.b.c
+server d.e.f
+server g.h.i
+@end example
+
+However, you will probably want to include some of the other directives
+described later.  The following directives will be particularly useful :
+@code{driftfile}, @code{commandkey}, @code{keyfile}.  The smallest
+useful configuration file would look something like
+
+@example
+server a.b.c
+server d.e.f
+server g.h.i
+keyfile /etc/chrony.keys
+commandkey 1
+driftfile /etc/chrony.drift
+@end example
+@c }}}
+@c {{{ S:Infrequent connection
+@node Infrequent connection
+@section Infrequent connection to true NTP servers
+In this section we discuss how to configure chrony for computers that
+have occasional connections to the internet.
+
+@menu
+* Configuration for infrequent connections::  How to set up the @code{/etc/chrony} file
+* Advising chronyd of internet availability::  How to tell chronyd when the link is available
+@end menu
+
+@node Configuration for infrequent connections
+@subsection Setting up the configuration file for infrequent connections
+As in the previous section, you will need access to NTP servers on the
+internet.  The same remarks apply for how to find them.
+
+In this case, you will need some additional configuration to tell
+@code{chronyd} when the connection to the internet goes up and down.
+This saves the program from continuously trying to poll the servers when
+they are inaccessible.
+
+Again, assuming that your ntp servers are called @code{a.b.c} and
+@code{d.e.f}, your @file{chrony.conf} file would need to contain
+something like
+
+@example
+server a.b.c
+server d.e.f
+server g.h.i
+@end example
+
+However, the following issues need to be addressed:
+
+@enumerate 1
+@item
+Your computer probably doesn't have DNS access whilst offline to turn
+the machine names into IP addresses.
+@item
+Your computer will keep trying to contact the servers to obtain
+timestamps, even whilst offline.  If you operate a dial-on-demand
+system, things are even worse, because the link to the internet will
+keep getting established.
+@end enumerate
+
+For this reason, it would be better to specify this part of your
+configuration file in the following way:
+
+@example
+server 1.2.3.4 offline
+server 5.6.7.8 offline
+server 9.10.11.12 offline
+@end example
+
+Because numeric IP addresses have been used, the first problem is
+overcome.  The @code{offline} keyword indicates that the servers start
+in an offline state, and that they should not be contacted until @code{chronyd}
+receives notification that the link to the internet is present.
+
+An alternative is to use the names of the NTP servers, and put entries for them
+into your @file{/etc/hosts} file.  This will be OK as long as @samp{files}
+comes before @samp{dns} in the @samp{hosts} line of the
+@file{/etc/nsswitch.conf} file.
+
+In order to notify @code{chronyd} of the presence of the link, you will need to
+be able to log in to it with the program chronyc.  To do this, @code{chronyd}
+needs to be configured with an administrator password.  To set up an
+administrator password, you can create a file @file{/etc/chrony.keys}
+containing a single line
+
+@example
+1 xyzzy
+@end example
+
+and add the following line to @file{/etc/chrony.conf} (the order of the
+lines does not matter)
+
+@example
+commandkey 1
+@end example
+
+The smallest useful configuration file would look something like
+
+@example
+server 1.2.3.4 offline
+server 5.6.7.8 offline
+server 9.10.11.12 offline
+keyfile /etc/chrony.keys
+commandkey 1
+driftfile /etc/chrony.drift
+@end example
+
+The next section describes how to tell @code{chronyd} when the internet link
+goes up and down.
+
+@node Advising chronyd of internet availability
+@subsection How to tell chronyd when the internet link is available.
+To use this option, you will need to configure a command key in
+@code{chronyd's} configuration file @file{/etc/chrony.conf}, as described in
+the previous section.
+
+To tell @code{chronyd} when to start and finish sampling the servers, the
+@code{online} and @code{offline} commands of chronyc need to be used.
+To give an example of their use, we assume that @code{pppd} is the
+program being used to connect to the internet, and that chronyc has been
+installed at its default location @file{/usr/local/bin/chronyc}.  We
+also assume that the command key has been set up as described in the
+previous section.
+
+In the file @file{/etc/ppp/ip-up} we add the command sequence
+
+@example
+/usr/local/bin/chronyc <<EOF
+password xyzzy
+online
+EOF
+@end example
+
+and in the file @file{/etc/ppp/ip-down} we add the sequence
+
+@example
+/usr/local/bin/chronyc <<EOF 
+password xyzzy
+offline
+EOF
+@end example
+
+@code{chronyd's} polling of the servers will now only occur whilst the
+machine is actually connected to the Internet.
+@c }}}
+@c {{{ S:Isolated networks
+@node Isolated networks
+@section Isolated networks
+In this section we discuss how to configure chrony for computers that
+never have network conectivity to any computer which ultimately derives
+its time from a reference clock.
+
+In this situation, one computer is selected to be the master timeserver.
+The other computers are either direct clients of the master, or clients
+of clients.
+
+The rate value in the master's drift file needs to be set to the average
+rate at which the master gains or loses time.  @code{chronyd} includes
+support for this, in the form of the @code{manual} directive in the
+configuration file and the @code{settime} command in the @code{chronyc}
+program.
+
+If the master is rebooted, @code{chronyd} can re-read the drift rate
+from the drift file.  However, the master has no accurate estimate of
+the current time.  To get around this, the system can be configured so
+that the master can initially set itself to a `majority-vote' of
+selected clients' times; this allows the clients to `flywheel' the
+master across its outage.
+
+A typical configuration file for the master (called @code{master}) might
+be (assuming the clients are in the 192.168.165.x subnet and that the
+master's address is 192.168.169.170)
+
+@example
+driftfile /etc/chrony.drift
+commandkey 25
+keyfile /etc/chrony.keys
+initstepslew 10 client1 client3 client6
+local stratum 8
+manual
+allow 192.168.165
+@end example
+
+For the clients that have to resynchronise the master when it restarts,
+the configuration file might be
+
+@example
+server master
+driftfile /etc/chrony.drift
+logdir /var/log/chrony
+log measurements statistics tracking
+keyfile /etc/chrony.keys
+commandkey 24
+local stratum 10
+initstepslew 20 master
+allow 192.168.169.170
+@end example
+
+The rest of the clients would be the same, except that the @code{local}
+and @code{allow} directives are not required.
+@c }}}
+@c {{{ S:Dial-up home PCs
+@node Dial-up home PCs
+@section The home PC with a dial-up connection
+
+@menu
+* Dial-up overview::            General discussion of how the software operates in this mode
+* Dial-up configuration::       Typical configuration files
+@end menu
+
+@node Dial-up overview
+@subsection Assumptions/how the software works
+This section considers the home computer which has a dial-up connection.
+It assumes that Linux is run exclusively on the computer.  Dual-boot
+systems may work; it depends what (if anything) the other system does to
+the system's real-time clock.
+
+Much of the configuration for this case is discussed earlier
+(@pxref{Infrequent connection}).  This section addresses specifically
+the case of a computer which is turned off between 'sessions'.
+
+In this case, @code{chronyd} relies on the computer's real-time clock
+(RTC) to maintain the time between the periods when it is powered up.
+The arrangement is shown in the figure below.
+
+@example
+@group
+            trim if required                          PSTN
+      +---------------------------+               +----------+
+      |                           |               |          |
+      v                           |               |          |
++---------+                    +-------+       +-----+     +---+
+| System's|  measure error/    |chronyd|       |modem|     |ISP|
+|real-time|------------------->|       |-------|     |     |   |
+|  clock  |   drift rate       +-------+       +-----+     +---+
++---------+                       ^                          |
+      |                           |                          |
+      +---------------------------+                  --o-----o---
+         set time at boot up                           |
+                                                  +----------+
+                                                  |NTP server|
+                                                  +----------+
+@end group
+@end example
+
+When the computer is connected to the Internet (via the modem),
+@code{chronyd} has access to external NTP servers which it makes
+measurements from.  These measurements are saved, and straight-line fits
+are performed on them to provide an estimate of the computer's time
+error and rate of gaining/losing time.
+
+When the computer is taken offline from the Internet, the best estimate
+of the gain/loss rate is used to free-run the computer until it next
+goes online.
+
+Whilst the computer is running, @code{chronyd} makes measurements of the
+real-time clock (RTC) (via the @file{/dev/rtc} interface, which must be
+compiled into the kernel).  An estimate is made of the RTC error at a
+particular RTC second, and the rate at which the RTC gains or loses time
+relative to true time.
+
+The RTC is fully supported in 2.2 and 2.4 kernels.
+
+For kernels in the 2.0 series prior to 2.0.32, the kernel was set up to
+trim the RTC every 11 minutes.  This would be disasterous for
+@code{chronyd} -- there is no reliable way of synchronising with this
+trimming. For this reason, @code{chronyd} only supports the RTC in 2.0
+kernels from v2.0.32 onwards.
+
+When the computer is powered down, the measurement histories for all the
+NTP servers are saved to files (if the @code{dumponexit} directive is
+specified in the configuration file), and the RTC tracking information
+is also saved to a file (if the @code{rtcfile} directive has been
+specified).  These pieces of information are also saved if the
+@code{dump} and @code{writertc} commands respectively are issued through
+@code{chronyc}.
+
+When the computer is rebooted, @code{chronyd} reads the current RTC time
+and the RTC information saved at the last shutdown.  This information is
+used to set the system clock to the best estimate of what its time would
+have been now, had it been left running continuously.  The measurement
+histories for the servers are then reloaded.
+
+The next time the computer goes online, the previous sessions'
+measurements can contribute to the line-fitting process, which gives a
+much better estimate of the computer's gain/loss rate.
+
+One problem with saving the measurements and RTC data when the machine
+is shut down is what happens if there is a power failure; the most
+recent data will not be saved.  Although @code{chronyd} is robust enough
+to cope with this, some performance may be lost.  (The main danger
+arises if the RTC has been changed during the session, with the
+@code{trimrtc} command in @code{chronyc}.  Because of this,
+@code{trimrtc} will make sure that a meaningful RTC file is saved out
+after the change is completed).
+
+The easiest protection against power failure is to put the @code{dump}
+and @code{writertc} commands in the same place as the @code{offline}
+command is issued to take @code{chronyd} offline; because @code{chronyd}
+free-runs between online sessions, no parameters will change
+significantly between going offline from the Internet and any power
+failure.
+
+A final point regards home computers which are left running for extended
+periods and where it is desired to spin down the hard disc when it is
+not in use (e.g. when not accessed for 15 minutes).  @code{chronyd} has
+been planned so it supports such operation; this is the reason why the
+RTC tracking parameters are not saved to disc after every update, but
+only when the user requests such a write, or during the shutdown
+sequence.  The only other facility that will generate periodic writes to
+the disc is the @code{log rtc} facility in the configuration file; this
+option should not be used if you want your disc to spin down.
+
+@node Dial-up configuration
+@subsection Typical configuration files.
+
+To illustrate how a dial-up home computer might be configured, example
+configuration files are shown in this section.
+
+For the @file{/etc/chrony.conf} file, the following can be used as an
+example.  @emph{NOTE : The @code{server} directives are only applicable
+to customers of Demon Internet; users of other ISPs will need to use
+their own ISP's NTP servers or public NTP servers.}
+
+@example
+server 158.152.1.65 minpoll 5 maxpoll 10 maxdelay 0.4 offline
+server 158.152.1.76 minpoll 5 maxpoll 10 maxdelay 0.4 offline
+server 194.159.253.2 minpoll 5 maxpoll 10 maxdelay 0.4 offline
+logdir /var/log/chrony
+log statistics measurements tracking
+driftfile /etc/chrony.drift
+keyfile /etc/chrony.keys
+commandkey 25
+maxupdateskew 100.0
+dumponexit
+dumpdir /var/log/chrony
+rtcfile /etc/chrony.rtc
+@end example
+
+With Freeserve as the ISP, I use the following server lines :
+
+@example
+server 194.152.64.68 minpoll 5 maxpoll 10 maxdelay 0.4 offline
+server 194.152.64.35 minpoll 5 maxpoll 10 maxdelay 0.4 offline
+server 194.152.64.34 minpoll 5 maxpoll 10 maxdelay 0.4 offline
+@end example
+
+I use @code{pppd} for connecting to my ISP.  This runs two scripts
+@file{/etc/ppp/ip-up} and @file{/etc/ppp/ip-down} when the link goes
+online and offline respectively.
+
+The relevant part of the @file{/etc/ppp/ip-up} file is (with a dummy
+password)
+
+@example
+/usr/local/bin/chronyc <<EOF
+password xxxxxxxx
+online
+EOF
+@end example
+
+and the relevant part of the @file{/etc/ppp/ip-down} script is
+
+@example
+/usr/local/bin/chronyc <<EOF
+password xxxxxxxx
+offline
+dump
+writertc
+EOF
+@end example
+
+(Because they have to contain the administrator password, it would be
+desirable to make the files readable only by root on a multiuser
+machine).
+
+To start @code{chronyd} during the boot sequence, I have the following
+in @file{/etc/rc.d/rc.local} (this is a Slackware system)
+
+@example
+if [ -f /usr/local/sbin/chronyd -a -f /etc/chrony.conf ]; then
+  /usr/local/sbin/chronyd -r -s
+  echo "Start chronyd"
+fi
+@end example
+
+The placement of this command may be important on some systems.  In
+particular, @code{chronyd} may need to be started several seconds (about
+10 as a minimum) before any software that depends on the system clock
+not jumping or moving backwards, depending on the directives in
+@code{chronyd's} configuration file.
+
+For the system shutdown, @code{chronyd} should receive a SIGTERM several
+seconds before the final SIGKILL; the SIGTERM causes the measurement
+histories and RTC information to be saved out.  There should be no need
+to add anything to the shutdown sequence, unless (as my system had)
+there is no pause between the SIGTERM and SIGKILL being delivered to the
+remaining processes.  So if you find something like
+
+@example
+killall5 -15 
+killall5 -9
+@end example
+
+in your @code{/etc/rc.d/rc.0} script, you will need to insert a sleep, e.g.
+
+@example
+killall5 -15 
+sleep 5
+killall5 -9
+@end example
+
+Otherwise, @code{chronyd} will not always save information on shutdown,
+which could be a problem if you don't use @code{dump} and
+@code{writertc} when you go offline.
+@c }}}
+@c {{{ S:Other config options
+@node Configuration options overview
+@section Other important configuration options
+The most common option to include in the configuration file is the
+@code{driftfile} option.  One of the major tasks of @code{chronyd} is to
+work out how fast or how slow the system clock runs relative to real
+time - e.g. in terms of seconds gained or lost per day.  Measurements
+over a long period are usually required to refine this estimate to an
+acceptable degree of accuracy.  Therefore, it would be bad if
+@code{chronyd} had to work the value out each time it is restarted,
+because the system clock would not run so accurately whilst the
+determination is taking place.
+
+To avoid this problem, @code{chronyd} allows the gain or loss rate to be
+stored in a file, which can be read back in when the program is
+restarted.  This file is called the drift file, and might typically be
+stored in @file{/etc/chrony.drift}.  By specifying an option like the
+following
+
+@example
+driftfile /etc/chrony.drift
+@end example
+
+in the configuration file (@file{/etc/chrony.conf}), the drift file
+facility will be activated.
+@c }}}
+@c }}}
+@c {{{ Ch:Usage reference
+@node Usage reference
+@chapter Usage reference
+
+@c {{{ Chapter top
+@menu
+* Starting chronyd::            Command line options for the daemon
+* Configuration file::          Format of the configuration file
+* Running chronyc::             The run-time configuration program
+@end menu
+@c }}}
+@c {{{ S:Starting chronyd
+@node Starting chronyd
+@section Starting chronyd
+If @code{chronyd} has been installed to its default location
+@file{/usr/local/sbin/chronyd}, starting it is simply a matter of
+entering the command
+
+@example
+/usr/local/sbin/chronyd
+@end example
+
+Information messages and warnings will be logged to syslog.
+
+The command line options supported are as follows:
+
+@table @code
+@item -d
+When run in this mode, the program will not detach itself from the
+terminal, and all messages will be sent to the terminal instead of to
+syslog.
+@item -f <conf-file>
+This option can be used to specify an alternate location for the
+configuration file (default @file{/etc/chrony.conf}).
+@item -r
+This option will reload sample histories for each of the servers being
+used.  These histories are created by using the @code{dump} command in
+@code{chronyc}, or by setting the @code{dumponexit} directive in the
+configuration file.  This option is useful if you want to stop and
+restart @code{chronyd} briefly for any reason, e.g. to install a new
+version.  However, it only makes sense on systems where the kernel can
+maintain clock compensation whilst not under @code{chronyd's} control.
+The only version where this happens so far is Linux.  On systems where
+this is not the case, e.g. Solaris and SunOS the option should not be
+used.
+@item -s
+This option will set the system clock from the computer's real-time
+clock.  This is analogous to supplying the `-s' flag to the
+@file{/sbin/clock} program during the Linux boot sequence.
+
+Support for real-time clocks is limited at present - the criteria are
+described in the section on the @code{rtcfile} directive (@pxref{rtcfile
+directive}).
+
+If @code{chronyd} cannot support the real time clock on your computer,
+this option cannot be used and a warning message will be logged to the
+syslog.
+
+If used in conjunction with the `-r' flag, @code{chronyd} will attempt
+to preserve the old samples after setting the system clock from the real
+time clock.  This can be used to allow @code{chronyd} to perform long
+term averaging of the gain or loss rate across system reboots, and is
+useful for dial-up systems that are shut down when not in use.  For this
+to work well, it relies on @code{chronyd} having been able to determine
+accurate statistics for the difference between the real time clock and
+system clock last time the computer was on.
+
+@item -v
+This option displays @code{chronyd's} version number to the terminal and
+exits.
+@end table
+
+On systems that support an @file{/etc/rc.local} file for starting
+programs at boot time, @code{chronyd} can be started from there.
+
+On systems with a System V style initialisation (e.g. Solaris), a
+suitable start/stop script might be as shown below.  This might be
+placed in the file @file{/etc/rc2.d/S83chrony}.
+
+@example
+@group
+#!/bin/sh
+# This file should have uid root, gid sys and chmod 744
+#
+
+killproc() @{            # kill the named process(es)
+        pid=`/usr/bin/ps -e |
+             /usr/bin/grep -w $1 |
+             /usr/bin/sed -e 's/^  *//' -e 's/ .*//'`
+        [ "$pid" != "" ] && kill $pid
+@}
+
+case "$1" in
+
+'start')
+   if [ -f /opt/free/sbin/chronyd -a -f /etc/chrony.conf ]; then
+     /opt/free/sbin/chronyd
+   fi
+   ;;
+'stop')
+   killproc chronyd
+   ;;
+*)
+   echo "Usage: /etc/rc2.d/S83chrony @{ start | stop @}"
+   ;;
+esac
+@end group
+@end example
+
+(In both cases, you may want to bear in mind that @code{chronyd} can
+step the time when it starts.  There may be other programs started at
+boot time that could be upset by this, so you may need to consider the
+ordering carefully.  However, @code{chronyd} will need to start after
+daemons providing services that it may require, e.g. the domain name
+service.)
+@c }}}
+@c {{{ S:chronyd configuration file
+@node Configuration file
+@section The chronyd configuration file
+@c {{{ section top
+The configuration file is normally called @file{/etc/chrony.conf}; in
+fact, this is the compiled-in default. However, other locations can be
+specified with a command line option.
+
+Each command in the configuration file is placed on a separate line.
+The following sections describe each of the commands in turn.  The
+directives can occur in any order in the file.
+
+@menu
+* comments in config file::     How to write a comment
+* acquisitionport directive::   Set port to use for initial time probes
+* allow directive::             Give access to NTP clients
+* bindaddress directive::       Limit the network interface that is used for NTP
+* bindcmdaddress directive::    Limit the network interface that is used for commands
+* broadcast directive::         Make chronyd act as an NTP broadcast server
+* cmdallow directive::          Give control access to chronyc on other computers
+* cmddeny directive::           Deny control access to chronyc on other computers
+* commandkey directive::        Set runtime command key
+* cmdport directive::           Set port to use for runtime commanding
+* deny directive::              Deny access to NTP clients
+* driftfile directive::         Specify location of file containing drift data
+* dumpdir directive::           Specify directory for dumping measurements
+* dumponexit directive::        Dump measurements when daemon exits
+* initstepslew directive::      Trim the system clock on boot-up.
+* keyfile directive::           Specify location of file containing keys
+* linux_hz directive::          Define a non-standard value of the kernel HZ constant
+* linux_freq_scale directive::  Define a non-standard value to compensate the kernel frequency bias
+* local directive::             Allow unsynchronised machine to act as server
+* log directive::               Make daemon log certain sets of information
+* logchange directive::         Generate syslog messages if large offsets occur
+* logdir directive::            Specify directory for logging
+* mailonchange directive::      Send email if a clock correction above a threshold occurs
+* manual directive::            Allow manual entry using chronyc's settime cmd.
+* maxupdateskew directive::     Stop bad estimates upsetting machine clock
+* noclientlog directive::       Prevent chronyd from gathering data about clients
+* peer directive::              Specify an NTP peer
+* pidfile directive::           Specify the file where chronyd's pid is written
+* port directive::              Set port to use for NTP packets
+* rtcdevice directive::         Specify name of enhanced RTC device (if not /dev/rtc)
+* rtcfile directive::           Specify the file where real-time clock data is stored
+* rtconutc directive::          Specify that the real time clock keeps UTC not local time
+* server directive::            Specify an NTP server
+@end menu
+@c }}}
+@c {{{ comments in config file
+@node comments in config file
+@subsection Comments in the configuration file
+The configuration file may contain comment lines.  A comment line is any line
+that starts with zero or more spaces followed by any one of the following
+characters:
+@itemize
+@item !
+@item ;
+@item #
+@item %
+@end itemize
+Any line with this format will be ignored.
+@c }}}
+@c {{{ acquisitionport directive
+@node acquisitionport directive
+@subsection acquisitionport
+@code{chronyd} uses a separate client-side port for the rapid-fire
+measurements requested with the @code{initstepslew} directive
+(@pxref{initstepslew directive}).  Normally, that port is chosen
+arbitrarily by the operating system.  However, you can use
+@code{acquisitionport} to explicitly specify a port.  This may be useful
+for getting through firewalls.
+
+Do not make acquisition and regular NTP service (@pxref{port directive})
+use the same port.
+
+An example of the @code{acquisitionport} command is
+
+@example
+acquisitionport 1123
+@end example
+
+This would change the port used for rapid queries to udp/1123.  You
+could then persuade the firewall administrator to let that port through.
+@c }}}
+@c {{{ allow
+@node allow directive
+@subsection allow
+The @code{allow} command is used to designate a particular subnet from
+which NTP clients are allowed to access the computer as an NTP server.
+
+The default is that no clients are allowed access, i.e. @code{chronyd}
+operates purely as an NTP client.  If the @code{allow} directive is
+used, @code{chronyd} will be both a client of its servers, and a server
+to other clients.
+
+Examples of use of the command are as follows:
+
+@example
+allow foo.bar.com
+allow 1.2
+allow 3.4.5
+allow 6.7.8/22
+allow 6.7.8.9/22
+allow
+@end example
+
+The first command allows the named node to be an NTP client of this computer.
+The second command allows any node with an IP address of the form 1.2.x.y (with
+x and y arbitrary) to be an NTP client of this computer.  Likewise, the third
+command allows any node with an IP address of the form 3.4.5.x to have client
+NTP access.  The fourth and fifth forms allow access from any node with an IP
+address of the form 6.7.8.x, 6.7.9.x, 6.7.10.x or 6.7.11.x (with x arbitrary),
+i.e. the value 22 is the number of bits defining the specified subnet.  (In the
+fifth form, the final byte is ignored).  The sixth form allows access by any
+node on the entire Internet.
+
+A second form of the directive, @code{allow all}, has a greater effect,
+depending on the ordering of directives in the configuration file.  To
+illustrate the effect, consider the two examples
+
+@example
+allow 1.2.3.4
+deny 1.2.3
+allow 1.2
+@end example
+
+and 
+
+@example
+allow 1.2.3.4
+deny 1.2.3
+allow all 1.2
+@end example
+
+In the first example, the effect is the same regardles of what order the
+three directives are given in.  So the 1.2.x.y subnet is allowed access,
+except for the 1.2.3.x subnet, which is denied access, however the host
+1.2.3.4 is allowed access.
+
+In the second example, the @code{allow all 1.2} directives overrides the
+effect of @emph{any} previous directive relating to a subnet within the
+specified subnet.  Within a configuration file this capability is
+probably rather moot; however, it is of greater use for reconfiguration
+at run-time via @code{chronyc} (@pxref{allow all command}).
+
+Note, if the @code{initstepslew} directive (@pxref{initstepslew
+directive}) is used in the configuration file, each of the computers
+listed in that directive must allow client access by this computer for
+it to work.
+@c }}}
+@c {{{ bindaddress
+@node bindaddress directive
+@subsection bindaddress
+The bindaddress allows you to restrict the network interface to which
+chronyd will listen for NTP packets.  This provides an additional level of
+access restriction above that available through the 'deny' mechanism.
+
+Suppose you have a local ethernet with addresses in the 192.168.1.0
+subnet together with a dial-up connection.  The ethernet interface's IP
+address is 192.168.1.1.  Suppose (for some reason) you want to block all
+access through the dialup connection (note, this will even block replies
+from servers on the dialup side, so you will not be able to synchronise
+to an external source).  You could add the line
+
+@example
+bindaddress 192.168.1.1
+@end example
+
+to the configuration file.
+
+This directive affects NTP (UDP port 123) packets.  If no @code{bindcmdaddress}
+directive is present, the address supplied by @code{bindaddress} will be used
+to control binding of the command socket (UDP port 323) as well.
+
+The @code{bindaddress} directive has been found to cause problems when used on
+computers that need to pass NTP traffic over multiple network interfaces (e.g.
+firewalls).  It is, therefore, not particularly useful.  Use of the
+@code{allow} and @code{deny} directives together with a network firewall is
+more likely to be successful.
+
+@c }}}
+@c {{{ bindcmdaddress
+@node bindcmdaddress directive
+@subsection bindcmdaddress
+The bindcmdaddress allows you to restrict the network interface to which
+chronyd will listen for command packets (issued by chronyc).
+
+Suppose you have a local ethernet with addresses in the 192.168.1.0 subnet
+together with a dial-up connection.  The ethernet interface's IP address is
+192.168.1.1.  Suppose you want to block all access through the dialup
+connection.  You could add the line
+
+@example
+bindcmdaddress 192.168.1.1
+@end example
+
+to the configuration file.
+
+The @code{bindcmdaddress} directive has been found to cause problems when used
+on computers that need to pass command traffic over multiple network
+interfaces.  It is, therefore, not particularly useful.  Use of the
+@code{cmdallow} and @code{cmddeny} directives together with a network firewall
+is more likely to be successful.
+
+@c }}}
+@c {{{ broadcast directive
+@node broadcast directive
+@subsection broadcast
+The @code{broadcast} directive is used to declare a broadcast address to which
+chronyd should send packets in NTP broadcast mode (i.e. make chronyd act as a
+broadcast server).  Broadcast clients on that subnet will be able to
+synchronise.
+
+The syntax is as follows
+
+@example
+broadcast 30 192.168.1.255
+broadcast 60 192.168.2.255 12123
+@end example
+
+In the first example, the destination port defaults to 123/udp (the normal NTP
+port).  In the second example, the destionation port is specified as 12123.
+The first parameter in each case (30 or 60 respectively) is the interval in
+seconds between broadcast packets being sent.  The second parameter in each
+case is the broadcast address to send the packet to.  This should correspond to
+the broadcast address of one of the network interfaces on the computer where
+chronyd is running.
+
+You can have more than 1 @code{broadcast} directive if you have more than 1
+network interface onto which you wish to send NTP broadcast packets.
+
+Chronyd itself cannot currently act as a broadcast client; it must always be
+configured as a point-to-point client by defining specific NTP servers and
+peers.  This broadcast server feature is intended for providing a time source
+to other NTP software (e.g. various MS Windows clients).
+
+If xntpd is used as the broadcast client, it will try to use a point-to-point
+client/server NTP access to measure the round-trip delay.  Thus, the broadcast
+subnet should also be the subject of an @code{allow} directive (@pxref{allow
+directive}).
+@c }}}
+@c {{{ cmdallow
+@node cmdallow directive
+@subsection cmdallow
+
+This is similar to the @code{allow} directive (@pxref{allow directive}), except
+that it allows control access (rather than NTP client access) to a particular
+subnet or host.  (By 'control access' is meant that chronyc can be run on those
+hosts and successfully connect to chronyd on this computer.)
+
+The syntax is identical to the @code{allow} directive.
+
+There is also a @code{cmdallow all} directive with similar behaviour to the
+@code{allow all} directive (but applying to control access in this case, of
+course).
+@c }}}
+@c {{{ cmddeny
+@node cmddeny directive
+@subsection cmddeny
+
+This is similar to the @code{cmdallow} directive (@pxref{cmdallow directive}),
+except that it denies control access to a particular subnet or host,
+rather than allowing it.
+
+The syntax is identical.
+
+There is also a @code{cmddeny all} directive with similar behaviour to the
+@code{cmdallow all} directive.
+@c }}}
+@c {{{ commandkey
+@node commandkey directive
+@subsection commandkey
+The commandkey command is used to set the key number used for
+authenticating user commands via the chronyc program at run time.
+This allows certain actions of the chronyc program to be restricted to
+administrators.
+
+An example of the commandkey command is
+
+@example
+commandkey 20
+@end example
+
+In the key file (see the keyfile command) there should be a line of
+the form
+
+@example
+20 foobar
+@end example
+
+When running the chronyc program to perform run-time configuration,
+the command
+
+@example
+password foobar
+@end example
+
+must be entered before any commands affecting the operation of the
+daemon can be entered.
+@c }}}
+@c {{{ cmdport
+@node cmdport directive
+@subsection cmdport
+
+The @code{cmdport} directive allows the port that is used for run-time
+command and monitoring (via the program @code{chronyc}) to be altered
+from its default (323/udp).
+
+An example shows the syntax
+
+@example
+cmdport 257
+@end example
+
+This would make @code{chronyd} use 257/udp as its command port.
+(@code{chronyc} would need to be run with the @code{-p 257} switch to
+inter-operate correctly).
+@c }}}
+@c {{{ deny
+@node deny directive
+@subsection deny
+
+This is similar to the @code{allow} directive (@pxref{allow directive}),
+except that it denies NTP client access to a particular subnet or host,
+rather than allowing it.
+
+The syntax is identical.
+
+There is also a @code{deny all} directive with similar behaviour to the
+@code{allow all} directive.
+@c }}}
+@c {{{ driftfile
+@node driftfile directive
+@subsection driftfile
+One of the main activities of the @code{chronyd} program is to work out
+the rate at which the system clock gains or loses time relative to real
+time.
+
+Whenever @code{chronyd} computes a new value of the gain/loss rate, it
+is desirable to record it somewhere.  This allows @code{chronyd} to
+begin compensating the system clock at that rate whenever it is
+restarted, even before it has had a chance to obtain an equally good
+estimate of the rate during the new run.  (This process may take many
+minutes, at least).
+
+The driftfile command allows a file to be specified into which
+@code{chronyd} can store the rate information.  Two parameters are
+recorded in the file.  The first is the rate at which the system clock
+gains or loses time, expressed in parts per million, with gains
+positive.  Therefore, a value of 100.0 indicates that when the system
+clock has advanced by a second, it has gained 100 microseconds on
+reality (so the true time has only advanced by 999900 microseconds).
+The second is an estimate of the error bound around the first value in
+which the true rate actually lies.
+
+An example of the driftfile command is
+
+@example
+driftfile /etc/chrony.drift
+@end example
+@c }}}
+@c {{{ dumpdir
+@node dumpdir directive
+@subsection dumpdir
+To compute the rate of gain or loss of time, @code{chronyd} has to store
+a measurement history for each of the time sources it uses.
+
+Certain systems (so far only Linux) have operating system support for
+setting the rate of gain or loss to compensate for known errors.  (On
+other systems, @code{chronyd} must simulate such a capability by
+periodically slewing the system clock forwards or backwards by a
+suitable amount to compensate for the error built up since the previous
+slew).
+
+For such systems, it is possible to save the measurement history across
+restarts of @code{chronyd} (assuming no changes are made to the system
+clock behaviour whilst it is not running).  If this capability is to be
+used (via the dumponexit command in the configuration file, or the dump
+command in chronyc), the dumpdir command should be used to define the
+directory where the measurement histories are saved.
+
+An example of the command is
+
+@example
+dumpdir /var/log/chrony
+@end example
+
+A source whose IP address is 1.2.3.4 would have its measurement
+history saved in the file @file{/var/log/chrony/1.2.3.4.dat}.
+@c }}}
+@c {{{ dumponexit
+@node dumponexit directive
+@subsection dumponexit
+If this command is present, it indicates that @code{chronyd} should save
+the measurement history for each of its time sources recorded whenever
+the program exits.  (See the dumpdir command above).
+@c }}}
+@c {{{ initstepslew
+@node initstepslew directive
+@subsection initstepslew
+In normal operation, @code{chronyd} always slews the time when it needs to
+adjust the system clock.  For example, to correct a system clock which
+is 1 second slow, @code{chronyd} slightly increases the amount by which the
+system clock is advanced on each clock interrupt, until the error is
+removed.  (Actually, this is done by calling the @code{adjtime()} or
+similar system function which does it for us.)  Note that at no time
+does time run backwards with this method.
+
+On most Unix systems it is not desirable to step the system clock,
+because many programs rely on time advancing monotonically forwards.
+
+When the @code{chronyd} daemon is initially started, it is possible that the
+system clock is considerably in error.  Attempting to correct such an
+error by slewing may not be sensible, since it may take several hours
+to correct the error by this means.
+
+The purpose of the @code{initstepslew} directive is to allow @code{chronyd} to
+make a rapid measurement of the system clock error at boot time, and to
+correct the system clock by stepping before normal operation begins.
+Since this would normally be performed only at an appropriate point in
+the system boot sequence, no other software should be adversely affected
+by the step.
+
+If the correction required is less than a specified threshold, a slew is
+used instead.  This makes it easier to restart @code{chronyd} whilst the
+system is in normal operation.
+
+The @code{initstepslew} directive takes a threshold and a list of NTP
+servers as arguments.  A maximum of 8 will be used.  Each of the servers
+is rapidly polled several times, and a majority voting mechanism used to
+find the most likely range of system clock error that is present.  A
+step (or slew) is applied to the system clock to correct this error.
+@code{chronyd} then enters its normal operating mode (where only slews are
+used).
+
+An example of use of the command is
+
+@example
+initstepslew 30 foo.bar.com baz.quz.com
+@end example
+
+where 2 NTP servers are used to make the measurement.  The @code{30}
+indicates that if the system's error is found to be 30 seconds or less,
+a slew will be used to correct it; if the error is above 30 seconds, a
+step will be used.
+
+The @code{initstepslew} directive can also be used in an isolated LAN
+environment, where the clocks are set manually.  The most stable
+computer is chosen as the master, and the other computers are slaved to
+it.  If each of the slaves is configured with the local option (see
+below), the master can be set up with an @code{initstepslew} directive
+which references some or all of the slaves.  Then, if the master machine
+has to be rebooted, the slaves can be relied on to 'flywheel' the time
+for the master.
+@c }}}
+@c {{{ keyfile
+@node keyfile directive
+@subsection keyfile
+This command is used to specify the location of the file containing
+ID/key pairs for the following 2 uses:
+
+@itemize @bullet 
+@item Authentication of NTP packets.
+@item Authentication of administrator commands entered via chronyc.
+@end itemize
+
+The format of the command is shown in the example below
+
+@example
+keyfile /etc/chrony.keys
+@end example
+
+The argument is simply the name of the file containing the ID/key
+pairs.  The format of the file is shown below
+
+@example
+10 tulip
+11 hyacinth
+20 crocus
+25 iris
+ ...
+@end example
+
+Each line consists of an ID and a password.  The ID can be any
+unsigned integer in the range 0 through 2**32-1.  The password can be
+any string of characters not containing a space.
+
+For NTP use, the MD5 authentication scheme is always used.  This must be
+borne in mind if @code{chronyd} is to inter-operate in authenticated
+mode with @code{xntpd} running on other computers.
+
+The ID for the chronyc authentication key is specified with the
+commandkey command (see earlier).
+@c }}}
+@c {{{ local
+@node local directive
+@subsection local
+The local keyword is used to allow @code{chronyd} to appear synchronised
+to real time (from the viewpoint of clients polling it), even if it has
+no current synchronisation source.
+
+This option is normally used on computers in an isolated network,
+where several computers are required to synchronise to one other, this
+being the "master" which is kept vaguely in line with real time by
+manual input.
+
+An example of the command is 
+
+@example
+local stratum 10
+@end example
+
+The value 10 may be substituted with other values in the range 1
+through 15.  Stratum 1 indicates a computer that has a true real-time
+reference directly connected to it (e.g. GPS, atomic clock etc)
+&ndash; such computers are expected to be very close to real time.
+Stratum 2 computers are those which have a stratum 1 server; stratum 3
+computers have a stratum 2 server and so on.
+
+A large value of 10 indicates that the clock is so many hops away from
+a reference clock that its time is fairly unreliable.  Put another
+way, if the computer ever has access to another computer which is
+ultimately synchronised to a reference clock, it will almost certainly
+be at a stratum less than 10.  Therefore, the choice of a high value
+like 10 for the local command prevents the machine's own time from
+ever being confused with real time, were it ever to leak out to
+clients that have visibility of real servers.
+@c }}}
+@c {{{ linux_hz
+@node linux_hz directive
+@subsection linux_hz
+(This option only applies to Linux).
+
+By default, chronyd will find the value of @code{HZ} from a kernel header file
+at compile time.  @code{HZ} is the nominal number of timer interrupts per
+second.  If you're running chronyd on the system where it was built, the value
+it has should be right, and you don't need to worry about this option.
+
+This option is provided for people who move a pre-built chronyd onto a system
+where the value of HZ in the kernel headers has been changed from the default
+value.
+
+An example of the command is
+
+@example
+linux_hz 100
+@end example
+@c }}}
+@c {{{ linux_freq_scale
+@node linux_freq_scale directive
+@subsection linux_freq_scale
+(This option only applies to Linux).
+
+By default, chronyd will find the value of @code{HZ} and @code{SHIFT_HZ} from
+kernel header files at compile time.  An internal value called
+@code{freq_scale} is calculated from this.  By default it is (1<<SHIFT_HZ)/HZ,
+except for the case HZ=100, when special case code is used which leads to the
+value 128/128.125.  If you're running chronyd on the system where it was built,
+the value it has should be right, and you don't need to worry about this
+option.
+
+This option is provided for people who move a pre-built chronyd onto a system
+where the method by which the kernel computes the reciprocal of this value has been changed or where the HZ and SHIFT_HZ constants differ from those on the system where chronyd was built.
+
+An example of the command is
+
+@example
+linux_freq_scale 0.99902439
+@end example
+@c }}}
+@c {{{ log
+@node log directive
+@subsection log
+@c {{{ section top
+The log command indicates that certain information is to be logged.
+
+@table @code
+@item measurements
+This option logs the raw NTP measurements and related information to a
+file called measurements.log.
+
+@item statistics
+This option logs information about the regression processing to a file
+called statistics.log.
+
+@item tracking
+This option logs changes to the estimate of the system's gain or loss
+rate, and any slews made, to a file called tracking.log.
+
+@item rtc
+This option logs information about the system's real-time clock.
+@end table
+
+The files are written to the directory specified by the logdir
+command.
+
+An example of the command is
+
+@example
+log measurements statistics tracking
+@end example
+
+@menu
+* measurements log::            The format of the measurements log
+* statistics log::              The format of the statistics log
+* tracking log::                The format of the tracking log
+* RTC log::                     The format of the RTC log
+@end menu
+@c }}}
+@c {{{ measurements.log
+@node measurements log
+@subsubsection Measurements log file format
+
+An example line (which actually appears as a single line in the file)
+from the measurements log file is shown below.
+
+@example
+1998-07-22 05:40:50 158.152.1.76    N  8 1111 11 1111 10 10  1 \
+   -4.966e-03  2.296e-01  1.577e-05  1.615e-01  7.446e-03
+@end example
+
+The columns are as follows (the quantities in square brackets are the
+values from the example line above) :
+
+@enumerate 1
+@item
+Date [1998-07-22]
+@item
+Hour:Minute:Second [05:40:50].  Note that the date/time pair is
+expressed in UTC, not the local time zone.
+@item
+IP address of server/peer from which measurement comes [158.152.1.76]
+@item
+Leap status (@code{N} means normal, @code{-} means that the last minute
+of today has 61 seconds, @code{+} means that the last minute of the day
+has 59 seconds, @code{?} means the remote computer is not currently
+synchronised.) [N]
+@item
+Stratum of remote computer. [2]
+@item
+RFC1305 tests 1 through 4 (1=pass, 0=fail) [1111]
+@item
+Tests for maximum delay and maximum delay ratio, against user defined
+parameters (1=pass, 0=fail) [11]
+@item
+RFC1305 tests 5 through 8 (1=pass, 0=fail) [1111]
+@item
+Local poll [10]
+@item
+Remote poll [10]
+@item
+`Score' (an internal score within each polling level used to decide when
+to increase or decrease the polling level.  This is adjusted based on
+changes to the variance of the measurements obtained from the source). [1]
+@item
+The estimated local clock error (`theta' in RFC1305).  Positive indicates that the local clock is slow. [-4.966e-03].
+@item
+The peer delay (`delta' in RFC1305). [2.296e-01]
+@item
+The peer dispersion (`epsilon' in RFC1305). [1.577e-05]
+@item
+The root delay (`Delta' in RFC1305). [1.615e-01]
+@item
+The root dispersion (`E' in RFC1305). [7.446e-03]
+@end enumerate
+
+A banner is periodically written to the log file to indicate the
+meanings of the columns.
+@c }}}
+@c {{{ statistics.log
+@node statistics log
+@subsubsection Statistics log file format
+
+An example line (which actually appears as a single line in the file)
+from the measurements log file is shown below.
+
+@example
+1998-07-22 05:40:50 158.152.1.76     6.261e-03 -3.247e-03 \
+     2.220e-03  1.874e-06  1.080e-06 7.8e-02  16   0   8
+@end example
+
+The columns are as follows (the quantities in square brackets are the
+values from the example line above) :
+
+@enumerate 1
+@item
+Date [1998-07-22]
+@item
+Hour:Minute:Second [05:40:50].  Note that the date/time pair is
+expressed in UTC, not the local time zone.
+@item
+IP address of server/peer from which measurement comes [158.152.1.76]
+@item
+The estimated standard deviation of the measurements from the source (in
+seconds). [6.261e-03]
+@item
+The estimated offset of the source (in seconds, positive means the local
+clock is estimated to be fast, in this case). [-3.247e-03]
+@item
+The estimated standard deviation of the offset estimate (in
+seconds). [2.220e-03]
+@item
+The estimated rate at which the local clock is gaining or losing time
+relative to the source (in seconds per second, positive means the local
+clock is gaining).  This is relative to the compensation currently being
+applied to the local clock, @emph{not} to the local clock without any
+compensation. [1.874e-06]
+@item
+The estimated error in the rate value (in seconds per
+second). [1.080e-06].
+@item
+The ration of |old_rate - new_rate| / old_rate_error.  Large values
+indicate the statistics are not modelling the source very well. [7.8e-02]
+@item
+The number of measurements currently being used for the regression
+algorithm. [16]
+@item
+The new starting index (the oldest sample has index 0; this is the
+method used to prune old samples when it no longer looks like the
+measurements fit a linear model). [0, i.e. no samples discarded this
+time]
+@item
+The number of runs.  The number of runs of regression residuals with the
+same sign is computed.  If this is too small it indicates that the
+measurements are no longer represented well by a linear model and that
+some older samples need to be discarded.  The number of runs for the
+data that is being retained is tabulated.  Values of approximately half
+the number of samples are expected. [8]
+@end enumerate
+
+A banner is periodically written to the log file to indicate the
+meanings of the columns.
+@c }}}
+@c {{{ tracking.log
+@node tracking log
+@subsubsection Tracking log file format
+
+An example line (which actually appears as a single line in the file)
+from the measurements log file is shown below.
+
+@example
+1998-07-22 05:40:50 158.152.1.76     3    340.529      1.606  1.046e-03
+@end example
+
+The columns are as follows (the quantities in square brackets are the
+values from the example line above) :
+
+@enumerate 1
+@item
+Date [1998-07-22]
+@item
+Hour:Minute:Second [05:40:50].  Note that the date/time pair is
+expressed in UTC, not the local time zone.
+@item
+The IP address of the server/peer to which the local system is
+synchronised. [158.152.1.76]
+@item
+The stratum of the local system. [3]
+@item
+The local system frequency (in ppm, positive means the local system runs
+fast of UTC). [340.529]
+@item
+The error bounds on the frequency (in ppm) [1.606]
+@item
+The estimated local offset at the epoch (which is rapidly corrected by
+slewing the local clock.  (In seconds, positive indicates the local
+system is fast of UTC). [1.046e-3]
+@end enumerate
+
+A banner is periodically written to the log file to indicate the
+meanings of the columns.
+@c }}}
+@c {{{ rtc.log
+@node RTC log
+@subsubsection Real-time clock log file format
+
+An example line (which actually appears as a single line in the file)
+from the measurements log file is shown below.
+
+@example
+1998-07-22 05:40:50     -0.037360 1       -0.037434\
+          -37.948  12   5  120
+@end example
+
+The columns are as follows (the quantities in square brackets are the
+values from the example line above) :
+
+@enumerate 1
+@item
+Date [1998-07-22]
+@item
+Hour:Minute:Second [05:40:50].  Note that the date/time pair is
+expressed in UTC, not the local time zone.
+@item
+The measured offset between the system's real time clock and the system
+(@code{gettimeofday()}) time.  In seconds, positive indicates that the
+RTC is fast of the system time. [-0.037360].
+@item
+Flag indicating whether the regression has produced valid
+coefficients. (1 for yes, 0 for no). [1]
+@item
+Offset at the current time predicted by the regression process.  A large
+difference between this value and the measured offset tends to indicate
+that the measurement is an outlier with a serious measurement
+error. [-0.037434].
+@item
+The rate at which the RTC is losing or gaining time relative to the
+system clock.  In ppm, with positive indicating that the RTC is gaining
+time. [-37.948]
+@item
+The number of measurements used in the regression. [12]
+@item
+The number of runs of regression residuals of the same sign.  Low values
+indicate that a straight line is no longer a good model of the measured
+data and that older measurements should be discarded. [5]
+@item
+The measurement interval used prior to the measurement being made (in
+seconds). [120]
+@end enumerate
+
+A banner is periodically written to the log file to indicate the
+meanings of the columns.
+@c }}}
+@c }}}
+@c {{{ logchange
+@node logchange directive
+@subsection logchange
+This directive forces @code{chronyd} to send a message to syslog if it
+makes a system clock adjustment larger than a threshold value.  An
+example of use is
+
+@example
+logchange 0.5
+@end example
+
+which would cause a syslog message to be generated a system clock error
+of over 0.5 seconds starts to be compensated.
+
+Clock errors detected either via NTP packets or via timestamps entered
+via the @code{settime} command of @code{chronyc} are logged.
+
+This directive assumes that syslog messages are appearing where somebody
+can see them.  This allows that person to see if a large error has
+arisen, e.g. because of a fault, or because of faulty timezone handling,
+for example when summer time (daylight saving) starts or ends.
+@c }}}
+@c {{{ logdir
+@node logdir directive
+@subsection logdir
+This directive allows the directory where log files are written to be
+specified.
+
+An example of the use of this directive is
+
+@example
+logdir /var/log/chrony
+@end example
+@c }}}
+@c {{{ mailonchange
+@node mailonchange directive
+@subsection mailonchange
+This directive defines an email address to which mail should be sent if
+chronyd applies a correction exceeding a particular threshold to the
+system clock.
+
+An example of use of this directive is
+
+@example
+mailonchange root@@localhost 0.5
+@end example
+
+This would send a mail message to root if a change of more than 0.5
+seconds were applied to the system clock.
+@c }}}
+@c {{{ manual
+@node manual directive
+@subsection manual
+The @code{manual} directive enables support at run-time for the
+@code{settime} command in chronyc (@pxref{settime command}).  If no
+@code{manual} directive is included, any attempt to use the
+@code{settime} command in chronyc will be met with an error message.
+
+Note that the @code{settime} command can be enabled at run-time using
+the @code{manual} command in chronyc (@pxref{manual command}).  (The
+idea of the two commands is that the @code{manual} command controls the
+manual clock driver's behaviour, whereas the @code{settime} command
+allows samples of manually entered time to be provided).
+@c }}}
+@c {{{ maxupdateskew
+@node maxupdateskew directive
+@subsection maxupdateskew
+One of @code{chronyd's} tasks is to work out how fast or slow the computer's
+clock runs relative to its reference sources.  In addition, it computes
+an estimate of the error bounds around the estimated value.
+
+If the range of error is too large, it probably indicates that the
+measurements have not settled down yet, and that the estimated gain or
+loss rate is not very reliable.
+
+The @code{maxupdateskew} parameter allows the threshold for determining
+whether an estimate may be so unreliable that it should not be used.
+
+The syntax is
+
+@example
+maxupdateskew <skew-in-ppm>
+@end example
+
+Typical values for <skew-in-ppm> might be 100 for a dial-up connection
+to servers over a phone line, and 5 or 10 for a computer on a LAN.
+
+It should be noted that this is not the only means of protection against
+using unreliable estimates.  At all times, @code{chronyd} keeps track of
+both the estimated gain or loss rate, and the error bound on the
+estimate.  When a new estimate is generated following another
+measurement from one of the sources, a weighted combination algorithm is
+used to update the master estimate.  So if @code{chronyd} has an existing
+highly-reliable master estimate and a new estimate is generated which
+has large error bounds, the existing master estimate will dominate in
+the new master estimate.
+@c }}}
+@c {{{ noclientlog
+@node noclientlog directive
+@subsection noclientlog
+This directive, which takes no arguments, specifies that client accesses
+are not to be logged.  Normally they are logged, allowing statistics to
+be reported using the @code{clients} command in @code{chronyc}.
+@c }}}
+@c {{{ peer
+@node peer directive
+@subsection peer
+The syntax of this directive is identical to that for the @code{server}
+directive (@pxref{server directive}), except that it is used to specify
+an NTP peer rather than an NTP server.
+@c }}}
+@c {{{ pidfile
+@node pidfile directive
+@subsection pidfile
+chronyd always writes its process ID (pid) to a file, and checks this file on startup to see if another chronyd may already be running on the system.  By default, the file used is @code{/var/run/chronyd.pid}.  The @code{pidfile} directive allows the name to be changed, e.g.
+
+@example
+pidfile /var/tmp/chronyd.pid
+@end example
+@c }}}
+@c {{{ port
+@node port directive
+@subsection port
+This option allows you to configure the port used for the NTP service
+on your machine.
+
+The compiled in default is udp/123, the standard NTP port.  It is
+unlikely that you would ever need to change this value.  A possible
+exception would be if you wanted to operate strictly in client-only
+mode and never be available as a server to xntpd clients.
+
+An example of the port command is
+
+@example
+port 11123
+@end example
+
+This would change the NTP port served by chronyd on the computer to
+udp/11123.
+@c }}}
+@c {{{ rtcdevice
+@node rtcdevice directive
+@subsection rtcdevice
+The @code{rtcdevice} directive defines the name of the device file for
+accessing the real time clock.  By default this is @code{/dev/rtc/}, unless the
+directive is used to set a different value.  This applies to Linux systems with
+devfs.  An example of use is
+
+@example
+rtcdevice /dev/misc/rtc
+@end example
+@c }}}
+@c {{{ rtcfile
+@node rtcfile directive
+@subsection rtcfile
+The @code{rtcfile} directive defines the name of the file in which
+@code{chronyd} can save parameters associated with tracking the accuracy
+of the system's real-time clock (RTC).
+
+The syntax is illustrated in the following example
+
+@example
+rtcfile /etc/chrony.rtc
+@end example
+
+@code{chronyd} saves information in this file when it exits and when the
+@code{writertc} command is issued in @code{chronyc}.  The information
+saved is the RTC's error at some epoch, that epoch (in seconds since
+January 1 1970), and the rate at which the RTC gains or loses time.
+
+So far, the support for real-time clocks is limited - their code is even
+more system-specific than the rest of the software.  You can only use
+the real time clock facilities (the @code{rtcfile} directive and the
+@code{-s} command line option to @code{chronyd}) if the following three
+conditions apply:
+
+@enumerate 1
+@item
+You are running Linux version 2.2.x or 2.4.x (for any value of x), or v2.0.x
+with x>=32. 
+
+@item
+You have compiled the kernel with extended real-time clock support
+(i.e. the @file{/dev/rtc} device is capable of doing useful things).
+
+@item
+You don't have other applications that need to make use of
+@file{/dev/rtc} at all.
+
+@end enumerate
+@c }}}
+@c {{{ rtconutc
+@node rtconutc directive
+@subsection rtconutc
+
+@code{chronyd} assumes by default that the real time clock (RTC) keeps
+local time (including any daylight saving changes).  This is convenient
+on PCs running Linux which are dual-booted with DOS or Windows.
+
+NOTE : IF YOU KEEP THE REAL TIME CLOCK ON LOCAL TIME AND YOUR COMPUTER
+IS OFF WHEN DAYLIGHT SAVING (SUMMER TIME) STARTS OR ENDS, THE COMPUTER'S
+SYSTEM TIME WILL BE ONE HOUR IN ERROR WHEN YOU NEXT BOOT AND START
+CHRONYD.
+
+An alternative is for the RTC to keep Universal Coordinated Time (UTC).
+This does not suffer from the 1 hour problem when daylight saving starts
+or ends.
+
+If the @code{rtconutc} directive appears, it means the RTC is required
+to keep UTC.  The directive takes no arguments.  It is equivalent to
+specifying the @code{-u} switch to the Linux @file{/sbin/clock} program.
+@c }}}
+@c {{{ server
+@node server directive
+@subsection server
+The @code{server} directive allows NTP servers to be specified.  The
+client/server relationship is strictly hierarchical : a client may
+synchronise its system time to that of the server, but the server's
+system time will never be influenced by that of a client.
+
+The @code{server} directive is immediately followed by either the name
+of the server, or its IP address in dotted-quad notation.  The server
+command also supports a number of subfields (which may be defined in any
+order):
+
+@table @code
+@item port
+This option allows the UDP port on which the server understands NTP
+requests to be specified.  For normal servers this option should not be
+required (the default is 123, the standard NTP port).
+@item minpoll
+Although @code{chronyd} will trim the rate at which it samples the
+server during normal operation, the user may wish to constrain the
+minimum polling interval.  This is always defined as a power of 2, so
+<tt/minpoll 5/ would mean that the polling interval cannot drop below 32
+seconds.  The default is 6 (64 seconds).
+@item maxpoll
+In a similar way, the user may wish to constrain the maximum polling
+interval.  Again this is specified as a power of 2, so <tt/maxpoll 9/
+indicates that the polling interval must stay at or below 512 seconds.
+The default is 10 (1024 seconds).
+@item maxdelay
+@code{chronyd} uses the network round-trip delay to the server to
+determine how accurate a particular measurement is likely to be.  Long
+round-trip delays indicate that the request, or the response, or both
+were delayed.  If only one of the messages was delayed the measurement
+error is likely to be substantial.
+
+For small variations in round trip delay, @code{chronyd} uses a
+weighting scheme when processing the measurements.  However, beyond a
+certain level of delay the measurements are likely to be so corrupted as
+to be useless.  (This is particularly so on dial-up or other slow links,
+where a long delay probably indicates a highly asymmetric delay caused
+by the response waiting behind a lot of packets related to a download of
+some sort).
+
+If the user knows that round trip delays above a certain level should
+cause the measurement to be ignored, this level can be defined with the
+maxdelay command.  For example, <tt/maxdelay 0.3/ would indicate that
+measurements with a round-trip delay of 0.3 seconds or more should be
+ignored.
+
+@item maxdelayratio
+This option is similar to the maxdelay option above.  @code{chronyd}
+keeps a record of the minimum round-trip delay amongst the previous
+measurements that it has buffered.  If a measurement has a round trip
+delay that is greater than the maxdelayratio times the minimum delay, it
+will be rejected.
+
+@item presend
+If the timing measurements being made by @code{chronyd} are the only
+network data passing between two computers, you may find that some
+measurements are badly skewed due to either the client or the server
+having to do an ARP lookup on the other party prior to transmitting a
+packet.  This is more of a problem with long sampling intervals, which
+may be similar in duration to the lifetime of entries in the ARP caches
+of the machines.
+
+In order to avoid this problem, the @code{presend} option may be used.
+It takes a single integer argument, which is the smallest polling
+interval for which a pair of packets will be exchanged between the
+client and the server prior to the actual measurement being initiated by
+the client.  For example, with the following option included in a
+@code{server} directive :
+
+@example
+presend 9
+@end example
+
+when the polling interval is 512 seconds or more, a UDP echo datagram
+will be sent to the server a short time (currently 4 seconds) before the
+NTP client mode datagram.
+
+@item key
+The NTP protocol supports the inclusion of checksums in the packets, to
+prevent computers having their system time upset by rogue packets being
+sent to them.  The checksums are generated as a function of a password,
+using the MD5 algorithm.
+
+The association between key numbers and passwords is contained in the
+keys file, defined by the keyfile command.
+
+If the key option is present, @code{chronyd} will attempt to use
+authenticated packets when communicating with this server.  The key
+number used will be the single argument to the key option.  The server
+must have the same password for this key number configured, otherwise no
+relationship between the computers will be possible.
+
+@item offline
+If the server will not be reachable when @code{chronyd} is started, the
+offline option may be specified.  @code{chronyd} will not try to poll
+the server until it is enabled to do so (by using the online option of
+@code{chronyc}).
+
+@item auto_offline
+If this option is set, the server will be assumed to have gone offline when 2
+requests have been sent to it without receiving a response.  This option avoids
+the need to run the @code{offline} (@pxref{offline command}) command from
+chrony when disconnecting the dial-up link.  (It will still be necessary to use
+chronyc's @code{online} (@pxref{online command}) command when the link has been
+established, to enable measurements to start.)
+
+@end table
+@c }}}
+@c }}}
+@c {{{ S:Running chronyc
+@node Running chronyc
+@section Running chronyc
+@c {{{ Section top
+Chronyc is the program that can be used to reconfigure options within
+the @code{chronyd} program whilst it is running.  Chronyc can also be
+used to generate status reports about the operation of @code{chronyd}.
+
+@menu
+* Chronyc basic use::           How to run chronyc
+* Chronyc command line options::  Chrony's command line options
+* Security with chronyc::       How chronyd restricts access
+* Chronyc command reference::   All the commands chronyc supports
+@end menu
+@c }}}
+@c {{{ SS:Chronyc basic use
+@node Chronyc basic use
+@subsection Basic use
+The program chronyc is run by entering
+
+@example
+chronyc
+@end example
+
+at the command line.  The prompt @code{chronyc} is displayed whilst
+chronyc is expecting input from the user, when it is being run from a
+terminal.  If chronyc's input or output are redirected from/to a file,
+the prompt is now shown.
+
+When you are finished entering commands, the commands @code{exit} or
+@code{quit} will terminate the program.  (Entering @key{Control-D} will
+also terminate the program.)
+@c }}}
+@c {{{ SS:Command line options
+@node Chronyc command line options
+@subsection Command line options
+Chronyc supports the following command line options.
+
+@table @code
+@item -v
+Displays the version number of chronyc on the terminal, and exists.
+@item -h <host>
+This option allows the user to specify which host running the
+@code{chronyd} program is to be contacted.  This allows for remote
+configuration, without having to telnet or rlogin to the other host
+first.
+
+The default is to contact @code{chronyd} running on the same host as
+that where chronyc is being run.
+@item -p <port>
+This option allows the user to specify the UDP port number which the
+target @code{chronyd} is using for its command & monitoring connections.
+This defaults to the compiled-in default; there would rarely be a need
+to change this.
+@end table
+@c }}}
+@c {{{ SS:Security with chronyc
+@node Security with chronyc
+@subsection Security with chronyc
+Many of the commands available through chronyc have a fair amount of
+power to reconfigure the run-time behaviour of @code{chronyd}.  Consequently,
+@code{chronyc} is quite dangerous for the integrity of the target
+system's clock performance.  Having access to @code{chronyd} via chronyc is
+more or less equivalent to being able to modify @code{chronyd's} configuration
+file (typically @file{/etc/chrony.conf}) and to restart @code{chronyd}.
+
+Chronyc also provides a number of monitoring (as opposed to commanding)
+commands, which will not affect the behaviour of @code{chronyd}.  However, you
+may still want to restrict access to these commands.
+
+In view of this, access to some of the capabilities of chronyc will
+usually be tightly controlled.  There are two mechanisms supported:
+
+@enumerate 1
+@item
+The set of hosts from which @code{chronyd} will accept commands can be
+restricted.  By default, commands will only be accepted from the same
+host that @code{chronyd} is running on.
+@item
+Any command that actually reconfigures some aspect of @code{chronyd's}
+behaviour requires the user of chronyc to know a password.  This
+password is specified in @code{chronyd's} keys file (@pxref{keyfile directive})
+and specified via the commandkey option in its configuration file
+(@pxref{commandkey directive}).
+@end enumerate
+
+Only the following commands can be used @emph{without} providing a
+password:
+
+@itemize @bullet
+@item @code{exit}
+@item @code{help}
+@item @code{password}
+@item @code{quit}
+@item @code{rtcdata}
+@item @code{sources}
+@item @code{sourcestats}
+@item @code{tracking}
+@end itemize
+
+All other commands require a password to have been specified previously,
+because they affect @code{chronyd's} operation.
+@c }}}
+@c {{{ SS:Chronyc command reference
+@node Chronyc command reference
+@subsection Command reference
+@c {{{ Top/menu
+This section describes each of the commands available within the chronyc
+program.  Chronyc offers the user a simple command-line driven
+interface.
+
+@menu
+* accheck command::             Verifying NTP client access
+* activity command::            Check how many NTP servers/peers are online/offline
+* add peer command::            Add a new NTP peer
+* add server command::          Add a new NTP server
+* allow command::               Allowing NTP client access
+* allow all command::           Allowing NTP client access
+* burst command::               Initiating a rapid set of measurements
+* clients command::             Show clients that have accessed the server
+* cmdaccheck command::          Verifying command client access
+* cmdallow command::            Allowing command client access
+* cmdallow all command::        Allowing command client access
+* cmddeny command::             Denying command client access
+* cmddeny all command::         Denying command client access
+* cyclelogs command::           Close and re-open open log files
+* delete command::              Remove an NTP server or peer
+* deny command ::               Denying NTP client access
+* deny all command::            Denying NTP client access
+* dump command::                Dump measurement histories to files
+* exit command::                Exit from chronyc
+* help command::                Generate help summary
+* local command::               Let computer be a server when it is unsynchronised
+* makestep command::            Immediately correct the system clock instead of slewing
+* manual command::              Enable/disable/configure options for settime
+* maxdelay command::            Set max measurement delay for a source
+* maxdelayratio command::       Set max measurement delay for a source as ratio
+* maxpoll command::             Set maximum polling interval for a source
+* maxupdateskew command::       Set safety threshold for clock gain/loss rate
+* minpoll command::             Set minimum polling interval for a source
+* offline command::             Warn that connectivity to a source will be lost
+* online command::              Warn that connectivity to a source has been restored
+* password command::            Provide password needed for most commands
+* quit command::                Exit from chronyc
+* rtcdata command::             Display RTC parameters
+* settime command::             Provide a manual input of the current time
+* sources command::             Display information about the current set of sources
+* sourcestats command::         Display the rate & offset estimation performance of sources
+* tracking command::            Display system clock performance
+* trimrtc command::             Correct the RTC time to the current system time
+* writertc command::            Write the RTC parameters to file.
+@end menu
+@c }}}
+@c {{{ accheck
+@node accheck command
+@subsubsection accheck
+This command allows you to check whether client NTP access is allowed
+from a particular host.
+
+Examples of use, showing a named host and a numeric IP address, are as
+follows:
+
+@example
+accheck a.b.c
+accheck 1.2.3.4
+@end example
+
+This command can be used to examine the effect of a series of
+@code{allow}, @code{allow all}, @code{deny} and @code{deny all} commands
+specified either via chronyc, or in @code{chronyd's} configuration file.
+@c }}}
+@c {{{ activity command
+@node activity command
+@subsubsection activity
+This command reports the number of servers/peers that are online and offline.
+If the auto_offline option is used in specifying some of the servers/peers, the
+@code{activity} command may be useful for detecting when all of them have
+entered the offline state after the PPP link has been disconnected.
+
+The report shows the number of servers/peers in 4 states:
+@itemize
+@item @code{online} : the server/peer is currently online (i.e. assumed by
+chronyd to be reachable)
+@item @code{offline} : the server/peer is currently offline (i.e. assumed by
+chronyd to be unreachable, and no measurements from it will be attempted.)
+@item @code{burst_online} : a burst command has been initiated for the
+server/peer and is being performed; after the burst is complete, the
+server/peer will be returned to the online state.
+@item @code{burst_offline} : a burst command has been initiated for the
+server/peer and is being performed; after the burst is complete, the
+server/peer will be returned to the offline state.
+@end itemize
+@c }}}
+@c {{{ add peer
+@node add peer command
+@subsubsection add peer
+The @code{add peer} command allows a new NTP peer to be added whilst
+@code{chronyd} is running.
+
+Following the words @code{add peer}, the syntax of the following
+parameters and options is identical to that for the @code{peer}
+directive in the configuration file (@pxref{peer directive}).
+
+An example of using this command is shown below.
+
+@example
+add peer foo.bar.com minpoll 6 maxpoll 10 authkey 25
+@end example
+@c }}}
+@c {{{ add server
+@node add server command
+@subsubsection add server
+The @code{add server} command allows a new NTP server to be added whilst
+@code{chronyd} is running.
+
+Following the words @code{add server}, the syntax of the following
+parameters and options is identical to that for the @code{server}
+directive in the configuration file (@pxref{server directive}).
+
+An example of using this command is shown below.
+
+@example
+add server foo.bar.com minpoll 6 maxpoll 10 authkey 25
+@end example
+@c }}}
+@c {{{ allow
+@node allow command
+@subsubsection allow
+The effect of the allow command is identical to the @code{allow} directive in
+the configuration file (@pxref{allow directive}).
+
+The syntax is illustrated in the following examples:
+
+@example
+allow foo.bar.com
+allow 1.2
+allow 3.4.5
+allow 6.7.8/22
+allow 6.7.8.9/22
+allow
+@end example
+
+The effect of each of these examples is the same as that of the @code{allow}
+directive in the configuration file.
+@c }}}
+@c {{{ allow all
+@node allow all command
+@subsubsection allow all
+The effect of the allow command is identical to the @code{allow all}
+directive in the configuration file (@pxref{allow directive}).
+@c }}}
+@c {{{ burst
+@node burst command
+@subsubsection burst
+The @code{burst} command tells @code{chronyd} to make a set of measurements to
+each of its sources over a short duration (rather than the usual
+periodic measurements that it makes).  After such a burst, @code{chronyd} will
+revert to the previous state for each source.  This might be either
+online, if the source was being periodically measured in the normal way,
+or offline, if the source had been indicated as being offline.
+(Switching a source between the online and offline states is described
+in @ref{online command}, @ref{offline command}).
+
+The syntax of the burst command is as follows
+
+@example
+burst <n-good-measurements>/<max-measurements> [<mask>/<masked-address>]
+@end example
+
+The mask and masked-address arguments are optional, in which case
+@code{chronyd} will initiate a burst for all of its currently defined sources.
+
+The arguments have the following meaning and format.
+
+@table @code
+@item n-good-measurements
+This defines the number of good measurements that @code{chronyd} will want to
+obtain from each source.  A measurement is good if it passes certain
+tests, for example, the round trip time to the source must be
+acceptable.  (This allows @code{chronyd} to reject measurements that are likely
+to be bogus.)
+
+@item max-measurements
+This defines the maximum number of measurements that @code{chronyd} will
+attempt to make, even if the required number of good measurements has
+not been obtained.
+
+@item mask
+This is a dotted quad argument (e.g. @code{255.255.255.0}) with which
+the IP address of each of @code{chronyd}'s sources is to be masked.
+
+@item masked-address
+This is a dotted quad argument (e.g. @code{1.2.3.0}).  If the masked IP
+address of a source matches this value then the burst command is applied
+to that source.
+@end table
+
+If no mask or masked address arguments are provided, the default is
+@code{0.0.0.0} and @code{0.0.0.0} respectively, which will match every
+source.
+
+An example of the two-argument form of the command is 
+
+@example
+burst 2/10
+@end example
+
+This will cause @code{chronyd} to attempt to get two good measurements from
+each source, stopping after two have been obtained, but in no event will
+it try more than ten probes to the source.
+
+An example of the four-argument form of the command is
+
+@example
+burst 2/10 255.255.0.0/1.2.0.0
+@end example
+
+In this case, the two out of ten sampling will only be applied to
+sources whose IP addresses are of the form @code{1.2.x.y}, where x and y
+are arbitrary.
+@c }}}
+@c {{{ clients
+@node clients command
+@comment  node-name,  next,  previous,  up
+@subsubsection clients
+This command shows a list of all clients that have accessed the server,
+through either the NTP or command/monitoring ports.  There are no arguments.
+
+An example of the output is
+
+@example
+Hostname                   Client    Peer CmdAuth CmdNorm  CmdBad  LstN  LstC
+=========================  ======  ======  ======  ======  ======  ====  ====
+localhost                       0       0      15       1       0   29y     0
+aardvark.xxx                    4       0       0       0       0    49   29y
+badger.xxx                      4       0       0       0       0     6   29y
+@end example
+
+Each row shows the data for a single host.  Only hosts that have passed
+the host access checks (set with the @code{allow}, @code{deny},
+@code{cmdallow} and @code{cmddeny} commands or configuration file
+directives) are logged.
+
+The columns are as follows:
+
+@enumerate 1
+@item
+The hostname of the client
+@item
+The number of times the client has accessed the server using an NTP
+client mode packet.
+@item
+The number of times the client has accessed the server using an NTP
+symmetric active mode packet.
+@item
+The number of authenticated command packets that have been processed
+from the client (i.e. those following a successful @code{password}
+command).
+@item
+The number of unauthenticated command packets that have been processed
+from the client.
+@item
+The number of bad command packets received from the client (not all
+forms of bad packet are logged).
+@item
+Time since the last NTP packet was received
+@item
+Time since the last command packet was received
+@end enumerate
+
+The last two entries will be shown as the time since 1970 if no packet
+of that type has ever been received.
+@c }}}
+@c {{{ cmdaccheck
+@node cmdaccheck command
+@subsubsection cmdaccheck
+This command is similar to the @code{accheck} command, except that it is
+used to check whether command access is permitted from a named host.
+
+Examples of use are as follows:
+
+@example
+cmdaccheck a.b.c
+cmdaccheck 1.2.3.4
+@end example
+@c }}}
+@c {{{ cmdallow
+@node cmdallow command
+@subsubsection cmdallow
+This is similar to the @code{allow} command, except that it is used to
+allow particular hosts or subnets to use the chronyc program to interact
+with @code{chronyd} on the current host.
+@c }}}
+@c {{{ cmdallow all
+@node cmdallow all command
+@subsubsection cmdallow all
+This is similar to the @code{allow all} command, except that it is used to@c {{{
+allow particular hosts or subnets to use the chronyc program to interact@c }}}
+with @code{chronyd} on the current host.
+@c }}}
+@c {{{ cmddeny
+@node cmddeny command
+@subsubsection cmddeny
+This is similar to the @code{deny} command, except that it is used to
+allow particular hosts or subnets to use the chronyc program to interact
+with @code{chronyd} on the current host.
+@c }}}
+@c {{{ cmddeny all
+@node cmddeny all command
+@subsubsection cmddeny all
+This is similar to the @code{deny all} command, except that it is used
+to allow particular hosts or subnets to use the chronyc program to
+interact with @code{chronyd} on the current host.
+@c }}}
+@c {{{ cyclelogs
+@node cyclelogs command
+@subsubsection cyclelogs
+The @code{cyclelogs} command causes all of @code{chronyd's} open log files to
+be closed and re-opened.  This allows them to be renamed so that they can be
+periodically purged.  An example of how to do this is shown below.
+
+@example
+% mv /var/log/chrony/measurements.log /var/log/chrony/measurements1.log
+% chronyc
+chronyc> password aardvark
+200 OK
+chronyc> cyclelogs
+200 OK
+chronyc> exit
+% ls -l /var/log/chrony
+-rw-r--r--   1 root     root            0 Jun  8 18:17 measurements.log
+-rw-r--r--   1 root     root        12345 Jun  8 18:17 measurements1.log
+% rm -f measurements1.log
+@end example
+@c }}}
+@c {{{ delete
+@node delete command
+@subsubsection delete
+The @code{delete} command allows an NTP server or peer to be removed
+from the current set of sources.
+
+The syntax is illustrated in the examples below.
+
+@example
+delete foo.bar.com
+delete 1.2.3.4
+@end example
+
+There is one parameter, the name or IP address of the server or peer to
+be deleted.
+@c }}}
+@c {{{ deny
+@node deny command 
+@subsubsection deny
+The effect of the allow command is identical to the @code{deny}
+directive in the configuration file (@pxref{deny directive}).
+
+The syntax is illustrated in the following examples:
+
+@example
+deny foo.bar.com
+deny 1.2
+deny 3.4.5
+deny 6.7.8/22
+deny 6.7.8.9/22
+deny
+@end example
+@c }}}
+@c {{{ deny all
+@node deny all command
+@subsubsection deny all
+The effect of the allow command is identical to the @code{deny all}
+directive in the configuration file (@pxref{deny directive}).
+@c }}}
+@c {{{ dump
+@node dump command
+@subsubsection dump
+The @code{dump} command causes @code{chronyd} to write its current history of
+measurements for each of its sources to dump files, either for
+inspection or to support the @code{-r} option when @code{chronyd} is restarted.
+
+The @code{dump} command is somewhat equivalent to the @code{dumponexit}
+directive in the chrony configuration file.  @xref{dumponexit directive}.
+
+To use the @code{dump}, you probably want to configure the name of the
+directory into which the dump files will be written.  This can only be
+done in the configuration file, see @ref{dumpdir directive}.
+@c }}}
+@c {{{ exit
+@node exit command
+@subsubsection exit
+The exit command exits from chronyc and returns the user to the shell
+(same as the quit command).
+@c }}}
+@c {{{ help
+@node help command
+@subsubsection help
+The help command displays a summary of the commands and their arguments.
+@c }}}
+@c {{{ local
+@node local command
+@subsubsection local
+The @code{local} command allows @code{chronyd} to be told that it is to appear
+as a reference source, even if it is not itself properly synchronised to
+an external source.  (This can be used on isolated networks, to allow
+one computer to be a master time server with the other computers slaving
+to it.)  The @code{local} command is somewhat equivalent to the
+@code{local} directive in the configuration file, see @ref{local directive}.
+
+The syntax is as shown in the following examples.
+
+@example
+local stratum 10
+local off
+@end example
+
+The first example enables the local reference mode on the host, and sets
+the stratum at which it should claim to be synchronised.
+
+The second example disables the local reference mode.
+@c }}}
+@c {{{ makestep
+@node makestep command
+@subsubsection makestep
+Normally chronyd will cause the system to gradually correct any time
+offset, by slowing down or speeding up the clock as required.  In
+certain situations, the system clock may be so far adrift that this
+slewing process would take a very long time to correct the system clock.
+
+The @code{makestep} command can be used in this situation.  It cancels
+any remaining correction that was being slewed, and jumps the system
+clock by the equivalent amount, making it correct immediately.
+
+BE WARNED - certain software will be seriously affected by such jumps to
+the system time.  (That is the reason why chronyd uses slewing
+normally.)
+
+The @code{makestep} command is currently only available on the Linux
+version of chrony.
+@c }}}
+@c {{{ manual
+@node manual command
+@subsubsection manual
+The manual command enables and disables use of the @code{settime}
+command (@pxref{settime command}), and is used to modify the behaviour
+of the manual clock driver.
+
+Examples of the command are shown below.
+
+@example
+manual on
+manual off
+manual delete 1
+manual list
+manual reset
+@end example
+
+The @code{on} form of the command enables use of the @code{settime}
+command.
+
+The @code{off} form of the command disables use of the @code{settime}
+command.
+
+The @code{list} form of the command lists all the samples currently
+stored in @code{chronyd}.  The output is illustrated below.
+
+@example
+210 n_samples = 1
+#    Date  Time(UTC)    Slewed   Original   Residual
+====================================================
+ 0 27Jan99 22:09:20       0.00       0.97       0.00
+@end example
+
+The columns as as follows :
+
+@enumerate 1
+@item
+The sample index (used for the @code{manual delete} command)
+@item
+The date and time of the sample
+@item
+The system clock error when the timestamp was entered, adjusted to allow
+for changes made to the system clock since.
+@item
+The system clock error when the timestamp was entered, as it originally
+was (without allowing for changes to the system clock since).
+@item
+The regression residual at this point, in seconds.  This allows
+'outliers' to be easily spotted, so that they can be deleted using the
+@code{manual delete} command.
+@end enumerate
+
+The @code{delete} form of the command deletes a single sample.  The
+parameter is the index of the sample, as shown in the first column of
+the output from @code{manual list}.  Following deletion of the data
+point, the current error and drift rate are re-estimated from the
+remaining data points and the system clock trimmed if necessary.  This
+option is intended to allow 'outliers' to be discarded, i.e. samples
+where the administrator realises he/she has entered a very poor
+timestamp.
+
+The @code{reset} form of the command deletes all samples at once.  The
+system clock is left running as it was before the command was entered.
+@c }}}
+@c {{{ maxdelay
+@node maxdelay command
+@subsubsection maxdelay
+This allows the @code{maxdelay} option for one of the sources to be
+modified, in the same way as specifying the @code{maxdelay} option for
+the @code{server} directive in the configuration file (@pxref{server
+directive}).
+
+The following examples illustrate the syntax
+
+@example
+maxdelay foo.bar.com 0.3
+maxdelay 1.2.3.4 0.0015
+@end example
+
+The first example sets the maximum network delay allowed for a
+measurement to the host @code{foo.bar.com} to 0.3 seconds.  The second
+example sets the maximum network delay for a measurement to the host
+with IP address @code{1.2.3.4} to 1.5 milliseconds.
+
+(Any measurement whose network delay exceeds the specified value is
+discarded.)
+@c }}}
+@c {{{ maxdelayratio
+@node maxdelayratio command
+@subsubsection maxdelayratio
+This allows the @code{maxdelayratio} option for one of the sources to be
+modified, in the same way as specifying the @code{maxdelayratio} option
+for the @code{server} directive in the configuration file (@pxref{server
+directive}).
+
+The following examples illustrate the syntax
+
+@example
+maxdelayratio foo.bar.com 1.5
+maxdelayratio 1.2.3.4 2.0
+@end example
+
+The first example sets the maximum network delay for a measurement to
+the host @code{foo.bar.com} to be 1.5 times the minimum delay found
+amongst the previous measurements that have been retained.  The second
+example sets the maximum network delay for a measurement to the host
+with IP address @code{1.2.3.4} to be double the retained minimum.
+
+As for @code{maxdelay}, any measurement whose network delay is too large
+will be discarded.
+@c }}}
+@c {{{ maxpoll
+@node maxpoll command
+@subsubsection maxpoll
+The @code{maxpoll} command is used to modify the minimum polling
+interval for one of the current set of sources.  It is equivalent to the
+@code{maxpoll} option in the @code{server} directive in the
+configuration file (@pxref{server directive}).
+
+The syntax is as follows
+
+@example
+maxpoll <host> <new-maxpoll>
+@end example
+
+where the host can be specified as either a machine name or dotted-quad
+IP address.  The new minimum poll is specified as a base-2 logarithm of
+the number of seconds between polls (e.g. specify 6 for 64 second
+sampling).
+
+An example is 
+
+@example
+maxpoll foo.bar.com 10
+@end example
+
+which sets the maximum polling interval for the host @code{foo.bar.com}
+to 1024 seconds.
+
+Note that the new maximum polling interval only takes effect after the
+next measurement has been made.
+@c }}}
+@c {{{ maxupdateskew
+@node maxupdateskew command
+@subsubsection maxupdateskew
+This command has the same effect as the @code{maxupdateskew} directive
+in the configuration file, see @ref{maxupdateskew directive}.
+@c }}}
+@c {{{ minpoll
+@node minpoll command
+@subsubsection minpoll
+The @code{minpoll} command is used to modify the minimum polling
+interval for one of the current set of sources.  It is equivalent to the
+@code{minpoll} option in the @code{server} directive in the
+configuration file (@pxref{server directive}).
+
+The syntax is as follows
+
+@example
+minpoll <host> <new-minpoll>
+@end example
+
+where the host can be specified as either a machine name or dotted-quad
+IP address.  The new minimum poll is specified as a base-2 logarithm of
+the number of seconds between polls (e.g. specify 6 for 64 second
+sampling).
+
+An example is 
+
+@example
+minpoll foo.bar.com 5
+@end example
+
+which sets the minimum polling interval for the host @code{foo.bar.com}
+to 32 seconds.
+
+Note that the new minimum polling interval only takes effect after the
+next measurement has been made.
+@c }}}
+@c {{{ offline
+@node offline command
+@subsubsection offline
+The @code{offline} command is used to warn @code{chronyd} that the network
+connection to a particular host or hosts is about to be lost.  It should
+be used on computers with a dial-up or similar connection to their time
+sources, to warn @code{chronyd} that the connection is about to be broken.
+
+An example of how to use @code{offline} in this case is shown in
+@ref{Advising chronyd of internet availability}.
+
+Another case where @code{offline} could be used is where a computer
+serves time to a local group of computers, and has a permanant
+connection to true time servers outside the organisation.  However, the
+external connection is heavily loaded at certain times of the day and
+the measurements obtained are less reliable at those times.  In this
+case, it is probably most useful to determine the gain/loss rate during
+the quiet periods and let the whole network coast through the loaded
+periods.  The @code{offline} and @code{online} commands can be used to
+achieve this.  The situation is shown in the figure below.
+
+@example
+@group
+          +----------+
+          |Ext source|
+          +----------+
+              |
+              |
+              |/| <-- Link with variable
+                |     reliability
+                |
+      +-------------------+
+      |Local master server|
+      +-------------------+
+                |
+  +---+---+-----+-----+----+----+
+  |   |   |     |     |    |    |
+           Local clients
+@end group
+@end example
+
+
+
+If the source to which @code{chronyd} is currently synchronised is indicated
+offline in this way, @code{chronyd} will continue to treat it as the
+synchronisation source.  If the network connection were broken without
+the @code{offline} command being used, @code{chronyd} would assume that the
+source had failed and would attempt to pick another synchronisation
+source.
+
+There are two forms of the @code{offline} command.  The first form is a
+wildcard, meaning all sources.  The second form allows a IP address mask
+and a masked address to be specified.  These forms are illustrated below.
+
+@example
+offline
+offline 255.255.255.0/1.2.3.0
+@end example
+
+The second form means that the @code{offline} command is to be applied
+to any source whose IP address is in the 1.2.3 subnet.  (The host's
+address is logically and-ed with the mask, and if the result matches the
+masked-address the host is processed).
+
+The wildcard form of the address is actually equivalent to
+
+@example
+offline 0.0.0.0/0.0.0.0
+@end example
+@c }}}
+@c {{{ online
+@node online command
+@subsubsection online
+The @code{online} command is opposite in function to the @code{offline}
+command.  It is used to advise @code{chronyd} that network connectivity to a
+particular source or sources has been restored.
+
+The syntax is identical to that of the @code{offline} command, see
+@ref{offline command}.
+@c }}}
+@c {{{ password
+@node password command
+@subsubsection password
+The password command is used to allow chronyc to send privileged
+commands to @code{chronyd}.  The password can either be entered on the command
+line, or can be entered without echoing.  The syntax for entering the
+password on the command line is as follows
+
+@example
+password xyzzy
+@end example
+
+To enter the password without it being echoed, enter
+
+@example
+password
+@end example
+
+The computer will respond with a @samp{Password:} prompt, at which you
+should enter the password and press return.  (Note that the no-echo mode
+is limited to 8 characters on SunOS 4.1 due to limitations in the system
+library.  Other systems do not have this restriction.)
+
+The password is any string of characters not containing whitespace.  It
+has to match @code{chronyd's} currently defined command key (@pxref{commandkey
+directive}).
+@c }}}
+@c {{{ quit
+@node quit command
+@subsubsection quit
+The quit command exits from chronyc and returns the user to the shell
+(same as the exit command).
+@c }}}
+@c {{{ rtcdata
+@node rtcdata command
+@subsubsection rtcdata
+The @code{rtcdata} command displays the current real time clock RTC parameters.
+
+An example output is shown below.
+
+@example
+RTC ref time (GMT) : Sat May 30 07:25:56 1998
+Number of samples  : 10
+Number of runs     : 5
+Sample span period :  549
+RTC is fast by     :    -1.632736 seconds
+RTC gains time at  :  -107.623 ppm
+@end example
+
+The fields have the following meaning
+
+@table @code
+@item RTC ref time (GMT)
+This is the RTC reading the last time its error was measured.
+@item Number of samples
+This is the number of previous measurements being used to determine the
+RTC gain/loss rate.
+@item Number of runs
+This is the number of runs of residuals of the same sign following the
+regression fit for (RTC error) versus (RTC time).  A value which is
+small indicates that the measurements are not well approximated by a
+linear model, and that the algorithm will tend to delete the older
+measurements to improve the fit.
+@item Sample span period
+This is the period that the measurements span (from the oldest to the
+newest).  Without a unit the value is in seconds; suffixes `m' for
+minutes, `h' for hours, `d' for days or `y' for years may be used.
+@item RTC is fast by
+This is the estimate of how many seconds fast the RTC when it thought
+the time was at the reference time (above).  If this value is large, you
+may (or may not) want to use the @code{trimrtc} command to bring the RTC
+into line with the system clock.  (Note, a large error will not affect
+@code{chronyd's} operation, unless it becomes so big as to start causing
+rounding errors.
+@item RTC gains time at
+This is the amount of time gained (positive) or lost (negative) by the
+real time clock for each second that it ticks.  It is measured in parts
+per million.  So if the value shown was +1, suppose the RTC was exactly
+right when it crosses a particular second boundary.  Then it would be 1
+microsecond fast when it crosses its next second boundary.
+@end table
+@c }}}
+@c {{{ settime
+@node settime command
+@subsubsection settime
+The @code{settime} command allows the current time to be entered
+manually, if this option has been configured into @code{chronyd}.  (It may be
+configured either with the @code{manual} directive in the configuration
+file (@pxref{manual directive}), or with the @code{manual} command of
+chronyc (@pxref{manual command}).
+
+It should be noted that the computer's sense of time will only be as
+accurate as the reference you use for providing this input (e.g. your
+watch), as well as how well you can time the press of the return key.
+When inputting time to an isolated network, I have a battery operated
+alarm clock that is synchronised to the Rugby MSF time signal in the UK.
+
+Providing your computer's time zone is set up properly, you will be able
+to enter a local time (rather than UTC).
+
+The response to a successful @code{settime} command indicates the amount
+that the computer's clock was wrong.  It should be apparent from this if
+you have entered the time wrongly, e.g. with the wrong time zone.
+
+The rate of drift of the system clock is estimated by a regression
+process using the entered measurement and all previous measurements
+entered during the present run of @code{chronyd}.  However, the entered
+measurement is used for adjusting the current clock offset (rather than
+the estimated intercept from the regression, which is ignored).
+Contrast what happens with the @code{manual delete} command, where the
+intercept is used to set the current offset (since there is no
+measurement that has just been typed in in that case).
+
+The time is parsed by the public domain @file{getdate} algorithm.
+Consequently, you can only specify time to the nearest second.
+
+Examples of inputs that are valid are shown below.
+
+@example
+settime 16:30
+settime 16:30:05
+settime Nov 21, 1997 16:30:05
+@end example
+
+For a full description of @code{getdate}, get hold of the getdate
+documentation (bundled, for example, with the source for GNU tar).
+@c }}}
+@c {{{ sources
+@node sources command
+@subsubsection sources
+This command displays information about the current time sources that
+@code{chronyd} is accessing.
+
+The optional argument @code{-v} can be specified, meaning @emph{verbose}.  In
+this case, extra caption lines are shown as a reminder of the meanings of the
+columns.
+
+@example
+@group
+210 Number of sources = 3
+MS Name/IP address      Stratum Poll LastRx Last sample
+=======================================================================
+^+ a.b.c                    3     6    47m  -9491us[-6983us] +/-  159ms
+^+ d.e.f                    3     6    47m    +32ms[  +35ms] +/-  274ms
+^* g.h.i                    2     6    47m  +8839us[  +11ms] +/-  214ms
+@end group
+@end example
+
+The columns are as follows:
+
+@table @code
+@item M
+This indicates the mode of the source.  @code{^} means a server,
+@code{=} means a peer and @code{#} indicates a locally connected
+reference clock@footnote{In the current version this will never be
+shown, because @code{chronyd} has no support for reference clocks yet.}.
+
+@item S
+This column indicates the state of the sources.  @code{*} indicates the
+source to which @code{chronyd} is current synchronised.  @code{+} indicates
+other acceptable sources.  @code{?} indicates sources to which
+connectivity has been lost.  @code{x} indicates a clock which @code{chronyd}
+thinks is is a falseticker (i.e. its time is inconsistent with a
+majority of other sources).  @code{~} indicates a source whose time
+appears to have too much variability.  The @code{~} condition is also
+shown at start-up, until at least 3 samples have been gathered from it.
+
+@item Name/IP address
+This shows the name or the IP address of the source.
+
+@item Stratum
+This shows the stratum of the source, as reported in its most recently
+received sample.  Stratum 1 indicates a computer with a locally attached
+reference clock.  A computer that is synchronised to a stratum 1
+computer is at stratum 2.  A computer that is synchronised to a stratum
+2 computer is at stratum 3, and so on.
+
+@item Poll
+This shows the rate at which the source is being polled, as a base-2
+logarithm of the interval in seconds.  Thus, a value of 6 would indicate
+that a measurement is being made every 64 seconds.
+
+@code{chronyd} automatically varies the polling rate in response to prevailing
+conditions.
+
+@item LastRx
+This column shows how long ago the last sample was received from the
+source.  This is normally in seconds.  The letters @code{m}, @code{h},
+@code{d} or @code{y} indicate minutes, hours, days or years.
+
+@item Last sample
+This column shows the offset between the local clock and the source at
+the last measurement.  The number in the square brackets shows the
+actual measured offset.  This may be suffixed by @code{us} (indicating
+microseconds), @code{ms} (indicating milliseconds), or @code{s}
+(indicating seconds).  The number to the left of the square brackets
+shows the original measurement, adjusted to allow for any slews applied
+to the local clock since.  The number following the @code{+/-} indicator
+shows the margin of error in the measurement.
+
+Positive offsets indicate that the local clock is fast of the source.
+
+@end table
+@c }}}
+@c {{{ sourcestats
+@node sourcestats command
+@subsubsection sourcestats
+
+The @code{sourcestats} command displays information about the drift rate
+and offset estimatation process for each of the sources currently being
+examined by @code{chronyd}.
+
+The optional argument @code{-v} can be specified, meaning @emph{verbose}.  In
+this case, extra caption lines are shown as a reminder of the meanings of the
+columns.
+
+An example report is
+
+@example
+@group
+210 Number of sources = 1
+Name/IP Address            NP  NR  Span  Frequency   Freq Skew   Std Dev
+========================================================================
+abc.def.ghi                11   5   46m      -0.001       0.045     25us
+@end group
+@end example
+
+The columns are as follows
+
+@table @code
+@item Name/IP Address
+This is the name or dotted-quad IP address of the NTP server (or peer)
+to which the rest of the line relates.
+
+@item NP
+This is the number of sample points currently being retained for the
+server.  The drift rate and current offset are estimated by performing a
+linear regression through these points.
+
+@item NR
+This is the number of runs of residuals having the same sign following
+the last regression.  If this number starts to become too small relative
+to the number of samples, it indicates that a straight line is no longer
+a good fit to the data.  If the number of runs is too low,
+@code{chronyd} discards older samples and re-runs the regression until
+the number of runs becomes acceptable.
+
+@item Span
+This is the interval between the oldest and newest samples.  If no unit
+is shown the value is in seconds.  In the example, the interval is 46
+minutes.
+
+@item Frequency
+This is the estimated residual frequency for the server, in parts per
+million.  In this case, the computer's clock is estimated to be running
+1 part in 10**9 slow relative to the server.
+
+@item Freq Skew
+This is the estimated error bounds on @code{Freq} (again in parts per
+million).
+
+@item Std Dev
+This is the estimated sample standard deviation.
+
+@end table
+@c }}}
+@c {{{ tracking
+@node tracking command
+@subsubsection tracking
+The @code{tracking} command displays parameters about the system's clock
+performance.  An example of the output is shown below.
+
+@example
+Reference ID    : 1.2.3.4 (a.b.c)
+Stratum         : 3
+Ref time (UTC)  : Sun May 17 06:13:11 1998
+System time     : 0.000000 seconds fast of NTP time
+Frequency       : 331.898 ppm fast
+Residual freq   : 0.004 ppm
+Skew            : 0.154 ppm
+Root delay      : 0.373169 seconds
+Root dispersion : 0.024780 seconds
+@end example
+
+The fields are explained as follows.
+
+@table @code
+@item Reference ID
+This is the IP address, and name if available, of the server to which
+the computer is currently synchronised.  If this is @code{127.127.1.1}
+it means the computer is not synchronised to any external source and
+that you have the `local' mode operating (via the @code{local} command
+in @code{chronyc} (@pxref{local command}), or the @code{local} directive
+in the @file{/etc/chrony.conf} file (@pxref{local directive})).
+
+@item Stratum
+The stratum indicates how many hops away from a computer with an
+attached reference clock we are.  Such a computer is a stratum-1
+computer, so the computer in the example is two hops away
+(i.e. @code{a.b.c} is a stratum-2 and is synchronised from a stratum-1).
+
+@item Ref time
+This is the time (GMT) at which the last measurement from the reference
+source was processed.
+
+@item System time
+In normal operation, @code{chronyd} @emph{never} steps the system clock,
+because any jump in the timescale can have adverse consequences for
+certain application programs.  Instead, any error in the system clock is
+corrected by slightly speeding up or slowing down the system clock until
+the error has been removed, and then returning to the system clock's
+normal speed.  A consequence of this is that there will be a period when
+the system clock (as read by other programs using the
+@code{gettimeofday()} system call, or by the @code{date} command in the
+shell) will be different from @code{chronyd's} estimate of the current
+true time (which it reports to NTP clients when it is operating in
+server mode).  The value reported on this line is the difference due to
+this effect.
+
+On systems such as Solaris and SunOS, @code{chronyd} has no means to
+adjust the fundamental rate of the system clock, so keeps the system
+time correct by periodically making offsets to it as though an error had
+been measured.  The build up of these offsets will be observed in this
+report.  On systems such as Linux where @code{chronyd} can adjust the
+fundamental rate of the system clock, this value will show zero unless a
+very recent measurement has shown the system to be error.
+
+@item Frequency
+The `frequency' is the rate by which the system's clock would be would
+be wrong if @code{chronyd} was not correcting it.  It is expressed in
+ppm (parts per million).  For example, a value of 1ppm would mean that
+when the system's clock thinks it has advanced 1 second, it has actually
+advanced by 1.000001 seconds relative to true time.
+
+As you can see in the example, the clock in the computer I developed
+@code{chrony} on is not a very good one - it gains about 30 seconds per
+day!  This was the reason I started to write @code{chrony} in the first
+place.
+ 
+@item Residual freq
+This shows the `residual frequency' for the currently selected reference
+source.  This reflects any difference between what the measurements from
+the reference source indicate the frequency should be and the frequency
+currently being used.
+
+The reason this is not always zero is that a smoothing procedure is
+applied to the frequency.  Each time a measurement from the reference
+source is obtained and a new residual frequency computed, the estimated
+accuracy of this residual is compared with the estimated accuracy (see
+`skew' next) of the existing frequency value.  A weighted average is
+computed for the new frequency, with weights depending on these
+accuracies.  If the measurements from the reference source follow a
+consistent trend, the residual will be driven to zero over time.
+
+@item Skew
+This is the estimated error bound on the the frequency.
+
+@item Root delay
+This is the total of the network path delays to the stratum-1 computer
+from which the computer is ultimately synchronised.
+
+In certain extreme situations, this value can be negative.  (This can
+arise in a symmetric peer arrangement where the computers' frequencies
+are not tracking each other and the network delay is very short relative
+to the turn-around time at each computer.)
+
+@item Root dispersion
+This is the total dispersion accumulated through all the computers back
+to the stratum-1 computer from which the computer is ultimately
+synchronised.  Dispersion is due to system clock resolution, statistical
+measurement variations etc.
+
+An absolute bound on the computer's clock accuracy (assuming the
+stratum-1 computer is correct) is given by 
+
+@example
+clock_error <= root_dispersion + (0.5 * |root_delay|)
+@end example
+
+@end table
+@c }}}
+@c {{{ trimrtc
+@node trimrtc command
+@subsubsection trimrtc
+The @code{trimrtc} command is used to correct the system's real time
+clock (RTC) to the main system clock.  It has no effect if the error
+between the two clocks is currently estimated at less than a second (the
+resolution of the RTC is only 1 second).
+
+The command takes no arguments.  It performs the following steps (if the
+RTC is more than 1 second away from the system clock):
+
+@enumerate 1
+@item
+Remember the currently estimated gain/loss rate of the RTC and flush the
+previous measurements.
+@item
+Step the real time clock to bring it within a second of the system clock.
+@item
+Make several measurements to accurately determine the new offset between
+the RTC and the system clock (i.e. the remaining fraction of a second
+error)
+@item
+Save the RTC parameters to the RTC file (specified with the
+@code{rtcfile} directive in the configuration file (@pxref{rtcfile
+directive}).
+@end enumerate
+
+The last step is done as a precaution against the computer suffering a
+power failure before either the daemon exits or the @code{writertc}
+command is issued.
+
+@code{chronyd} will still work perfectly well both whilst operating and
+across machine reboots even if the @code{trimrtc} command is never used
+(and the RTC is allowed to drift away from true time).  The
+@code{trimrtc} command is provided as a method by which it can be
+corrected, in a manner compatible with @code{chronyd} using it to
+maintain accurate time across machine reboots.
+@c }}}
+@c {{{ writertc
+@node writertc command
+@subsubsection writertc
+The @code{writertc} command writes the currently estimated error and
+gain/loss rate parameters for the RTC to the RTC file (specified with
+the @code{rtcfile} directive (@pxref{rtcfile directive})).  This
+information is also written automatically when @code{chronyd} is killed
+(with SIGHUP, SIGINT, SIGQUIT or SIGTERM).
+@c }}}
+@c }}}
+@c }}}
+@c }}}
+@c {{{ apx: porting guide
+@node Porting guide
+@appendix Porting guide
+@c {{{ section top
+This appendix discusses issues that have arisen in writing the
+system-specific parts of the existing ports.  This will provide useful
+information for those attempting to write ports to other systems.
+
+
+@menu
+* System driver files::         What needs to go in a driver file for a
+                                particular type of system
+* Quirks of particular systems::  Problem areas that have been found on ports
+                                already written.
+@end menu
+@c }}}
+@c {{{ S:system driver files
+@node System driver files
+@section System driver files
+The system specific parts of the software are contained in files with
+names like @code{sys_linux.c}.
+
+The following functions are required in a system driver file:
+
+@enumerate
+@item
+A function to read the current frequency
+@item
+A function to set the current frequency
+@item
+A function to slew the system time by a specified delta
+@item
+A function to step the system time by a specified delta
+@item
+A function to work out the error at a particular time between the
+system's clock and @code{chronyd's} estimate of real time.  (This is required
+because some systems have to track real time by making the system time
+follow it in a 'sawtooth' fashion).
+@end enumerate
+
+The @dfn{frequency} is the rate at which the system gains or loses time,
+measured relative to the system when running uncompensated.
+@c }}}
+@c {{{ system quirks
+@node Quirks of particular systems
+@section Quirks of particular systems
+@c {{{ section top
+These sections describe quirks in each system type that needed to be
+investigated to port the software to each system type.
+
+@menu
+* Linux porting quirks::        
+* Solaris 2.5 porting quirks::  
+* SunOS 4.1.4 porting quirks::  
+@end menu
+@c }}}
+@c {{{ linux
+@node Linux porting quirks
+@subsection Linux
+The following quirks have been found in developing the Linux port.
+
+@enumerate 1
+@item
+In order to avoid floating point arithmetic, the kernel uses shifting
+and adding to approximate a scaling of 100/128.  This approximation
+implies that the frequency set via the @code{adjtimex()} system call is
+not the frequency that is actually obtained.  The method of
+approximation varies between kernel versions and must be determined by
+examining the kernel source.  An inverse factor must be included in the
+driver to compensate.
+@item
+In some kernel versions, an @code{adjtimex()} system call with the flags
+bits all zeroed will return the amount of offset still to be corrected.
+In others (e.g. the 2.0 series beyond 2.0.32), the offset must be
+changed in order to get the old offset returned (similar to
+@code{adjtime()} on other systems).
+
+@end enumerate
+@c }}}
+@c {{{ solaris 2.5
+@node Solaris 2.5 porting quirks
+@subsection Solaris 2.5
+
+The following quirks have been found in developing the Solaris port.
+
+@enumerate 1
+@item
+The @code{adjtime()} system call with a zero argument does not cancel an
+adjustment that is in progress - it just reports the remaining
+adjustment.
+@item
+The @code{settimeofday()} system call only observes the seconds part of
+the argument - any fractional seconds part is lost.
+second.
+@item
+The kernel variable @code{dosynctodr} has to be set to zero, otherwise
+the system clock is periodically reset to the real-time clock.
+@end enumerate
+@c }}}
+@c {{{ sunos 4.1.4
+@node SunOS 4.1.4 porting quirks
+@subsection SunOS 4.1.4
+The following quirks have been found in developing the SunOS port.
+
+@enumerate 1
+@item
+The @code{adjtime()} system call truncates its argument to a multiple of
+the system's @code{tickadj} variable.  (@code{chronyd} sets that to 100,
+giving a 1 part in 100 slewing capability for correcting offsets.)
+@item
+The kernel variable @code{dosynctodr} has to be set to zero, otherwise
+the system clock is periodically reset to the real-time clock.
+@end enumerate
+@c }}}
+@c }}}
+@c }}}
+@c {{{ apx:GNU General Public License
+@node GPL
+@appendix GNU General Public License
+
+@center GNU GENERAL PUBLIC LICENSE
+@center	Version 2, June 1991
+
+ Copyright (C) 1989, 1991 Free Software Foundation, Inc.
+ 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+			    Preamble
+
+  The licenses for most software are designed to take away your
+freedom to share and change it.  By contrast, the GNU General Public
+License is intended to guarantee your freedom to share and change free
+software--to make sure the software is free for all its users.  This
+General Public License applies to most of the Free Software
+Foundation's software and to any other program whose authors commit to
+using it.  (Some other Free Software Foundation software is covered by
+the GNU Library General Public License instead.)  You can apply it to
+your programs, too.
+
+  When we speak of free software, we are referring to freedom, not
+price.  Our General Public Licenses are designed to make sure that you
+have the freedom to distribute copies of free software (and charge for
+this service if you wish), that you receive source code or can get it
+if you want it, that you can change the software or use pieces of it
+in new free programs; and that you know you can do these things.
+
+  To protect your rights, we need to make restrictions that forbid
+anyone to deny you these rights or to ask you to surrender the rights.
+These restrictions translate to certain responsibilities for you if you
+distribute copies of the software, or if you modify it.
+
+  For example, if you distribute copies of such a program, whether
+gratis or for a fee, you must give the recipients all the rights that
+you have.  You must make sure that they, too, receive or can get the
+source code.  And you must show them these terms so they know their
+rights.
+
+  We protect your rights with two steps: (1) copyright the software, and
+(2) offer you this license which gives you legal permission to copy,
+distribute and/or modify the software.
+
+  Also, for each author's protection and ours, we want to make certain
+that everyone understands that there is no warranty for this free
+software.  If the software is modified by someone else and passed on, we
+want its recipients to know that what they have is not the original, so
+that any problems introduced by others will not reflect on the original
+authors' reputations.
+
+  Finally, any free program is threatened constantly by software
+patents.  We wish to avoid the danger that redistributors of a free
+program will individually obtain patent licenses, in effect making the
+program proprietary.  To prevent this, we have made it clear that any
+patent must be licensed for everyone's free use or not licensed at all.
+
+  The precise terms and conditions for copying, distribution and
+modification follow.
+
+		    GNU GENERAL PUBLIC LICENSE
+   TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+
+  0. This License applies to any program or other work which contains
+a notice placed by the copyright holder saying it may be distributed
+under the terms of this General Public License.  The "Program", below,
+refers to any such program or work, and a "work based on the Program"
+means either the Program or any derivative work under copyright law:
+that is to say, a work containing the Program or a portion of it,
+either verbatim or with modifications and/or translated into another
+language.  (Hereinafter, translation is included without limitation in
+the term "modification".)  Each licensee is addressed as "you".
+
+Activities other than copying, distribution and modification are not
+covered by this License; they are outside its scope.  The act of
+running the Program is not restricted, and the output from the Program
+is covered only if its contents constitute a work based on the
+Program (independent of having been made by running the Program).
+Whether that is true depends on what the Program does.
+
+  1. You may copy and distribute verbatim copies of the Program's
+source code as you receive it, in any medium, provided that you
+conspicuously and appropriately publish on each copy an appropriate
+copyright notice and disclaimer of warranty; keep intact all the
+notices that refer to this License and to the absence of any warranty;
+and give any other recipients of the Program a copy of this License
+along with the Program.
+
+You may charge a fee for the physical act of transferring a copy, and
+you may at your option offer warranty protection in exchange for a fee.
+
+  2. You may modify your copy or copies of the Program or any portion
+of it, thus forming a work based on the Program, and copy and
+distribute such modifications or work under the terms of Section 1
+above, provided that you also meet all of these conditions:
+
+    a) You must cause the modified files to carry prominent notices
+    stating that you changed the files and the date of any change.
+
+    b) You must cause any work that you distribute or publish, that in
+    whole or in part contains or is derived from the Program or any
+    part thereof, to be licensed as a whole at no charge to all third
+    parties under the terms of this License.
+
+    c) If the modified program normally reads commands interactively
+    when run, you must cause it, when started running for such
+    interactive use in the most ordinary way, to print or display an
+    announcement including an appropriate copyright notice and a
+    notice that there is no warranty (or else, saying that you provide
+    a warranty) and that users may redistribute the program under
+    these conditions, and telling the user how to view a copy of this
+    License.  (Exception: if the Program itself is interactive but
+    does not normally print such an announcement, your work based on
+    the Program is not required to print an announcement.)
+
+These requirements apply to the modified work as a whole.  If
+identifiable sections of that work are not derived from the Program,
+and can be reasonably considered independent and separate works in
+themselves, then this License, and its terms, do not apply to those
+sections when you distribute them as separate works.  But when you
+distribute the same sections as part of a whole which is a work based
+on the Program, the distribution of the whole must be on the terms of
+this License, whose permissions for other licensees extend to the
+entire whole, and thus to each and every part regardless of who wrote it.
+
+Thus, it is not the intent of this section to claim rights or contest
+your rights to work written entirely by you; rather, the intent is to
+exercise the right to control the distribution of derivative or
+collective works based on the Program.
+
+In addition, mere aggregation of another work not based on the Program
+with the Program (or with a work based on the Program) on a volume of
+a storage or distribution medium does not bring the other work under
+the scope of this License.
+
+  3. You may copy and distribute the Program (or a work based on it,
+under Section 2) in object code or executable form under the terms of
+Sections 1 and 2 above provided that you also do one of the following:
+
+    a) Accompany it with the complete corresponding machine-readable
+    source code, which must be distributed under the terms of Sections
+    1 and 2 above on a medium customarily used for software interchange; or,
+
+    b) Accompany it with a written offer, valid for at least three
+    years, to give any third party, for a charge no more than your
+    cost of physically performing source distribution, a complete
+    machine-readable copy of the corresponding source code, to be
+    distributed under the terms of Sections 1 and 2 above on a medium
+    customarily used for software interchange; or,
+
+    c) Accompany it with the information you received as to the offer
+    to distribute corresponding source code.  (This alternative is
+    allowed only for noncommercial distribution and only if you
+    received the program in object code or executable form with such
+    an offer, in accord with Subsection b above.)
+
+The source code for a work means the preferred form of the work for
+making modifications to it.  For an executable work, complete source
+code means all the source code for all modules it contains, plus any
+associated interface definition files, plus the scripts used to
+control compilation and installation of the executable.  However, as a
+special exception, the source code distributed need not include
+anything that is normally distributed (in either source or binary
+form) with the major components (compiler, kernel, and so on) of the
+operating system on which the executable runs, unless that component
+itself accompanies the executable.
+
+If distribution of executable or object code is made by offering
+access to copy from a designated place, then offering equivalent
+access to copy the source code from the same place counts as
+distribution of the source code, even though third parties are not
+compelled to copy the source along with the object code.
+
+  4. You may not copy, modify, sublicense, or distribute the Program
+except as expressly provided under this License.  Any attempt
+otherwise to copy, modify, sublicense or distribute the Program is
+void, and will automatically terminate your rights under this License.
+However, parties who have received copies, or rights, from you under
+this License will not have their licenses terminated so long as such
+parties remain in full compliance.
+
+  5. You are not required to accept this License, since you have not
+signed it.  However, nothing else grants you permission to modify or
+distribute the Program or its derivative works.  These actions are
+prohibited by law if you do not accept this License.  Therefore, by
+modifying or distributing the Program (or any work based on the
+Program), you indicate your acceptance of this License to do so, and
+all its terms and conditions for copying, distributing or modifying
+the Program or works based on it.
+
+  6. Each time you redistribute the Program (or any work based on the
+Program), the recipient automatically receives a license from the
+original licensor to copy, distribute or modify the Program subject to
+these terms and conditions.  You may not impose any further
+restrictions on the recipients' exercise of the rights granted herein.
+You are not responsible for enforcing compliance by third parties to
+this License.
+
+  7. If, as a consequence of a court judgment or allegation of patent
+infringement or for any other reason (not limited to patent issues),
+conditions are imposed on you (whether by court order, agreement or
+otherwise) that contradict the conditions of this License, they do not
+excuse you from the conditions of this License.  If you cannot
+distribute so as to satisfy simultaneously your obligations under this
+License and any other pertinent obligations, then as a consequence you
+may not distribute the Program at all.  For example, if a patent
+license would not permit royalty-free redistribution of the Program by
+all those who receive copies directly or indirectly through you, then
+the only way you could satisfy both it and this License would be to
+refrain entirely from distribution of the Program.
+
+If any portion of this section is held invalid or unenforceable under
+any particular circumstance, the balance of the section is intended to
+apply and the section as a whole is intended to apply in other
+circumstances.
+
+It is not the purpose of this section to induce you to infringe any
+patents or other property right claims or to contest validity of any
+such claims; this section has the sole purpose of protecting the
+integrity of the free software distribution system, which is
+implemented by public license practices.  Many people have made
+generous contributions to the wide range of software distributed
+through that system in reliance on consistent application of that
+system; it is up to the author/donor to decide if he or she is willing
+to distribute software through any other system and a licensee cannot
+impose that choice.
+
+This section is intended to make thoroughly clear what is believed to
+be a consequence of the rest of this License.
+
+  8. If the distribution and/or use of the Program is restricted in
+certain countries either by patents or by copyrighted interfaces, the
+original copyright holder who places the Program under this License
+may add an explicit geographical distribution limitation excluding
+those countries, so that distribution is permitted only in or among
+countries not thus excluded.  In such case, this License incorporates
+the limitation as if written in the body of this License.
+
+  9. The Free Software Foundation may publish revised and/or new versions
+of the General Public License from time to time.  Such new versions will
+be similar in spirit to the present version, but may differ in detail to
+address new problems or concerns.
+
+Each version is given a distinguishing version number.  If the Program
+specifies a version number of this License which applies to it and "any
+later version", you have the option of following the terms and conditions
+either of that version or of any later version published by the Free
+Software Foundation.  If the Program does not specify a version number of
+this License, you may choose any version ever published by the Free Software
+Foundation.
+
+  10. If you wish to incorporate parts of the Program into other free
+programs whose distribution conditions are different, write to the author
+to ask for permission.  For software which is copyrighted by the Free
+Software Foundation, write to the Free Software Foundation; we sometimes
+make exceptions for this.  Our decision will be guided by the two goals
+of preserving the free status of all derivatives of our free software and
+of promoting the sharing and reuse of software generally.
+
+			    NO WARRANTY
+
+  11. BECAUSE THE PROGRAM IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.  EXCEPT WHEN
+OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES
+PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED
+OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE ENTIRE RISK AS
+TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU.  SHOULD THE
+PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING,
+REPAIR OR CORRECTION.
+
+  12. IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+REDISTRIBUTE THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES,
+INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING
+OUT OF THE USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED
+TO LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY
+YOU OR THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER
+PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGES.
+
+		     END OF TERMS AND CONDITIONS
+
+	Appendix: How to Apply These Terms to Your New Programs
+
+  If you develop a new program, and you want it to be of the greatest
+possible use to the public, the best way to achieve this is to make it
+free software which everyone can redistribute and change under these terms.
+
+  To do so, attach the following notices to the program.  It is safest
+to attach them to the start of each source file to most effectively
+convey the exclusion of warranty; and each file should have at least
+the "copyright" line and a pointer to where the full notice is found.
+
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) 19yy  <name of author>
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
+
+Also add information on how to contact you by electronic and paper mail.
+
+If the program is interactive, make it output a short notice like this
+when it starts in an interactive mode:
+
+    Gnomovision version 69, Copyright (C) 19yy name of author
+    Gnomovision comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
+    This is free software, and you are welcome to redistribute it
+    under certain conditions; type `show c' for details.
+
+The hypothetical commands `show w' and `show c' should show the appropriate
+parts of the General Public License.  Of course, the commands you use may
+be called something other than `show w' and `show c'; they could even be
+mouse-clicks or menu items--whatever suits your program.
+
+You should also get your employer (if you work as a programmer) or your
+school, if any, to sign a "copyright disclaimer" for the program, if
+necessary.  Here is a sample; alter the names:
+
+  Yoyodyne, Inc., hereby disclaims all copyright interest in the program
+  `Gnomovision' (which makes passes at compilers) written by James Hacker.
+
+  <signature of Ty Coon>, 1 April 1989
+  Ty Coon, President of Vice
+
+This General Public License does not permit incorporating your program into
+proprietary programs.  If your program is a subroutine library, you may
+consider it more useful to permit linking proprietary applications with the
+library.  If this is what you want to do, use the GNU Library General
+Public License instead of this License.
+@c }}}
+@contents
+@bye
+@c vim:cms=@c\ %s:fdm=marker:fdc=5:syntax=off
+
