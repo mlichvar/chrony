@@ -1,0 +1,52 @@
+#!/usr/bin/env perl
+
+$tool = "chrony";
+
+$version = shift || die "Usage : $0 <version>\n";
+$subdir = "${tool}-${version}";
+
+unless (-d ".git") {
+  die "No .git subdirectory?"
+}
+
+unless (-d "RELEASES") {
+  mkdir "RELEASES", 0755;
+}
+
+system ("git-tag -s $version");
+die "git-tag failed" if ($? != 0);
+if (-d "RELEASES/$subdir") {
+  system ("rm -rf RELEASES/$subdir");
+}
+
+system ("git-tar-tree $version RELEASES/${subdir} | tar xf -");
+die "git-tar-tree failed" if ($? != 0);
+
+chdir "RELEASES";
+$here = qx/pwd/;
+chomp $here;
+chdir $subdir;
+
+open (OUT, ">version.txt");
+print OUT $version."\n";
+close OUT;
+
+open (IN, "<${tool}.spec.sample");
+open (OUT, ">${tool}.spec");
+while (<IN>) {
+  s/\@\@VERSION\@\@/$version/;
+  print OUT;
+}
+close (IN);
+close (OUT);
+
+system("makeinfo --no-headers --number-sections -o chrony.txt chrony.texi");
+unlink "make_release";
+unlink "${tool}.spec.sample";
+unlink ".gitignore";
+
+chdir $here;
+system ("tar cvf - $subdir | gzip -9 > ${subdir}.tar.gz");
+system ("gpg -b -a -o ${subdir}-tar-gz-asc.txt ${subdir}.tar.gz");
+
+
