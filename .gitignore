@@ -1,0 +1,6 @@
+*.swp
+*.o
+Makefile
+chronyc
+chronyd
+version.h
