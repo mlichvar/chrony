@@ -1652,7 +1652,7 @@ process_cmd_tracking(char *line)
     ref_time.tv_usec = ntohl(reply.data.tracking.ref_time_us);
     ref_time_tm = *gmtime((time_t *)&ref_time.tv_sec);
     printf("Ref time (UTC)  : %s", asctime(&ref_time_tm));
-    correction_tv.tv_sec = ntohl(reply.data.tracking.current_correction_s);
+    correction_tv.tv_sec = (int32_t)ntohl(reply.data.tracking.current_correction_s);
     correction_tv.tv_usec = ntohl(reply.data.tracking.current_correction_us);
     correction = (double) correction_tv.tv_sec + 1.0e-6 * correction_tv.tv_usec;
     printf("System time     : %.6f seconds %s of NTP time\n", fabs(correction),
