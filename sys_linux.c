@@ -98,7 +98,7 @@ static void handle_end_of_slew(void *anything);
 /* ================================================== */
 
 inline static int
-round(double x) {
+our_round(double x) {
   int y;
   y = (int)(x + 0.5);
   while ((double)y < x - 0.5) y++;
@@ -433,7 +433,7 @@ set_frequency(double freq_ppm) {
     neg = 0;
   }
 
-  required_delta_tick = round(freq_ppm / dhz);
+  required_delta_tick = our_round(freq_ppm / dhz);
   required_freq = freq_ppm - dhz * (double) required_delta_tick;
 
   if (neg) {
