@@ -1584,7 +1584,7 @@ read_from_cmd_socket(void *anything)
   CMD_Reply tx_message, *prev_tx_message;
   int rx_message_length, tx_message_length;
   struct sockaddr_in where_from;
-  int from_length;
+  socklen_t from_length;
   unsigned long remote_ip;
   unsigned short remote_port;
   int md5_ok;

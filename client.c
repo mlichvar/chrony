@@ -146,7 +146,7 @@ read_line(void)
 static unsigned long
 get_address(const char *hostname)
 {
-  unsigned char *address0;
+  char *address0;
   struct hostent *host;
   unsigned long result;
 
@@ -746,7 +746,7 @@ static int
 accheck_getaddr(char *line, unsigned long *addr)
 {
   unsigned long a, b, c, d, ip;
-  unsigned char *p, *q;
+  char *p, *q;
   p = line;
   while (*p && isspace(*p)) p++;
   if (!*p) {
@@ -1124,7 +1124,7 @@ static int
 submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
 {
   unsigned long tx_sequence;
-  int where_from_len;
+  socklen_t where_from_len;
   struct sockaddr_in where_from;
   int bad_length, bad_sender, bad_sequence, bad_header;
   int select_status;
