@@ -116,7 +116,7 @@ LOG_Line_Function(LOG_Severity severity, LOG_Facility facility, const char *form
 
 /* ================================================== */
 
-volatile void
+void
 LOG_Fatal_Function(LOG_Facility facility, const char *format, ...)
 {
   char buf[2048];

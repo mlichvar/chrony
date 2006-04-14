@@ -74,7 +74,7 @@ delete_pidfile(void)
 
 /* ================================================== */
 
-volatile void
+void
 MAI_CleanupAndExit(void)
 {
   if (!initialised) exit(0);
