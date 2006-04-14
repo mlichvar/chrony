@@ -1,4 +1,1 @@
-#ifndef VERSION_H
-#define VERSION_H
-#define PROGRAM_VERSION_STRING "$Name: V1_12 $"
-#endif /* VERSION_H */
+DEVELOPMENT
