@@ -32,7 +32,7 @@
 #define GOT_MAIN_H
 
 /* Function to clean up at end of run */
-extern volatile void MAI_CleanupAndExit(void);
+extern void MAI_CleanupAndExit(void);
 
 #endif /* GOT_MAIN_H */
 

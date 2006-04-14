@@ -184,7 +184,7 @@ read_from_socket(void *anything)
   ReceiveBuffer message;
   int message_length;
   struct sockaddr_in where_from;
-  int from_length;
+  socklen_t from_length;
   unsigned int flags = 0;
   struct timeval now;
   NTP_Remote_Address remote_addr;

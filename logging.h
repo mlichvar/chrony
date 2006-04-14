@@ -77,7 +77,7 @@ extern void LOG_Finalise(void);
 extern void LOG_Line_Function(LOG_Severity severity, LOG_Facility facility, const char *format, ...);
 
 /* Logging function for fatal errors */
-extern volatile void LOG_Fatal_Function(LOG_Facility facility, const char *format, ...);
+extern void LOG_Fatal_Function(LOG_Facility facility, const char *format, ...);
 
 /* Position in code reporting function */
 extern void LOG_Position(const char *filename, int line_number, const char *function_name);

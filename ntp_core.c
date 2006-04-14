@@ -378,7 +378,7 @@ generate_packet_auth(NTP_Packet *pkt, unsigned long keyid)
   if (keyok) {
     pkt->auth_keyid = htonl(keyid);
     MD5Init(&ctx);
-    MD5Update(&ctx, keytext, keylen);
+    MD5Update(&ctx, (unsigned char *) keytext, keylen);
     MD5Update(&ctx, (unsigned char *) pkt, offsetof(NTP_Packet, auth_keyid));
     MD5Final(&ctx);
     memcpy(&(pkt->auth_data), &ctx.digest, 16);
@@ -447,7 +447,7 @@ check_packet_auth(NTP_Packet *pkt, unsigned long keyid)
   if (keyok) {
     pkt->auth_keyid = htonl(keyid);
     MD5Init(&ctx);
-    MD5Update(&ctx, keytext, keylen);
+    MD5Update(&ctx, (unsigned char *) keytext, keylen);
     MD5Update(&ctx, (unsigned char *) pkt, offsetof(NTP_Packet, auth_keyid));
     MD5Final(&ctx);
     if (!memcmp((void *) &ctx.digest, (void *) &(pkt->auth_data), 16)) {

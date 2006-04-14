@@ -358,7 +358,7 @@ read_from_socket(void *anything)
   int status;
   ReceiveBuffer msg;
   struct sockaddr_in his_addr;
-  int his_addr_len;
+  socklen_t his_addr_len;
   int flags;
   int message_length;
   unsigned long remote_ip;
