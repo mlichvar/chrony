@@ -196,6 +196,9 @@ struct NCR_Instance_Record {
 /* Maximum allowed stratum */
 #define NTP_MAX_STRATUM 15
 
+/* INVALID or Unkown  stratum from external server  as per the NTP 4 docs */
+#define NTP_INVALID_STRATUM 0
+
 /* ================================================== */
 
 static ADF_AuthTable access_auth_table;
@@ -539,7 +542,9 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
 
   /* Generate transmit packet */
   message.lvm = ((leap << 6) &0xc0) | ((version << 3) & 0x38) | (my_mode & 0x07); 
-  message.stratum = our_stratum;
+  if(our_stratum<=NTP_MAX_STRATUM)message.stratum = our_stratum;
+  else message.stratum=NTP_INVALID_STRATUM;  //(WGU) to handle NTP  "Invalid" stratum as per the NTP V4 documents.
+ 
   message.poll = my_poll;
   message.precision = LCL_GetSysPrecisionAsLog();
 
@@ -983,6 +988,9 @@ receive_packet(NTP_Packet *message, struct timeval *now, NCR_Instance inst, int 
     test6 = 1; /* Succeeded */
   }
 
+  /* (WGU) Set stratum to greater than any valid if incoming is 0 */
+  /* as per the NPT v4 documentation*/
+  if (message->stratum<=NTP_INVALID_STRATUM)message->stratum=NTP_MAX_STRATUM+1;
   /* Test 7 checks that the stratum in the packet is appropriate */
   if ((message->stratum > REF_GetOurStratum()) ||
       (message->stratum > NTP_MAX_STRATUM)) {
