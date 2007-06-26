@@ -133,6 +133,7 @@ For better control, use the options below.
   --readline-inc-dir=DIR Specify where readline include directory is
   --readline-lib-dir=DIR Specify where readline lib directory is
   --with-ncurses-library=DIR Specify where ncurses lib directory is
+  --disable-rtc          Don't include RTC even on Linux
 
 Fine tuning of the installation directories:
   --infodir=DIR          info documentation [PREFIX/info]
@@ -172,6 +173,7 @@ SYSDEFS=""
 
 # Support for readline (on by default)
 feat_readline=1
+feat_rtc=1
 readline_lib=""
 readline_inc=""
 ncurses_lib=""
@@ -206,6 +208,9 @@ do
     --mandir=* )
       SETMANDIR=`echo $option | sed -e 's/^.*=//;'`
     ;;
+    --disable-rtc)
+      feat_rtc=0
+    ;;
     --help | -h )
       usage
       exit 0
@@ -238,7 +243,11 @@ case $SYSTEM in
     esac
     ;;
     Linux* )
-        EXTRA_OBJECTS="sys_linux.o wrap_adjtimex.o rtc_linux.o"
+        EXTRA_OBJECTS="sys_linux.o wrap_adjtimex.o"
+	if [ $feat_rtc -eq 1 ] ; then
+	    EXTRA_OBJECTS+=" rtc_linux.o"
+	    EXTRA_DEFS+=" -DFEAT_RTC=1"
+	fi
         SYSDEFS="-DLINUX"
         echo "Configuring for " $SYSTEM
         if [ "${MACHINE}" = "alpha" ]; then

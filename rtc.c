@@ -33,7 +33,7 @@
 #include "logging.h"
 #include "conf.h"
 
-#if defined LINUX
+#if defined LINUX && defined FEAT_RTC
 #include "rtc_linux.h"
 #endif /* defined LINUX */
 
@@ -53,7 +53,7 @@ static struct {
   void (*cycle_logfile)(void);
 } driver =
 {
-#if defined LINUX
+#if defined LINUX && defined FEAT_RTC
   RTC_Linux_Initialise,
   RTC_Linux_Finalise,
   RTC_Linux_TimePreInit,
