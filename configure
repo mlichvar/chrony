@@ -244,10 +244,10 @@ case $SYSTEM in
     ;;
     Linux* )
         EXTRA_OBJECTS="sys_linux.o wrap_adjtimex.o"
-	if [ $feat_rtc -eq 1 ] ; then
-	    EXTRA_OBJECTS+=" rtc_linux.o"
-	    EXTRA_DEFS+=" -DFEAT_RTC=1"
-	fi
+        if [ $feat_rtc -eq 1 ] ; then
+            EXTRA_OBJECTS+=" rtc_linux.o"
+            EXTRA_DEFS+=" -DFEAT_RTC=1"
+        fi
         SYSDEFS="-DLINUX"
         echo "Configuring for " $SYSTEM
         if [ "${MACHINE}" = "alpha" ]; then
