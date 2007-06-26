@@ -542,8 +542,12 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
 
   /* Generate transmit packet */
   message.lvm = ((leap << 6) &0xc0) | ((version << 3) & 0x38) | (my_mode & 0x07); 
-  if(our_stratum<=NTP_MAX_STRATUM)message.stratum = our_stratum;
-  else message.stratum=NTP_INVALID_STRATUM;  //(WGU) to handle NTP  "Invalid" stratum as per the NTP V4 documents.
+  if (our_stratum <= NTP_MAX_STRATUM) {
+    message.stratum = our_stratum;
+  } else {
+    /* (WGU) to handle NTP  "Invalid" stratum as per the NTP V4 documents. */
+    message.stratum = NTP_INVALID_STRATUM;
+  }
  
   message.poll = my_poll;
   message.precision = LCL_GetSysPrecisionAsLog();
@@ -990,7 +994,10 @@ receive_packet(NTP_Packet *message, struct timeval *now, NCR_Instance inst, int 
 
   /* (WGU) Set stratum to greater than any valid if incoming is 0 */
   /* as per the NPT v4 documentation*/
-  if (message->stratum<=NTP_INVALID_STRATUM)message->stratum=NTP_MAX_STRATUM+1;
+  if (message->stratum <= NTP_INVALID_STRATUM) {
+    message->stratum = NTP_MAX_STRATUM + 1;
+  }
+
   /* Test 7 checks that the stratum in the packet is appropriate */
   if ((message->stratum > REF_GetOurStratum()) ||
       (message->stratum > NTP_MAX_STRATUM)) {
