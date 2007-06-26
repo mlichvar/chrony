@@ -750,7 +750,7 @@ handle_initial_trim(void)
 
   n_samples = -1;
 
-    
+
   read_coefs_from_file();
 
   if (valid_coefs_from_file) {
