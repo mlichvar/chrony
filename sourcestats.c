@@ -373,9 +373,9 @@ find_best_sample_index(SST_Stats inst, double *times_back)
 /* This defines the assumed ratio between the standard deviation of
    the samples and the peer distance as measured from the round trip
    time.  E.g. a value of 4 means that we think the standard deviation
-   is a quarter of the peer distance */
+   is four times the fluctuation  of the peer distance */
 
-#define SD_TO_DIST_RATIO 8.0
+#define SD_TO_DIST_RATIO 1.0
 
 /* ================================================== */
 /* This function runs the linear regression operation on the data.  It

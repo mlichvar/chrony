@@ -174,7 +174,7 @@ static double file_ref_offset, file_rate_ppm;
 /* ================================================== */
 
 /* Flag to remember whether to assume the RTC is running on UTC */
-static int rtc_on_utc = 0;
+static int rtc_on_utc = 1;
 
 /* ================================================== */
 
@@ -226,15 +226,18 @@ accumulate_sample(time_t rtc, struct timeval *sys)
     discard_samples(NEW_FIRST_WHEN_FULL);
   }
 
-  rtc_sec[n_samples] = rtc;
 
   /* Always use most recent sample as reference */
+  /* use sample only if n_sample is not negative*/
+  if(n_samples >=0)
+  {
   rtc_ref = rtc;
-
+  rtc_sec[n_samples] = rtc;
   rtc_trim[n_samples] = 0.0;
   system_times[n_samples] = *sys;
-  ++n_samples;
   ++n_samples_since_regression;
+  }
+  ++n_samples;
   return;
   
 }
@@ -742,7 +745,11 @@ handle_initial_trim(void)
   run_regression(1, &coefs_valid, &coef_ref_time, &coef_seconds_fast, &coef_gain_rate);
 
   n_samples_since_regression = 0;
-  n_samples = 0;
+
+  /* Set sample number to -1 so the next sample is not used, as it will not yet be corrected for System Trim*/
+
+  n_samples = -1;
+
 
   read_coefs_from_file();
 
@@ -866,6 +873,8 @@ read_from_device(void *any)
   int error = 0;
 
   status = read(fd, &data, sizeof(data));
+  if (operating_mode == OM_NORMAL)
+      status = read(fd, &data, sizeof(data));
   if (status < 0) {
     /* This looks like a bad error : the file descriptor was indicating it was
      * ready to read but we couldn't read anything.  Give up. */
