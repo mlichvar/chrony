@@ -39,7 +39,7 @@ unsigned long
 DNS_Name2IPAddress(const char *name)
 {
   struct hostent *host;
-  char *address0;
+  unsigned char *address0;
   unsigned long result;
 
   host = gethostbyname(name);
