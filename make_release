@@ -19,7 +19,7 @@ if (-d "RELEASES/$subdir") {
   system ("rm -rf RELEASES/$subdir");
 }
 
-system ("git-archive --format=tar --prefix=RELEASES/${subdir} $version | tar xf -");
+system ("git-archive --format=tar --prefix=RELEASES/${subdir}/ $version | tar xf -");
 die "git-tar-tree failed" if ($? != 0);
 
 chdir "RELEASES";
