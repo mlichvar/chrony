@@ -6,7 +6,7 @@
 
 /* Hmm.  These constants vary a bit between systems. */
 /* (__sh__ includes both sh and sh64) */
-#if defined(__i386__) || defined(__sh__) || defined(__arm__)
+#if defined(__i386__) || defined(__sh__) || defined(__arm__)||defined(__x86_64__)
 #define CHRONY_IOC_NRBITS	8
 #define CHRONY_IOC_TYPEBITS	8
 #define CHRONY_IOC_SIZEBITS	14
