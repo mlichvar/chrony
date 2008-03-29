@@ -45,6 +45,12 @@
 #include <readline/history.h>
 #endif
 
+#ifdef HAS_STDINT_H
+#include <stdint.h>
+#elif defined(HAS_INTTYPES_H)
+#include <inttypes.h>
+#endif
+
 /* ================================================== */
 
 static int sock_fd;
@@ -1383,16 +1389,16 @@ process_cmd_sources(char *line)
   int n_sources, i;
   int verbose = 0;
 
-  long orig_latest_meas, latest_meas, est_offset;
-  unsigned long ip_addr;
-  unsigned long latest_meas_err, est_offset_err;
-  unsigned long latest_meas_ago;
-  unsigned short poll, stratum;
-  unsigned short state, mode;
+  int32_t orig_latest_meas, latest_meas, est_offset;
+  uint32_t ip_addr;
+  uint32_t latest_meas_err, est_offset_err;
+  uint32_t latest_meas_ago;
+  uint16_t poll, stratum;
+  uint16_t state, mode;
   double resid_freq, resid_skew;
   const char *dns_lookup;
   char hostname_buf[32];
-  unsigned short status;
+  uint16_t status;
 
   /* Check whether to output verbose headers */
   verbose = check_for_verbose_flag(line);
