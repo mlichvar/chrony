@@ -87,15 +87,17 @@ UTI_CompareTimevals(struct timeval *a, struct timeval *b)
 INLINE_STATIC void
 UTI_NormaliseTimeval(struct timeval *x)
 {
-  while (x->tv_usec >= 1000000) {
-    ++x->tv_sec;
-    x->tv_usec -= 1000000;
+  /* Reduce tv_usec to within +-1000000 of zero. JGH */
+  if ((x->tv_usec >= 1000000) || (x->tv_usec <= -1000000)) {
+    x->tv_sec += x->tv_usec/1000000;
+    x->tv_usec = x->tv_usec%1000000;
   }
 
-  while (x->tv_usec < 0) {
+  /* Make tv_usec positive. JGH */
+   if (x->tv_usec < 0) {
     --x->tv_sec;
     x->tv_usec += 1000000;
-  }
+ }
 
 }
 
@@ -110,17 +112,9 @@ UTI_DiffTimevals(struct timeval *result,
   result->tv_usec = a->tv_usec - b->tv_usec;
 
   /* Correct microseconds field to bring it into the range
-     [0,1000000) */
+     (0,1000000) */
 
-  while (result->tv_usec < 0) {
-    result->tv_usec += 1000000;
-    --result->tv_sec;
-  }
-
-  while (result->tv_usec > 999999) {
-    result->tv_usec -= 1000000;
-    ++result->tv_sec;
-  }
+  UTI_NormaliseTimeval(result); /* JGH */
 
   return;
 }
@@ -191,7 +185,7 @@ UTI_AverageDiffTimevals (struct timeval *earlier,
   }
 
   tvhalf.tv_sec = tvdiff.tv_sec / 2;
-  tvhalf.tv_usec = tvdiff.tv_usec / 2 + (tvdiff.tv_sec % 2);
+  tvhalf.tv_usec = tvdiff.tv_usec / 2 + (tvdiff.tv_sec % 2) * 500000; /* JGH */
   
   average->tv_sec  = earlier->tv_sec  + tvhalf.tv_sec;
   average->tv_usec = earlier->tv_usec + tvhalf.tv_usec;
@@ -199,17 +193,7 @@ UTI_AverageDiffTimevals (struct timeval *earlier,
   /* Bring into range */
   UTI_NormaliseTimeval(average);
 
-  while (average->tv_usec >= 1000000) {
-    ++average->tv_sec;
-    average->tv_usec -= 1000000;
-  }
-
-  while (average->tv_usec < 0) {
-    --average->tv_sec;
-    average->tv_usec += 1000000;
-  }
-
-}
+ }
 
 /* ================================================== */
 
