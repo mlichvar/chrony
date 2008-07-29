@@ -163,10 +163,10 @@ get_address(const char *hostname)
     exit(1);
   } else {
     address0 = host->h_addr_list[0];
-    result = ((((unsigned long) address0[0]) << 24) |
-              (((unsigned long) address0[1]) << 16) |
-              (((unsigned long) address0[2]) <<  8) |
-              (((unsigned long) address0[3])));
+    result = ((((unsigned long) address0[0] & 0xff) << 24) |
+              (((unsigned long) address0[1] & 0xff) << 16) |
+              (((unsigned long) address0[2] & 0xff) <<  8) |
+              (((unsigned long) address0[3] & 0xff)));
   }
 
   return result;
