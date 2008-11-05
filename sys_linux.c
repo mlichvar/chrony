@@ -39,6 +39,14 @@
 #include <assert.h>
 #include <sys/utsname.h>
 
+#ifdef FEAT_LINUXCAPS
+#include <sys/types.h>
+#include <pwd.h>
+#include <sys/prctl.h>
+#include <sys/capability.h>
+#include <grp.h>
+#endif
+
 #include "localp.h"
 #include "sys_linux.h"
 #include "sched.h"
@@ -828,6 +836,50 @@ SYS_Linux_GetKernelVersion(int *major, int *minor, int *patchlevel)
   *minor = version_minor;
   *patchlevel = version_patchlevel;
 }
+
+/* ================================================== */
+
+#ifdef FEAT_LINUXCAPS
+void
+SYS_Linux_DropRoot(char *user)
+{
+  struct passwd *pw;
+  cap_t cap;
+
+  if (user == NULL)
+    return;
+
+  if ((pw = getpwnam(user)) == NULL) {
+    LOG_FATAL(LOGF_SysLinux, "getpwnam(%s) failed", user);
+  }
+
+  if (prctl(PR_SET_KEEPCAPS, 1)) {
+    LOG_FATAL(LOGF_SysLinux, "prcap() failed");
+  }
+  
+  if (setgroups(0, NULL)) {
+    LOG_FATAL(LOGF_SysLinux, "setgroups() failed");
+  }
+
+  if (setgid(pw->pw_gid)) {
+    LOG_FATAL(LOGF_SysLinux, "setgid(%d) failed", pw->pw_gid);
+  }
+
+  if (setuid(pw->pw_uid)) {
+    LOG_FATAL(LOGF_SysLinux, "setuid(%d) failed", pw->pw_uid);
+  }
+
+  if ((cap = cap_from_text("cap_sys_time=ep")) == NULL) {
+    LOG_FATAL(LOGF_SysLinux, "cap_from_text() failed");
+  }
+
+  if (cap_set_proc(cap)) {
+    LOG_FATAL(LOGF_SysLinux, "cap_set_proc() failed");
+  }
+
+  LOG(LOGS_INFO, LOGF_SysLinux, "Privileges dropped to user %s", user);
+}
+#endif
 
 /* ================================================== */
 

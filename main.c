@@ -83,19 +83,19 @@ MAI_CleanupAndExit(void)
     SRC_DumpSources();
   }
 
-  RTC_Finalise();
   MNL_Finalise();
   ACQ_Finalise();
-  CAM_Finalise();
   KEY_Finalise();
   CLG_Finalise();
-  NIO_Finalise();
   NSR_Finalise();
   NCR_Finalise();
   BRD_Finalise();
   SRC_Finalise();
   SST_Finalise();
   REF_Finalise();
+  RTC_Finalise();
+  CAM_Finalise();
+  NIO_Finalise();
   SYS_Finalise();
   SCH_Finalise();
   LCL_Finalise();
@@ -206,6 +206,7 @@ int main
 (int argc, char **argv)
 {
   char *conf_file = NULL;
+  char *user = NULL;
   int debug = 0;
   int do_init_rtc = 0;
   int other_pid;
@@ -220,6 +221,9 @@ int main
       conf_file = *argv;
     } else if (!strcmp("-r", *argv)) {
       reload = 1;
+    } else if (!strcmp("-u", *argv)) {
+      ++argv, --argc;
+      user = *argv;
     } else if (!strcmp("-s", *argv)) {
       do_init_rtc = 1;
     } else if (!strcmp("-v", *argv) || !strcmp("--version",*argv)) {
@@ -269,19 +273,23 @@ int main
   LCL_Initialise();
   SCH_Initialise();
   SYS_Initialise();
+  NIO_Initialise();
+  CAM_Initialise();
+  RTC_Initialise();
+
+  if (user)
+    SYS_DropRoot(user);
+
   REF_Initialise();
   SST_Initialise();
   SRC_Initialise();
   BRD_Initialise();
   NCR_Initialise();
   NSR_Initialise();
-  NIO_Initialise();
   CLG_Initialise();
   KEY_Initialise();
-  CAM_Initialise();
   ACQ_Initialise();
   MNL_Initialise();
-  RTC_Initialise();
 
   /* From now on, it is safe to do finalisation on exit */
   initialised = 1;

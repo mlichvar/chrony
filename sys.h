@@ -39,4 +39,7 @@ extern void SYS_Initialise(void);
 /* Called at the end of the run to do final clean-up */
 extern void SYS_Finalise(void);
 
+/* Drop root privileges to the specified user */
+extern void SYS_DropRoot(char *user);
+
 #endif /* GOT_SYS_H */

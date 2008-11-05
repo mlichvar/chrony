@@ -134,6 +134,7 @@ For better control, use the options below.
   --readline-lib-dir=DIR Specify where readline lib directory is
   --with-ncurses-library=DIR Specify where ncurses lib directory is
   --disable-rtc          Don't include RTC even on Linux
+  --enable-linuxcaps     Enable Linux capabilities support
 
 Fine tuning of the installation directories:
   --infodir=DIR          info documentation [PREFIX/info]
@@ -174,6 +175,7 @@ SYSDEFS=""
 # Support for readline (on by default)
 feat_readline=1
 feat_rtc=1
+feat_linuxcaps=0
 readline_lib=""
 readline_inc=""
 ncurses_lib=""
@@ -211,6 +213,9 @@ do
     --disable-rtc)
       feat_rtc=0
     ;;
+    --enable-linuxcaps)
+      feat_linuxcaps=1
+    ;;
     --help | -h )
       usage
       exit 0
@@ -247,6 +252,10 @@ case $SYSTEM in
         if [ $feat_rtc -eq 1 ] ; then
             EXTRA_OBJECTS+=" rtc_linux.o"
             EXTRA_DEFS+=" -DFEAT_RTC=1"
+        fi
+        if [ $feat_linuxcaps -eq 1 ] ; then
+            EXTRA_DEFS+=" -DFEAT_LINUXCAPS=1"
+            EXTRA_LIBS="-lcap"
         fi
         SYSDEFS="-DLINUX"
         echo "Configuring for " $SYSTEM

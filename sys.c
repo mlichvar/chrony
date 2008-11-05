@@ -97,6 +97,14 @@ SYS_Finalise(void)
 }
 
 /* ================================================== */
+
+void SYS_DropRoot(char *user)
+{
+#if defined(LINUX) && defined (FEAT_LINUXCAPS)
+  SYS_Linux_DropRoot(user);
+#endif
+}
+
 /* ================================================== */
 /* ================================================== */
 

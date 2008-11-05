@@ -1089,6 +1089,9 @@ to work well, it relies on @code{chronyd} having been able to determine
 accurate statistics for the difference between the real time clock and
 system clock last time the computer was on.
 
+@item -u <user>
+When this option is used, chronyd will drop root privileges to the specified
+user.  So far, it works only on Linux when compiled with capabilities support.
 @item -v
 This option displays @code{chronyd's} version number to the terminal and
 exits.

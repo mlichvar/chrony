@@ -37,4 +37,6 @@ extern void SYS_Linux_Finalise(void);
 
 extern void SYS_Linux_GetKernelVersion(int *major, int *minor, int *patchlevel);
 
+extern void SYS_Linux_DropRoot(char *user);
+
 #endif  /* GOT_SYS_LINUX_H */
