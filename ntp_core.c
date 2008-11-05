@@ -300,6 +300,9 @@ create_instance(NTP_Remote_Address *remote_addr, NTP_Mode mode, SourceParameters
 
   result->tx_count = 0;
 
+  result->remote_orig.hi = 0;
+  result->remote_orig.lo = 0;
+
   result->score = 0;
 
   if (params->online) {

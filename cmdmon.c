@@ -166,7 +166,7 @@ CAM_Initialise(void)
   int port_number;
   struct sockaddr_in my_addr;
   unsigned long bind_address;
-  int on_off;
+  int on_off = 1;
 
   if (initialised) {
     CROAK("Shouldn't be initialised");
@@ -1631,11 +1631,13 @@ read_from_cmd_socket(void *anything)
   tx_message.reply = htons(RPY_NULL);
   tx_message.number = htons(1);
   tx_message.total = htons(1);
+  tx_message.pad1 = 0;
   tx_message.utoken = htonl(utoken);
   /* Set this to a default (invalid) value.  This protects against the
      token field being set to an arbitrary value if we reject the
      message, e.g. due to the host failing the access check. */
   tx_message.token = htonl(0xffffffffUL);
+  memset(&tx_message.auth, 0, sizeof(tx_message.auth));
 
   remote_ip = ntohl(where_from.sin_addr.s_addr);
   remote_port = ntohs(where_from.sin_port);

@@ -721,8 +721,12 @@ SST_PredictOffset(SST_Stats inst, struct timeval *when)
   if (inst->n_samples < 3) {
     /* We don't have any useful statistics, and presumably the poll
        interval is minimal.  We can't do any useful prediction other
-       than use the latest sample */
-    return inst->offsets[inst->n_samples - 1];
+       than use the latest sample or zero if we don't have any samples */
+    if (inst->n_samples > 0) {
+      return inst->offsets[inst->n_samples - 1];
+    } else {
+      return 0.0;
+    }
   } else {
     UTI_DiffTimevalsToDouble(&elapsed, when, &inst->offset_time);
     return inst->estimated_offset + elapsed * inst->estimated_frequency;
