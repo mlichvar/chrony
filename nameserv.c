@@ -65,7 +65,7 @@ DNS_IPAddress2Name(unsigned long ip_addr)
   struct hostent *host;
   static char buffer[16];
   unsigned int a, b, c, d;
-  unsigned long addr;
+  uint32_t addr;
 
   addr = htonl(ip_addr);
   if (addr == 0UL) {
