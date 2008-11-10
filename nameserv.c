@@ -32,18 +32,28 @@
 #include "sysincl.h"
 
 #include "nameserv.h"
+#include <resolv.h>
 
 /* ================================================== */
 
-unsigned long
-DNS_Name2IPAddress(const char *name)
+static unsigned int retries = 0;
+
+static unsigned long
+Name2IPAddress(const char *name, int retry)
 {
   struct hostent *host;
   unsigned char *address0;
   unsigned long result;
 
+try_again:
   host = gethostbyname(name);
   if (host == NULL) {
+    if (retry && h_errno == TRY_AGAIN && retries < 10) {
+      sleep(2 << retries);
+      retries++;
+      res_init();
+      goto try_again;
+    }
     result = DNS_Failed_Address;
   } else {
     address0 = host->h_addr_list[0];
@@ -54,7 +64,22 @@ DNS_Name2IPAddress(const char *name)
   }
 
   return result;
+}
 
+/* ================================================== */
+
+unsigned long
+DNS_Name2IPAddress(const char *name)
+{
+  return Name2IPAddress(name, 0);
+}
+
+/* ================================================== */
+
+unsigned long
+DNS_Name2IPAddressRetry(const char *name)
+{
+  return Name2IPAddress(name, 1);
 }
 
 /* ================================================== */

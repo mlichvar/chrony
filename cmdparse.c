@@ -61,7 +61,7 @@ CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src)
   
   ok = 0;
   if (sscanf(line, "%" SMAXLEN "s%n", hostname, &n) == 1) {
-    src->ip_addr = DNS_Name2IPAddress(hostname);
+    src->ip_addr = DNS_Name2IPAddressRetry(hostname);
     if (src->ip_addr != DNS_Failed_Address) {
       ok = 1;
     }

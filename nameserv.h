@@ -36,6 +36,8 @@ static const unsigned long DNS_Failed_Address = 0x0UL;
 
 extern unsigned long DNS_Name2IPAddress(const char *name);
 
+extern unsigned long DNS_Name2IPAddressRetry(const char *name);
+
 const char *DNS_IPAddress2Name(unsigned long ip_addr);
 
 #endif /* GOT_NAMESERV_H */

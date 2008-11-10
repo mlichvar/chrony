@@ -584,7 +584,7 @@ parse_initstepslew(const char *line)
   }
   while (*p) {
     if (sscanf(p, "%" SHOSTNAME_LEN "s%n", hostname, &n) == 1) {
-      ip_addr = DNS_Name2IPAddress(hostname);
+      ip_addr = DNS_Name2IPAddressRetry(hostname);
       if (ip_addr != DNS_Failed_Address) {
         init_srcs_ip[n_init_srcs] = ip_addr;
         ++n_init_srcs;
@@ -746,7 +746,7 @@ parse_allow_deny(const char *line, AllowDeny *list, int allow)
       }
 
     } else {
-      ip_addr = DNS_Name2IPAddress(p);
+      ip_addr = DNS_Name2IPAddressRetry(p);
       if (ip_addr != DNS_Failed_Address) {
         new_node = MallocNew(AllowDeny);
         new_node->allow = allow;
