@@ -44,6 +44,7 @@ static int are_we_synchronised;
 static int enable_local_stratum;
 static int local_stratum;
 static NTP_Leap our_leap_status;
+static int our_leap_sec;
 static int our_stratum;
 static unsigned long our_ref_id;
 struct timeval our_ref_time; /* Stored relative to reference, NOT local time */
@@ -102,7 +103,8 @@ REF_Initialise(void)
   double our_frequency_ppm;
 
   are_we_synchronised = 0;
-  our_leap_status = LEAP_Normal;
+  our_leap_status = LEAP_Unsynchronised;
+  our_leap_sec = 0;
   initialised = 1;
   our_root_dispersion = 1.0;
   our_root_delay = 1.0;
@@ -176,6 +178,10 @@ REF_Initialise(void)
 void
 REF_Finalise(void)
 {
+  if (our_leap_sec) {
+    LCL_SetLeap(0);
+  }
+
   if (logfile) {
     fclose(logfile);
   }
@@ -311,6 +317,44 @@ maybe_log_offset(double offset)
 
 /* ================================================== */
 
+static void
+update_leap_status(NTP_Leap leap)
+{
+  time_t now;
+  struct tm stm;
+  int leap_sec;
+
+  leap_sec = 0;
+
+  if (leap == LEAP_InsertSecond || leap == LEAP_DeleteSecond) {
+    /* Insert/delete leap second only on June 30 or December 31
+       and in other months ignore the leap status completely */
+
+    now = time(NULL);
+    stm = *gmtime(&now);
+
+    if (stm.tm_mon != 5 && stm.tm_mon != 11) {
+      leap = LEAP_Normal;
+    } else if ((stm.tm_mon == 5 && stm.tm_mday == 30) ||
+        (stm.tm_mon == 11 && stm.tm_mday == 31)) {
+      if (leap == LEAP_InsertSecond) {
+        leap_sec = 1;
+      } else {
+        leap_sec = -1;
+      }
+    }
+  }
+  
+  if (leap_sec != our_leap_sec) {
+    LCL_SetLeap(leap_sec);
+    our_leap_sec = leap_sec;
+  }
+
+  our_leap_status = leap;
+}
+
+/* ================================================== */
+
 
 void
 REF_SetReference(int stratum,
@@ -356,12 +400,13 @@ REF_SetReference(int stratum,
 
   are_we_synchronised = 1;
   our_stratum = stratum + 1;
-  our_leap_status = leap;
   our_ref_id = ref_id;
   our_ref_time = *ref_time;
   our_offset = offset;
   our_root_delay = root_delay;
   our_root_dispersion = root_dispersion;
+
+  update_leap_status(leap);
 
   /* Eliminate updates that are based on totally unreliable frequency
      information */
@@ -517,6 +562,8 @@ REF_SetUnsynchronised(void)
   }
 
   are_we_synchronised = 0;
+
+  update_leap_status(LEAP_Unsynchronised);
 }
 
 /* ================================================== */

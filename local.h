@@ -181,4 +181,9 @@ extern void LCL_Finalise(void);
    to a timezone problem. */
 extern int LCL_MakeStep(void);
 
+/* Routine to schedule a leap second. Leap second will be inserted
+   at the end of the day if argument is positive, deleted if negative,
+   and zero cancels scheduled leap second. */
+extern void LCL_SetLeap(int leap);
+
 #endif /* GOT_LOCAL_H */

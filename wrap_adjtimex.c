@@ -39,6 +39,9 @@
 #include "chrony_timex.h"
 #include "wrap_adjtimex.h"
 
+/* Save leap status between calls */
+static int leap_status = 0;
+
 int
 TMX_SetTick(long tick)
 {
@@ -73,6 +76,7 @@ TMX_SetFrequency(double freq, long tick)
   txc.tick = tick;
   txc.status = STA_UNSYNC; /* Prevent any of the FLL/PLL stuff coming
                               up */
+  txc.status |= leap_status; /* Preserve leap bits */
 
   return adjtimex(&txc);
 }
@@ -142,6 +146,25 @@ TMX_ReadCurrentParams(struct tmx_params *params)
   params->stbcnt    = txc.stbcnt;
 
   return result;
+}
+
+int
+TMX_SetLeap(int leap)
+{
+  struct timex txc;
+
+  if (leap > 0) {
+    leap_status = STA_INS;
+  } else if (leap < 0) {
+    leap_status = STA_DEL;
+  } else {
+    leap_status = 0;
+  }
+  
+  txc.modes = ADJ_STATUS;
+  txc.status = STA_UNSYNC | leap_status;
+
+  return adjtimex(&txc);
 }
 
 #endif

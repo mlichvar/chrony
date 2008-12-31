@@ -90,8 +90,7 @@ What can chrony not do?
 =======================
 
 Compared to the `reference' RFC1305 implementation xntpd, chronyd does
-not support hardware reference clocks, leap seconds or broadcast
-modes.
+not support hardware reference clocks or broadcast modes.
 
 Where are new versions announced?
 =================================

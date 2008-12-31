@@ -74,6 +74,7 @@ int TMX_SetFrequency(double freq, long tick);
 int TMX_GetFrequency(double *freq);
 int TMX_GetOffsetLeft(long *offset);
 int TMX_ReadCurrentParams(struct tmx_params *params);
+int TMX_SetLeap(int leap);
 
 #endif  /* GOT_WRAP_ADJTIMEX_H */
 

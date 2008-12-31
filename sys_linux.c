@@ -592,6 +592,21 @@ immediate_step(void)
 
 /* ================================================== */
 
+static void
+set_leap(int leap)
+{
+  if (TMX_SetLeap(leap) < 0) {
+    LOG_FATAL(LOGF_SysLinux, "adjtimex() failed in set_leap");
+  }
+
+  LOG(LOGS_INFO, LOGF_SysLinux, "System clock status set to %s leap second",
+     leap ? (leap > 0 ? "insert" : "delete") : "not insert/delete");
+
+  return;
+}
+
+/* ================================================== */
+
 /* Estimate the value of HZ given the value of txc.tick that chronyd finds when
  * it starts.  The only credible values are 100 (Linux/x86) or powers of 2.
  * Also, the bounds checking inside the kernel's adjtimex system call enforces
@@ -813,7 +828,7 @@ SYS_Linux_Initialise(void)
 
   lcl_RegisterSystemDrivers(read_frequency, set_frequency,
                             accrue_offset, apply_step_offset,
-                            get_offset_correction, immediate_step);
+                            get_offset_correction, immediate_step, set_leap);
 }
 
 /* ================================================== */

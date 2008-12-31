@@ -687,6 +687,23 @@ SRC_SelectSource(unsigned long match_addr)
         total_root_dispersion = (src_accrued_dispersion +
                                  sources[selected_source_index]->sel_info.root_dispersion);
 
+        /* Accept leap second status if more than half of selectable sources agree */
+
+        for (i=j1=j2=0; i<n_sel_sources; i++) {
+          index = sel_sources[i];
+          if (sources[index]->leap_status == LEAP_InsertSecond) {
+            j1++;
+          } else if (sources[index]->leap_status == LEAP_DeleteSecond) {
+            j2++;
+          }
+        }
+
+        if (j1 > n_sel_sources / 2) {
+          leap_status = LEAP_InsertSecond;
+        } else if (j2 > n_sel_sources / 2) {
+          leap_status = LEAP_DeleteSecond;
+        }
+
         if ((match_addr == 0) ||
             (match_addr == sources[selected_source_index]->ref_id)) {
 

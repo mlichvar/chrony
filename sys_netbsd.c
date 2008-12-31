@@ -308,7 +308,8 @@ SYS_NetBSD_Initialise(void)
 
   lcl_RegisterSystemDrivers(read_frequency, set_frequency, 
                             accrue_offset, apply_step_offset,
-                            get_offset_correction, NULL /* immediate_step */);
+                            get_offset_correction, NULL /* immediate_step */,
+                            NULL /* set_leap */);
 
 }
 

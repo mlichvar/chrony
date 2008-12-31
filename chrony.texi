@@ -213,8 +213,8 @@ interfaced at a later date.
 
 @item
 @code{xntpd} supports effectively all of RFC1305, including broadcast /
-multicast clients, leap seconds, and extra encryption schemes for
-authenticating data packets.
+multicast clients and extra encryption schemes for authenticating
+data packets.
 
 @item
 @code{xntpd} has been ported to more types of computer / operating
