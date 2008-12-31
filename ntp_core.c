@@ -813,7 +813,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, NCR_Instance inst, int 
   int valid_header;
 
   /* Variables used for doing logging */
-  static char sync_stats[4] = {'N', '-', '+', '?'};
+  static char sync_stats[4] = {'N', '+', '-', '?'};
 
   /* The estimated offset predicted from previous samples.  The
      convention here is that positive means local clock FAST of
