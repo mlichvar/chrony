@@ -119,19 +119,19 @@ TMX_ReadCurrentParams(struct tmx_params *params)
   params->maxerror = txc.maxerror;
   params->esterror = txc.esterror;
   
-  params->sta_pll       = (txc.status & STA_PLL);
-  params->sta_ppsfreq   = (txc.status & STA_PPSFREQ);
-  params->sta_ppstime   = (txc.status & STA_PPSTIME);
-  params->sta_fll       = (txc.status & STA_FLL);
-  params->sta_ins       = (txc.status & STA_INS);
-  params->sta_del       = (txc.status & STA_DEL);
-  params->sta_unsync    = (txc.status & STA_UNSYNC);
-  params->sta_freqhold  = (txc.status & STA_FREQHOLD);
-  params->sta_ppssignal = (txc.status & STA_PPSSIGNAL);
-  params->sta_ppsjitter = (txc.status & STA_PPSJITTER);
-  params->sta_ppswander = (txc.status & STA_PPSWANDER);
-  params->sta_ppserror  = (txc.status & STA_PPSERROR);
-  params->sta_clockerr  = (txc.status & STA_CLOCKERR);
+  params->sta_pll       = !!(txc.status & STA_PLL);
+  params->sta_ppsfreq   = !!(txc.status & STA_PPSFREQ);
+  params->sta_ppstime   = !!(txc.status & STA_PPSTIME);
+  params->sta_fll       = !!(txc.status & STA_FLL);
+  params->sta_ins       = !!(txc.status & STA_INS);
+  params->sta_del       = !!(txc.status & STA_DEL);
+  params->sta_unsync    = !!(txc.status & STA_UNSYNC);
+  params->sta_freqhold  = !!(txc.status & STA_FREQHOLD);
+  params->sta_ppssignal = !!(txc.status & STA_PPSSIGNAL);
+  params->sta_ppsjitter = !!(txc.status & STA_PPSJITTER);
+  params->sta_ppswander = !!(txc.status & STA_PPSWANDER);
+  params->sta_ppserror  = !!(txc.status & STA_PPSERROR);
+  params->sta_clockerr  = !!(txc.status & STA_CLOCKERR);
 
   params->constant  = txc.constant;
   params->precision = txc.precision;
