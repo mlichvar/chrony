@@ -39,4 +39,8 @@ extern void SYS_Linux_GetKernelVersion(int *major, int *minor, int *patchlevel);
 
 extern void SYS_Linux_DropRoot(char *user);
 
+extern void SYS_Linux_MemLockAll(int LockAll);
+
+extern void SYS_linux_SetScheduler(int SchedPriority);
+
 #endif  /* GOT_SYS_LINUX_H */

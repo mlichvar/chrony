@@ -39,6 +39,17 @@
 #include <assert.h>
 #include <sys/utsname.h>
 
+#if defined(HAVE_SCHED_SETSCHEDULER)
+#  include <sched.h>
+int SchedPriority = 0;
+#endif
+
+#if defined(HAVE_MLOCKALL)
+#  include <sys/mman.h>
+#include <sys/resource.h>
+int LockAll = 0;
+#endif
+
 #ifdef FEAT_LINUXCAPS
 #include <sys/types.h>
 #include <pwd.h>
@@ -897,6 +908,58 @@ SYS_Linux_DropRoot(char *user)
 #endif
 
 /* ================================================== */
+
+#if defined(HAVE_SCHED_SETSCHEDULER)
+  /* Install SCHED_FIFO real-time scheduler with specified priority */
+void SYS_Linux_SetScheduler(int SchedPriority)
+{
+  int pmax, pmin;
+  struct sched_param sched;
+
+  if (SchedPriority > 0) {
+    sched.sched_priority = SchedPriority;
+    pmax = sched_get_priority_max(SCHED_FIFO);
+    pmin = sched_get_priority_min(SCHED_FIFO);
+    if ( SchedPriority > pmax ) {
+      sched.sched_priority = pmax;
+    }
+    else if ( SchedPriority < pmin ) {
+      sched.sched_priority = pmin;
+    }
+    if ( sched_setscheduler(0, SCHED_FIFO, &sched) == -1 ) {
+      LOG(LOGS_ERR, LOGF_SysLinux, "sched_setscheduler() failed");
+    }
+    else {
+      LOG(LOGS_INFO, LOGF_SysLinux, "Enabled SCHED_FIFO with priority %d", sched.sched_priority);
+    }
+  }
+}
+#endif /* HAVE_SCHED_SETSCHEDULER */
+
+#if defined(HAVE_MLOCKALL)
+/* Lock the process into RAM so that it will never be swapped out */ 
+void SYS_Linux_MemLockAll(int LockAll)
+{
+  struct rlimit rlim;
+  if (LockAll == 1 ) {
+    /* Make sure that we will be able to lock all the memory we need */
+    /* even after dropping privileges.  This does not actually reaerve any memory */
+    rlim.rlim_max = RLIM_INFINITY;
+    rlim.rlim_cur = RLIM_INFINITY;
+    if (setrlimit(RLIMIT_MEMLOCK, &rlim) < 0) {
+      LOG(LOGS_ERR, LOGF_SysLinux, "setrlimit() failed: not locking into RAM");
+    }
+    else {
+      if (mlockall(MCL_CURRENT|MCL_FUTURE) < 0) {
+	LOG(LOGS_ERR, LOGF_SysLinux, "mlockall() failed");
+      }
+      else {
+	LOG(LOGS_INFO, LOGF_SysLinux, "Successfully locked into RAM");
+      }
+    }
+  }
+}
+#endif /* HAVE_MLOCKALL */
 
 #endif /* LINUX */
 

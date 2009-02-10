@@ -36,6 +36,15 @@ Information messages and warnings will be logged to syslog.
 A summary of the options supported by \fBchronyd\fR is included below.
 
 .TP
+\fB\-P\fR \fIpriority\fR
+This option will select the SCHED_FIFO real-time scheduler at the specified
+priority (which must be between 0 and 100).  This mode is supported only on
+Linux.
+.TP
+.B \-m
+This option will lock chronyd into RAM so that it will never be paged out.
+This mode is only supported on Linux.
+.TP
 .B \-d
 When run in this mode, the program will not detach itself from the
 terminal, and all messages will be sent to the terminal instead of

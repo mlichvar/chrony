@@ -257,7 +257,7 @@ case $SYSTEM in
             EXTRA_DEFS+=" -DFEAT_LINUXCAPS=1"
             EXTRA_LIBS="-lcap"
         fi
-        SYSDEFS="-DLINUX"
+        SYSDEFS="-DLINUX -DHAVE_SCHED_SETSCHEDULER -DHAVE_MLOCKALL"
         echo "Configuring for " $SYSTEM
         if [ "${MACHINE}" = "alpha" ]; then
            echo "Enabling -mieee"

@@ -1088,13 +1088,19 @@ useful for dial-up systems that are shut down when not in use.  For this
 to work well, it relies on @code{chronyd} having been able to determine
 accurate statistics for the difference between the real time clock and
 system clock last time the computer was on.
-
 @item -u <user>
 When this option is used, chronyd will drop root privileges to the specified
 user.  So far, it works only on Linux when compiled with capabilities support.
 @item -v
 This option displays @code{chronyd's} version number to the terminal and
 exits.
+@item -P <priority>
+This option will select the SCHED_FIFO real-time scheduler at the
+specified priority (which must be between 0 and 100).  This mode is
+supported only on Linux.
+@item -m     
+This option will lock chronyd into RAM so that it will never be paged
+out.  This mode is only supported on Linux.
 @end table
 
 On systems that support an @file{/etc/rc.local} file for starting
@@ -1187,6 +1193,9 @@ directives can occur in any order in the file.
 * rtcfile directive::           Specify the file where real-time clock data is stored
 * rtconutc directive::          Specify that the real time clock keeps UTC not local time
 * server directive::            Specify an NTP server
+* sched_priority directive::    Require real-time scheduling and specify a priority for it.
+* lock_all directive::          Require that chronyd be locked into RAM. 
+
 @end menu
 @c }}}
 @c {{{ comments in config file
@@ -2177,6 +2186,37 @@ If the @code{rtconutc} directive appears, it means the RTC is required
 to keep UTC.  The directive takes no arguments.  It is equivalent to
 specifying the @code{-u} switch to the Linux @file{/sbin/clock} program.
 @c }}}
+@c {{{ sched_priority
+@node sched_priority directive
+@subsection sched_priority
+
+The @code{sched_priority} directive will select the SCHED_FIFO real-time
+scheduler at the specified priority (which must be between 0 and 100).
+This mode is supported only on Linux.
+
+This directive uses the Linux sched_setscheduler() system call to
+instruct the kernel to use the SCHED_FIFO first-in, first-out
+real-time scheduling policy for Chronyd with the specified priority.
+This means that whenever Chronyd is ready to run it will run,
+interrupting whatever else is running unless it is a higher priority
+real-time process.  This should not impact performance as Chronyd's
+resource requirements are modest, but it should result in lower and
+more consistent latency since Chronyd will not need to wait for the
+scheduler to get around to running it.  You should not use this unless
+you really need it.  The sched_setscheduler man page has more details.
+@c }}}
+@c {{{ lock_all
+@node lock_all directive
+@subsection lock_all
+
+The @code{lock_all} directive will lock chronyd into RAM so that it
+will never be paged out.  This mode is only supported on Linux.  This
+directive uses the Linux mlockall() system call to prevent Chronyd
+from ever being swapped out.  This should result in lower and more
+consistent latency.  It should not have significant impact on
+performance as Chronyd's memory usage is modest.  The mlockall man
+page has more details.
+@c }}}
 @c {{{ server
 @node server directive
 @subsection server
@@ -2286,6 +2326,20 @@ the need to run the @code{offline} (@pxref{offline command}) command from
 chrony when disconnecting the dial-up link.  (It will still be necessary to use
 chronyc's @code{online} (@pxref{online command}) command when the link has been
 established, to enable measurements to start.)
+
+@item sched_priority
+This directive tells chronyd to use the real-time FIFO scheduler with the
+specified priority (which must be between 0 and 100).  This should result
+in reduced latency.  You don't need it unless you really have a requirement
+for extreme clock stability.  Works only on Linux.  Note that the "-P"
+command-line switch will override this.
+
+@item lock_all
+This directive tells chronyd to use the mlockall() syscall to lock itself
+into RAM so that it will never be paged out.  This should result in reduced
+latency.  You don't need it unless you really have a requirement
+for extreme clock stability.  Works only on Linux.  Note that the "-m"
+command-line switch will also enable this feature.
 
 @end table
 @c }}}

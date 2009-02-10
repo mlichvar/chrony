@@ -106,6 +106,23 @@ void SYS_DropRoot(char *user)
 }
 
 /* ================================================== */
+
+void SYS_SetScheduler(int SchedPriority)
+{
+#if defined(LINUX) && defined(HAVE_SCHED_SETSCHEDULER)
+  SYS_Linux_SetScheduler(SchedPriority);
+#endif
+  ;;
+}
+
+void SYS_MemLockAll(int LockAll)
+{
+#if defined(LINUX) && defined(HAVE_MLOCKALL)
+  SYS_Linux_MemLockAll(LockAll);
+#endif
+  ;;
+}
+
 /* ================================================== */
 
 

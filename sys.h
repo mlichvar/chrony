@@ -42,4 +42,7 @@ extern void SYS_Finalise(void);
 /* Drop root privileges to the specified user */
 extern void SYS_DropRoot(char *user);
 
+extern void SYS_SetScheduler(int SchedPriority);
+extern void SYS_MemLockAll(int LockAll);
+
 #endif /* GOT_SYS_H */

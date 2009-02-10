@@ -287,3 +287,21 @@ cmdallow 127.0.0.1
 ! rtcdevice /dev/misc/rtc
 
 #######################################################################
+### REAL TIME SCHEDULER
+# This directive tells chronyd to use the real-time FIFO scheduler with the
+# specified priority (which must be between 0 and 100).  This should result
+# in reduced latency.  You don't need it unless you really have a requirement
+# for extreme clock stability.  Works only on Linux.  Note that the "-P"
+# command-line switch will override this.
+
+! sched_priority 1
+
+#######################################################################
+### LOCKING CHRONYD INTO RAM
+# This directive tells chronyd to use the mlockall() syscall to lock itself
+# into RAM so that it will never be paged out.  This should result in reduced
+# latency.  You don't need it unless you really have a requirement
+# for extreme clock stability.  Works only on Linux.  Note that the "-m"
+# command-line switch will also enable this feature.
+
+! lock_all

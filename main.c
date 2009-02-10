@@ -25,6 +25,16 @@
 
   =======================================================================
 
+2009-1-28 John G. Hasler <jhasler@debian.org>
+
+       Added real-time support (Linux only) using sched_setscheduler() and
+       mlockall(). Files affected: main.c, conf.c, sys.c, sys_linux.c,
+       conf.h, configure, chronyd.8, chrony.texi, and
+       examples/chrony.conf.example.  The changes are licensed under
+       version 2 of the GPL as described above.
+
+  =======================================================================
+
   The main program
   */
 
@@ -211,6 +221,10 @@ int main
   int do_init_rtc = 0;
   int other_pid;
 
+#if defined(HAVE_SCHED_SETSCHEDULER)
+  int return_value = 0;
+#endif
+
   LOG_Initialise();
 
   /* Parse command line options */
@@ -219,6 +233,24 @@ int main
     if (!strcmp("-f", *argv)) {
       ++argv, --argc;
       conf_file = *argv;
+
+#if defined(HAVE_SCHED_SETSCHEDULER)
+      /* Get real-time scheduler priority */
+    } else if (!strcmp("-P", *argv)) {
+      ++argv, --argc;
+      return_value = sscanf(*argv, "%d", &SchedPriority);
+      if (return_value != 1 || SchedPriority < 1 || SchedPriority > 99) { 
+	SchedPriority = 0;
+	LOG(LOGS_WARN, LOGF_Main, "Bad scheduler priority: [%s]", *argv);
+      }
+#endif /* HAVE_SCHED_SETCHEDULER */
+
+#if defined(HAVE_MLOCKALL)
+      /* Detect lockall switch */
+    } else if (!strcmp("-m", *argv)) {
+      LockAll = 1;
+#endif /* HAVE_MLOCKALL */
+
     } else if (!strcmp("-r", *argv)) {
       reload = 1;
     } else if (!strcmp("-u", *argv)) {
@@ -306,6 +338,18 @@ int main
   signal(SIGQUIT, signal_cleanup);
   signal(SIGHUP, signal_cleanup);
 #endif /* WINNT */
+
+#if defined(HAVE_SCHED_SETSCHEDULER)
+  if (SchedPriority > 0) {
+    SYS_SetScheduler(SchedPriority);
+  }
+#endif
+
+#if defined(HAVE_MLOCKALL)
+  if (LockAll == 1 ) {
+    SYS_MemLockAll(LockAll);
+  }
+#endif
 
   /* The program normally runs under control of the main loop in
      the scheduler. */
