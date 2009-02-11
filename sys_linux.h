@@ -41,6 +41,6 @@ extern void SYS_Linux_DropRoot(char *user);
 
 extern void SYS_Linux_MemLockAll(int LockAll);
 
-extern void SYS_linux_SetScheduler(int SchedPriority);
+extern void SYS_Linux_SetScheduler(int SchedPriority);
 
 #endif  /* GOT_SYS_LINUX_H */

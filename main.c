@@ -309,6 +309,14 @@ int main
   CAM_Initialise();
   RTC_Initialise();
 
+  if (SchedPriority > 0) {
+    SYS_SetScheduler(SchedPriority);
+  }
+
+  if (LockAll == 1 ) {
+    SYS_MemLockAll(LockAll);
+  }
+
   if (user)
     SYS_DropRoot(user);
 
@@ -338,18 +346,6 @@ int main
   signal(SIGQUIT, signal_cleanup);
   signal(SIGHUP, signal_cleanup);
 #endif /* WINNT */
-
-#if defined(HAVE_SCHED_SETSCHEDULER)
-  if (SchedPriority > 0) {
-    SYS_SetScheduler(SchedPriority);
-  }
-#endif
-
-#if defined(HAVE_MLOCKALL)
-  if (LockAll == 1 ) {
-    SYS_MemLockAll(LockAll);
-  }
-#endif
 
   /* The program normally runs under control of the main loop in
      the scheduler. */
