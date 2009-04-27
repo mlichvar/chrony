@@ -1154,7 +1154,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
   request->token = htonl(token);
 
 
-  timeout_seconds = 120;
+  timeout_seconds = 2;
 
   n_attempts = 0;
 
