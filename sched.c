@@ -558,7 +558,8 @@ SCH_MainLoop(void)
     status = select(one_highest_fd, &rd, &wr, &ex, ptv);
 
     if (status < 0) {
-      CROAK("Status < 0 after select");
+      if (!need_to_exit)
+        CROAK("Status < 0 after select");
     } else if (status > 0) {
       /* A file descriptor is ready to read */
 

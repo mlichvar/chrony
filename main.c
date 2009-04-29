@@ -123,7 +123,8 @@ static void
 signal_cleanup(int x)
 {
   LOG(LOGS_WARN, LOGF_Main, "chronyd exiting on signal");
-  MAI_CleanupAndExit();
+  if (!initialised) exit(0);
+  SCH_QuitProgram();
 }
 
 /* ================================================== */
