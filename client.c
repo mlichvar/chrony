@@ -93,6 +93,19 @@ time_to_log_form(time_t t)
 /* ================================================== */
 
 static char *
+UTI_RefidToString(unsigned long ref_id)
+{
+  unsigned int a, b, c, d;
+  static char result[64];
+  a = (ref_id>>24) & 0xff;
+  b = (ref_id>>16) & 0xff;
+  c = (ref_id>> 8) & 0xff;
+  d = (ref_id>> 0) & 0xff;
+  snprintf(result, sizeof(result), "%c%c%c%c", a, b, c, d);
+  return result;
+}
+
+static char *
 UTI_IPToDottedQuad(unsigned long ip)
 {
   unsigned long a, b, c, d;
@@ -1462,7 +1475,9 @@ process_cmd_sources(char *line)
           resid_skew = (double) (ntohl(reply.data.source_data.resid_skew)) * 1.0e-3;
 
           hostname_buf[25] = 0;
-          if (no_dns) {
+          if (mode == RPY_SD_MD_REF) {
+            snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_RefidToString(ip_addr));
+          } else if (no_dns) {
             snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_IPToDottedQuad(ip_addr));
           } else {
             dns_lookup = DNS_IPAddress2Name(ip_addr);

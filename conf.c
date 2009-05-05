@@ -44,6 +44,7 @@
 #include "conf.h"
 #include "ntp_sources.h"
 #include "ntp_core.h"
+#include "refclock.h"
 #include "cmdmon.h"
 #include "srcparams.h"
 #include "logging.h"
@@ -73,6 +74,7 @@ static void parse_peer(const char *);
 static void parse_acquisitionport(const char *);
 static void parse_port(const char *);
 static void parse_server(const char *);
+static void parse_refclock(const char *);
 static void parse_local(const char *);
 static void parse_manual(const char *);
 static void parse_initstepslew(const char *);
@@ -187,6 +189,7 @@ typedef struct {
 static const Command commands[] = {
   {"server", 6, parse_server},
   {"peer", 4, parse_peer},
+  {"refclock", 8, parse_refclock},
   {"acquisitionport", 15, parse_acquisitionport},
   {"port", 4, parse_port},
   {"driftfile", 9, parse_driftfile},
@@ -249,6 +252,11 @@ typedef struct {
 
 static NTP_Source ntp_sources[MAX_NTP_SOURCES];
 static int n_ntp_sources = 0;
+
+#define MAX_RCL_SOURCES 8
+
+static RefclockParameters refclock_sources[MAX_RCL_SOURCES];
+static int n_refclock_sources = 0;
 
 /* ================================================== */
 
@@ -413,6 +421,61 @@ static void
 parse_peer(const char *line)
 {
   parse_source(line, PEER);
+}
+
+/* ================================================== */
+
+static void
+parse_refclock(const char *line)
+{
+  int i, n, param, poll;
+  unsigned long ref_id;
+  double offset;
+  char name[5], cmd[10 + 1];
+  unsigned char ref[5];
+
+  i = n_refclock_sources;
+  if (i >= MAX_RCL_SOURCES)
+    return;
+
+  poll = 4;
+  offset = 0.0;
+  ref_id = 0;
+
+  if (sscanf(line, "%4s %d%n", name, &param, &n) != 2) {
+    LOG(LOGS_WARN, LOGF_Configure, "Could not read refclock driver name and parameter at line %d", line_number);
+    return;
+  }
+
+  line += n;
+
+  while (sscanf(line, "%10s%n", cmd, &n) == 1) {
+    line += n;
+    if (!strncasecmp(cmd, "refid", 5)) {
+      if (sscanf(line, "%4s%n", (char *)ref, &n) != 1)
+        break;
+      ref_id = ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
+    } else if (!strncasecmp(cmd, "poll", 4)) {
+      if (sscanf(line, "%d%n", &poll, &n) != 1) {
+        break;
+      }
+    } else if (!strncasecmp(cmd, "offset", 6)) {
+      if (sscanf(line, "%lf%n", &offset, &n) != 1)
+        break;
+    } else {
+      LOG(LOGS_WARN, LOGF_Configure, "Unknown refclock parameter %s at line %d", cmd, line_number);
+      break;
+    }
+    line += n;
+  }
+
+  strncpy(refclock_sources[i].driver_name, name, 4);
+  refclock_sources[i].driver_parameter = param;
+  refclock_sources[i].poll = poll;
+  refclock_sources[i].offset = offset;
+  refclock_sources[i].ref_id = ref_id;
+
+  n_refclock_sources++;
 }
 
 /* ================================================== */
@@ -1000,6 +1063,17 @@ CNF_AddSources(void) {
 
   return;
 
+}
+
+/* ================================================== */
+
+void
+CNF_AddRefclocks(void) {
+  int i;
+
+  for (i=0; i<n_refclock_sources; i++) {
+    RCL_AddRefclock(&refclock_sources[i]);
+  }
 }
 
 /* ================================================== */

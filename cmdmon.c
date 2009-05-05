@@ -50,6 +50,7 @@
 #include "rtc.h"
 #include "pktlength.h"
 #include "clientlog.h"
+#include "refclock.h"
 
 /* ================================================== */
 
@@ -871,7 +872,14 @@ handle_source_data(CMD_Request *rx_message, CMD_Reply *tx_message)
   /* Get data */
   LCL_ReadCookedTime(&now_corr, &local_clock_err);
   if (SRC_ReportSource(ntohl(rx_message->data.source_data.index), &report, &now_corr)) {
-    NSR_ReportSource(&report, &now_corr);
+    switch (SRC_GetType(ntohl(rx_message->data.source_data.index))) {
+      case SRC_NTP:
+        NSR_ReportSource(&report, &now_corr);
+        break;
+      case SRC_REFCLOCK:
+        RCL_ReportSource(&report, &now_corr);
+        break;
+    }
     
     tx_message->status = htons(STT_SUCCESS);
     tx_message->reply  = htons(RPY_SOURCE_DATA);

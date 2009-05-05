@@ -50,10 +50,15 @@ extern void SRC_Initialise(void);
 /* Finalisation function */
 extern void SRC_Finalise(void);
 
+typedef enum {
+  SRC_NTP,                      /* NTP client/peer */
+  SRC_REFCLOCK                  /* Rerefence clock */
+} SRC_Type;
+
 /* Function to create a new instance.  This would be called by one of
    the individual source-type instance creation routines. */
 
-extern SRC_Instance SRC_CreateNewInstance(unsigned long ref_id);
+extern SRC_Instance SRC_CreateNewInstance(unsigned long ref_id, SRC_Type type);
 
 /* Function to get rid of a source when it is being unconfigured.
    This may cause the current reference source to be reselected, if this
@@ -142,6 +147,8 @@ extern int SRC_ReadNumberOfSources(void);
 extern int SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now);
 
 extern int SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report);
+
+extern SRC_Type SRC_GetType(int index);
 
 typedef enum {
   SRC_Skew_Decrease,

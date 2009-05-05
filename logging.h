@@ -64,7 +64,8 @@ typedef enum {
   LOGF_SysSolaris,
   LOGF_SysSunOS,
   LOGF_SysWinnt,
-  LOGF_RtcLinux
+  LOGF_RtcLinux,
+  LOGF_Refclock
 } LOG_Facility;
 
 /* Init function */

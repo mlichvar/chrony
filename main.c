@@ -58,6 +58,7 @@
 #include "manual.h"
 #include "version.h"
 #include "rtc.h"
+#include "refclock.h"
 #include "clientlog.h"
 #include "broadcast.h"
 
@@ -103,6 +104,7 @@ MAI_CleanupAndExit(void)
   SRC_Finalise();
   SST_Finalise();
   REF_Finalise();
+  RCL_Finalise();
   RTC_Finalise();
   CAM_Finalise();
   NIO_Finalise();
@@ -145,6 +147,7 @@ post_acquire_hook(void *anything)
   CNF_SetupAccessRestrictions();
 
   RTC_StartMeasurements();
+  RCL_StartRefclocks();
 }
 
 /* ================================================== */
@@ -309,6 +312,7 @@ int main
   NIO_Initialise();
   CAM_Initialise();
   RTC_Initialise();
+  RCL_Initialise();
 
   if (SchedPriority > 0) {
     SYS_SetScheduler(SchedPriority);

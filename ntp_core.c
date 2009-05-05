@@ -319,7 +319,7 @@ create_instance(NTP_Remote_Address *remote_addr, NTP_Mode mode, SourceParameters
   result->local_poll = params->minpoll;
 
   /* Create a source instance for this NTP source */
-  result->source = SRC_CreateNewInstance(remote_addr->ip_addr); /* Will need extra params eventually */
+  result->source = SRC_CreateNewInstance(remote_addr->ip_addr, SRC_NTP);
 
   result->local_rx.tv_sec = 0;
   result->local_rx.tv_usec = 0;

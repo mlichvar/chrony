@@ -96,6 +96,9 @@ struct SRC_Instance_Record {
   /* Flag indicating the status of the source */
   SRC_Status status;
 
+  /* Type of the source */
+  SRC_Type type;
+
   struct SelectInfo sel_info;
 };
 
@@ -126,6 +129,8 @@ static int selected_source_index; /* Which source index is currently
 static void
 slew_sources(struct timeval *raw, struct timeval *cooked, double dfreq, double afreq,
              double doffset, int is_step_change, void *anything);
+static char *
+source_to_string(SRC_Instance inst);
 
 /* ================================================== */
 /* Initialisation function */
@@ -155,7 +160,7 @@ void SRC_Finalise(void)
 /* Function to create a new instance.  This would be called by one of
    the individual source-type instance creation routines. */
 
-SRC_Instance SRC_CreateNewInstance(unsigned long ref_id)
+SRC_Instance SRC_CreateNewInstance(unsigned long ref_id, SRC_Type type)
 {
   SRC_Instance result;
 
@@ -186,6 +191,7 @@ SRC_Instance SRC_CreateNewInstance(unsigned long ref_id)
   result->ref_id = ref_id;
   result->reachable = 0;
   result->status = SRC_BAD_STATS;
+  result->type = type;
 
   n_sources++;
 
@@ -280,7 +286,7 @@ void SRC_AccumulateSample
 
 #ifdef TRACEON
   LOG(LOGS_INFO, LOGF_Sources, "ip=[%s] t=%s ofs=%f del=%f disp=%f str=%d",
-      UTI_IPToDottedQuad(inst->ref_id), UTI_TimevalToString(sample_time), -offset, root_delay, root_dispersion, stratum);
+      source_to_string(inst), UTI_TimevalToString(sample_time), -offset, root_delay, root_dispersion, stratum);
 #endif
 
   /* WE HAVE TO NEGATE OFFSET IN THIS CALL, IT IS HERE THAT THE SENSE OF OFFSET
@@ -301,7 +307,7 @@ SRC_SetReachable(SRC_Instance inst)
   inst->reachable = 1;
 
 #ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_Sources, "%s", UTI_IPToDottedQuad(inst->ref_id));
+  LOG(LOGS_INFO, LOGF_Sources, "%s", source_to_string(inst));
 #endif
 
   /* Don't do selection at this point, though - that will come about
@@ -316,7 +322,7 @@ SRC_UnsetReachable(SRC_Instance inst)
   inst->reachable = 0;
 
 #ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_Sources, "%s%s", UTI_IPToDottedQuad(inst->ref_id),
+  LOG(LOGS_INFO, LOGF_Sources, "%s%s", source_to_string(inst),
       (inst->index == selected_source_index) ? "(REF)":"");
 #endif
 
@@ -347,6 +353,22 @@ compare_sort_elements(const void *a, const void *b)
   } else {
     return 0;
   }
+}
+
+/* ================================================== */
+
+static char *
+source_to_string(SRC_Instance inst)
+{
+  switch (inst->type) {
+    case SRC_NTP:
+      return UTI_IPToDottedQuad(inst->ref_id);
+    case SRC_REFCLOCK:
+      return UTI_RefidToString(inst->ref_id);
+    default:
+      CROAK("Unknown source type");
+  }
+  return NULL;
 }
 
 /* ================================================== */
@@ -418,7 +440,7 @@ SRC_SelectSource(unsigned long match_addr)
 
 #if 0
       LOG(LOGS_INFO, LOGF_Sources, "%s off=%f dist=%f lo=%f hi=%f",
-          UTI_IPToDottedQuad(sources[i]->ref_id),
+          source_to_string(sources[i]),
           si->best_offset, si->root_distance,
           si->lo_limit, si->hi_limit);
 #endif
@@ -491,7 +513,7 @@ SRC_SelectSource(unsigned long match_addr)
     for (i=0; i<n_endpoints; i++) {
 #if 0
       LOG(LOGS_INFO, LOGF_Sources, "i=%d t=%f tag=%d addr=%s", i, sort_list[i].offset, sort_list[i].tag,
-          UTI_IPToDottedQuad(sources[sort_list[i].index]->ref_id));
+          source_to_string(sources[sort_list[i].index]));
 #endif
       switch(sort_list[i].tag) {
         case LOW:
@@ -565,12 +587,12 @@ SRC_SelectSource(unsigned long match_addr)
 
             sel_sources[n_sel_sources++] = i;
 #if 0
-            LOG(LOGS_INFO, LOGF_Sources, "i=%d addr=%s is valid", i, UTI_IPToDottedQuad(sources[i]->ref_id));
+            LOG(LOGS_INFO, LOGF_Sources, "i=%d addr=%s is valid", i, source_to_string(sources[i]));
 #endif
           } else {
             sources[i]->status = SRC_FALSETICKER;
 #if 0
-            LOG(LOGS_INFO, LOGF_Sources, "i=%d addr=%s is a falseticker", i, UTI_IPToDottedQuad(sources[i]->ref_id));
+            LOG(LOGS_INFO, LOGF_Sources, "i=%d addr=%s is a falseticker", i, source_to_string(sources[i]));
 #endif
           }
         }
@@ -603,7 +625,7 @@ SRC_SelectSource(unsigned long match_addr)
           sel_sources[i] = INVALID_SOURCE;
           sources[index]->status = SRC_JITTERY;
 #if 0
-          LOG(LOGS_INFO, LOGF_Sources, "i=%d addr=%s has too much variance", i, UTI_IPToDottedQuad(sources[i]->ref_id));
+          LOG(LOGS_INFO, LOGF_Sources, "i=%d addr=%s has too much variance", i, source_to_string(sources[i]));
 #endif
         }
       }
@@ -658,7 +680,7 @@ SRC_SelectSource(unsigned long match_addr)
 
           selected_source_index = min_distance_index;
           LOG(LOGS_INFO, LOGF_Sources, "Selected source %s",
-              UTI_IPToDottedQuad(sources[selected_source_index]->ref_id));
+                source_to_string(sources[selected_source_index]));
                                  
 
 #if 0
@@ -931,6 +953,16 @@ SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report)
     SST_DoSourcestatsReport(src->stats, report);
     return 1;
   }
+}
+
+/* ================================================== */
+
+SRC_Type
+SRC_GetType(int index)
+{
+  if ((index >= n_sources) || (index < 0))
+    return -1;
+  return sources[index]->type;
 }
 
 /* ================================================== */

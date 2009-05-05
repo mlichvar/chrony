@@ -37,6 +37,7 @@ extern void CNF_ReadFile(const char *filename);
 
 extern void CNF_AddSources(void);
 extern void CNF_AddBroadcasts(void);
+extern void CNF_AddRefclocks(void);
 
 extern void CNF_ProcessInitStepSlew(void (*after_hook)(void *), void *anything);
 

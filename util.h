@@ -72,6 +72,9 @@ extern char *UTI_TimevalToString(struct timeval *tv);
    diagnostic display */
 extern char *UTI_TimestampToString(NTP_int64 *ts);
 
+/* Convert ref_id into a temporary string, for diagnostics */
+extern char *UTI_RefidToString(unsigned long ref_id);
+
 /* Convert an IP address to dotted quad notation, for diagnostics */
 extern char *UTI_IPToDottedQuad(unsigned long ip);
 
