@@ -379,6 +379,12 @@ REF_SetReference(int stratum,
 
   assert(initialised);
 
+  /* Avoid getting NaNs */
+  if (skew == 0.0)
+    skew = 1e-10;
+  if (our_skew == 0.0)
+    our_skew = 1e-10;
+
   /* If we get a serious rounding error in the source stats regression
      processing, there is a remote chance that the skew argument is a
      'not a number'.  If such a quantity gets propagated into the
