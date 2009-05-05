@@ -33,6 +33,9 @@
 #include "logging.h"
 #include "sched.h"
 
+/* list of refclock drivers */
+extern RefclockDriver RCL_SHM_driver;
+
 struct RCL_Instance_Record {
   RefclockDriver *driver;
   void *data;
@@ -79,7 +82,8 @@ RCL_AddRefclock(RefclockParameters *params)
   if (n_sources == MAX_RCL_SOURCES)
     return 0;
 
-  if (0) {
+  if (strncmp(params->driver_name, "SHM", 4) == 0) {
+    inst->driver = &RCL_SHM_driver;
   } else {
     LOG_FATAL(LOGF_Refclock, "unknown refclock driver %s", params->driver_name);
     return 0;
