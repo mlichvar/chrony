@@ -103,10 +103,11 @@ static int version_major;
 static int version_minor;
 static int version_patchlevel;
 
-/* Flag indicating whether adjtimex() with txc.modes equal to zero
-returns the remaining time adjustment or not.  If not we have to read
-the outstanding adjustment by setting it to zero, examining the return
-value and setting the outstanding adjustment back again. */
+/* Flag indicating whether adjtimex() returns the remaining time adjustment
+or not.  If not we have to read the outstanding adjustment by setting it to
+zero, examining the return value and setting the outstanding adjustment back
+again.  If 1, txc.modes equal to zero is used to read the time.  If 2,
+txc.modes is set to ADJ_OFFSET_SS_READ. */
 
 static int have_readonly_adjtime;
 
@@ -532,9 +533,18 @@ get_offset_correction(struct timeval *raw,
   double fast_slew_remaining;
   long offset;
 
-  if (have_readonly_adjtime) {
-    if (TMX_GetOffsetLeft(&offset) < 0) {
+again:
+  if (have_readonly_adjtime == 1) {
+    if (TMX_GetOffsetLeftOld(&offset) < 0) {
       CROAK("adjtimex() failed in get_offset_correction");
+    }
+    
+    adjtime_left = (double)offset / 1.0e6;
+  } else if (have_readonly_adjtime == 2) {
+    if (TMX_GetOffsetLeft(&offset) < 0) {
+      LOG(LOGS_INFO, LOGF_SysLinux, "adjtimex() doesn't support ADJ_OFFSET_SS_READ");
+      have_readonly_adjtime = 0;
+      goto again;
     }
     
     adjtime_left = (double)offset / 1.0e6;
@@ -796,13 +806,19 @@ get_version_specific_details(void)
         case 4:
         case 5:
         case 6:
+          if (minor < 6 || patch < 27) {
+            /* These seem to be like 2.0.32 */
+            freq_scale = (hz==100) ? (128.0 / 128.125) : basic_freq_scale;
+            have_readonly_adjtime = 0;
+            break;
+          }
           /* Let's be optimistic that these will be the same until proven
              otherwise :-) */
         case 7:
         case 8:
-          /* These seem to be like 2.0.32 */
-          freq_scale = (hz==100) ? (128.0 / 128.125) : basic_freq_scale;
-          have_readonly_adjtime = 0;
+          /* These don't need scaling */
+          freq_scale = 1.0;
+          have_readonly_adjtime = 2;
           break;
         default:
           LOG_FATAL(LOGF_SysLinux, "Kernel version not supported yet, sorry.");

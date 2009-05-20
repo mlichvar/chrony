@@ -39,6 +39,7 @@ struct timex {
 #define ADJ_STATUS		0x0010	/* clock status */
 #define ADJ_TICK		0x4000	/* tick value */
 #define ADJ_OFFSET_SINGLESHOT	0x8001	/* old-fashioned adjtime */
+#define ADJ_OFFSET_SS_READ	0xa001  /* read-only adjtime */
 
 #define SHIFT_USEC 16		/* frequency offset scale (shift) */
 
