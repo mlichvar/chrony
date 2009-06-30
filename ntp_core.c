@@ -812,6 +812,10 @@ receive_packet(NTP_Packet *message, struct timeval *now, NCR_Instance inst, int 
   int valid_data;
   int valid_header;
 
+  /* Kiss-of-Death packets */
+  int kod_rate = 0;
+  int valid_kod;
+
   /* Variables used for doing logging */
   static char sync_stats[4] = {'N', '+', '-', '?'};
 
@@ -1018,6 +1022,14 @@ receive_packet(NTP_Packet *message, struct timeval *now, NCR_Instance inst, int 
     test8 = 1;
   }
 
+  /* Check for Kiss-of-Death */
+  if (message->stratum > NTP_MAX_STRATUM && !source_is_synchronized) {
+      if (!memcmp(&message->reference_id, "RATE", 4))
+        kod_rate = 1;
+  }
+
+  valid_kod = test1 && test2 && test5;
+
   valid_data = test1 && test2 && test3 && test4 && test4a && test4b;
   valid_header = test5 && test6 && test7 && test8;
 
@@ -1052,6 +1064,8 @@ receive_packet(NTP_Packet *message, struct timeval *now, NCR_Instance inst, int 
 
   LOG(LOGS_INFO, LOGF_NtpCore, "test5=%d test6=%d test7=%d test8=%d valid_header=%d",
       test5, test6, test7, test8, valid_header);
+
+  LOG(LOGS_INFO, LOGF_NtpCore, "kod_rate=%d valid_kod=%d", kod_rate, valid_kod);
 #endif
 
   if (valid_header) {
@@ -1219,6 +1233,19 @@ receive_packet(NTP_Packet *message, struct timeval *now, NCR_Instance inst, int 
 
   }
 
+  /* Reduce polling if KoD RATE was received */
+  if (kod_rate && valid_kod) {
+    if (inst->remote_poll > inst->minpoll) {
+      inst->minpoll = inst->remote_poll;
+      if (inst->minpoll > inst->maxpoll)
+        inst->maxpoll = inst->minpoll;
+      if (inst->minpoll > inst->local_poll)
+        inst->local_poll = inst->minpoll;
+      LOG(LOGS_INFO, LOGF_NtpCore, "Received KoD RATE from %s, minpoll set to %d", UTI_IPToDottedQuad(inst->remote_addr.ip_addr), inst->minpoll);
+    }
+    /* Back off for a while */
+    delay_time += (double) (4 * (1UL << inst->minpoll));
+  }
 
   if (requeue_transmit) {
     /* Get rid of old timeout and start a new one */
