@@ -34,7 +34,9 @@
 typedef struct {
   char driver_name[4];
   int driver_parameter;
+  int driver_poll;
   int poll;
+  int filter_length;
   unsigned long ref_id;
   double offset;
 } RefclockParameters;

@@ -428,7 +428,7 @@ parse_peer(const char *line)
 static void
 parse_refclock(const char *line)
 {
-  int i, n, param, poll;
+  int i, n, param, poll, dpoll, filter_length;
   unsigned long ref_id;
   double offset;
   char name[5], cmd[10 + 1];
@@ -439,6 +439,8 @@ parse_refclock(const char *line)
     return;
 
   poll = 4;
+  dpoll = 0;
+  filter_length = 15;
   offset = 0.0;
   ref_id = 0;
 
@@ -459,6 +461,14 @@ parse_refclock(const char *line)
       if (sscanf(line, "%d%n", &poll, &n) != 1) {
         break;
       }
+    } else if (!strncasecmp(cmd, "dpoll", 5)) {
+      if (sscanf(line, "%d%n", &dpoll, &n) != 1) {
+        break;
+      }
+    } else if (!strncasecmp(cmd, "filter", 6)) {
+      if (sscanf(line, "%d%n", &filter_length, &n) != 1) {
+        break;
+      }
     } else if (!strncasecmp(cmd, "offset", 6)) {
       if (sscanf(line, "%lf%n", &offset, &n) != 1)
         break;
@@ -471,7 +481,9 @@ parse_refclock(const char *line)
 
   strncpy(refclock_sources[i].driver_name, name, 4);
   refclock_sources[i].driver_parameter = param;
+  refclock_sources[i].driver_poll = dpoll;
   refclock_sources[i].poll = poll;
+  refclock_sources[i].filter_length = filter_length;
   refclock_sources[i].offset = offset;
   refclock_sources[i].ref_id = ref_id;
 
