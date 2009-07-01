@@ -126,6 +126,17 @@ our_round(double x) {
   return y;
 }
 
+inline static long
+our_lround(double x) {
+  int y;
+
+  if (x > 0.0)
+	  y = x + 0.5;
+  else
+	  y = x - 0.5;
+  return y;
+}
+
 /* ================================================== */
 /* Amount of outstanding offset to process */
 static double offset_register;
@@ -255,14 +266,13 @@ initiate_slew(void)
 
   if (fabs(offset_register) < MAX_ADJUST_WITH_ADJTIME) {
     /* Use adjtime to do the shift */
-    offset = (long)(0.5 + 1.0e6*(-offset_register));
+    offset = our_lround(1.0e6 * -offset_register);
+
+    offset_register += offset * 1e-6;
 
     if (TMX_ApplyOffset(&offset) < 0) {
       CROAK("adjtimex() failed in initiate_slew");
     }
-
-    offset_register = 0.0;
-
   } else {
 
     /* If the system clock has a high drift rate, the combination of
