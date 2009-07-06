@@ -140,8 +140,8 @@ extern time_t		mktime ();
 #define yytable  gd_yytable
 #define yycheck  gd_yycheck
 
-static int yylex ();
-static int yyerror ();
+static int yylex (void);
+static int yyerror (char *s);
 
 #define EPOCH		1970
 #define HOUR(x)		((x) * 60)
