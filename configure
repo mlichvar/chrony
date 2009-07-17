@@ -129,6 +129,7 @@ for instance \`--prefix=$HOME'.
 
 For better control, use the options below.
   --disable-readline     Don't try to use GNU readline
+  --with-editline        Use editline library instead of readline
   --readline-dir=DIR     Specify parent of readline include and lib directories
   --readline-inc-dir=DIR Specify where readline include directory is
   --readline-lib-dir=DIR Specify where readline lib directory is
@@ -174,6 +175,7 @@ SYSDEFS=""
 
 # Support for readline (on by default)
 feat_readline=1
+use_editline=0
 feat_rtc=1
 feat_linuxcaps=0
 readline_lib=""
@@ -194,6 +196,9 @@ do
     ;;
     --disable-readline )
       feat_readline=0
+    ;;
+    --with-editline )
+      use_editline=1
     ;;
     --with-readline-library=* )
       readline_lib=-L`echo $option | sed -e 's/^.*=//;'`
@@ -341,8 +346,13 @@ else
 fi
 
 if [ $feat_readline = "1" ]; then
-  READLINE_COMPILE="-DFEAT_READLINE=1 $readline_inc"
-  READLINE_LINK="$readline_lib $ncurses_lib -lreadline -lncurses"
+  if [ $use_editline = "1" ]; then
+    READLINE_COMPILE="-DFEAT_READLINE=1 -DUSE_EDITLINE=1 $readline_inc"
+    READLINE_LINK="$readline_lib -ledit"
+  else
+    READLINE_COMPILE="-DFEAT_READLINE=1 $readline_inc"
+    READLINE_LINK="$readline_lib $ncurses_lib -lreadline -lncurses"
+  fi
 else
   READLINE_COMPILE=""
   READLINE_LINK=""
