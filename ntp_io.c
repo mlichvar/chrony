@@ -119,6 +119,12 @@ NIO_Initialise(void)
     /* Don't quit - we might survive anyway */
   }
 
+  /* Enable receiving of timestamp control messages */
+  if (setsockopt(sock_fd, SOL_SOCKET, SO_TIMESTAMP, (char *)&on_off, sizeof(on_off)) < 0) {
+    LOG(LOGS_ERR, LOGF_NtpIO, "Could not set timestamp socket options");
+    /* Don't quit - we might survive anyway */
+  }
+
   /* We want the local IP info too */
   if (setsockopt(sock_fd, IPPROTO_IP, IP_PKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
     LOG(LOGS_ERR, LOGF_NtpIO, "Could not request packet info using socket option");
@@ -232,6 +238,20 @@ read_from_socket(void *anything)
 
         memcpy(&ipi, CMSG_DATA(cmsg), sizeof(ipi));
         remote_addr.local_ip_addr = ntohl(ipi.ipi_spec_dst.s_addr);
+      }
+
+      if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SO_TIMESTAMP) {
+        struct timeval tv;
+        double correction;
+
+        memcpy(&tv, CMSG_DATA(cmsg), sizeof(tv));
+        correction = LCL_GetOffsetCorrection(&tv);
+        UTI_AddDoubleToTimeval(&tv, correction, &tv);
+#if 0
+        UTI_DiffTimevalsToDouble(&correction, &now, &tv);
+        LOG(LOGS_INFO, LOGF_NtpIO, "timestamp diff: %f", correction);
+#endif
+        now = tv;
       }
     }
 
