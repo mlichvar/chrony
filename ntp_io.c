@@ -182,22 +182,30 @@ read_from_socket(void *anything)
 
   int status;
   ReceiveBuffer message;
-  int message_length;
   struct sockaddr_in where_from;
-  socklen_t from_length;
   unsigned int flags = 0;
   struct timeval now;
   NTP_Remote_Address remote_addr;
   double local_clock_err;
+  char cmsgbuf[256];
+  struct msghdr msg;
+  struct iovec iov;
 
   assert(initialised);
 
-  from_length = sizeof(where_from);
-  message_length = sizeof(message);
-
   LCL_ReadCookedTime(&now, &local_clock_err);
-  status = recvfrom(sock_fd, (char *)&message, message_length, flags,
-                    (struct sockaddr *)&where_from, &from_length);
+
+  iov.iov_base = message.arbitrary;
+  iov.iov_len = sizeof(message);
+  msg.msg_name = &where_from;
+  msg.msg_namelen = sizeof(where_from);
+  msg.msg_iov = &iov;
+  msg.msg_iovlen = 1;
+  msg.msg_control = (void *) cmsgbuf;
+  msg.msg_controllen = sizeof(cmsgbuf);
+  msg.msg_flags = 0;
+
+  status = recvmsg(sock_fd, &msg, flags);
 
   /* Don't bother checking if read failed or why if it did.  More
      likely than not, it will be connection refused, resulting from a
@@ -229,12 +237,14 @@ read_from_socket(void *anything)
 }
 
 /* ================================================== */
-/* Send an unauthenticated packet to a given address */
+/* Send a packet to given address */
 
-void
-NIO_SendNormalPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr)
+static void
+send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
 {
   struct sockaddr_in remote;
+  struct msghdr msg;
+  struct iovec iov;
 
   assert(initialised);
 
@@ -242,8 +252,17 @@ NIO_SendNormalPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr)
   remote.sin_port = htons(remote_addr->port);
   remote.sin_addr.s_addr = htonl(remote_addr->ip_addr);
 
-  if (sendto(sock_fd, (void *) packet, NTP_NORMAL_PACKET_SIZE, 0,
-             (struct sockaddr *) &remote, sizeof(remote)) < 0) {
+  iov.iov_base = packet;
+  iov.iov_len = packetlen;
+  msg.msg_name = &remote;
+  msg.msg_namelen = sizeof(remote);
+  msg.msg_iov = &iov;
+  msg.msg_iovlen = 1;
+  msg.msg_control = NULL;
+  msg.msg_controllen = 0;
+  msg.msg_flags = 0;
+
+  if (sendmsg(sock_fd, &msg, 0) < 0) {
     LOG(LOGS_WARN, LOGF_NtpIO, "Could not send to %s:%d : %s",
         UTI_IPToDottedQuad(remote_addr->ip_addr), remote_addr->port, strerror(errno));
   }
@@ -252,26 +271,21 @@ NIO_SendNormalPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr)
 }
 
 /* ================================================== */
+/* Send an unauthenticated packet to a given address */
+
+void
+NIO_SendNormalPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr)
+{
+  send_packet((void *) packet, NTP_NORMAL_PACKET_SIZE, remote_addr);
+}
+
+/* ================================================== */
 /* Send an authenticated packet to a given address */
 
 void
 NIO_SendAuthenticatedPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr)
 {
-  struct sockaddr_in remote;
-
-  assert(initialised);
-
-  remote.sin_family = AF_INET;
-  remote.sin_port = htons(remote_addr->port);
-  remote.sin_addr.s_addr = htonl(remote_addr->ip_addr);
-
-  if (sendto(sock_fd, (void *) packet, sizeof(NTP_Packet), 0,
-             (struct sockaddr *) &remote, sizeof(remote)) < 0) {
-    LOG(LOGS_WARN, LOGF_NtpIO, "Could not send to %s:%d : %s",
-        UTI_IPToDottedQuad(remote_addr->ip_addr), remote_addr->port, strerror(errno));
-  }
-
-  return;
+  send_packet((void *) packet, sizeof(NTP_Packet), remote_addr);
 }
 
 /* ================================================== */
@@ -283,15 +297,10 @@ void
 NIO_SendEcho(NTP_Remote_Address *remote_addr)
 {
   unsigned long magic_message = 0xbe7ab1e7UL;
-  struct sockaddr_in addr;
+  NTP_Remote_Address addr;
 
-  addr.sin_family = AF_INET;
-  addr.sin_port = htons(ECHO_PORT);
-  addr.sin_addr.s_addr = htonl(remote_addr->ip_addr);
+  addr = *remote_addr;
+  addr.port = ECHO_PORT;
 
-  /* Just ignore error status on send - this is not a big deal anyway */
-  sendto(sock_fd, (void *) &magic_message, sizeof(unsigned long), 0,
-         (struct sockaddr *) &addr, sizeof(addr));
-
-
+  send_packet((void *) &magic_message, sizeof(unsigned long), &addr);
 }
