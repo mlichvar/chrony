@@ -119,6 +119,12 @@ NIO_Initialise(void)
     /* Don't quit - we might survive anyway */
   }
 
+  /* We want the local IP info too */
+  if (setsockopt(sock_fd, IPPROTO_IP, IP_PKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
+    LOG(LOGS_ERR, LOGF_NtpIO, "Could not request packet info using socket option");
+    /* Don't quit - we might survive anyway */
+  }
+
   /* Bind the port */
   my_addr.sin_family = AF_INET;
   my_addr.sin_port = htons(port_number);
@@ -190,6 +196,7 @@ read_from_socket(void *anything)
   char cmsgbuf[256];
   struct msghdr msg;
   struct iovec iov;
+  struct cmsghdr *cmsg;
 
   assert(initialised);
 
@@ -216,7 +223,17 @@ read_from_socket(void *anything)
 
   if (status > 0) {
     remote_addr.ip_addr = ntohl(where_from.sin_addr.s_addr);
+    remote_addr.local_ip_addr = 0;
     remote_addr.port = ntohs(where_from.sin_port);
+
+    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+      if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_PKTINFO) {
+        struct in_pktinfo ipi;
+
+        memcpy(&ipi, CMSG_DATA(cmsg), sizeof(ipi));
+        remote_addr.local_ip_addr = ntohl(ipi.ipi_spec_dst.s_addr);
+      }
+    }
 
     if (status == NTP_NORMAL_PACKET_SIZE) {
 
@@ -245,6 +262,9 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
   struct sockaddr_in remote;
   struct msghdr msg;
   struct iovec iov;
+  struct cmsghdr *cmsg;
+  char cmsgbuf[256];
+  int cmsglen;
 
   assert(initialised);
 
@@ -258,9 +278,30 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
   msg.msg_namelen = sizeof(remote);
   msg.msg_iov = &iov;
   msg.msg_iovlen = 1;
-  msg.msg_control = NULL;
-  msg.msg_controllen = 0;
+  msg.msg_control = cmsgbuf;
+  msg.msg_controllen = sizeof(cmsgbuf);
   msg.msg_flags = 0;
+  cmsglen = 0;
+
+  if (remote_addr->local_ip_addr) {
+    struct in_pktinfo *ipi;
+
+    cmsg = CMSG_FIRSTHDR(&msg);
+    cmsg->cmsg_level = IPPROTO_IP;
+    cmsg->cmsg_type = IP_PKTINFO;
+    cmsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
+    cmsglen += CMSG_SPACE(sizeof(struct in_pktinfo));
+
+    ipi = (struct in_pktinfo *) CMSG_DATA(cmsg);
+    memset(ipi, 0, sizeof(struct in_pktinfo));
+    ipi->ipi_spec_dst.s_addr = htonl(remote_addr->local_ip_addr);
+#if 0
+    LOG(LOGS_INFO, LOGF_NtpIO, "sending to %s:%d from %s",
+        UTI_IPToDottedQuad(remote_addr->ip_addr), remote_addr->port, UTI_IPToDottedQuad(remote_addr->local_ip_addr));
+#endif
+  }
+
+  msg.msg_controllen = cmsglen;
 
   if (sendmsg(sock_fd, &msg, 0) < 0) {
     LOG(LOGS_WARN, LOGF_NtpIO, "Could not send to %s:%d : %s",

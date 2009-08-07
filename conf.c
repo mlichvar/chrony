@@ -1059,6 +1059,7 @@ CNF_AddSources(void) {
 
   for (i=0; i<n_ntp_sources; i++) {
     server.ip_addr = ntp_sources[i].ip_addr;
+    server.local_ip_addr = 0;
     server.port = ntp_sources[i].port;
 
     switch (ntp_sources[i].type) {

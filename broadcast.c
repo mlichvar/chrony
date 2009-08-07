@@ -145,6 +145,7 @@ BRD_AddDestination(unsigned long addr, unsigned short port, int interval)
   }
 
   destinations[n_destinations].addr.ip_addr = addr;
+  destinations[n_destinations].addr.local_ip_addr = 0;
   destinations[n_destinations].addr.port = port;
   destinations[n_destinations].interval = interval;
 

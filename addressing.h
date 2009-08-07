@@ -35,6 +35,7 @@
    number.  Both parts are in HOST order, NOT network order. */
 typedef struct {
   unsigned long ip_addr;
+  unsigned long local_ip_addr;
   unsigned short port;
 } NTP_Remote_Address;
 
