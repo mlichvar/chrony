@@ -428,10 +428,11 @@ parse_peer(const char *line)
 static void
 parse_refclock(const char *line)
 {
-  int i, n, param, poll, dpoll, filter_length;
+  int i, n, poll, dpoll, filter_length;
   unsigned long ref_id;
   double offset;
-  char name[5], cmd[10 + 1];
+  const char *tmp;
+  char name[5], cmd[10 + 1], *param;
   unsigned char ref[5];
 
   i = n_refclock_sources;
@@ -444,12 +445,26 @@ parse_refclock(const char *line)
   offset = 0.0;
   ref_id = 0;
 
-  if (sscanf(line, "%4s %d%n", name, &param, &n) != 2) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read refclock driver name and parameter at line %d", line_number);
+  if (sscanf(line, "%4s%n", name, &n) != 1) {
+    LOG(LOGS_WARN, LOGF_Configure, "Could not read refclock driver name at line %d", line_number);
+    return;
+  }
+  line += n;
+
+  while (isspace(line[0]))
+    line++;
+  tmp = line;
+  while (line[0] != '\0' && !isspace(line[0]))
+    line++;
+
+  if (line == tmp) {
+    LOG(LOGS_WARN, LOGF_Configure, "Could not read refclock parameter at line %d", line_number);
     return;
   }
 
-  line += n;
+  param = MallocArray(char, 1 + line - tmp);
+  strncpy(param, tmp, line - tmp);
+  param[line - tmp + 1] = '\0';
 
   while (sscanf(line, "%10s%n", cmd, &n) == 1) {
     line += n;

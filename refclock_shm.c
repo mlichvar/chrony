@@ -59,7 +59,7 @@ static int shm_initialise(RCL_Instance instance) {
   int id, param;
   struct shmTime *shm;
 
-  param = RCL_GetDriverParameter(instance);
+  param = atoi(RCL_GetDriverParameter(instance));
 
   id = shmget(SHMKEY + param, sizeof (struct shmTime), IPC_CREAT | 0700);
   if (id == -1) {

@@ -52,7 +52,7 @@ struct MedianFilter {
 struct RCL_Instance_Record {
   RefclockDriver *driver;
   void *data;
-  int driver_parameter;
+  char *driver_parameter;
   int driver_poll;
   int driver_polled;
   int poll;
@@ -99,6 +99,7 @@ RCL_Finalise(void)
       inst->driver->fini(inst);
 
     filter_fini(&inst->filter);
+    Free(inst->driver_parameter);
   }
 
   if (n_sources > 0)
@@ -139,7 +140,7 @@ RCL_AddRefclock(RefclockParameters *params)
   else {
     unsigned char ref[5] = { 0, 0, 0, 0, 0 };
 
-    snprintf((char *)ref, 5, "%s%d", params->driver_name, params->driver_parameter);
+    snprintf((char *)ref, 5, "%s%s", params->driver_name, params->driver_parameter);
     inst->ref_id = ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
   }
 
@@ -206,7 +207,7 @@ RCL_GetDriverData(RCL_Instance instance)
   return instance->data;
 }
 
-int
+char *
 RCL_GetDriverParameter(RCL_Instance instance)
 {
   return instance->driver_parameter;
