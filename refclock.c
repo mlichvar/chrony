@@ -36,6 +36,7 @@
 
 /* list of refclock drivers */
 extern RefclockDriver RCL_SHM_driver;
+extern RefclockDriver RCL_SOCK_driver;
 
 struct FilterSample {
   double offset;
@@ -116,6 +117,8 @@ RCL_AddRefclock(RefclockParameters *params)
 
   if (strncmp(params->driver_name, "SHM", 4) == 0) {
     inst->driver = &RCL_SHM_driver;
+  } else if (strncmp(params->driver_name, "SOCK", 4) == 0) {
+    inst->driver = &RCL_SOCK_driver;
   } else {
     LOG_FATAL(LOGF_Refclock, "unknown refclock driver %s", params->driver_name);
     return 0;
