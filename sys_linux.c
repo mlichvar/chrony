@@ -264,6 +264,13 @@ initiate_slew(void)
     return;
   }
 
+  /* Cancel any standard adjtime that is running */
+  offset = 0;
+  if (TMX_ApplyOffset(&offset) < 0) {
+    CROAK("adjtimex() failed in accrue_offset");
+  }
+  offset_register -= (double) offset / 1.0e6;
+
   if (fabs(offset_register) < MAX_ADJUST_WITH_ADJTIME) {
     /* Use adjtime to do the shift */
     offset = our_lround(1.0e6 * -offset_register);
@@ -383,18 +390,8 @@ abort_slew(void)
 static void
 accrue_offset(double offset)
 {
-  long toffset;
-  
   /* Add the new offset to the register */
   offset_register += offset;
-
-  /* Cancel any standard adjtime that is running */
-  toffset = 0;
-  if (TMX_ApplyOffset(&toffset) < 0) {
-    CROAK("adjtimex() failed in accrue_offset");
-  }
-
-  offset_register -= (double) toffset / 1.0e6;
 
   if (!fast_slewing) {
     initiate_slew();
