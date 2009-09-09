@@ -464,7 +464,7 @@ parse_refclock(const char *line)
 
   param = MallocArray(char, 1 + line - tmp);
   strncpy(param, tmp, line - tmp);
-  param[line - tmp + 1] = '\0';
+  param[line - tmp] = '\0';
 
   while (sscanf(line, "%10s%n", cmd, &n) == 1) {
     line += n;
