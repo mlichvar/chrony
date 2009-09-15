@@ -39,6 +39,7 @@
 #include "cmdparse.h"
 #include "pktlength.h"
 #include "memory.h"
+#include "util.h"
 
 #ifdef FEAT_READLINE
 #ifdef USE_EDITLINE
@@ -92,34 +93,6 @@ time_to_log_form(time_t t)
           stm.tm_hour, stm.tm_min, stm.tm_sec);
 
   return buffer;
-}
-
-/* ================================================== */
-
-static char *
-UTI_RefidToString(unsigned long ref_id)
-{
-  unsigned int a, b, c, d;
-  static char result[64];
-  a = (ref_id>>24) & 0xff;
-  b = (ref_id>>16) & 0xff;
-  c = (ref_id>> 8) & 0xff;
-  d = (ref_id>> 0) & 0xff;
-  snprintf(result, sizeof(result), "%c%c%c%c", a, b, c, d);
-  return result;
-}
-
-static char *
-UTI_IPToDottedQuad(unsigned long ip)
-{
-  unsigned long a, b, c, d;
-  static char result[64];
-  a = (ip>>24) & 0xff;
-  b = (ip>>16) & 0xff;
-  c = (ip>> 8) & 0xff;
-  d = (ip>> 0) & 0xff;
-  snprintf(result, sizeof(result), "%ld.%ld.%ld.%ld", a, b, c, d);
-  return result;
 }
 
 /* ================================================== */

@@ -46,7 +46,7 @@ OBJS = util.o sched.o regress.o local.o \
 EXTRA_OBJS=@EXTRA_OBJECTS@
 
 CLI_OBJS = client.o md5.o nameserv.o getdate.o cmdparse.o \
-           pktlength.o
+           pktlength.o util.o
 
 SRCS = $(patsubst %.o,%.c,$(OBJS))
 EXTRA_SRCS = $(patsubst %.o,%.c,$(EXTRA_OBJS))

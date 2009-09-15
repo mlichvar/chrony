@@ -31,7 +31,6 @@
 #include "sysincl.h"
 
 #include "util.h"
-#include "logging.h"
 
 /* ================================================== */
 
@@ -65,21 +64,14 @@ UTI_CompareTimevals(struct timeval *a, struct timeval *b)
   } else if (a->tv_sec > b->tv_sec) {
     return +1;
   } else {
-    if (a->tv_sec != b->tv_sec) {
-      CROAK("a->tv_sec != b->tv_sec");
-    }
     if (a->tv_usec < b->tv_usec) {
       return -1;
     } else if (a->tv_usec > b->tv_usec) {
       return +1;
     } else {
-      if (a->tv_usec != b->tv_usec) {
-        CROAK("a->tv_usec != b->tv_usec");
-      }
       return 0;
     }
   }
-  CROAK("Impossible"); /* Shouldn't be able to fall through. */
 }
 
 /* ================================================== */
@@ -343,22 +335,6 @@ UTI_Int64ToTimeval(NTP_int64 *src,
   
   /* Until I invent a slick way to do this, just do it the obvious way */
   dest->tv_usec = (int)(0.5 + (double)(ntohl(src->lo)) / 4294.967296);
-}
-
-/* ================================================== */
-/* Force a core dump and exit without doing abort() or assert(0).
-   These do funny things with the call stack in the core file that is
-   generated, which makes diagnosis difficult. */
-
-int
-croak(const char *file, int line, const char *msg)
-{
-  int a;
-  LOG(LOGS_ERR, LOGF_Util, "Unexpected condition [%s] at %s:%d, core dumped",
-      msg, file, line);
-  a = * (int *) 0;
-  return a; /* Can't happen - this stops the optimiser optimising the
-               line above */
 }
 
 /* ================================================== */

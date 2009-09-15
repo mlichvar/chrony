@@ -95,4 +95,13 @@ extern void LOG_GoDaemon(void);
 #define LOG_FATAL LOG_Position(__FILE__, __LINE__, ""); LOG_Fatal_Function
 #endif /* defined (__GNUC__) */
 
+/* Like assert(0) */
+
+#if defined(LINUX) && defined(__alpha__)
+#define CROAK(message) assert(0) /* Added JGH Feb 24 2001  FIXME */
+#else
+extern int croak(const char *file, int line, const char *msg);
+#define CROAK(message) croak(__FILE__, __LINE__, message);
+#endif
+
 #endif /* GOT_LOGGING_H */

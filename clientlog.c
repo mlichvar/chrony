@@ -40,6 +40,7 @@
 #include "memory.h"
 #include "reports.h"
 #include "util.h"
+#include "logging.h"
 
 /* Number of bits of address per layer of the table.  This value has
    been chosen on the basis that a server will predominantly be serving

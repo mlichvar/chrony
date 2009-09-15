@@ -88,15 +88,6 @@ extern void UTI_TimevalToInt64(struct timeval *src, NTP_int64 *dest);
 
 extern void UTI_Int64ToTimeval(NTP_int64 *src, struct timeval *dest);
 
-/* Like assert(0) */
-
-#if defined(LINUX) && defined(__alpha__)
-#define CROAK(message) assert(0) /* Added JGH Feb 24 2001  FIXME */
-#else
-extern int croak(const char *file, int line, const char *msg);
-#define CROAK(message) croak(__FILE__, __LINE__, message);
-#endif
-
 #if defined (INLINE_UTILITIES)
 #define INLINE_STATIC inline static
 #include "util.c"
