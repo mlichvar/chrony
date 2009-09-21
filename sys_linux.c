@@ -926,6 +926,8 @@ SYS_Linux_DropRoot(char *user)
     LOG_FATAL(LOGF_SysLinux, "cap_set_proc() failed");
   }
 
+  cap_free(cap);
+
   LOG(LOGS_INFO, LOGF_SysLinux, "Privileges dropped to user %s", user);
 }
 #endif
