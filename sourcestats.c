@@ -198,6 +198,8 @@ SST_CreateInstance(unsigned long refid)
   inst->skew_dirn = SST_Skew_Nochange;
   inst->estimated_offset = 0.0;
   inst->estimated_offset_sd = 86400.0; /* Assume it's at least within a day! */
+  inst->offset_time.tv_sec = 0;
+  inst->offset_time.tv_usec = 0;
   inst->variance = 16.0;
   inst->nruns = 0;
   return inst;
@@ -874,6 +876,7 @@ SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timeval *now
       report->resid_skew = 0;
     }
   } else {
+    report->latest_meas_ago = 86400 * 365 * 10;
     report->orig_latest_meas = 0;
     report->latest_meas = 0;
     report->latest_meas_err = 0;

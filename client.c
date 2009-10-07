@@ -1158,6 +1158,8 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
         request->utoken = htonl(SPECIAL_UTOKEN);
       }
       generate_auth(request);
+    } else {
+      memset(request->auth, 0, sizeof (request->auth));
     }
 
     command_length = PKL_CommandLength(request);

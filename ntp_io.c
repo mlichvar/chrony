@@ -307,13 +307,14 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
     struct in_pktinfo *ipi;
 
     cmsg = CMSG_FIRSTHDR(&msg);
+    memset(cmsg, 0, CMSG_SPACE(sizeof(struct in_pktinfo)));
+    cmsglen += CMSG_SPACE(sizeof(struct in_pktinfo));
+
     cmsg->cmsg_level = IPPROTO_IP;
     cmsg->cmsg_type = IP_PKTINFO;
     cmsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
-    cmsglen += CMSG_SPACE(sizeof(struct in_pktinfo));
 
     ipi = (struct in_pktinfo *) CMSG_DATA(cmsg);
-    memset(ipi, 0, sizeof(struct in_pktinfo));
     ipi->ipi_spec_dst.s_addr = htonl(remote_addr->local_ip_addr);
 #if 0
     LOG(LOGS_INFO, LOGF_NtpIO, "sending to %s:%d from %s",
