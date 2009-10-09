@@ -535,22 +535,17 @@ check_unique_ts(struct timeval *ts, struct timeval *now)
 static int
 ts_is_unique_and_not_stale(struct timeval *ts, struct timeval *now)
 {
-  long tv_sec;
-  struct timeval host_order_ts;
   int within_margin=0;
   int is_unique=0;
   long diff;
 
-  host_order_ts.tv_sec = tv_sec = ntohl(ts->tv_sec);
-  host_order_ts.tv_usec = ntohl(ts->tv_usec);
-
-  diff = now->tv_sec - tv_sec;
+  diff = now->tv_sec - ts->tv_sec;
   if ((diff < TS_MARGIN) && (diff > -TS_MARGIN)) {
     within_margin = 1;
   } else {
     within_margin = 0;
   }
-  is_unique = check_unique_ts(&host_order_ts, now);
+  is_unique = check_unique_ts(ts, now);
     
   return within_margin && is_unique;
 }
@@ -919,8 +914,7 @@ handle_settime(CMD_Request *rx_message, CMD_Reply *tx_message)
   struct timeval ts;
   long offset_cs;
   double dfreq_ppm, new_afreq_ppm;
-  ts.tv_sec = ntohl(rx_message->data.settime.ts.tv_sec);
-  ts.tv_usec = ntohl(rx_message->data.settime.ts.tv_usec);
+  UTI_TimevalNetworkToHost(&rx_message->data.settime.ts, &ts);
   if (MNL_AcceptTimestamp(&ts, &offset_cs, &dfreq_ppm, &new_afreq_ppm)) {
     tx_message->status = htons(STT_SUCCESS);
     tx_message->reply = htons(RPY_MANUAL_TIMESTAMP);
@@ -1377,8 +1371,7 @@ handle_tracking(CMD_Request *rx_message, CMD_Reply *tx_message)
   tx_message->reply  = htons(RPY_TRACKING);
   tx_message->data.tracking.ref_id = htonl(rpt.ref_id);
   tx_message->data.tracking.stratum = htonl(rpt.stratum);
-  tx_message->data.tracking.ref_time_s = htonl(rpt.ref_time.tv_sec);
-  tx_message->data.tracking.ref_time_us = htonl(rpt.ref_time.tv_usec);
+  UTI_TimevalHostToNetwork(&rpt.ref_time, &tx_message->data.tracking.ref_time);
   tx_message->data.tracking.current_correction_s = htonl(rpt.current_correction.tv_sec);
   tx_message->data.tracking.current_correction_us = htonl(rpt.current_correction.tv_usec);
   tx_message->data.tracking.freq_ppm = REAL2WIRE(rpt.freq_ppm);
@@ -1424,7 +1417,7 @@ handle_rtcreport(CMD_Request *rx_message, CMD_Reply *tx_message)
   if (status) {
     tx_message->status = htons(STT_SUCCESS);
     tx_message->reply  = htons(RPY_RTC);
-    tx_message->data.rtc.ref_time = htonl(report.ref_time);
+    UTI_TimevalHostToNetwork(&report.ref_time, &tx_message->data.rtc.ref_time);
     tx_message->data.rtc.n_samples = htons(report.n_samples);
     tx_message->data.rtc.n_runs = htons(report.n_runs);
     tx_message->data.rtc.span_seconds = htonl(report.span_seconds);
@@ -1641,7 +1634,7 @@ handle_manual_list(CMD_Request *rx_message, CMD_Reply *tx_message)
   tx_message->data.manual_list.n_samples = htonl(n_samples);
   for (i=0; i<n_samples; i++) {
     sample = &tx_message->data.manual_list.samples[i];
-    sample->when = htonl(report[i].when);
+    UTI_TimevalHostToNetwork(&report[i].when, &sample->when);
     sample->slewed_offset = REAL2WIRE(report[i].slewed_offset);
     sample->orig_offset = REAL2WIRE(report[i].orig_offset);
     sample->residual = REAL2WIRE(report[i].residual);
@@ -1936,11 +1929,17 @@ read_from_cmd_socket(void *anything)
 
   valid_ts = 0;
 
-  if (md5_ok && ((utoken_ok && token_ok) ||
-                 ((ntohl(rx_message.utoken) == SPECIAL_UTOKEN) &&
-                  (rx_command == REQ_LOGON) &&
-                  (valid_ts = ts_is_unique_and_not_stale(&rx_message.data.logon.ts, &now))))) {
-    issue_token = 1;
+  if (md5_ok) {
+    struct timeval ts;
+
+    UTI_TimevalNetworkToHost(&rx_message.data.logon.ts, &ts);
+    if ((utoken_ok && token_ok) ||
+        ((ntohl(rx_message.utoken) == SPECIAL_UTOKEN) &&
+         (rx_command == REQ_LOGON) &&
+         (valid_ts = ts_is_unique_and_not_stale(&ts, &now))))
+      issue_token = 1;
+    else 
+      issue_token = 0;
   } else {
     issue_token = 0;
   }

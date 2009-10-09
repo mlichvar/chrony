@@ -35,6 +35,7 @@
 
 #include "addressing.h"
 #include "ntp.h"
+#include "candm.h"
 
 /* Convert a timeval into a floating point number of seconds */
 extern void UTI_TimevalToDouble(struct timeval *a, double *b);
@@ -95,6 +96,9 @@ extern void UTI_AdjustTimeval(struct timeval *old_tv, struct timeval *when, stru
 extern void UTI_TimevalToInt64(struct timeval *src, NTP_int64 *dest);
 
 extern void UTI_Int64ToTimeval(NTP_int64 *src, struct timeval *dest);
+
+extern void UTI_TimevalNetworkToHost(Timeval *src, struct timeval *dest);
+extern void UTI_TimevalHostToNetwork(struct timeval *src, Timeval *dest);
 
 #if defined (INLINE_UTILITIES)
 #define INLINE_STATIC inline static

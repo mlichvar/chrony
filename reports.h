@@ -76,7 +76,7 @@ typedef struct {
 } RPT_SourcestatsReport;
 
 typedef struct {
-  unsigned long ref_time;
+  struct timeval ref_time;
   unsigned short n_samples;
   unsigned short n_runs;
   unsigned long span_seconds;
@@ -106,7 +106,7 @@ typedef struct {
 } RPT_ClientAccessByIndex_Report;
 
 typedef struct {
-  time_t when;
+  struct timeval when;
   double slewed_offset;
   double orig_offset;
   double residual;

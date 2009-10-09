@@ -1030,6 +1030,7 @@ process_cmd_password(CMD_Request *msg, char *line)
   char *p, *q;
   char *password;
   struct timezone tz;
+  struct timeval now;
 
   p = line;
   while (*p && isspace((unsigned char)*p))
@@ -1062,13 +1063,12 @@ process_cmd_password(CMD_Request *msg, char *line)
     *p = 0;
   }
     
-  if (gettimeofday(&msg->data.logon.ts, &tz) < 0) {
+  if (gettimeofday(&now, &tz) < 0) {
     printf("500 - Could not read time of day\n");
     return 0;
   } else {
     msg->command = htons(REQ_LOGON); /* Just force a round trip so that we get tokens etc */
-    msg->data.logon.ts.tv_sec = htonl(msg->data.logon.ts.tv_sec);
-    msg->data.logon.ts.tv_usec = htonl(msg->data.logon.ts.tv_usec);
+    UTI_TimevalHostToNetwork(&now, &msg->data.logon.ts);
     return 1;
   }
 }
@@ -1713,8 +1713,7 @@ process_cmd_tracking(char *line)
            a, b, c, d, "");
            //* TODO (no_dns) ? UTI_IPToDottedQuad(ref_id) : DNS_IPAddress2Name(ref_id)); */
     printf("Stratum         : %lu\n", (unsigned long) ntohl(reply.data.tracking.stratum));
-    ref_time.tv_sec = ntohl(reply.data.tracking.ref_time_s);
-    ref_time.tv_usec = ntohl(reply.data.tracking.ref_time_us);
+    UTI_TimevalNetworkToHost(&reply.data.tracking.ref_time, &ref_time);
     ref_time_tm = *gmtime((time_t *)&ref_time.tv_sec);
     printf("Ref time (UTC)  : %s", asctime(&ref_time_tm));
     correction_tv.tv_sec = (int32_t)ntohl(reply.data.tracking.current_correction_s);
@@ -1746,7 +1745,7 @@ process_cmd_rtcreport(char *line)
   int auth_ok;
   CMD_Request request;
   CMD_Reply reply;
-  time_t ref_time;
+  struct timeval ref_time;
   struct tm ref_time_tm;
   unsigned short n_samples;
   unsigned short n_runs;
@@ -1775,8 +1774,8 @@ process_cmd_rtcreport(char *line)
       default:
         break;
     }
-    ref_time = (time_t) ntohl(reply.data.rtc.ref_time);
-    ref_time_tm = *gmtime(&ref_time);
+    UTI_TimevalNetworkToHost(&reply.data.rtc.ref_time, &ref_time);
+    ref_time_tm = *gmtime(&ref_time.tv_sec);
     n_samples = ntohs(reply.data.rtc.n_samples);
     n_runs = ntohs(reply.data.rtc.n_runs);
     span_seconds = ntohl(reply.data.rtc.span_seconds);
@@ -2170,7 +2169,7 @@ process_cmd_manual_list(const char *line)
   int n_samples;
   RPY_ManualListSample *sample;
   int i;
-  time_t when;
+  struct timeval when;
   double slewed_offset, orig_offset, residual;
 
   request.command = htons(REQ_MANUAL_LIST);
@@ -2186,11 +2185,11 @@ process_cmd_manual_list(const char *line)
                  "====================================================\n");
           for (i=0; i<n_samples; i++) {
             sample = &reply.data.manual_list.samples[i];
-            when = ntohl(sample->when);
+            UTI_TimevalNetworkToHost(&sample->when, &when);
             slewed_offset = WIRE2REAL(sample->slewed_offset);
             orig_offset = WIRE2REAL(sample->orig_offset);
             residual = WIRE2REAL(sample->residual);
-            printf("%2d %s %10.2f %10.2f %10.2f\n", i, time_to_log_form(when), slewed_offset, orig_offset, residual);
+            printf("%2d %s %10.2f %10.2f %10.2f\n", i, time_to_log_form(when.tv_sec), slewed_offset, orig_offset, residual);
           }
           break;
         case STT_NOHOSTACCESS:
@@ -2251,6 +2250,7 @@ process_cmd_manual_delete(const char *line)
 static void
 process_cmd_settime(char *line)
 {
+  struct timeval ts;
   time_t now, new_time;
   CMD_Request request;
   CMD_Reply reply;
@@ -2266,8 +2266,9 @@ process_cmd_settime(char *line)
   if (new_time == -1) {
     printf("510 - Could not parse date string\n");
   } else {
-    request.data.settime.ts.tv_sec = htonl(new_time);
-    request.data.settime.ts.tv_usec = htonl(0);
+    ts.tv_sec = new_time;
+    ts.tv_usec = 0;
+    UTI_TimevalHostToNetwork(&ts, &request.data.settime.ts);
     request.command = htons(REQ_SETTIME);
     submit_ok = submit_request(&request, &reply, &reply_auth_ok);
     if (submit_ok) {

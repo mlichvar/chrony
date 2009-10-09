@@ -1104,7 +1104,8 @@ RTC_Linux_TimePreInit(void)
 int
 RTC_Linux_GetReport(RPT_RTC_Report *report)
 {
-  report->ref_time = (unsigned long) coef_ref_time;
+  report->ref_time.tv_sec = coef_ref_time;
+  report->ref_time.tv_usec = 0;
   report->n_samples = n_samples;
   report->n_runs = n_runs;
   if (n_samples > 1) {

@@ -92,6 +92,16 @@
    password.  (This time value has long since gone by) */
 #define SPECIAL_UTOKEN 0x10101010
 
+/* Structure used to exchange timevals independent on size of time_t */
+typedef struct {
+  uint32_t tv_sec_high;
+  uint32_t tv_sec_low;
+  uint32_t tv_usec;
+} Timeval;
+
+/* This is used in tv_sec_high for 32-bit timestamps */
+#define TV_NOHIGHSEC 0x7fffffff
+
 /* The EOR (end of record) fields are used by the offsetof operator in
    pktlength.c, to get the number of bytes that ought to be
    transmitted for each packet type. */
@@ -151,12 +161,12 @@ typedef struct {
 } REQ_Modify_Maxupdateskew;
 
 typedef struct {
-  struct timeval ts;
+  Timeval ts;
   int32_t EOR;
 } REQ_Logon;
 
 typedef struct {
-  struct timeval ts;
+  Timeval ts;
   int32_t EOR;
 } REQ_Settime;
 
@@ -311,7 +321,7 @@ typedef struct {
 
    Version 3 : NTP_Source message lengthened (auto_offline)
 
-   Version 4 : IPv6 addressing added
+   Version 4 : IPv6 addressing added, 64-bit time values
 
  */
 
@@ -463,8 +473,7 @@ typedef struct {
 typedef struct {
   uint32_t ref_id;
   uint32_t stratum;
-  uint32_t ref_time_s;
-  uint32_t ref_time_us;
+  Timeval ref_time;
   uint32_t current_correction_s;
   uint32_t current_correction_us;
   int32_t freq_ppm;
@@ -487,7 +496,7 @@ typedef struct {
 } RPY_Sourcestats;
 
 typedef struct {
-  uint32_t ref_time;
+  Timeval ref_time;
   uint16_t n_samples;
   uint16_t n_runs;
   uint32_t span_seconds;
@@ -540,7 +549,7 @@ typedef struct {
 #define MAX_MANUAL_LIST_SAMPLES 32
 
 typedef struct {
-  uint32_t when;
+  Timeval when;
   int32_t slewed_offset;
   int32_t orig_offset;
   int32_t residual;

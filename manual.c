@@ -287,7 +287,7 @@ MNL_ReportSamples(RPT_ManualSamplesReport *report, int max, int *n)
   }
 
   for (i=0; i<n_samples && i<max; i++) {
-    report[i].when = samples[i].when.tv_sec;
+    report[i].when = samples[i].when;
     report[i].slewed_offset = samples[i].offset;
     report[i].orig_offset = samples[i].orig_offset;
     report[i].residual = samples[i].residual;
