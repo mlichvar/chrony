@@ -35,15 +35,13 @@
 #include "sysincl.h"
 #include "reports.h"
 
-typedef unsigned long CLG_IP_Addr;
-
 /* Enough to hold flags for 256 hosts in a class C */
 typedef uint32_t CLG_Bitmap[8];
 
 extern void CLG_Initialise(void);
 extern void CLG_Finalise(void);
-extern void CLG_LogNTPClientAccess(CLG_IP_Addr client, time_t now);
-extern void CLG_LogNTPPeerAccess(CLG_IP_Addr client, time_t now);
+extern void CLG_LogNTPClientAccess(IPAddr *client, time_t now);
+extern void CLG_LogNTPPeerAccess(IPAddr *client, time_t now);
 
 /* When logging command packets, there are several subtypes */
 
@@ -53,7 +51,7 @@ typedef enum {
   CLG_CMD_BAD_PKT               /* bad version or packet length */
 } CLG_Command_Type;
 
-extern void CLG_LogCommandAccess(CLG_IP_Addr client, CLG_Command_Type type, time_t now);
+extern void CLG_LogCommandAccess(IPAddr *client, CLG_Command_Type type, time_t now);
 
 /* And some reporting functions, for use by chronyc. */
 /* TBD */
@@ -70,10 +68,10 @@ typedef enum {
    known.  For bits=24, flag which hosts in that subnet are known.
    Other values, return 0 (failed) */
 
-extern CLG_Status CLG_GetSubnetBitmap(CLG_IP_Addr subnet, int bits, CLG_Bitmap result);
+extern CLG_Status CLG_GetSubnetBitmap(IPAddr *subnet, int bits, CLG_Bitmap result);
 
 extern CLG_Status
-CLG_GetClientAccessReportByIP(unsigned long ip, RPT_ClientAccess_Report *report, time_t now);
+CLG_GetClientAccessReportByIP(IPAddr *ip, RPT_ClientAccess_Report *report, time_t now);
 
 CLG_Status
 CLG_GetClientAccessReportByIndex(int index, RPT_ClientAccessByIndex_Report *report,
@@ -83,7 +81,7 @@ CLG_GetClientAccessReportByIndex(int index, RPT_ClientAccessByIndex_Report *repo
    that has accessed us since 'since'. */
 
 extern void CLG_IterateNTPClients
-(void (*fn)(CLG_IP_Addr client, void *arb),
+(void (*fn)(IPAddr *client, void *arb),
  void *arb,
  time_t since);
 

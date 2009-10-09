@@ -106,6 +106,32 @@ EOF
   echo $result
 }
 #}}}
+#{{{ test_for_ipv6
+test_for_ipv6 () {
+  cat >docheck.c <<EOF;
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+int main(int argc, char **argv) {
+  struct sockaddr_in6 n;
+  char p[100];
+  n.sin6_addr = in6addr_any;
+  return !inet_ntop(AF_INET6, &n.sin6_addr.s6_addr, p, sizeof(p));
+}
+EOF
+
+  ${MYCC} ${MYCFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
+  if [ $? -eq 0 ]
+  then
+    result=0
+  else
+    result=1
+  fi
+
+  rm -f docheck.c docheck.o
+  echo $result
+}
+#}}}
 #{{{ usage
 usage () {
   cat <<EOF;
@@ -134,6 +160,7 @@ For better control, use the options below.
   --readline-inc-dir=DIR Specify where readline include directory is
   --readline-lib-dir=DIR Specify where readline lib directory is
   --with-ncurses-library=DIR Specify where ncurses lib directory is
+  --disable-ipv6         Disable IPv6 support
   --disable-rtc          Don't include RTC even on Linux
   --enable-linuxcaps     Enable Linux capabilities support
 
@@ -181,6 +208,7 @@ feat_linuxcaps=0
 readline_lib=""
 readline_inc=""
 ncurses_lib=""
+feat_ipv6=1
 
 SETINFODIR=""
 SETMANDIR=""
@@ -217,6 +245,9 @@ do
     ;;
     --disable-rtc)
       feat_rtc=0
+    ;;
+    --disable-ipv6)
+      feat_ipv6=0
     ;;
     --enable-linuxcaps)
       feat_linuxcaps=1
@@ -335,6 +366,14 @@ printf "Checking for <inttypes.h> : "
 if [ `test_for_inttypes_h` -eq 0 ]; then
   printf "Yes\n"
   SYSDEFS="${SYSDEFS} -DHAS_INTTYPES_H"
+else
+  printf "No\n"
+fi
+
+printf "Checking for IPv6 support : "
+if [ $feat_ipv6 -eq 1 -a `test_for_ipv6` -eq 0 ]; then
+  printf "Yes\n"
+  SYSDEFS="${SYSDEFS} -DHAVE_IPV6"
 else
   printf "No\n"
 fi

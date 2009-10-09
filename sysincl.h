@@ -79,6 +79,11 @@
 
 #endif
 
+#ifdef HAVE_IPV6
+/* For inet_ntop() */
+#include <arpa/inet.h>
+#endif
+
 #if defined (SOLARIS) || defined(SUNOS)
 /* Only needed on these platforms, and doesn't exist on some Linux
    versions. */

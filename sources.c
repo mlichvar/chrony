@@ -88,6 +88,7 @@ struct SRC_Instance_Record {
   unsigned long ref_id;         /* The reference ID of this source
                                    (i.e. its IP address, NOT the
                                    reference _it_ is sync'd to) */
+  IPAddr *ip_addr;              /* Its IP address if NTP source */
 
   /* Flag indicating that we are receiving packets with valid headers
      from this source and can use it as a reference */
@@ -160,7 +161,7 @@ void SRC_Finalise(void)
 /* Function to create a new instance.  This would be called by one of
    the individual source-type instance creation routines. */
 
-SRC_Instance SRC_CreateNewInstance(unsigned long ref_id, SRC_Type type)
+SRC_Instance SRC_CreateNewInstance(unsigned long ref_id, SRC_Type type, IPAddr *addr)
 {
   SRC_Instance result;
 
@@ -189,6 +190,7 @@ SRC_Instance SRC_CreateNewInstance(unsigned long ref_id, SRC_Type type)
   result->index = n_sources;
   result->leap_status = LEAP_Normal;
   result->ref_id = ref_id;
+  result->ip_addr = addr;
   result->reachable = 0;
   result->status = SRC_BAD_STATS;
   result->type = type;
@@ -362,7 +364,7 @@ source_to_string(SRC_Instance inst)
 {
   switch (inst->type) {
     case SRC_NTP:
-      return UTI_IPToDottedQuad(inst->ref_id);
+      return UTI_IPToString(inst->ip_addr);
     case SRC_REFCLOCK:
       return UTI_RefidToString(inst->ref_id);
     default:
@@ -912,7 +914,16 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
     return 0;
   } else {
     src = sources[index];
-    report->ip_addr = src->ref_id;
+
+    memset(&report->ip_addr, 0, sizeof (report->ip_addr));
+    if (src->ip_addr)
+      report->ip_addr = *src->ip_addr;
+    else {
+      /* Use refid as an address */
+      report->ip_addr.addr.in4 = src->ref_id;
+      report->ip_addr.family = IPADDR_INET4;
+    }
+
     switch (src->status) {
       case SRC_SYNC:
         report->state = RPT_SYNC;
@@ -949,7 +960,10 @@ SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report)
     return 0;
   } else {
     src = sources[index];
-    report->ip_addr = src->ref_id;
+    if (src->ip_addr)
+      report->ip_addr = *src->ip_addr;
+    else
+      report->ip_addr.family = IPADDR_UNSPEC; 
     SST_DoSourcestatsReport(src->stats, report);
     return 1;
   }

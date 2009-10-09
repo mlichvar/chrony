@@ -31,6 +31,8 @@
 #ifndef GOT_CONF_H
 #define GOT_CONF_H
 
+#include "addressing.h"
+
 extern char *CNF_GetRtcDevice(void);
 
 extern void CNF_ReadFile(const char *filename);
@@ -60,8 +62,8 @@ extern int CNF_GetRTCOnUTC(void);
 extern void CNF_GetLogChange(int *enabled, double *threshold);
 extern void CNF_GetMailOnChange(int *enabled, double *threshold, char **user);
 extern int CNF_GetNoClientLog(void);
-extern void CNF_GetBindAddress(unsigned long *addr);
-extern void CNF_GetBindCommandAddress(unsigned long *addr);
+extern void CNF_GetBindAddress(int family, IPAddr *addr);
+extern void CNF_GetBindCommandAddress(int family, IPAddr *addr);
 extern char *CNF_GetPidFile(void);
 extern void CNF_GetLinuxHz(int *set, int *hz);
 extern void CNF_GetLinuxFreqScale(int *set, double *freq_scale);

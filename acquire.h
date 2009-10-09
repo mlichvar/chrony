@@ -31,13 +31,15 @@
 #ifndef GOT_ACQUIRE_H
 #define GOT_ACQUIRE_H
 
+#include "addressing.h"
+
 typedef struct ACQ_SourceRecord *ACQ_Source;
 
 extern void ACQ_Initialise(void);
 
 extern void ACQ_Finalise(void);
 
-extern void ACQ_StartAcquisition(int n, unsigned long *ip_addrs, int init_slew_threshold,
+extern void ACQ_StartAcquisition(int n, IPAddr *ip_addrs, int init_slew_threshold,
                                  void (*after_hook)(void *), void *anything);
 
 extern void ACQ_AccumulateSample(ACQ_Source acq_source, double offset, double root_distance);

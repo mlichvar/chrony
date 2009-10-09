@@ -53,6 +53,7 @@
 #include "acquire.h"
 #include "cmdparse.h"
 #include "broadcast.h"
+#include "util.h"
 
 /* ================================================== */
 
@@ -136,7 +137,7 @@ static int n_init_srcs;
    than this, slew instead of stepping */
 static int init_slew_threshold = -1;
 #define MAX_INIT_SRCS 8
-static unsigned long init_srcs_ip[MAX_INIT_SRCS];
+static IPAddr init_srcs_ip[MAX_INIT_SRCS];
 
 static int enable_manual=0;
 
@@ -156,13 +157,13 @@ static double mail_change_threshold = 0.0;
    memory */
 static int no_client_log = 0;
 
-/* IP address (host order) for binding the NTP socket to.  0 means INADDR_ANY
+/* IP addresses for binding the NTP socket to.  UNSPEC family means INADDR_ANY
    will be used */
-static unsigned long bind_address = 0UL;
+static IPAddr bind_address4, bind_address6;
 
-/* IP address (host order) for binding the command socket to.  0 means
+/* IP addresses for binding the command socket to.  UNSPEC family means
    use the value of bind_address */
-static unsigned long bind_cmd_address = 0UL;
+static IPAddr bind_cmd_address4, bind_cmd_address6;
 
 /* Filename to use for storing pid of running chronyd, to prevent multiple
  * chronyds being started. */
@@ -243,7 +244,7 @@ typedef enum {
 
 typedef struct {
   NTP_Source_Type type;
-  unsigned long ip_addr;
+  IPAddr ip_addr;
   unsigned short port;
   SourceParameters params;
 } NTP_Source;
@@ -263,7 +264,7 @@ static int n_refclock_sources = 0;
 typedef struct _AllowDeny {
   struct _AllowDeny *next;
   struct _AllowDeny *prev;
-  unsigned long ip;
+  IPAddr ip;
   int subnet_bits;
   int all; /* 1 to override existing more specific defns */
   int allow; /* 0 for deny, 1 for allow */
@@ -697,7 +698,7 @@ parse_initstepslew(const char *line)
   char hostname[HOSTNAME_LEN+1];
   int n;
   int threshold;
-  unsigned long ip_addr;
+  IPAddr ip_addr;
 
   n_init_srcs = 0;
   p = line;
@@ -710,8 +711,7 @@ parse_initstepslew(const char *line)
   }
   while (*p) {
     if (sscanf(p, "%" SHOSTNAME_LEN "s%n", hostname, &n) == 1) {
-      ip_addr = DNS_Name2IPAddressRetry(hostname);
-      if (ip_addr != DNS_Failed_Address) {
+      if (DNS_Name2IPAddress(hostname, &ip_addr, 1)) {
         init_srcs_ip[n_init_srcs] = ip_addr;
         ++n_init_srcs;
       }
@@ -803,7 +803,7 @@ parse_allow_deny(const char *line, AllowDeny *list, int allow)
   unsigned long a, b, c, d, n;
   int all = 0;
   AllowDeny *new_node = NULL;
-  unsigned long ip_addr;
+  IPAddr ip_addr;
 
   p = line;
 
@@ -820,45 +820,54 @@ parse_allow_deny(const char *line, AllowDeny *list, int allow)
     new_node = MallocNew(AllowDeny);
     new_node->allow = allow;
     new_node->all = all;
-    new_node->ip = 0UL;
+    new_node->ip.family = IPADDR_UNSPEC;
     new_node->subnet_bits = 0;
   } else {
     char *slashpos;
     slashpos = strchr(p, '/');
     if (slashpos) *slashpos = 0;
 
-    n = sscanf(p, "%lu.%lu.%lu.%lu", &a, &b, &c, &d);
-   
-    if (n >= 1) {
+    n = 0;
+    if (UTI_StringToIP(p, &ip_addr) ||
+        (n = sscanf(p, "%lu.%lu.%lu.%lu", &a, &b, &c, &d)) >= 1) {
       new_node = MallocNew(AllowDeny);
       new_node->allow = allow;
       new_node->all = all;
 
-      a &= 0xff;
-      b &= 0xff;
-      c &= 0xff;
-      d &= 0xff;
-      
-      switch (n) {
-        case 1:
-          new_node->ip = (a<<24);
-          new_node->subnet_bits = 8;
-          break;
-        case 2:
-          new_node->ip = (a<<24) | (b<<16);
-          new_node->subnet_bits = 16;
-          break;
-        case 3:
-          new_node->ip = (a<<24) | (b<<16) | (c<<8);
-          new_node->subnet_bits = 24;
-          break;
-        case 4:
-          new_node->ip = (a<<24) | (b<<16) | (c<<8) | d;
+      if (n == 0) {
+        new_node->ip = ip_addr;
+        if (ip_addr.family == IPADDR_INET6)
+          new_node->subnet_bits = 128;
+        else
           new_node->subnet_bits = 32;
-          break;
-        default:
-          assert(0);
-          
+      } else {
+        new_node->ip.family = IPADDR_INET4;
+
+        a &= 0xff;
+        b &= 0xff;
+        c &= 0xff;
+        d &= 0xff;
+        
+        switch (n) {
+          case 1:
+            new_node->ip.addr.in4 = (a<<24);
+            new_node->subnet_bits = 8;
+            break;
+          case 2:
+            new_node->ip.addr.in4 = (a<<24) | (b<<16);
+            new_node->subnet_bits = 16;
+            break;
+          case 3:
+            new_node->ip.addr.in4 = (a<<24) | (b<<16) | (c<<8);
+            new_node->subnet_bits = 24;
+            break;
+          case 4:
+            new_node->ip.addr.in4 = (a<<24) | (b<<16) | (c<<8) | d;
+            new_node->subnet_bits = 32;
+            break;
+          default:
+            assert(0);
+        }
       }
       
       if (slashpos) {
@@ -872,13 +881,15 @@ parse_allow_deny(const char *line, AllowDeny *list, int allow)
       }
 
     } else {
-      ip_addr = DNS_Name2IPAddressRetry(p);
-      if (ip_addr != DNS_Failed_Address) {
+      if (DNS_Name2IPAddress(p, &ip_addr, 1)) {
         new_node = MallocNew(AllowDeny);
         new_node->allow = allow;
         new_node->all = all;
         new_node->ip = ip_addr;
-        new_node->subnet_bits = 32;
+        if (ip_addr.family == IPADDR_INET6)
+          new_node->subnet_bits = 128;
+        else
+          new_node->subnet_bits = 32;
       } else {
         LOG(LOGS_WARN, LOGF_Configure, "Could not read address at line %d", line_number);
       }      
@@ -931,27 +942,20 @@ parse_cmddeny(const char *line)
 
 /* ================================================== */
 
-static unsigned long
-parse_an_address(const char *line, const char *errmsg)
-{
-  unsigned long a, b, c, d;
-  int n;
-  n = sscanf(line, "%lu.%lu.%lu.%lu", &a, &b, &c, &d);
-  if (n == 4) {
-    return (((a&0xff)<<24) | ((b&0xff)<<16) | 
-            ((c&0xff)<<8) | (d&0xff));
-  } else {
-    LOG(LOGS_WARN, LOGF_Configure, errmsg, line_number);
-    return 0UL;
-  }    
-}
-
-/* ================================================== */
-
 static void
 parse_bindaddress(const char *line)
 {
-  bind_address = parse_an_address(line, "Could not read bind address at line %d\n");
+  IPAddr ip;
+  char addr[51];
+
+  if (sscanf(line, "%50s", addr) == 1 && UTI_StringToIP(addr, &ip)) {
+    if (ip.family == IPADDR_INET4)
+      bind_address4 = ip;
+    else if (ip.family == IPADDR_INET6)
+      bind_address6 = ip;
+  } else {
+    LOG(LOGS_WARN, LOGF_Configure, "Could not read bind address at line %d\n", line_number);
+  }
 }
 
 /* ================================================== */
@@ -959,7 +963,17 @@ parse_bindaddress(const char *line)
 static void
 parse_bindcmdaddress(const char *line)
 {
-  bind_cmd_address = parse_an_address(line, "Could not read bind command address at line %d\n");
+  IPAddr ip;
+  char addr[51];
+
+  if (sscanf(line, "%50s", addr) == 1 && UTI_StringToIP(addr, &ip)) {
+    if (ip.family == IPADDR_INET4)
+      bind_cmd_address4 = ip;
+    else if (ip.family == IPADDR_INET6)
+      bind_cmd_address6 = ip;
+  } else {
+    LOG(LOGS_WARN, LOGF_Configure, "Could not read bind command address at line %d\n", line_number);
+  }
 }
 
 /* ================================================== */
@@ -976,7 +990,7 @@ parse_pidfile(const char *line)
 
 typedef struct {
   /* Both in host (not necessarily network) order */
-  unsigned long addr;
+  IPAddr addr;
   unsigned short port;
   int interval;
 } NTP_Broadcast_Destination;
@@ -992,27 +1006,22 @@ parse_broadcast(const char *line)
 {
   /* Syntax : broadcast <interval> <broadcast-IP-addr> [<port>] */
   int port;
-  unsigned int a, b, c, d;
   int n;
   int interval;
-  unsigned long addr;
+  char addr[51];
+  IPAddr ip;
   
-  n = sscanf(line, "%d %u.%u.%u.%u %d", &interval, &a, &b, &c, &d, &port);
-  if (n < 5) {
+  n = sscanf(line, "%d %50s %d", &interval, addr, &port);
+  if (n < 2 || !UTI_StringToIP(addr, &ip)) {
     LOG(LOGS_WARN, LOGF_Configure, "Could not parse broadcast directive at line %d", line_number);
     return;
-  } else if (n == 5) {
+  } else if (n == 2) {
     /* default port */
     port = 123;
-  } else if (n > 6) {
+  } else if (n > 3) {
     LOG(LOGS_WARN, LOGF_Configure, "Too many fields in broadcast directive at line %d", line_number);
   }
 
-  addr = ((unsigned long) a << 24) |
-         ((unsigned long) b << 16) |
-         ((unsigned long) c <<  8) |
-         ((unsigned long) d      );
-    
   if (max_broadcasts == n_broadcasts) {
     /* Expand array */
     max_broadcasts += 8;
@@ -1023,7 +1032,7 @@ parse_broadcast(const char *line)
     }
   }
 
-  broadcasts[n_broadcasts].addr = addr;
+  broadcasts[n_broadcasts].addr = ip;
   broadcasts[n_broadcasts].port = port;
   broadcasts[n_broadcasts].interval = interval;
   ++n_broadcasts;
@@ -1074,7 +1083,7 @@ CNF_AddSources(void) {
 
   for (i=0; i<n_ntp_sources; i++) {
     server.ip_addr = ntp_sources[i].ip_addr;
-    server.local_ip_addr = 0;
+    memset(&server.local_ip_addr, 0, sizeof (server.local_ip_addr));
     server.port = ntp_sources[i].port;
 
     switch (ntp_sources[i].type) {
@@ -1111,7 +1120,7 @@ CNF_AddBroadcasts(void)
 {
   int i;
   for (i=0; i<n_broadcasts; i++) {
-    BRD_AddDestination(broadcasts[i].addr,
+    BRD_AddDestination(&broadcasts[i].addr,
                        broadcasts[i].port,
                        broadcasts[i].interval);
   }
@@ -1307,14 +1316,14 @@ CNF_SetupAccessRestrictions(void)
   int status;
 
   for (node = ntp_auth_list.next; node != &ntp_auth_list; node = node->next) {
-    status = NCR_AddAccessRestriction(node->ip, node->subnet_bits, node->allow, node->all);
+    status = NCR_AddAccessRestriction(&node->ip, node->subnet_bits, node->allow, node->all);
     if (!status) {
       LOG(LOGS_WARN, LOGF_Configure, "Bad subnet for %08lx", node->ip);
     }
   }
 
   for (node = cmd_auth_list.next; node != &cmd_auth_list; node = node->next) {
-    status = CAM_AddAccessRestriction(node->ip, node->subnet_bits, node->allow, node->all);
+    status = CAM_AddAccessRestriction(&node->ip, node->subnet_bits, node->allow, node->all);
     if (!status) {
       LOG(LOGS_WARN, LOGF_Configure, "Bad subnet for %08lx", node->ip);
     }
@@ -1334,17 +1343,27 @@ CNF_GetNoClientLog(void)
 /* ================================================== */
 
 void
-CNF_GetBindAddress(unsigned long *addr)
+CNF_GetBindAddress(int family, IPAddr *addr)
 {
-  *addr = bind_address;
+  if (family == IPADDR_INET4)
+    *addr = bind_address4;
+  else if (family == IPADDR_INET6)
+    *addr = bind_address6;
+  else
+    addr->family = IPADDR_UNSPEC;
 }
 
 /* ================================================== */
 
 void
-CNF_GetBindCommandAddress(unsigned long *addr)
+CNF_GetBindCommandAddress(int family, IPAddr *addr)
 {
-  *addr = bind_cmd_address ? bind_cmd_address : bind_address;
+  if (family == IPADDR_INET4)
+    *addr = bind_cmd_address4.family != IPADDR_UNSPEC ? bind_cmd_address4 : bind_address4;
+  else if (family == IPADDR_INET6)
+    *addr = bind_cmd_address6.family != IPADDR_UNSPEC ? bind_cmd_address6 : bind_address6;
+  else
+    addr->family = IPADDR_UNSPEC;
 }
 
 /* ================================================== */

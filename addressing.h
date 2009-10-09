@@ -31,17 +31,28 @@
 #ifndef GOT_ADDRESSING_H
 #define GOT_ADDRESSING_H
 
-/* This type is used to represent an IPv4 address and port
-   number.  Both parts are in HOST order, NOT network order. */
+#include "sysincl.h"
+
+/* This type is used to represent an IPv4 address or IPv6 address.
+   All parts are in HOST order, NOT network order. */
+
+#define IPADDR_UNSPEC 0
+#define IPADDR_INET4 1
+#define IPADDR_INET6 2
+
 typedef struct {
-  unsigned long ip_addr;
-  unsigned long local_ip_addr;
+  union { 
+    uint32_t in4;
+    uint8_t in6[16];
+  } addr;
+  uint16_t family;
+} IPAddr;
+
+typedef struct {
+  IPAddr ip_addr;
+  IPAddr local_ip_addr;
   unsigned short port;
 } NTP_Remote_Address;
-
-#if 0
-unsigned long NTP_IP_Address;
-#endif
 
 #endif /* GOT_ADDRESSING_H */
 

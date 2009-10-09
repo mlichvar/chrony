@@ -94,8 +94,8 @@ extern void NCR_InitiateSampleBurst(NCR_Instance inst, int n_good_samples, int n
 
 extern void NCR_ReportSource(NCR_Instance inst, RPT_SourceReport *report, struct timeval *now);
 
-extern int NCR_AddAccessRestriction(unsigned long ip_addr, int subnet_bits, int allow, int all);
-extern int NCR_CheckAccessRestriction(unsigned long ip_addr);
+extern int NCR_AddAccessRestriction(IPAddr *ip_addr, int subnet_bits, int allow, int all);
+extern int NCR_CheckAccessRestriction(IPAddr *ip_addr);
 
 extern void NCR_CycleLogFile(void);
 

@@ -31,11 +31,13 @@
 #ifndef GOT_CMDMON_H
 #define GOT_CMDMON_H
 
+#include "addressing.h"
+
 extern void CAM_Initialise(void);
 
 extern void CAM_Finalise(void);
 
-extern int CAM_AddAccessRestriction(unsigned long ip_addr, int subnet_bits, int allow, int all);
-extern int CAM_CheckAccessRestriction(unsigned long ip_addr);
+extern int CAM_AddAccessRestriction(IPAddr *ip_addr, int subnet_bits, int allow, int all);
+extern int CAM_CheckAccessRestriction(IPAddr *ip_addr);
 
 #endif /* GOT_CMDMON_H */

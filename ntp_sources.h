@@ -46,7 +46,8 @@ typedef enum {
   NSR_Success, /* Operation successful */
   NSR_NoSuchSource, /* Remove - attempt to remove a source that is not known */
   NSR_AlreadyInUse, /* AddServer, AddPeer - attempt to add a source that is already known */ 
-  NSR_TooManySources /* AddServer, AddPeer - too many sources already present */
+  NSR_TooManySources, /* AddServer, AddPeer - too many sources already present */
+  NSR_InvalidAF /* AddServer, AddPeer - attempt to add a source with invalid address family */
 } NSR_Status;
 
 /* Procedure to add a new server source (to which this machine will be
@@ -75,22 +76,22 @@ extern void NSR_Finalise(void);
 /* This routine is used to indicate that sources whose IP addresses
    match a particular subnet should be set online again.  Returns a
    flag indicating whether any hosts matched the address */
-extern int NSR_TakeSourcesOnline(unsigned long mask, unsigned long address);
+extern int NSR_TakeSourcesOnline(IPAddr *mask, IPAddr *address);
 
 /* This routine is used to indicate that sources whose IP addresses
    match a particular subnet should be set offline.  Returns a flag
    indicating whether any hosts matched the address */
-extern int NSR_TakeSourcesOffline(unsigned long mask, unsigned long address);
+extern int NSR_TakeSourcesOffline(IPAddr *mask, IPAddr *address);
 
-extern int NSR_ModifyMinpoll(unsigned long address, int new_minpoll);
+extern int NSR_ModifyMinpoll(IPAddr *address, int new_minpoll);
 
-extern int NSR_ModifyMaxpoll(unsigned long address, int new_maxpoll);
+extern int NSR_ModifyMaxpoll(IPAddr *address, int new_maxpoll);
 
-extern int NSR_ModifyMaxdelay(unsigned long address, double new_max_delay);
+extern int NSR_ModifyMaxdelay(IPAddr *address, double new_max_delay);
 
-extern int NSR_ModifyMaxdelayratio(unsigned long address, double new_max_delay_ratio);
+extern int NSR_ModifyMaxdelayratio(IPAddr *address, double new_max_delay_ratio);
 
-extern int NSR_InitiateSampleBurst(int n_good_samples, int n_total_samples, unsigned long mask, unsigned long address);
+extern int NSR_InitiateSampleBurst(int n_good_samples, int n_total_samples, IPAddr *mask, IPAddr *address);
 
 extern void NSR_ReportSource(RPT_SourceReport *report, struct timeval *now);
 

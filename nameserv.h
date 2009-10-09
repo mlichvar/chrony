@@ -32,13 +32,11 @@
 #ifndef GOT_NAMESERV_H
 #define GOT_NAMESERV_H
 
-static const unsigned long DNS_Failed_Address = 0x0UL;
+#include "addressing.h"
 
-extern unsigned long DNS_Name2IPAddress(const char *name);
+extern int DNS_Name2IPAddress(const char *name, IPAddr *addr, int retry);
 
-extern unsigned long DNS_Name2IPAddressRetry(const char *name);
-
-const char *DNS_IPAddress2Name(unsigned long ip_addr);
+extern void DNS_IPAddress2Name(IPAddr *ip_addr, char *name, int len);
 
 #endif /* GOT_NAMESERV_H */
 

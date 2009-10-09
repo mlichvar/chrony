@@ -34,6 +34,7 @@
 #define GOT_CANDM_H
 
 #include "sysincl.h"
+#include "addressing.h"
 
 /* This is the default port to use for CANDM, if no alternative is
    defined */
@@ -96,33 +97,33 @@
    transmitted for each packet type. */
 
 typedef struct {
-  uint32_t mask;
-  uint32_t address;
+  IPAddr mask;
+  IPAddr address;
   int32_t EOR;
 } REQ_Online;
 
 typedef struct {
-  uint32_t mask;
-  uint32_t address;
+  IPAddr mask;
+  IPAddr address;
   int32_t EOR;
 } REQ_Offline;
 
 typedef struct {
-  uint32_t mask;
-  uint32_t address;
+  IPAddr mask;
+  IPAddr address;
   int32_t n_good_samples;
   int32_t n_total_samples;
   int32_t EOR;
 } REQ_Burst;
 
 typedef struct {
-  uint32_t address;
+  IPAddr address;
   int32_t new_minpoll;
   int32_t EOR;
 } REQ_Modify_Minpoll;
 
 typedef struct {
-  uint32_t address;
+  IPAddr address;
   int32_t new_maxpoll;
   int32_t EOR;
 } REQ_Modify_Maxpoll;
@@ -133,13 +134,13 @@ typedef struct {
 } REQ_Dump;
 
 typedef struct {
-  uint32_t address;
+  IPAddr address;
   int32_t new_max_delay;
   int32_t EOR;
 } REQ_Modify_Maxdelay;
 
 typedef struct {
-  uint32_t address;
+  IPAddr address;
   int32_t new_max_delay_ratio;
   int32_t EOR;
 } REQ_Modify_Maxdelayratio;
@@ -184,18 +185,18 @@ typedef struct {
 } REQ_Rekey;
 
 typedef struct {
-  uint32_t ip;
+  IPAddr ip;
   int32_t subnet_bits;
   int32_t EOR;
 } REQ_Allow_Deny;
 
 typedef struct {
-  uint32_t ip;
+  IPAddr ip;
   int32_t EOR;
 } REQ_Ac_Check;
 
 typedef struct {
-  uint32_t ip_addr;
+  IPAddr ip_addr;
   uint32_t port;
   int32_t minpoll;
   int32_t maxpoll;
@@ -209,7 +210,7 @@ typedef struct {
 } REQ_NTP_Source;
 
 typedef struct {
-  uint32_t ip_addr;
+  IPAddr ip_addr;
   int32_t EOR;
 } REQ_Del_Source;
 
@@ -250,7 +251,7 @@ typedef struct {
 } REQ_CycleLogs;
 
 typedef struct {
-  uint32_t ip;
+  IPAddr ip;
   uint32_t bits_specd;
 } REQ_SubnetsAccessed_Subnet;
 
@@ -263,11 +264,11 @@ typedef struct {
 
 /* This is based on the response size rather than the
    request size */
-#define MAX_CLIENT_ACCESSES 16
+#define MAX_CLIENT_ACCESSES 8
 
 typedef struct {
   uint32_t n_clients;
-  uint32_t client_ips[MAX_CLIENT_ACCESSES];
+  IPAddr client_ips[MAX_CLIENT_ACCESSES];
 } REQ_ClientAccesses;  
 
 typedef struct {
@@ -310,9 +311,11 @@ typedef struct {
 
    Version 3 : NTP_Source message lengthened (auto_offline)
 
+   Version 4 : IPv6 addressing added
+
  */
 
-#define PROTO_VERSION_NUMBER 3
+#define PROTO_VERSION_NUMBER 4
 
 /* ================================================== */
 
@@ -419,6 +422,7 @@ typedef struct {
 #define STT_BADRTCFILE 14
 #define STT_INACTIVE 15
 #define STT_BADSAMPLE 16
+#define STT_INVALIDAF 17
 
 typedef struct {
   int32_t EOR;
@@ -440,7 +444,7 @@ typedef struct {
 #define RPY_SD_ST_OTHER 4
 
 typedef struct {
-  uint32_t ip_addr;
+  IPAddr ip_addr;
   uint16_t poll;
   uint16_t stratum;
   uint16_t state;
@@ -472,7 +476,7 @@ typedef struct {
 } RPY_Tracking;
 
 typedef struct {
-  uint32_t ip_addr;
+  IPAddr ip_addr;
   uint32_t n_samples;
   uint32_t n_runs;
   uint32_t span_seconds;
@@ -500,7 +504,7 @@ typedef struct {
 } RPY_ManualTimestamp;
 
 typedef struct {
-  uint32_t ip;
+  IPAddr ip;
   uint32_t bits_specd;
   uint32_t bitmap[8];
 } RPY_SubnetsAccessed_Subnet;
@@ -511,7 +515,7 @@ typedef struct {
 } RPY_SubnetsAccessed;
 
 typedef struct {
-  uint32_t ip;
+  IPAddr ip;
   uint32_t client_hits;
   uint32_t peer_hits;
   uint32_t cmd_hits_auth;

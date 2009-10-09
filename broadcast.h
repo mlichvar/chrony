@@ -31,9 +31,11 @@
 #ifndef GOT_BROADCAST_H
 #define GOT_BROADCAST_H
 
+#include "addressing.h"
+
 extern void BRD_Initialise(void);
 extern void BRD_Finalise(void);
-extern void BRD_AddDestination(unsigned long addr, unsigned short port, int interval);
+extern void BRD_AddDestination(IPAddr *addr, unsigned short port, int interval);
 
 #endif /* GOT_BROADCAST_H */
 

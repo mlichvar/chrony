@@ -33,6 +33,7 @@
 
 #include "sysincl.h"
 
+#include "addressing.h"
 #include "ntp.h"
 
 /* Convert a timeval into a floating point number of seconds */
@@ -75,8 +76,15 @@ extern char *UTI_TimestampToString(NTP_int64 *ts);
 /* Convert ref_id into a temporary string, for diagnostics */
 extern char *UTI_RefidToString(unsigned long ref_id);
 
-/* Convert an IP address to dotted quad notation, for diagnostics */
+/* Convert an IP address to string, for diagnostics */
 extern char *UTI_IPToDottedQuad(unsigned long ip);
+extern char *UTI_IPToString(IPAddr *ip);
+
+extern int UTI_StringToIP(const char *addr, IPAddr *ip);
+extern unsigned long UTI_IPToRefid(IPAddr *ip);
+extern void UTI_IPHostToNetwork(IPAddr *src, IPAddr *dest);
+extern void UTI_IPNetworkToHost(IPAddr *src, IPAddr *dest);
+extern int UTI_CompareIPs(IPAddr *a, IPAddr *b, IPAddr *mask);
 
 extern char *UTI_TimeToLogForm(time_t t);
 

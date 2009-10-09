@@ -172,7 +172,7 @@ RCL_StartRefclocks(void)
   for (i = 0; i < n_sources; i++) {
     RCL_Instance inst = &refclocks[i];
 
-    inst->source = SRC_CreateNewInstance(inst->ref_id, SRC_REFCLOCK);
+    inst->source = SRC_CreateNewInstance(inst->ref_id, SRC_REFCLOCK, NULL);
     inst->timeout_id = SCH_AddTimeoutByDelay(0.0, poll_timeout, (void *)inst);
   }
 
@@ -186,7 +186,8 @@ RCL_ReportSource(RPT_SourceReport *report, struct timeval *now)
   int i;
   unsigned long ref_id;
 
-  ref_id = report->ip_addr;
+  assert(report->ip_addr.family == IPADDR_INET4);
+  ref_id = report->ip_addr.addr.in4;
 
   for (i = 0; i < n_sources; i++) {
     RCL_Instance inst = &refclocks[i];

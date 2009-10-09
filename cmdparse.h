@@ -32,6 +32,7 @@
 #define GOT_CMDPARSE_H
 
 #include "srcparams.h"
+#include "addressing.h"
 
 typedef enum {
   CPS_Success,
@@ -47,7 +48,7 @@ typedef enum {
 } CPS_Status;
 
 typedef struct {
-  unsigned long ip_addr;
+  IPAddr ip_addr;
   unsigned short port;
   SourceParameters params;
 } CPS_NTP_Source;

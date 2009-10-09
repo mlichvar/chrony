@@ -31,6 +31,7 @@
 #include "sysincl.h"
 
 #include "util.h"
+#include "md5.h"
 
 /* ================================================== */
 
@@ -267,6 +268,169 @@ UTI_IPToDottedQuad(unsigned long ip)
   result = NEXT_BUFFER;
   snprintf(result, BUFFER_LENGTH, "%ld.%ld.%ld.%ld", a, b, c, d);
   return result;
+}
+
+/* ================================================== */
+
+char *
+UTI_IPToString(IPAddr *addr)
+{
+  unsigned long a, b, c, d, ip;
+  uint8_t *ip6;
+  char *result;
+
+  result = NEXT_BUFFER;
+  switch (addr->family) {
+    case IPADDR_UNSPEC:
+      snprintf(result, BUFFER_LENGTH, "[UNSPEC]");
+      break;
+    case IPADDR_INET4:
+      ip = addr->addr.in4;
+      a = (ip>>24) & 0xff;
+      b = (ip>>16) & 0xff;
+      c = (ip>> 8) & 0xff;
+      d = (ip>> 0) & 0xff;
+      snprintf(result, BUFFER_LENGTH, "%ld.%ld.%ld.%ld", a, b, c, d);
+      break;
+    case IPADDR_INET6:
+      ip6 = addr->addr.in6;
+#ifdef HAVE_IPV6
+      inet_ntop(AF_INET6, ip6, result, BUFFER_LENGTH);
+#else
+      snprintf(result, BUFFER_LENGTH, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
+               ip6[0], ip6[1], ip6[2], ip6[3], ip6[4], ip6[5], ip6[6], ip6[7],
+               ip6[8], ip6[9], ip6[10], ip6[11], ip6[12], ip6[13], ip6[14], ip6[15]);
+#endif
+      break;
+    default:
+      snprintf(result, BUFFER_LENGTH, "[UNKNOWN]");
+  }
+  return result;
+}
+
+/* ================================================== */
+
+int
+UTI_StringToIP(const char *addr, IPAddr *ip)
+{
+#ifdef HAVE_IPV6
+  struct in_addr in4;
+  struct in6_addr in6;
+
+  if (inet_pton(AF_INET, addr, &in4) > 0) {
+    ip->family = IPADDR_INET4;
+    ip->addr.in4 = ntohl(in4.s_addr);
+    return 1;
+  }
+
+  if (inet_pton(AF_INET6, addr, &in6) > 0) {
+    ip->family = IPADDR_INET6;
+    memcpy(ip->addr.in6, in6.s6_addr, sizeof (ip->addr.in6));
+    return 1;
+  }
+#else
+  unsigned long a, b, c, d, n;
+
+  n = sscanf(addr, "%lu.%lu.%lu.%lu", &a, &b, &c, &d);
+  if (n == 4) {
+    ip->family = IPADDR_INET4;
+    ip->addr.in4 = ((a & 0xff) << 24) | ((b & 0xff) << 16) | 
+                   ((c & 0xff) << 8) | (d & 0xff);
+    return 1;
+  }
+#endif
+
+  return 0;
+}
+
+/* ================================================== */
+
+unsigned long
+UTI_IPToRefid(IPAddr *ip)
+{
+  MD5_CTX ctx;
+
+  switch (ip->family) {
+    case IPADDR_INET4:
+      return ip->addr.in4;
+    case IPADDR_INET6:
+      MD5Init(&ctx);
+      MD5Update(&ctx, (unsigned const char *) ip->addr.in6, sizeof (ip->addr.in6));
+      MD5Final(&ctx);
+      return ctx.digest[0] << 24 | ctx.digest[1] << 16 | ctx.digest[2] << 8 | ctx.digest[3];
+  }
+  return 0;
+}
+
+/* ================================================== */
+
+void
+UTI_IPHostToNetwork(IPAddr *src, IPAddr *dest)
+{
+  /* Don't send uninitialized bytes over network */
+  memset(dest, 0, sizeof (IPAddr));
+
+  dest->family = htons(src->family);
+
+  switch (src->family) {
+    case IPADDR_INET4:
+      dest->addr.in4 = htonl(src->addr.in4);
+      break;
+    case IPADDR_INET6:
+      memcpy(dest->addr.in6, src->addr.in6, sizeof (dest->addr.in6));
+      break;
+  }
+}
+
+/* ================================================== */
+
+void
+UTI_IPNetworkToHost(IPAddr *src, IPAddr *dest)
+{
+  dest->family = ntohs(src->family);
+
+  switch (dest->family) {
+    case IPADDR_INET4:
+      dest->addr.in4 = ntohl(src->addr.in4);
+      break;
+    case IPADDR_INET6:
+      memcpy(dest->addr.in6, src->addr.in6, sizeof (dest->addr.in6));
+      break;
+  }
+}
+
+/* ================================================== */
+
+int
+UTI_CompareIPs(IPAddr *a, IPAddr *b, IPAddr *mask)
+{
+  int i, d;
+
+  if (a->family != b->family)
+    return a->family - b->family;
+
+  if (mask && mask->family != b->family)
+    mask = NULL;
+
+  switch (a->family) {
+    case IPADDR_UNSPEC:
+      return 0;
+    case IPADDR_INET4:
+      if (mask)
+        return (a->addr.in4 & mask->addr.in4) - (b->addr.in4 & mask->addr.in4);
+      else
+        return a->addr.in4 - b->addr.in4;
+    case IPADDR_INET6:
+      for (i = 0, d = 0; !d && i < 16; i++) {
+        if (mask)
+          d = (a->addr.in6[i] & mask->addr.in6[i]) -
+              (b->addr.in6[i] & mask->addr.in6[i]);
+        else
+          d = a->addr.in6[i] - b->addr.in6[i];
+      }
+      return d;
+  }
+  return 0;
 }
 
 /* ================================================== */

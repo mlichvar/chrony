@@ -54,8 +54,19 @@
 
 /* ================================================== */
 
-/* File descriptor for command and monitoring socket */
-static int sock_fd;
+union sockaddr_in46 {
+  struct sockaddr_in in4;
+#ifdef HAVE_IPV6
+  struct sockaddr_in6 in6;
+#endif
+  struct sockaddr u;
+};
+
+/* File descriptors for command and monitoring sockets */
+static int sock_fd4;
+#ifdef HAVE_IPV6
+static int sock_fd6;
+#endif
 
 /* Flag indicating whether this module has been initialised or not */
 static int initialised = 0;
@@ -157,17 +168,93 @@ static ADF_AuthTable access_auth_table;
 
 /* ================================================== */
 /* Forward prototypes */
+static int prepare_socket(int family);
 static void read_from_cmd_socket(void *anything);
+
+/* ================================================== */
+
+static int
+prepare_socket(int family)
+{
+  int port_number, sock_fd;
+  union sockaddr_in46 my_addr;
+  IPAddr bind_address;
+  int on_off = 1;
+
+  port_number = CNF_GetCommandPort();
+  if (port_number < 0) {
+    port_number = DEFAULT_CANDM_PORT;
+  }
+
+  sock_fd = socket(family, SOCK_DGRAM, 0);
+  if (sock_fd < 0) {
+    LOG(LOGS_ERR, LOGF_CmdMon, "Could not open socket : %s", strerror(errno));
+    return -1;
+  }
+
+  /* Allow reuse of port number */
+  if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *) &on_off, sizeof(on_off)) < 0) {
+    LOG(LOGS_ERR, LOGF_CmdMon, "Could not set socket options");
+    /* Don't quit - we might survive anyway */
+  }
+#ifdef HAVE_IPV6
+  if (family == AF_INET6) {
+#ifdef IPV6_V6ONLY
+    /* Receive IPv6 packets only */
+    if (setsockopt(sock_fd, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&on_off, sizeof(on_off)) < 0) {
+      LOG(LOGS_ERR, LOGF_NtpIO, "Could not request IPV6_V6ONLY socket option");
+    }
+#endif
+  }
+#endif
+
+  memset(&my_addr, 0, sizeof (my_addr));
+
+  switch (family) {
+    case AF_INET:
+      my_addr.in4.sin_family = family;
+      my_addr.in4.sin_port = htons((unsigned short)port_number);
+
+      CNF_GetBindCommandAddress(IPADDR_INET4, &bind_address);
+
+      if (bind_address.family == IPADDR_INET4)
+        my_addr.in4.sin_addr.s_addr = htonl(bind_address.addr.in4);
+      else
+        my_addr.in4.sin_addr.s_addr = htonl(INADDR_ANY);
+      break;
+#ifdef HAVE_IPV6
+    case AF_INET6:
+      my_addr.in6.sin6_family = family;
+      my_addr.in6.sin6_port = htons((unsigned short)port_number);
+
+      CNF_GetBindCommandAddress(IPADDR_INET6, &bind_address);
+
+      if (bind_address.family == IPADDR_INET6)
+        memcpy(my_addr.in6.sin6_addr.s6_addr, bind_address.addr.in6,
+            sizeof (my_addr.in6.sin6_addr.s6_addr));
+      else
+        my_addr.in6.sin6_addr = in6addr_any;
+      break;
+#endif
+    default:
+      assert(0);
+  }
+
+  if (bind(sock_fd, &my_addr.u, sizeof(my_addr)) < 0) {
+    LOG_FATAL(LOGF_CmdMon, "Could not bind socket : %s", strerror(errno));
+  }
+
+  /* Register handler for read events on the socket */
+  SCH_AddInputFileHandler(sock_fd, read_from_cmd_socket, (void *)(long)sock_fd);
+
+  return sock_fd;
+}
 
 /* ================================================== */
 
 void
 CAM_Initialise(void)
 {
-  int port_number;
-  struct sockaddr_in my_addr;
-  unsigned long bind_address;
-  int on_off = 1;
 
   if (initialised) {
     CROAK("Shouldn't be initialised");
@@ -188,39 +275,18 @@ CAM_Initialise(void)
   free_replies = NULL;
   kept_replies.next = NULL;
 
-  port_number = CNF_GetCommandPort();
-  if (port_number < 0) {
-    port_number = DEFAULT_CANDM_PORT;
+  sock_fd4 = prepare_socket(AF_INET);
+#ifdef HAVE_IPV6
+  sock_fd6 = prepare_socket(AF_INET6);
+#endif
+
+  if (sock_fd4 < 0
+#ifdef HAVE_IPV6
+      && sock_fd6 < 0
+#endif
+      ) {
+    LOG_FATAL(LOGF_CmdMon, "Could not open any command socket");
   }
-
-  sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
-  if (sock_fd < 0) {
-    LOG_FATAL(LOGF_CmdMon, "Could not open socket : %s", strerror(errno));
-  }
-
-  /* Allow reuse of port number */
-  if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *) &on_off, sizeof(on_off)) < 0) {
-    LOG(LOGS_ERR, LOGF_CmdMon, "Could not set socket options");
-    /* Don't quit - we might survive anyway */
-  }
-
-  my_addr.sin_family = AF_INET;
-  my_addr.sin_port = htons((unsigned short) port_number);
-
-  CNF_GetBindCommandAddress(&bind_address);
-
-  if (bind_address != 0UL) {
-    my_addr.sin_addr.s_addr = htonl(bind_address);
-  } else {
-    my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-  }
-
-  if (bind(sock_fd, (struct sockaddr *) &my_addr, sizeof(my_addr)) < 0) {
-    LOG_FATAL(LOGF_CmdMon, "Could not bind socket : %s", strerror(errno));
-  }
-
-  /* Register handler for read events on the socket */
-  SCH_AddInputFileHandler(sock_fd, read_from_cmd_socket, NULL);
 
   access_auth_table = ADF_CreateTable();
 
@@ -231,9 +297,18 @@ CAM_Initialise(void)
 void
 CAM_Finalise(void)
 {
-  SCH_RemoveInputFileHandler(sock_fd);
-  close(sock_fd);
-  sock_fd = -1;
+  if (sock_fd4 >= 0) {
+    SCH_RemoveInputFileHandler(sock_fd4);
+    close(sock_fd4);
+  }
+  sock_fd4 = -1;
+#ifdef HAVE_IPV6
+  if (sock_fd6 >= 0) {
+    SCH_RemoveInputFileHandler(sock_fd6);
+    close(sock_fd6);
+  }
+  sock_fd6 = -1;
+#endif
 
   ADF_DestroyTable(access_auth_table);
 
@@ -644,21 +719,51 @@ print_reply_packet(CMD_Reply *pkt)
 /* ================================================== */
 
 static void
-transmit_reply(CMD_Reply *msg, struct sockaddr_in *where_to)
+transmit_reply(CMD_Reply *msg, union sockaddr_in46 *where_to)
 {
   int status;
   int tx_message_length;
-  unsigned long remote_ip;
-  unsigned short remote_port;
+  int sock_fd;
+  
+  switch (where_to->u.sa_family) {
+    case AF_INET:
+      sock_fd = sock_fd4;
+      break;
+#ifdef HAVE_IPV6
+    case AF_INET6:
+      sock_fd = sock_fd6;
+      break;
+#endif
+    default:
+      assert(0);
+  }
 
   tx_message_length = PKL_ReplyLength(msg);
   status = sendto(sock_fd, (void *) msg, tx_message_length, 0,
-                  (struct sockaddr *) where_to, sizeof(struct sockaddr_in));
+                  &where_to->u, sizeof(union sockaddr_in46));
 
   if (status < 0) {
-    remote_ip = ntohl(where_to->sin_addr.s_addr);
-    remote_port = ntohs(where_to->sin_port);
-    LOG(LOGS_WARN, LOGF_CmdMon, "Could not send response to %s:%hu", UTI_IPToDottedQuad(remote_ip), remote_port);
+    unsigned short port;
+    IPAddr ip;
+
+    switch (where_to->u.sa_family) {
+      case AF_INET:
+        ip.family = IPADDR_INET4;
+        ip.addr.in4 = ntohl(where_to->in4.sin_addr.s_addr);
+        port = ntohs(where_to->in4.sin_port);
+        break;
+#ifdef HAVE_IPV6
+      case AF_INET6:
+        ip.family = IPADDR_INET6;
+        memcpy(ip.addr.in6, (where_to->in6.sin6_addr.s6_addr), sizeof(ip.addr.in6));
+        port = ntohs(where_to->in6.sin6_port);
+        break;
+#endif
+      default:
+        assert(0);
+    }
+
+    LOG(LOGS_WARN, LOGF_CmdMon, "Could not send response to %s:%hu", UTI_IPToString(&ip), port);
   }
 
   return;
@@ -679,7 +784,10 @@ static void
 handle_online(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   int status;
-  status = NSR_TakeSourcesOnline(ntohl(rx_message->data.online.mask), ntohl(rx_message->data.online.address));
+  IPAddr address, mask;
+  UTI_IPNetworkToHost(&rx_message->data.online.mask, &mask);
+  UTI_IPNetworkToHost(&rx_message->data.online.address, &address);
+  status = NSR_TakeSourcesOnline(&mask, &address);
   if (status) {
     tx_message->status = htons(STT_SUCCESS);
   } else {
@@ -693,7 +801,10 @@ static void
 handle_offline(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   int status;
-  status = NSR_TakeSourcesOffline(ntohl(rx_message->data.offline.mask), ntohl(rx_message->data.offline.address));
+  IPAddr address, mask;
+  UTI_IPNetworkToHost(&rx_message->data.offline.mask, &mask);
+  UTI_IPNetworkToHost(&rx_message->data.offline.address, &address);
+  status = NSR_TakeSourcesOffline(&mask, &address);
   if (status) {
     tx_message->status = htons(STT_SUCCESS);
   } else {
@@ -707,10 +818,12 @@ static void
 handle_burst(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   int status;
+  IPAddr address, mask;
+  UTI_IPNetworkToHost(&rx_message->data.burst.mask, &mask);
+  UTI_IPNetworkToHost(&rx_message->data.burst.address, &address);
   status = NSR_InitiateSampleBurst(ntohl(rx_message->data.burst.n_good_samples),
                                    ntohl(rx_message->data.burst.n_total_samples),
-                                   ntohl(rx_message->data.burst.mask),
-                                   ntohl(rx_message->data.burst.address));
+                                   &mask, &address);
   
   if (status) {
     tx_message->status = htons(STT_SUCCESS);
@@ -725,7 +838,9 @@ static void
 handle_modify_minpoll(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   int status;
-  status = NSR_ModifyMinpoll(ntohl(rx_message->data.modify_minpoll.address),
+  IPAddr address;
+  UTI_IPNetworkToHost(&rx_message->data.modify_minpoll.address, &address);
+  status = NSR_ModifyMinpoll(&address,
                              ntohl(rx_message->data.modify_minpoll.new_minpoll));
   
   if (status) {
@@ -741,7 +856,9 @@ static void
 handle_modify_maxpoll(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   int status;
-  status = NSR_ModifyMaxpoll(ntohl(rx_message->data.modify_minpoll.address),
+  IPAddr address;
+  UTI_IPNetworkToHost(&rx_message->data.modify_minpoll.address, &address);
+  status = NSR_ModifyMaxpoll(&address,
                              ntohl(rx_message->data.modify_minpoll.new_minpoll));
   
   if (status) {
@@ -757,7 +874,9 @@ static void
 handle_modify_maxdelay(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   int status;
-  status = NSR_ModifyMaxdelay(ntohl(rx_message->data.modify_maxdelay.address),
+  IPAddr address;
+  UTI_IPNetworkToHost(&rx_message->data.modify_maxdelay.address, &address);
+  status = NSR_ModifyMaxdelay(&address,
                               WIRE2REAL(rx_message->data.modify_maxdelay.new_max_delay));
   if (status) {
     tx_message->status = htons(STT_SUCCESS);
@@ -772,7 +891,9 @@ static void
 handle_modify_maxdelayratio(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   int status;
-  status = NSR_ModifyMaxdelayratio(ntohl(rx_message->data.modify_maxdelayratio.address),
+  IPAddr address;
+  UTI_IPNetworkToHost(&rx_message->data.modify_maxdelayratio.address, &address);
+  status = NSR_ModifyMaxdelayratio(&address,
                                    WIRE2REAL(rx_message->data.modify_maxdelayratio.new_max_delay_ratio));
   if (status) {
     tx_message->status = htons(STT_SUCCESS);
@@ -884,7 +1005,7 @@ handle_source_data(CMD_Request *rx_message, CMD_Reply *tx_message)
     tx_message->status = htons(STT_SUCCESS);
     tx_message->reply  = htons(RPY_SOURCE_DATA);
     
-    tx_message->data.source_data.ip_addr = htonl(report.ip_addr);
+    UTI_IPHostToNetwork(&report.ip_addr, &tx_message->data.source_data.ip_addr);
     tx_message->data.source_data.stratum = htons(report.stratum);
     tx_message->data.source_data.poll    = htons(report.poll);
     switch (report.state) {
@@ -943,11 +1064,11 @@ handle_rekey(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_allow(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  unsigned long ip;
+  IPAddr ip;
   int subnet_bits;
-  ip = ntohl(rx_message->data.allow_deny.ip);
+  UTI_IPNetworkToHost(&rx_message->data.allow_deny.ip, &ip);
   subnet_bits = ntohl(rx_message->data.allow_deny.subnet_bits);
-  if (NCR_AddAccessRestriction(ip, subnet_bits, 1, 0)) {
+  if (NCR_AddAccessRestriction(&ip, subnet_bits, 1, 0)) {
     tx_message->status = htons(STT_SUCCESS);
   } else {
     tx_message->status = htons(STT_BADSUBNET);
@@ -959,11 +1080,11 @@ handle_allow(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_allowall(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  unsigned long ip;
+  IPAddr ip;
   int subnet_bits;
-  ip = ntohl(rx_message->data.allow_deny.ip);
+  UTI_IPNetworkToHost(&rx_message->data.allow_deny.ip, &ip);
   subnet_bits = ntohl(rx_message->data.allow_deny.subnet_bits);
-  if (NCR_AddAccessRestriction(ip, subnet_bits, 1, 1)) {
+  if (NCR_AddAccessRestriction(&ip, subnet_bits, 1, 1)) {
     tx_message->status = htons(STT_SUCCESS);
   } else {
     tx_message->status = htons(STT_BADSUBNET);
@@ -975,11 +1096,11 @@ handle_allowall(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_deny(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  unsigned long ip;
+  IPAddr ip;
   int subnet_bits;
-  ip = ntohl(rx_message->data.allow_deny.ip);
+  UTI_IPNetworkToHost(&rx_message->data.allow_deny.ip, &ip);
   subnet_bits = ntohl(rx_message->data.allow_deny.subnet_bits);
-  if (NCR_AddAccessRestriction(ip, subnet_bits, 0, 0)) {
+  if (NCR_AddAccessRestriction(&ip, subnet_bits, 0, 0)) {
     tx_message->status = htons(STT_SUCCESS);
   } else {
     tx_message->status = htons(STT_BADSUBNET);
@@ -991,11 +1112,11 @@ handle_deny(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_denyall(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  unsigned long ip;
+  IPAddr ip;
   int subnet_bits;
-  ip = ntohl(rx_message->data.allow_deny.ip);
+  UTI_IPNetworkToHost(&rx_message->data.allow_deny.ip, &ip);
   subnet_bits = ntohl(rx_message->data.allow_deny.subnet_bits);
-  if (NCR_AddAccessRestriction(ip, subnet_bits, 0, 1)) {
+  if (NCR_AddAccessRestriction(&ip, subnet_bits, 0, 1)) {
     tx_message->status = htons(STT_SUCCESS);
   } else {
     tx_message->status = htons(STT_BADSUBNET);
@@ -1007,11 +1128,11 @@ handle_denyall(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_cmdallow(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  unsigned long ip;
+  IPAddr ip;
   int subnet_bits;
-  ip = ntohl(rx_message->data.allow_deny.ip);
+  UTI_IPNetworkToHost(&rx_message->data.allow_deny.ip, &ip);
   subnet_bits = ntohl(rx_message->data.allow_deny.subnet_bits);
-  if (CAM_AddAccessRestriction(ip, subnet_bits, 1, 0)) {
+  if (CAM_AddAccessRestriction(&ip, subnet_bits, 1, 0)) {
     tx_message->status = htons(STT_SUCCESS);
   } else {
     tx_message->status = htons(STT_BADSUBNET);
@@ -1023,11 +1144,11 @@ handle_cmdallow(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_cmdallowall(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  unsigned long ip;
+  IPAddr ip;
   int subnet_bits;
-  ip = ntohl(rx_message->data.allow_deny.ip);
+  UTI_IPNetworkToHost(&rx_message->data.allow_deny.ip, &ip);
   subnet_bits = ntohl(rx_message->data.allow_deny.subnet_bits);
-  if (CAM_AddAccessRestriction(ip, subnet_bits, 1, 1)) {
+  if (CAM_AddAccessRestriction(&ip, subnet_bits, 1, 1)) {
     tx_message->status = htons(STT_SUCCESS);
   } else {
     tx_message->status = htons(STT_BADSUBNET);
@@ -1039,11 +1160,11 @@ handle_cmdallowall(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_cmddeny(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  unsigned long ip;
+  IPAddr ip;
   int subnet_bits;
-  ip = ntohl(rx_message->data.allow_deny.ip);
+  UTI_IPNetworkToHost(&rx_message->data.allow_deny.ip, &ip);
   subnet_bits = ntohl(rx_message->data.allow_deny.subnet_bits);
-  if (CAM_AddAccessRestriction(ip, subnet_bits, 0, 0)) {
+  if (CAM_AddAccessRestriction(&ip, subnet_bits, 0, 0)) {
     tx_message->status = htons(STT_SUCCESS);
   } else {
     tx_message->status = htons(STT_BADSUBNET);
@@ -1055,11 +1176,11 @@ handle_cmddeny(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_cmddenyall(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  unsigned long ip;
+  IPAddr ip;
   int subnet_bits;
-  ip = ntohl(rx_message->data.allow_deny.ip);
+  UTI_IPNetworkToHost(&rx_message->data.allow_deny.ip, &ip);
   subnet_bits = ntohl(rx_message->data.allow_deny.subnet_bits);
-  if (CAM_AddAccessRestriction(ip, subnet_bits, 0, 1)) {
+  if (CAM_AddAccessRestriction(&ip, subnet_bits, 0, 1)) {
     tx_message->status = htons(STT_SUCCESS);
   } else {
     tx_message->status = htons(STT_BADSUBNET);
@@ -1071,9 +1192,9 @@ handle_cmddenyall(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_accheck(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  unsigned long ip;
-  ip = ntohl(rx_message->data.ac_check.ip);
-  if (NCR_CheckAccessRestriction(ip)) {
+  IPAddr ip;
+  UTI_IPNetworkToHost(&rx_message->data.ac_check.ip, &ip);
+  if (NCR_CheckAccessRestriction(&ip)) {
     tx_message->status = htons(STT_ACCESSALLOWED);
   } else {
     tx_message->status = htons(STT_ACCESSDENIED);
@@ -1085,9 +1206,9 @@ handle_accheck(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_cmdaccheck(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  unsigned long ip;
-  ip = ntohl(rx_message->data.ac_check.ip);
-  if (CAM_CheckAccessRestriction(ip)) {
+  IPAddr ip;
+  UTI_IPNetworkToHost(&rx_message->data.ac_check.ip, &ip);
+  if (CAM_CheckAccessRestriction(&ip)) {
     tx_message->status = htons(STT_ACCESSALLOWED);
   } else {
     tx_message->status = htons(STT_ACCESSDENIED);
@@ -1103,8 +1224,8 @@ handle_add_server(CMD_Request *rx_message, CMD_Reply *tx_message)
   SourceParameters params;
   NSR_Status status;
   
-  rem_addr.ip_addr = ntohl(rx_message->data.ntp_source.ip_addr);
-  rem_addr.local_ip_addr = 0;
+  UTI_IPNetworkToHost(&rx_message->data.ntp_source.ip_addr, &rem_addr.ip_addr);
+  rem_addr.local_ip_addr.family = IPADDR_UNSPEC;
   rem_addr.port = (unsigned short)(ntohl(rx_message->data.ntp_source.port));
   params.minpoll = ntohl(rx_message->data.ntp_source.minpoll);
   params.maxpoll = ntohl(rx_message->data.ntp_source.maxpoll);
@@ -1125,6 +1246,9 @@ handle_add_server(CMD_Request *rx_message, CMD_Reply *tx_message)
     case NSR_TooManySources:
       tx_message->status = htons(STT_TOOMANYSOURCES);
       break;
+    case NSR_InvalidAF:
+      tx_message->status = htons(STT_INVALIDAF);
+      break;
     case NSR_NoSuchSource:
       CROAK("Impossible");
       break;
@@ -1140,8 +1264,8 @@ handle_add_peer(CMD_Request *rx_message, CMD_Reply *tx_message)
   SourceParameters params;
   NSR_Status status;
   
-  rem_addr.ip_addr = ntohl(rx_message->data.ntp_source.ip_addr);
-  rem_addr.local_ip_addr = 0;
+  UTI_IPNetworkToHost(&rx_message->data.ntp_source.ip_addr, &rem_addr.ip_addr);
+  rem_addr.local_ip_addr.family = IPADDR_UNSPEC;
   rem_addr.port = (unsigned short)(ntohl(rx_message->data.ntp_source.port));
   params.minpoll = ntohl(rx_message->data.ntp_source.minpoll);
   params.maxpoll = ntohl(rx_message->data.ntp_source.maxpoll);
@@ -1161,6 +1285,9 @@ handle_add_peer(CMD_Request *rx_message, CMD_Reply *tx_message)
     case NSR_TooManySources:
       tx_message->status = htons(STT_TOOMANYSOURCES);
       break;
+    case NSR_InvalidAF:
+      tx_message->status = htons(STT_INVALIDAF);
+      break;
     case NSR_NoSuchSource:
       CROAK("Impossible");
       break;
@@ -1175,8 +1302,8 @@ handle_del_source(CMD_Request *rx_message, CMD_Reply *tx_message)
   NTP_Remote_Address rem_addr;
   NSR_Status status;
   
-  rem_addr.ip_addr = ntohl(rx_message->data.del_source.ip_addr);
-  rem_addr.local_ip_addr = 0;
+  UTI_IPNetworkToHost(&rx_message->data.del_source.ip_addr, &rem_addr.ip_addr);
+  rem_addr.local_ip_addr.family = IPADDR_UNSPEC;
   rem_addr.port = 0;
   
   status = NSR_RemoveSource(&rem_addr);
@@ -1189,6 +1316,7 @@ handle_del_source(CMD_Request *rx_message, CMD_Reply *tx_message)
       break;
     case NSR_TooManySources:
     case NSR_AlreadyInUse:
+    case NSR_InvalidAF:
       CROAK("Impossible");
       break;
   }
@@ -1273,7 +1401,7 @@ handle_sourcestats(CMD_Request *rx_message, CMD_Reply *tx_message)
   if (status) {
     tx_message->status = htons(STT_SUCCESS);
     tx_message->reply = htons(RPY_SOURCESTATS);
-    tx_message->data.sourcestats.ip_addr = htonl(report.ip_addr);
+    UTI_IPHostToNetwork(&report.ip_addr, &tx_message->data.sourcestats.ip_addr);
     tx_message->data.sourcestats.n_samples = htonl(report.n_samples);
     tx_message->data.sourcestats.n_runs = htonl(report.n_runs);
     tx_message->data.sourcestats.span_seconds = htonl(report.span_seconds);
@@ -1345,8 +1473,8 @@ static void
 handle_subnets_accessed(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   int i, j;
-  unsigned long ns;
-  unsigned long ip, bits_specd;
+  unsigned long ns, bits_specd;
+  IPAddr ip;
   CLG_Status result;
   
   ns = ntohl(rx_message->data.subnets_accessed.n_subnets);
@@ -1355,13 +1483,13 @@ handle_subnets_accessed(CMD_Request *rx_message, CMD_Reply *tx_message)
   tx_message->data.subnets_accessed.n_subnets = htonl(ns);
 
   for (i=0; i<ns; i++) {
-    ip = ntohl(rx_message->data.subnets_accessed.subnets[i].ip);
+    UTI_IPNetworkToHost(&rx_message->data.subnets_accessed.subnets[i].ip, &ip);
     bits_specd = ntohl(rx_message->data.subnets_accessed.subnets[i].bits_specd);
 
-    tx_message->data.subnets_accessed.subnets[i].ip = htonl(ip);
+    UTI_IPHostToNetwork(&ip, &tx_message->data.subnets_accessed.subnets[i].ip);
     tx_message->data.subnets_accessed.subnets[i].bits_specd = htonl(bits_specd);
     
-    result = CLG_GetSubnetBitmap(ip, bits_specd, tx_message->data.subnets_accessed.subnets[i].bitmap);
+    result = CLG_GetSubnetBitmap(&ip, bits_specd, tx_message->data.subnets_accessed.subnets[i].bitmap);
     switch (result) {
       case CLG_SUCCESS:
       case CLG_EMPTYSUBNET:
@@ -1394,7 +1522,7 @@ handle_client_accesses(CMD_Request *rx_message, CMD_Reply *tx_message)
   CLG_Status result;
   RPT_ClientAccess_Report report;
   unsigned long nc;
-  unsigned long ip;
+  IPAddr ip;
   int i;
   struct timeval now;
   double local_time_error;
@@ -1409,10 +1537,10 @@ handle_client_accesses(CMD_Request *rx_message, CMD_Reply *tx_message)
   printf("%d %d\n", (int)sizeof(RPY_ClientAccesses_Client), (int)offsetof(CMD_Reply, data.client_accesses.clients));
 
   for (i=0; i<nc; i++) {
-    ip = ntohl(rx_message->data.client_accesses.client_ips[i]);
-    tx_message->data.client_accesses.clients[i].ip = htonl(ip);
+    UTI_IPNetworkToHost(&rx_message->data.client_accesses.client_ips[i], &ip);
+    UTI_IPHostToNetwork(&ip, &tx_message->data.client_accesses.clients[i].ip);
 
-    result = CLG_GetClientAccessReportByIP(ip, &report, now.tv_sec);
+    result = CLG_GetClientAccessReportByIP(&ip, &report, now.tv_sec);
     switch (result) {
       case CLG_SUCCESS:
         tx_message->data.client_accesses.clients[i].client_hits = htonl(report.client_hits);
@@ -1422,13 +1550,13 @@ handle_client_accesses(CMD_Request *rx_message, CMD_Reply *tx_message)
         tx_message->data.client_accesses.clients[i].cmd_hits_bad = htonl(report.cmd_hits_bad);
         tx_message->data.client_accesses.clients[i].last_ntp_hit_ago = htonl(report.last_ntp_hit_ago);
         tx_message->data.client_accesses.clients[i].last_cmd_hit_ago = htonl(report.last_cmd_hit_ago);
-        printf("%08lx %lu %lu %lu %lu %lu %lu %lu\n", ip, report.client_hits, report.peer_hits, report.cmd_hits_auth, report.cmd_hits_normal, report.cmd_hits_bad, report.last_ntp_hit_ago, report.last_cmd_hit_ago);
+        printf("%s %lu %lu %lu %lu %lu %lu %lu\n", UTI_IPToString(&ip), report.client_hits, report.peer_hits, report.cmd_hits_auth, report.cmd_hits_normal, report.cmd_hits_bad, report.last_ntp_hit_ago, report.last_cmd_hit_ago);
         break;
       case CLG_EMPTYSUBNET:
         /* Signal back to the client that this single client address
-           was unknown, by specifying the zero ip address, which will
-           always be invalid (hopefully) */
-        tx_message->data.client_accesses.clients[i].ip = htonl(0);
+           was unknown */
+        ip.family = IPADDR_UNSPEC;
+        UTI_IPHostToNetwork(&ip, &tx_message->data.client_accesses.clients[i].ip);
         break;
       case CLG_INACTIVE:
         tx_message->status = htons(STT_INACTIVE);
@@ -1471,7 +1599,7 @@ handle_client_accesses_by_index(CMD_Request *rx_message, CMD_Reply *tx_message)
 
     switch (result) {
       case CLG_SUCCESS:
-        tx_message->data.client_accesses_by_index.clients[j].ip = htonl(report.ip_addr);
+        UTI_IPHostToNetwork(&report.ip_addr, &tx_message->data.client_accesses_by_index.clients[j].ip);
         tx_message->data.client_accesses_by_index.clients[j].client_hits = htonl(report.client_hits);
         tx_message->data.client_accesses_by_index.clients[j].peer_hits = htonl(report.peer_hits);
         tx_message->data.client_accesses_by_index.clients[j].cmd_hits_auth = htonl(report.cmd_hits_auth);
@@ -1594,9 +1722,10 @@ read_from_cmd_socket(void *anything)
   CMD_Request rx_message;
   CMD_Reply tx_message, *prev_tx_message;
   int rx_message_length, tx_message_length;
-  struct sockaddr_in where_from;
+  int sock_fd;
+  union sockaddr_in46 where_from;
   socklen_t from_length;
-  unsigned long remote_ip;
+  IPAddr remote_ip;
   unsigned short remote_port;
   int md5_ok;
   int utoken_ok, token_ok;
@@ -1617,14 +1746,14 @@ read_from_cmd_socket(void *anything)
   rx_message_length = sizeof(rx_message);
   from_length = sizeof(where_from);
 
+  sock_fd = (long)anything;
   status = recvfrom(sock_fd, (char *)&rx_message, rx_message_length, flags,
-                    (struct sockaddr *)&where_from, &from_length);
+                    &where_from.u, &from_length);
 
   if (status < 0) {
-    LOG(LOGS_WARN, LOGF_CmdMon, "Error [%s] reading from control socket (IP=%s port=%d)",
-        strerror(errno),
-        UTI_IPToDottedQuad(ntohl(where_from.sin_addr.s_addr)),
-        ntohs(where_from.sin_port));
+    LOG(LOGS_WARN, LOGF_CmdMon, "Error [%s] reading from control socket %d",
+        strerror(errno), sock_fd);
+    return;
   }
 
   read_length = status;
@@ -1650,12 +1779,31 @@ read_from_cmd_socket(void *anything)
   tx_message.token = htonl(0xffffffffUL);
   memset(&tx_message.auth, 0, sizeof(tx_message.auth));
 
-  remote_ip = ntohl(where_from.sin_addr.s_addr);
-  remote_port = ntohs(where_from.sin_port);
+  switch (where_from.u.sa_family) {
+    case AF_INET:
+      remote_ip.family = IPADDR_INET4;
+      remote_ip.addr.in4 = ntohl(where_from.in4.sin_addr.s_addr);
+      remote_port = ntohs(where_from.in4.sin_port);
+      localhost = (remote_ip.addr.in4 == 0x7f000001UL);
+      break;
+#ifdef HAVE_IPV6
+    case AF_INET6:
+      remote_ip.family = IPADDR_INET6;
+      memcpy(&remote_ip.addr.in6, where_from.in6.sin6_addr.s6_addr,
+          sizeof (remote_ip.addr.in6));
+      remote_port = ntohs(where_from.in6.sin6_port);
+      /* Check for ::1 */
+      for (localhost = 0; localhost < 16; localhost++)
+        if (remote_ip.addr.in6[localhost] != 0)
+          break;
+      localhost = (localhost == 15 && remote_ip.addr.in6[localhost] == 1);
+      break;
+#endif
+    default:
+      assert(0);
+  }
 
-  localhost = (remote_ip == 0x7f000001UL);
-
-  if ((!ADF_IsAllowed(access_auth_table, remote_ip)) &&
+  if ((!ADF_IsAllowed(access_auth_table, &remote_ip)) &&
       (!localhost)) {
     /* The client is not allowed access, so don't waste any more time
        on him.  Note that localhost is always allowed access
@@ -1667,7 +1815,7 @@ read_from_cmd_socket(void *anything)
        hitting us with bad packets until our log file(s) fill up. */
 
     LOG(LOGS_WARN, LOGF_CmdMon, "Command packet received from unauthorised host %s port %d",
-        UTI_IPToDottedQuad(remote_ip),
+        UTI_IPToString(&remote_ip),
         remote_port);
 
     tx_message.status = htons(STT_NOHOSTACCESS);
@@ -1678,8 +1826,8 @@ read_from_cmd_socket(void *anything)
 
 
   if (read_length != expected_length) {
-    LOG(LOGS_WARN, LOGF_CmdMon, "Read incorrectly sized packet from %s:%hu", UTI_IPToDottedQuad(remote_ip), remote_port);
-    CLG_LogCommandAccess(remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
+    LOG(LOGS_WARN, LOGF_CmdMon, "Read incorrectly sized packet from %s:%hu", UTI_IPToString(&remote_ip), remote_port);
+    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
     /* For now, just ignore the packet.  We may want to send a reply
        back eventually */
     return;
@@ -1691,7 +1839,7 @@ read_from_cmd_socket(void *anything)
       (rx_message.res2 != 0)) {
 
     /* We don't know how to process anything like this */
-    CLG_LogCommandAccess(remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
+    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
     
     return;
   }
@@ -1773,7 +1921,7 @@ read_from_cmd_socket(void *anything)
       status = sendto(sock_fd, (void *) prev_tx_message, tx_message_length, 0,
                       (struct sockaddr *) &where_from, sizeof(where_from));
       if (status < 0) {
-        LOG(LOGS_WARN, LOGF_CmdMon, "Could not send response to %s:%hu", UTI_IPToDottedQuad(remote_ip), remote_port);
+        LOG(LOGS_WARN, LOGF_CmdMon, "Could not send response to %s:%hu", UTI_IPToString(&remote_ip), remote_port);
       }
       return;
     }
@@ -1800,9 +1948,9 @@ read_from_cmd_socket(void *anything)
   authenticated = md5_ok & utoken_ok & token_ok;
 
   if (authenticated) {
-    CLG_LogCommandAccess(remote_ip, CLG_CMD_AUTH, cooked_now.tv_sec);
+    CLG_LogCommandAccess(&remote_ip, CLG_CMD_AUTH, cooked_now.tv_sec);
   } else {
-    CLG_LogCommandAccess(remote_ip, CLG_CMD_NORMAL, cooked_now.tv_sec);
+    CLG_LogCommandAccess(&remote_ip, CLG_CMD_NORMAL, cooked_now.tv_sec);
   }
 
   if (issue_token) {
@@ -1895,7 +2043,7 @@ read_from_cmd_socket(void *anything)
           if (!issue_token) {
             LOG(LOGS_WARN, LOGF_CmdMon,
                 "Bad command logon from %s port %d (md5_ok=%d valid_ts=%d)\n",
-                UTI_IPToDottedQuad(remote_ip),
+                UTI_IPToString(&remote_ip),
                 remote_port,
                 md5_ok, valid_ts);
           }
@@ -2092,7 +2240,7 @@ read_from_cmd_socket(void *anything)
 /* ================================================== */
 
 int
-CAM_AddAccessRestriction(unsigned long ip_addr, int subnet_bits, int allow, int all)
+CAM_AddAccessRestriction(IPAddr *ip_addr, int subnet_bits, int allow, int all)
  {
   ADF_Status status;
 
@@ -2122,7 +2270,7 @@ CAM_AddAccessRestriction(unsigned long ip_addr, int subnet_bits, int allow, int 
 /* ================================================== */
 
 int
-CAM_CheckAccessRestriction(unsigned long ip_addr)
+CAM_CheckAccessRestriction(IPAddr *ip_addr)
 {
   return ADF_IsAllowed(access_auth_table, ip_addr);
 }

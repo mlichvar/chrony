@@ -32,11 +32,12 @@
 #define GOT_REPORTS_H
 
 #include "sysincl.h"
+#include "addressing.h"
 
 #define REPORT_INVALID_OFFSET 0x80000000
 
 typedef struct {
-  unsigned long ip_addr;
+  IPAddr ip_addr;
   int stratum;
   int poll;
   enum {RPT_NTP_CLIENT, RPT_NTP_PEER, RPT_LOCAL_REFERENCE} mode;
@@ -65,7 +66,7 @@ typedef struct {
 } RPT_TrackingReport;
 
 typedef struct {
-  unsigned long ip_addr;
+  IPAddr ip_addr;
   unsigned long n_samples;
   unsigned long n_runs;
   unsigned long span_seconds;
@@ -94,7 +95,7 @@ typedef struct {
 } RPT_ClientAccess_Report;
 
 typedef struct {
-  unsigned long ip_addr;
+  IPAddr ip_addr;
   unsigned long client_hits;
   unsigned long peer_hits;
   unsigned long cmd_hits_auth;

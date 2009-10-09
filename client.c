@@ -58,8 +58,16 @@
 
 /* ================================================== */
 
+union sockaddr_in46 {
+  struct sockaddr_in in4;
+#ifdef HAVE_IPV6
+  struct sockaddr_in6 in6;
+#endif
+  struct sockaddr u;
+};
+
 static int sock_fd;
-struct sockaddr_in his_addr;
+union sockaddr_in46 his_addr;
 
 static int on_terminal = 0;
 
@@ -138,60 +146,62 @@ read_line(void)
 }
 
 /* ================================================== */
-
-static unsigned long
-get_address(const char *hostname)
-{
-  char *address0;
-  struct hostent *host;
-  unsigned long result;
-
-  /* Note, this call could block for a while */
-  host = gethostbyname(hostname);
-  if (host == NULL) {
-    fprintf(stderr, "Could not get IP address for %s\n", hostname);
-    exit(1);
-  } else {
-    address0 = host->h_addr_list[0];
-    result = ((((unsigned long) address0[0] & 0xff) << 24) |
-              (((unsigned long) address0[1] & 0xff) << 16) |
-              (((unsigned long) address0[2] & 0xff) <<  8) |
-              (((unsigned long) address0[3] & 0xff)));
-  }
-
-  return result;
-
-}
-
-/* ================================================== */
 /* Initialise the socket used to talk to the daemon */
 
 static void
 open_io(const char *hostname, int port)
 {
-  struct sockaddr_in my_addr;
+  union sockaddr_in46 my_addr;
+  IPAddr ip;
 
-  sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+  /* Note, this call could block for a while */
+  if (!DNS_Name2IPAddress(hostname, &ip, 0)) {
+    fprintf(stderr, "Could not get IP address for %s\n", hostname);
+    exit(1);
+  }
+
+  memset(&my_addr, 0, sizeof (my_addr));
+  memset(&his_addr, 0, sizeof (his_addr));
+
+  switch (ip.family) {
+    case IPADDR_INET4:
+      sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+      my_addr.in4.sin_family = AF_INET;
+      my_addr.in4.sin_port = htons(INADDR_ANY);
+      my_addr.in4.sin_addr.s_addr = htonl(INADDR_ANY);
+
+      his_addr.in4.sin_family = AF_INET;
+      his_addr.in4.sin_addr.s_addr = htonl(ip.addr.in4);
+      his_addr.in4.sin_port = htons(port);
+      break;
+#ifdef HAVE_IPV6
+    case IPADDR_INET6:
+      sock_fd = socket(AF_INET6, SOCK_DGRAM, 0);
+
+      my_addr.in6.sin6_family = AF_INET6;
+      my_addr.in6.sin6_port = htons(INADDR_ANY);
+      my_addr.in6.sin6_addr = in6addr_any;
+
+      his_addr.in6.sin6_family = AF_INET6;
+      memcpy(his_addr.in6.sin6_addr.s6_addr, ip.addr.in6,
+          sizeof (his_addr.in6.sin6_addr.s6_addr));
+      his_addr.in6.sin6_port = htons(port);
+      break;
+#endif
+    default:
+      assert(0);
+  }
+
   if (sock_fd < 0) {
     perror("Can't create socket");
     exit(1);
   }
 
-  my_addr.sin_family = AF_INET;
-  my_addr.sin_port = htons(INADDR_ANY);
-  my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-  if(bind(sock_fd, (struct sockaddr *) &my_addr, sizeof(my_addr)) < 0) {
+  if(bind(sock_fd, &my_addr.u, sizeof(my_addr)) < 0) {
     perror("Can't bind socket");
     exit(1);
   }
-
-  /* Build the socket address structure for sending packets */
-  his_addr.sin_family = AF_INET;
-  his_addr.sin_addr.s_addr = htonl(get_address(hostname));
-
-  /* Eventually the port number needs to be a command line param */
-  his_addr.sin_port = htons(port);
 
   return;
 }
@@ -208,34 +218,78 @@ close_io(void)
 
 /* ================================================== */
 
-static int
-read_mask_address(char *line, unsigned long *mask, unsigned long *address)
+static void
+bits_to_mask(int bits, int family, IPAddr *mask)
 {
-  unsigned int ma, mb, mc, md, aa, ab, ac, ad;
-  int ok = 0;
-  char *p;
+  int i;
+
+  mask->family = family;
+  switch (family) {
+    case IPADDR_INET4:
+      if (bits < 0)
+        bits = 32;
+      if (bits > 0) {
+        mask->addr.in4 = -1;
+        mask->addr.in4 <<= 32 - bits;
+      } else {
+        mask->addr.in4 = 0;
+      }
+      break;
+    case IPADDR_INET6:
+      if (bits > 128 || bits < 0)
+        bits = 128;
+      for (i = 0; i < bits / 8; i++)
+        mask->addr.in6[i] = 0xff;
+      if (i < 16)
+        mask->addr.in6[i++] = (0xff << (8 - bits % 8)) & 0xff;
+      for (; i < 16; i++)
+        mask->addr.in6[i] = 0x0;
+      break;
+    default:
+      assert(0);
+  }
+}
+
+/* ================================================== */
+
+static int
+read_mask_address(char *line, IPAddr *mask, IPAddr *address)
+{
+  unsigned int bits;
+  char *p, *q;
 
   p = line;
   while (*p && isspace((unsigned char)*p)) p++;
   if (!*p) {
-    *mask = *address = 0;
-    ok = 1;
+    mask->family = address->family = IPADDR_UNSPEC;
+    return 1;
   } else {
-
-    if (sscanf(line, "%u.%u.%u.%u/%u.%u.%u.%u",
-               &ma, &mb, &mc, &md,
-               &aa, &ab, &ac, &ad) != 8) {
-      fprintf(stderr, "Invalid syntax for mask/address\n");
-      ok = 0;
+    q = strchr(p, '/');
+    if (q) {
+      *q++ = 0;
+      if (UTI_StringToIP(p, mask)) {
+        p = q;
+        while (*q && !isspace((unsigned char)*q)) q++;
+        *q = 0;
+        if (UTI_StringToIP(p, address)) {
+          if (address->family == mask->family)
+            return 1;
+        } else if (sscanf(p, "%u", &bits) == 1) {
+          *address = *mask;
+          bits_to_mask(bits, address->family, mask);
+          return 1;
+        }
+      }
     } else {
-      *mask =    (ma << 24) | (mb << 16) | (mc << 8) | md;
-      *address = (aa << 24) | (ab << 16) | (ac << 8) | ad;
-      ok = 1;
+      if (UTI_StringToIP(p, address)) {
+        bits_to_mask(-1, address->family, mask);
+        return 1;
+      }
     }
   }
 
-  return ok;
-
+  fprintf(stderr, "Invalid syntax for mask/address\n");
+  return 0;
 }
 
 /* ================================================== */
@@ -243,12 +297,12 @@ read_mask_address(char *line, unsigned long *mask, unsigned long *address)
 static int
 process_cmd_offline(CMD_Request *msg, char *line)
 {
-  unsigned long mask, address;
+  IPAddr mask, address;
   int ok;
 
   if (read_mask_address(line, &mask, &address)) {
-    msg->data.offline.mask = htonl(mask);
-    msg->data.offline.address = htonl(address);
+    UTI_IPHostToNetwork(&mask, &msg->data.offline.mask);
+    UTI_IPHostToNetwork(&address, &msg->data.offline.address);
     msg->command = htons(REQ_OFFLINE);
     ok = 1;
   } else {
@@ -265,12 +319,12 @@ process_cmd_offline(CMD_Request *msg, char *line)
 static int
 process_cmd_online(CMD_Request *msg, char *line)
 {
-  unsigned long mask, address;
+  IPAddr mask, address;
   int ok;
 
   if (read_mask_address(line, &mask, &address)) {
-    msg->data.online.mask = htonl(mask);
-    msg->data.online.address = htonl(address);
+    UTI_IPHostToNetwork(&mask, &msg->data.online.mask);
+    UTI_IPHostToNetwork(&address, &msg->data.online.address);
     msg->command = htons(REQ_ONLINE);
     ok = 1;
   } else {
@@ -284,7 +338,7 @@ process_cmd_online(CMD_Request *msg, char *line)
 /* ================================================== */
 
 static int
-read_address_integer(char *line, unsigned long *address, int *value)
+read_address_integer(char *line, IPAddr *address, int *value)
 {
   char hostname[2048];
   int ok = 0;
@@ -293,8 +347,7 @@ read_address_integer(char *line, unsigned long *address, int *value)
     fprintf(stderr, "Invalid syntax for address value\n");
     ok = 0;
   } else {
-    *address = DNS_Name2IPAddress(hostname);
-    if (*address == DNS_Failed_Address) {
+    if (!DNS_Name2IPAddress(hostname, address, 0)) {
       fprintf(stderr, "Could not get address for hostname\n");
       ok = 0;
     } else {
@@ -310,7 +363,7 @@ read_address_integer(char *line, unsigned long *address, int *value)
 /* ================================================== */
 
 static int
-read_address_double(char *line, unsigned long *address, double *value)
+read_address_double(char *line, IPAddr *address, double *value)
 {
   char hostname[2048];
   int ok = 0;
@@ -319,8 +372,7 @@ read_address_double(char *line, unsigned long *address, double *value)
     fprintf(stderr, "Invalid syntax for address value\n");
     ok = 0;
   } else {
-    *address = DNS_Name2IPAddress(hostname);
-    if (*address == DNS_Failed_Address) {
+    if (!DNS_Name2IPAddress(hostname, address, 0)) {
       fprintf(stderr, "Could not get address for hostname\n");
       ok = 0;
     } else {
@@ -338,12 +390,12 @@ read_address_double(char *line, unsigned long *address, double *value)
 static int
 process_cmd_minpoll(CMD_Request *msg, char *line)
 {
-  unsigned long address;
+  IPAddr address;
   int minpoll;
   int ok;
   
   if (read_address_integer(line, &address, &minpoll)) {
-    msg->data.modify_minpoll.address = htonl(address);
+    UTI_IPHostToNetwork(&address, &msg->data.modify_minpoll.address);
     msg->data.modify_minpoll.new_minpoll = htonl(minpoll);
     msg->command = htons(REQ_MODIFY_MINPOLL);
     ok = 1;
@@ -360,12 +412,12 @@ process_cmd_minpoll(CMD_Request *msg, char *line)
 static int
 process_cmd_maxpoll(CMD_Request *msg, char *line)
 {
-  unsigned long address;
+  IPAddr address;
   int maxpoll;
   int ok;
   
   if (read_address_integer(line, &address, &maxpoll)) {
-    msg->data.modify_maxpoll.address = htonl(address);
+    UTI_IPHostToNetwork(&address, &msg->data.modify_maxpoll.address);
     msg->data.modify_maxpoll.new_maxpoll = htonl(maxpoll);
     msg->command = htons(REQ_MODIFY_MAXPOLL);
     ok = 1;
@@ -382,12 +434,12 @@ process_cmd_maxpoll(CMD_Request *msg, char *line)
 static int
 process_cmd_maxdelay(CMD_Request *msg, char *line)
 {
-  unsigned long address;
+  IPAddr address;
   double max_delay;
   int ok;
   
   if (read_address_double(line, &address, &max_delay)) {
-    msg->data.modify_maxdelay.address = htonl(address);
+    UTI_IPHostToNetwork(&address, &msg->data.modify_maxdelay.address);
     msg->data.modify_maxdelay.new_max_delay = REAL2WIRE(max_delay);
     msg->command = htons(REQ_MODIFY_MAXDELAY);
     ok = 1;
@@ -404,12 +456,12 @@ process_cmd_maxdelay(CMD_Request *msg, char *line)
 static int
 process_cmd_maxdelayratio(CMD_Request *msg, char *line)
 {
-  unsigned long address;
+  IPAddr address;
   double max_delay_ratio;
   int ok;
   
   if (read_address_double(line, &address, &max_delay_ratio)) {
-    msg->data.modify_maxdelayratio.address = htonl(address);
+    UTI_IPHostToNetwork(&address, &msg->data.modify_maxdelayratio.address);
     msg->data.modify_maxdelayratio.new_max_delay_ratio = REAL2WIRE(max_delay_ratio);
     msg->command = htons(REQ_MODIFY_MAXDELAYRATIO);
     ok = 1;
@@ -478,36 +530,28 @@ process_cmd_cyclelogs(CMD_Request *msg, char *line)
 static int
 process_cmd_burst(CMD_Request *msg, char *line)
 {
-  int ok;
   int n_good_samples, n_total_samples;
-  unsigned int ma, mb, mc, md, aa, ab, ac, ad;
   int n_parsed;
+  char s[101];
+  IPAddr address, mask;
 
-  n_parsed = sscanf(line, "%d/%d %u.%u.%u.%u/%u.%u.%u.%u",
-                    &n_good_samples,
-                    &n_total_samples,
-                    &ma, &mb, &mc, &md,
-                    &aa, &ab, &ac, &ad);
+  n_parsed = sscanf(line, "%d/%d %100s", &n_good_samples, &n_total_samples, s);
 
   msg->command = htons(REQ_BURST);
   msg->data.burst.n_good_samples = ntohl(n_good_samples);
   msg->data.burst.n_total_samples = ntohl(n_total_samples);
 
-  if (n_parsed == 10) {
-    msg->data.burst.mask = htonl((ma << 24) | (mb << 16) | (mc << 8) | md);
-    msg->data.burst.address = htonl((aa << 24) | (ab << 16) | (ac << 8) | ad);
-    ok = 1;
-  } else if (n_parsed == 2) {
-    msg->data.burst.mask = 0;
-    msg->data.burst.address = 0;
-    ok = 1;
-  } else {
-    ok = 0;
+  mask.family = address.family = IPADDR_UNSPEC;
+
+  if (n_parsed < 2 || (n_parsed == 3 && !read_mask_address(s, &mask, &address))) {
     fprintf(stderr, "Invalid syntax for burst command\n");
+    return 0;
   }
 
-  return ok;
+  UTI_IPHostToNetwork(&mask, &msg->data.burst.mask);
+  UTI_IPHostToNetwork(&address, &msg->data.burst.address);
 
+  return 1;
 }
 
 /* ================================================== */
@@ -574,65 +618,80 @@ process_cmd_manual(CMD_Request *msg, const char *line)
 static int
 parse_allow_deny(CMD_Request *msg, char *line)
 {
-  unsigned long a, b, c, d, n, ip;
+  unsigned long a, b, c, d, n;
+  IPAddr ip;
   char *p, *q;
   
   p = line;
   while (*p && isspace((unsigned char)*p)) p++;
   if (!*p) {
     /* blank line - applies to all addresses */
-    msg->data.allow_deny.ip = htonl(0);
+    ip.family = IPADDR_UNSPEC;
+    UTI_IPHostToNetwork(&ip, &msg->data.allow_deny.ip);
     msg->data.allow_deny.subnet_bits = htonl(0);
   } else {
     char *slashpos;
     slashpos = strchr(p, '/');
     if (slashpos) *slashpos = 0;
     
-    n = sscanf(p, "%lu.%lu.%lu.%lu", &a, &b, &c, &d);
+    n = 0;
+    if (!UTI_StringToIP(p, &ip) &&
+        (n = sscanf(p, "%lu.%lu.%lu.%lu", &a, &b, &c, &d)) == 0) {
 
-    if (n == 0) {
       /* Try to parse as the name of a machine */
       q = p;
       while (*q) {
         if (*q == '\n') *q = 0;
         q++;
       }
-      ip = DNS_Name2IPAddress(p);
-      if (ip == DNS_Failed_Address) {
+      if (!DNS_Name2IPAddress(p, &ip, 0)) {
         fprintf(stderr, "Could not read address\n");
         return 0;
       } else {
-        msg->data.allow_deny.ip = htonl(ip);
-        msg->data.allow_deny.subnet_bits = htonl(32);
+        UTI_IPHostToNetwork(&ip, &msg->data.allow_deny.ip);
+        if (ip.family == IPADDR_INET6)
+          msg->data.allow_deny.subnet_bits = htonl(128);
+        else
+          msg->data.allow_deny.subnet_bits = htonl(32);
       }        
     } else {
       
-      a &= 0xff;
-      b &= 0xff;
-      c &= 0xff;
-      d &= 0xff;
-      
-      switch (n) {
-        case 1:
-          msg->data.allow_deny.ip = htonl((a<<24));
-          msg->data.allow_deny.subnet_bits = htonl(8);
-          break;
-        case 2:
-          msg->data.allow_deny.ip = htonl((a<<24) | (b<<16));
-          msg->data.allow_deny.subnet_bits = htonl(16);
-          break;
-        case 3:
-          msg->data.allow_deny.ip = htonl((a<<24) | (b<<16) | (c<<8));
-          msg->data.allow_deny.subnet_bits = htonl(24);
-          break;
-        case 4:
-          msg->data.allow_deny.ip = htonl((a<<24) | (b<<16) | (c<<8) | d);
+      if (n == 0) {
+        if (ip.family == IPADDR_INET6)
+          msg->data.allow_deny.subnet_bits = htonl(128);
+        else
           msg->data.allow_deny.subnet_bits = htonl(32);
-          break;
-        default:
-          assert(0);
-          
+      } else {
+        ip.family = IPADDR_INET4;
+
+        a &= 0xff;
+        b &= 0xff;
+        c &= 0xff;
+        d &= 0xff;
+        
+        switch (n) {
+          case 1:
+            ip.addr.in4 = htonl((a<<24));
+            msg->data.allow_deny.subnet_bits = htonl(8);
+            break;
+          case 2:
+            ip.addr.in4 = htonl((a<<24) | (b<<16));
+            msg->data.allow_deny.subnet_bits = htonl(16);
+            break;
+          case 3:
+            ip.addr.in4 = htonl((a<<24) | (b<<16) | (c<<8));
+            msg->data.allow_deny.subnet_bits = htonl(24);
+            break;
+          case 4:
+            ip.addr.in4 = htonl((a<<24) | (b<<16) | (c<<8) | d);
+            msg->data.allow_deny.subnet_bits = htonl(32);
+            break;
+          default:
+            assert(0);
+        }
       }
+
+      UTI_IPHostToNetwork(&ip, &msg->data.allow_deny.ip);
 
       if (slashpos) {
         int specified_subnet_bits, n;
@@ -739,9 +798,10 @@ process_cmd_cmddenyall(CMD_Request *msg, char *line)
 /* ================================================== */
 
 static int
-accheck_getaddr(char *line, unsigned long *addr)
+accheck_getaddr(char *line, IPAddr *addr)
 {
-  unsigned long a, b, c, d, ip;
+  unsigned long a, b, c, d;
+  IPAddr ip;
   char *p, *q;
   p = line;
   while (*p && isspace(*p)) p++;
@@ -749,7 +809,8 @@ accheck_getaddr(char *line, unsigned long *addr)
     return 0;
   } else {
     if (sscanf(p, "%lu.%lu.%lu.%lu", &a, &b, &c, &d) == 4) {
-      *addr = (a<<24) | (b<<16) | (c<<8) | d;
+      addr->family = IPADDR_INET4;
+      addr->addr.in4 = (a<<24) | (b<<16) | (c<<8) | d;
       return 1;
     } else {
       q = p;
@@ -757,8 +818,7 @@ accheck_getaddr(char *line, unsigned long *addr)
         if (*q == '\n') *q = 0;
         q++;
       }
-      ip = DNS_Name2IPAddress(p);
-      if (ip == DNS_Failed_Address) {
+      if (!DNS_Name2IPAddress(p, &ip, 0)) {
         return 0;
       } else {
         *addr = ip;
@@ -773,10 +833,10 @@ accheck_getaddr(char *line, unsigned long *addr)
 static int
 process_cmd_accheck(CMD_Request *msg, char *line)
 {
-  unsigned long ip;
+  IPAddr ip;
   msg->command = htons(REQ_ACCHECK);
   if (accheck_getaddr(line, &ip)) {
-    msg->data.ac_check.ip = htonl(ip);
+    UTI_IPHostToNetwork(&ip, &msg->data.ac_check.ip);
     return 1;
   } else {    
     fprintf(stderr, "Could not read address\n");
@@ -789,10 +849,10 @@ process_cmd_accheck(CMD_Request *msg, char *line)
 static int
 process_cmd_cmdaccheck(CMD_Request *msg, char *line)
 {
-  unsigned long ip;
+  IPAddr ip;
   msg->command = htons(REQ_CMDACCHECK);
   if (accheck_getaddr(line, &ip)) {
-    msg->data.ac_check.ip = htonl(ip);
+    UTI_IPHostToNetwork(&ip, &msg->data.ac_check.ip);
     return 1;
   } else {    
     fprintf(stderr, "Could not read address\n");
@@ -866,7 +926,7 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
   switch (status) {
     case CPS_Success:
       msg->data.ntp_source.port = htonl((unsigned long) data.port);
-      msg->data.ntp_source.ip_addr = htonl(data.ip_addr);
+      UTI_IPHostToNetwork(&data.ip_addr, &msg->data.ntp_source.ip_addr);
       msg->data.ntp_source.minpoll = htonl(data.params.minpoll);
       msg->data.ntp_source.maxpoll = htonl(data.params.maxpoll);
       msg->data.ntp_source.presend_minpoll = htonl(data.params.presend_minpoll);
@@ -935,7 +995,7 @@ process_cmd_delete(CMD_Request *msg, char *line)
 {
   char hostname[2048];
   int ok = 0;
-  unsigned long address = 0UL;
+  IPAddr address;
 
   msg->command = htons(REQ_DEL_SOURCE);
 
@@ -943,8 +1003,7 @@ process_cmd_delete(CMD_Request *msg, char *line)
     fprintf(stderr, "Invalid syntax for address\n");
     ok = 0;
   } else {
-    address = DNS_Name2IPAddress(hostname);
-    if (address == DNS_Failed_Address) {
+    if (!DNS_Name2IPAddress(hostname, &address, 0)) {
       fprintf(stderr, "Could not get address for hostname\n");
       ok = 0;
     } else {
@@ -952,7 +1011,7 @@ process_cmd_delete(CMD_Request *msg, char *line)
     }
   }
 
-  msg->data.del_source.ip_addr = htonl(address);
+  UTI_IPHostToNetwork(&address, &msg->data.del_source.ip_addr);
 
   return ok;
   
@@ -1121,7 +1180,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
 {
   unsigned long tx_sequence;
   socklen_t where_from_len;
-  struct sockaddr_in where_from;
+  union sockaddr_in46 where_from;
   int bad_length, bad_sender, bad_sequence, bad_header;
   int select_status;
   int recvfrom_status;
@@ -1168,7 +1227,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
 #endif
 
     if (sendto(sock_fd, (void *) request, command_length, 0,
-               (struct sockaddr *) &his_addr, sizeof(his_addr)) < 0) {
+               &his_addr.u, sizeof(his_addr)) < 0) {
 
 
 #if 0
@@ -1210,7 +1269,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
       
       where_from_len = sizeof(where_from);
       recvfrom_status = recvfrom(sock_fd, (void *) reply, sizeof(CMD_Reply), 0,
-                                 (struct sockaddr *) &where_from, &where_from_len);
+                                 &where_from.u, &where_from_len);
       
 
 #if 0
@@ -1231,8 +1290,17 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
         expected_length = PKL_ReplyLength(reply);
 
         bad_length = (read_length != expected_length);
-        bad_sender = ((where_from.sin_addr.s_addr != his_addr.sin_addr.s_addr) ||
-                      (where_from.sin_port != his_addr.sin_port));
+        bad_sender = (where_from.u.sa_family != his_addr.u.sa_family ||
+                      (where_from.u.sa_family == AF_INET &&
+                       (where_from.in4.sin_addr.s_addr != his_addr.in4.sin_addr.s_addr ||
+                        where_from.in4.sin_port != his_addr.in4.sin_port)) ||
+#ifdef HAVE_IPV6
+                      (where_from.u.sa_family == AF_INET6 &&
+                       (memcmp(where_from.in6.sin6_addr.s6_addr, his_addr.in6.sin6_addr.s6_addr,
+                               sizeof (where_from.in6.sin6_addr.s6_addr)) != 0 ||
+                        where_from.in6.sin6_port != his_addr.in6.sin6_port)) ||
+#endif
+                      0);
         
         if (!bad_length) {
           bad_sequence = (ntohl(reply->sequence) != tx_sequence);
@@ -1382,13 +1450,12 @@ process_cmd_sources(char *line)
   int verbose = 0;
 
   int32_t orig_latest_meas, latest_meas, est_offset;
-  uint32_t ip_addr;
+  IPAddr ip_addr;
   uint32_t latest_meas_err, est_offset_err;
   uint32_t latest_meas_ago;
   uint16_t poll, stratum;
   uint16_t state, mode;
   double resid_freq, resid_skew;
-  const char *dns_lookup;
   char hostname_buf[32];
   uint16_t status;
 
@@ -1439,7 +1506,7 @@ process_cmd_sources(char *line)
 
       if (submit_ok) {
         if (ntohs(reply.status) == STT_SUCCESS) {
-          ip_addr = ntohl(reply.data.source_data.ip_addr);
+          UTI_IPNetworkToHost(&reply.data.source_data.ip_addr, &ip_addr);
           poll = ntohs(reply.data.source_data.poll);
           stratum = ntohs(reply.data.source_data.stratum);
           state = ntohs(reply.data.source_data.state);
@@ -1453,14 +1520,13 @@ process_cmd_sources(char *line)
           resid_freq = (double) ((long) ntohl(reply.data.source_data.resid_freq)) * 1.0e-3;
           resid_skew = (double) (ntohl(reply.data.source_data.resid_skew)) * 1.0e-3;
 
-          hostname_buf[25] = 0;
           if (mode == RPY_SD_MD_REF) {
-            snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_RefidToString(ip_addr));
+            snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_RefidToString(ip_addr.addr.in4));
           } else if (no_dns) {
-            snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_IPToDottedQuad(ip_addr));
+            snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_IPToString(&ip_addr));
           } else {
-            dns_lookup = DNS_IPAddress2Name(ip_addr);
-            strncpy(hostname_buf, dns_lookup, 25);
+            DNS_IPAddress2Name(&ip_addr, hostname_buf, sizeof(hostname_buf));
+            hostname_buf[25] = 0;
           }
 
           switch (mode) {
@@ -1515,12 +1581,11 @@ process_cmd_sourcestats(char *line)
   int n_sources, i;
   int verbose = 0;
 
-  const char *dns_lookup;
   char hostname_buf[32];
   unsigned long n_samples, n_runs, span_seconds;
   double resid_freq_ppm, skew_ppm;
   unsigned long sd_us;
-  unsigned long ip_addr;
+  IPAddr ip_addr;
   unsigned short status;
 
   verbose = check_for_verbose_flag(line);
@@ -1569,7 +1634,7 @@ process_cmd_sourcestats(char *line)
       if (submit_ok) {
         if (ntohs(reply.status) == STT_SUCCESS) {
           
-          ip_addr = ntohl(reply.data.sourcestats.ip_addr);
+          UTI_IPNetworkToHost(&reply.data.sourcestats.ip_addr, &ip_addr);
           n_samples = ntohl(reply.data.sourcestats.n_samples);
           n_runs = ntohl(reply.data.sourcestats.n_runs);
           span_seconds = ntohl(reply.data.sourcestats.span_seconds);
@@ -1577,12 +1642,11 @@ process_cmd_sourcestats(char *line)
           skew_ppm = WIRE2REAL(reply.data.sourcestats.skew_ppm);
           sd_us = ntohl(reply.data.sourcestats.sd_us);
 
-          hostname_buf[25] = 0;
           if (no_dns) {
-            snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_IPToDottedQuad(ip_addr));
+            snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_IPToString(&ip_addr));
           } else {
-            dns_lookup = DNS_IPAddress2Name(ip_addr);
-            strncpy(hostname_buf, dns_lookup, 25);
+            DNS_IPAddress2Name(&ip_addr, hostname_buf, sizeof(hostname_buf));
+            hostname_buf[25] = 0;
           }
 
           printf("%-25s  %2lu  %2lu  ", hostname_buf, n_samples, n_runs);
@@ -1644,9 +1708,10 @@ process_cmd_tracking(char *line)
     b = (ref_id >> 16) & 0xff;
     c = (ref_id >> 8) & 0xff;
     d = (ref_id) & 0xff;
+    
     printf("Reference ID    : %lu.%lu.%lu.%lu (%s)\n",
-           a, b, c, d,
-           (no_dns) ? UTI_IPToDottedQuad(ref_id) : DNS_IPAddress2Name(ref_id));
+           a, b, c, d, "");
+           //* TODO (no_dns) ? UTI_IPToDottedQuad(ref_id) : DNS_IPAddress2Name(ref_id)); */
     printf("Stratum         : %lu\n", (unsigned long) ntohl(reply.data.tracking.stratum));
     ref_time.tv_sec = ntohl(reply.data.tracking.ref_time_s);
     ref_time.tv_usec = ntohl(reply.data.tracking.ref_time_us);
@@ -1766,7 +1831,6 @@ process_cmd_clients(char *line)
   unsigned long last_ntp_hit_ago;
   unsigned long last_cmd_hit_ago;
   char hostname_buf[32];
-  const char *dns_lookup;
 
   int n_replies;
 
@@ -1922,9 +1986,8 @@ process_cmd_clients(char *line)
                 snprintf(hostname_buf, sizeof(hostname_buf), 
                          "%s", UTI_IPToDottedQuad(ip));
               } else {
-                dns_lookup = DNS_IPAddress2Name(ip);
+                DNS_IPAddress2Name(ip, hostname_buf, sizeof(hostname_buf));
                 hostname_buf[25] = 0;
-                strncpy(hostname_buf, dns_lookup, 25);
               }
               printf("%-25s  %6d  %6d  %6d  %6d  %6d  ",
                      hostname_buf,
@@ -1988,7 +2051,7 @@ process_cmd_clients(char *line)
   int status;
   unsigned long next_index;
   int j;
-  unsigned long ip;
+  IPAddr ip;
   unsigned long client_hits;
   unsigned long peer_hits;
   unsigned long cmd_hits_auth;
@@ -1997,7 +2060,6 @@ process_cmd_clients(char *line)
   unsigned long last_ntp_hit_ago;
   unsigned long last_cmd_hit_ago;
   char hostname_buf[32];
-  const char *dns_lookup;
 
   int n_replies;
   int n_indices_in_table;
@@ -2025,9 +2087,9 @@ process_cmd_clients(char *line)
             goto finished;
           }
           for (j=0; j<n_replies; j++) {
-            ip = ntohl(reply.data.client_accesses_by_index.clients[j].ip);
-            if (ip != 0UL) {
-              /* ip == 0 implies that the node could not be found in
+            UTI_IPNetworkToHost(&reply.data.client_accesses_by_index.clients[j].ip, &ip);
+            if (ip.family != IPADDR_UNSPEC) {
+              /* UNSPEC implies that the node could not be found in
                  the daemon's tables; we shouldn't ever generate this
                  case, but ignore it if we do.  (In future there might
                  be a protocol to reset the client logging; if another
@@ -2045,11 +2107,10 @@ process_cmd_clients(char *line)
 
               if (no_dns) {
                 snprintf(hostname_buf, sizeof(hostname_buf),
-                         "%s", UTI_IPToDottedQuad(ip));
+                         "%s", UTI_IPToString(&ip));
               } else {
-                dns_lookup = DNS_IPAddress2Name(ip);
+                DNS_IPAddress2Name(&ip, hostname_buf, sizeof(hostname_buf));
                 hostname_buf[25] = 0;
-                strncpy(hostname_buf, dns_lookup, 25);
               }
               printf("%-25s  %6ld  %6ld  %6ld  %6ld  %6ld  ",
                      hostname_buf,
@@ -2474,6 +2535,9 @@ process_line(char *line)
           break;
         case STT_BADRTCFILE:
           printf("514 Can't write RTC parameters");
+          break;
+        case STT_INVALIDAF:
+          printf("515 Invalid address family");
           break;
       }
       

@@ -65,7 +65,8 @@
 
 #define RETRANSMISSION_TIMEOUT (1.0)
 
-typedef struct {  unsigned long ip_addr;
+typedef struct {
+  IPAddr ip_addr;               /* Address of the server */
   int sanity;                   /* Flag indicating whether source
                                    looks sane or not */
   int n_dead_probes;            /* Number of probes sent to the server
@@ -93,7 +94,18 @@ static int n_completed_sources;
 
 static int init_slew_threshold = -1;
 
-static int sock_fd = -1;
+union sockaddr_in46 {
+  struct sockaddr_in in4;
+#ifdef HAVE_IPV6
+  struct sockaddr_in6 in6;
+#endif
+  struct sockaddr u;
+};
+
+static int sock_fd4 = -1;
+#ifdef HAVE_IPV6
+static int sock_fd6 = -1;
+#endif
 
 /* ================================================== */
 
@@ -143,12 +155,13 @@ ACQ_Finalise(void)
 
 /* ================================================== */
 
-static void
-initialise_io(void)
+static int
+prepare_socket(int family)
 {
   unsigned short port_number = CNF_GetAcquisitionPort();
+  int sock_fd;
 
-  sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+  sock_fd = socket(family, SOCK_DGRAM, 0);
 
   if (sock_fd < 0) {
     LOG_FATAL(LOGF_Acquire, "Could not open socket : %s", strerror(errno));
@@ -158,18 +171,48 @@ initialise_io(void)
     /* Don't bother binding this socket - we're not fussed what port
        number it gets */
   } else {
-    struct sockaddr_in my_addr;
-    my_addr.sin_family = AF_INET;
-    my_addr.sin_port = htons(port_number);
-    my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    if (bind(sock_fd, (struct sockaddr *) &my_addr, sizeof(my_addr)) < 0) {
+    union sockaddr_in46 my_addr;
+
+    memset(&my_addr, 0, sizeof (my_addr));
+
+    switch (family) {
+      case AF_INET:
+        my_addr.in4.sin_family = family;
+        my_addr.in4.sin_port = htons(port_number);
+        my_addr.in4.sin_addr.s_addr = htonl(INADDR_ANY);
+        break;
+#ifdef HAVE_IPV6
+      case AF_INET6:
+        my_addr.in6.sin6_family = family;
+        my_addr.in6.sin6_port = htons(port_number);
+        my_addr.in6.sin6_addr = in6addr_any;
+        break;
+#endif
+      default:
+        assert(0);
+    }
+
+    if (bind(sock_fd, &my_addr.u, sizeof(my_addr)) < 0) {
       LOG(LOGS_ERR, LOGF_Acquire, "Could not bind socket : %s\n", strerror(errno));
       /* but keep running */
     }
   }
 
-  SCH_AddInputFileHandler(sock_fd, read_from_socket, NULL);
+  SCH_AddInputFileHandler(sock_fd, read_from_socket, (void *)(long)sock_fd);
 
+  return sock_fd;
+}
+/* ================================================== */
+
+static void
+initialise_io(int family)
+{
+  if (family == IPADDR_INET4 || family == IPADDR_UNSPEC)
+    sock_fd4 = prepare_socket(AF_INET);
+#ifdef HAVE_IPV6
+  if (family == IPADDR_INET6 || family == IPADDR_UNSPEC)
+    sock_fd6 = prepare_socket(AF_INET6);
+#endif
 }
 
 /* ================================================== */
@@ -177,10 +220,18 @@ initialise_io(void)
 static void
 finalise_io(void)
 {
-  if (sock_fd >= 0) {
-    SCH_RemoveInputFileHandler(sock_fd);
-    close(sock_fd);
+  if (sock_fd4 >= 0) {
+    SCH_RemoveInputFileHandler(sock_fd4);
+    close(sock_fd4);
   }
+  sock_fd4 = -1;
+#ifdef HAVE_IPV6
+  if (sock_fd6 >= 0) {
+    SCH_RemoveInputFileHandler(sock_fd6);
+    close(sock_fd6);
+  }
+  sock_fd6 = -1;
+#endif
 
   return;
 }
@@ -195,10 +246,11 @@ probe_source(SourceRecord *src)
   NTP_Mode my_mode = MODE_CLIENT;
   struct timeval cooked;
   double local_time_err;
-  struct sockaddr_in his_addr;
+  union sockaddr_in46 his_addr;
+  int sock_fd;
 
 #if 0
-  printf("Sending probe to %08lx sent=%d samples=%d\n", src->ip_addr, src->n_probes_sent, src->n_samples);
+  printf("Sending probe to %s sent=%d samples=%d\n", UTI_IPToString(&src->ip_addr), src->n_probes_sent, src->n_samples);
 #endif
 
   pkt.lvm = (((LEAP_Unsynchronised << 6) & 0xc0) |
@@ -219,18 +271,37 @@ probe_source(SourceRecord *src)
   pkt.receive_ts.lo = 0;   /* Set to 0 */
 
   /* And do transmission */
-  his_addr.sin_addr.s_addr = htonl(src->ip_addr);
-  his_addr.sin_port = htons(123); /* Fixed for now */
-  his_addr.sin_family = AF_INET;
+
+  memset(&his_addr, 0, sizeof (his_addr));
+  switch (src->ip_addr.family) {
+    case IPADDR_INET4:
+      his_addr.in4.sin_addr.s_addr = htonl(src->ip_addr.addr.in4);
+      his_addr.in4.sin_port = htons(123); /* Fixed for now */
+      his_addr.in4.sin_family = AF_INET;
+      sock_fd = sock_fd4;
+      break;
+#ifdef HAVE_IPV6
+    case IPADDR_INET6:
+      memcpy(&his_addr.in6.sin6_addr.s6_addr, &src->ip_addr.addr.in6,
+          sizeof (his_addr.in6.sin6_addr.s6_addr));
+      his_addr.in6.sin6_port = htons(123); /* Fixed for now */
+      his_addr.in6.sin6_family = AF_INET6;
+      sock_fd = sock_fd6;
+      break;
+#endif
+    default:
+      assert(0);
+  }
+
 
   LCL_ReadCookedTime(&cooked, &local_time_err);
   UTI_TimevalToInt64(&cooked, &pkt.transmit_ts);
 
   if (sendto(sock_fd, (void *) &pkt, NTP_NORMAL_PACKET_SIZE,
              0,
-             (struct sockaddr *) &his_addr, sizeof(his_addr)) < 0) {
+             &his_addr.u, sizeof(his_addr)) < 0) {
     LOG(LOGS_WARN, LOGF_Acquire, "Could not send to %s : %s",
-        UTI_IPToDottedQuad(src->ip_addr),
+        UTI_IPToString(&src->ip_addr),
         strerror(errno));
   }
 
@@ -253,7 +324,7 @@ transmit_timeout(void *x)
   src->timer_running = 0;
 
 #if 0
-  printf("Timeout expired for server %08lx\n", src->ip_addr);
+  printf("Timeout expired for server %s\n", UTI_IPToString(&src->ip_addr));
 #endif
 
   if (src->n_dead_probes < MAX_DEAD_PROBES) {
@@ -357,11 +428,12 @@ read_from_socket(void *anything)
 {
   int status;
   ReceiveBuffer msg;
-  struct sockaddr_in his_addr;
+  union sockaddr_in46 his_addr;
+  int sock_fd;
   socklen_t his_addr_len;
   int flags;
   int message_length;
-  unsigned long remote_ip;
+  IPAddr remote_ip;
   int i, ok;
   struct timeval now;
   double local_time_err;
@@ -374,24 +446,39 @@ read_from_socket(void *anything)
   /* Get timestamp */
   LCL_ReadCookedTime(&now, &local_time_err);
 
+  sock_fd = (long)anything;
   status = recvfrom (sock_fd, (char *)&msg, message_length, flags,
-                     (struct sockaddr *) &his_addr, &his_addr_len);
+                     &his_addr.u, &his_addr_len);
 
   if (status < 0) {
     LOG(LOGS_WARN, LOGF_Acquire, "Error reading from socket, %s", strerror(errno));
     return;
   }
   
-  remote_ip = ntohl(his_addr.sin_addr.s_addr);
+  switch (his_addr.u.sa_family) {
+    case AF_INET:
+      remote_ip.family = IPADDR_INET4;
+      remote_ip.addr.in4 = ntohl(his_addr.in4.sin_addr.s_addr);
+      break;
+#ifdef HAVE_IPV6
+    case AF_INET6:
+      remote_ip.family = IPADDR_INET6;
+      memcpy(&remote_ip.addr.in6, his_addr.in6.sin6_addr.s6_addr,
+          sizeof (remote_ip.addr.in6));
+      break;
+#endif
+    default:
+      assert(0);
+  }
 
 #if 0
-  printf("Got message from %08lx\n", remote_ip);
+  printf("Got message from %s\n", UTI_IPToString(&remote_ip));
 #endif
   
   /* Find matching host */
   ok = 0;
   for (i=0; i<n_sources; i++) {
-    if (remote_ip == sources[i].ip_addr) {
+    if (UTI_CompareIPs(&remote_ip, &sources[i].ip_addr, NULL) == 0) {
       ok = 1;
       break;
     }
@@ -418,7 +505,7 @@ read_from_socket(void *anything)
         (src->n_total_samples >= MAX_SAMPLES)) {
       ++n_completed_sources;
 #if 0
-      printf("Source %08lx completed\n", src->ip_addr);
+      printf("Source %s completed\n", UTI_IPToString(&src->ip_addr));
 #endif
       if (n_completed_sources == n_sources) {
         wind_up_acquisition();
@@ -440,7 +527,7 @@ start_next_source(void)
 {
   probe_source(sources + n_started_sources);
 #if 0
-  printf("Trying to start source %08lx\n", sources[n_started_sources].ip_addr);
+  printf("Trying to start source %s\n", UTI_IPToString(&sources[n_started_sources].ip_addr));
 #endif
   n_started_sources++;
   
@@ -552,10 +639,10 @@ process_measurements(void)
   for (i=0; i<2*n_sane_sources; i++) {
 
 #if 0
-    fprintf(stderr, "Endpoint type %s source index %d [ip=%08lx] offset=%.6f\n",
+    fprintf(stderr, "Endpoint type %s source index %d [ip=%s] offset=%.6f\n",
             (eps[i].type == LO) ? "LO" : "HIGH",
             eps[i].index,
-            sources[eps[i].index].ip_addr,
+            UTI_IPToString(&sources[eps[i].index].ip_addr),
             eps[i].offset);
 #endif
 
@@ -655,10 +742,10 @@ start_source_timeout_handler(void *not_used)
 /* ================================================== */
 
 void
-ACQ_StartAcquisition(int n, unsigned long *ip_addrs, int threshold, void (*after_hook)(void *), void *anything)
+ACQ_StartAcquisition(int n, IPAddr *ip_addrs, int threshold, void (*after_hook)(void *), void *anything)
 {
 
-  int i;
+  int i, ip4, ip6;
 
   saved_after_hook = after_hook;
   saved_after_hook_anything = anything;
@@ -670,14 +757,18 @@ ACQ_StartAcquisition(int n, unsigned long *ip_addrs, int threshold, void (*after
   n_sources = n;
   sources = MallocArray(SourceRecord, n);
 
-  for (i=0; i<n; i++) {
+  for (i = ip4 = ip6 = 0; i < n; i++) {
     sources[i].ip_addr = ip_addrs[i];
     sources[i].n_samples = 0;
     sources[i].n_total_samples = 0;
     sources[i].n_dead_probes = 0;
+    if (ip_addrs[i].family == IPADDR_INET4)
+      ip4++;
+    else if (ip_addrs[i].family == IPADDR_INET6)
+      ip6++;
   }
 
-  initialise_io();
+  initialise_io((ip4 && ip6) ? IPADDR_UNSPEC : (ip4 ? IPADDR_INET4 : IPADDR_INET6));
 
   /* Start sampling first source */
   start_next_source();
