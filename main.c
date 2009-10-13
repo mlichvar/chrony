@@ -61,6 +61,7 @@
 #include "refclock.h"
 #include "clientlog.h"
 #include "broadcast.h"
+#include "nameserv.h"
 
 /* ================================================== */
 
@@ -268,6 +269,10 @@ int main
       exit(0);
     } else if (!strcmp("-d", *argv)) {
       debug = 1;
+    } else if (!strcmp("-4", *argv)) {
+      DNS_SetAddressFamily(IPADDR_INET4);
+    } else if (!strcmp("-6", *argv)) {
+      DNS_SetAddressFamily(IPADDR_INET6);
     } else {
       LOG(LOGS_WARN, LOGF_Main, "Unrecognized command line option [%s]", *argv);
     }

@@ -2619,11 +2619,17 @@ main(int argc, char **argv)
       }
     } else if (!strcmp(*argv, "-n")) {
       no_dns = 1;
+    } else if (!strcmp(*argv, "-4")) {
+      DNS_SetAddressFamily(IPADDR_INET4);
+      hostname = "127.0.0.1";
+    } else if (!strcmp(*argv, "-6")) {
+      DNS_SetAddressFamily(IPADDR_INET6);
+      hostname = "::1";
     } else if (!strcmp("-v", *argv) || !strcmp("--version",*argv)) {
       printf("chronyc (chrony) version %s\n", PROGRAM_VERSION_STRING);
       exit(0);
     } else if (!strncmp(*argv, "-", 1)) {
-      fprintf(stderr, "Usage : %s [-h <hostname>] [-p <port-number>] [-n] [command]\n", progname);
+      fprintf(stderr, "Usage : %s [-h <hostname>] [-p <port-number>] [-n] [-4|-6] [command]\n", progname);
       exit(1);
     } else {
       break; /* And process remainder of line as a command */

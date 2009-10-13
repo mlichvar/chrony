@@ -34,6 +34,9 @@
 
 #include "addressing.h"
 
+/* Resolve names only to selected address family */
+extern void DNS_SetAddressFamily(int family);
+
 extern int DNS_Name2IPAddress(const char *name, IPAddr *addr, int retry);
 
 extern void DNS_IPAddress2Name(IPAddr *ip_addr, char *name, int len);

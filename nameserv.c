@@ -40,6 +40,14 @@
 #define MAXRETRIES 10
 static unsigned int retries = 0;
 
+static int address_family = IPADDR_UNSPEC;
+
+void
+DNS_SetAddressFamily(int family)
+{
+  address_family = family;
+}
+
 int 
 DNS_Name2IPAddress(const char *name, IPAddr *addr, int retry)
 {
@@ -80,6 +88,8 @@ try_again:
         break;
 #endif
     }
+    if (result && address_family != IPADDR_UNSPEC && address_family != addr->family)
+      result = 0;
   }
 
   freeaddrinfo(res);
