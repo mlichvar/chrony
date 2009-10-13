@@ -321,7 +321,8 @@ typedef struct {
 
    Version 3 : NTP_Source message lengthened (auto_offline)
 
-   Version 4 : IPv6 addressing added, 64-bit time values
+   Version 4 : IPv6 addressing added, 64-bit time values, sourcestats 
+   and tracking reports extended
 
  */
 
@@ -472,6 +473,7 @@ typedef struct {
 
 typedef struct {
   uint32_t ref_id;
+  IPAddr ip_addr;
   uint32_t stratum;
   Timeval ref_time;
   uint32_t current_correction_s;
@@ -485,6 +487,7 @@ typedef struct {
 } RPY_Tracking;
 
 typedef struct {
+  uint32_t ref_id;
   IPAddr ip_addr;
   uint32_t n_samples;
   uint32_t n_runs;

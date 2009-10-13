@@ -55,6 +55,7 @@ typedef struct {
 
 typedef struct {
   unsigned long ref_id;
+  IPAddr ip_addr;
   unsigned long stratum;
   struct timeval ref_time;
   struct timeval current_correction;
@@ -66,6 +67,7 @@ typedef struct {
 } RPT_TrackingReport;
 
 typedef struct {
+  unsigned long ref_id;
   IPAddr ip_addr;
   unsigned long n_samples;
   unsigned long n_runs;

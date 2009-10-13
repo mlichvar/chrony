@@ -47,6 +47,7 @@ static NTP_Leap our_leap_status;
 static int our_leap_sec;
 static int our_stratum;
 static unsigned long our_ref_id;
+static IPAddr our_ref_ip;
 struct timeval our_ref_time; /* Stored relative to reference, NOT local time */
 static double our_offset;
 static double our_skew;
@@ -360,6 +361,7 @@ void
 REF_SetReference(int stratum,
                  NTP_Leap leap,
                  unsigned long ref_id,
+                 IPAddr *ref_ip,
                  struct timeval *ref_time,
                  double offset,
                  double frequency,
@@ -407,6 +409,10 @@ REF_SetReference(int stratum,
   are_we_synchronised = 1;
   our_stratum = stratum + 1;
   our_ref_id = ref_id;
+  if (ref_ip)
+    our_ref_ip = *ref_ip;
+  else
+    our_ref_ip.family = IPADDR_UNSPEC;
   our_ref_time = *ref_time;
   our_offset = offset;
   our_root_delay = root_delay;
@@ -474,7 +480,7 @@ REF_SetReference(int stratum,
           
     fprintf(logfile, "%s %-15s %2d %10.3f %10.3f %10.3e\n",
             UTI_TimeToLogForm(ref_time->tv_sec),
-            UTI_IPToDottedQuad(our_ref_id),
+            our_ref_ip.family != IPADDR_UNSPEC ? UTI_IPToString(&our_ref_ip) : UTI_RefidToString(our_ref_id),
             our_stratum,
             abs_freq_ppm,
             1.0e6*our_skew,
@@ -707,6 +713,7 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
     extra_dispersion = (our_skew + fabs(our_residual_freq)) * elapsed;
     
     rep->ref_id = our_ref_id;
+    rep->ip_addr = our_ref_ip;
     rep->stratum = our_stratum;
     rep->ref_time = our_ref_time;
     UTI_DoubleToTimeval(correction, &rep->current_correction);
@@ -719,6 +726,7 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
   } else if (enable_local_stratum) {
 
     rep->ref_id = LOCAL_REFERENCE_ID;
+    rep->ip_addr.family = IPADDR_UNSPEC;
     rep->stratum = local_stratum;
     rep->ref_time = now_cooked;
     UTI_DoubleToTimeval(correction, &rep->current_correction);
@@ -731,6 +739,7 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
   } else {
 
     rep->ref_id = 0UL;
+    rep->ip_addr.family = IPADDR_UNSPEC;
     rep->stratum = 0;
     rep->ref_time.tv_sec = 0;
     rep->ref_time.tv_usec = 0;

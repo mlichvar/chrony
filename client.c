@@ -1585,6 +1585,7 @@ process_cmd_sourcestats(char *line)
   unsigned long n_samples, n_runs, span_seconds;
   double resid_freq_ppm, skew_ppm;
   unsigned long sd_us;
+  unsigned long ref_id;
   IPAddr ip_addr;
   unsigned short status;
 
@@ -1634,6 +1635,7 @@ process_cmd_sourcestats(char *line)
       if (submit_ok) {
         if (ntohs(reply.status) == STT_SUCCESS) {
           
+          ref_id = ntohl(reply.data.sourcestats.ref_id);
           UTI_IPNetworkToHost(&reply.data.sourcestats.ip_addr, &ip_addr);
           n_samples = ntohl(reply.data.sourcestats.n_samples);
           n_runs = ntohl(reply.data.sourcestats.n_runs);
@@ -1642,7 +1644,9 @@ process_cmd_sourcestats(char *line)
           skew_ppm = WIRE2REAL(reply.data.sourcestats.skew_ppm);
           sd_us = ntohl(reply.data.sourcestats.sd_us);
 
-          if (no_dns) {
+          if (ip_addr.family == IPADDR_UNSPEC)
+            snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_RefidToString(ref_id));
+          else if (no_dns) {
             snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_IPToString(&ip_addr));
           } else {
             DNS_IPAddress2Name(&ip_addr, hostname_buf, sizeof(hostname_buf));
@@ -1673,7 +1677,10 @@ process_cmd_tracking(char *line)
   int auth_ok;
   CMD_Request request;
   CMD_Reply reply;
+  IPAddr ip_addr;
   unsigned long ref_id;
+  char host[50];
+  char *ref_ip;
   struct timeval ref_time;
   struct tm ref_time_tm;
   unsigned long a, b, c, d;
@@ -1709,9 +1716,17 @@ process_cmd_tracking(char *line)
     c = (ref_id >> 8) & 0xff;
     d = (ref_id) & 0xff;
     
-    printf("Reference ID    : %lu.%lu.%lu.%lu (%s)\n",
-           a, b, c, d, "");
-           //* TODO (no_dns) ? UTI_IPToDottedQuad(ref_id) : DNS_IPAddress2Name(ref_id)); */
+    UTI_IPNetworkToHost(&reply.data.tracking.ip_addr, &ip_addr);
+    if (ip_addr.family == IPADDR_UNSPEC) {
+      ref_ip = UTI_RefidToString(ref_id);
+    } else if (no_dns) {
+      ref_ip = UTI_IPToString(&ip_addr);
+    } else {
+      DNS_IPAddress2Name(&ip_addr, host, sizeof (host));
+      ref_ip = host;
+    }
+    
+    printf("Reference ID    : %lu.%lu.%lu.%lu (%s)\n", a, b, c, d, ref_ip);
     printf("Stratum         : %lu\n", (unsigned long) ntohl(reply.data.tracking.stratum));
     UTI_TimevalNetworkToHost(&reply.data.tracking.ref_time, &ref_time);
     ref_time_tm = *gmtime((time_t *)&ref_time.tv_sec);

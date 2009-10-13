@@ -1370,6 +1370,7 @@ handle_tracking(CMD_Request *rx_message, CMD_Reply *tx_message)
   tx_message->status = htons(STT_SUCCESS);
   tx_message->reply  = htons(RPY_TRACKING);
   tx_message->data.tracking.ref_id = htonl(rpt.ref_id);
+  UTI_IPHostToNetwork(&rpt.ip_addr, &tx_message->data.tracking.ip_addr);
   tx_message->data.tracking.stratum = htonl(rpt.stratum);
   UTI_TimevalHostToNetwork(&rpt.ref_time, &tx_message->data.tracking.ref_time);
   tx_message->data.tracking.current_correction_s = htonl(rpt.current_correction.tv_sec);
@@ -1394,6 +1395,7 @@ handle_sourcestats(CMD_Request *rx_message, CMD_Reply *tx_message)
   if (status) {
     tx_message->status = htons(STT_SUCCESS);
     tx_message->reply = htons(RPY_SOURCESTATS);
+    tx_message->data.sourcestats.ref_id = htonl(report.ref_id);
     UTI_IPHostToNetwork(&report.ip_addr, &tx_message->data.sourcestats.ip_addr);
     tx_message->data.sourcestats.n_samples = htonl(report.n_samples);
     tx_message->data.sourcestats.n_runs = htonl(report.n_runs);

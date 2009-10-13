@@ -733,6 +733,7 @@ SRC_SelectSource(unsigned long match_addr)
 
           REF_SetReference(min_stratum, leap_status,
                            sources[selected_source_index]->ref_id,
+                           sources[selected_source_index]->ip_addr,
                            &now,
                            src_offset,
                            src_frequency,
@@ -960,6 +961,7 @@ SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report)
     return 0;
   } else {
     src = sources[index];
+    report->ref_id = src->ref_id;
     if (src->ip_addr)
       report->ip_addr = *src->ip_addr;
     else
