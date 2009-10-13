@@ -1912,3 +1912,11 @@ NCR_IncrementActivityCounters(NCR_Instance inst, int *online, int *offline,
 }
 
 /* ================================================== */
+
+NTP_Remote_Address *
+NCR_GetRemoteAddress(NCR_Instance inst) 
+{
+  return &inst->remote_addr;
+}
+
+/* ================================================== */

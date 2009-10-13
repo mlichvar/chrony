@@ -43,8 +43,8 @@
 /* Record type private to this file, used to store information about
    particular sources */
 typedef struct {
-  NTP_Remote_Address remote_addr;       /* The address of this source */
-  int in_use;                   /* Whether this slot in the table is in use */
+  NTP_Remote_Address *remote_addr; /* The address of this source, non-NULL
+                                      means this slot in table is in use */
   NCR_Instance data;            /* Data for the protocol engine for this source */
 } SourceRecord;
 
@@ -83,7 +83,7 @@ NSR_Initialise(void)
 {
   int i;
   for (i=0; i<N_RECORDS; i++) {
-    records[i].in_use = 0;
+    records[i].remote_addr = NULL;
   }
   n_sources = 0;
   initialised = 1;
@@ -147,15 +147,15 @@ find_slot(NTP_Remote_Address *remote_addr, int *slot, int *found)
   hash = ip ^ (ip >> 16);
   hash = (hash ^ (hash >> 8)) & 0xff;
 
-  while ((records[hash].in_use) &&
-         UTI_CompareIPs(&records[hash].remote_addr.ip_addr,
+  while (records[hash].remote_addr &&
+         UTI_CompareIPs(&records[hash].remote_addr->ip_addr,
            &remote_addr->ip_addr, NULL)) {
     hash++;
     if (hash == 256) hash = 0;
   }
 
-  if (records[hash].in_use) {
-    if (records[hash].remote_addr.port == port) {
+  if (records[hash].remote_addr) {
+    if (records[hash].remote_addr->port == port) {
       *found = 2;
     } else {
       *found = 1;
@@ -196,9 +196,8 @@ NSR_AddServer(NTP_Remote_Address *remote_addr, SourceParameters *params)
       return NSR_InvalidAF;
     } else {
       n_sources++;
-      records[slot].remote_addr = *remote_addr;
-      records[slot].in_use = 1;
       records[slot].data = NCR_GetServerInstance(remote_addr, params); /* Will need params passing through */
+      records[slot].remote_addr = NCR_GetRemoteAddress(records[slot].data);
       return NSR_Success;
     }
   }
@@ -230,9 +229,8 @@ NSR_AddPeer(NTP_Remote_Address *remote_addr, SourceParameters *params)
       return NSR_InvalidAF;
     } else {
       n_sources++;
-      records[slot].remote_addr = *remote_addr;
-      records[slot].in_use = 1;
       records[slot].data = NCR_GetPeerInstance(remote_addr, params); /* Will need params passing through */
+      records[slot].remote_addr = NCR_GetRemoteAddress(records[slot].data);
       return NSR_Success;
     }
   }
@@ -256,7 +254,7 @@ NSR_RemoveSource(NTP_Remote_Address *remote_addr)
     return NSR_NoSuchSource;
   } else {
     n_sources--;
-    records[slot].in_use = 0;
+    records[slot].remote_addr = NULL;
     NCR_DestroyInstance(records[slot].data);
     return NSR_Success;
   }
@@ -318,10 +316,10 @@ slew_sources(struct timeval *raw,
   int i;
 
   for (i=0; i<N_RECORDS; i++) {
-    if (records[i].in_use) {
+    if (records[i].remote_addr) {
 #if 0
       LOG(LOGS_INFO, LOGF_Sources, "IP=%s dfreq=%f doff=%f",
-          UTI_IPToString(&records[i].remote_addr.ip_addr), dfreq, doffset);
+          UTI_IPToString(&records[i].remote_addr->ip_addr), dfreq, doffset);
 #endif
 
       NCR_SlewTimes(records[i].data, cooked, dfreq, doffset);
@@ -340,9 +338,9 @@ NSR_TakeSourcesOnline(IPAddr *mask, IPAddr *address)
 
   any = 0;
   for (i=0; i<N_RECORDS; i++) {
-    if (records[i].in_use) {
+    if (records[i].remote_addr) {
       if (address->family == IPADDR_UNSPEC ||
-          !UTI_CompareIPs(&records[i].remote_addr.ip_addr, address, mask)) {
+          !UTI_CompareIPs(&records[i].remote_addr->ip_addr, address, mask)) {
         any = 1;
         NCR_TakeSourceOnline(records[i].data);
       }
@@ -362,9 +360,9 @@ NSR_TakeSourcesOffline(IPAddr *mask, IPAddr *address)
 
   any = 0;
   for (i=0; i<N_RECORDS; i++) {
-    if (records[i].in_use) {
+    if (records[i].remote_addr) {
       if (address->family == IPADDR_UNSPEC ||
-          !UTI_CompareIPs(&records[i].remote_addr.ip_addr, address, mask)) {
+          !UTI_CompareIPs(&records[i].remote_addr->ip_addr, address, mask)) {
         any = 1;
         NCR_TakeSourceOffline(records[i].data);
       }
@@ -461,9 +459,9 @@ NSR_InitiateSampleBurst(int n_good_samples, int n_total_samples,
 
   any = 0;
   for (i=0; i<N_RECORDS; i++) {
-    if (records[i].in_use) {
+    if (records[i].remote_addr) {
       if (address->family == IPADDR_UNSPEC ||
-          !UTI_CompareIPs(&records[i].remote_addr.ip_addr, address, mask)) {
+          !UTI_CompareIPs(&records[i].remote_addr->ip_addr, address, mask)) {
         any = 1;
         NCR_InitiateSampleBurst(records[i].data, n_good_samples, n_total_samples);
       }
@@ -508,7 +506,7 @@ NSR_GetActivityReport(RPT_ActivityReport *report)
   report->burst_offline = 0;
 
   for (i=0; i<N_RECORDS; i++) {
-    if (records[i].in_use) {
+    if (records[i].remote_addr) {
       NCR_IncrementActivityCounters(records[i].data, &report->online, &report->offline,
                                     &report->burst_online, &report->burst_offline);
     }

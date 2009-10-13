@@ -102,4 +102,6 @@ extern void NCR_CycleLogFile(void);
 extern void NCR_IncrementActivityCounters(NCR_Instance inst, int *online, int *offline, 
                                           int *burst_online, int *burst_offline);
 
+extern NTP_Remote_Address *NCR_GetRemoteAddress(NCR_Instance instance);
+
 #endif /* GOT_NTP_CORE_H */
