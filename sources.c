@@ -656,29 +656,32 @@ SRC_SelectSource(unsigned long match_addr)
           if (stratum < min_stratum) min_stratum = stratum;
         }
 
+        /* Find the best source with minimum stratum */
+        min_distance_index = INVALID_SOURCE;
+        for (i=0; i<n_sel_sources; i++) {
+          index = sel_sources[i];
+          if (sources[index]->sel_info.stratum == min_stratum) {
+            if ((min_distance_index == INVALID_SOURCE) ||
+                (sources[index]->sel_info.root_distance < min_distance)) {
+              min_distance = sources[index]->sel_info.root_distance;
+              min_distance_index = index;
+            }
+          }
+        }
+
 #if 0
         LOG(LOGS_INFO, LOGF_Sources, "min_stratum=%d", min_stratum);
 #endif
 
-        /* Does the current source have this stratum and is it still a
-           survivor? */
+        /* Does the current source have this stratum, doesn't have distance
+           much worse than the best source and is it still a survivor? */
 
         if ((selected_source_index == INVALID_SOURCE) ||
             (sources[selected_source_index]->status != SRC_SELECTABLE) ||
-            (sources[selected_source_index]->sel_info.stratum > min_stratum)) {
+            (sources[selected_source_index]->sel_info.stratum > min_stratum) ||
+            (sources[selected_source_index]->sel_info.root_distance > 10 * min_distance)) {
           
           /* We have to elect a new synchronisation source */
-          min_distance_index = INVALID_SOURCE;
-          for (i=0; i<n_sel_sources; i++) {
-            index = sel_sources[i];
-            if (sources[index]->sel_info.stratum == min_stratum) {
-              if ((min_distance_index == INVALID_SOURCE) ||
-                  (sources[index]->sel_info.root_distance < min_distance)) {
-                min_distance = sources[index]->sel_info.root_distance;
-                min_distance_index = index;
-              }
-            }
-          }
 
           selected_source_index = min_distance_index;
           LOG(LOGS_INFO, LOGF_Sources, "Selected source %s",
