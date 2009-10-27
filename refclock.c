@@ -145,7 +145,7 @@ RCL_AddRefclock(RefclockParameters *params)
   else {
     unsigned char ref[5] = { 0, 0, 0, 0, 0 };
 
-    snprintf((char *)ref, 5, "%s%s", params->driver_name, params->driver_parameter);
+    snprintf((char *)ref, 5, "%3s%d", params->driver_name, n_sources % 10);
     inst->ref_id = ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
   }
 
