@@ -431,7 +431,7 @@ parse_refclock(const char *line)
 {
   int i, n, poll, dpoll, filter_length;
   unsigned long ref_id;
-  double offset;
+  double offset, delay;
   const char *tmp;
   char name[5], cmd[10 + 1], *param;
   unsigned char ref[5];
@@ -444,6 +444,7 @@ parse_refclock(const char *line)
   dpoll = 0;
   filter_length = 15;
   offset = 0.0;
+  delay = 1e-9;
   ref_id = 0;
 
   if (sscanf(line, "%4s%n", name, &n) != 1) {
@@ -488,6 +489,9 @@ parse_refclock(const char *line)
     } else if (!strncasecmp(cmd, "offset", 6)) {
       if (sscanf(line, "%lf%n", &offset, &n) != 1)
         break;
+    } else if (!strncasecmp(cmd, "delay", 5)) {
+      if (sscanf(line, "%lf%n", &delay, &n) != 1)
+        break;
     } else {
       LOG(LOGS_WARN, LOGF_Configure, "Unknown refclock parameter %s at line %d", cmd, line_number);
       break;
@@ -501,6 +505,7 @@ parse_refclock(const char *line)
   refclock_sources[i].poll = poll;
   refclock_sources[i].filter_length = filter_length;
   refclock_sources[i].offset = offset;
+  refclock_sources[i].delay = delay;
   refclock_sources[i].ref_id = ref_id;
 
   n_refclock_sources++;

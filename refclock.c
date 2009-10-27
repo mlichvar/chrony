@@ -62,6 +62,7 @@ struct RCL_Instance_Record {
   struct MedianFilter filter;
   unsigned long ref_id;
   double offset;
+  double delay;
   SCH_TimeoutID timeout_id;
   SRC_Instance source;
 };
@@ -132,6 +133,7 @@ RCL_AddRefclock(RefclockParameters *params)
   inst->driver_polled = 0;
   inst->leap_status = 0;
   inst->offset = params->offset;
+  inst->delay = params->delay;
   inst->timeout_id = -1;
   inst->source = NULL;
 
@@ -269,7 +271,7 @@ poll_timeout(void *arg)
 #endif
       SRC_SetReachable(inst->source);
       SRC_AccumulateSample(inst->source, &sample_time, offset,
-          1e-9, dispersion, 1e-9, dispersion, 0, inst->leap_status);
+          inst->delay, dispersion, inst->delay, dispersion, 0, inst->leap_status);
       inst->missed_samples = 0;
     } else {
       inst->missed_samples++;

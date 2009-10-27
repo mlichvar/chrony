@@ -39,6 +39,7 @@ typedef struct {
   int filter_length;
   unsigned long ref_id;
   double offset;
+  double delay;
 } RefclockParameters;
 
 typedef struct RCL_Instance_Record *RCL_Instance;
