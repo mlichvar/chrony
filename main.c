@@ -7,6 +7,7 @@
 
  **********************************************************************
  * Copyright (C) Richard P. Curnow  1997-2003
+ * Copyright (C) John G. Hasler  2009
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
@@ -22,16 +23,6 @@
  * 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA
  * 
  **********************************************************************
-
-  =======================================================================
-
-2009-1-28 John G. Hasler <jhasler@debian.org>
-
-       Added real-time support (Linux only) using sched_setscheduler() and
-       mlockall(). Files affected: main.c, conf.c, sys.c, sys_linux.c,
-       conf.h, configure, chronyd.8, chrony.texi, and
-       examples/chrony.conf.example.  The changes are licensed under
-       version 2 of the GPL as described above.
 
   =======================================================================
 
