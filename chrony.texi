@@ -2327,20 +2327,6 @@ chrony when disconnecting the dial-up link.  (It will still be necessary to use
 chronyc's @code{online} (@pxref{online command}) command when the link has been
 established, to enable measurements to start.)
 
-@item sched_priority
-This directive tells chronyd to use the real-time FIFO scheduler with the
-specified priority (which must be between 0 and 100).  This should result
-in reduced latency.  You don't need it unless you really have a requirement
-for extreme clock stability.  Works only on Linux.  Note that the "-P"
-command-line switch will override this.
-
-@item lock_all
-This directive tells chronyd to use the mlockall() syscall to lock itself
-into RAM so that it will never be paged out.  This should result in reduced
-latency.  You don't need it unless you really have a requirement
-for extreme clock stability.  Works only on Linux.  Note that the "-m"
-command-line switch will also enable this feature.
-
 @end table
 @c }}}
 @c }}}
