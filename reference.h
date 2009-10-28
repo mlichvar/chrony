@@ -140,6 +140,7 @@ extern void REF_ModifyMaxupdateskew(double new_max_update_skew);
 
 extern void REF_EnableLocal(int stratum);
 extern void REF_DisableLocal(void);
+extern int REF_IsLocalActive(void);
 
 extern void REF_GetTrackingReport(RPT_TrackingReport *rep);
 

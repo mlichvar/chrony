@@ -26,6 +26,7 @@
   */
 
 #include "refclock.h"
+#include "reference.h"
 #include "conf.h"
 #include "local.h"
 #include "memory.h"
@@ -37,6 +38,7 @@
 /* list of refclock drivers */
 extern RefclockDriver RCL_SHM_driver;
 extern RefclockDriver RCL_SOCK_driver;
+extern RefclockDriver RCL_PPS_driver;
 
 struct FilterSample {
   double offset;
@@ -59,6 +61,7 @@ struct RCL_Instance_Record {
   int poll;
   int missed_samples;
   int leap_status;
+  int pps_rate;
   struct MedianFilter filter;
   unsigned long ref_id;
   double offset;
@@ -72,6 +75,7 @@ struct RCL_Instance_Record {
 static struct RCL_Instance_Record refclocks[MAX_RCL_SOURCES];
 static int n_sources = 0;
 
+static int pps_stratum(RCL_Instance instance, struct timeval *tv);
 static void poll_timeout(void *arg);
 static void slew_samples(struct timeval *raw, struct timeval *cooked, double dfreq, double afreq,
              double doffset, int is_step_change, void *anything);
@@ -111,6 +115,8 @@ RCL_Finalise(void)
 int
 RCL_AddRefclock(RefclockParameters *params)
 {
+  int pps_source = 0;
+
   RCL_Instance inst = &refclocks[n_sources];
 
   if (n_sources == MAX_RCL_SOURCES)
@@ -120,8 +126,16 @@ RCL_AddRefclock(RefclockParameters *params)
     inst->driver = &RCL_SHM_driver;
   } else if (strncmp(params->driver_name, "SOCK", 4) == 0) {
     inst->driver = &RCL_SOCK_driver;
+  } else if (strncmp(params->driver_name, "PPS", 4) == 0) {
+    inst->driver = &RCL_PPS_driver;
+    pps_source = 1;
   } else {
     LOG_FATAL(LOGF_Refclock, "unknown refclock driver %s", params->driver_name);
+    return 0;
+  }
+
+  if (!inst->driver->init && !inst->driver->poll) {
+    LOG_FATAL(LOGF_Refclock, "refclock driver %s is not compiled in", params->driver_name);
     return 0;
   }
 
@@ -132,10 +146,18 @@ RCL_AddRefclock(RefclockParameters *params)
   inst->missed_samples = 0;
   inst->driver_polled = 0;
   inst->leap_status = 0;
+  inst->pps_rate = params->pps_rate;
   inst->offset = params->offset;
   inst->delay = params->delay;
   inst->timeout_id = -1;
   inst->source = NULL;
+
+  if (pps_source) {
+    if (inst->pps_rate < 1)
+      inst->pps_rate = 1;
+  } else {
+    inst->pps_rate = 0;
+  }
 
   if (inst->driver_poll > inst->poll)
     inst->driver_poll = inst->poll;
@@ -239,6 +261,85 @@ RCL_AddSample(RCL_Instance instance, struct timeval *sample_time, double offset,
   return 1;
 }
 
+int
+RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
+{
+  double correction, offset;
+  struct timeval cooked_time;
+  int rate;
+
+  struct timeval ref_time;
+  int is_synchronised, stratum;
+  double root_delay, root_dispersion, distance;
+  NTP_Leap leap;
+  unsigned long ref_id;
+
+  correction = LCL_GetOffsetCorrection(pulse_time);
+  UTI_AddDoubleToTimeval(pulse_time, correction, &cooked_time);
+
+  rate = instance->pps_rate;
+  assert(rate > 0);
+
+  /* Ignore the pulse if we are not well synchronized */
+
+  REF_GetReferenceParams(&cooked_time, &is_synchronised, &leap, &stratum,
+      &ref_id, &ref_time, &root_delay, &root_dispersion);
+  distance = fabs(root_delay) / 2 + root_dispersion;
+
+  if (!is_synchronised || distance >= 0.5 / rate) {
+#if 0
+    LOG(LOGS_INFO, LOGF_Refclock, "refclock pulse dropped second=%.9f sync=%d dist=%.9f",
+        second, is_synchronised, distance);
+#endif
+    return 0;
+  }
+
+  offset = -second - correction + instance->offset;
+
+  /* Adjust the offset to [-0.5/rate, 0.5/rate) interval */
+  offset -= (long)(offset * rate) / (double)rate;
+  if (offset < -0.5 / rate)
+    offset += 1.0 / rate;
+  else if (offset >= 0.5 / rate)
+    offset -= 1.0 / rate;
+
+#if 0
+  LOG(LOGS_INFO, LOGF_Refclock, "refclock pulse second=%.9f offset=%.9f",
+      second, offset + instance->offset);
+#endif
+
+  filter_add_sample(&instance->filter, &cooked_time, offset);
+  instance->leap_status = LEAP_Normal;
+
+  return 1;
+}
+
+static int
+pps_stratum(RCL_Instance instance, struct timeval *tv)
+{
+  struct timeval ref_time;
+  int is_synchronised, stratum, i;
+  double root_delay, root_dispersion;
+  NTP_Leap leap;
+  unsigned long ref_id;
+
+  REF_GetReferenceParams(tv, &is_synchronised, &leap, &stratum,
+      &ref_id, &ref_time, &root_delay, &root_dispersion);
+
+  /* Don't change our stratum if local stratum is active
+     or this is the current source */
+  if (ref_id == instance->ref_id || REF_IsLocalActive())
+    return stratum - 1;
+
+  /* Or the current source is another PPS refclock */ 
+  for (i = 0; i < n_sources; i++) {
+    if (refclocks[i].ref_id == ref_id && refclocks[i].pps_rate)
+      return stratum - 1;
+  }
+
+  return 0;
+}
+
 static void
 poll_timeout(void *arg)
 {
@@ -258,7 +359,7 @@ poll_timeout(void *arg)
   if (!(inst->driver->poll && inst->driver_polled < (1 << (inst->poll - inst->driver_poll)))) {
     double offset, dispersion;
     struct timeval sample_time;
-    int sample_ok;
+    int sample_ok, stratum;
 
     sample_ok = filter_get_sample(&inst->filter, &sample_time, &offset, &dispersion);
     filter_reset(&inst->filter);
@@ -269,9 +370,16 @@ poll_timeout(void *arg)
       LOG(LOGS_INFO, LOGF_Refclock, "refclock filtered sample: offset=%.9f dispersion=%.9f [%s]",
           offset, dispersion, UTI_TimevalToString(&sample_time));
 #endif
+
+      if (inst->pps_rate)
+        /* Handle special case when PPS is used with local stratum */
+        stratum = pps_stratum(inst, &sample_time);
+      else
+        stratum = 0;
+
       SRC_SetReachable(inst->source);
       SRC_AccumulateSample(inst->source, &sample_time, offset,
-          inst->delay, dispersion, inst->delay, dispersion, 0, inst->leap_status);
+          inst->delay, dispersion, inst->delay, dispersion, stratum, inst->leap_status);
       inst->missed_samples = 0;
     } else {
       inst->missed_samples++;

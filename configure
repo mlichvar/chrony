@@ -132,6 +132,30 @@ EOF
   echo $result
 }
 #}}}
+#{{{ test_for_ppsapi
+test_for_ppsapi () {
+  cat >docheck.c <<EOF;
+#include <timepps.h>
+int main(int argc, char **argv) {
+  pps_handle_t h;
+  pps_info_t i;
+  struct timespec ts;
+  return time_pps_fetch(&h, PPS_TSFMT_TSPEC, &i, &ts);
+}
+EOF
+
+  ${MYCC} ${MYCFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
+  if [ $? -eq 0 ]
+  then
+    result=0
+  else
+    result=1
+  fi
+
+  rm -f docheck.c docheck.o
+  echo $result
+}
+#}}}
 #{{{ usage
 usage () {
   cat <<EOF;
@@ -374,6 +398,14 @@ printf "Checking for IPv6 support : "
 if [ $feat_ipv6 -eq 1 -a `test_for_ipv6` -eq 0 ]; then
   printf "Yes\n"
   SYSDEFS="${SYSDEFS} -DHAVE_IPV6"
+else
+  printf "No\n"
+fi
+
+printf "Checking for PPS API : "
+if [ `test_for_ppsapi` -eq 0 ]; then
+  printf "Yes\n"
+  SYSDEFS="${SYSDEFS} -DHAVE_PPSAPI"
 else
   printf "No\n"
 fi

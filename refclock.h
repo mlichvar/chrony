@@ -37,6 +37,7 @@ typedef struct {
   int driver_poll;
   int poll;
   int filter_length;
+  int pps_rate;
   unsigned long ref_id;
   double offset;
   double delay;
@@ -62,5 +63,6 @@ extern void RCL_SetDriverData(RCL_Instance instance, void *data);
 extern void *RCL_GetDriverData(RCL_Instance instance);
 extern char *RCL_GetDriverParameter(RCL_Instance instance);
 extern int RCL_AddSample(RCL_Instance instance, struct timeval *sample_time, double offset, NTP_Leap leap_status);
+extern int RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second);
 
 #endif

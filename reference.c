@@ -695,6 +695,14 @@ REF_DisableLocal(void)
 
 /* ================================================== */
 
+int
+REF_IsLocalActive(void)
+{
+  return !are_we_synchronised && enable_local_stratum;
+}
+
+/* ================================================== */
+
 void
 REF_GetTrackingReport(RPT_TrackingReport *rep)
 {
