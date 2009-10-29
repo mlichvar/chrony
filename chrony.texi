@@ -109,8 +109,8 @@ the RFC did not make absolutely clear.  The core algorithms in
 
 @node Getting the software
 @subsection Getting the software
-Links on @uref{http://chrony.sunsite.dk/download.php, the
-chrony home page} describe how to obtain the software.
+Links on @uref{http://chrony.tuxfamily.org, the chrony home page}
+describe how to obtain the software.
 
 
 @node Platforms
@@ -279,8 +279,8 @@ children, my job, and indeed other free/open source software projects.
 However, I do intend to look into problems when time allows.
 
 Another source of information to try is the chrony users mailing list.  You can
-join this by sending an empty message to
-@email{chrony-users-subscribe@@sunsite.dk}.  Only subscribers can post to
+join this by sending a message with the subject subscribe to
+@email{chrony-users-request@@chrony.tuxfamily.org}.  Only subscribers can post to
 the list.
 
 When you are reporting a bug, please send me all the information you can.

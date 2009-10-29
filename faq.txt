@@ -45,18 +45,19 @@ I am aware of packages for Debian, Mandrake and Redhat.  I am not personally
 involved with how these are built or distributed.
 
 Q: Where is the home page?
-It is currently at <a href="http://chrony.sunsite.dk/">http://chrony.sunsite.dk/</a>. 
+It is currently at <a href="http://chrony.tuxfamily.org/">http://chrony.tuxfamily.org/</a>. 
 
 Q: Is there a mailing list?
-Yes, it's currently at chrony-users@sunsite.dk. There is a low-volume
+Yes, it's currently at chrony-users@chrony.tuxfamily.org. There is a low-volume
 list called chrony-announce which is just for announcements of new releases or
 similar matters of high importance.  You can join the lists by sending a
-message to <a href="mailto:chrony-users-subscribe@sunsite.dk">chrony-users-subscribe@sunsite.dk</a> or
-<a href="mailto:chrony-announce-subscribe@sunsite.dk">chrony-announce-subscribe@sunsite.dk</a> respectively.
+message with the subject subscribe to <a href="mailto:chrony-users-request@chrony.tuxfamily.org">chrony-users-request@chrony.tuxfamily.org</a> or
+<a href="mailto:chrony-announce-request@chrony.tuxfamily.org">chrony-announce-request@chrony.tuxfamily.org</a> respectively.
 
 For those who want to contribute to the development of chrony, there is a
-developers' mailing list.  You can subscribe by sending mail to
-<a href="mailto:chrony-dev-subscribe@sunsite.dk">chrony-dev-subscribe@sunsite.dk</a>.
+developers' mailing list.  You can subscribe by sending mail with the
+subject subscribe to
+<a href="mailto:chrony-dev-request@chrony.tuxfamily.org">chrony-dev-request@chrony.tuxfamily.org</a>.
 
 Q: What licence is applied to chrony?
 Starting from version 1.15, chrony is licensed under the GNU General Public
@@ -345,12 +346,14 @@ useful to avoid this situation.
 
 S: Development
 
-Q: Can I get the source via CVS from anywhere?
-Yes.  See <a href="http://chrony.sunsite.dk/cvs.php">http://chrony.sunsite.dk/cvs.php</a> for information.  Currently there is
-only anonymous read-only access.  I keep the master copy on my own PC, which is
-more convenient for me because I don't have to connect to the Internet to do
-CVS operations on the files.  So for now, there is no read-write access for
-other developers.  Please email me your patches + documentation instead.
+Q: Can I get the source via CVS from anywhere?  You can get it via Git or
+in a tarball.  
+See <a href="http://chrony.tuxfamily.org/">http://chrony.tuxfamily.org</a> for
+information.  Currently there is only anonymous read-only access.  I keep
+the master copy on my own PC, which is more convenient for me because I
+don't have to connect to the Internet to do CVS operations on the files.
+So for now, there is no read-write access for other developers.  Please
+email me your patches + documentation instead.
 
 S: Linux-specific issues
 

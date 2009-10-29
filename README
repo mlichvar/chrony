@@ -84,7 +84,7 @@ ready-formatted plain text (chrony.txt) in the distribution.
 There is also information available on the chrony web pages, accessible
 through the URL 
 
-    http://chrony.sunsite.dk/
+    http://chrony.tuxfamily.org/
 
 What can chrony not do?
 =======================
@@ -97,9 +97,9 @@ Where are new versions announced?
 
 There is a low volume mailing list where new versions and other
 important news relating to chrony is announced.  You can join this list
-by sending mail to
+by sending mail with the subject "subscribe" to
 
-chrony-announce-subscribe@sunsite.dk
+chrony-announce-request@chrony.tuxfamily.org
 
 These messages will be copied to chrony-users (see below).  I also try
 to announce new versions on Freshmeat (http://freshmeat.net/).
@@ -116,11 +116,12 @@ mentioned above.  chrony-users is a users' discussion list, e.g. for
 general questions and answers about using chrony.  chrony-dev is a more
 technical list, e.g. for discussing how new features should be
 implemented, exchange of information between developers etc.  To
-subscribe to either of these lists, send an empty message to
+subscribe to either of these lists, send amessage with the subject
+"subscribe" to
 
-chrony-users-subscribe@sunsite.dk
+chrony-users-request@chrony.tuxfamily.org
 or
-chrony-dev-subscribe@sunsite.dk
+chrony-dev-request@chrony.tuxfamily.org
 
 as applicable.
 

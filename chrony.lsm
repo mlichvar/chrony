@@ -17,7 +17,7 @@ Description:    A pair of programs for keeping computer clocks accurate.
 Keywords:       time NTP RFC1305 RTC adjtime
 Author:         rc@rc0.org.uk (Richard Curnow)
 Maintained-by:  rc@rc0.org.uk (Richard Curnow)
-Primary-site:   sunsite.unc.edu /pub/Linux/system/admin/time
+Primary-site:   chrony.tuxfamily.org
                 295k chrony-1.18.tar.gz
                 2k chrony.lsm
 Platforms:      Linux 2.0/2.1/2.2/2.3/2.4 (x86, powerpc)
