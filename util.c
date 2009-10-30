@@ -520,7 +520,7 @@ UTI_TimevalNetworkToHost(Timeval *src, struct timeval *dest)
     struct timezone tz;
 
     gettimeofday(&now, &tz);
-    sec_high = now.tv_sec >> 32;
+    sec_high = now.tv_sec >> 16 >> 16;
   }
   dest->tv_sec = (time_t)sec_high << 16 << 16 | sec_low;
 }
@@ -532,7 +532,7 @@ UTI_TimevalHostToNetwork(struct timeval *src, Timeval *dest)
 {
   dest->tv_usec = htonl(src->tv_usec);
   if (sizeof (time_t) > 4)
-    dest->tv_sec_high = htonl(src->tv_sec >> 32);
+    dest->tv_sec_high = htonl(src->tv_sec >> 16 >> 16);
   else
     dest->tv_sec_high = htonl(TV_NOHIGHSEC);
   dest->tv_sec_low = htonl(src->tv_sec);
