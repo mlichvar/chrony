@@ -75,6 +75,7 @@ struct RCL_Instance_Record {
 static struct RCL_Instance_Record refclocks[MAX_RCL_SOURCES];
 static int n_sources = 0;
 
+static int valid_sample_time(RCL_Instance instance, struct timeval *tv);
 static int pps_stratum(RCL_Instance instance, struct timeval *tv);
 static void poll_timeout(void *arg);
 static void slew_samples(struct timeval *raw, struct timeval *cooked, double dfreq, double afreq,
@@ -250,6 +251,9 @@ RCL_AddSample(RCL_Instance instance, struct timeval *sample_time, double offset,
   correction = LCL_GetOffsetCorrection(sample_time);
   UTI_AddDoubleToTimeval(sample_time, correction, &cooked_time);
 
+  if (!valid_sample_time(instance, sample_time))
+    return 0;
+
 #if 0
   LOG(LOGS_INFO, LOGF_Refclock, "refclock sample offset=%.9f cooked=%.9f",
       offset, offset - correction + instance->offset);
@@ -276,6 +280,9 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
 
   correction = LCL_GetOffsetCorrection(pulse_time);
   UTI_AddDoubleToTimeval(pulse_time, correction, &cooked_time);
+
+  if (!valid_sample_time(instance, pulse_time))
+    return 0;
 
   rate = instance->pps_rate;
   assert(rate > 0);
@@ -311,6 +318,19 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
   filter_add_sample(&instance->filter, &cooked_time, offset);
   instance->leap_status = LEAP_Normal;
 
+  return 1;
+}
+
+static int
+valid_sample_time(RCL_Instance instance, struct timeval *tv)
+{
+  struct timeval raw_time;
+  double diff;
+
+  LCL_ReadRawTime(&raw_time);
+  UTI_DiffTimevalsToDouble(&diff, &raw_time, tv);
+  if (diff < 0.0 || diff > 1 << (instance->poll + 1))
+    return 0;
   return 1;
 }
 
