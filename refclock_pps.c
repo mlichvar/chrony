@@ -37,7 +37,7 @@
 
 struct pps_instance {
   pps_handle_t handle;
-  unsigned long last_seq;
+  pps_seq_t last_seq;
   int edge_clear;
 };
 
@@ -122,7 +122,7 @@ static int pps_poll(RCL_Instance instance)
   struct timespec ts;
   struct timeval tv;
   pps_info_t pps_info;
-  unsigned long seq;
+  pps_seq_t seq;
 
   pps = (struct pps_instance *)RCL_GetDriverData(instance);
 
@@ -148,6 +148,7 @@ static int pps_poll(RCL_Instance instance)
     return 0;
   }
 
+  pps->last_seq = seq;
   tv.tv_sec = ts.tv_sec;
   tv.tv_usec = ts.tv_nsec / 1000;
 
