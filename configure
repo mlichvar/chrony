@@ -24,6 +24,8 @@ else
   MYCFLAGS="${CFLAGS}"
 fi
 
+MYCPPFLAGS="${CPPFLAGS}"
+
 # ======================================================================
 # FUNCTIONS
 
@@ -40,15 +42,15 @@ int main(int argc, char **argv) {
 }
 EOF
 
-  ${MYCC} ${MYCFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
+  ${MYCC} ${MYCFLAGS} ${MYCPPFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
   if [ $? -eq 0 ]
   then
-    ${MYCC} ${MYCFLAGS} -o docheck docheck.o >/dev/null 2>&1
+    ${MYCC} ${MYCFLAGS} ${MYCPPFLAGS} -o docheck docheck.o >/dev/null 2>&1
     if [ $? -eq 0 ]
     then
       result=0
     else
-      ${MYCC} ${MYCFLAGS} -o docheck docheck.o -lm >/dev/null 2>&1
+      ${MYCC} ${MYCFLAGS} ${MYCPPFLAGS} -o docheck docheck.o -lm >/dev/null 2>&1
       if [ $? -eq 0 ]
       then
         result=1
@@ -73,7 +75,7 @@ int main(int argc, char **argv) {
 }
 EOF
 
-  ${MYCC} ${MYCFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
+  ${MYCC} ${MYCFLAGS} ${MYCPPFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
   if [ $? -eq 0 ]
   then
     result=0
@@ -94,7 +96,7 @@ int main(int argc, char **argv) {
 }
 EOF
 
-  ${MYCC} ${MYCFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
+  ${MYCC} ${MYCFLAGS} ${MYCPPFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
   if [ $? -eq 0 ]
   then
     result=0
@@ -120,7 +122,7 @@ int main(int argc, char **argv) {
 }
 EOF
 
-  ${MYCC} ${MYCFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
+  ${MYCC} ${MYCFLAGS} ${MYCPPFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
   if [ $? -eq 0 ]
   then
     result=0
@@ -144,7 +146,7 @@ int main(int argc, char **argv) {
 }
 EOF
 
-  ${MYCC} ${MYCFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
+  ${MYCC} ${MYCFLAGS} ${MYCPPFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
   if [ $? -eq 0 ]
   then
     result=0
@@ -195,6 +197,8 @@ Fine tuning of the installation directories:
 Some influential environment variables:
   CC          C compiler command
   CFLAGS      C compiler flags
+  CPPFLAGS    C preprocessor flags, e.g. -I<include dir> if you have
+              headers in a nonstandard directory <include dir>
   LDFLAGS     linker flags, e.g. -L<lib dir> if you have libraries in a
               nonstandard directory <lib dir>
 
@@ -442,7 +446,9 @@ sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
 	s%@CC@%${MYCC}%;\
 	s%@CFLAGS@%${MYCFLAGS}%;\
 	s%@CCWARNFLAGS@%${CCWARNFLAGS}%;\
+	s%@CPPFLAGS@%${CPPFLAGS}%;\
 	s%@LIBS@%${LIBS}%;\
+	s%@LDFLAGS@%${LDFLAGS}%;\
 	s%@EXTRA_LIBS@%${EXTRA_LIBS}%;\
 	s%@SYSDEFS@%${SYSDEFS}%;\
 	s%@EXTRA_DEFS@%${EXTRA_DEFS}%;\

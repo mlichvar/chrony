@@ -31,7 +31,8 @@ INFODIR=@INFODIR@
 
 CC = @CC@
 CCWARNFLAGS = @CCWARNFLAGS@
-OPTFLAGS = @CFLAGS@ @EXTRA_DEFS@
+OPTFLAGS = @CFLAGS@
+CPPFLAGS = @CPPFLAGS@ @SYSDEFS@ @EXTRA_DEFS@
 
 DESTDIR=
 
@@ -54,12 +55,11 @@ EXTRA_SRCS = $(patsubst %.o,%.c,$(EXTRA_OBJS))
 
 CLI_SRCS = $(patsubst %.o,%.c,$(CLI_OBJS))
 
+LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 
 EXTRA_LIBS=@EXTRA_LIBS@
 EXTRA_CLI_LIBS=@EXTRA_CLI_LIBS@
-
-DEFS=@SYSDEFS@
 
 CFLAGS = $(CCWARNFLAGS) $(OPTFLAGS)
 
@@ -75,7 +75,7 @@ chronyc : $(CLI_OBJS)
 	$(CC) $(OPTFLAGS) -o chronyc $(CLI_OBJS) $(LDFLAGS) @READLINE_LINK@ $(LIBS) $(EXTRA_CLI_LIBS)
 
 client.o : client.c
-	$(CC) $(CFLAGS) $(DEFS) @READLINE_COMPILE@ -c $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) @READLINE_COMPILE@ -c $<
 
 .depend : 
 	gcc -MM $(SRCS) $(EXTRA_SRCS) > .depend
@@ -124,10 +124,10 @@ install: chronyd chronyc
 	chmod 444 $(DESTDIR)$(MANDIR)/man5/chrony.conf.5
 
 %.o : %.c
-	$(CC) $(CFLAGS) $(DEFS) -c $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
 
 %.s : %.c
-	$(CC) $(CFLAGS) $(DEFS) -S $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -S $<
 
 main.o logging.o client.o : version.h
 
