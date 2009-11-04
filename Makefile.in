@@ -69,10 +69,10 @@ CFLAGS = $(CCWARNFLAGS) $(OPTFLAGS)
 all : chronyd chronyc
 
 chronyd : $(OBJS) $(EXTRA_OBJS)
-	$(CC) $(OPTFLAGS) -o chronyd $(OBJS) $(EXTRA_OBJS) $(LIBS) $(EXTRA_LIBS)
+	$(CC) $(OPTFLAGS) -o chronyd $(OBJS) $(EXTRA_OBJS) $(LDFLAGS) $(LIBS) $(EXTRA_LIBS)
 
 chronyc : $(CLI_OBJS)
-	$(CC) $(OPTFLAGS) -o chronyc $(CLI_OBJS) @READLINE_LINK@ $(LIBS) $(EXTRA_CLI_LIBS)
+	$(CC) $(OPTFLAGS) -o chronyc $(CLI_OBJS) $(LDFLAGS) @READLINE_LINK@ $(LIBS) $(EXTRA_CLI_LIBS)
 
 client.o : client.c
 	$(CC) $(CFLAGS) $(DEFS) @READLINE_COMPILE@ -c $<
