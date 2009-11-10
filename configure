@@ -194,6 +194,11 @@ Fine tuning of the installation directories:
   --infodir=DIR          info documentation [PREFIX/info]
   --mandir=DIR           man documentation [PREFIX/man]
 
+Overriding system detection when cross-compiling:
+  --host-system=OS       Specify system name (uname -s)
+  --host-release=REL     Specify system release (uname -r)
+  --host-machine=CPU     Specify machine (uname -m)
+
 Some influential environment variables:
   CC          C compiler command
   CFLAGS      C compiler flags
@@ -218,8 +223,6 @@ EOF
 OPERATINGSYSTEM=`uname -s`
 VERSION=`uname -r`
 MACHINE=`uname -m`
-
-SYSTEM=${OPERATINGSYSTEM}-${MACHINE}
 
 EXTRA_LIBS=""
 EXTRA_CLI_LIBS=""
@@ -280,6 +283,15 @@ do
     --enable-linuxcaps)
       feat_linuxcaps=1
     ;;
+    --host-system=* )
+      OPERATINGSYSTEM=`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --host-release=* )
+      VERSION=`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --host-machine=* )
+      MACHINE=`echo $option | sed -e 's/^.*=//;'`
+    ;;
     --help | -h )
       usage
       exit 0
@@ -288,6 +300,8 @@ do
     echo "Unrecognized option : " $option
     esac
 done
+
+SYSTEM=${OPERATINGSYSTEM}-${MACHINE}
 
 case $SYSTEM in
     SunOS-sun4* )
