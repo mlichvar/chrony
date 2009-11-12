@@ -1320,7 +1320,8 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
         bad_header = ((reply->version != PROTO_VERSION_NUMBER) ||
                       (reply->pkt_type != PKT_TYPE_CMD_REPLY) ||
                       (reply->res1 != 0) ||
-                      (reply->res2 != 0));
+                      (reply->res2 != 0) ||
+                      (reply->command != request->command));
         
         if (bad_header) {
           n_attempts++;
