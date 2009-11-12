@@ -75,12 +75,6 @@ static int on_terminal = 0;
 static int no_dns = 0;
 
 /* ================================================== */
-/* Forward prototypes */
-
-static void process_cmd_manual_list(const char *line);
-static void process_cmd_manual_delete(const char *line);
-
-/* ================================================== */
 /* Ought to extract some code from util.c to make
    a new set of utilities that can be linked into either
    the daemon or the client. */
@@ -600,12 +594,6 @@ process_cmd_manual(CMD_Request *msg, const char *line)
     msg->data.manual.option = htonl(1);
   } else if (!strncmp(p, "reset", 5)) {
     msg->data.manual.option = htonl(2);
-  } else if (!strncmp(p, "list", 4)) {
-    process_cmd_manual_list(p);
-    return 0;
-  } else if (!strncmp(p, "delete", 6)) {
-    process_cmd_manual_delete(p+6);
-    return 0;
   } else {
     return 0;
   }
@@ -1453,7 +1441,8 @@ request_reply(CMD_Request *request, CMD_Reply *reply, int requested_reply, int v
     }
   }
   
-  if (status != STT_SUCCESS) {
+  if (status != STT_SUCCESS &&
+      status != STT_ACCESSALLOWED && status != STT_ACCESSDENIED) {
     return 0;
   } 
 
@@ -1534,7 +1523,7 @@ check_for_verbose_flag(char *line)
 
 /* ================================================== */
 
-static void
+static int
 process_cmd_sources(char *line)
 {
   CMD_Request request;
@@ -1633,15 +1622,19 @@ process_cmd_sources(char *line)
           printf(" +/- ");
           print_microseconds(latest_meas_err);
           printf("\n");
+      } else {
+        return 0;
       }
     }
+  } else {
+    return 0;
   }
-
+  return 1;
 }
 
 /* ================================================== */
 
-static void
+static int
 process_cmd_sourcestats(char *line)
 {
   CMD_Request request;
@@ -1705,15 +1698,19 @@ process_cmd_sourcestats(char *line)
           printf("  %10.3f  %10.3f  ", resid_freq_ppm, skew_ppm);
           print_microseconds(sd_us);
           printf("\n");
+      } else {
+        return 0;
       }
     }
+  } else {
+    return 0;
   }
-
+  return 1;
 }
 
 /* ================================================== */
 
-static void
+static int
 process_cmd_tracking(char *line)
 {
   CMD_Request request;
@@ -1771,11 +1768,13 @@ process_cmd_tracking(char *line)
     printf("Skew            : %.3f ppm\n", skew_ppm);
     printf("Root delay      : %.6f seconds\n", root_delay);
     printf("Root dispersion : %.6f seconds\n", root_dispersion);
+    return 1;
   }
+  return 0;
 }
 /* ================================================== */
 
-static void
+static int
 process_cmd_rtcreport(char *line)
 {
   CMD_Request request;
@@ -1805,7 +1804,9 @@ process_cmd_rtcreport(char *line)
     printf("\n");
     printf("RTC is fast by     : %12.6f seconds\n", coef_seconds_fast);
     printf("RTC gains time at  : %9.3f ppm\n", coef_gain_rate_ppm);
+    return 1;
   }
+  return 0;
 }
 
 /* ================================================== */
@@ -2011,7 +2012,7 @@ cleanup:
 
 /* New implementation of clients command */
 
-static void
+static int
 process_cmd_clients(char *line)
 {
   CMD_Request request;
@@ -2091,20 +2092,19 @@ process_cmd_clients(char *line)
             goto finished;
           }
     } else {
-      return;
+      return 0;
     }
   } while (1); /* keep going until all subnets have been expanded,
                   down to single nodes */
 
 finished:
-  return;
-
+  return 1;
 }
 
 
 /* ================================================== */
 /* Process the manual list command */
-static void
+static int
 process_cmd_manual_list(const char *line)
 {
   CMD_Request request;
@@ -2129,34 +2129,32 @@ process_cmd_manual_list(const char *line)
             residual = WIRE2REAL(sample->residual);
             printf("%2d %s %10.2f %10.2f %10.2f\n", i, time_to_log_form(when.tv_sec), slewed_offset, orig_offset, residual);
           }
+          return 1;
   }
-
+  return 0;
 }
 
 /* ================================================== */
 
-static void
-process_cmd_manual_delete(const char *line)
+static int
+process_cmd_manual_delete(CMD_Request *msg, const char *line)
 {
   int index;
-  CMD_Request request;
-  CMD_Reply reply;
 
   if (sscanf(line, "%d", &index) != 1) {
     fprintf(stderr, "Bad syntax for manual delete command\n");
-    return;
+    return 0;
 
   }
 
-  request.command = htons(REQ_MANUAL_DELETE);
-  request.data.manual_delete.index = htonl(index);
-
-  request_reply(&request, &reply, RPY_NULL, 1);
+  msg->command = htons(REQ_MANUAL_DELETE);
+  msg->data.manual_delete.index = htonl(index);
+  return 1;
 }
 
 /* ================================================== */
 
-static void
+static int
 process_cmd_settime(char *line)
 {
   struct timeval ts;
@@ -2184,9 +2182,10 @@ process_cmd_settime(char *line)
           new_afreq_ppm = WIRE2REAL(reply.data.manual_timestamp.new_afreq_ppm);
           printf("Clock was %.2f seconds fast.  Frequency change = %.2fppm, new frequency = %.2fppm\n",
               offset, dfreq_ppm, new_afreq_ppm);
+          return 1;
     }
   }
-
+  return 0;
 }
 
 /* ================================================== */
@@ -2207,7 +2206,7 @@ process_cmd_makestep(CMD_Request *msg, char *line)
 
 /* ================================================== */
 
-static void
+static int
 process_cmd_activity(const char *line)
 {
   CMD_Request request;
@@ -2223,21 +2222,24 @@ process_cmd_activity(const char *line)
                 (long) ntohl(reply.data.activity.offline),
                 (long) ntohl(reply.data.activity.burst_online),
                 (long) ntohl(reply.data.activity.burst_offline));
+        return 1;
   }
+  return 0;
 }
 
 /* ================================================== */
 
 static int
-process_line(char *line)
+process_line(char *line, int *quit)
 {
   char *p;
-  int quit;
   int do_normal_submit;
+  int ret;
   CMD_Request tx_message;
   CMD_Reply rx_message;
 
-  quit = 0;
+  *quit = 0;
+  ret = 0;
 
   do_normal_submit = 1;
 
@@ -2247,7 +2249,7 @@ process_line(char *line)
   if (!*p) {
     fflush(stderr);
     fflush(stdout);
-    return quit;
+    return ret;
   };
 
   if (!strncmp(p, "offline", 7)) {
@@ -2272,17 +2274,22 @@ process_line(char *line)
     do_normal_submit = process_cmd_maxupdateskew(&tx_message, p+13);
   } else if (!strncmp(p, "settime", 7)) {
     do_normal_submit = 0;
-    process_cmd_settime(p+7);
+    ret = process_cmd_settime(p+7);
   } else if (!strncmp(p, "local", 5)) {
     do_normal_submit = process_cmd_local(&tx_message, p+5);
+  } else if (!strncmp(p, "manual list", 11)) {
+    do_normal_submit = 0;
+    ret = process_cmd_manual_list(p+11);
+  } else if (!strncmp(p, "manual delete", 13)) {
+    do_normal_submit = process_cmd_manual_delete(&tx_message, p+13);
   } else if (!strncmp(p, "manual", 6)) {
     do_normal_submit = process_cmd_manual(&tx_message, p+6);
   } else if (!strncmp(p, "sourcestats", 11)) {
     do_normal_submit = 0;
-    process_cmd_sourcestats(p+11);
+    ret = process_cmd_sourcestats(p+11);
   } else if (!strncmp(p, "sources", 7)) {
     do_normal_submit = 0;
-    process_cmd_sources(p+7);
+    ret = process_cmd_sources(p+7);
   } else if (!strncmp(p, "rekey", 5)) {
     process_cmd_rekey(&tx_message, p+5);
   } else if (!strncmp(p, "allow all", 9)) {
@@ -2315,7 +2322,7 @@ process_line(char *line)
     process_cmd_writertc(&tx_message, p+7);
   } else if (!strncmp(p, "rtcdata", 7)) {
     do_normal_submit = 0;
-    process_cmd_rtcreport(p);
+    ret = process_cmd_rtcreport(p);
   } else if (!strncmp(p, "trimrtc", 7)) {
     process_cmd_trimrtc(&tx_message, p);
   } else if (!strncmp(p, "cyclelogs", 9)) {
@@ -2325,44 +2332,47 @@ process_line(char *line)
   } else if (!strncmp(p, "doffset", 7)) {
     process_cmd_doffset(&tx_message, p+7);
   } else if (!strncmp(p, "tracking", 8)) {
-    process_cmd_tracking(p+8);
+    ret = process_cmd_tracking(p+8);
     do_normal_submit = 0;
   } else if (!strncmp(p, "clients", 7)) {
-    process_cmd_clients(p+7);
+    ret = process_cmd_clients(p+7);
     do_normal_submit = 0;
   } else if (!strncmp(p, "makestep", 8)) {
     process_cmd_makestep(&tx_message, p+8);
   } else if (!strncmp(p, "activity", 8)) {
-    process_cmd_activity(p+8);
+    ret = process_cmd_activity(p+8);
     do_normal_submit = 0;
   } else if (!strncmp(p, "help", 4)) {
     do_normal_submit = 0;
     give_help();
+    ret = 1;
   } else if (!strncmp(p, "quit", 4)) {
     do_normal_submit = 0;
-    quit = 1;
+    *quit = 1;
+    ret = 1;
   } else if (!strncmp(p, "exit", 4)) {
     do_normal_submit = 0;
-    quit = 1;
+    *quit = 1;
+    ret = 1;
   } else {
     fprintf(stderr, "Unrecognized command\n");
     do_normal_submit = 0;
   }
     
   if (do_normal_submit) {
-    request_reply(&tx_message, &rx_message, RPY_NULL, 1);
+    ret = request_reply(&tx_message, &rx_message, RPY_NULL, 1);
   }
   fflush(stderr);
   fflush(stdout);
-  return quit;
+  return ret;
 }
 
 /* ================================================== */
 
-static void
+static int
 process_args(int argc, char **argv)
 {
-  int total_length, i;
+  int total_length, i, ret, quit;
   char *line;
 
   total_length = 0;
@@ -2377,11 +2387,11 @@ process_args(int argc, char **argv)
   }
   strcat(line, "\n");
 
-  process_line(line);
+  ret = process_line(line, &quit);
 
   free(line);
 
-  return;
+  return ret;
 }
 
 /* ================================================== */
@@ -2405,7 +2415,7 @@ main(int argc, char **argv)
   char *line;
   const char *progname = argv[0];
   const char *hostname = "localhost";
-  int quit = 0;
+  int quit = 0, ret = 1;
   int port = DEFAULT_CANDM_PORT;
 
   /* Parse command line options */
@@ -2450,12 +2460,12 @@ main(int argc, char **argv)
   open_io(hostname, port);
 
   if (argc > 0) {
-    process_args(argc, argv);
+    ret = process_args(argc, argv);
   } else {
     do {
       line = read_line();
       if (line) {
-        quit = process_line(line);
+        ret = process_line(line, &quit);
       }else {
 	/* supply the final '\n' when user exits via ^D */
         if( on_terminal ) printf("\n");
@@ -2465,7 +2475,7 @@ main(int argc, char **argv)
 
   close_io();
 
-  return 0;
+  return !ret;
 }
 
 
