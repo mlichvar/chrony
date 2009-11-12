@@ -1071,7 +1071,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, NCR_Instance inst, int 
   LOG(LOGS_INFO, LOGF_NtpCore, "kod_rate=%d valid_kod=%d", kod_rate, valid_kod);
 #endif
 
-  if (valid_header) {
+  if (valid_header && valid_data) {
     inst->tx_count = 0;
     SRC_SetReachable(inst->source);
   }
