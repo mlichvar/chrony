@@ -1374,6 +1374,99 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
 
 /* ================================================== */
 
+static int
+request_reply(CMD_Request *request, CMD_Reply *reply, int requested_reply, int verbose)
+{
+  int reply_auth_ok;
+  int status;
+
+  if (!submit_request(request, reply, &reply_auth_ok)) {
+    printf("506 Cannot talk to daemon\n");
+    return 1;
+  }
+
+  status = ntohs(reply->status);
+        
+  if (verbose || status != STT_SUCCESS) {
+    switch (status) {
+      case STT_SUCCESS:
+        printf("200 OK");
+        break;
+      case STT_ACCESSALLOWED:
+        printf("208 Access allowed");
+        break;
+      case STT_ACCESSDENIED:
+        printf("209 Access denied");
+        break;
+      case STT_FAILED:
+        printf("500 Failure");
+        break;
+      case STT_UNAUTH:
+        printf("501 Not authorised");
+        break;
+      case STT_INVALID:
+        printf("502 Invalid command");
+        break;
+      case STT_NOSUCHSOURCE:
+        printf("503 No such source");
+        break;
+      case STT_INVALIDTS:
+        printf("504 Duplicate or stale logon detected");
+        break;
+      case STT_NOTENABLED:
+        printf("505 Facility not enabled in daemon");
+        break;
+      case STT_BADSUBNET:
+        printf("507 Bad subnet");
+        break;
+      case STT_NOHOSTACCESS:
+        printf("510 No command access from this host");
+        break;
+      case STT_SOURCEALREADYKNOWN:
+        printf("511 Source already present");
+        break;
+      case STT_TOOMANYSOURCES:
+        printf("512 Too many sources present");
+        break;
+      case STT_NORTC:
+        printf("513 RTC driver not running");
+        break;
+      case STT_BADRTCFILE:
+        printf("514 Can't write RTC parameters");
+        break;
+      case STT_INVALIDAF:
+        printf("515 Invalid address family");
+        break;
+      case STT_BADSAMPLE:
+        printf("516 Sample index out of range");
+        break;
+      case STT_INACTIVE:
+        printf("519 Client logging is not active in the daemon");
+        break;
+      default:
+        printf("520 Got unexpected error from daemon");
+    }
+    if (reply_auth_ok) {
+      printf("\n");
+    } else {
+      printf(" --- Reply not authenticated\n");
+    }
+  }
+  
+  if (status != STT_SUCCESS) {
+    return 0;
+  } 
+
+  if (ntohs(reply->reply) != requested_reply) {
+    printf("508 Bad reply from daemon\n");
+    return 0;
+  }
+
+  return 1;
+}
+
+/* ================================================== */
+
 static void
 print_seconds(unsigned long s)
 {
@@ -1444,8 +1537,6 @@ check_for_verbose_flag(char *line)
 static void
 process_cmd_sources(char *line)
 {
-  int submit_ok;
-  int auth_ok;
   CMD_Request request;
   CMD_Reply reply;
   int n_sources, i;
@@ -1459,29 +1550,12 @@ process_cmd_sources(char *line)
   uint16_t state, mode;
   double resid_freq, resid_skew;
   char hostname_buf[32];
-  uint16_t status;
 
   /* Check whether to output verbose headers */
   verbose = check_for_verbose_flag(line);
   
   request.command = htons(REQ_N_SOURCES);
-  submit_ok = submit_request(&request, &reply, &auth_ok);
-
-  if (submit_ok) {
-    status = ntohs(reply.status);
-    switch (status) {
-      case STT_INVALID:
-        printf("502 Invalid command\n");
-        return;
-        break;
-      case STT_NOHOSTACCESS:
-        printf("510 No command access from this host\n");
-        return;
-        break;
-      default:
-        break;
-    }
-
+  if (request_reply(&request, &reply, RPY_N_SOURCES, 0)) {
     n_sources = ntohl(reply.data.n_sources.n_sources);
     printf("210 Number of sources = %d\n", n_sources);
     if (verbose) {
@@ -1504,10 +1578,7 @@ process_cmd_sources(char *line)
     for (i=0; i<n_sources; i++) {
       request.command = htons(REQ_SOURCE_DATA);
       request.data.source_data.index = htonl(i);
-      submit_ok = submit_request(&request, &reply, &auth_ok);
-
-      if (submit_ok) {
-        if (ntohs(reply.status) == STT_SUCCESS) {
+      if (request_reply(&request, &reply, RPY_SOURCE_DATA, 0)) {
           UTI_IPNetworkToHost(&reply.data.source_data.ip_addr, &ip_addr);
           poll = ntohs(reply.data.source_data.poll);
           stratum = ntohs(reply.data.source_data.stratum);
@@ -1562,11 +1633,8 @@ process_cmd_sources(char *line)
           printf(" +/- ");
           print_microseconds(latest_meas_err);
           printf("\n");
-        }
       }
     }
-  } else {
-    printf("506 Cannot talk to daemon\n");
   }
 
 }
@@ -1576,8 +1644,6 @@ process_cmd_sources(char *line)
 static void
 process_cmd_sourcestats(char *line)
 {
-  int submit_ok;
-  int auth_ok;
   CMD_Request request;
   CMD_Reply reply;
   int n_sources, i;
@@ -1589,28 +1655,11 @@ process_cmd_sourcestats(char *line)
   unsigned long sd_us;
   unsigned long ref_id;
   IPAddr ip_addr;
-  unsigned short status;
 
   verbose = check_for_verbose_flag(line);
 
   request.command = htons(REQ_N_SOURCES);
-  submit_ok = submit_request(&request, &reply, &auth_ok);
-
-  if (submit_ok) {
-    status = ntohs(reply.status);
-    switch (status) {
-      case STT_INVALID:
-        printf("502 Invalid command\n");
-        return;
-        break;
-      case STT_NOHOSTACCESS:
-        printf("510 No command access from this host\n");
-        return;
-        break;
-      default:
-        break;
-    }
-
+  if (request_reply(&request, &reply, RPY_N_SOURCES, 0)) {
     n_sources = ntohl(reply.data.n_sources.n_sources);
     printf("210 Number of sources = %d\n", n_sources);
     if (verbose) {
@@ -1632,11 +1681,7 @@ process_cmd_sourcestats(char *line)
     for (i=0; i<n_sources; i++) {
       request.command = htons(REQ_SOURCESTATS);
       request.data.source_data.index = htonl(i);
-      submit_ok = submit_request(&request, &reply, &auth_ok);
-
-      if (submit_ok) {
-        if (ntohs(reply.status) == STT_SUCCESS) {
-          
+      if (request_reply(&request, &reply, RPY_SOURCESTATS, 0)) {
           ref_id = ntohl(reply.data.sourcestats.ref_id);
           UTI_IPNetworkToHost(&reply.data.sourcestats.ip_addr, &ip_addr);
           n_samples = ntohl(reply.data.sourcestats.n_samples);
@@ -1660,11 +1705,8 @@ process_cmd_sourcestats(char *line)
           printf("  %10.3f  %10.3f  ", resid_freq_ppm, skew_ppm);
           print_microseconds(sd_us);
           printf("\n");
-        }
       }
     }
-  } else {
-    printf("506 Cannot talk to daemon\n");
   }
 
 }
@@ -1674,9 +1716,6 @@ process_cmd_sourcestats(char *line)
 static void
 process_cmd_tracking(char *line)
 {
-  int status;
-  int submit_ok;
-  int auth_ok;
   CMD_Request request;
   CMD_Reply reply;
   IPAddr ip_addr;
@@ -1695,23 +1734,7 @@ process_cmd_tracking(char *line)
   double root_dispersion;
   
   request.command = htons(REQ_TRACKING);
-  submit_ok = submit_request(&request, &reply, &auth_ok);
-
-  if (submit_ok) {
-    status = ntohs(reply.status);
-    switch (status) {
-      case STT_INVALID:
-        printf("502 Invalid command\n");
-        return;
-        break;
-      case STT_NOHOSTACCESS:
-        printf("510 No command access from this host\n");
-        return;
-        break;
-      default:
-        break;
-    }
-
+  if (request_reply(&request, &reply, RPY_TRACKING, 0)) {
     ref_id = ntohl(reply.data.tracking.ref_id);
     a = (ref_id >> 24);
     b = (ref_id >> 16) & 0xff;
@@ -1748,8 +1771,6 @@ process_cmd_tracking(char *line)
     printf("Skew            : %.3f ppm\n", skew_ppm);
     printf("Root delay      : %.6f seconds\n", root_delay);
     printf("Root dispersion : %.6f seconds\n", root_dispersion);
-  } else {
-    printf("506 Cannot talk to daemon\n");
   }
 }
 /* ================================================== */
@@ -1757,9 +1778,6 @@ process_cmd_tracking(char *line)
 static void
 process_cmd_rtcreport(char *line)
 {
-  int status;
-  int submit_ok;
-  int auth_ok;
   CMD_Request request;
   CMD_Reply reply;
   struct timeval ref_time;
@@ -1771,26 +1789,7 @@ process_cmd_rtcreport(char *line)
   double coef_gain_rate_ppm;
   
   request.command = htons(REQ_RTCREPORT);
-  submit_ok = submit_request(&request, &reply, &auth_ok);
-
-  if (submit_ok) {
-    status = ntohs(reply.status);
-    switch (status) {
-      case STT_INVALID:
-        printf("502 Invalid command\n");
-        return;
-        break;
-      case STT_NORTC:
-        printf("513 No RTC driver\n");
-        return;
-        break;
-      case STT_NOHOSTACCESS:
-        printf("510 No command access from this host\n");
-        return;
-        break;
-      default:
-        break;
-    }
+  if (request_reply(&request, &reply, RPY_RTC, 0)) {
     UTI_TimevalNetworkToHost(&reply.data.rtc.ref_time, &ref_time);
     ref_time_tm = *gmtime(&ref_time.tv_sec);
     n_samples = ntohs(reply.data.rtc.n_samples);
@@ -1806,8 +1805,6 @@ process_cmd_rtcreport(char *line)
     printf("\n");
     printf("RTC is fast by     : %12.6f seconds\n", coef_seconds_fast);
     printf("RTC gains time at  : %9.3f ppm\n", coef_gain_rate_ppm);
-  } else {
-    printf("506 Cannot talk to daemon\n");
   }
 }
 
@@ -1833,8 +1830,6 @@ process_cmd_clients(char *line)
   CMD_Request request;
   CMD_Reply reply;
   SubnetToDo *head, *todo, *tail, *p, *next_node, *new_node;
-  int submit_ok, auth_ok;
-  int status;
   int i, j, nets_looked_up, clients_looked_up;
   int word;
   unsigned long mask;
@@ -1882,12 +1877,7 @@ process_cmd_clients(char *line)
 
     request.data.subnets_accessed.n_subnets = htonl(nets_looked_up);
 
-    submit_ok = submit_request(&request, &reply, &auth_ok);
-  
-    if (submit_ok) {
-      status = ntohs(reply.status);
-      switch (status) {
-        case STT_SUCCESS:
+    if (request_reply(&request, &reply, RPY_SUBNETS_ACCESSED, 0)) {
           n_replies = ntohl(reply.data.subnets_accessed.n_subnets);
           for (j=0; j<n_replies; j++) {
             ip = ntohl(reply.data.subnets_accessed.subnets[j].ip);
@@ -1918,24 +1908,9 @@ process_cmd_clients(char *line)
             todo = todo->next;
           }
           
-          break;
-        case STT_BADSUBNET:
-          /* We should never generate any bad subnet messages */
-          assert(0);
-          break;
-        case STT_INACTIVE:
-          printf("519 Client logging is not active in the daemon\n");
-          goto cleanup;
-        case STT_NOHOSTACCESS:
-          printf("510 No command access from this host\n");
-          goto cleanup;
-        default:
-          printf("520 Got unexpected error from daemon\n");
-          goto cleanup;
       }
       
     } else {
-      printf("506 Cannot talk to daemon\n");
       return;
     }
   } while (1); /* keep going until all subnets have been expanded,
@@ -1972,12 +1947,7 @@ process_cmd_clients(char *line)
 
     request.data.client_accesses.n_clients = htonl(clients_looked_up);
 
-    submit_ok = submit_request(&request, &reply, &auth_ok);
-    
-    if (submit_ok) {
-      status = ntohs(reply.status);
-      switch (status) {
-        case STT_SUCCESS:
+    if (request_reply(&request, &reply, RPY_CLIENT_ACCESSES, 0)) {
           n_replies = ntohl(reply.data.client_accesses.n_clients);
           for (j=0; j<n_replies; j++) {
             ip = ntohl(reply.data.client_accesses.clients[j].ip);
@@ -2024,23 +1994,6 @@ process_cmd_clients(char *line)
             todo = todo->next;
           }
 
-          break;
-
-        case STT_BADSUBNET:
-          /* We should never generate any bad subnet messages */
-          assert(0);
-          break;
-        case STT_INACTIVE:
-          printf("519 Client logging is not active in the daemon\n");
-          goto cleanup;
-        case STT_NOHOSTACCESS:
-          printf("510 No command access from this host\n");
-          goto cleanup;
-        default:
-          printf("520 Got unexpected error from daemon\n");
-          goto cleanup;
-      }
-
     }
   
   } while (1);
@@ -2063,8 +2016,6 @@ process_cmd_clients(char *line)
 {
   CMD_Request request;
   CMD_Reply reply;
-  int submit_ok, auth_ok;
-  int status;
   unsigned long next_index;
   int j;
   IPAddr ip;
@@ -2091,12 +2042,7 @@ process_cmd_clients(char *line)
     request.data.client_accesses_by_index.first_index = htonl(next_index);
     request.data.client_accesses_by_index.n_indices = htonl(MAX_CLIENT_ACCESSES);
 
-    submit_ok = submit_request(&request, &reply, &auth_ok);
-  
-    if (submit_ok) {
-      status = ntohs(reply.status);
-      switch (status) {
-        case STT_SUCCESS:
+    if (request_reply(&request, &reply, RPY_CLIENT_ACCESSES_BY_INDEX, 0)) {
           n_replies = ntohl(reply.data.client_accesses_by_index.n_clients);
           n_indices_in_table = ntohl(reply.data.client_accesses_by_index.n_indices);
           if (n_replies == 0) {
@@ -2144,25 +2090,7 @@ process_cmd_clients(char *line)
           if (next_index >= n_indices_in_table) {
             goto finished;
           }
-
-          break;
-        case STT_BADSUBNET:
-          /* We should never generate any bad subnet messages */
-          assert(0);
-          break;
-        case STT_INACTIVE:
-          printf("519 Client logging is not active in the daemon\n");
-          goto finished;
-        case STT_NOHOSTACCESS:
-          printf("510 No command access from this host\n");
-          goto finished;
-        default:
-          printf("520 Got unexpected error from daemon\n");
-          goto finished;
-      }
-      
     } else {
-      printf("506 Cannot talk to daemon\n");
       return;
     }
   } while (1); /* keep going until all subnets have been expanded,
@@ -2181,8 +2109,6 @@ process_cmd_manual_list(const char *line)
 {
   CMD_Request request;
   CMD_Reply reply;
-  int submit_ok, auth_ok;
-  int status;
   int n_samples;
   RPY_ManualListSample *sample;
   int i;
@@ -2190,12 +2116,7 @@ process_cmd_manual_list(const char *line)
   double slewed_offset, orig_offset, residual;
 
   request.command = htons(REQ_MANUAL_LIST);
-  submit_ok = submit_request(&request, &reply, &auth_ok);
-  
-  if (submit_ok) {
-    status = ntohs(reply.status);
-      switch (status) {
-        case STT_SUCCESS:
+  if (request_reply(&request, &reply, RPY_MANUAL_LIST, 0)) {
           n_samples = ntohl(reply.data.manual_list.n_samples);
           printf("210 n_samples = %d\n", n_samples);
           printf("#    Date  Time(UTC)    Slewed   Original   Residual\n"
@@ -2208,14 +2129,6 @@ process_cmd_manual_list(const char *line)
             residual = WIRE2REAL(sample->residual);
             printf("%2d %s %10.2f %10.2f %10.2f\n", i, time_to_log_form(when.tv_sec), slewed_offset, orig_offset, residual);
           }
-          break;
-        case STT_NOHOSTACCESS:
-          printf("510 No command access from this host\n");
-          break;
-        default:
-          printf("520 Got unexpected error from daemon\n");
-          break;
-      }
   }
 
 }
@@ -2228,8 +2141,6 @@ process_cmd_manual_delete(const char *line)
   int index;
   CMD_Request request;
   CMD_Reply reply;
-  int submit_ok, auth_ok;
-  int status;
 
   if (sscanf(line, "%d", &index) != 1) {
     fprintf(stderr, "Bad syntax for manual delete command\n");
@@ -2240,26 +2151,7 @@ process_cmd_manual_delete(const char *line)
   request.command = htons(REQ_MANUAL_DELETE);
   request.data.manual_delete.index = htonl(index);
 
-  submit_ok = submit_request(&request, &reply, &auth_ok);
-  
-  if (submit_ok) {
-    status = ntohs(reply.status);
-    switch (status) {
-      case STT_SUCCESS:
-        printf("200 OK\n");
-        break;
-      case STT_BADSAMPLE:
-        printf("516 Sample index out of range\n");
-        break;
-      case STT_NOHOSTACCESS:
-        printf("510 No command access from this host\n");
-        break;
-      default:
-        printf("520 Got unexpected error from daemon\n");
-        break;
-    }
-  }
-
+  request_reply(&request, &reply, RPY_NULL, 1);
 }
 
 /* ================================================== */
@@ -2271,11 +2163,9 @@ process_cmd_settime(char *line)
   time_t now, new_time;
   CMD_Request request;
   CMD_Reply reply;
-  int submit_ok, reply_auth_ok;
   long offset_cs;
   double dfreq_ppm, new_afreq_ppm;
   double offset;
-  int status;
 
   now = time(NULL);
   new_time = get_date(line, &now);
@@ -2287,41 +2177,13 @@ process_cmd_settime(char *line)
     ts.tv_usec = 0;
     UTI_TimevalHostToNetwork(&ts, &request.data.settime.ts);
     request.command = htons(REQ_SETTIME);
-    submit_ok = submit_request(&request, &reply, &reply_auth_ok);
-    if (submit_ok) {
-      status = ntohs(reply.status);
-      switch (status) {
-        case STT_SUCCESS:
+    if (request_reply(&request, &reply, RPY_MANUAL_TIMESTAMP, 1)) {
           offset_cs = ntohl(reply.data.manual_timestamp.centiseconds);
           offset = 0.01 * (double) offset_cs;
           dfreq_ppm = WIRE2REAL(reply.data.manual_timestamp.dfreq_ppm);
           new_afreq_ppm = WIRE2REAL(reply.data.manual_timestamp.new_afreq_ppm);
-          printf("200 OK : Clock was %.2f seconds fast.  Frequency change = %.2fppm, new frequency = %.2fppm",
-                 offset, dfreq_ppm, new_afreq_ppm);
-          break;
-        case STT_FAILED:
-          printf("500 Failure");
-          break;
-        case STT_UNAUTH:
-          printf("501 Not authorised");
-          break;
-        case STT_INVALID:
-          printf("502 Invalid command");
-          break;
-        case STT_NOTENABLED:
-          printf("505 Facility not enabled in daemon");
-          break;
-        case STT_NOHOSTACCESS:
-          printf("510 No command access from this host");
-          break;
-      }
-      if (reply_auth_ok) {
-        printf("\n");
-      } else {
-        printf(" --- Reply not authenticated\n");
-      }
-    } else {
-      printf("506 Could not submit settime command\n");
+          printf("Clock was %.2f seconds fast.  Frequency change = %.2fppm, new frequency = %.2fppm\n",
+              offset, dfreq_ppm, new_afreq_ppm);
     }
   }
 
@@ -2350,14 +2212,9 @@ process_cmd_activity(const char *line)
 {
   CMD_Request request;
   CMD_Reply reply;
-  int submit_ok, status, reply_auth_ok;
   request.command = htons(REQ_ACTIVITY);
-  submit_ok = submit_request(&request, &reply, &reply_auth_ok);
-  if (submit_ok) {
-    status = ntohs(reply.status);
-    switch (status) {
-      case STT_SUCCESS:
-        printf("200 OK\n"
+  if (request_reply(&request, &reply, RPY_ACTIVITY, 1)) {
+        printf(
                "%ld sources online\n"
                "%ld sources offline\n"
                "%ld sources doing burst (return to online)\n"
@@ -2366,16 +2223,6 @@ process_cmd_activity(const char *line)
                 (long) ntohl(reply.data.activity.offline),
                 (long) ntohl(reply.data.activity.burst_online),
                 (long) ntohl(reply.data.activity.burst_offline));
-        break;
-      default:
-        printf("Unexpected error returned\n");
-        break;
-    }
-    if (!reply_auth_ok) {
-      printf(" --- Reply not authenticated\n");
-    }
-  } else {
-    printf("506 Could not submit activity command\n");
   }
 }
 
@@ -2389,7 +2236,6 @@ process_line(char *line)
   int do_normal_submit;
   CMD_Request tx_message;
   CMD_Reply rx_message;
-  int reply_auth_ok, request_submitted_ok;
 
   quit = 0;
 
@@ -2504,67 +2350,7 @@ process_line(char *line)
   }
     
   if (do_normal_submit) {
-
-    request_submitted_ok = submit_request(&tx_message, &rx_message, &reply_auth_ok);
-
-    if (request_submitted_ok) {
-      switch(ntohs(rx_message.status)) {
-        case STT_SUCCESS:
-          printf("200 OK");
-          break;
-        case STT_FAILED:
-          printf("500 Failure");
-          break;
-        case STT_UNAUTH:
-          printf("501 Not authorised");
-          break;
-        case STT_INVALID:
-          printf("502 Invalid command");
-          break;
-        case STT_NOSUCHSOURCE:
-          printf("503 No such source");
-          break;
-        case STT_INVALIDTS:
-          printf("504 Duplicate or stale logon detected");
-          break;
-        case STT_NOTENABLED:
-          printf("505 Facility not enabled in daemon");
-          break;
-        case STT_BADSUBNET:
-          printf("507 Bad subnet");
-          break;
-        case STT_ACCESSALLOWED:
-          printf("208 Access allowed");
-          break;
-        case STT_ACCESSDENIED:
-          printf("209 Access denied");
-          break;
-        case STT_NOHOSTACCESS:
-          printf("510 No command access from this host");
-          break;
-        case STT_SOURCEALREADYKNOWN:
-          printf("511 Source already present");
-          break;
-        case STT_TOOMANYSOURCES:
-          printf("512 Too many sources present");
-          break;
-        case STT_NORTC:
-          printf("513 RTC driver not running");
-          break;
-        case STT_BADRTCFILE:
-          printf("514 Can't write RTC parameters");
-          break;
-        case STT_INVALIDAF:
-          printf("515 Invalid address family");
-          break;
-      }
-      
-      if (reply_auth_ok) {
-        printf("\n");
-      } else {
-        printf(" --- Reply not authenticated\n");
-      }
-    }
+    request_reply(&tx_message, &rx_message, RPY_NULL, 1);
   }
   fflush(stderr);
   fflush(stdout);
