@@ -2377,13 +2377,15 @@ process_args(int argc, char **argv)
 
   total_length = 0;
   for(i=0; i<argc; i++) {
-    total_length += strlen(argv[i]);
+    total_length += strlen(argv[i]) + 1;
   }
 
   line = (char *) malloc((2 + total_length) * sizeof(char));
   line[0] = 0;
   for (i=0; i<argc; i++) {
     strcat(line, argv[i]);
+    if (i + 1 < argc)
+      strcat(line, " ");
   }
   strcat(line, "\n");
 
