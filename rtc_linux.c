@@ -107,6 +107,8 @@ static int measurement_period = LOWEST_MEASUREMENT_PERIOD;
 static int timeout_running = 0;
 static SCH_TimeoutID timeout_id;
 
+static int skip_interrupts;
+
 /* ================================================== */
 
 /* Maximum number of samples held */
@@ -682,6 +684,7 @@ switch_interrupts(int onoff)
       LOG(LOGS_ERR, LOGF_RtcLinux, "Could not start measurement : %s", strerror(errno));
       return;
     }
+    skip_interrupts = 1;
   } else {
     status = ioctl(fd, RTC_UIE_OFF, 0);
     if (status < 0) {
@@ -873,8 +876,7 @@ read_from_device(void *any)
   int error = 0;
 
   status = read(fd, &data, sizeof(data));
-  if (operating_mode == OM_NORMAL)
-      status = read(fd, &data, sizeof(data));
+
   if (status < 0) {
     /* This looks like a bad error : the file descriptor was indicating it was
      * ready to read but we couldn't read anything.  Give up. */
@@ -890,6 +892,12 @@ read_from_device(void *any)
     }
     return;
   }    
+
+  if (skip_interrupts > 0) {
+    /* Wait for the next interrupt, this one may be bogus */
+    skip_interrupts--;
+    return;
+  }
 
   if ((data & RTC_UIE) == RTC_UIE) {
     /* Update interrupt detected */
