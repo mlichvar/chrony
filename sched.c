@@ -510,7 +510,7 @@ handle_slew(struct timeval *raw,
 void
 SCH_MainLoop(void)
 {
-  fd_set rd, wr, ex;
+  fd_set rd;
   int status;
   struct timeval tv, *ptv;
   struct timeval now;
@@ -524,11 +524,6 @@ SCH_MainLoop(void)
     /* Copy current set of read file descriptors */
     memcpy((void *) &rd, (void *) &read_fds, sizeof(fd_set));
     
-    /* Blank the write and exception descriptors - we aren't very
-       interested */
-    FD_ZERO(&wr);
-    FD_ZERO(&ex);
-
     /* Try to dispatch any timeouts that have already gone by, and
        keep going until all are done.  (The earlier ones may take so
        long to do that the later ones come around by the time they are
@@ -555,7 +550,7 @@ SCH_MainLoop(void)
       LOG_FATAL(LOGF_Scheduler, "No descriptors or timeout to wait for");
     }
 
-    status = select(one_highest_fd, &rd, &wr, &ex, ptv);
+    status = select(one_highest_fd, &rd, NULL, NULL, ptv);
 
     if (status < 0) {
       if (!need_to_exit)
