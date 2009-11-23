@@ -143,6 +143,9 @@ our_lround(double x) {
 /* Amount of outstanding offset to process */
 static double offset_register;
 
+/* Flag set true if an adjtime slew was started and still may be running */
+static int slow_slewing;
+
 /* Flag set true if a fast slew (one done by altering tick) is being
    run at the moment */
 static int fast_slewing;
@@ -267,11 +270,14 @@ initiate_slew(void)
   }
 
   /* Cancel any standard adjtime that is running */
-  offset = 0;
-  if (TMX_ApplyOffset(&offset) < 0) {
-    CROAK("adjtimex() failed in accrue_offset");
+  if (slow_slewing) {
+    offset = 0;
+    if (TMX_ApplyOffset(&offset) < 0) {
+      CROAK("adjtimex() failed in accrue_offset");
+    }
+    offset_register -= (double) offset / 1.0e6;
+    slow_slewing = 0;
   }
-  offset_register -= (double) offset / 1.0e6;
 
   if (fabs(offset_register) < MAX_ADJUST_WITH_ADJTIME) {
     /* Use adjtime to do the shift */
@@ -279,8 +285,11 @@ initiate_slew(void)
 
     offset_register += offset * 1e-6;
 
-    if (TMX_ApplyOffset(&offset) < 0) {
-      CROAK("adjtimex() failed in initiate_slew");
+    if (offset != 0) {
+      if (TMX_ApplyOffset(&offset) < 0) {
+        CROAK("adjtimex() failed in initiate_slew");
+      }
+      slow_slewing = 1;
     }
   } else {
 
@@ -540,36 +549,46 @@ get_offset_correction(struct timeval *raw,
   double fast_slew_duration;
   double fast_slew_achieved;
   double fast_slew_remaining;
-  long offset;
+  long offset, toffset;
 
-again:
-  if (have_readonly_adjtime == 1) {
-    if (TMX_GetOffsetLeftOld(&offset) < 0) {
-      CROAK("adjtimex() failed in get_offset_correction");
-    }
-    
-    adjtime_left = (double)offset / 1.0e6;
-  } else if (have_readonly_adjtime == 2) {
-    if (TMX_GetOffsetLeft(&offset) < 0) {
-      LOG(LOGS_INFO, LOGF_SysLinux, "adjtimex() doesn't support ADJ_OFFSET_SS_READ");
-      have_readonly_adjtime = 0;
-      goto again;
-    }
-    
-    adjtime_left = (double)offset / 1.0e6;
-  } else {
+  if (!slow_slewing) {
     offset = 0;
-    if (TMX_ApplyOffset(&offset) < 0) {
-      CROAK("adjtimex() failed in get_offset_correction");
+  } else {
+again:
+    switch (have_readonly_adjtime) {
+      case 2:
+        if (TMX_GetOffsetLeft(&offset) < 0) {
+          LOG(LOGS_INFO, LOGF_SysLinux, "adjtimex() doesn't support ADJ_OFFSET_SS_READ");
+          have_readonly_adjtime = 0;
+          goto again;
+        }
+        break;
+      case 0:
+        toffset = 0;
+        if (TMX_ApplyOffset(&toffset) < 0) {
+          CROAK("adjtimex() failed in get_offset_correction");
+        }
+        offset = toffset;
+        if (TMX_ApplyOffset(&toffset) < 0) {
+          CROAK("adjtimex() failed in get_offset_correction");
+        }
+        break;
+      case 1:
+        if (TMX_GetOffsetLeftOld(&offset) < 0) {
+          CROAK("adjtimex() failed in get_offset_correction");
+        }
+        break;
+      default:
+        assert(0);
     }
-    
-    adjtime_left = (double)offset / 1.0e6;
 
-    /* txc.offset still set from return value of last call */
-    if (TMX_ApplyOffset(&offset) < 0) {
-      CROAK("adjtimex() failed in get_offset_correction");
+    if (offset == 0) {
+      /* adjtime slew has finished */
+      slow_slewing = 0;
     }
   }
+
+  adjtime_left = (double)offset / 1.0e6;
 
   if (fast_slewing) {
     UTI_DiffTimevalsToDouble(&fast_slew_duration, raw, &slew_start_tv);
@@ -604,6 +623,7 @@ immediate_step(void)
   }
 
   offset_register -= (double) offset / 1.0e6;
+  slow_slewing = 0;
 
   if (gettimeofday(&old_time, &tz) < 0) {
     CROAK("gettimeofday() failed in immediate_step");
