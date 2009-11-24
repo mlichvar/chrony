@@ -35,24 +35,48 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#define SOCK_MAGIC 0x534f434b
+
 struct sock_sample {
   struct timeval tv;
   double offset;
   int pulse;
   int leap;
+  int _pad;
+  int magic;
 };
 
 static void read_sample(void *anything)
 {
   struct sock_sample sample;
   RCL_Instance instance;
-  int sockfd;
+  int sockfd, s;
 
   instance = (RCL_Instance)anything;
   sockfd = (long)RCL_GetDriverData(instance);
 
-  if (recv(sockfd, &sample, sizeof (sample), 0) != sizeof (sample))
+  s = recv(sockfd, &sample, sizeof (sample), 0);
+
+  if (s < 0) {
+#if 0
+    LOG(LOGS_INFO, LOGF_Refclock, "Error reading from SOCK socket : %s", strerror(errno));
+#endif
     return;
+  }
+
+  if (s != sizeof (sample)) {
+#if 0
+    LOG(LOGS_INFO, LOGF_Refclock, "Unexpected length of SOCK sample : %d != %d", s, sizeof (sample));
+#endif
+    return;
+  }
+
+  if (sample.magic != SOCK_MAGIC) {
+#if 0
+    LOG(LOGS_INFO, LOGF_Refclock, "Unexpected magic number in SOCK sample : %x != %x", sample.magic, SOCK_MAGIC);
+#endif
+    return;
+  }
 
   if (sample.pulse) {
     RCL_AddPulse(instance, &sample.tv, sample.offset);
