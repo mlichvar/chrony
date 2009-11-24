@@ -85,8 +85,6 @@ static int n_nodes = 0;
 /* Number of entries for which the table has been sized. */
 static int max_nodes = 0;
 
-#define NODE_TABLE_INCREMENT 4
-
 /* Flag indicating whether facility is turned on or not */
 static int active = 0;
 
@@ -192,13 +190,12 @@ create_node(Subnet *parent_subnet, int the_entry)
 
   if (n_nodes == max_nodes) {
     if (nodes) {
-      max_nodes += NODE_TABLE_INCREMENT;
+      assert(max_nodes > 0);
+      max_nodes *= 2;
       nodes = ReallocArray(Node *, max_nodes, nodes);
     } else {
-      if (max_nodes != 0) {
-        CROAK("max_nodes should be 0");
-      }
-      max_nodes = NODE_TABLE_INCREMENT;
+      assert(max_nodes == 0);
+      max_nodes = 16;
       nodes = MallocArray(Node *, max_nodes);
     }
   }
@@ -343,7 +340,7 @@ CLG_LogCommandAccess(IPAddr *client, CLG_Command_Type type, time_t now)
         ++node->cmd_hits_bad;
         break;
       default:
-        CROAK("Impossible");
+        assert(0);
         break;
     }
   }
