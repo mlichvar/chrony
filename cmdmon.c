@@ -189,13 +189,14 @@ prepare_socket(int family)
 
   sock_fd = socket(family, SOCK_DGRAM, 0);
   if (sock_fd < 0) {
-    LOG(LOGS_ERR, LOGF_CmdMon, "Could not open socket : %s", strerror(errno));
+    LOG(LOGS_ERR, LOGF_CmdMon, "Could not open %s command socket : %s",
+        family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
     return -1;
   }
 
   /* Allow reuse of port number */
   if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *) &on_off, sizeof(on_off)) < 0) {
-    LOG(LOGS_ERR, LOGF_CmdMon, "Could not set socket options");
+    LOG(LOGS_ERR, LOGF_CmdMon, "Could not set reuseaddr socket options");
     /* Don't quit - we might survive anyway */
   }
 #ifdef HAVE_IPV6
@@ -203,7 +204,7 @@ prepare_socket(int family)
 #ifdef IPV6_V6ONLY
     /* Receive IPv6 packets only */
     if (setsockopt(sock_fd, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&on_off, sizeof(on_off)) < 0) {
-      LOG(LOGS_ERR, LOGF_NtpIO, "Could not request IPV6_V6ONLY socket option");
+      LOG(LOGS_ERR, LOGF_CmdMon, "Could not request IPV6_V6ONLY socket option");
     }
 #endif
   }
@@ -242,7 +243,8 @@ prepare_socket(int family)
   }
 
   if (bind(sock_fd, &my_addr.u, sizeof(my_addr)) < 0) {
-    LOG_FATAL(LOGF_CmdMon, "Could not bind socket : %s", strerror(errno));
+    LOG_FATAL(LOGF_CmdMon, "Could not bind %s command socket : %s",
+        family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
   }
 
   /* Register handler for read events on the socket */

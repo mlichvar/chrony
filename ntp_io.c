@@ -115,7 +115,8 @@ prepare_socket(int family)
 #endif 
 
   if (sock_fd < 0) {
-    LOG(LOGS_ERR, LOGF_NtpIO, "Could not open socket : %s", strerror(errno));
+    LOG(LOGS_ERR, LOGF_NtpIO, "Could not open %s NTP socket : %s",
+        family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
     return -1;
   }
 
@@ -193,7 +194,8 @@ prepare_socket(int family)
 #endif
 
   if (bind(sock_fd, &my_addr.u, sizeof(my_addr)) < 0) {
-    LOG_FATAL(LOGF_NtpIO, "Could not bind socket : %s", strerror(errno));
+    LOG_FATAL(LOGF_NtpIO, "Could not bind %s NTP socket : %s",
+        family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
   }
 
   /* Register handler for read events on the socket */
