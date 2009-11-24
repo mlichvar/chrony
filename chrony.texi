@@ -2176,9 +2176,10 @@ Software that can be used as a source of timestamps includes
 @item SOCK
 Unix domain socket driver.  The parameter is a path to the socket
 which is used as the source of timestamps.  This is as a better
-alternative to SHM, it does not require polling and the offset
-resolution is not limited to microsecond.  The format for messages
-sent over the socket is declared in file @code{refclock_sock.c}.
+alternative to SHM, it does not require polling, the offset
+resolution is not limited to microsecond and it supports PPS.
+The format for messages sent over the socket is declared in file
+@code{refclock_sock.c}.
 @end table
 
 The @code{refclock} command also supports a number of subfields (which

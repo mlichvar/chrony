@@ -38,6 +38,7 @@
 struct sock_sample {
   struct timeval tv;
   double offset;
+  int pulse;
   int leap;
 };
 
@@ -53,7 +54,11 @@ static void read_sample(void *anything)
   if (recv(sockfd, &sample, sizeof (sample), 0) != sizeof (sample))
     return;
 
-  RCL_AddSample(instance, &sample.tv, sample.offset, sample.leap);
+  if (sample.pulse) {
+    RCL_AddPulse(instance, &sample.tv, sample.offset);
+  } else {
+    RCL_AddSample(instance, &sample.tv, sample.offset, sample.leap);
+  }
 }
 
 static int sock_initialise(RCL_Instance instance)
