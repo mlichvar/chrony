@@ -1182,6 +1182,7 @@ directives can occur in any order in the file.
 * manual directive::            Allow manual entry using chronyc's settime cmd.
 * maxupdateskew directive::     Stop bad estimates upsetting machine clock
 * noclientlog directive::       Prevent chronyd from gathering data about clients
+* clientloglimit directive::    Set client log memory limit
 * peer directive::              Specify an NTP peer
 * pidfile directive::           Specify the file where chronyd's pid is written
 * port directive::              Set port to use for NTP packets
@@ -2086,6 +2087,21 @@ the new master estimate.
 This directive, which takes no arguments, specifies that client accesses
 are not to be logged.  Normally they are logged, allowing statistics to
 be reported using the @code{clients} command in @code{chronyc}.
+@c }}}
+@c {{{ clientloglimit
+@node clientloglimit directive
+@subsection clientloglimit
+This directive specifies the maximum size of the memory allocated to
+log client accesses.  When the limit is reached, only information for
+clients that have already been logged will be updated.  If 0 is
+specified, the memory size will be unlimited.  The default is 524288
+bytes.
+
+An example of the use of this directive is
+
+@example
+clientloglimit 1048576
+@end example
 @c }}}
 @c {{{ peer
 @node peer directive

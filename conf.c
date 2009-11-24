@@ -87,6 +87,7 @@ static void parse_cmddeny(const char *);
 static void parse_cmdport(const char *);
 static void parse_rtconutc(const char *);
 static void parse_noclientlog(const char *);
+static void parse_clientloglimit(const char *);
 static void parse_logchange(const char *);
 static void parse_mailonchange(const char *);
 static void parse_bindaddress(const char *);
@@ -158,6 +159,9 @@ static double mail_change_threshold = 0.0;
    memory */
 static int no_client_log = 0;
 
+/* Limit memory allocated for the clients log */
+static unsigned long client_log_limit = 524288;
+
 /* IP addresses for binding the NTP socket to.  UNSPEC family means INADDR_ANY
    will be used */
 static IPAddr bind_address4, bind_address6;
@@ -213,6 +217,7 @@ static const Command commands[] = {
   {"cmdport", 7, parse_cmdport},
   {"rtconutc", 8, parse_rtconutc},
   {"noclientlog", 11, parse_noclientlog},
+  {"clientloglimit", 14, parse_clientloglimit},
   {"logchange", 9, parse_logchange},
   {"mailonchange", 12, parse_mailonchange},
   {"bindaddress", 11, parse_bindaddress},
@@ -767,6 +772,21 @@ static void
 parse_noclientlog(const char *line)
 {
   no_client_log = 1;
+}
+
+/* ================================================== */
+
+static void
+parse_clientloglimit(const char *line)
+{
+  if (sscanf(line, "%lu", &client_log_limit) != 1) {
+    LOG(LOGS_WARN, LOGF_Configure, "Could not read clientlog memory limit at line %d", line_number);
+  }
+
+  if (client_log_limit == 0) {
+    /* unlimited */
+    client_log_limit = (unsigned long)-1;
+  }
 }
 
 /* ================================================== */
@@ -1349,6 +1369,14 @@ int
 CNF_GetNoClientLog(void)
 {
   return no_client_log;
+}
+
+/* ================================================== */
+
+unsigned long
+CNF_GetClientLogLimit(void)
+{
+  return client_log_limit;
 }
 
 /* ================================================== */

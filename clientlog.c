@@ -88,6 +88,13 @@ static int max_nodes = 0;
 /* Flag indicating whether facility is turned on or not */
 static int active = 0;
 
+/* Flag indicating whether memory allocation limit has been reached
+   and no new nodes or subnets should be allocated */
+static int alloc_limit_reached;
+
+static unsigned long alloc_limit;
+static unsigned long alloced;
+
 /* ================================================== */
 
 static void
@@ -159,6 +166,9 @@ CLG_Initialise(void)
   max_nodes = 0;
   n_nodes = 0;
 
+  alloced = 0;
+  alloc_limit = CNF_GetClientLogLimit();
+  alloc_limit_reached = 0;
 }
 
 /* ================================================== */
@@ -171,11 +181,25 @@ CLG_Finalise(void)
 
 /* ================================================== */
 
+static void check_alloc_limit() {
+  if (alloc_limit_reached)
+    return;
+
+  if (alloced >= alloc_limit) {
+    LOG(LOGS_WARN, LOGF_ClientLog, "Client log memory limit reached");
+    alloc_limit_reached = 1;
+  }
+}
+
+/* ================================================== */
+
 static void
 create_subnet(Subnet *parent_subnet, int the_entry)
 {
   parent_subnet->entry[the_entry] = (void *) MallocNew(Subnet);
   clear_subnet((Subnet *) parent_subnet->entry[the_entry]);
+  alloced += sizeof (Subnet);
+  check_alloc_limit();
 }
 
 /* ================================================== */
@@ -188,6 +212,8 @@ create_node(Subnet *parent_subnet, int the_entry)
   parent_subnet->entry[the_entry] = (void *) new_node;
   clear_node(new_node);
 
+  alloced += sizeof (Node);
+
   if (n_nodes == max_nodes) {
     if (nodes) {
       assert(max_nodes > 0);
@@ -198,8 +224,10 @@ create_node(Subnet *parent_subnet, int the_entry)
       max_nodes = 16;
       nodes = MallocArray(Node *, max_nodes);
     }
+    alloced += sizeof (Node *) * (max_nodes - n_nodes);
   }
   nodes[n_nodes++] = (Node *) new_node;
+  check_alloc_limit();
 }
 
 /* ================================================== */
@@ -216,11 +244,15 @@ find_subnet(Subnet *subnet, uint32_t *addr, int addr_len, int bits_consumed)
 
   if (bits_consumed < 32 * addr_len) {
     if (!subnet->entry[this_subnet]) {
+      if (alloc_limit_reached)
+        return NULL;
       create_subnet(subnet, this_subnet);
     }
     return find_subnet((Subnet *) subnet->entry[this_subnet], addr, addr_len, bits_consumed);
   } else {
     if (!subnet->entry[this_subnet]) {
+      if (alloc_limit_reached)
+        return NULL;
       create_node(subnet, this_subnet);
     }
     return subnet->entry[this_subnet];
@@ -273,6 +305,9 @@ CLG_LogNTPClientAccess (IPAddr *client, time_t now)
         assert(0);
     }
 
+    if (node == NULL)
+      return;
+
     node->ip_addr = *client;
     ++node->client_hits;
     node->last_ntp_hit = now;
@@ -300,6 +335,9 @@ CLG_LogNTPPeerAccess(IPAddr *client, time_t now)
         assert(0);
     }
 
+    if (node == NULL)
+      return;
+
     node->ip_addr = *client;
     ++node->peer_hits;
     node->last_ntp_hit = now;
@@ -326,6 +364,9 @@ CLG_LogCommandAccess(IPAddr *client, CLG_Command_Type type, time_t now)
       default:
         assert(0);
     }
+
+    if (node == NULL)
+      return;
 
     node->ip_addr = *client;
     node->last_cmd_hit = now;
