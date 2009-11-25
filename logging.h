@@ -61,6 +61,7 @@ typedef enum {
   LOGF_Logging,
   LOGF_Rtc,
   LOGF_Regress,
+  LOGF_Sys,
   LOGF_SysLinux,
   LOGF_SysSolaris,
   LOGF_SysSunOS,

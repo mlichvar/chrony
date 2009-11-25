@@ -97,14 +97,8 @@ static void parse_pidfile(const char *);
 static void parse_broadcast(const char *);
 static void parse_linux_hz(const char *);
 static void parse_linux_freq_scale(const char *);
-
-#if defined(HAVE_SCHED_SETSCHEDULER)
 static void parse_sched_priority(const char *);
-#endif
-
-#if defined(HAVE_MLOCKALL)
 static void parse_lockall(const char *);
-#endif
 
 /* ================================================== */
 /* Configuration variables */
@@ -184,6 +178,9 @@ static int linux_hz;
 static int set_linux_freq_scale = 0;
 static double linux_freq_scale;
 
+static int sched_priority = 0;
+static int lock_memory = 0;
+
 /* ================================================== */
 
 typedef struct {
@@ -226,15 +223,9 @@ static const Command commands[] = {
   {"pidfile", 7, parse_pidfile},
   {"broadcast", 9, parse_broadcast},
   {"linux_hz", 8, parse_linux_hz},
-  {"linux_freq_scale", 16, parse_linux_freq_scale}
-#if defined(HAVE_SCHED_SETSCHEDULER)
-  ,{"sched_priority", 14, parse_sched_priority}
-#endif
-
-#if defined(HAVE_MLOCKALL)
-  ,{"lock_all", 8, parse_lockall}
-#endif
-
+  {"linux_freq_scale", 16, parse_linux_freq_scale},
+  {"sched_priority", 14, parse_sched_priority},
+  {"lock_all", 8, parse_lockall}
 };
 
 static int n_commands = (sizeof(commands) / sizeof(commands[0]));
@@ -396,23 +387,21 @@ parse_source(const char *line, NTP_Source_Type type)
 
 /* ================================================== */
 
-#if defined(HAVE_SCHED_SETSCHEDULER)
 static void
 parse_sched_priority(const char *line)
 {
-  if (SchedPriority == 0) { /* Command-line switch must have priority */
-    sscanf(line, "%d", &SchedPriority);
+  if (sscanf(line, "%d", &sched_priority) != 1) {
+    LOG(LOGS_WARN, LOGF_Configure, "Could not read scheduling priority at line %d", line_number);
   }
 }
-#endif
 
-#if defined(HAVE_MLOCKALL)
+/* ================================================== */
+
 static void
 parse_lockall(const char *line)
 {
-  LockAll = 1;
+  lock_memory = 1;
 }
-#endif
 
 /* ================================================== */
 
@@ -1431,3 +1420,18 @@ CNF_GetLinuxFreqScale(int *set, double *freq_scale)
   *freq_scale = linux_freq_scale ;
 }
 
+/* ================================================== */
+
+int
+CNF_GetSchedPriority(void)
+{
+  return sched_priority;
+}
+
+/* ================================================== */
+
+int
+CNF_GetLockMemory(void)
+{
+  return lock_memory;
+}

@@ -43,6 +43,6 @@ extern void SYS_Finalise(void);
 extern void SYS_DropRoot(char *user);
 
 extern void SYS_SetScheduler(int SchedPriority);
-extern void SYS_MemLockAll(int LockAll);
+extern void SYS_LockMemory(void);
 
 #endif /* GOT_SYS_H */

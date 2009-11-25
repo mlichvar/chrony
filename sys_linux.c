@@ -963,7 +963,9 @@ void SYS_Linux_SetScheduler(int SchedPriority)
   int pmax, pmin;
   struct sched_param sched;
 
-  if (SchedPriority > 0) {
+  if (SchedPriority < 1 || SchedPriority > 99) {
+    LOG_FATAL(LOGF_SysLinux, "Bad scheduler priority: %d", SchedPriority);
+  } else {
     sched.sched_priority = SchedPriority;
     pmax = sched_get_priority_max(SCHED_FIFO);
     pmin = sched_get_priority_min(SCHED_FIFO);

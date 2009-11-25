@@ -216,10 +216,7 @@ int main
   int debug = 0;
   int do_init_rtc = 0;
   int other_pid;
-
-#if defined(HAVE_SCHED_SETSCHEDULER)
-  int return_value = 0;
-#endif
+  int lock_memory = 0, sched_priority = 0;
 
   LOG_Initialise();
 
@@ -229,29 +226,22 @@ int main
     if (!strcmp("-f", *argv)) {
       ++argv, --argc;
       conf_file = *argv;
-
-#if defined(HAVE_SCHED_SETSCHEDULER)
-      /* Get real-time scheduler priority */
     } else if (!strcmp("-P", *argv)) {
       ++argv, --argc;
-      return_value = sscanf(*argv, "%d", &SchedPriority);
-      if (return_value != 1 || SchedPriority < 1 || SchedPriority > 99) { 
-	SchedPriority = 0;
-	LOG(LOGS_WARN, LOGF_Main, "Bad scheduler priority: [%s]", *argv);
+      if (argc == 0 || sscanf(*argv, "%d", &sched_priority) != 1) {
+        LOG_FATAL(LOGF_Main, "Bad scheduler priority");
       }
-#endif /* HAVE_SCHED_SETCHEDULER */
-
-#if defined(HAVE_MLOCKALL)
-      /* Detect lockall switch */
     } else if (!strcmp("-m", *argv)) {
-      LockAll = 1;
-#endif /* HAVE_MLOCKALL */
-
+      lock_memory = 1;
     } else if (!strcmp("-r", *argv)) {
       reload = 1;
     } else if (!strcmp("-u", *argv)) {
       ++argv, --argc;
-      user = *argv;
+      if (argc == 0) {
+        LOG_FATAL(LOGF_Main, "Missing user name");
+      } else {
+        user = *argv;
+      }
     } else if (!strcmp("-s", *argv)) {
       do_init_rtc = 1;
     } else if (!strcmp("-v", *argv) || !strcmp("--version",*argv)) {
@@ -310,16 +300,21 @@ int main
   RTC_Initialise();
   RCL_Initialise();
 
-  if (SchedPriority > 0) {
-    SYS_SetScheduler(SchedPriority);
+  /* Command-line switch must have priority */
+  if (!sched_priority) {
+    sched_priority = CNF_GetSchedPriority();
+  }
+  if (sched_priority) {
+    SYS_SetScheduler(sched_priority);
   }
 
-  if (LockAll == 1 ) {
-    SYS_MemLockAll(LockAll);
+  if (lock_memory || CNF_GetLockMemory()) {
+    SYS_LockMemory();
   }
 
-  if (user)
+  if (user) {
     SYS_DropRoot(user);
+  }
 
   REF_Initialise();
   SST_Initialise();

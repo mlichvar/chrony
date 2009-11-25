@@ -30,6 +30,7 @@
   */
 
 #include "sys.h"
+#include "logging.h"
 
 #if defined (LINUX)
 #include "sys_linux.h"
@@ -102,7 +103,11 @@ void SYS_DropRoot(char *user)
 {
 #if defined(LINUX) && defined (FEAT_LINUXCAPS)
   SYS_Linux_DropRoot(user);
+#else
+  LOG_FATAL(LOGF_Sys, "dropping root privileges not supported");
 #endif
+
+  return;
 }
 
 /* ================================================== */
@@ -111,19 +116,24 @@ void SYS_SetScheduler(int SchedPriority)
 {
 #if defined(LINUX) && defined(HAVE_SCHED_SETSCHEDULER)
   SYS_Linux_SetScheduler(SchedPriority);
+#else
+  LOG_FATAL(LOGF_Sys, "scheduler priority setting not supported");
 #endif
-  ;;
-}
 
-void SYS_MemLockAll(int LockAll)
-{
-#if defined(LINUX) && defined(HAVE_MLOCKALL)
-  SYS_Linux_MemLockAll(LockAll);
-#endif
-  ;;
+  return;
 }
 
 /* ================================================== */
 
+void SYS_LockMemory(void)
+{
+#if defined(LINUX) && defined(HAVE_MLOCKALL)
+  SYS_Linux_MemLockAll(1);
+#else
+  LOG_FATAL(LOGF_Sys, "memory locking not supported");
+#endif
 
+  return;
+}
 
+/* ================================================== */
