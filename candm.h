@@ -328,6 +328,10 @@ typedef struct {
 
 #define PROTO_VERSION_NUMBER 4
 
+/* The oldest protocol version that is compatible enough with
+   the current version to report a version mismatch */
+#define PROTO_VERSION_MISMATCH_COMPAT 4
+
 /* ================================================== */
 
 typedef struct {
@@ -434,6 +438,8 @@ typedef struct {
 #define STT_INACTIVE 15
 #define STT_BADSAMPLE 16
 #define STT_INVALIDAF 17
+#define STT_BADPKTVERSION 18
+#define STT_BADPKTLENGTH 19
 
 typedef struct {
   int32_t EOR;

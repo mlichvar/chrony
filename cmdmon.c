@@ -1822,23 +1822,35 @@ read_from_cmd_socket(void *anything)
     return;
   }
 
-
-  if (read_length != expected_length) {
-    LOG(LOGS_WARN, LOGF_CmdMon, "Read incorrectly sized packet from %s:%hu", UTI_IPToString(&remote_ip), remote_port);
-    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
-    /* For now, just ignore the packet.  We may want to send a reply
-       back eventually */
-    return;
-  }
-
-  if ((rx_message.version != PROTO_VERSION_NUMBER) ||
-      (rx_message.pkt_type != PKT_TYPE_CMD_REQUEST) ||
-      (rx_message.res1 != 0) ||
-      (rx_message.res2 != 0)) {
+  if (read_length < offsetof(CMD_Request, data) ||
+      rx_message.pkt_type != PKT_TYPE_CMD_REQUEST ||
+      rx_message.res1 != 0 ||
+      rx_message.res2 != 0) {
 
     /* We don't know how to process anything like this */
     CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
     
+    return;
+  }
+
+  if (rx_message.version != PROTO_VERSION_NUMBER) {
+    tx_message.status = htons(STT_NOHOSTACCESS);
+    LOG(LOGS_WARN, LOGF_CmdMon, "Read packet with protocol version %d (expected %d) from %s:%hu", rx_message.version, PROTO_VERSION_NUMBER, UTI_IPToString(&remote_ip), remote_port);
+    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
+
+    if (rx_message.version >= PROTO_VERSION_MISMATCH_COMPAT) {
+      tx_message.status = htons(STT_BADPKTVERSION);
+      transmit_reply(&tx_message, &where_from);
+    }
+    return;
+  }
+
+  if (read_length != expected_length) {
+    LOG(LOGS_WARN, LOGF_CmdMon, "Read incorrectly sized packet from %s:%hu", UTI_IPToString(&remote_ip), remote_port);
+    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
+
+    tx_message.status = htons(STT_BADPKTLENGTH);
+    transmit_reply(&tx_message, &where_from);
     return;
   }
 

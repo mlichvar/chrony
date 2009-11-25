@@ -1305,7 +1305,9 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
           continue;
         }
         
-        bad_header = ((reply->version != PROTO_VERSION_NUMBER) ||
+        bad_header = ((reply->version != PROTO_VERSION_NUMBER &&
+                       !(reply->version >= PROTO_VERSION_MISMATCH_COMPAT &&
+                         ntohs(reply->status) == STT_BADPKTVERSION)) ||
                       (reply->pkt_type != PKT_TYPE_CMD_REPLY) ||
                       (reply->res1 != 0) ||
                       (reply->res2 != 0) ||
@@ -1427,6 +1429,12 @@ request_reply(CMD_Request *request, CMD_Reply *reply, int requested_reply, int v
         break;
       case STT_BADSAMPLE:
         printf("516 Sample index out of range");
+        break;
+      case STT_BADPKTVERSION:
+        printf("517 Protocol version mismatch");
+        break;
+      case STT_BADPKTLENGTH:
+        printf("518 Packet length mismatch");
         break;
       case STT_INACTIVE:
         printf("519 Client logging is not active in the daemon");
