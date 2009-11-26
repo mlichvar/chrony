@@ -6,7 +6,8 @@
 
 /* Hmm.  These constants vary a bit between systems. */
 /* (__sh__ includes both sh and sh64) */
-#if defined(__i386__) || defined(__sh__) || defined(__arm__)||defined(__x86_64__)
+/* (__s390__ includes both s390 and s390x) */
+#if defined(__i386__) || defined(__sh__) || defined(__arm__) || defined(__x86_64__) || defined(__s390__)
 #define CHRONY_IOC_NRBITS	8
 #define CHRONY_IOC_TYPEBITS	8
 #define CHRONY_IOC_SIZEBITS	14
@@ -26,7 +27,7 @@
 #define CHRONY_IOC_READ        2U
 #define CHRONY_IOC_WRITE       4U
 
-#elif defined(__mips__) || defined(__mips32__)
+#elif defined(__mips__) || defined(__mips32__) || defined(__powerpc__)
 #define CHRONY_IOC_NRBITS       8
 #define CHRONY_IOC_TYPEBITS     8
 #define CHRONY_IOC_SIZEBITS     13
