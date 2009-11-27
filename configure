@@ -191,8 +191,11 @@ For better control, use the options below.
   --enable-linuxcaps     Enable Linux capabilities support
 
 Fine tuning of the installation directories:
+  --bindir=DIR           user executables [PREFIX/bin]
+  --sbindir=DIR          system admin executables [PREFIX/sbin]
   --infodir=DIR          info documentation [PREFIX/info]
   --mandir=DIR           man documentation [PREFIX/man]
+  --docdir=DIR           documentation root [PREFIX/doc/chrony]
 
 Overriding system detection when cross-compiling:
   --host-system=OS       Specify system name (uname -s)
@@ -268,11 +271,20 @@ do
     --with-ncurses-library=* )
       ncurses_lib=-L`echo $option | sed -e 's/^.*=//;'`
     ;;
+    --bindir=* )
+      SETBINDIR=`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --sbindir=* )
+      SETSBINDIR=`echo $option | sed -e 's/^.*=//;'`
+    ;;
     --infodir=* )
       SETINFODIR=`echo $option | sed -e 's/^.*=//;'`
     ;;
     --mandir=* )
       SETMANDIR=`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --docdir=* )
+      SETDOCDIR=`echo $option | sed -e 's/^.*=//;'`
     ;;
     --disable-rtc)
       feat_rtc=0
@@ -447,13 +459,25 @@ else
   READLINE_LINK=""
 fi
 
+BINDIR=${INSTALL_PREFIX}/bin
+SBINDIR=${INSTALL_PREFIX}/sbin
 MANDIR=${INSTALL_PREFIX}/man
 INFODIR=${INSTALL_PREFIX}/info
+DOCDIR=${INSTALL_PREFIX}/doc/chrony
+if [ "x$SETBINDIR" != "x" ]; then
+  BINDIR=$SETBINDIR
+fi
+if [ "x$SETSBINDIR" != "x" ]; then
+  SBINDIR=$SETSBINDIR
+fi
 if [ "x$SETINFODIR" != "x" ]; then
   INFODIR=$SETINFODIR
 fi
 if [ "x$SETMANDIR" != "x" ]; then
   MANDIR=$SETMANDIR
+fi
+if [ "x$SETDOCDIR" != "x" ]; then
+  DOCDIR=$SETDOCDIR
 fi
 
 sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
@@ -469,7 +493,9 @@ sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
 	s%@EXTRA_CLI_LIBS@%${EXTRA_CLI_LIBS}%;\
 	s%@READLINE_COMPILE@%${READLINE_COMPILE}%;\
 	s%@READLINE_LINK@%${READLINE_LINK}%;\
-	s%@INSTALL_PREFIX@%${INSTALL_PREFIX}%;\
+	s%@BINDIR@%${BINDIR}%;\
+	s%@SBINDIR@%${SBINDIR}%;\
+	s%@DOCDIR@%${DOCDIR}%;\
 	s%@MANDIR@%${MANDIR}%;\
 	s%@INFODIR@%${INFODIR}%;"\
 	< Makefile.in > Makefile

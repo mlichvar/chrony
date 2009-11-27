@@ -25,9 +25,11 @@
 #
 # Makefile template
 
-INSTALL_PREFIX=@INSTALL_PREFIX@
+BINDIR=@BINDIR@
+SBINDIR=@SBINDIR@
 MANDIR=@MANDIR@
 INFODIR=@INFODIR@
+DOCDIR=@DOCDIR@
 
 CC = @CC@
 CCWARNFLAGS = @CCWARNFLAGS@
@@ -97,26 +99,25 @@ getdate :
 # seem to vary between systems.
 
 install: chronyd chronyc
-	[ -d $(DESTDIR)$(INSTALL_PREFIX) ] || mkdir -p $(DESTDIR)$(INSTALL_PREFIX)
-	[ -d $(DESTDIR)$(INSTALL_PREFIX)/sbin ] || mkdir -p $(DESTDIR)$(INSTALL_PREFIX)/sbin
-	[ -d $(DESTDIR)$(INSTALL_PREFIX)/bin ] || mkdir -p $(DESTDIR)$(INSTALL_PREFIX)/bin
-	[ -d $(DESTDIR)$(INSTALL_PREFIX)/doc ] || mkdir -p $(DESTDIR)$(INSTALL_PREFIX)/doc
+	[ -d $(DESTDIR)$(SBINDIR) ] || mkdir -p $(DESTDIR)$(SBINDIR)
+	[ -d $(DESTDIR)$(BINDIR) ] || mkdir -p $(DESTDIR)$(BINDIR)
+	[ -d $(DESTDIR)$(DOCDIR) ] || mkdir -p $(DESTDIR)$(DOCDIR)
 	[ -d $(DESTDIR)$(MANDIR)/man1 ] || mkdir -p $(DESTDIR)$(MANDIR)/man1
 	[ -d $(DESTDIR)$(MANDIR)/man5 ] || mkdir -p $(DESTDIR)$(MANDIR)/man5
 	[ -d $(DESTDIR)$(MANDIR)/man8 ] || mkdir -p $(DESTDIR)$(MANDIR)/man8
-	[ -d $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony ] || mkdir -p $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony
-	if [ -f $(DESTDIR)$(INSTALL_PREFIX)/sbin/chronyd ]; then rm -f $(DESTDIR)$(INSTALL_PREFIX)/sbin/chronyd ; fi
-	if [ -f $(DESTDIR)$(INSTALL_PREFIX)/bin/chronyc ]; then rm -f $(DESTDIR)$(INSTALL_PREFIX)/bin/chronyc ; fi
-	cp chronyd $(DESTDIR)$(INSTALL_PREFIX)/sbin/chronyd
-	chmod 555 $(DESTDIR)$(INSTALL_PREFIX)/sbin/chronyd
-	cp chronyc $(DESTDIR)$(INSTALL_PREFIX)/bin/chronyc
-	chmod 555 $(DESTDIR)$(INSTALL_PREFIX)/bin/chronyc
-	cp chrony.txt $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/chrony.txt
-	chmod 444 $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/chrony.txt
-	cp COPYING $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/COPYING
-	chmod 444 $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/COPYING
-	cp README $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/README
-	chmod 444 $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/README
+	[ -d $(DESTDIR)$(DOCDIR) ] || mkdir -p $(DESTDIR)$(DOCDIR)
+	if [ -f $(DESTDIR)$(SBINDIR)/chronyd ]; then rm -f $(DESTDIR)$(SBINDIR)/chronyd ; fi
+	if [ -f $(DESTDIR)$(BINDIR)/chronyc ]; then rm -f $(DESTDIR)$(BINDIR)/chronyc ; fi
+	cp chronyd $(DESTDIR)$(SBINDIR)/chronyd
+	chmod 555 $(DESTDIR)$(SBINDIR)/chronyd
+	cp chronyc $(DESTDIR)$(BINDIR)/chronyc
+	chmod 555 $(DESTDIR)$(BINDIR)/chronyc
+	cp chrony.txt $(DESTDIR)$(DOCDIR)/chrony.txt
+	chmod 444 $(DESTDIR)$(DOCDIR)/chrony.txt
+	cp COPYING $(DESTDIR)$(DOCDIR)/COPYING
+	chmod 444 $(DESTDIR)$(DOCDIR)/COPYING
+	cp README $(DESTDIR)$(DOCDIR)/README
+	chmod 444 $(DESTDIR)$(DOCDIR)/README
 	cp chrony.1 $(DESTDIR)$(MANDIR)/man1
 	chmod 444 $(DESTDIR)$(MANDIR)/man1/chrony.1
 	cp chronyc.1 $(DESTDIR)$(MANDIR)/man1
@@ -138,13 +139,13 @@ main.o logging.o client.o : version.h
 MAKEINFO:=makeinfo
 
 install-docs : docs
-	[ -d $(DESTDIR)$(INSTALL_PREFIX)/doc ] || mkdir -p $(DESTDIR)$(INSTALL_PREFIX)/doc
-	cp chrony.txt $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/chrony.txt
-	chown root $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/chrony.txt
-	chmod 444 $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/chrony.txt
-	cp chrony.html $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/chrony.html
-	chown root $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/chrony.html
-	chmod 444 $(DESTDIR)$(INSTALL_PREFIX)/doc/chrony/chrony.html
+	[ -d $(DESTDIR)$(DOCDIR) ] || mkdir -p $(DESTDIR)$(DOCDIR)
+	cp chrony.txt $(DESTDIR)$(DOCDIR)/chrony.txt
+	chown root $(DESTDIR)$(DOCDIR)/chrony.txt
+	chmod 444 $(DESTDIR)$(DOCDIR)/chrony.txt
+	cp chrony.html $(DESTDIR)$(DOCDIR)/chrony.html
+	chown root $(DESTDIR)$(DOCDIR)/chrony.html
+	chmod 444 $(DESTDIR)$(DOCDIR)/chrony.html
 	[ -d $(DESTDIR)$(INFODIR) ] || mkdir -p $(DESTDIR)$(INFODIR)
 	cp chrony.info* $(DESTDIR)$(INFODIR)
 	chown root $(DESTDIR)$(INFODIR)/chrony.info*
