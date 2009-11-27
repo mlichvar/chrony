@@ -141,14 +141,11 @@ MAKEINFO:=makeinfo
 install-docs : docs
 	[ -d $(DESTDIR)$(DOCDIR) ] || mkdir -p $(DESTDIR)$(DOCDIR)
 	cp chrony.txt $(DESTDIR)$(DOCDIR)/chrony.txt
-	chown root $(DESTDIR)$(DOCDIR)/chrony.txt
 	chmod 444 $(DESTDIR)$(DOCDIR)/chrony.txt
 	cp chrony.html $(DESTDIR)$(DOCDIR)/chrony.html
-	chown root $(DESTDIR)$(DOCDIR)/chrony.html
 	chmod 444 $(DESTDIR)$(DOCDIR)/chrony.html
 	[ -d $(DESTDIR)$(INFODIR) ] || mkdir -p $(DESTDIR)$(INFODIR)
 	cp chrony.info* $(DESTDIR)$(INFODIR)
-	chown root $(DESTDIR)$(INFODIR)/chrony.info*
 	chmod 444 $(DESTDIR)$(INFODIR)/chrony.info*
 
 docs : chrony.txt chrony.html chrony.info
