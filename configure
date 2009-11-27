@@ -158,6 +158,38 @@ EOF
   echo $result
 }
 #}}}
+#{{{ test_code
+test_code () {
+  name=$1
+  headers=$2
+  cflags=$3
+  ldflags=$4
+  code=$5
+
+  printf "Checking for $name : "
+
+  (
+    for h in $headers; do
+      echo "#include <$h>"
+    done
+    echo "int main(int argc, char **argv) {"
+    echo "$code"
+    echo "return 0; }"
+  ) > docheck.c
+
+  ${MYCC} ${MYCFLAGS} ${MYCPPFLAGS} $cflags -o docheck docheck.c $ldflags >/dev/null 2>&1
+  if [ $? -eq 0 ]
+  then
+    printf "Yes\n"
+    result=0
+  else
+    printf "No\n"
+    result=1
+  fi
+  rm -f docheck.c docheck
+  return $result
+}
+#}}}
 #{{{ usage
 usage () {
   cat <<EOF;
@@ -180,15 +212,16 @@ an installation prefix other than \`/usr/local' using \`--prefix',
 for instance \`--prefix=$HOME'.
 
 For better control, use the options below.
-  --disable-readline     Don't try to use GNU readline
-  --with-editline        Use editline library instead of readline
+  --disable-readline     Disable line editing support
+  --without-readline     Don't use GNU readline even if it is available
+  --without-editline     Don't use editline even if it is available
   --readline-dir=DIR     Specify parent of readline include and lib directories
   --readline-inc-dir=DIR Specify where readline include directory is
   --readline-lib-dir=DIR Specify where readline lib directory is
   --with-ncurses-library=DIR Specify where ncurses lib directory is
   --disable-ipv6         Disable IPv6 support
   --disable-rtc          Don't include RTC even on Linux
-  --enable-linuxcaps     Enable Linux capabilities support
+  --disable-linuxcaps    Disable Linux capabilities support
 
 Fine tuning of the installation directories:
   --bindir=DIR           user executables [PREFIX/bin]
@@ -236,9 +269,11 @@ SYSDEFS=""
 
 # Support for readline (on by default)
 feat_readline=1
-use_editline=0
+try_readline=1
+try_editline=1
 feat_rtc=1
-feat_linuxcaps=0
+feat_linuxcaps=1
+try_linuxcaps=0
 readline_lib=""
 readline_inc=""
 ncurses_lib=""
@@ -259,8 +294,11 @@ do
     --disable-readline )
       feat_readline=0
     ;;
-    --with-editline )
-      use_editline=1
+    --without-readline )
+      try_readline=0
+    ;;
+    --without-editline )
+      try_editline=0
     ;;
     --with-readline-library=* )
       readline_lib=-L`echo $option | sed -e 's/^.*=//;'`
@@ -292,8 +330,8 @@ do
     --disable-ipv6)
       feat_ipv6=0
     ;;
-    --enable-linuxcaps)
-      feat_linuxcaps=1
+    --disable-linuxcaps)
+      feat_linuxcaps=0
     ;;
     --host-system=* )
       OPERATINGSYSTEM=`echo $option | sed -e 's/^.*=//;'`
@@ -344,8 +382,7 @@ case $SYSTEM in
             EXTRA_DEFS+=" -DFEAT_RTC=1"
         fi
         if [ $feat_linuxcaps -eq 1 ] ; then
-            EXTRA_DEFS+=" -DFEAT_LINUXCAPS=1"
-            EXTRA_LIBS="-lcap"
+            try_linuxcaps=1
         fi
         SYSDEFS="-DLINUX -DHAVE_SCHED_SETSCHEDULER -DHAVE_MLOCKALL"
         echo "Configuring for " $SYSTEM
@@ -446,17 +483,40 @@ else
   CCWARNFLAGS=""
 fi
 
-if [ $feat_readline = "1" ]; then
-  if [ $use_editline = "1" ]; then
-    READLINE_COMPILE="-DFEAT_READLINE=1 -DUSE_EDITLINE=1 $readline_inc"
-    READLINE_LINK="$readline_lib -ledit"
-  else
-    READLINE_COMPILE="-DFEAT_READLINE=1 $readline_inc"
-    READLINE_LINK="$readline_lib $ncurses_lib -lreadline -lncurses"
+if [ $try_linuxcaps = "1" ]; then
+  if test_code \
+    linuxcaps \
+    'sys/types.h pwd.h sys/prctl.h sys/capability.h grp.h' \
+    '' '-lcap' \
+    'prctl(PR_SET_KEEPCAPS, 1);cap_set_proc(cap_from_text("cap_sys_time=ep"));'
+  then
+    EXTRA_DEFS+=" -DFEAT_LINUXCAPS=1"
+    EXTRA_LIBS="-lcap"
   fi
-else
-  READLINE_COMPILE=""
-  READLINE_LINK=""
+fi
+
+READLINE_COMPILE=""
+READLINE_LINK=""
+if [ $feat_readline = "1" ]; then
+  if [ $try_editline = "1" ]; then
+    if test_code editline 'stdio.h editline/readline.h' \
+      "$readline_inc" "$readline_lib -ledit" \
+      'add_history(readline("prompt"));'
+    then
+      READLINE_COMPILE="-DFEAT_READLINE=1 -DUSE_EDITLINE=1 $readline_inc"
+      READLINE_LINK="$readline_lib -ledit"
+    fi
+  fi
+
+  if [ "x$READLINE_LINK" = "x" ] && [ $try_readline = "1" ]; then
+    if test_code readline 'stdio.h readline/readline.h readline/history.h' \
+      "$readline_inc" "$readline_lib $ncurses_lib -lreadline -lncurses" \
+      'add_history(readline("prompt"));'
+    then
+      READLINE_COMPILE="-DFEAT_READLINE=1 $readline_inc"
+      READLINE_LINK="$readline_lib $ncurses_lib -lreadline -lncurses"
+    fi
+  fi
 fi
 
 BINDIR=${INSTALL_PREFIX}/bin
