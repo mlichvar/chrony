@@ -89,6 +89,9 @@ clean :
 version.h : version.txt
 	./mkversion
 
+getdate.c : ;
+getdate :
+	bison -o getdate.c getdate.y
 
 # For install, don't use the install command, because its switches
 # seem to vary between systems.
