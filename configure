@@ -26,6 +26,12 @@ fi
 
 MYCPPFLAGS="${CPPFLAGS}"
 
+if [ "x${MYCC}" = "xgcc" ]; then
+  CCWARNFLAGS="-Wmissing-prototypes -Wall"
+else
+  CCWARNFLAGS=""
+fi
+
 # ======================================================================
 # FUNCTIONS
 
@@ -63,98 +69,6 @@ EOF
   fi
 
   rm -f docheck.c docheck.o docheck
-  echo $result
-}
-#}}}
-#{{{ test_for_stdint_h
-test_for_stdint_h () {
-  cat >docheck.c <<EOF;
-#include <stdint.h>
-int main(int argc, char **argv) {
-  return 0;
-}
-EOF
-
-  ${MYCC} ${MYCFLAGS} ${MYCPPFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
-  if [ $? -eq 0 ]
-  then
-    result=0
-  else
-    result=1
-  fi
-
-  rm -f docheck.c docheck.o
-  echo $result
-}
-#}}}
-#{{{ test_for_inttypes_h
-test_for_inttypes_h () {
-  cat >docheck.c <<EOF;
-#include <inttypes.h>
-int main(int argc, char **argv) {
-  return 0;
-}
-EOF
-
-  ${MYCC} ${MYCFLAGS} ${MYCPPFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
-  if [ $? -eq 0 ]
-  then
-    result=0
-  else
-    result=1
-  fi
-
-  rm -f docheck.c docheck.o
-  echo $result
-}
-#}}}
-#{{{ test_for_ipv6
-test_for_ipv6 () {
-  cat >docheck.c <<EOF;
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-int main(int argc, char **argv) {
-  struct sockaddr_in6 n;
-  char p[100];
-  n.sin6_addr = in6addr_any;
-  return !inet_ntop(AF_INET6, &n.sin6_addr.s6_addr, p, sizeof(p));
-}
-EOF
-
-  ${MYCC} ${MYCFLAGS} ${MYCPPFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
-  if [ $? -eq 0 ]
-  then
-    result=0
-  else
-    result=1
-  fi
-
-  rm -f docheck.c docheck.o
-  echo $result
-}
-#}}}
-#{{{ test_for_ppsapi
-test_for_ppsapi () {
-  cat >docheck.c <<EOF;
-#include <timepps.h>
-int main(int argc, char **argv) {
-  pps_handle_t h;
-  pps_info_t i;
-  struct timespec ts;
-  return time_pps_fetch(&h, PPS_TSFMT_TSPEC, &i, &ts);
-}
-EOF
-
-  ${MYCC} ${MYCFLAGS} ${MYCPPFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
-  if [ $? -eq 0 ]
-  then
-    result=0
-  else
-    result=1
-  fi
-
-  rm -f docheck.c docheck.o
   echo $result
 }
 #}}}
@@ -220,6 +134,7 @@ For better control, use the options below.
   --readline-lib-dir=DIR Specify where readline lib directory is
   --with-ncurses-library=DIR Specify where ncurses lib directory is
   --disable-ipv6         Disable IPv6 support
+  --disable-pps          Disable PPS API support
   --disable-rtc          Don't include RTC even on Linux
   --disable-linuxcaps    Disable Linux capabilities support
 
@@ -278,6 +193,9 @@ readline_lib=""
 readline_inc=""
 ncurses_lib=""
 feat_ipv6=1
+feat_pps=1
+try_setsched=0
+try_lockmem=0
 
 SETINFODIR=""
 SETMANDIR=""
@@ -330,6 +248,9 @@ do
     --disable-ipv6)
       feat_ipv6=0
     ;;
+    --disable-pps)
+      feat_pps=0
+    ;;
     --disable-linuxcaps)
       feat_linuxcaps=0
     ;;
@@ -381,10 +302,10 @@ case $SYSTEM in
             EXTRA_OBJECTS+=" rtc_linux.o"
             EXTRA_DEFS+=" -DFEAT_RTC=1"
         fi
-        if [ $feat_linuxcaps -eq 1 ] ; then
-            try_linuxcaps=1
-        fi
-        SYSDEFS="-DLINUX -DHAVE_SCHED_SETSCHEDULER -DHAVE_MLOCKALL"
+        try_linuxcaps=1
+        try_setsched=1
+        try_lockmem=1
+        SYSDEFS="-DLINUX"
         echo "Configuring for " $SYSTEM
         if [ "${MACHINE}" = "alpha" ]; then
            echo "Enabling -mieee"
@@ -445,54 +366,65 @@ in
 ;;
 esac
 
-printf "Checking for <stdint.h> : "
-if [ `test_for_stdint_h` -eq 0 ]; then
-  printf "Yes\n"
+if test_code '<stdint.h>' 'stdint.h' '' '' ''; then
   SYSDEFS="${SYSDEFS} -DHAS_STDINT_H"
-else
-  printf "No\n"
 fi
 
-printf "Checking for <inttypes.h> : "
-if [ `test_for_inttypes_h` -eq 0 ]; then
-  printf "Yes\n"
+if test_code '<inttypes.h>' 'inttypes.h' '' '' ''; then
   SYSDEFS="${SYSDEFS} -DHAS_INTTYPES_H"
-else
-  printf "No\n"
 fi
 
-printf "Checking for IPv6 support : "
-if [ $feat_ipv6 -eq 1 -a `test_for_ipv6` -eq 0 ]; then
-  printf "Yes\n"
+if [ $feat_ipv6 = "1" ] && \
+  test_code 'IPv6 support' 'arpa/inet.h sys/socket.h netinet/in.h' '' '' '
+    struct sockaddr_in6 n;
+    char p[100];
+    n.sin6_addr = in6addr_any;
+    return !inet_ntop(AF_INET6, &n.sin6_addr.s6_addr, p, sizeof(p));'
+then
   SYSDEFS="${SYSDEFS} -DHAVE_IPV6"
-else
-  printf "No\n"
 fi
 
-printf "Checking for PPS API : "
-if [ `test_for_ppsapi` -eq 0 ]; then
-  printf "Yes\n"
+if [ $feat_pps = "1" ] && \
+  test_code 'PPS API' 'timepps.h' '' '' '
+    pps_handle_t h;
+    pps_info_t i;
+    struct timespec ts;
+    return time_pps_fetch(&h, PPS_TSFMT_TSPEC, &i, &ts);'
+then
   SYSDEFS="${SYSDEFS} -DHAVE_PPSAPI"
-else
-  printf "No\n"
 fi
 
-if [ "x${MYCC}" = "xgcc" ]; then
-  CCWARNFLAGS="-Wmissing-prototypes -Wall"
-else
-  CCWARNFLAGS=""
-fi
-
-if [ $try_linuxcaps = "1" ]; then
-  if test_code \
+if [ $feat_linuxcaps = "1" ] && [ $try_linuxcaps = "1" ] && \
+  test_code \
     linuxcaps \
     'sys/types.h pwd.h sys/prctl.h sys/capability.h grp.h' \
     '' '-lcap' \
     'prctl(PR_SET_KEEPCAPS, 1);cap_set_proc(cap_from_text("cap_sys_time=ep"));'
-  then
+then
     EXTRA_DEFS+=" -DFEAT_LINUXCAPS=1"
     EXTRA_LIBS="-lcap"
-  fi
+fi
+
+if [ $try_setsched = "1" ] && \
+  test_code \
+    'sched_setscheduler()' \
+    'sched.h' '' '' '
+     struct sched_param sched;
+     sched_get_priority_max(SCHED_FIFO);
+     sched_setscheduler(0, SCHED_FIFO, &sched);'
+then
+  SYSDEFS="${SYSDEFS} -DHAVE_SCHED_SETSCHEDULER"
+fi
+
+if [ $try_lockmem = "1" ] && \
+  test_code \
+    'mlockall()' \
+    'sys/mman.h sys/resource.h' '' '' '
+     struct rlimit rlim;
+     setrlimit(RLIMIT_MEMLOCK, &rlim);
+     mlockall(MCL_CURRENT|MCL_FUTURE);'
+then
+  SYSDEFS="${SYSDEFS} -DHAVE_MLOCKALL"
 fi
 
 READLINE_COMPILE=""
