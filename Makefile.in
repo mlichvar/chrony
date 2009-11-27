@@ -109,23 +109,23 @@ install: chronyd chronyc
 	if [ -f $(DESTDIR)$(SBINDIR)/chronyd ]; then rm -f $(DESTDIR)$(SBINDIR)/chronyd ; fi
 	if [ -f $(DESTDIR)$(BINDIR)/chronyc ]; then rm -f $(DESTDIR)$(BINDIR)/chronyc ; fi
 	cp chronyd $(DESTDIR)$(SBINDIR)/chronyd
-	chmod 555 $(DESTDIR)$(SBINDIR)/chronyd
+	chmod 755 $(DESTDIR)$(SBINDIR)/chronyd
 	cp chronyc $(DESTDIR)$(BINDIR)/chronyc
-	chmod 555 $(DESTDIR)$(BINDIR)/chronyc
+	chmod 755 $(DESTDIR)$(BINDIR)/chronyc
 	cp chrony.txt $(DESTDIR)$(DOCDIR)/chrony.txt
-	chmod 444 $(DESTDIR)$(DOCDIR)/chrony.txt
+	chmod 644 $(DESTDIR)$(DOCDIR)/chrony.txt
 	cp COPYING $(DESTDIR)$(DOCDIR)/COPYING
-	chmod 444 $(DESTDIR)$(DOCDIR)/COPYING
+	chmod 644 $(DESTDIR)$(DOCDIR)/COPYING
 	cp README $(DESTDIR)$(DOCDIR)/README
-	chmod 444 $(DESTDIR)$(DOCDIR)/README
+	chmod 644 $(DESTDIR)$(DOCDIR)/README
 	cp chrony.1 $(DESTDIR)$(MANDIR)/man1
-	chmod 444 $(DESTDIR)$(MANDIR)/man1/chrony.1
+	chmod 644 $(DESTDIR)$(MANDIR)/man1/chrony.1
 	cp chronyc.1 $(DESTDIR)$(MANDIR)/man1
-	chmod 444 $(DESTDIR)$(MANDIR)/man1/chronyc.1
+	chmod 644 $(DESTDIR)$(MANDIR)/man1/chronyc.1
 	cp chronyd.8 $(DESTDIR)$(MANDIR)/man8
-	chmod 444 $(DESTDIR)$(MANDIR)/man8/chronyd.8
+	chmod 644 $(DESTDIR)$(MANDIR)/man8/chronyd.8
 	cp chrony.conf.5 $(DESTDIR)$(MANDIR)/man5
-	chmod 444 $(DESTDIR)$(MANDIR)/man5/chrony.conf.5
+	chmod 644 $(DESTDIR)$(MANDIR)/man5/chrony.conf.5
 
 %.o : %.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
@@ -141,12 +141,12 @@ MAKEINFO:=makeinfo
 install-docs : docs
 	[ -d $(DESTDIR)$(DOCDIR) ] || mkdir -p $(DESTDIR)$(DOCDIR)
 	cp chrony.txt $(DESTDIR)$(DOCDIR)/chrony.txt
-	chmod 444 $(DESTDIR)$(DOCDIR)/chrony.txt
+	chmod 644 $(DESTDIR)$(DOCDIR)/chrony.txt
 	cp chrony.html $(DESTDIR)$(DOCDIR)/chrony.html
-	chmod 444 $(DESTDIR)$(DOCDIR)/chrony.html
+	chmod 644 $(DESTDIR)$(DOCDIR)/chrony.html
 	[ -d $(DESTDIR)$(INFODIR) ] || mkdir -p $(DESTDIR)$(INFODIR)
 	cp chrony.info* $(DESTDIR)$(INFODIR)
-	chmod 444 $(DESTDIR)$(INFODIR)/chrony.info*
+	chmod 644 $(DESTDIR)$(INFODIR)/chrony.info*
 
 docs : chrony.txt chrony.html chrony.info
 
