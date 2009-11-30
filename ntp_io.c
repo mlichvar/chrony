@@ -275,7 +275,6 @@ read_from_socket(void *anything)
   unsigned int flags = 0;
   struct timeval now;
   NTP_Remote_Address remote_addr;
-  double local_clock_err;
   char cmsgbuf[256];
   struct msghdr msg;
   struct iovec iov;
@@ -283,7 +282,7 @@ read_from_socket(void *anything)
 
   assert(initialised);
 
-  LCL_ReadCookedTime(&now, &local_clock_err);
+  SCH_GetFileReadyTime(&now);
 
   iov.iov_base = message.arbitrary;
   iov.iov_len = sizeof(message);

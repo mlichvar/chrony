@@ -71,6 +71,9 @@ typedef struct {
 
 static FileHandlerEntry file_handlers[FD_SET_SIZE];
 
+/* Last timestamp when a file descriptor became readable */
+static struct timeval last_fdready;
+
 /* ================================================== */
 
 /* Variables to handler the timer queue */
@@ -221,6 +224,14 @@ SCH_RemoveInputFileHandler(int fd)
 
   return;
 
+}
+
+/* ================================================== */
+
+void
+SCH_GetFileReadyTime(struct timeval *tv)
+{
+  *tv = last_fdready;
 }
 
 /* ================================================== */
@@ -514,6 +525,7 @@ SCH_MainLoop(void)
   int status;
   struct timeval tv, *ptv;
   struct timeval now;
+  double err;
 
   if (!initialised) {
     CROAK("Should be initialised");
@@ -551,6 +563,7 @@ SCH_MainLoop(void)
     }
 
     status = select(one_highest_fd, &rd, NULL, NULL, ptv);
+    LCL_ReadCookedTime(&last_fdready, &err);
 
     if (status < 0) {
       if (!need_to_exit)

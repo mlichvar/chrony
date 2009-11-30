@@ -872,7 +872,6 @@ read_from_device(void *any)
   struct rtc_time rtc_raw;
   struct tm rtc_tm;
   time_t rtc_t;
-  double read_err;
   int error = 0;
 
   status = read(fd, &data, sizeof(data));
@@ -905,7 +904,7 @@ read_from_device(void *any)
     /* Read RTC time, sandwiched between two polls of the system clock
        so we can bound any error. */
 
-    LCL_ReadCookedTime(&sys_time, &read_err);
+    SCH_GetFileReadyTime(&sys_time);
 
     status = ioctl(fd, RTC_RD_TIME, &rtc_raw);
     if (status < 0) {

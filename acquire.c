@@ -436,7 +436,6 @@ read_from_socket(void *anything)
   IPAddr remote_ip;
   int i, ok;
   struct timeval now;
-  double local_time_err;
   SourceRecord *src;
 
   flags = 0;
@@ -444,7 +443,7 @@ read_from_socket(void *anything)
   his_addr_len = sizeof(his_addr);
 
   /* Get timestamp */
-  LCL_ReadCookedTime(&now, &local_time_err);
+  SCH_GetFileReadyTime(&now);
 
   sock_fd = (long)anything;
   status = recvfrom (sock_fd, (char *)&msg, message_length, flags,
