@@ -52,6 +52,7 @@ extern int CNF_GetLogMeasurements(void);
 extern int CNF_GetLogStatistics(void);
 extern int CNF_GetLogTracking(void);
 extern int CNF_GetLogRtc(void);
+extern int CNF_GetLogRefclocks(void);
 extern char *CNF_GetKeysFile(void);
 extern char *CNF_GetRtcFile(void);
 extern unsigned long CNF_GetCommandKey(void);

@@ -118,6 +118,7 @@ static int do_log_measurements = 0;
 static int do_log_statistics = 0;
 static int do_log_tracking = 0;
 static int do_log_rtc = 0;
+static int do_log_refclocks = 0;
 static int do_dump_on_exit = 0;
 static char *logdir = ".";
 static char *dumpdir = ".";
@@ -648,6 +649,9 @@ parse_log(const char *line)
       } else if (!strncmp(line, "rtc", 3)) {
         do_log_rtc = 1;
         line += 3;
+      } else if (!strncmp(line, "refclocks", 9)) {
+        do_log_refclocks = 1;
+        line += 9;
       } else {
         break;
       }
@@ -1216,6 +1220,13 @@ int
 CNF_GetLogRtc(void)
 {
   return do_log_rtc;
+}
+
+/* ================================================== */
+int
+CNF_GetLogRefclocks(void)
+{
+  return do_log_refclocks;
 }
 
 /* ================================================== */

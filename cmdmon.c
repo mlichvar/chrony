@@ -1458,6 +1458,7 @@ handle_cyclelogs(CMD_Request *rx_message, CMD_Reply *tx_message)
   SST_CycleLogFile();
   REF_CycleLogFile();
   RTC_CycleLogFile();
+  RCL_CycleLogFile();
   
   tx_message->status = htons(STT_SUCCESS);
   return;

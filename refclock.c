@@ -34,6 +34,7 @@
 #include "sources.h"
 #include "logging.h"
 #include "sched.h"
+#include "mkdirpp.h"
 
 /* list of refclock drivers */
 extern RefclockDriver RCL_SHM_driver;
@@ -75,11 +76,17 @@ struct RCL_Instance_Record {
 static struct RCL_Instance_Record refclocks[MAX_RCL_SOURCES];
 static int n_sources = 0;
 
+#define REFCLOCKS_LOG "refclocks.log"
+static FILE *logfile = NULL;
+static char *logfilename = NULL;
+static unsigned long logwrites = 0;
+
 static int valid_sample_time(RCL_Instance instance, struct timeval *tv);
 static int pps_stratum(RCL_Instance instance, struct timeval *tv);
 static void poll_timeout(void *arg);
 static void slew_samples(struct timeval *raw, struct timeval *cooked, double dfreq, double afreq,
              double doffset, int is_step_change, void *anything);
+static void log_sample(RCL_Instance instance, struct timeval *sample_time, int pulse, double raw_offset, double cooked_offset);
 
 static void filter_init(struct MedianFilter *filter, int length);
 static void filter_fini(struct MedianFilter *filter);
@@ -92,6 +99,18 @@ void
 RCL_Initialise(void)
 {
   CNF_AddRefclocks();
+
+  if (CNF_GetLogRefclocks()) {
+    char *logdir = CNF_GetLogDir();
+    if (!mkdir_and_parents(logdir)) {
+      LOG(LOGS_ERR, LOGF_Refclock, "Could not create directory %s", logdir);
+    } else {
+      logfilename = MallocArray(char, 2 + strlen(logdir) + strlen(REFCLOCKS_LOG));
+      strcpy(logfilename, logdir);
+      strcat(logfilename, "/");
+      strcat(logfilename, REFCLOCKS_LOG);
+    }
+  }
 }
 
 void
@@ -111,6 +130,10 @@ RCL_Finalise(void)
 
   if (n_sources > 0)
     LCL_RemoveParameterChangeHandler(slew_samples, NULL);
+
+  if (logfile)
+    fclose(logfile);
+  Free(logfilename);
 }
 
 int
@@ -262,6 +285,8 @@ RCL_AddSample(RCL_Instance instance, struct timeval *sample_time, double offset,
   filter_add_sample(&instance->filter, &cooked_time, offset - correction + instance->offset);
   instance->leap_status = leap_status;
 
+  log_sample(instance, &cooked_time, 0, offset, offset - correction + instance->offset);
+
   return 1;
 }
 
@@ -318,7 +343,19 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
   filter_add_sample(&instance->filter, &cooked_time, offset);
   instance->leap_status = LEAP_Normal;
 
+  log_sample(instance, &cooked_time, 1, second, offset);
+
   return 1;
+}
+
+void
+RCL_CycleLogFile(void)
+{
+  if (logfile) {
+    fclose(logfile);
+    logfile = NULL;
+    logwrites = 0;
+  }
 }
 
 static int
@@ -424,6 +461,42 @@ slew_samples(struct timeval *raw, struct timeval *cooked, double dfreq, double a
 
   for (i = 0; i < n_sources; i++)
     filter_slew_samples(&refclocks[i].filter, cooked, dfreq, doffset);
+}
+
+static void
+log_sample(RCL_Instance instance, struct timeval *sample_time, int pulse, double raw_offset, double cooked_offset)
+{
+  char sync_stats[4] = {'N', '+', '-', '?'};
+
+  if (!logfilename)
+    return;
+
+  if (!logfile) {
+      logfile = fopen(logfilename, "a");
+      if (!logfile) {
+        LOG(LOGS_WARN, LOGF_Refclock, "Couldn't open logfile %s for update", logfilename);
+        Free(logfilename);
+        logfilename = NULL;
+        return;
+      }
+  }
+
+  if (((logwrites++) % 32) == 0) {
+    fprintf(logfile,
+        "====================================================================\n"
+        "   Date (UTC) Time         Refid  DP L P  Raw offset   Cooked offset\n"
+        "====================================================================\n");
+  }
+  fprintf(logfile, "%s.%06d %-5s %3d %1c %1d %13.6e %13.6e\n",
+      UTI_TimeToLogForm(sample_time->tv_sec),
+      (int)sample_time->tv_usec,
+      UTI_RefidToString(instance->ref_id),
+      instance->driver_polled,
+      sync_stats[instance->leap_status],
+      pulse,
+      raw_offset,
+      cooked_offset);
+  fflush(logfile);
 }
 
 static void

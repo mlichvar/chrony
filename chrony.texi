@@ -1751,6 +1751,10 @@ rate, and any slews made, to a file called tracking.log.
 
 @item rtc
 This option logs information about the system's real-time clock.
+
+@item refclocks
+This option logs the raw reference clock measurements to a file
+called refclocks.log.
 @end table
 
 The files are written to the directory specified by the logdir
@@ -1767,6 +1771,7 @@ log measurements statistics tracking
 * statistics log::              The format of the statistics log
 * tracking log::                The format of the tracking log
 * RTC log::                     The format of the RTC log
+* refclocks log::               The format of the refclocks log
 @end menu
 @c }}}
 @c {{{ measurements.log
@@ -1978,6 +1983,47 @@ data and that older measurements should be discarded. [5]
 @item
 The measurement interval used prior to the measurement being made (in
 seconds). [120]
+@end enumerate
+
+A banner is periodically written to the log file to indicate the
+meanings of the columns.
+@c }}}
+@c {{{ refclocks.log
+@node refclocks log
+@subsubsection Refclocks log file format
+
+An example line (which actually appears as a single line in the file)
+from the refclocks log file is shown below.
+
+@example
+2009-11-30 14:33:27.000000 PPS2    7 N 1  4.900000e-07 -6.741777e-07
+@end example
+
+The columns are as follows (the quantities in square brackets are the
+values from the example line above) :
+
+@enumerate 1
+@item
+Date [2009-11-30]
+@item
+Hour:Minute:Second.Microsecond [14:33:27.000000].  Note that the
+date/time pair is expressed in UTC, not the local time zone.
+@item
+Reference ID of refclock from which measurement comes. [PPS2]
+@item
+Sequence number of driver poll within one polling interval. [7]
+@item
+Leap status (@code{N} means normal, @code{+} means that the last minute
+of today has 61 seconds, @code{-} means that the last minute of the day
+has 59 seconds). [N]
+@item
+Flag indicating whether the sample comes from PPS source. (1 for yes,
+0 for no). [1]
+@item
+Local clock error measured by refclock driver. [4.900000e-07]
+@item
+Local clock error with applied corrections.  Positive indicates
+that the local clock is slow. [-6.741777e-07]
 @end enumerate
 
 A banner is periodically written to the log file to indicate the
