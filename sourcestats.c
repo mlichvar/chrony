@@ -66,8 +66,9 @@ static unsigned long logwrites = 0;
 
 struct SST_Stats_Record {
 
-  /* Reference ID of source, used for logging to statistics log */
+  /* Reference ID and IP address of source, used for logging to statistics log */
   unsigned long refid;
+  IPAddr *ip_addr;
 
   /* Number of samples currently stored.  sample[n_samples-1] is the
      newest.  The samples are expected to be sorted in order, but that
@@ -187,11 +188,12 @@ SST_Finalise(void)
 /* This function creates a new instance of the statistics handler */
 
 SST_Stats
-SST_CreateInstance(unsigned long refid)
+SST_CreateInstance(unsigned long refid, IPAddr *addr)
 {
   SST_Stats inst;
   inst = MallocNew(struct SST_Stats_Record);
   inst->refid = refid;
+  inst->ip_addr = addr;
   inst->n_samples = 0;
   inst->estimated_frequency = 0;
   inst->skew = 2000.0e-6;
@@ -473,7 +475,7 @@ SST_DoNewRegression(SST_Stats inst)
             
       fprintf(logfile, "%s %-15s %10.3e %10.3e %10.3e %10.3e %10.3e %7.1e %3d %3d %3d\n",
               UTI_TimeToLogForm(inst->offset_time.tv_sec),
-              UTI_IPToDottedQuad(inst->refid),
+              inst->ip_addr ? UTI_IPToString(inst->ip_addr) : UTI_RefidToString(inst->refid),
               sqrt(inst->variance),
               inst->estimated_offset,
               inst->estimated_offset_sd,

@@ -42,7 +42,7 @@ extern void SST_Initialise(void);
 extern void SST_Finalise(void);
 
 /* This function creates a new instance of the statistics handler */
-extern SST_Stats SST_CreateInstance(unsigned long refid);
+extern SST_Stats SST_CreateInstance(unsigned long refid, IPAddr *addr);
 
 /* This function deletes an instance of the statistics handler. */
 extern void SST_DeleteInstance(SST_Stats inst);

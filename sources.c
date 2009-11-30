@@ -170,7 +170,7 @@ SRC_Instance SRC_CreateNewInstance(unsigned long ref_id, SRC_Type type, IPAddr *
   }
 
   result = MallocNew(struct SRC_Instance_Record);
-  result->stats = SST_CreateInstance(ref_id);
+  result->stats = SST_CreateInstance(ref_id, addr);
 
   if (n_sources == max_n_sources) {
     /* Reallocate memory */

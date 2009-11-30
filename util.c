@@ -258,22 +258,6 @@ UTI_RefidToString(unsigned long ref_id)
 /* ================================================== */
 
 char *
-UTI_IPToDottedQuad(unsigned long ip)
-{
-  unsigned long a, b, c, d;
-  char *result;
-  a = (ip>>24) & 0xff;
-  b = (ip>>16) & 0xff;
-  c = (ip>> 8) & 0xff;
-  d = (ip>> 0) & 0xff;
-  result = NEXT_BUFFER;
-  snprintf(result, BUFFER_LENGTH, "%ld.%ld.%ld.%ld", a, b, c, d);
-  return result;
-}
-
-/* ================================================== */
-
-char *
 UTI_IPToString(IPAddr *addr)
 {
   unsigned long a, b, c, d, ip;

@@ -78,7 +78,6 @@ extern char *UTI_TimestampToString(NTP_int64 *ts);
 extern char *UTI_RefidToString(unsigned long ref_id);
 
 /* Convert an IP address to string, for diagnostics */
-extern char *UTI_IPToDottedQuad(unsigned long ip);
 extern char *UTI_IPToString(IPAddr *ip);
 
 extern int UTI_StringToIP(const char *addr, IPAddr *ip);
