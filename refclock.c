@@ -324,6 +324,8 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
     LOG(LOGS_INFO, LOGF_Refclock, "refclock pulse dropped second=%.9f sync=%d dist=%.9f",
         second, is_synchronised, distance);
 #endif
+    /* Drop also all stored samples */
+    filter_reset(&instance->filter);
     return 0;
   }
 
