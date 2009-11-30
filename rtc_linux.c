@@ -629,16 +629,11 @@ RTC_Linux_Initialise(void)
     direc = CNF_GetLogDir();
     if (!mkdir_and_parents(direc)) {
       LOG(LOGS_ERR, LOGF_RtcLinux, "Could not create directory %s", direc);
-      logfile = NULL;
     } else {
       logfilename = MallocArray(char, 2 + strlen(direc) + strlen(RTC_LOG));
       strcpy(logfilename, direc);
       strcat(logfilename, "/");
       strcat(logfilename, RTC_LOG);
-      logfile = fopen(logfilename, "a");
-      if (!logfile) {
-        LOG(LOGS_WARN, LOGF_RtcLinux, "Couldn't open logfile %s for update", logfilename);
-      }
     }
   }
 
@@ -668,7 +663,7 @@ RTC_Linux_Finalise(void)
   if (logfile) {
     fclose(logfile);
   }
-
+  Free(logfilename);
 }
 
 /* ================================================== */
@@ -840,7 +835,17 @@ process_reading(time_t rtc_time, struct timeval *system_time)
   }  
 
 
-  if (logfile) {
+  if (logfilename) {
+    if (!logfile) {
+      logfile = fopen(logfilename, "a");
+      if (!logfile) {
+        LOG(LOGS_WARN, LOGF_RtcLinux, "Couldn't open logfile %s for update", logfilename);
+        Free(logfilename);
+        logfilename = NULL;
+        return;
+      }
+    }
+
     rtc_fast = (double)(rtc_time - system_time->tv_sec) - 1.0e-6 * (double) system_time->tv_usec;
 
     if (((logwrites++) % 32) == 0) {
@@ -1177,12 +1182,9 @@ RTC_Linux_Trim(void)
 void
 RTC_Linux_CycleLogFile(void)
 {
-  if (logfile && logfilename) {
+  if (logfile) {
     fclose(logfile);
-    logfile = fopen(logfilename, "a");
-    if (!logfile) {
-      LOG(LOGS_WARN, LOGF_RtcLinux, "Could not reopen logfile %s", logfilename);
-    }
+    logfile = NULL;
     logwrites = 0;
   }
 }
