@@ -150,6 +150,7 @@ RCL_AddRefclock(RefclockParameters *params)
     inst->driver = &RCL_SHM_driver;
   } else if (strncmp(params->driver_name, "SOCK", 4) == 0) {
     inst->driver = &RCL_SOCK_driver;
+    pps_source = 1;
   } else if (strncmp(params->driver_name, "PPS", 4) == 0) {
     inst->driver = &RCL_PPS_driver;
     pps_source = 1;
