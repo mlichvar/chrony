@@ -1798,8 +1798,8 @@ expressed in UTC, not the local time zone.
 @item
 IP address of server/peer from which measurement comes [158.152.1.76]
 @item
-Leap status (@code{N} means normal, @code{-} means that the last minute
-of today has 61 seconds, @code{+} means that the last minute of the day
+Leap status (@code{N} means normal, @code{+} means that the last minute
+of today has 61 seconds, @code{-} means that the last minute of the day
 has 59 seconds, @code{?} means the remote computer is not currently
 synchronised.) [N]
 @item
