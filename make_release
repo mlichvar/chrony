@@ -13,13 +13,13 @@ unless (-d "RELEASES") {
   mkdir "RELEASES", 0755;
 }
 
-system ("git-tag -s $version");
+system ("git tag -s $version");
 die "git-tag failed" if ($? != 0);
 if (-d "RELEASES/$subdir") {
   system ("rm -rf RELEASES/$subdir");
 }
 
-system ("git-archive --format=tar --prefix=RELEASES/${subdir}/ $version | tar xf -");
+system ("git archive --format=tar --prefix=RELEASES/${subdir}/ $version | tar xf -");
 die "git-tar-tree failed" if ($? != 0);
 
 chdir "RELEASES";
