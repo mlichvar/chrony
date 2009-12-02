@@ -1228,8 +1228,8 @@ handle_add_server(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.maxpoll = ntohl(rx_message->data.ntp_source.maxpoll);
   params.presend_minpoll = ntohl(rx_message->data.ntp_source.presend_minpoll);
   params.authkey = ntohl(rx_message->data.ntp_source.authkey);
-  params.online  = ntohl(rx_message->data.ntp_source.online);
-  params.auto_offline = ntohl(rx_message->data.ntp_source.auto_offline);
+  params.online  = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_ONLINE ? 1 : 0;
+  params.auto_offline = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_AUTOOFFLINE ? 1 : 0;
   params.max_delay = WIRE2REAL(rx_message->data.ntp_source.max_delay);
   params.max_delay_ratio = WIRE2REAL(rx_message->data.ntp_source.max_delay_ratio);
   status = NSR_AddServer(&rem_addr, &params);
@@ -1268,7 +1268,8 @@ handle_add_peer(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.maxpoll = ntohl(rx_message->data.ntp_source.maxpoll);
   params.presend_minpoll = ntohl(rx_message->data.ntp_source.presend_minpoll);
   params.authkey = ntohl(rx_message->data.ntp_source.authkey);
-  params.online  = ntohl(rx_message->data.ntp_source.online);
+  params.online  = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_ONLINE ? 1 : 0;
+  params.auto_offline = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_AUTOOFFLINE ? 1 : 0;
   params.max_delay = WIRE2REAL(rx_message->data.ntp_source.max_delay);
   params.max_delay_ratio = WIRE2REAL(rx_message->data.ntp_source.max_delay_ratio);
   status = NSR_AddPeer(&rem_addr, &params);

@@ -919,11 +919,12 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
       msg->data.ntp_source.minpoll = htonl(data.params.minpoll);
       msg->data.ntp_source.maxpoll = htonl(data.params.maxpoll);
       msg->data.ntp_source.presend_minpoll = htonl(data.params.presend_minpoll);
-      msg->data.ntp_source.online = htonl(data.params.online);
-      msg->data.ntp_source.auto_offline = htonl(data.params.auto_offline);
       msg->data.ntp_source.authkey = htonl(data.params.authkey);
       msg->data.ntp_source.max_delay = REAL2WIRE(data.params.max_delay);
       msg->data.ntp_source.max_delay_ratio = REAL2WIRE(data.params.max_delay_ratio);
+      msg->data.ntp_source.flags = htonl(
+          (data.params.online ? REQ_ADDSRC_ONLINE : 0) |
+          (data.params.auto_offline ? REQ_ADDSRC_AUTOOFFLINE : 0));
       result = 1;
 
       break;

@@ -205,17 +205,20 @@ typedef struct {
   int32_t EOR;
 } REQ_Ac_Check;
 
+/* Flags used in NTP source requests */
+#define REQ_ADDSRC_ONLINE 0x1
+#define REQ_ADDSRC_AUTOOFFLINE 0x2
+
 typedef struct {
   IPAddr ip_addr;
   uint32_t port;
   int32_t minpoll;
   int32_t maxpoll;
   int32_t presend_minpoll;
-  int32_t online;
-  int32_t auto_offline;
   uint32_t authkey;
   int32_t max_delay;
   int32_t max_delay_ratio;
+  uint32_t flags;
   int32_t EOR;
 } REQ_NTP_Source;
 
@@ -322,7 +325,7 @@ typedef struct {
    Version 3 : NTP_Source message lengthened (auto_offline)
 
    Version 4 : IPv6 addressing added, 64-bit time values, sourcestats 
-   and tracking reports extended
+   and tracking reports extended, added flags to NTP source request
 
  */
 
