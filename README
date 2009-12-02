@@ -18,8 +18,8 @@ accordingly.  It also works out the rate at which the system clock
 gains or loses time and uses this information to keep it accurate
 between measurements from the reference.
 
-The reference time can be derived from either Network Time Protocol
-(NTP) servers (preferred), or wristwatch-and-keyboard (via chronyc).
+The reference time can be derived from Network Time Protocol (NTP)
+servers, reference clocks, or wristwatch-and-keyboard (via chronyc).
 The main source of information about the Network Time Protocol is
 http://www.eecis.udel.edu/~ntp.
 
@@ -28,15 +28,17 @@ intermittent access to reference sources, for example computers which
 use a dial-up account to access the Internet.  Of course, it will work
 on computers with permanent connections too.
 
-In addition, the Linux 2.0.x (for x >= 32), 2.2.x and 2.3.x versions
-can monitor the system's real time clock performance, so the system
-can maintain accurate time even across reboots.
+In addition, on Linux it can monitor the system's real time clock
+performance, so the system can maintain accurate time even across
+reboots.
 
 Typical accuracies available between 2 machines are
 
 On an ethernet LAN : 100-200 microseconds, often much better
 On a V32bis dial-up modem connection : 10's of milliseconds (from one
 session to the next)
+
+With a good reference clock the accuracy can reach one microsecond.
 
 chronyd can also operate as an RFC1305-compatible NTP server and peer.
 
@@ -46,9 +48,10 @@ What will chrony run on?
 
 Chrony can be successfully built and run on
 
-1. Linux v1.2.13, v2.0.x, 2.1.x (partially), 2.2.x, 2.3.x, 2.4.x (i386).
-Real time clock support is limited to 2.0.32 onwards and to 2.2, 2.3 and
-2.4 series only.  PowerPC is also known to be supported.
+1. Linux v1.2.13, v2.0.x, 2.1.x (partially), 2.2.x, 2.3.x, 2.4.x, 2.6.x.
+Real time clock support is limited to 2.0.32 onwards and to 2.2, 2.3,
+2.4 and 2.6 series only.  i386, x86_64, PowerPC are known to be
+supported.
 
 2. Solaris 2.5/2.5.1/2.6/2.7/2.8 (various platforms) 
 
@@ -69,8 +72,7 @@ How do I set it up?
 The file INSTALL gives instructions.  On supported systems the
 compilation process should be automatic.
 
-You will need an ANSI C compiler -- gcc is recommended.  Versions
-2.7.2/2.7.2.2 are known to work.
+You will need an ANSI C compiler -- gcc is recommended.
 
 The manual (in texinfo and text formats) describes how to set the
 software up for the less straightforward cases.
@@ -90,7 +92,7 @@ What can chrony not do?
 =======================
 
 Compared to the `reference' RFC1305 implementation xntpd, chronyd does
-not support hardware reference clocks or broadcast modes.
+not support broadcast modes.
 
 Where are new versions announced?
 =================================
@@ -116,7 +118,7 @@ mentioned above.  chrony-users is a users' discussion list, e.g. for
 general questions and answers about using chrony.  chrony-dev is a more
 technical list, e.g. for discussing how new features should be
 implemented, exchange of information between developers etc.  To
-subscribe to either of these lists, send amessage with the subject
+subscribe to either of these lists, send a message with the subject
 "subscribe" to
 
 chrony-users-request@chrony.tuxfamily.org
@@ -125,28 +127,19 @@ chrony-dev-request@chrony.tuxfamily.org
 
 as applicable.
 
-Note that due to family commitments (a 3 year-old and a 1 year-old), I
-no longer have the time to give to supporting chrony that I once had.
-Therefore, the chrony-users list should be your main route for support,
-rather than mailing me directly.  Even if it's me that responds to your
-question on the list, at least *ALL* subscribers then benefit from
-seeing the discussion, rather than me taking up lots of time on
-supporting people on a one-to-one basis.  If you do mail me directly,
-don't be surprised if I cc: the response to the mailing list.
 
-But how can I contact the author if I need to?
-==============================================
+Author
+======
 
-You can email me at <rc@rc0.org.uk>.  If that fails, you could try to
-find me through one of the mailing lists.  It would be nice if:
+Richard P. Curnow <rc@rc0.org.uk>
 
-- you include the word 'chrony' in the subject line (so my mail reader
-can sort my mail by topic)
 
-- you don't send complete log files, encoded binaries etc, without
-editing such material down to just the relevant bits - a few tens of
-lines at most.  (My dial-up connection handles large messages rather
-slowly ...).
+Maintainers
+===========
+
+John Hasler <john@dhh.gt.org>
+Miroslav Lichvar <mlichvar@redhat.com>
+
 
 Acknowledgements
 ================
@@ -199,6 +192,8 @@ John Hasler <john@dhh.gt.org>
       sizeof(unsigned long) > 4)
     Bug fix to initstepslew directive
     Fix to remove potential buffer overrun errors.
+    Memory locking and real-time scheduler support
+    Fix fault where chronyd enters an endless loop
 
 Liam Hatton <me@liamhatton.com>
     Advice on configuring for Linux on PPC
@@ -212,6 +207,13 @@ Jim Knoble <jmknoble@pobox.com>
 Antti Jrvinen <costello@iki.fi>
     Advice on configuring for BSD/386
 
+Miroslav Lichvar <mlichvar@redhat.com>
+    Reference clock support
+    IPv6 support
+    Linux capabilities support
+    Leap second support
+    Various bug fixes and improvements
+
 Victor Moroz <vim@prv.adlum.ru>
     Patch to support Linux with HZ!=100
 
@@ -223,6 +225,9 @@ Frank Otto <sandwichmacher@web.de>
 
 Andreas Piesk <apiesk@virbus.de>
     Patch to make chronyc use the readline library if available
+
+Timo Teras <timo.teras@iki.fi>
+    Patch to reply correctly on multihomed hosts
 
 Wolfgang Weisselberg <weissel@netcologne.de>
     Entries in contrib directory
@@ -239,10 +244,5 @@ Doug Woodward <dougw@whistler.com>
 
 Many other people have contributed bug reports and suggestions.  I'm
 sorry I can't identify all of you individually.
-
-Version control information
-===========================
-
-$Header: /cvs/src/chrony/README,v 1.30 2003/09/21 23:11:06 richard Exp $
 
 vim:tw=72

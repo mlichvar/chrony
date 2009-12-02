@@ -1,3 +1,15 @@
+New in version 1.24
+===================
+
+* Support for reference clocks (SHM, SOCK, PPS drivers)
+* IPv6 support
+* Linux capabilities support (to drop root privileges)
+* Memory locking support on Linux
+* Real-time scheduler support on Linux
+* Leap second support on Linux
+* Support for editline
+* Various bug fixes and improvements
+
 New in version 1.23
 ===================
 

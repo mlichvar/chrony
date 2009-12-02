@@ -32,13 +32,17 @@ for Bourne-family shells, or
 for C-family shells.
 
 If the software cannot (yet) be built on your system, an error message
-will be shown.  Otherwise, the files `options.h' and `Makefile' will
-be generated.
+will be shown.  Otherwise, `Makefile' will be generated.
 
-By default, chronyc will be built to make use of the readline library.  If you
-don't want this, specify the --disable-readline flag to configure.  If you have
-readline and/or ncurses installed in a non-standard location, please refer to
-the chrony.txt file for information.
+If editline or readline library is available, chronyc will be built
+with line editing support.  If you don't want this, specify the
+--disable-readline flag to configure.  Please refer to the chrony.txt
+file for more information.
+
+If a `timepps.h' header is available, chronyd will be built with PPS
+API reference clock driver.  If the header is installed in a location
+that isn't normally searched by the compiler, you can add it to the
+searched locations by setting CPPFLAGS variable to -I/path/to/timepps.
 
 Now type
 

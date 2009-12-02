@@ -125,8 +125,9 @@ different quirks in its behaviour.
 
 The software is known to work in the following environments:
 @itemize @bullet
-@item Linux/i386 and Linux/ppc.  The software is known to work on Linux 2.0.x,
-2.2.x and 2.4.x.  Prior to 2.0.31, the real time clock can't be used.
+@item Linux on i386, x86_64 and PowerPC architectures.  The software is known
+to work on Linux 2.0.x and newer.  Prior to 2.0.31, the real time clock can't
+be used.
 
 @item NetBSD
 @item BSD/386
@@ -268,29 +269,19 @@ version 2, reproduced in @xref{GPL}.
 @node Bug reporting
 @section Bug reporting and suggestions
 
-If you think you've found a bug in chrony, or have a suggestion, please let me
-know.  My primary current email address is @email{rc@@rc0.org.uk}.  If that
-fails, you could try finding me through one of the chrony mailing lists, or by
-looking up my name on a search engine.
+If you think you've found a bug in chrony, or have a suggestion, please let us
+know.  You can join chrony users mailing list by sending a message with the
+subject subscribe to @email{chrony-users-request@@chrony.tuxfamily.org}.  Only
+subscribers can post to the list.
 
-I can't promise a timescale to fix a bug; it depends a lot on the how complex
-the bug is to track down, as I have a lot of other calls on my time : 2 young
-children, my job, and indeed other free/open source software projects.
-However, I do intend to look into problems when time allows.
-
-Another source of information to try is the chrony users mailing list.  You can
-join this by sending a message with the subject subscribe to
-@email{chrony-users-request@@chrony.tuxfamily.org}.  Only subscribers can post to
-the list.
-
-When you are reporting a bug, please send me all the information you can.
+When you are reporting a bug, please send us all the information you can.
 Unfortunately, chrony has proven to be one of those programs where it is very
-difficult to reproduce bugs in a different environment.  So I may have to
+difficult to reproduce bugs in a different environment.  So we may have to
 interact with you quite a lot to obtain enough extra logging and tracing to
 pin-point the problem in some cases.  Please be patient and plan for this!
 
-Of course, if you can debug the problem yourself and send me a source code
-patch to fix it, I will be very grateful!
+Of course, if you can debug the problem yourself and send us a source code
+patch to fix it, we will be very grateful!
 
 @c }}}
 @c {{{ S:Contributions
@@ -301,7 +292,7 @@ Although chrony is now a fairly mature and established project, there are still
 areas that could be improved.  If you can program in C and have some expertise
 in these areas, you might be able to fill the gaps.
 
-Particular areas I know need addressing are :
+Particular areas that need addressing are :
 
 @enumerate
 @item Porting to other Unices
@@ -323,7 +314,7 @@ setsid() etc with so that chronyd can be automatically started in the system
 bootstrap.
 @end enumerate
 
-@item Hardware clock support
+@item More drivers for reference clock support
 
 @item Automation of the trimrtc and writertc mechanisms
 
@@ -386,13 +377,16 @@ setenv CFLAGS -O
 for C-family shells.
 
 If the software cannot (yet) be built on your system, an error message
-will be shown.  Otherwise, the files @file{options.h} and
-@file{Makefile} will be generated.
+will be shown.  Otherwise, @file{Makefile} will be generated.
 
-By default, chronyc will be built to make use of the readline library.  If you
-don't want this, specify the --disable-readline flag to configure.  If you have
-readline and/or ncurses installed in a non-standard location, please refer to
-@pxref{readline support} for information.
+If editline or readline library is available, chronyc will be built with line
+editing support.  If you don't want this, specify the --disable-readline flag
+to configure.  Please refer to @pxref{line editing support} for more information.
+
+If a @file{timepps.h} header is available, chronyd will be built with PPS API
+reference clock driver.  If the header is installed in a location that isn't
+normally searched by the compiler, you can add it to the searched locations by
+setting @code{CPPFLAGS} variable to @code{-I/path/to/timepps}.
 
 Now type
 
@@ -444,32 +438,43 @@ network environment in which the computer operates.  Typical scenarios
 are described in the following section of the document.
 @c }}}
 @menu
-* readline support::            If readline or ncurses in in a non-standard place
+* line editing support::        If libraries are in a non-standard place
 * package builders::            Extra options useful to package builders
 @end menu
-@c {{{ readline support
-@node readline support
-@section Support for the readline library
-By default, chronyc is built to make use of the readline library.  This allows
-you to use the cursor keys to replay and edit old commands.  If you don't want
-to use readline (in which case chronyc will use a minimal command line
-interface), invoke configure like this:
+@c {{{ line editing support
+@node line editing support
+@section Support for line editing libraries
+Chronyc can be built with support for line editing, this allows you to use the
+cursor keys to replay and edit old commands.  Two libraries are supported which
+provide such functionality, editline and GNU readline.
+
+Please note that readline since version 6.0 is licensed under GPLv3+ which is
+incompatible with chrony's license GPLv2.  You should use editline instead if
+you don't want to use older readline versions.
+
+The configure script will automatically enable the line editing support if one
+of the supported libraries is available.  If they are both available, the
+editline library will be used.
+
+If you don't want to use it (in which case chronyc will use a minimal command
+line interface), invoke configure like this:
 
 @example
 ./configure --disable-readline other-options...
 @end example
 
-If you have readline and/or ncurses installed in locations that aren't normally searched by the compiler and linker, you need extra options if you want readline to be used:
+If you have editline, readline or ncurses installed in locations that aren't
+normally searched by the compiler and linker, you need to use extra options:
 
 @table @samp
 @item --with-readline-includes=directory_name
 This defines the name of the directory above the one where @file{readline.h}
-is.  @file{readline.h} is assumed to be in a @file{readline} subdirectory of
-the named directory.
+is.  @file{readline.h} is assumed to be in @file{editline} or @file{readline}
+subdirectory of the named directory.
 
 @item --with-readline-library=directory_name
-This defines the directory containing the @file{libreadline.a} or
-@file{libreadline.so} file.
+This defines the directory containing the @file{libedit.a} or @file{libedit.so}
+file, or @file{libreadline.a} or @file{libreadline.so} file.
 
 @item --with-ncurses-library=directory_name
 This defines the directory containing the @file{libncurses.a} or
