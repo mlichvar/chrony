@@ -563,7 +563,6 @@ SCH_MainLoop(void)
     }
 
     status = select(one_highest_fd, &rd, NULL, NULL, ptv);
-    LCL_ReadCookedTime(&last_fdready, &err);
 
     if (status < 0) {
       if (!need_to_exit)
@@ -571,6 +570,7 @@ SCH_MainLoop(void)
     } else if (status > 0) {
       /* A file descriptor is ready to read */
 
+      LCL_ReadCookedTime(&last_fdready, &err);
       dispatch_filehandlers(status, &rd);
 
     } else {
