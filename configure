@@ -1,7 +1,4 @@
 #!/bin/sh
-#
-# $Header: /cvs/src/chrony/configure,v 1.30 2003/09/22 21:53:57 richard Exp $
-#
 # =======================================================================
 #
 # chronyd/chronyc - Programs for keeping computer clocks accurate.
@@ -119,6 +116,8 @@ Configuration:
 Installation directories:
   --prefix=PREFIX         install architecture-independent files in PREFIX
                           [/usr/local]
+  --exec-prefix=EPREFIX   install architecture-dependent files in EPREFIX
+                          [PREFIX]
 
 By default, \`make install' will install all the files in
 \`/usr/local/bin', \`/usr/local/lib' etc.  You can specify
@@ -139,11 +138,13 @@ For better control, use the options below.
   --disable-linuxcaps    Disable Linux capabilities support
 
 Fine tuning of the installation directories:
-  --bindir=DIR           user executables [PREFIX/bin]
-  --sbindir=DIR          system admin executables [PREFIX/sbin]
-  --infodir=DIR          info documentation [PREFIX/info]
-  --mandir=DIR           man documentation [PREFIX/man]
-  --docdir=DIR           documentation root [PREFIX/doc/chrony]
+  --sysconfdir=DIR       chrony.conf location [/etc]
+  --bindir=DIR           user executables [EPREFIX/bin]
+  --sbindir=DIR          system admin executables [EPREFIX/sbin]
+  --datarootdir=DIR      data root [PREFIX/share]
+  --infodir=DIR          info documentation [DATAROOTDIR/info]
+  --mandir=DIR           man documentation [DATAROOTDIR/man]
+  --docdir=DIR           documentation root [DATAROOTDIR/doc/chrony]
 
 Overriding system detection when cross-compiling:
   --host-system=OS       Specify system name (uname -s)
@@ -161,7 +162,6 @@ Some influential environment variables:
 Use these variables to override the choices made by \`configure' or to help
 it to find libraries and programs with nonstandard names/locations.
 
-Report bugs to <rc@rc0.org.uk>.
 EOF
 
 }
@@ -179,7 +179,6 @@ EXTRA_LIBS=""
 EXTRA_CLI_LIBS=""
 EXTRA_OBJECTS=""
 EXTRA_DEFS=""
-INSTALL_PREFIX=/usr/local
 SYSDEFS=""
 
 # Support for readline (on by default)
@@ -197,15 +196,9 @@ feat_pps=1
 try_setsched=0
 try_lockmem=0
 
-SETINFODIR=""
-SETMANDIR=""
-
 for option
 do
     case "$option" in
-    --prefix=* | --install_prefix=* )
-      INSTALL_PREFIX=`echo $option | sed -e 's/[^=]*=//;'`
-    ;;
     --trace )
       EXTRA_DEFS="-DTRACEON"
     ;;
@@ -227,11 +220,23 @@ do
     --with-ncurses-library=* )
       ncurses_lib=-L`echo $option | sed -e 's/^.*=//;'`
     ;;
+    --prefix=* | --install_prefix=* )
+      SETPREFIX=`echo $option | sed -e 's/[^=]*=//;'`
+    ;;
+    --exec-prefix=* )
+      SETEPREFIX=`echo $option | sed -e 's/[^=]*=//;'`
+    ;;
+    --sysconfdir=* )
+      SETSYSCONFDIR=`echo $option | sed -e 's/^.*=//;'`
+    ;;
     --bindir=* )
       SETBINDIR=`echo $option | sed -e 's/^.*=//;'`
     ;;
     --sbindir=* )
       SETSBINDIR=`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --datarootdir=* )
+      SETDATAROOTDIR=`echo $option | sed -e 's/^.*=//;'`
     ;;
     --infodir=* )
       SETINFODIR=`echo $option | sed -e 's/^.*=//;'`
@@ -299,8 +304,8 @@ case $SYSTEM in
     Linux* )
         EXTRA_OBJECTS="sys_linux.o wrap_adjtimex.o"
         if [ $feat_rtc -eq 1 ] ; then
-            EXTRA_OBJECTS+=" rtc_linux.o"
-            EXTRA_DEFS+=" -DFEAT_RTC=1"
+            EXTRA_OBJECTS="$EXTRA_OBJECTS rtc_linux.o"
+            EXTRA_DEFS="$EXTRA_DEFS -DFEAT_RTC=1"
         fi
         try_linuxcaps=1
         try_setsched=1
@@ -401,7 +406,7 @@ if [ $feat_linuxcaps = "1" ] && [ $try_linuxcaps = "1" ] && \
     '' '-lcap' \
     'prctl(PR_SET_KEEPCAPS, 1);cap_set_proc(cap_from_text("cap_sys_time=ep"));'
 then
-    EXTRA_DEFS+=" -DFEAT_LINUXCAPS=1"
+    EXTRA_DEFS="${EXTRA_DEFS} -DFEAT_LINUXCAPS=1"
     EXTRA_LIBS="-lcap"
 fi
 
@@ -451,23 +456,47 @@ if [ $feat_readline = "1" ]; then
   fi
 fi
 
-BINDIR=${INSTALL_PREFIX}/bin
-SBINDIR=${INSTALL_PREFIX}/sbin
-MANDIR=${INSTALL_PREFIX}/man
-INFODIR=${INSTALL_PREFIX}/info
-DOCDIR=${INSTALL_PREFIX}/doc/chrony
+SYSCONFDIR=/etc
+if [ "x$SETSYSCONFDIR" != "x" ]; then
+  SYSCONFDIR=$SETSYSCONFDIR
+fi
+
+PREFIX=/usr/local
+if [ "x$SETPREFIX" != "x" ]; then
+  PREFIX=$SETPREFIX
+fi
+
+EPREFIX=${PREFIX}
+if [ "x$SETEPREFIX" != "x" ]; then
+  EPREFIX=$SETEPREFIX
+fi
+
+BINDIR=${EPREFIX}/bin
 if [ "x$SETBINDIR" != "x" ]; then
   BINDIR=$SETBINDIR
 fi
+
+SBINDIR=${EPREFIX}/sbin
 if [ "x$SETSBINDIR" != "x" ]; then
   SBINDIR=$SETSBINDIR
 fi
+
+DATAROOTDIR=${PREFIX}/share
+if [ "x$SETDATAROOTDIR" != "x" ]; then
+  DATAROOTDIR=$SETDATAROOTDIR
+fi
+
+INFODIR=${DATAROOTDIR}/info
 if [ "x$SETINFODIR" != "x" ]; then
   INFODIR=$SETINFODIR
 fi
+
+MANDIR=${DATAROOTDIR}/man
 if [ "x$SETMANDIR" != "x" ]; then
   MANDIR=$SETMANDIR
 fi
+
+DOCDIR=${DATAROOTDIR}/doc/chrony
 if [ "x$SETDOCDIR" != "x" ]; then
   DOCDIR=$SETDOCDIR
 fi
@@ -485,6 +514,7 @@ sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
 	s%@EXTRA_CLI_LIBS@%${EXTRA_CLI_LIBS}%;\
 	s%@READLINE_COMPILE@%${READLINE_COMPILE}%;\
 	s%@READLINE_LINK@%${READLINE_LINK}%;\
+	s%@SYSCONFDIR@%${SYSCONFDIR}%;\
 	s%@BINDIR@%${BINDIR}%;\
 	s%@SBINDIR@%${SBINDIR}%;\
 	s%@DOCDIR@%${DOCDIR}%;\
