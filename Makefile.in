@@ -25,6 +25,7 @@
 #
 # Makefile template
 
+SYSCONFDIR=@SYSCONFDIR@
 BINDIR=@BINDIR@
 SBINDIR=@SBINDIR@
 MANDIR=@MANDIR@
@@ -75,6 +76,9 @@ chronyd : $(OBJS) $(EXTRA_OBJS)
 
 chronyc : $(CLI_OBJS)
 	$(CC) $(OPTFLAGS) -o chronyc $(CLI_OBJS) $(LDFLAGS) @READLINE_LINK@ $(LIBS) $(EXTRA_CLI_LIBS)
+
+conf.o : conf.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -DDEFAULT_CONF_DIR=\"$(SYSCONFDIR)\" -c $<
 
 client.o : client.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) @READLINE_COMPILE@ -c $<
