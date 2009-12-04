@@ -1,9 +1,8 @@
 #######################################################################
-# $Header: /cvs/src/chrony/examples/chrony.conf.example,v 1.2 2002/02/03 21:46:29 richard Exp $
 #
 # This is an example chrony configuration file.  You should copy it to
 # /etc/chrony.conf after uncommenting and editing the options that you
-# want to enable.  I have not included the more obscure options.  Refer
+# want to enable.  The more obscure options are not included.  Refer
 # to the documentation for these.
 #
 # Copyright 2002 Richard P. Curnow
@@ -157,8 +156,8 @@ commandkey 1
 ! logdir /var/log/chrony
 ! log measurements statistics tracking
 
-If you have real time clock support enabled (see below), you might want
-this line instead:
+# If you have real time clock support enabled (see below), you might want
+# this line instead:
 
 ! log measurements statistics tracking rtc
 
@@ -208,6 +207,12 @@ this line instead:
 # clients.
 
 ! noclientlog
+
+# The clientlog size is limited to 512KB by default.  If you have many
+# clients, especially in many different subnets, you might want to
+# increase the limit. 
+
+! clientloglimit 4194304
 
 #######################################################################
 ### REPORTING BIG CLOCK CHANGES

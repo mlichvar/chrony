@@ -1,4 +1,4 @@
-.TH CHRONY 1 "August 10, 2001" chrony "User's Manual"
+.TH CHRONY 1 "December 04, 2009" chrony "User's Manual"
 .SH NAME
 chrony \- programs for keeping computer clocks accurate
 
@@ -30,7 +30,7 @@ gains or loses time and uses this information to keep it accurate
 between measurements from the reference.
 
 The reference time can be derived from either Network Time Protocol
-(NTP) servers (preferred), or wristwatch-and-keyboard (via \fIchronyc\fR).
+(NTP) servers, reference clocks, or wristwatch-and-keyboard (via \fIchronyc\fR).
 The main source of information about the Network Time Protocol is
 \fIhttp://www.eecis.udel.edu/~ntp\fR.
 
@@ -48,6 +48,8 @@ Typical accuracies available between 2 machines are
 On an ethernet LAN : 100-200 microseconds, often much better
 On a V32bis dial-up modem connection : 10's of milliseconds (from one
 session to the next)
+
+With a good reference clock the accuracy can reach one microsecond.
 
 \fIchronyd\fR can also operate as an RFC1305-compatible NTP server and peer.
 

@@ -71,11 +71,11 @@ If you want chrony to appear in the top level info directory listing, you need
 to run the install-info command manually after this step.  install-info takes 2
 arguments.  The first is the path to the chrony.info file you have just
 installed.  This will be the argument you gave to --prefix when you configured
-(/usr/local by default), with /info/chrony.info on the end.  The second
+(/usr/local by default), with /share/info/chrony.info on the end.  The second
 argument is the location of the file called 'dir'.  This will typically be
-/usr/info/dir.  So the typical command line would be
+/usr/share/info/dir.  So the typical command line would be
 
-    install-info /usr/local/info/chrony.info /usr/info/dir
+    install-info /usr/local/share/info/chrony.info /usr/share/info/dir
 
 Now that the software is successfully installed, the next step is to
 set up a configuration file.  The contents of this depend on the

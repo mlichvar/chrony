@@ -424,12 +424,12 @@ to run the @command{install-info} command manually after this step.
 @command{install-info} takes 2 arguments.  The first is the path to the
 @file{chrony.info} file you have just installed.  This will be the argument you
 gave to --prefix when you configured (@file{/usr/local} by default), with
-@file{/info/chrony.info} on the end.  The second argument is the location of
-the file called @file{dir}.  This will typically be @file{/usr/info/dir}.  So
+@file{/share/info/chrony.info} on the end.  The second argument is the location of
+the file called @file{dir}.  This will typically be @file{/usr/share/info/dir}.  So
 the typical command line would be
 
 @example
-install-info /usr/local/info/chrony.info /usr/info/dir
+install-info /usr/local/share/info/chrony.info /usr/share/info/dir
 @end example
     
 Now that the software is successfully installed, the next step is to
@@ -488,7 +488,7 @@ This defines the directory containing the @file{libncurses.a} or
 The configure and make procedures have some extra options that may be useful if
 you are building a distribution package for chrony.
 
-The --infodir=DIR option to configure specifies a different install directory
+The --infodir=DIR option to configure specifies an install directory
 for the info files.  This overrides the @file{info} subdirectory of the
 argument to the --prefix option.  For example, you might use
 
@@ -496,7 +496,7 @@ argument to the --prefix option.  For example, you might use
 ./configure --prefix=/usr --infodir=/usr/share/info
 @end example
 
-The --mandir=DIR option to configure specifies a different install directory
+The --mandir=DIR option to configure specifies an install directory
 for the man pages.  This overrides the @file{man} subdirectory of the
 argument to the --prefix option.
 
