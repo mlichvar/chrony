@@ -2239,6 +2239,28 @@ process_cmd_activity(const char *line)
 /* ================================================== */
 
 static int
+process_cmd_dns(const char *line)
+{
+  if (!strncmp(line, "-46", 3)) {
+    DNS_SetAddressFamily(IPADDR_UNSPEC);
+  } else if (!strncmp(line, "-4", 2)) {
+    DNS_SetAddressFamily(IPADDR_INET4);
+  } else if (!strncmp(line, "-6", 2)) {
+    DNS_SetAddressFamily(IPADDR_INET6);
+  } else if (!strncmp(line, "-n", 2)) {
+    no_dns = 1;
+  } else if (!strncmp(line, "+n", 2)) {
+    no_dns = 0;
+  } else {
+    fprintf(stderr, "Unrecognized dns command\n");
+    return 0;
+  }
+  return 1;
+}
+
+/* ================================================== */
+
+static int
 process_line(char *line, int *quit)
 {
   char *p;
@@ -2350,6 +2372,9 @@ process_line(char *line, int *quit)
     process_cmd_makestep(&tx_message, p+8);
   } else if (!strncmp(p, "activity", 8)) {
     ret = process_cmd_activity(p+8);
+    do_normal_submit = 0;
+  } else if (!strncmp(p, "dns ", 4)) {
+    ret = process_cmd_dns(p+4);
     do_normal_submit = 0;
   } else if (!strncmp(p, "help", 4)) {
     do_normal_submit = 0;
