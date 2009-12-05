@@ -1109,9 +1109,11 @@ check_reply_auth(CMD_Reply *msg)
 static void
 give_help(void)
 {
-  printf("205 - Help follows\n");
+  printf("Commands:\n");
   printf("accheck <address> : Check whether NTP access is allowed to <address>\n");
   printf("activity : Check how many NTP sources are online/offline\n");
+  printf("add peer <address> ... : Add a new NTP peer\n");
+  printf("add server <address> ... : Add a new NTP server\n");
   printf("allow [<subnet-addr>] : Allow NTP access to that subnet as a default\n");
   printf("allow all [<subnet-addr>] : Allow NTP access to that subnet and all children\n");
   printf("burst <n-good>/<n-max> [<mask>/<masked-address>] : Start a rapid set of measurements\n");
@@ -1122,25 +1124,23 @@ give_help(void)
   printf("cmddeny [<subnet-addr>] : Deny command access to that subnet as a default\n");
   printf("cmddeny all [<subnet-addr>] : Deny command access to that subnet and all children\n");
   printf("cyclelogs : Close and re-open logs files\n");
+  printf("delete <address> : Remove an NTP server or peer\n");
   printf("deny [<subnet-addr>] : Deny NTP access to that subnet as a default\n");
   printf("deny all [<subnet-addr>] : Deny NTP access to that subnet and all children\n");
   printf("dump : Dump all measurements to save files\n");
-  printf("exit : Leave the program\n");
-  printf("help : Generate this help\n");
   printf("local off : Disable server capability for unsynchronised clock\n");
   printf("local stratum <stratum> : Enable server capability for unsynchronised clock\n");
   printf("makestep : Jump the time to remove any correction being slewed\n");
   printf("manual off|on|reset : Disable/enable/reset settime command and statistics\n");
   printf("manual list : Show previous settime entries\n");
-  printf("minpoll <address> <new-minpoll> : Modify minimum polling interval of source\n");
   printf("maxdelay <address> <new-max-delay> : Modify maximum round-trip valid sample delay for source\n");
   printf("maxdelayratio <address> <new-max-ratio> : Modify max round-trip delay ratio for source\n");
   printf("maxpoll <address> <new-minpoll> : Modify maximum polling interval of source\n");
   printf("maxupdateskew <new-max-skew> : Modify maximum skew for a clock frequency update to be made\n");
+  printf("minpoll <address> <new-minpoll> : Modify minimum polling interval of source\n");
   printf("offline [<mask>/<masked-address>] : Set sources in subnet to offline status\n");
   printf("online [<mask>/<masked-address>] : Set sources in subnet to online status\n");
   printf("password [<new-password>] : Set command authentication password\n");
-  printf("quit : Leave the program\n");
   printf("rtcdata : Print current RTC performance parameters\n");
   printf("settime <date/time (e.g. Nov 21, 1997 16:30:05 or 16:30:05)> : Manually set the daemon time\n");
   printf("sources [-v] : Display information about current sources\n");
@@ -1148,7 +1148,12 @@ give_help(void)
   printf("tracking : Display system time information\n");
   printf("trimrtc : Correct RTC relative to system clock\n");
   printf("writertc : Save RTC parameters to file\n");
-  printf(".\n");
+  printf("\n");
+  printf("dns -n|+n : Disable/enable resolving IP addresses to hostnames\n");
+  printf("dns -4|-6|-46 : Resolve hostnames only to IPv4/IPv6/both addresses\n");
+  printf("exit|quit : Leave the program\n");
+  printf("help : Generate this help\n");
+  printf("\n");
 }
 
 /* ================================================== */
