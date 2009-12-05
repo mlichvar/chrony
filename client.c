@@ -1373,7 +1373,7 @@ request_reply(CMD_Request *request, CMD_Reply *reply, int requested_reply, int v
 
   if (!submit_request(request, reply, &reply_auth_ok)) {
     printf("506 Cannot talk to daemon\n");
-    return 1;
+    return 0;
   }
 
   status = ntohs(reply->status);
