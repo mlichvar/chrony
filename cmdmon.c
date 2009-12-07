@@ -178,6 +178,7 @@ static int
 prepare_socket(int family)
 {
   int port_number, sock_fd;
+  socklen_t my_addr_len;
   union sockaddr_in46 my_addr;
   IPAddr bind_address;
   int on_off = 1;
@@ -214,6 +215,7 @@ prepare_socket(int family)
 
   switch (family) {
     case AF_INET:
+      my_addr_len = sizeof (my_addr.in4);
       my_addr.in4.sin_family = family;
       my_addr.in4.sin_port = htons((unsigned short)port_number);
 
@@ -226,6 +228,7 @@ prepare_socket(int family)
       break;
 #ifdef HAVE_IPV6
     case AF_INET6:
+      my_addr_len = sizeof (my_addr.in6);
       my_addr.in6.sin6_family = family;
       my_addr.in6.sin6_port = htons((unsigned short)port_number);
 
@@ -242,7 +245,7 @@ prepare_socket(int family)
       assert(0);
   }
 
-  if (bind(sock_fd, &my_addr.u, sizeof(my_addr)) < 0) {
+  if (bind(sock_fd, &my_addr.u, my_addr_len) < 0) {
     LOG_FATAL(LOGF_CmdMon, "Could not bind %s command socket : %s",
         family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
   }
@@ -722,14 +725,17 @@ transmit_reply(CMD_Reply *msg, union sockaddr_in46 *where_to)
   int status;
   int tx_message_length;
   int sock_fd;
+  socklen_t addrlen;
   
   switch (where_to->u.sa_family) {
     case AF_INET:
       sock_fd = sock_fd4;
+      addrlen = sizeof (where_to->in4);
       break;
 #ifdef HAVE_IPV6
     case AF_INET6:
       sock_fd = sock_fd6;
+      addrlen = sizeof (where_to->in6);
       break;
 #endif
     default:
@@ -738,7 +744,7 @@ transmit_reply(CMD_Reply *msg, union sockaddr_in46 *where_to)
 
   tx_message_length = PKL_ReplyLength(msg);
   status = sendto(sock_fd, (void *) msg, tx_message_length, 0,
-                  &where_to->u, sizeof(union sockaddr_in46));
+                  &where_to->u, addrlen);
 
   if (status < 0) {
     unsigned short port;
@@ -1931,7 +1937,7 @@ read_from_cmd_socket(void *anything)
       /* Just send this message again */
       tx_message_length = PKL_ReplyLength(prev_tx_message);
       status = sendto(sock_fd, (void *) prev_tx_message, tx_message_length, 0,
-                      (struct sockaddr *) &where_from, sizeof(where_from));
+                      &where_from.u, from_length);
       if (status < 0) {
         LOG(LOGS_WARN, LOGF_CmdMon, "Could not send response to %s:%hu", UTI_IPToString(&remote_ip), remote_port);
       }

@@ -160,6 +160,7 @@ prepare_socket(int family)
 {
   unsigned short port_number = CNF_GetAcquisitionPort();
   int sock_fd;
+  socklen_t addrlen;
 
   sock_fd = socket(family, SOCK_DGRAM, 0);
 
@@ -180,19 +181,21 @@ prepare_socket(int family)
         my_addr.in4.sin_family = family;
         my_addr.in4.sin_port = htons(port_number);
         my_addr.in4.sin_addr.s_addr = htonl(INADDR_ANY);
+        addrlen = sizeof (my_addr.in4);
         break;
 #ifdef HAVE_IPV6
       case AF_INET6:
         my_addr.in6.sin6_family = family;
         my_addr.in6.sin6_port = htons(port_number);
         my_addr.in6.sin6_addr = in6addr_any;
+        addrlen = sizeof (my_addr.in6);
         break;
 #endif
       default:
         assert(0);
     }
 
-    if (bind(sock_fd, &my_addr.u, sizeof(my_addr)) < 0) {
+    if (bind(sock_fd, &my_addr.u, addrlen) < 0) {
       LOG(LOGS_ERR, LOGF_Acquire, "Could not bind socket : %s\n", strerror(errno));
       /* but keep running */
     }
@@ -248,6 +251,7 @@ probe_source(SourceRecord *src)
   double local_time_err;
   union sockaddr_in46 his_addr;
   int sock_fd;
+  socklen_t addrlen;
 
 #if 0
   printf("Sending probe to %s sent=%d samples=%d\n", UTI_IPToString(&src->ip_addr), src->n_probes_sent, src->n_samples);
@@ -278,6 +282,7 @@ probe_source(SourceRecord *src)
       his_addr.in4.sin_addr.s_addr = htonl(src->ip_addr.addr.in4);
       his_addr.in4.sin_port = htons(123); /* Fixed for now */
       his_addr.in4.sin_family = AF_INET;
+      addrlen = sizeof (his_addr.in4);
       sock_fd = sock_fd4;
       break;
 #ifdef HAVE_IPV6
@@ -286,6 +291,7 @@ probe_source(SourceRecord *src)
           sizeof (his_addr.in6.sin6_addr.s6_addr));
       his_addr.in6.sin6_port = htons(123); /* Fixed for now */
       his_addr.in6.sin6_family = AF_INET6;
+      addrlen = sizeof (his_addr.in6);
       sock_fd = sock_fd6;
       break;
 #endif
@@ -299,7 +305,7 @@ probe_source(SourceRecord *src)
 
   if (sendto(sock_fd, (void *) &pkt, NTP_NORMAL_PACKET_SIZE,
              0,
-             &his_addr.u, sizeof(his_addr)) < 0) {
+             &his_addr.u, addrlen) < 0) {
     LOG(LOGS_WARN, LOGF_Acquire, "Could not send to %s : %s",
         UTI_IPToString(&src->ip_addr),
         strerror(errno));

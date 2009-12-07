@@ -69,6 +69,7 @@ union sockaddr_in46 {
 
 static int sock_fd;
 union sockaddr_in46 his_addr;
+static socklen_t his_addr_len;
 
 static int on_terminal = 0;
 
@@ -163,6 +164,7 @@ open_io(const char *hostname, int port)
       his_addr.in4.sin_family = AF_INET;
       his_addr.in4.sin_addr.s_addr = htonl(ip.addr.in4);
       his_addr.in4.sin_port = htons(port);
+      his_addr_len = sizeof (his_addr.in4);
       break;
 #ifdef HAVE_IPV6
     case IPADDR_INET6:
@@ -172,6 +174,7 @@ open_io(const char *hostname, int port)
       memcpy(his_addr.in6.sin6_addr.s6_addr, ip.addr.in6,
           sizeof (his_addr.in6.sin6_addr.s6_addr));
       his_addr.in6.sin6_port = htons(port);
+      his_addr_len = sizeof (his_addr.in6);
       break;
 #endif
     default:
@@ -1207,7 +1210,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
 #endif
 
     if (sendto(sock_fd, (void *) request, command_length, 0,
-               &his_addr.u, sizeof(his_addr)) < 0) {
+               &his_addr.u, his_addr_len) < 0) {
 
 
 #if 0

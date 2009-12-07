@@ -99,6 +99,7 @@ static int
 prepare_socket(int family)
 {
   union sockaddr_in46 my_addr;
+  socklen_t my_addr_len;
   int sock_fd;
   unsigned short port_number;
   IPAddr bind_address;
@@ -165,6 +166,7 @@ prepare_socket(int family)
 
   switch (family) {
     case AF_INET:
+      my_addr_len = sizeof (my_addr.in4);
       my_addr.in4.sin_family = family;
       my_addr.in4.sin_port = htons(port_number);
 
@@ -177,6 +179,7 @@ prepare_socket(int family)
       break;
 #ifdef HAVE_IPV6
     case AF_INET6:
+      my_addr_len = sizeof (my_addr.in6);
       my_addr.in6.sin6_family = family;
       my_addr.in6.sin6_port = htons(port_number);
 
@@ -197,7 +200,7 @@ prepare_socket(int family)
   LOG(LOGS_INFO, LOGF_NtpIO, "Initialising, socket fd=%d", sock_fd);
 #endif
 
-  if (bind(sock_fd, &my_addr.u, sizeof(my_addr)) < 0) {
+  if (bind(sock_fd, &my_addr.u, my_addr_len) < 0) {
     LOG_FATAL(LOGF_NtpIO, "Could not bind %s NTP socket : %s",
         family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
   }
@@ -387,12 +390,14 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
   char cmsgbuf[256];
   int cmsglen;
   int sock_fd;
+  socklen_t addrlen;
 
   assert(initialised);
 
-  memset(&remote, 0, sizeof (remote));
   switch (remote_addr->ip_addr.family) {
     case IPADDR_INET4:
+      memset(&remote.in4, 0, sizeof (remote.in4));
+      addrlen = sizeof (remote.in4);
       remote.in4.sin_family = AF_INET;
       remote.in4.sin_port = htons(remote_addr->port);
       remote.in4.sin_addr.s_addr = htonl(remote_addr->ip_addr.addr.in4);
@@ -400,6 +405,8 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
       break;
 #ifdef HAVE_IPV6
     case IPADDR_INET6:
+      memset(&remote.in6, 0, sizeof (remote.in6));
+      addrlen = sizeof (remote.in6);
       remote.in6.sin6_family = AF_INET6;
       remote.in6.sin6_port = htons(remote_addr->port);
       memcpy(&remote.in6.sin6_addr.s6_addr, &remote_addr->ip_addr.addr.in6,
@@ -417,7 +424,7 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
   iov.iov_base = packet;
   iov.iov_len = packetlen;
   msg.msg_name = &remote.u;
-  msg.msg_namelen = sizeof(remote);
+  msg.msg_namelen = addrlen;
   msg.msg_iov = &iov;
   msg.msg_iovlen = 1;
   msg.msg_control = cmsgbuf;
@@ -449,6 +456,9 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
 #endif
 
   msg.msg_controllen = cmsglen;
+  /* This is apparently required on some systems */
+  if (!cmsglen)
+    msg.msg_control = NULL;
 
   if (sendmsg(sock_fd, &msg, 0) < 0) {
     LOG(LOGS_WARN, LOGF_NtpIO, "Could not send to %s:%d : %s",
