@@ -132,18 +132,22 @@ prepare_socket(int family)
     /* Don't quit - we might survive anyway */
   }
 
+#ifdef SO_TIMESTAMP
   /* Enable receiving of timestamp control messages */
   if (setsockopt(sock_fd, SOL_SOCKET, SO_TIMESTAMP, (char *)&on_off, sizeof(on_off)) < 0) {
     LOG(LOGS_ERR, LOGF_NtpIO, "Could not set timestamp socket options");
     /* Don't quit - we might survive anyway */
   }
+#endif
 
   if (family == AF_INET) {
+#ifdef IP_PKTINFO
     /* We want the local IP info too */
     if (setsockopt(sock_fd, IPPROTO_IP, IP_PKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
       LOG(LOGS_ERR, LOGF_NtpIO, "Could not request packet info using socket option");
       /* Don't quit - we might survive anyway */
     }
+#endif
   }
 #ifdef HAVE_IPV6
   else if (family == AF_INET6) {
@@ -326,6 +330,7 @@ read_from_socket(void *anything)
     }
 
     for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+#ifdef IP_PKTINFO
       if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_PKTINFO) {
         struct in_pktinfo ipi;
 
@@ -333,7 +338,9 @@ read_from_socket(void *anything)
         remote_addr.local_ip_addr.addr.in4 = ntohl(ipi.ipi_spec_dst.s_addr);
         remote_addr.local_ip_addr.family = IPADDR_INET4;
       }
+#endif
 
+#ifdef SO_TIMESTAMP
       if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SO_TIMESTAMP) {
         struct timeval tv;
         double correction;
@@ -347,6 +354,7 @@ read_from_socket(void *anything)
 #endif
         now = tv;
       }
+#endif
     }
 
     if (status == NTP_NORMAL_PACKET_SIZE) {
@@ -376,7 +384,6 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
   union sockaddr_in46 remote;
   struct msghdr msg;
   struct iovec iov;
-  struct cmsghdr *cmsg;
   char cmsgbuf[256];
   int cmsglen;
   int sock_fd;
@@ -418,7 +425,9 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
   msg.msg_flags = 0;
   cmsglen = 0;
 
+#ifdef IP_PKTINFO
   if (remote_addr->local_ip_addr.family == IPADDR_INET4) {
+    struct cmsghdr *cmsg;
     struct in_pktinfo *ipi;
 
     cmsg = CMSG_FIRSTHDR(&msg);
@@ -431,11 +440,13 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
 
     ipi = (struct in_pktinfo *) CMSG_DATA(cmsg);
     ipi->ipi_spec_dst.s_addr = htonl(remote_addr->local_ip_addr.addr.in4);
+  }
+#endif
+
 #if 0
     LOG(LOGS_INFO, LOGF_NtpIO, "sending to %s:%d from %s",
         UTI_IPToString(&remote_addr->ip_addr), remote_addr->port, UTI_IPToString(&remote_addr->local_ip_addr));
 #endif
-  }
 
   msg.msg_controllen = cmsglen;
 
