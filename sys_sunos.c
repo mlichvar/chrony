@@ -368,7 +368,7 @@ setup_kernel(unsigned long on_off)
   }
 
   if (kvm_write(kt, nl[2].n_value,
-                (char *)(&(on_off ? default_tickadj : our_tickadj)),
+                (char *)(on_off ? &default_tickadj : &our_tickadj),
                 sizeof(unsigned long)) < 0) {
     LOG(LOGS_ERR, LOGF_SysSunOS, "Cannot write to _tickadj");
     kvm_close(kt);
