@@ -146,7 +146,6 @@ read_line(void)
 static void
 open_io(const char *hostname, int port)
 {
-  union sockaddr_in46 my_addr;
   IPAddr ip;
 
   /* Note, this call could block for a while */
@@ -155,16 +154,11 @@ open_io(const char *hostname, int port)
     exit(1);
   }
 
-  memset(&my_addr, 0, sizeof (my_addr));
   memset(&his_addr, 0, sizeof (his_addr));
 
   switch (ip.family) {
     case IPADDR_INET4:
       sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
-
-      my_addr.in4.sin_family = AF_INET;
-      my_addr.in4.sin_port = htons(INADDR_ANY);
-      my_addr.in4.sin_addr.s_addr = htonl(INADDR_ANY);
 
       his_addr.in4.sin_family = AF_INET;
       his_addr.in4.sin_addr.s_addr = htonl(ip.addr.in4);
@@ -173,10 +167,6 @@ open_io(const char *hostname, int port)
 #ifdef HAVE_IPV6
     case IPADDR_INET6:
       sock_fd = socket(AF_INET6, SOCK_DGRAM, 0);
-
-      my_addr.in6.sin6_family = AF_INET6;
-      my_addr.in6.sin6_port = htons(INADDR_ANY);
-      my_addr.in6.sin6_addr = in6addr_any;
 
       his_addr.in6.sin6_family = AF_INET6;
       memcpy(his_addr.in6.sin6_addr.s6_addr, ip.addr.in6,
@@ -190,11 +180,6 @@ open_io(const char *hostname, int port)
 
   if (sock_fd < 0) {
     perror("Can't create socket");
-    exit(1);
-  }
-
-  if(bind(sock_fd, &my_addr.u, sizeof(my_addr)) < 0) {
-    perror("Can't bind socket");
     exit(1);
   }
 
