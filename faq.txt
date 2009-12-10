@@ -19,18 +19,12 @@
 <p>
 This is a set of questions and answers to common problems and issues.
 <p>
-As I receive more emails about the software, I will add new questions
+As we receive more emails about the software, we will add new questions
 to this page.
-
 <hr>
 <p>
-The author can be reached by email
-<a href="mailto:rc@rc0.org.uk">
-</a>
-<p>
-<b>PLEASE</b>
-include the word &quot;chrony&quot; in your subject line if possible (so that my
-mail reader can keep my mail sorted by topic)!
+The developers can be reached via the chrony-dev mailing list.  See 
+<a href="#question_1.4">question 1.4.</a> for details.
 <hr>
 
 <br clear=all>
@@ -38,11 +32,13 @@ mail reader can keep my mail sorted by topic)!
 S: Administrative issues
 
 Q: Where can I get chrony source code?
-Via the home page, see below.
+Tarballs are available via the <b>Download</b> link on the Chrony
+Web site.  For the current development from the developers' version control
+system see the <b>Git</b> link on the Web site.
 
 Q: Are there any packaged versions of chrony?
-I am aware of packages for Debian, Mandrake and Redhat.  I am not personally
-involved with how these are built or distributed.
+We are aware of packages for Debian, Fedora, Gentoo, Mandriva, Slackware,
+and Ubuntu.  We are not involved with how these are built or distributed.
 
 Q: Where is the home page?
 It is currently at <a href="http://chrony.tuxfamily.org/">http://chrony.tuxfamily.org/</a>. 
@@ -61,16 +57,8 @@ subject subscribe to
 
 Q: What licence is applied to chrony?
 Starting from version 1.15, chrony is licensed under the GNU General Public
-License.  Versions prior to 1.15 were licensed under a custom BSD-like
+License, Version 2.  Versions prior to 1.15 were licensed under a custom BSD-like
 license.
-
-If you want to use parts of chrony in non-free software, you will need to use
-older versions of the source code.  Alternatively, contact me - I may be
-prepared to licence parts of the source code to suit your purposes.  I am quite
-sympathetic to projects licensed under other free/open-source (but non-GPL)
-licences, as well as to commercial projects which are of a single-customer
-"turnkey" nature (as opposed to mass-market "shrink-wrap" or "floating-licence"
-products).
 
 S: Chrony compared to other programs
 Q: How does chrony compare to xntpd?
@@ -110,7 +98,7 @@ added some automated support in chrony to deal with this.
 
 S: Compilation issues
 Q:How do I apply source patches?
-Sometimes I release source patches rather than a full version when I need to
+Sometimes we release source patches rather than a full version when we need to
 provide a fix for small problems.  Supposing you have chrony-1.X.tar.gz and a
 source patch chrony-1.X-1.X.1.gz.  The steps required are:
 
@@ -222,12 +210,6 @@ files when chrony was compiled.  The chrony.conf file can include options to
 modify the HZ value (see the discussion of linux_hz and linux_freq_scale in the
 documentation), however the problem is to find the value of HZ being used.
 
-At the end of the chrony v1.18 section of the <a href="./download.php">download page</a>
-you'll find instructions on how to do this.
-
-This will be fixed in version 1.19, by getting chronyd to auto-detect the
-kernel's value rather than relying on the compiled-in default.
-
 S: Issues with chronyc
 
 Q: I keep getting the error '510 No command access from this host --- Reply not authenticated'.
@@ -304,13 +286,11 @@ system-dependent.  It needs adapting to work with Windows' equivalent of the
 adjtimex() call, and it needs to be made to work as an NT service.
 
 Q: Are there any plans to support Windows?
-I have no personal plans to do this.  I have neither the time nor the
-Windows programming expertise.  Some time ago I did start work on a port which
-I was developing under Cygwin.  Anyone is welcome to pick this work up and
+We have no plans to do this.  Anyone is welcome to pick this work up and
 contribute it back to the project.
 
 Q: What alternative NTP clients are there for Windows?
-Some of the names I've seen mentioned are 
+Some of the names we've seen mentioned are 
    - Automachron
    - NetTime (nettime.sourceforge.net)
 
@@ -346,14 +326,10 @@ useful to avoid this situation.
 
 S: Development
 
-Q: Can I get the source via CVS from anywhere?  You can get it via Git or
-in a tarball.  
-See <a href="http://chrony.tuxfamily.org/">http://chrony.tuxfamily.org</a> for
-information.  Currently there is only anonymous read-only access.  I keep
-the master copy on my own PC, which is more convenient for me because I
-don't have to connect to the Internet to do CVS operations on the files.
-So for now, there is no read-write access for other developers.  Please
-email me your patches + documentation instead.
+Q: Can I get the source via git from anywhere?
+Yes.  See the Git link at <a
+href="http://chrony.tuxfamily.org/">http://chrony.tuxfamily.org</a> for
+information.
 
 S: Linux-specific issues
 
