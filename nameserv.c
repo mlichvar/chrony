@@ -59,7 +59,9 @@ DNS_Name2IPAddress(const char *name, IPAddr *addr, int retry)
   memset(&hints, 0, sizeof (hints));
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
+#ifdef AI_ADDRCONFIG
   hints.ai_flags = AI_ADDRCONFIG;
+#endif
 
 try_again:
   result = getaddrinfo(name, NULL, &hints, &res);
