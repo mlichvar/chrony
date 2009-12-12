@@ -3540,7 +3540,8 @@ source.  This is normally in seconds.  The letters @code{m}, @code{h},
 @item Last sample
 This column shows the offset between the local clock and the source at
 the last measurement.  The number in the square brackets shows the
-actual measured offset.  This may be suffixed by @code{us} (indicating
+actual measured offset.  This may be suffixed by @code{ns} (indicating
+nanoseconds), @code{us} (indicating
 microseconds), @code{ms} (indicating milliseconds), or @code{s}
 (indicating seconds).  The number to the left of the square brackets
 shows the original measurement, adjusted to allow for any slews applied
@@ -3623,7 +3624,7 @@ performance.  An example of the output is shown below.
 Reference ID    : 1.2.3.4 (a.b.c)
 Stratum         : 3
 Ref time (UTC)  : Sun May 17 06:13:11 1998
-System time     : 0.000000 seconds fast of NTP time
+System time     : 0.000000000 seconds fast of NTP time
 Frequency       : 331.898 ppm fast
 Residual freq   : 0.004 ppm
 Skew            : 0.154 ppm

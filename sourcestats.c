@@ -846,14 +846,14 @@ void
 SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timeval *now)
 {
   int n, nb;
-  double est_offset, est_err, elapsed, sample_elapsed;
+  double elapsed, sample_elapsed;
   struct timeval ago;
 
   if (inst->n_samples > 0) {
     n = inst->n_samples - 1;
-    report->orig_latest_meas = (long)(0.5 + 1.0e6 * inst->orig_offsets[n]);
-    report->latest_meas = (long)(0.5 + 1.0e6 * inst->offsets[n]);
-    report->latest_meas_err = (unsigned long)(0.5 + 1.0e6 * (0.5*inst->root_delays[n] + inst->root_dispersions[n]));
+    report->orig_latest_meas = inst->orig_offsets[n];
+    report->latest_meas = inst->offsets[n];
+    report->latest_meas_err = 0.5*inst->root_delays[n] + inst->root_dispersions[n];
     report->stratum = inst->strata[n];
 
     UTI_DiffTimevals(&ago, now, &inst->sample_times[n]);
@@ -863,12 +863,10 @@ SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timeval *now
       UTI_DiffTimevalsToDouble(&elapsed, now, &inst->offset_time);
       nb = inst->best_single_sample;
       UTI_DiffTimevalsToDouble(&sample_elapsed, now, &(inst->sample_times[nb]));
-      est_offset = inst->estimated_offset + elapsed * inst->estimated_frequency;
-      est_err = (inst->estimated_offset_sd +
+      report->est_offset = inst->estimated_offset + elapsed * inst->estimated_frequency;
+      report->est_offset_err = (inst->estimated_offset_sd +
                  sample_elapsed * inst->skew +
                  (0.5*inst->root_delays[nb] + inst->root_dispersions[nb]));
-      report->est_offset = (long)(0.5 + 1.0e6 * est_offset);
-      report->est_offset_err = (unsigned long) (0.5 + 1.0e6 * est_err);
     } else {
       report->est_offset = report->latest_meas;
       report->est_offset_err = report->latest_meas_err;
@@ -913,7 +911,7 @@ SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report)
 
   report->resid_freq_ppm = 1.0e6 * inst->estimated_frequency;
   report->skew_ppm = 1.0e6 * inst->skew;
-  report->sd_us = 1.0e6 * sqrt(inst->variance);
+  report->sd = sqrt(inst->variance);
 }
 
 /* ================================================== */

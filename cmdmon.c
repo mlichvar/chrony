@@ -1040,12 +1040,11 @@ handle_source_data(CMD_Request *rx_message, CMD_Reply *tx_message)
         break;
     }
     tx_message->data.source_data.since_sample = htonl(report.latest_meas_ago);
-    tx_message->data.source_data.orig_latest_meas = htonl(report.orig_latest_meas);
-    tx_message->data.source_data.latest_meas = htonl(report.latest_meas);
-    tx_message->data.source_data.latest_meas_err = htonl(report.latest_meas_err);
-    tx_message->data.source_data.est_offset = htonl(report.est_offset);
-    tx_message->data.source_data.est_offset_err = htonl(report.est_offset_err);
-    
+    tx_message->data.source_data.orig_latest_meas = UTI_FloatHostToNetwork(report.orig_latest_meas);
+    tx_message->data.source_data.latest_meas = UTI_FloatHostToNetwork(report.latest_meas);
+    tx_message->data.source_data.latest_meas_err = UTI_FloatHostToNetwork(report.latest_meas_err);
+    tx_message->data.source_data.est_offset = UTI_FloatHostToNetwork(report.est_offset);
+    tx_message->data.source_data.est_offset_err = UTI_FloatHostToNetwork(report.est_offset_err);
   } else {
     tx_message->status = htons(STT_NOSUCHSOURCE);
   }
@@ -1381,8 +1380,7 @@ handle_tracking(CMD_Request *rx_message, CMD_Reply *tx_message)
   UTI_IPHostToNetwork(&rpt.ip_addr, &tx_message->data.tracking.ip_addr);
   tx_message->data.tracking.stratum = htonl(rpt.stratum);
   UTI_TimevalHostToNetwork(&rpt.ref_time, &tx_message->data.tracking.ref_time);
-  tx_message->data.tracking.current_correction_s = htonl(rpt.current_correction.tv_sec);
-  tx_message->data.tracking.current_correction_us = htonl(rpt.current_correction.tv_usec);
+  tx_message->data.tracking.current_correction = UTI_FloatHostToNetwork(rpt.current_correction);
   tx_message->data.tracking.freq_ppm = UTI_FloatHostToNetwork(rpt.freq_ppm);
   tx_message->data.tracking.resid_freq_ppm = UTI_FloatHostToNetwork(rpt.resid_freq_ppm);
   tx_message->data.tracking.skew_ppm = UTI_FloatHostToNetwork(rpt.skew_ppm);
@@ -1408,9 +1406,9 @@ handle_sourcestats(CMD_Request *rx_message, CMD_Reply *tx_message)
     tx_message->data.sourcestats.n_samples = htonl(report.n_samples);
     tx_message->data.sourcestats.n_runs = htonl(report.n_runs);
     tx_message->data.sourcestats.span_seconds = htonl(report.span_seconds);
-    tx_message->data.sourcestats.sd_us = htonl((unsigned long) (0.5 + report.sd_us));
     tx_message->data.sourcestats.resid_freq_ppm = UTI_FloatHostToNetwork(report.resid_freq_ppm);
     tx_message->data.sourcestats.skew_ppm = UTI_FloatHostToNetwork(report.skew_ppm);
+    tx_message->data.sourcestats.sd = UTI_FloatHostToNetwork(report.sd);
   } else {
     tx_message->status = htons(STT_NOSUCHSOURCE);
   }

@@ -334,6 +334,7 @@ typedef struct {
    Version 4 : IPv6 addressing added, 64-bit time values, sourcestats 
    and tracking reports extended, added flags to NTP source request,
    trimmed source report, replaced fixed-point format with floating-point
+   and used also instead of integer microseconds
 
  */
 
@@ -471,11 +472,11 @@ typedef struct {
   uint16_t state;
   uint16_t mode;
   uint32_t  since_sample;
-  int32_t orig_latest_meas;
-  int32_t latest_meas;
-  uint32_t latest_meas_err;
-  int32_t est_offset;
-  uint32_t est_offset_err;
+  Float orig_latest_meas;
+  Float latest_meas;
+  Float latest_meas_err;
+  Float est_offset;
+  Float est_offset_err;
   int32_t EOR;
 } RPY_Source_Data;
 
@@ -484,8 +485,7 @@ typedef struct {
   IPAddr ip_addr;
   uint32_t stratum;
   Timeval ref_time;
-  uint32_t current_correction_s;
-  uint32_t current_correction_us;
+  Float current_correction;
   Float freq_ppm;
   Float resid_freq_ppm;
   Float skew_ppm;
@@ -500,7 +500,7 @@ typedef struct {
   uint32_t n_samples;
   uint32_t n_runs;
   uint32_t span_seconds;
-  uint32_t sd_us;
+  Float sd;
   Float resid_freq_ppm;
   Float skew_ppm;
   int32_t EOR;

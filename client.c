@@ -1481,31 +1481,51 @@ print_seconds(unsigned long s)
 /* ================================================== */
 
 static void
-print_microseconds(unsigned long us)
+print_nanoseconds(double s)
 {
-  if (us <= 9999) {
-    printf("%4ldus", us);
-  } else if (us <= 9999999) {
-    printf("%4ldms", us / 1000);
-  } else if (us <= 999999999) {
-    printf("%3ld.%01lds", us / 1000000, (us/100000) % 10);
+  unsigned long ms, ns;
+
+  ns = s * 1e9 + 0.5;
+  ms = s * 1e3 + 0.5;
+
+  if (ns <= 9999) {
+    printf("%4ldns", ns);
+  } else if (ns <= 9999499) {
+    printf("%4ldus", (ns + 500) / 1000);
+  } else if (ms <= 9999) {
+    printf("%4ldms", ms);
+  } else if (ms <= 999949) {
+    printf("%3ld.%01lds", (ms + 50) / 1000, ((ms + 50) / 100) % 10);
   } else {
-    printf("%5lds", us / 1000000);
+    printf("%5lds", (ms + 500) / 1000);
   }
 }
 
 /* ================================================== */
 
 static void
-print_signed_microseconds(long us)
+print_signed_nanoseconds(double s)
 {
-  long x = abs(us);
-  if (x <= 9999) {
-    printf("%+5ldus", us);
-  } else if (x <= 9999999) {
-    printf("%+5ldms", us / 1000);
+  long ms, ns, sign;
+
+  if (s >= 0.0) {
+    ns = s * 1e9 + 0.5;
+    ms = s * 1e3 + 0.5;
+    sign = 1;
   } else {
-    printf("%+6lds", us / 1000000);
+    ns = -s * 1e9 + 0.5;
+    ms = -s * 1e3 + 0.5;
+    sign = -1;
+  }
+
+  if (ns <= 9999) {
+    printf("%+5ldns", ns * sign);
+  } else if (ns <= 9999499) {
+    printf("%+5ldus", (ns + 500) / 1000 * sign);
+  } else if (ms <= 9999) {
+    printf("%+5ldms", ms * sign);
+  } else {
+    printf("%+6lds", (ms + 500) / 1000 * sign);
   }
 }
 
@@ -1533,9 +1553,9 @@ process_cmd_sources(char *line)
   int n_sources, i;
   int verbose = 0;
 
-  int32_t orig_latest_meas, latest_meas, est_offset;
+  double orig_latest_meas, latest_meas, est_offset;
   IPAddr ip_addr;
-  uint32_t latest_meas_err, est_offset_err;
+  double latest_meas_err, est_offset_err;
   uint32_t latest_meas_ago;
   uint16_t poll, stratum;
   uint16_t state, mode;
@@ -1575,11 +1595,11 @@ process_cmd_sources(char *line)
           state = ntohs(reply.data.source_data.state);
           mode = ntohs(reply.data.source_data.mode);
           latest_meas_ago = ntohl(reply.data.source_data.since_sample);
-          orig_latest_meas = ntohl(reply.data.source_data.orig_latest_meas);
-          latest_meas = ntohl(reply.data.source_data.latest_meas);
-          latest_meas_err = ntohl(reply.data.source_data.latest_meas_err);
-          est_offset = ntohl(reply.data.source_data.est_offset);
-          est_offset_err = ntohl(reply.data.source_data.est_offset_err);
+          orig_latest_meas = UTI_FloatNetworkToHost(reply.data.source_data.orig_latest_meas);
+          latest_meas = UTI_FloatNetworkToHost(reply.data.source_data.latest_meas);
+          latest_meas_err = UTI_FloatNetworkToHost(reply.data.source_data.latest_meas_err);
+          est_offset = UTI_FloatNetworkToHost(reply.data.source_data.est_offset);
+          est_offset_err = UTI_FloatNetworkToHost(reply.data.source_data.est_offset_err);
 
           if (mode == RPY_SD_MD_REF) {
             snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_RefidToString(ip_addr.addr.in4));
@@ -1614,12 +1634,12 @@ process_cmd_sources(char *line)
           printf(" %-25s    %2d   %2d   ", hostname_buf, stratum, poll);
           print_seconds(latest_meas_ago);
           printf("  ");
-          print_signed_microseconds(latest_meas);
+          print_signed_nanoseconds(latest_meas);
           printf("[");
-          print_signed_microseconds(orig_latest_meas);
+          print_signed_nanoseconds(orig_latest_meas);
           printf("]");
           printf(" +/- ");
-          print_microseconds(latest_meas_err);
+          print_nanoseconds(latest_meas_err);
           printf("\n");
       } else {
         return 0;
@@ -1643,8 +1663,7 @@ process_cmd_sourcestats(char *line)
 
   char hostname_buf[32];
   unsigned long n_samples, n_runs, span_seconds;
-  double resid_freq_ppm, skew_ppm;
-  unsigned long sd_us;
+  double resid_freq_ppm, skew_ppm, sd;
   unsigned long ref_id;
   IPAddr ip_addr;
 
@@ -1679,9 +1698,9 @@ process_cmd_sourcestats(char *line)
           n_samples = ntohl(reply.data.sourcestats.n_samples);
           n_runs = ntohl(reply.data.sourcestats.n_runs);
           span_seconds = ntohl(reply.data.sourcestats.span_seconds);
-          sd_us = ntohl(reply.data.sourcestats.sd_us);
           resid_freq_ppm = UTI_FloatNetworkToHost(reply.data.sourcestats.resid_freq_ppm);
           skew_ppm = UTI_FloatNetworkToHost(reply.data.sourcestats.skew_ppm);
+          sd = UTI_FloatNetworkToHost(reply.data.sourcestats.sd);
 
           if (ip_addr.family == IPADDR_UNSPEC)
             snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_RefidToString(ref_id));
@@ -1695,7 +1714,7 @@ process_cmd_sourcestats(char *line)
           printf("%-25s  %2lu  %2lu  ", hostname_buf, n_samples, n_runs);
           print_seconds(span_seconds);
           printf("  %10.3f  %10.3f  ", resid_freq_ppm, skew_ppm);
-          print_microseconds(sd_us);
+          print_nanoseconds(sd);
           printf("\n");
       } else {
         return 0;
@@ -1721,7 +1740,6 @@ process_cmd_tracking(char *line)
   struct timeval ref_time;
   struct tm ref_time_tm;
   unsigned long a, b, c, d;
-  struct timeval correction_tv;
   double correction;
   double freq_ppm;
   double resid_freq_ppm;
@@ -1752,10 +1770,8 @@ process_cmd_tracking(char *line)
     UTI_TimevalNetworkToHost(&reply.data.tracking.ref_time, &ref_time);
     ref_time_tm = *gmtime((time_t *)&ref_time.tv_sec);
     printf("Ref time (UTC)  : %s", asctime(&ref_time_tm));
-    correction_tv.tv_sec = (int32_t)ntohl(reply.data.tracking.current_correction_s);
-    correction_tv.tv_usec = ntohl(reply.data.tracking.current_correction_us);
-    correction = (double) correction_tv.tv_sec + 1.0e-6 * correction_tv.tv_usec;
-    printf("System time     : %.6f seconds %s of NTP time\n", fabs(correction),
+    correction = UTI_FloatNetworkToHost(reply.data.tracking.current_correction);
+    printf("System time     : %.9f seconds %s of NTP time\n", fabs(correction),
            (correction > 0.0) ? "slow" : "fast");
     freq_ppm = UTI_FloatNetworkToHost(reply.data.tracking.freq_ppm);
     resid_freq_ppm = UTI_FloatNetworkToHost(reply.data.tracking.resid_freq_ppm);

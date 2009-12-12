@@ -44,11 +44,11 @@ typedef struct {
   enum {RPT_SYNC, RPT_UNREACH, RPT_FALSETICKER, RPT_JITTERY, RPT_OTHER} state;
 
   unsigned long latest_meas_ago; /* seconds */
-  long orig_latest_meas; /* microseconds (us) */
-  long latest_meas; /* us */
-  unsigned long latest_meas_err; /* us */
-  long est_offset; /* us */
-  unsigned long est_offset_err; /* us */
+  double orig_latest_meas; /* seconds */
+  double latest_meas; /* seconds */
+  double latest_meas_err; /* seconds */
+  double est_offset; /* seconds */
+  double est_offset_err; /* seconds */
 } RPT_SourceReport ;
 
 typedef struct {
@@ -56,7 +56,7 @@ typedef struct {
   IPAddr ip_addr;
   unsigned long stratum;
   struct timeval ref_time;
-  struct timeval current_correction;
+  double current_correction;
   double freq_ppm;
   double resid_freq_ppm;
   double skew_ppm;
@@ -72,7 +72,7 @@ typedef struct {
   unsigned long span_seconds;
   double resid_freq_ppm;
   double skew_ppm;
-  double sd_us;
+  double sd;
 } RPT_SourcestatsReport;
 
 typedef struct {

@@ -725,7 +725,7 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
     rep->ip_addr = our_ref_ip;
     rep->stratum = our_stratum;
     rep->ref_time = our_ref_time;
-    UTI_DoubleToTimeval(correction, &rep->current_correction);
+    rep->current_correction = correction;
     rep->freq_ppm = LCL_ReadAbsoluteFrequency();
     rep->resid_freq_ppm = 1.0e6 * our_residual_freq;
     rep->skew_ppm = 1.0e6 * our_skew;
@@ -738,7 +738,7 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
     rep->ip_addr.family = IPADDR_UNSPEC;
     rep->stratum = local_stratum;
     rep->ref_time = now_cooked;
-    UTI_DoubleToTimeval(correction, &rep->current_correction);
+    rep->current_correction = correction;
     rep->freq_ppm = LCL_ReadAbsoluteFrequency();
     rep->resid_freq_ppm = 0.0;
     rep->skew_ppm = 0.0;
@@ -752,7 +752,7 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
     rep->stratum = 0;
     rep->ref_time.tv_sec = 0;
     rep->ref_time.tv_usec = 0;
-    UTI_DoubleToTimeval(correction, &rep->current_correction);
+    rep->current_correction = correction;
     rep->freq_ppm = LCL_ReadAbsoluteFrequency();
     rep->resid_freq_ppm = 0.0;
     rep->skew_ppm = 0.0;
