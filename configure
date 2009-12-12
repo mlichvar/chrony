@@ -32,43 +32,6 @@ fi
 # ======================================================================
 # FUNCTIONS
 
-#{{{ test_for_sqrt
-test_for_sqrt () {
-# 0 : doesn't need -lm
-# 1 : needs -lm
-# 2 : doesn't even link with -lm
-
-  cat >docheck.c <<EOF;
-#include <math.h>
-int main(int argc, char **argv) {
-  return (int) sqrt((double)argc);
-}
-EOF
-
-  ${MYCC} ${MYCFLAGS} ${MYCPPFLAGS} -c -o docheck.o docheck.c >/dev/null 2>&1
-  if [ $? -eq 0 ]
-  then
-    ${MYCC} ${MYCFLAGS} ${MYCPPFLAGS} -o docheck docheck.o >/dev/null 2>&1
-    if [ $? -eq 0 ]
-    then
-      result=0
-    else
-      ${MYCC} ${MYCFLAGS} ${MYCPPFLAGS} -o docheck docheck.o -lm >/dev/null 2>&1
-      if [ $? -eq 0 ]
-      then
-        result=1
-      else
-        result=2
-      fi
-    fi
-  else
-    result=2
-  fi
-
-  rm -f docheck.c docheck.o docheck
-  echo $result
-}
-#}}}
 #{{{ test_code
 test_code () {
   name=$1
@@ -354,23 +317,18 @@ case $SYSTEM in
     ;;
 esac
 
-printf "Checking if sqrt() needs -lm : "
-case `test_for_sqrt`
-in
-0)
-  printf "No\n"
+MATHCODE='return (int) pow(2.0, log(sqrt((double)argc)));'
+if test_code 'math' 'math.h' '' '' "$MATHCODE"; then
   LIBS=""
-;;
-1)
-  printf "Yes\n"
-  LIBS="-lm"
-;;
-*)
-  printf "\nCan't compile/link a program which uses sqrt(), bailing out\n"
-  exit 1
-;;
-esac
-
+else
+  if test_code 'math in -lm' 'math.h' '' '-lm' "$MATHCODE"; then
+    LIBS="-lm"
+  else
+    printf "Can't compile/link a program which uses sqrt(), log(), pow(), bailing out\n"
+    exit 1
+  fi
+fi
+  
 if test_code '<stdint.h>' 'stdint.h' '' '' ''; then
   SYSDEFS="${SYSDEFS} -DHAS_STDINT_H"
 fi
