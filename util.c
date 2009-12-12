@@ -493,7 +493,7 @@ UTI_TimevalNetworkToHost(Timeval *src, struct timeval *dest)
 {
   uint32_t sec_low, sec_high;
 
-  dest->tv_usec = ntohl(src->tv_usec);
+  dest->tv_usec = ntohl(src->tv_nsec) / 1000;
   sec_high = ntohl(src->tv_sec_high);
   sec_low = ntohl(src->tv_sec_low);
 
@@ -514,7 +514,7 @@ UTI_TimevalNetworkToHost(Timeval *src, struct timeval *dest)
 void
 UTI_TimevalHostToNetwork(struct timeval *src, Timeval *dest)
 {
-  dest->tv_usec = htonl(src->tv_usec);
+  dest->tv_nsec = htonl(src->tv_usec * 1000);
   if (sizeof (time_t) > 4)
     dest->tv_sec_high = htonl(src->tv_sec >> 16 >> 16);
   else

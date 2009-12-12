@@ -96,7 +96,7 @@
 typedef struct {
   uint32_t tv_sec_high;
   uint32_t tv_sec_low;
-  uint32_t tv_usec;
+  uint32_t tv_nsec;
 } Timeval;
 
 /* This is used in tv_sec_high for 32-bit timestamps */
