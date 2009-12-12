@@ -102,6 +102,13 @@ typedef struct {
 /* This is used in tv_sec_high for 32-bit timestamps */
 #define TV_NOHIGHSEC 0x7fffffff
 
+/* 32-bit floating-point format consisting of 7-bit signed exponent
+   and 25-bit signed coefficient without hidden bit.
+   The result is calculated as: 2^(exp - 25) * coef */
+typedef struct {
+  int32_t f;
+} Float;
+
 /* The EOR (end of record) fields are used by the offsetof operator in
    pktlength.c, to get the number of bytes that ought to be
    transmitted for each packet type. */
@@ -145,18 +152,18 @@ typedef struct {
 
 typedef struct {
   IPAddr address;
-  int32_t new_max_delay;
+  Float new_max_delay;
   int32_t EOR;
 } REQ_Modify_Maxdelay;
 
 typedef struct {
   IPAddr address;
-  int32_t new_max_delay_ratio;
+  Float new_max_delay_ratio;
   int32_t EOR;
 } REQ_Modify_Maxdelayratio;
 
 typedef struct {
-  int32_t new_max_update_skew;
+  Float new_max_update_skew;
   int32_t EOR;
 } REQ_Modify_Maxupdateskew;
 
@@ -216,8 +223,8 @@ typedef struct {
   int32_t maxpoll;
   int32_t presend_minpoll;
   uint32_t authkey;
-  int32_t max_delay;
-  int32_t max_delay_ratio;
+  Float max_delay;
+  Float max_delay_ratio;
   uint32_t flags;
   int32_t EOR;
 } REQ_NTP_Source;
@@ -232,7 +239,7 @@ typedef struct {
 } REQ_WriteRtc;
 
 typedef struct {
-  int32_t dfreq;
+  Float dfreq;
   int32_t EOR;
 } REQ_Dfreq;
 
@@ -325,7 +332,8 @@ typedef struct {
    Version 3 : NTP_Source message lengthened (auto_offline)
 
    Version 4 : IPv6 addressing added, 64-bit time values, sourcestats 
-   and tracking reports extended, added flags to NTP source request
+   and tracking reports extended, added flags to NTP source request,
+   replaced fixed-point format with floating-point
 
  */
 
@@ -397,13 +405,6 @@ typedef struct {
 #define PERMIT_OPEN 0
 #define PERMIT_LOCAL 1
 #define PERMIT_AUTH 2
-
-/* ================================================== */
-/* These conversion utilities are used to convert between the internal
-   and the 'wire' representation of real quantities */
-
-#define WIRE2REAL(x) ((double) ((int32_t) ntohl(x)) / 65536.0)
-#define REAL2WIRE(x) (htonl((int32_t)(0.5 + 65536.0 * (x))))
 
 /* ================================================== */
 
@@ -487,11 +488,11 @@ typedef struct {
   Timeval ref_time;
   uint32_t current_correction_s;
   uint32_t current_correction_us;
-  int32_t freq_ppm;
-  int32_t resid_freq_ppm;
-  int32_t skew_ppm;
-  int32_t root_delay;
-  int32_t root_dispersion;
+  Float freq_ppm;
+  Float resid_freq_ppm;
+  Float skew_ppm;
+  Float root_delay;
+  Float root_dispersion;
   int32_t EOR;
 } RPY_Tracking;
 
@@ -502,8 +503,8 @@ typedef struct {
   uint32_t n_runs;
   uint32_t span_seconds;
   uint32_t sd_us;
-  int32_t resid_freq_ppm;
-  int32_t skew_ppm;
+  Float resid_freq_ppm;
+  Float skew_ppm;
   int32_t EOR;
 } RPY_Sourcestats;
 
@@ -512,15 +513,15 @@ typedef struct {
   uint16_t n_samples;
   uint16_t n_runs;
   uint32_t span_seconds;
-  int32_t rtc_seconds_fast;
-  int32_t rtc_gain_rate_ppm;
+  Float rtc_seconds_fast;
+  Float rtc_gain_rate_ppm;
   int32_t EOR;
 } RPY_Rtc;
 
 typedef struct {
   uint32_t centiseconds;
-  int32_t dfreq_ppm;
-  int32_t new_afreq_ppm;
+  Float dfreq_ppm;
+  Float new_afreq_ppm;
   int32_t EOR;
 } RPY_ManualTimestamp;
 
@@ -562,9 +563,9 @@ typedef struct {
 
 typedef struct {
   Timeval when;
-  int32_t slewed_offset;
-  int32_t orig_offset;
-  int32_t residual;
+  Float slewed_offset;
+  Float orig_offset;
+  Float residual;
 } RPY_ManualListSample;
 
 typedef struct {

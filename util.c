@@ -522,5 +522,77 @@ UTI_TimevalHostToNetwork(struct timeval *src, Timeval *dest)
   dest->tv_sec_low = htonl(src->tv_sec);
 }
 
+/* ================================================== */
+
+#define FLOAT_EXP_BITS 7
+#define FLOAT_EXP_MIN (-(1 << (FLOAT_EXP_BITS - 1)))
+#define FLOAT_EXP_MAX (-FLOAT_EXP_MIN - 1)
+#define FLOAT_COEF_BITS ((int)sizeof (int32_t) * 8 - FLOAT_EXP_BITS)
+#define FLOAT_COEF_MIN (-(1 << (FLOAT_COEF_BITS - 1)))
+#define FLOAT_COEF_MAX (-FLOAT_COEF_MIN - 1)
+
+double
+UTI_FloatNetworkToHost(Float f)
+{
+  int32_t exp, coef, x;
+
+  x = ntohl(f.f);
+  exp = (x >> FLOAT_COEF_BITS) - FLOAT_COEF_BITS;
+  coef = x << FLOAT_EXP_BITS >> FLOAT_EXP_BITS;
+  return coef * pow(2.0, exp);
+}
+
+Float
+UTI_FloatHostToNetwork(double x)
+{
+  int32_t exp, coef, neg;
+  Float f;
+
+  if (x < 0.0) {
+    x = -x;
+    neg = 1;
+  } else {
+    neg = 0;
+  }
+
+  if (x < 1.0e-100) {
+    exp = coef = 0;
+  } else if (x > 1.0e100) {
+    exp = FLOAT_EXP_MAX;
+    coef = FLOAT_COEF_MAX + neg;
+  } else {
+    exp = log(x) / log(2) + 1;
+    coef = x * pow(2.0, -exp + FLOAT_COEF_BITS) + 0.5;
+
+    assert(coef > 0);
+
+    /* we may need to shift up to two bits down */
+    while (coef > FLOAT_COEF_MAX + neg) {
+      coef >>= 1;
+      exp++;
+    }
+
+    if (exp > FLOAT_EXP_MAX) {
+      /* overflow */
+      exp = FLOAT_EXP_MAX;
+      coef = FLOAT_COEF_MAX + neg;
+    } else if (exp < FLOAT_EXP_MIN) {
+      /* underflow */
+      if (exp + FLOAT_COEF_BITS >= FLOAT_EXP_MIN) {
+        coef >>= FLOAT_EXP_MIN - exp;
+        exp = FLOAT_EXP_MIN;
+      } else {
+        exp = coef = 0;
+      }
+    }
+  }
+
+  /* negate back */
+  if (neg)
+    coef = (uint32_t)-coef << FLOAT_EXP_BITS >> FLOAT_EXP_BITS;
+
+  f.f = htonl(exp << FLOAT_COEF_BITS | coef);
+  return f;
+}
 
 /* ================================================== */

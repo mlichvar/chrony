@@ -423,7 +423,7 @@ process_cmd_maxdelay(CMD_Request *msg, char *line)
   
   if (read_address_double(line, &address, &max_delay)) {
     UTI_IPHostToNetwork(&address, &msg->data.modify_maxdelay.address);
-    msg->data.modify_maxdelay.new_max_delay = REAL2WIRE(max_delay);
+    msg->data.modify_maxdelay.new_max_delay = UTI_FloatHostToNetwork(max_delay);
     msg->command = htons(REQ_MODIFY_MAXDELAY);
     ok = 1;
   } else {
@@ -445,7 +445,7 @@ process_cmd_maxdelayratio(CMD_Request *msg, char *line)
   
   if (read_address_double(line, &address, &max_delay_ratio)) {
     UTI_IPHostToNetwork(&address, &msg->data.modify_maxdelayratio.address);
-    msg->data.modify_maxdelayratio.new_max_delay_ratio = REAL2WIRE(max_delay_ratio);
+    msg->data.modify_maxdelayratio.new_max_delay_ratio = UTI_FloatHostToNetwork(max_delay_ratio);
     msg->command = htons(REQ_MODIFY_MAXDELAYRATIO);
     ok = 1;
   } else {
@@ -465,7 +465,7 @@ process_cmd_maxupdateskew(CMD_Request *msg, char *line)
   double new_max_update_skew;
   
   if (sscanf(line, "%lf", &new_max_update_skew) == 1) {
-    msg->data.modify_maxupdateskew.new_max_update_skew = REAL2WIRE(new_max_update_skew);
+    msg->data.modify_maxupdateskew.new_max_update_skew = UTI_FloatHostToNetwork(new_max_update_skew);
     msg->command = htons(REQ_MODIFY_MAXUPDATESKEW);
     ok = 1;
   } else {
@@ -845,9 +845,9 @@ process_cmd_dfreq(CMD_Request *msg, char *line)
   double dfreq;
   msg->command = htons(REQ_DFREQ);
   if (sscanf(line, "%lf", &dfreq) == 1) {
-    msg->data.dfreq.dfreq = REAL2WIRE(dfreq);
+    msg->data.dfreq.dfreq = UTI_FloatHostToNetwork(dfreq);
   } else {
-    msg->data.dfreq.dfreq = REAL2WIRE(0.0);
+    msg->data.dfreq.dfreq = UTI_FloatHostToNetwork(0.0);
   }
 }
 
@@ -908,8 +908,8 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
       msg->data.ntp_source.maxpoll = htonl(data.params.maxpoll);
       msg->data.ntp_source.presend_minpoll = htonl(data.params.presend_minpoll);
       msg->data.ntp_source.authkey = htonl(data.params.authkey);
-      msg->data.ntp_source.max_delay = REAL2WIRE(data.params.max_delay);
-      msg->data.ntp_source.max_delay_ratio = REAL2WIRE(data.params.max_delay_ratio);
+      msg->data.ntp_source.max_delay = UTI_FloatHostToNetwork(data.params.max_delay);
+      msg->data.ntp_source.max_delay_ratio = UTI_FloatHostToNetwork(data.params.max_delay_ratio);
       msg->data.ntp_source.flags = htonl(
           (data.params.online ? REQ_ADDSRC_ONLINE : 0) |
           (data.params.auto_offline ? REQ_ADDSRC_AUTOOFFLINE : 0));
@@ -1682,9 +1682,9 @@ process_cmd_sourcestats(char *line)
           n_samples = ntohl(reply.data.sourcestats.n_samples);
           n_runs = ntohl(reply.data.sourcestats.n_runs);
           span_seconds = ntohl(reply.data.sourcestats.span_seconds);
-          resid_freq_ppm = WIRE2REAL(reply.data.sourcestats.resid_freq_ppm);
-          skew_ppm = WIRE2REAL(reply.data.sourcestats.skew_ppm);
           sd_us = ntohl(reply.data.sourcestats.sd_us);
+          resid_freq_ppm = UTI_FloatNetworkToHost(reply.data.sourcestats.resid_freq_ppm);
+          skew_ppm = UTI_FloatNetworkToHost(reply.data.sourcestats.skew_ppm);
 
           if (ip_addr.family == IPADDR_UNSPEC)
             snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_RefidToString(ref_id));
@@ -1760,11 +1760,11 @@ process_cmd_tracking(char *line)
     correction = (double) correction_tv.tv_sec + 1.0e-6 * correction_tv.tv_usec;
     printf("System time     : %.6f seconds %s of NTP time\n", fabs(correction),
            (correction > 0.0) ? "slow" : "fast");
-    freq_ppm = WIRE2REAL(reply.data.tracking.freq_ppm);
-    resid_freq_ppm = WIRE2REAL(reply.data.tracking.resid_freq_ppm);
-    skew_ppm = WIRE2REAL(reply.data.tracking.skew_ppm);
-    root_delay = WIRE2REAL(reply.data.tracking.root_delay);
-    root_dispersion = WIRE2REAL(reply.data.tracking.root_dispersion);
+    freq_ppm = UTI_FloatNetworkToHost(reply.data.tracking.freq_ppm);
+    resid_freq_ppm = UTI_FloatNetworkToHost(reply.data.tracking.resid_freq_ppm);
+    skew_ppm = UTI_FloatNetworkToHost(reply.data.tracking.skew_ppm);
+    root_delay = UTI_FloatNetworkToHost(reply.data.tracking.root_delay);
+    root_dispersion = UTI_FloatNetworkToHost(reply.data.tracking.root_dispersion);
     printf("Frequency       : %.3f ppm %s\n", fabs(freq_ppm), (freq_ppm < 0.0) ? "slow" : "fast"); 
     printf("Residual freq   : %.3f ppm\n", resid_freq_ppm);
     printf("Skew            : %.3f ppm\n", skew_ppm);
@@ -1796,8 +1796,8 @@ process_cmd_rtcreport(char *line)
     n_samples = ntohs(reply.data.rtc.n_samples);
     n_runs = ntohs(reply.data.rtc.n_runs);
     span_seconds = ntohl(reply.data.rtc.span_seconds);
-    coef_seconds_fast = WIRE2REAL(reply.data.rtc.rtc_seconds_fast);
-    coef_gain_rate_ppm = WIRE2REAL(reply.data.rtc.rtc_gain_rate_ppm);
+    coef_seconds_fast = UTI_FloatNetworkToHost(reply.data.rtc.rtc_seconds_fast);
+    coef_gain_rate_ppm = UTI_FloatNetworkToHost(reply.data.rtc.rtc_gain_rate_ppm);
     printf("RTC ref time (UTC) : %s", asctime(&ref_time_tm));
     printf("Number of samples  : %d\n", n_samples);
     printf("Number of runs     : %d\n", n_runs);
@@ -2126,9 +2126,9 @@ process_cmd_manual_list(const char *line)
           for (i=0; i<n_samples; i++) {
             sample = &reply.data.manual_list.samples[i];
             UTI_TimevalNetworkToHost(&sample->when, &when);
-            slewed_offset = WIRE2REAL(sample->slewed_offset);
-            orig_offset = WIRE2REAL(sample->orig_offset);
-            residual = WIRE2REAL(sample->residual);
+            slewed_offset = UTI_FloatNetworkToHost(sample->slewed_offset);
+            orig_offset = UTI_FloatNetworkToHost(sample->orig_offset);
+            residual = UTI_FloatNetworkToHost(sample->residual);
             printf("%2d %s %10.2f %10.2f %10.2f\n", i, time_to_log_form(when.tv_sec), slewed_offset, orig_offset, residual);
           }
           return 1;
@@ -2180,8 +2180,8 @@ process_cmd_settime(char *line)
     if (request_reply(&request, &reply, RPY_MANUAL_TIMESTAMP, 1)) {
           offset_cs = ntohl(reply.data.manual_timestamp.centiseconds);
           offset = 0.01 * (double) offset_cs;
-          dfreq_ppm = WIRE2REAL(reply.data.manual_timestamp.dfreq_ppm);
-          new_afreq_ppm = WIRE2REAL(reply.data.manual_timestamp.new_afreq_ppm);
+          dfreq_ppm = UTI_FloatNetworkToHost(reply.data.manual_timestamp.dfreq_ppm);
+          new_afreq_ppm = UTI_FloatNetworkToHost(reply.data.manual_timestamp.new_afreq_ppm);
           printf("Clock was %.2f seconds fast.  Frequency change = %.2fppm, new frequency = %.2fppm\n",
               offset, dfreq_ppm, new_afreq_ppm);
           return 1;

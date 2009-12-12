@@ -881,7 +881,7 @@ handle_modify_maxdelay(CMD_Request *rx_message, CMD_Reply *tx_message)
   IPAddr address;
   UTI_IPNetworkToHost(&rx_message->data.modify_maxdelay.address, &address);
   status = NSR_ModifyMaxdelay(&address,
-                              WIRE2REAL(rx_message->data.modify_maxdelay.new_max_delay));
+                              UTI_FloatNetworkToHost(rx_message->data.modify_maxdelay.new_max_delay));
   if (status) {
     tx_message->status = htons(STT_SUCCESS);
   } else {
@@ -898,7 +898,7 @@ handle_modify_maxdelayratio(CMD_Request *rx_message, CMD_Reply *tx_message)
   IPAddr address;
   UTI_IPNetworkToHost(&rx_message->data.modify_maxdelayratio.address, &address);
   status = NSR_ModifyMaxdelayratio(&address,
-                                   WIRE2REAL(rx_message->data.modify_maxdelayratio.new_max_delay_ratio));
+                                   UTI_FloatNetworkToHost(rx_message->data.modify_maxdelayratio.new_max_delay_ratio));
   if (status) {
     tx_message->status = htons(STT_SUCCESS);
   } else {
@@ -911,7 +911,7 @@ handle_modify_maxdelayratio(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_modify_maxupdateskew(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  REF_ModifyMaxupdateskew(WIRE2REAL(rx_message->data.modify_maxupdateskew.new_max_update_skew));
+  REF_ModifyMaxupdateskew(UTI_FloatNetworkToHost(rx_message->data.modify_maxupdateskew.new_max_update_skew));
   tx_message->status = htons(STT_SUCCESS);
 }
 
@@ -928,8 +928,8 @@ handle_settime(CMD_Request *rx_message, CMD_Reply *tx_message)
     tx_message->status = htons(STT_SUCCESS);
     tx_message->reply = htons(RPY_MANUAL_TIMESTAMP);
     tx_message->data.manual_timestamp.centiseconds = htonl(offset_cs);
-    tx_message->data.manual_timestamp.dfreq_ppm = REAL2WIRE(dfreq_ppm);
-    tx_message->data.manual_timestamp.new_afreq_ppm = REAL2WIRE(new_afreq_ppm);
+    tx_message->data.manual_timestamp.dfreq_ppm = UTI_FloatHostToNetwork(dfreq_ppm);
+    tx_message->data.manual_timestamp.new_afreq_ppm = UTI_FloatHostToNetwork(new_afreq_ppm);
   } else {
     tx_message->status = htons(STT_NOTENABLED);
   }
@@ -1236,8 +1236,8 @@ handle_add_server(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.authkey = ntohl(rx_message->data.ntp_source.authkey);
   params.online  = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_ONLINE ? 1 : 0;
   params.auto_offline = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_AUTOOFFLINE ? 1 : 0;
-  params.max_delay = WIRE2REAL(rx_message->data.ntp_source.max_delay);
-  params.max_delay_ratio = WIRE2REAL(rx_message->data.ntp_source.max_delay_ratio);
+  params.max_delay = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay);
+  params.max_delay_ratio = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_ratio);
   status = NSR_AddServer(&rem_addr, &params);
   switch (status) {
     case NSR_Success:
@@ -1276,8 +1276,8 @@ handle_add_peer(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.authkey = ntohl(rx_message->data.ntp_source.authkey);
   params.online  = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_ONLINE ? 1 : 0;
   params.auto_offline = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_AUTOOFFLINE ? 1 : 0;
-  params.max_delay = WIRE2REAL(rx_message->data.ntp_source.max_delay);
-  params.max_delay_ratio = WIRE2REAL(rx_message->data.ntp_source.max_delay_ratio);
+  params.max_delay = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay);
+  params.max_delay_ratio = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_ratio);
   status = NSR_AddPeer(&rem_addr, &params);
   switch (status) {
     case NSR_Success:
@@ -1350,7 +1350,7 @@ static void
 handle_dfreq(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   double dfreq;
-  dfreq = WIRE2REAL(rx_message->data.dfreq.dfreq);
+  dfreq = UTI_FloatNetworkToHost(rx_message->data.dfreq.dfreq);
   LCL_AccumulateDeltaFrequency(dfreq * 1.0e-6);
   LOG(LOGS_INFO, LOGF_CmdMon, "Accumulated delta freq of %.3fppm", dfreq);
 }
@@ -1385,11 +1385,11 @@ handle_tracking(CMD_Request *rx_message, CMD_Reply *tx_message)
   UTI_TimevalHostToNetwork(&rpt.ref_time, &tx_message->data.tracking.ref_time);
   tx_message->data.tracking.current_correction_s = htonl(rpt.current_correction.tv_sec);
   tx_message->data.tracking.current_correction_us = htonl(rpt.current_correction.tv_usec);
-  tx_message->data.tracking.freq_ppm = REAL2WIRE(rpt.freq_ppm);
-  tx_message->data.tracking.resid_freq_ppm = REAL2WIRE(rpt.resid_freq_ppm);
-  tx_message->data.tracking.skew_ppm = REAL2WIRE(rpt.skew_ppm);
-  tx_message->data.tracking.root_delay = REAL2WIRE(rpt.root_delay);
-  tx_message->data.tracking.root_dispersion = REAL2WIRE(rpt.root_dispersion);
+  tx_message->data.tracking.freq_ppm = UTI_FloatHostToNetwork(rpt.freq_ppm);
+  tx_message->data.tracking.resid_freq_ppm = UTI_FloatHostToNetwork(rpt.resid_freq_ppm);
+  tx_message->data.tracking.skew_ppm = UTI_FloatHostToNetwork(rpt.skew_ppm);
+  tx_message->data.tracking.root_delay = UTI_FloatHostToNetwork(rpt.root_delay);
+  tx_message->data.tracking.root_dispersion = UTI_FloatHostToNetwork(rpt.root_dispersion);
 }
 
 /* ================================================== */
@@ -1410,9 +1410,9 @@ handle_sourcestats(CMD_Request *rx_message, CMD_Reply *tx_message)
     tx_message->data.sourcestats.n_samples = htonl(report.n_samples);
     tx_message->data.sourcestats.n_runs = htonl(report.n_runs);
     tx_message->data.sourcestats.span_seconds = htonl(report.span_seconds);
-    tx_message->data.sourcestats.resid_freq_ppm = REAL2WIRE(report.resid_freq_ppm);
-    tx_message->data.sourcestats.skew_ppm = REAL2WIRE(report.skew_ppm);
     tx_message->data.sourcestats.sd_us = htonl((unsigned long) (0.5 + report.sd_us));
+    tx_message->data.sourcestats.resid_freq_ppm = UTI_FloatHostToNetwork(report.resid_freq_ppm);
+    tx_message->data.sourcestats.skew_ppm = UTI_FloatHostToNetwork(report.skew_ppm);
   } else {
     tx_message->status = htons(STT_NOSUCHSOURCE);
   }
@@ -1433,8 +1433,8 @@ handle_rtcreport(CMD_Request *rx_message, CMD_Reply *tx_message)
     tx_message->data.rtc.n_samples = htons(report.n_samples);
     tx_message->data.rtc.n_runs = htons(report.n_runs);
     tx_message->data.rtc.span_seconds = htonl(report.span_seconds);
-    tx_message->data.rtc.rtc_seconds_fast = REAL2WIRE(report.rtc_seconds_fast);
-    tx_message->data.rtc.rtc_gain_rate_ppm = REAL2WIRE(report.rtc_gain_rate_ppm);
+    tx_message->data.rtc.rtc_seconds_fast = UTI_FloatHostToNetwork(report.rtc_seconds_fast);
+    tx_message->data.rtc.rtc_gain_rate_ppm = UTI_FloatHostToNetwork(report.rtc_gain_rate_ppm);
   } else {
     tx_message->status = htons(STT_NORTC);
   }
@@ -1648,9 +1648,9 @@ handle_manual_list(CMD_Request *rx_message, CMD_Reply *tx_message)
   for (i=0; i<n_samples; i++) {
     sample = &tx_message->data.manual_list.samples[i];
     UTI_TimevalHostToNetwork(&report[i].when, &sample->when);
-    sample->slewed_offset = REAL2WIRE(report[i].slewed_offset);
-    sample->orig_offset = REAL2WIRE(report[i].orig_offset);
-    sample->residual = REAL2WIRE(report[i].residual);
+    sample->slewed_offset = UTI_FloatHostToNetwork(report[i].slewed_offset);
+    sample->orig_offset = UTI_FloatHostToNetwork(report[i].orig_offset);
+    sample->residual = UTI_FloatHostToNetwork(report[i].residual);
   }
 }
 
