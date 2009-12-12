@@ -49,8 +49,6 @@ typedef struct {
   unsigned long latest_meas_err; /* us */
   long est_offset; /* us */
   unsigned long est_offset_err; /* us */
-  long resid_freq; /* ppm * 1000 */
-  unsigned long resid_skew; /* ppm * 1000 */
 } RPT_SourceReport ;
 
 typedef struct {

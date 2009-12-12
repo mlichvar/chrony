@@ -1045,8 +1045,6 @@ handle_source_data(CMD_Request *rx_message, CMD_Reply *tx_message)
     tx_message->data.source_data.latest_meas_err = htonl(report.latest_meas_err);
     tx_message->data.source_data.est_offset = htonl(report.est_offset);
     tx_message->data.source_data.est_offset_err = htonl(report.est_offset_err);
-    tx_message->data.source_data.resid_freq = htonl(report.resid_freq);
-    tx_message->data.source_data.resid_skew = htonl(report.resid_skew);
     
   } else {
     tx_message->status = htons(STT_NOSUCHSOURCE);

@@ -869,13 +869,9 @@ SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timeval *now
                  (0.5*inst->root_delays[nb] + inst->root_dispersions[nb]));
       report->est_offset = (long)(0.5 + 1.0e6 * est_offset);
       report->est_offset_err = (unsigned long) (0.5 + 1.0e6 * est_err);
-      report->resid_freq = (long) (0.5 * 1.0e9 * inst->estimated_frequency);
-      report->resid_skew = (unsigned long) (0.5 + 1.0e9 * inst->skew);
     } else {
       report->est_offset = report->latest_meas;
       report->est_offset_err = report->latest_meas_err;
-      report->resid_freq = 0;
-      report->resid_skew = 0;
     }
   } else {
     report->latest_meas_ago = 86400 * 365 * 10;
@@ -885,8 +881,6 @@ SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timeval *now
     report->stratum = 0;
     report->est_offset = 0;
     report->est_offset_err = 0;
-    report->resid_freq = 0;
-    report->resid_skew = 0;
   }
 }
 

@@ -333,7 +333,7 @@ typedef struct {
 
    Version 4 : IPv6 addressing added, 64-bit time values, sourcestats 
    and tracking reports extended, added flags to NTP source request,
-   replaced fixed-point format with floating-point
+   trimmed source report, replaced fixed-point format with floating-point
 
  */
 
@@ -476,8 +476,6 @@ typedef struct {
   uint32_t latest_meas_err;
   int32_t est_offset;
   uint32_t est_offset_err;
-  int32_t resid_freq;
-  uint32_t resid_skew;
   int32_t EOR;
 } RPY_Source_Data;
 

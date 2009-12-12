@@ -1539,7 +1539,6 @@ process_cmd_sources(char *line)
   uint32_t latest_meas_ago;
   uint16_t poll, stratum;
   uint16_t state, mode;
-  double resid_freq, resid_skew;
   char hostname_buf[32];
 
   /* Check whether to output verbose headers */
@@ -1581,8 +1580,6 @@ process_cmd_sources(char *line)
           latest_meas_err = ntohl(reply.data.source_data.latest_meas_err);
           est_offset = ntohl(reply.data.source_data.est_offset);
           est_offset_err = ntohl(reply.data.source_data.est_offset_err);
-          resid_freq = (double) ((long) ntohl(reply.data.source_data.resid_freq)) * 1.0e-3;
-          resid_skew = (double) (ntohl(reply.data.source_data.resid_skew)) * 1.0e-3;
 
           if (mode == RPY_SD_MD_REF) {
             snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_RefidToString(ip_addr.addr.in4));
