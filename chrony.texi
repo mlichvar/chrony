@@ -3569,9 +3569,9 @@ An example report is
 @example
 @group
 210 Number of sources = 1
-Name/IP Address            NP  NR  Span  Frequency   Freq Skew   Std Dev
-========================================================================
-abc.def.ghi                11   5   46m      -0.001       0.045     25us
+Name/IP Address            NP  NR  Span  Frequency  Freq Skew  Offset  Std Dev
+===============================================================================
+abc.def.ghi                11   5   46m     -0.001      0.045      1us    25us
 @end group
 @end example
 
@@ -3608,6 +3608,9 @@ million.  In this case, the computer's clock is estimated to be running
 @item Freq Skew
 This is the estimated error bounds on @code{Freq} (again in parts per
 million).
+
+@item Offset
+This is the estimated offset of the source.
 
 @item Std Dev
 This is the estimated sample standard deviation.

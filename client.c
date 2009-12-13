@@ -1553,9 +1553,8 @@ process_cmd_sources(char *line)
   int n_sources, i;
   int verbose = 0;
 
-  double orig_latest_meas, latest_meas, est_offset;
+  double orig_latest_meas, latest_meas, latest_meas_err;
   IPAddr ip_addr;
-  double latest_meas_err, est_offset_err;
   uint32_t latest_meas_ago;
   uint16_t poll, stratum;
   uint16_t state, mode;
@@ -1583,7 +1582,7 @@ process_cmd_sources(char *line)
     printf("MS Name/IP address           Stratum Poll LastRx Last sample\n");
     printf("============================================================================\n");
 
-    /*     "MS NNNNNNNNNNNNNNNNNNNNNNNNN    SS    PP   RRRR  SSSSSSS[SSSSSSS] +/- SSSSSS" */
+    /*     "MS NNNNNNNNNNNNNNNNNNNNNNNNN    SS   PP   RRRR  SSSSSSS[SSSSSSS] +/- SSSSSS" */
 
     for (i=0; i<n_sources; i++) {
       request.command = htons(REQ_SOURCE_DATA);
@@ -1598,8 +1597,6 @@ process_cmd_sources(char *line)
           orig_latest_meas = UTI_FloatNetworkToHost(reply.data.source_data.orig_latest_meas);
           latest_meas = UTI_FloatNetworkToHost(reply.data.source_data.latest_meas);
           latest_meas_err = UTI_FloatNetworkToHost(reply.data.source_data.latest_meas_err);
-          est_offset = UTI_FloatNetworkToHost(reply.data.source_data.est_offset);
-          est_offset_err = UTI_FloatNetworkToHost(reply.data.source_data.est_offset_err);
 
           if (mode == RPY_SD_MD_REF) {
             snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_RefidToString(ip_addr.addr.in4));
@@ -1663,7 +1660,7 @@ process_cmd_sourcestats(char *line)
 
   char hostname_buf[32];
   unsigned long n_samples, n_runs, span_seconds;
-  double resid_freq_ppm, skew_ppm, sd;
+  double resid_freq_ppm, skew_ppm, sd, est_offset, est_offset_err;
   unsigned long ref_id;
   IPAddr ip_addr;
 
@@ -1678,16 +1675,17 @@ process_cmd_sourcestats(char *line)
       printf("                            /    .- Number of residual runs with same sign.\n");
       printf("                           |    /    .- Length of measurement set (time).\n");
       printf("                           |   |    /      .- Est. clock freq error (ppm).\n");
-      printf("                           |   |   |      /            .- Est error in freq.\n");
-      printf("                           |   |   |     |            /            .- On the\n");
-      printf("                           |   |   |     |           |            /   samples.\n");
-      printf("                           |   |   |     |           |           |\n");
+      printf("                           |   |   |      /           .- Est. error in freq.\n");
+      printf("                           |   |   |     |           /         .- Est. offset.\n");
+      printf("                           |   |   |     |          |          |   On the -.\n");
+      printf("                           |   |   |     |          |          |   samples. \\\n");
+      printf("                           |   |   |     |          |          |             |\n");
     }
 
-    printf("Name/IP Address            NP  NR  Span  Frequency   Freq Skew   Std Dev\n");
-    printf("========================================================================\n");
+    printf("Name/IP Address            NP  NR  Span  Frequency  Freq Skew  Offset  Std Dev\n");
+    printf("==============================================================================\n");
 
-    /*      NNNNNNNNNNNNNNNNNNNNNNNNN  NP  NR  SSSS  FFFFFFFFFF  SSSSSSSSSS  SSSSSSS */
+    /*      NNNNNNNNNNNNNNNNNNNNNNNNN  NP  NR  SSSS FFFFFFFFFF SSSSSSSSSS  SSSSSSS  SSSSSS*/
 
     for (i=0; i<n_sources; i++) {
       request.command = htons(REQ_SOURCESTATS);
@@ -1701,6 +1699,8 @@ process_cmd_sourcestats(char *line)
           resid_freq_ppm = UTI_FloatNetworkToHost(reply.data.sourcestats.resid_freq_ppm);
           skew_ppm = UTI_FloatNetworkToHost(reply.data.sourcestats.skew_ppm);
           sd = UTI_FloatNetworkToHost(reply.data.sourcestats.sd);
+          est_offset = UTI_FloatNetworkToHost(reply.data.sourcestats.est_offset);
+          est_offset_err = UTI_FloatNetworkToHost(reply.data.sourcestats.est_offset_err);
 
           if (ip_addr.family == IPADDR_UNSPEC)
             snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_RefidToString(ref_id));
@@ -1713,7 +1713,9 @@ process_cmd_sourcestats(char *line)
 
           printf("%-25s  %2lu  %2lu  ", hostname_buf, n_samples, n_runs);
           print_seconds(span_seconds);
-          printf("  %10.3f  %10.3f  ", resid_freq_ppm, skew_ppm);
+          printf(" %10.3f %10.3f  ", resid_freq_ppm, skew_ppm);
+          print_signed_nanoseconds(est_offset);
+          printf("  ");
           print_nanoseconds(sd);
           printf("\n");
       } else {

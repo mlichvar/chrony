@@ -956,7 +956,7 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
 /* ================================================== */
 
 int
-SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report)
+SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report, struct timeval *now)
 { 
   SRC_Instance src;
 
@@ -969,7 +969,7 @@ SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report)
       report->ip_addr = *src->ip_addr;
     else
       report->ip_addr.family = IPADDR_UNSPEC; 
-    SST_DoSourcestatsReport(src->stats, report);
+    SST_DoSourcestatsReport(src->stats, report, now);
     return 1;
   }
 }

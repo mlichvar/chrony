@@ -47,8 +47,6 @@ typedef struct {
   double orig_latest_meas; /* seconds */
   double latest_meas; /* seconds */
   double latest_meas_err; /* seconds */
-  double est_offset; /* seconds */
-  double est_offset_err; /* seconds */
 } RPT_SourceReport ;
 
 typedef struct {
@@ -73,6 +71,8 @@ typedef struct {
   double resid_freq_ppm;
   double skew_ppm;
   double sd;
+  double est_offset;
+  double est_offset_err;
 } RPT_SourcestatsReport;
 
 typedef struct {

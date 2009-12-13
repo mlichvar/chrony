@@ -146,7 +146,7 @@ extern int SRC_IsSyncPeer(SRC_Instance inst);
 extern int SRC_ReadNumberOfSources(void);
 extern int SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now);
 
-extern int SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report);
+extern int SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report, struct timeval *now);
 
 extern SRC_Type SRC_GetType(int index);
 

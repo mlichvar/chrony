@@ -140,7 +140,7 @@ extern int SST_LoadFromFile(SST_Stats inst, FILE *in);
 
 extern void SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timeval *now);
 
-extern void SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report);
+extern void SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report, struct timeval *now);
 
 typedef enum {
   SST_Skew_Decrease,

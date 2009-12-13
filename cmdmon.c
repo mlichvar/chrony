@@ -1043,8 +1043,6 @@ handle_source_data(CMD_Request *rx_message, CMD_Reply *tx_message)
     tx_message->data.source_data.orig_latest_meas = UTI_FloatHostToNetwork(report.orig_latest_meas);
     tx_message->data.source_data.latest_meas = UTI_FloatHostToNetwork(report.latest_meas);
     tx_message->data.source_data.latest_meas_err = UTI_FloatHostToNetwork(report.latest_meas_err);
-    tx_message->data.source_data.est_offset = UTI_FloatHostToNetwork(report.est_offset);
-    tx_message->data.source_data.est_offset_err = UTI_FloatHostToNetwork(report.est_offset_err);
   } else {
     tx_message->status = htons(STT_NOSUCHSOURCE);
   }
@@ -1395,8 +1393,12 @@ handle_sourcestats(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   int status;
   RPT_SourcestatsReport report;
+  struct timeval now_corr;
+  double local_clock_err;
+
+  LCL_ReadCookedTime(&now_corr, &local_clock_err);
   status = SRC_ReportSourcestats(ntohl(rx_message->data.sourcestats.index),
-                                 &report);
+                                 &report, &now_corr);
 
   if (status) {
     tx_message->status = htons(STT_SUCCESS);
@@ -1409,6 +1411,8 @@ handle_sourcestats(CMD_Request *rx_message, CMD_Reply *tx_message)
     tx_message->data.sourcestats.resid_freq_ppm = UTI_FloatHostToNetwork(report.resid_freq_ppm);
     tx_message->data.sourcestats.skew_ppm = UTI_FloatHostToNetwork(report.skew_ppm);
     tx_message->data.sourcestats.sd = UTI_FloatHostToNetwork(report.sd);
+    tx_message->data.sourcestats.est_offset = UTI_FloatHostToNetwork(report.est_offset);
+    tx_message->data.sourcestats.est_offset_err = UTI_FloatHostToNetwork(report.est_offset_err);
   } else {
     tx_message->status = htons(STT_NOSUCHSOURCE);
   }

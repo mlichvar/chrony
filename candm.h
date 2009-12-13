@@ -475,8 +475,6 @@ typedef struct {
   Float orig_latest_meas;
   Float latest_meas;
   Float latest_meas_err;
-  Float est_offset;
-  Float est_offset_err;
   int32_t EOR;
 } RPY_Source_Data;
 
@@ -503,6 +501,8 @@ typedef struct {
   Float sd;
   Float resid_freq_ppm;
   Float skew_ppm;
+  Float est_offset;
+  Float est_offset_err;
   int32_t EOR;
 } RPY_Sourcestats;
 

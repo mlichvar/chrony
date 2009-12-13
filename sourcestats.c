@@ -845,8 +845,7 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
 void
 SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timeval *now)
 {
-  int n, nb;
-  double elapsed, sample_elapsed;
+  int n;
   struct timeval ago;
 
   if (inst->n_samples > 0) {
@@ -858,27 +857,12 @@ SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timeval *now
 
     UTI_DiffTimevals(&ago, now, &inst->sample_times[n]);
     report->latest_meas_ago = ago.tv_sec;
-
-    if (inst->n_samples > 3) {
-      UTI_DiffTimevalsToDouble(&elapsed, now, &inst->offset_time);
-      nb = inst->best_single_sample;
-      UTI_DiffTimevalsToDouble(&sample_elapsed, now, &(inst->sample_times[nb]));
-      report->est_offset = inst->estimated_offset + elapsed * inst->estimated_frequency;
-      report->est_offset_err = (inst->estimated_offset_sd +
-                 sample_elapsed * inst->skew +
-                 (0.5*inst->root_delays[nb] + inst->root_dispersions[nb]));
-    } else {
-      report->est_offset = report->latest_meas;
-      report->est_offset_err = report->latest_meas_err;
-    }
   } else {
     report->latest_meas_ago = 86400 * 365 * 10;
     report->orig_latest_meas = 0;
     report->latest_meas = 0;
     report->latest_meas_err = 0;
     report->stratum = 0;
-    report->est_offset = 0;
-    report->est_offset_err = 0;
   }
 }
 
@@ -893,10 +877,11 @@ SST_Skew_Direction SST_LastSkewChange(SST_Stats inst)
 /* ================================================== */
 
 void
-SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report)
+SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report, struct timeval *now)
 {
   double dspan;
-  int n;
+  double elapsed, sample_elapsed;
+  int n, nb;
 
   report->n_samples = inst->n_samples;
   report->n_runs = inst->nruns;
@@ -905,8 +890,23 @@ SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report)
     n = inst->n_samples - 1;
     UTI_DiffTimevalsToDouble(&dspan, &inst->sample_times[n], &inst->sample_times[0]);
     report->span_seconds = (unsigned long) (dspan + 0.5);
+
+    if (inst->n_samples > 3) {
+      UTI_DiffTimevalsToDouble(&elapsed, now, &inst->offset_time);
+      nb = inst->best_single_sample;
+      UTI_DiffTimevalsToDouble(&sample_elapsed, now, &(inst->sample_times[nb]));
+      report->est_offset = inst->estimated_offset + elapsed * inst->estimated_frequency;
+      report->est_offset_err = (inst->estimated_offset_sd +
+                 sample_elapsed * inst->skew +
+                 (0.5*inst->root_delays[nb] + inst->root_dispersions[nb]));
+    } else {
+      report->est_offset = inst->offsets[n];
+      report->est_offset_err = 0.5*inst->root_delays[n] + inst->root_dispersions[n];
+    }
   } else {
     report->span_seconds = 0;
+    report->est_offset = 0;
+    report->est_offset_err = 0;
   }
 
   report->resid_freq_ppm = 1.0e6 * inst->estimated_frequency;
