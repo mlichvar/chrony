@@ -7,8 +7,23 @@ New in version 1.24
 * Memory locking support on Linux
 * Real-time scheduler support on Linux
 * Leap second support on Linux
-* Support for editline
-* Various bug fixes and improvements
+* Support for editline library
+* Support for new Linux readonly adjtime
+* NTP client support for KoD RATE
+* Read kernel timestamps for received NTP packets
+* Reply to NTP requests with correct address on multihomed hosts
+* Add option to limit client log memory size
+* Retry name resolving after temporary failure
+* Avoid blocking read in Linux RTC driver
+* Support for Linux on S/390 and PowerPC
+* Fix various bugs on 64-bit systems
+* Fix valgrind errors and compiler warnings
+* Improve configure to support common options and variables
+* Improve status checking and printing in chronyc
+* Return non-zero exit code on errors in chronyc
+* Reduce request timeout in chronyc
+* Print estimated offset in sourcestats
+* Changed chronyc protocol, incompatible with older versions
 
 New in version 1.23
 ===================
