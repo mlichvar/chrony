@@ -246,7 +246,9 @@ update_drift_file(double freq_ppm, double skew)
   /* Clone the file attributes from the existing file if there is one. */
 
   if (!stat(drift_file,&buf)) {
-    chown(temp_drift_file,buf.st_uid,buf.st_gid);
+    if (chown(temp_drift_file,buf.st_uid,buf.st_gid)) {
+      LOG(LOGS_WARN, LOGF_Reference, "Could not change ownership of temporary driftfile %s.tmp", drift_file);
+    }
     chmod(temp_drift_file,buf.st_mode&0777);
   }
 

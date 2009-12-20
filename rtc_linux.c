@@ -511,7 +511,9 @@ write_coefs_to_file(int valid,time_t ref_time,double offset,double rate)
   /* Clone the file attributes from the existing file if there is one. */
 
   if (!stat(coefs_file_name,&buf)) {
-    chown(temp_coefs_file_name,buf.st_uid,buf.st_gid);
+    if (chown(temp_coefs_file_name,buf.st_uid,buf.st_gid)) {
+      LOG(LOGS_WARN, LOGF_RtcLinux, "Could not change ownership of temporary RTC file %s.tmp", coefs_file_name);
+    }
     chmod(temp_coefs_file_name,buf.st_mode&0777);
   }
 
