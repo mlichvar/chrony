@@ -87,9 +87,6 @@ static unsigned long logwrites = 0;
 
 /* ================================================== */
 
-/* Day number of 1 Jan 1970 */
-#define MJD_1970 40587
-
 /* Reference ID supplied when we are locally referenced */
 #define LOCAL_REFERENCE_ID 0x7f7f0101UL
 
@@ -359,6 +356,26 @@ update_leap_status(NTP_Leap leap)
 
 /* ================================================== */
 
+static void
+write_log(struct timeval *ref_time, char *ref, int stratum, double freq, double skew, double offset)
+{
+  if (logfile) {
+
+    if (((logwrites++) % 32) == 0) {
+      fprintf(logfile,
+              "=======================================================================\n"
+              "   Date (UTC) Time     IP Address   St   Freq ppm   Skew ppm     Offset\n"
+              "=======================================================================\n");
+    }
+          
+    fprintf(logfile, "%s %-15s %2d %10.3f %10.3f %10.3e\n",
+            UTI_TimeToLogForm(ref_time->tv_sec), ref, stratum, freq, skew, offset);
+    
+    fflush(logfile);
+  }
+}
+
+/* ================================================== */
 
 void
 REF_SetReference(int stratum,
@@ -472,25 +489,12 @@ REF_SetReference(int stratum,
 
   abs_freq_ppm = LCL_ReadAbsoluteFrequency();
 
-  if (logfile) {
-
-    if (((logwrites++) % 32) == 0) {
-      fprintf(logfile,
-              "=======================================================================\n"
-              "   Date (UTC) Time     IP Address   St   Freq ppm   Skew ppm     Offset\n"
-              "=======================================================================\n");
-    }
-          
-    fprintf(logfile, "%s %-15s %2d %10.3f %10.3f %10.3e\n",
-            UTI_TimeToLogForm(ref_time->tv_sec),
+  write_log(ref_time,
             our_ref_ip.family != IPADDR_UNSPEC ? UTI_IPToString(&our_ref_ip) : UTI_RefidToString(our_ref_id),
             our_stratum,
             abs_freq_ppm,
             1.0e6*our_skew,
             our_offset);
-    
-    fflush(logfile);
-  }
 
   if (drift_file) {
     update_drift_file(abs_freq_ppm, our_skew);
@@ -514,7 +518,6 @@ REF_SetManualReference
  double skew
 )
 {
-  int millisecond;
   double abs_freq_ppm;
 
   /* We are not synchronised to an external source, as such.  This is
@@ -530,19 +533,12 @@ REF_SetManualReference
 
   abs_freq_ppm = LCL_ReadAbsoluteFrequency();
 
-  if (logfile) {
-    millisecond = ref_time->tv_usec / 1000;
-
-    fprintf(logfile, "%5s %-15s %2d %10.3f %10.3f %10.3e\n",
-            UTI_TimeToLogForm(ref_time->tv_sec),
+  write_log(ref_time,
             "127.127.1.1",
             our_stratum,
             abs_freq_ppm,
             1.0e6*our_skew,
             our_offset);
-
-    fflush(logfile);
-  }
 
   if (drift_file) {
     update_drift_file(abs_freq_ppm, our_skew);
@@ -555,26 +551,19 @@ void
 REF_SetUnsynchronised(void)
 {
   /* Variables required for logging to statistics log */
-  int millisecond;
   struct timeval now;
   double local_clock_err;
 
   assert(initialised);
 
-  if (logfile) {
-    LCL_ReadCookedTime(&now, &local_clock_err);
+  LCL_ReadCookedTime(&now, &local_clock_err);
 
-    millisecond = now.tv_usec / 1000;
-
-    fprintf(logfile, "%s %-15s  0 %10.3f %10.3f %10.3e\n",
-            UTI_TimeToLogForm(now.tv_sec),
+  write_log(&now,
             "0.0.0.0",
+            0,
             LCL_ReadAbsoluteFrequency(),
             1.0e6*our_skew,
             0.0);
-    
-    fflush(logfile);
-  }
 
   are_we_synchronised = 0;
 
