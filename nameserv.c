@@ -140,6 +140,9 @@ DNS_IPAddress2Name(IPAddr *ip_addr, char *name, int len)
   switch (ip_addr->family) {
     case IPADDR_INET4:
       memset(&in4, 0, sizeof (in4));
+#ifdef SIN6_LEN
+      in4.sin_len = sizeof (in4);
+#endif
       in4.sin_family = AF_INET;
       in4.sin_addr.s_addr = htonl(ip_addr->addr.in4);
       if (!getnameinfo((const struct sockaddr *)&in4, sizeof (in4), hbuf, sizeof (hbuf), NULL, 0, 0))
@@ -147,6 +150,9 @@ DNS_IPAddress2Name(IPAddr *ip_addr, char *name, int len)
       break;
     case IPADDR_INET6:
       memset(&in6, 0, sizeof (in6));
+#ifdef SIN6_LEN
+      in6.sin6_len = sizeof (in6);
+#endif
       in6.sin6_family = AF_INET6;
       memcpy(&in6.sin6_addr.s6_addr, ip_addr->addr.in6, sizeof (in6.sin6_addr.s6_addr));
       if (!getnameinfo((const struct sockaddr *)&in6, sizeof (in6), hbuf, sizeof (hbuf), NULL, 0, 0))
