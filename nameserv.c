@@ -127,33 +127,32 @@ try_again:
 
 /* ================================================== */
 
-void
+int
 DNS_IPAddress2Name(IPAddr *ip_addr, char *name, int len)
 {
+  char *result = NULL;
+
 #ifdef HAVE_IPV6
-  int result;
   struct sockaddr_in in4;
   struct sockaddr_in6 in6;
+  char hbuf[NI_MAXHOST];
 
   switch (ip_addr->family) {
     case IPADDR_INET4:
       memset(&in4, 0, sizeof (in4));
       in4.sin_family = AF_INET;
       in4.sin_addr.s_addr = htonl(ip_addr->addr.in4);
-      result = getnameinfo((const struct sockaddr *)&in4, sizeof (in4), name, len, NULL, 0, 0);
+      if (!getnameinfo((const struct sockaddr *)&in4, sizeof (in4), hbuf, sizeof (hbuf), NULL, 0, 0))
+        result = hbuf;
       break;
     case IPADDR_INET6:
       memset(&in6, 0, sizeof (in6));
       in6.sin6_family = AF_INET6;
       memcpy(&in6.sin6_addr.s6_addr, ip_addr->addr.in6, sizeof (in6.sin6_addr.s6_addr));
-      result = getnameinfo((const struct sockaddr *)&in6, sizeof (in6), name, len, NULL, 0, 0);
+      if (!getnameinfo((const struct sockaddr *)&in6, sizeof (in6), hbuf, sizeof (hbuf), NULL, 0, 0))
+        result = hbuf;
       break;
-    default:
-      result = 1;
   }
-
-  if (result)
-    snprintf(name, len, "%s", UTI_IPToString(ip_addr));
 #else
   struct hostent *host;
   uint32_t addr;
@@ -171,8 +170,16 @@ DNS_IPAddress2Name(IPAddr *ip_addr, char *name, int len)
     default:
       host = NULL;
   }
-  snprintf(name, len, "%s", host ? host->h_name : UTI_IPToString(ip_addr));
+  if (host)
+    result = host->h_name;
 #endif
+
+  if (result == NULL)
+    result = UTI_IPToString(ip_addr);
+  if (snprintf(name, len, "%s", result) >= len)
+    return 0;
+
+  return 1;
 }
 
 /* ================================================== */
