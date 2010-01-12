@@ -1558,7 +1558,7 @@ process_cmd_sources(char *line)
   uint32_t latest_meas_ago;
   uint16_t poll, stratum;
   uint16_t state, mode;
-  char hostname_buf[32];
+  char hostname_buf[50];
 
   /* Check whether to output verbose headers */
   verbose = check_for_verbose_flag(line);
@@ -1658,7 +1658,7 @@ process_cmd_sourcestats(char *line)
   int n_sources, i;
   int verbose = 0;
 
-  char hostname_buf[32];
+  char hostname_buf[50];
   unsigned long n_samples, n_runs, span_seconds;
   double resid_freq_ppm, skew_ppm, sd, est_offset, est_offset_err;
   unsigned long ref_id;
@@ -1859,7 +1859,7 @@ process_cmd_clients(char *line)
   unsigned long cmd_hits_bad;
   unsigned long last_ntp_hit_ago;
   unsigned long last_cmd_hit_ago;
-  char hostname_buf[32];
+  char hostname_buf[50];
 
   int n_replies;
 
@@ -2044,7 +2044,7 @@ process_cmd_clients(char *line)
   unsigned long cmd_hits_bad;
   unsigned long last_ntp_hit_ago;
   unsigned long last_cmd_hit_ago;
-  char hostname_buf[32];
+  char hostname_buf[50];
 
   int n_replies;
   int n_indices_in_table;
