@@ -244,14 +244,19 @@ UTI_TimestampToString(NTP_int64 *ts)
 char *
 UTI_RefidToString(unsigned long ref_id)
 {
-  unsigned int a, b, c, d;
-  char *result;
-  a = (ref_id>>24) & 0xff;
-  b = (ref_id>>16) & 0xff;
-  c = (ref_id>> 8) & 0xff;
-  d = (ref_id>> 0) & 0xff;
+  unsigned int i, j, c;
+  char buf[5], *result;
+
+  for (i = j = 0; i < 4; i++) {
+    c = (ref_id >> (24 - i * 8)) & 0xff;
+    if (isprint(c))
+      buf[j++] = c;
+  }
+
+  buf[j] = '\0';
+
   result = NEXT_BUFFER;
-  snprintf(result, BUFFER_LENGTH, "%c%c%c%c", a, b, c, d);
+  snprintf(result, BUFFER_LENGTH, "%s", buf);
   return result;
 }
 
