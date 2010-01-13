@@ -243,7 +243,8 @@ NIO_SendNormalPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr)
   remote.sin_addr.s_addr = htonl(remote_addr->ip_addr);
 
   if (sendto(sock_fd, (void *) packet, NTP_NORMAL_PACKET_SIZE, 0,
-             (struct sockaddr *) &remote, sizeof(remote)) < 0) {
+             (struct sockaddr *) &remote, sizeof(remote)) < 0 &&
+      !LOG_RateLimited()) {
     LOG(LOGS_WARN, LOGF_NtpIO, "Could not send to %s:%d : %s",
         UTI_IPToDottedQuad(remote_addr->ip_addr), remote_addr->port, strerror(errno));
   }
@@ -266,7 +267,8 @@ NIO_SendAuthenticatedPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr)
   remote.sin_addr.s_addr = htonl(remote_addr->ip_addr);
 
   if (sendto(sock_fd, (void *) packet, sizeof(NTP_Packet), 0,
-             (struct sockaddr *) &remote, sizeof(remote)) < 0) {
+             (struct sockaddr *) &remote, sizeof(remote)) < 0 &&
+      !LOG_RateLimited()) {
     LOG(LOGS_WARN, LOGF_NtpIO, "Could not send to %s:%d : %s",
         UTI_IPToDottedQuad(remote_addr->ip_addr), remote_addr->port, strerror(errno));
   }
