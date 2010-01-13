@@ -285,7 +285,7 @@ SYS_NetBSD_Initialise(void)
   kvm_t *kt;
   FILE *fp;
 
-  kt = kvm_open(NULL, NULL, NULL, O_RDWR, NULL);
+  kt = kvm_open(NULL, NULL, NULL, O_RDONLY, NULL);
   if (!kt) {
     CROAK("Cannot open kvm\n");
   }
@@ -299,7 +299,8 @@ SYS_NetBSD_Initialise(void)
   }
 
   if (kvm_read(kt, nl[1].n_value, (char *)(&kern_bigadj), sizeof(long)) < 0) {
-    CROAK("Cannot read from _bigadj\n");
+    /* kernel doesn't have the symbol, use one second instead */
+    kern_bigadj = 1000000;
   }
 
   kvm_close(kt);
