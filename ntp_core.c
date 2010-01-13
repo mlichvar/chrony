@@ -1393,7 +1393,7 @@ process_known
                         &inst->local_ntp_tx,
                         &inst->remote_addr);
 
-      } else {
+      } else if (!LOG_RateLimited()) {
         LOG(LOGS_WARN, LOGF_NtpCore, "NTP packet received from unauthorised host %s port %d",
             UTI_IPToString(&inst->remote_addr.ip_addr),
             inst->remote_addr.port);
@@ -1561,7 +1561,7 @@ NCR_ProcessNoauthUnknown(NTP_Packet *message, struct timeval *now, NTP_Remote_Ad
                       remote_addr);
       
     }
-  } else {
+  } else if (!LOG_RateLimited()) {
     LOG(LOGS_WARN, LOGF_NtpCore, "NTP packet received from unauthorised host %s port %d",
         UTI_IPToString(&remote_addr->ip_addr),
         remote_addr->port);

@@ -87,6 +87,9 @@ extern void LOG_Position(const char *filename, int line_number, const char *func
 
 extern void LOG_GoDaemon(void);
 
+/* Return zero once per 10 seconds */
+extern int LOG_RateLimited(void);
+
 /* Line logging macro.  If the compiler is GNU C, we take advantage of
    being able to get the function name also. */
 #if defined(__GNUC__)

@@ -746,7 +746,7 @@ transmit_reply(CMD_Reply *msg, union sockaddr_in46 *where_to)
   status = sendto(sock_fd, (void *) msg, tx_message_length, 0,
                   &where_to->u, addrlen);
 
-  if (status < 0) {
+  if (status < 0 && !LOG_RateLimited()) {
     unsigned short port;
     IPAddr ip;
 
@@ -1821,7 +1821,9 @@ read_from_cmd_socket(void *anything)
 
   if (rx_message.version != PROTO_VERSION_NUMBER) {
     tx_message.status = htons(STT_NOHOSTACCESS);
-    LOG(LOGS_WARN, LOGF_CmdMon, "Read packet with protocol version %d (expected %d) from %s:%hu", rx_message.version, PROTO_VERSION_NUMBER, UTI_IPToString(&remote_ip), remote_port);
+    if (!LOG_RateLimited()) {
+      LOG(LOGS_WARN, LOGF_CmdMon, "Read packet with protocol version %d (expected %d) from %s:%hu", rx_message.version, PROTO_VERSION_NUMBER, UTI_IPToString(&remote_ip), remote_port);
+    }
     if (allowed)
       CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
@@ -1833,7 +1835,9 @@ read_from_cmd_socket(void *anything)
   }
 
   if (read_length != expected_length) {
-    LOG(LOGS_WARN, LOGF_CmdMon, "Read incorrectly sized packet from %s:%hu", UTI_IPToString(&remote_ip), remote_port);
+    if (!LOG_RateLimited()) {
+      LOG(LOGS_WARN, LOGF_CmdMon, "Read incorrectly sized packet from %s:%hu", UTI_IPToString(&remote_ip), remote_port);
+    }
     if (allowed)
       CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
@@ -1848,13 +1852,11 @@ read_from_cmd_socket(void *anything)
        regardless of the defined access rules - otherwise, we could
        shut ourselves out completely! */
 
-    /* We ought to find another way to log this, there is an attack
-       here against the host because an adversary can just keep
-       hitting us with bad packets until our log file(s) fill up. */
-
-    LOG(LOGS_WARN, LOGF_CmdMon, "Command packet received from unauthorised host %s port %d",
-        UTI_IPToString(&remote_ip),
-        remote_port);
+    if (!LOG_RateLimited()) {
+      LOG(LOGS_WARN, LOGF_CmdMon, "Command packet received from unauthorised host %s port %d",
+          UTI_IPToString(&remote_ip),
+          remote_port);
+    }
 
     tx_message.status = htons(STT_NOHOSTACCESS);
     transmit_reply(&tx_message, &where_from);
@@ -1938,7 +1940,7 @@ read_from_cmd_socket(void *anything)
       tx_message_length = PKL_ReplyLength(prev_tx_message);
       status = sendto(sock_fd, (void *) prev_tx_message, tx_message_length, 0,
                       &where_from.u, from_length);
-      if (status < 0) {
+      if (status < 0 && !LOG_RateLimited()) {
         LOG(LOGS_WARN, LOGF_CmdMon, "Could not send response to %s:%hu", UTI_IPToString(&remote_ip), remote_port);
       }
       return;
@@ -2064,7 +2066,7 @@ read_from_cmd_socket(void *anything)
 
         case REQ_LOGON:
           /* If the log-on fails, record the reason why */
-          if (!issue_token) {
+          if (!issue_token && !LOG_RateLimited()) {
             LOG(LOGS_WARN, LOGF_CmdMon,
                 "Bad command logon from %s port %d (md5_ok=%d valid_ts=%d)\n",
                 UTI_IPToString(&remote_ip),
