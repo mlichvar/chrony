@@ -1734,6 +1734,7 @@ read_from_cmd_socket(void *anything)
   int valid_ts;
   int authenticated;
   int localhost;
+  int allowed;
   unsigned short rx_command;
   unsigned long rx_message_token;
   unsigned long tx_message_token;
@@ -1804,8 +1805,44 @@ read_from_cmd_socket(void *anything)
       assert(0);
   }
 
-  if ((!ADF_IsAllowed(access_auth_table, &remote_ip)) &&
-      (!localhost)) {
+  allowed = ADF_IsAllowed(access_auth_table, &remote_ip) || localhost;
+
+  if (read_length < offsetof(CMD_Request, data) ||
+      rx_message.pkt_type != PKT_TYPE_CMD_REQUEST ||
+      rx_message.res1 != 0 ||
+      rx_message.res2 != 0) {
+
+    /* We don't know how to process anything like this */
+    if (allowed)
+      CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
+    
+    return;
+  }
+
+  if (rx_message.version != PROTO_VERSION_NUMBER) {
+    tx_message.status = htons(STT_NOHOSTACCESS);
+    LOG(LOGS_WARN, LOGF_CmdMon, "Read packet with protocol version %d (expected %d) from %s:%hu", rx_message.version, PROTO_VERSION_NUMBER, UTI_IPToString(&remote_ip), remote_port);
+    if (allowed)
+      CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
+
+    if (rx_message.version >= PROTO_VERSION_MISMATCH_COMPAT) {
+      tx_message.status = htons(STT_BADPKTVERSION);
+      transmit_reply(&tx_message, &where_from);
+    }
+    return;
+  }
+
+  if (read_length != expected_length) {
+    LOG(LOGS_WARN, LOGF_CmdMon, "Read incorrectly sized packet from %s:%hu", UTI_IPToString(&remote_ip), remote_port);
+    if (allowed)
+      CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
+
+    tx_message.status = htons(STT_BADPKTLENGTH);
+    transmit_reply(&tx_message, &where_from);
+    return;
+  }
+
+  if (!allowed) {
     /* The client is not allowed access, so don't waste any more time
        on him.  Note that localhost is always allowed access
        regardless of the defined access rules - otherwise, we could
@@ -1822,38 +1859,6 @@ read_from_cmd_socket(void *anything)
     tx_message.status = htons(STT_NOHOSTACCESS);
     transmit_reply(&tx_message, &where_from);
 
-    return;
-  }
-
-  if (read_length < offsetof(CMD_Request, data) ||
-      rx_message.pkt_type != PKT_TYPE_CMD_REQUEST ||
-      rx_message.res1 != 0 ||
-      rx_message.res2 != 0) {
-
-    /* We don't know how to process anything like this */
-    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
-    
-    return;
-  }
-
-  if (rx_message.version != PROTO_VERSION_NUMBER) {
-    tx_message.status = htons(STT_NOHOSTACCESS);
-    LOG(LOGS_WARN, LOGF_CmdMon, "Read packet with protocol version %d (expected %d) from %s:%hu", rx_message.version, PROTO_VERSION_NUMBER, UTI_IPToString(&remote_ip), remote_port);
-    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
-
-    if (rx_message.version >= PROTO_VERSION_MISMATCH_COMPAT) {
-      tx_message.status = htons(STT_BADPKTVERSION);
-      transmit_reply(&tx_message, &where_from);
-    }
-    return;
-  }
-
-  if (read_length != expected_length) {
-    LOG(LOGS_WARN, LOGF_CmdMon, "Read incorrectly sized packet from %s:%hu", UTI_IPToString(&remote_ip), remote_port);
-    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
-
-    tx_message.status = htons(STT_BADPKTLENGTH);
-    transmit_reply(&tx_message, &where_from);
     return;
   }
 
@@ -1989,7 +1994,7 @@ read_from_cmd_socket(void *anything)
     tx_message.status = htons(STT_INVALID);
     tx_message.reply = htons(RPY_NULL);
   } else {
-    int allowed = 0;
+    allowed = 0;
 
     /* Check level of authority required to issue the command */
     switch(permissions[rx_command]) {
