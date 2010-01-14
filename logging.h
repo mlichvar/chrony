@@ -53,6 +53,7 @@ typedef enum {
   LOGF_Local,
   LOGF_Util,
   LOGF_Main,
+  LOGF_ClientLog,
   LOGF_Configure,
   LOGF_CmdMon,
   LOGF_Acquire,

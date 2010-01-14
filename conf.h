@@ -59,6 +59,7 @@ extern int CNF_GetRTCOnUTC(void);
 extern void CNF_GetLogChange(int *enabled, double *threshold);
 extern void CNF_GetMailOnChange(int *enabled, double *threshold, char **user);
 extern int CNF_GetNoClientLog(void);
+extern unsigned long CNF_GetClientLogLimit(void);
 extern void CNF_GetBindAddress(unsigned long *addr);
 extern void CNF_GetBindCommandAddress(unsigned long *addr);
 extern char *CNF_GetPidFile(void);
