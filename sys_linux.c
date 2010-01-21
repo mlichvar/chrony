@@ -353,7 +353,9 @@ initiate_slew(void)
     fast_slewing = 1;
     slew_start_tv = T0a;
 
-    /* Set up timeout for end of slew */
+    /* Set up timeout for end of slew, limit to one week */
+    if (dseconds > 3600 * 24 * 7)
+      dseconds = 3600 * 24 * 7;
     UTI_AddDoubleToTimeval(&T0a, dseconds, &end_of_slew);
 
     slew_timeout_id = SCH_AddTimeout(&end_of_slew, handle_end_of_slew, NULL);
