@@ -53,7 +53,6 @@ static lcl_SetFrequencyDriver drv_set_freq;
 static lcl_AccrueOffsetDriver drv_accrue_offset;
 static lcl_ApplyStepOffsetDriver drv_apply_step_offset;
 static lcl_OffsetCorrectionDriver drv_offset_convert;
-static lcl_ImmediateStepDriver drv_immediate_step;
 static lcl_SetLeapDriver drv_set_leap;
 
 /* ================================================== */
@@ -536,7 +535,6 @@ lcl_RegisterSystemDrivers(lcl_ReadFrequencyDriver read_freq,
                           lcl_AccrueOffsetDriver accrue_offset,
                           lcl_ApplyStepOffsetDriver apply_step_offset,
                           lcl_OffsetCorrectionDriver offset_convert,
-                          lcl_ImmediateStepDriver immediate_step,
                           lcl_SetLeapDriver set_leap)
 {
   drv_read_freq = read_freq;
@@ -544,7 +542,6 @@ lcl_RegisterSystemDrivers(lcl_ReadFrequencyDriver read_freq,
   drv_accrue_offset = accrue_offset;
   drv_apply_step_offset = apply_step_offset;
   drv_offset_convert = offset_convert;
-  drv_immediate_step = immediate_step;
   drv_set_leap = set_leap;
 
   current_freq_ppm = (*drv_read_freq)();
@@ -563,15 +560,19 @@ lcl_RegisterSystemDrivers(lcl_ReadFrequencyDriver read_freq,
 int
 LCL_MakeStep(void)
 {
-  if (drv_immediate_step) {
-    (drv_immediate_step)();
-#ifdef TRACEON
-    LOG(LOGS_INFO, LOGF_Local, "Made step to system time to apply remaining slew");
-#endif
-    return 1;
-  }
+  struct timeval raw;
+  double correction;
 
-  return 0;
+  LCL_ReadRawTime(&raw);
+  correction = LCL_GetOffsetCorrection(&raw);
+
+  /* Cancel remaining slew and make the step */
+  LCL_AccumulateOffset(correction);
+  LCL_ApplyStepOffset(-correction);
+
+  LOG(LOGS_WARN, LOGF_Local, "System clock was stepped by %.3f seconds", correction);
+
+  return 1;
 }
 
 /* ================================================== */

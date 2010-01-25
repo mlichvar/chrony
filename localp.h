@@ -56,10 +56,6 @@ typedef void (*lcl_ApplyStepOffsetDriver)(double offset);
    raw time to get the corrected time */
 typedef void (*lcl_OffsetCorrectionDriver)(struct timeval *raw, double *corr);
 
-/* System driver to stop slewing the current offset and to apply is
-   as an immediate step instead */
-typedef void (*lcl_ImmediateStepDriver)(void);
-
 /* System driver to schedule leap second */
 typedef void (*lcl_SetLeapDriver)(int leap);
 
@@ -71,7 +67,6 @@ lcl_RegisterSystemDrivers(lcl_ReadFrequencyDriver read_freq,
                           lcl_AccrueOffsetDriver accrue_offset,
                           lcl_ApplyStepOffsetDriver apply_step_offset,
                           lcl_OffsetCorrectionDriver offset_convert,
-                          lcl_ImmediateStepDriver immediate_step_driver,
                           lcl_SetLeapDriver set_leap);
 
 #endif /* GOT_LOCALP_H */

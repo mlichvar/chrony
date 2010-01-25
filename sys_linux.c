@@ -609,42 +609,6 @@ again:
 /* ================================================== */
 
 static void
-immediate_step(void)
-{
-  struct timeval old_time, new_time;
-  struct timezone tz;
-  long offset;
-
-  if (fast_slewing) {
-    abort_slew();
-  }
-
-  offset = 0;
-  if (TMX_ApplyOffset(&offset) < 0) {
-    CROAK("adjtimex() failed in immediate_step");
-  }
-
-  offset_register -= (double) offset / 1.0e6;
-  slow_slewing = 0;
-
-  if (gettimeofday(&old_time, &tz) < 0) {
-    CROAK("gettimeofday() failed in immediate_step");
-  }
-
-  UTI_AddDoubleToTimeval(&old_time, -offset_register, &new_time);
-
-  if (settimeofday(&new_time, &tz) < 0) {
-    CROAK("settimeofday() failed in immediate_step");
-  }
-
-  offset_register = 0.0;
-
-  return;
-}
-
-/* ================================================== */
-
-static void
 set_leap(int leap)
 {
   if (TMX_SetLeap(leap) < 0) {
@@ -886,7 +850,7 @@ SYS_Linux_Initialise(void)
 
   lcl_RegisterSystemDrivers(read_frequency, set_frequency,
                             accrue_offset, apply_step_offset,
-                            get_offset_correction, immediate_step, set_leap);
+                            get_offset_correction, set_leap);
 }
 
 /* ================================================== */

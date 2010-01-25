@@ -3075,9 +3075,6 @@ clock by the equivalent amount, making it correct immediately.
 BE WARNED - certain software will be seriously affected by such jumps to
 the system time.  (That is the reason why chronyd uses slewing
 normally.)
-
-The @code{makestep} command is currently only available on the Linux
-version of chrony.
 @c }}}
 @c {{{ manual
 @node manual command
