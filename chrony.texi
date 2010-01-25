@@ -1184,6 +1184,7 @@ directives can occur in any order in the file.
 * logchange directive::         Generate syslog messages if large offsets occur
 * logdir directive::            Specify directory for logging
 * mailonchange directive::      Send email if a clock correction above a threshold occurs
+* makestep directive::          Step system clock if large correction is needed
 * manual directive::            Allow manual entry using chronyc's settime cmd.
 * maxupdateskew directive::     Stop bad estimates upsetting machine clock
 * noclientlog directive::       Prevent chronyd from gathering data about clients
@@ -2084,6 +2085,32 @@ mailonchange root@@localhost 0.5
 
 This would send a mail message to root if a change of more than 0.5
 seconds were applied to the system clock.
+@c }}}
+@c {{{ makestep
+@node makestep directive
+@subsection makestep
+Normally chronyd will cause the system to gradually correct any time
+offset, by slowing down or speeding up the clock as required.  In
+certain situations, the system clock may be so far adrift that this
+slewing process would take a very long time to correct the system clock.
+
+This directive forces @code{chronyd} to step system clock if the
+adjustment is larger than a threshold value, but only if there were no
+more clock updates since @code{chronyd} was started than a specified
+limit (a negative value can be used to disable the limit).
+
+This is particularly useful when using reference clocks, because the
+@code{initstepslew} directive (@pxref{initstepslew directive}) works
+only with NTP sources.
+
+An example of the use of this directive is
+
+@example
+makestep 1000 10
+@end example
+
+This would step system clock if the adjustment is larger than 1000
+seconds, but only in the first ten clock updates.
 @c }}}
 @c {{{ manual
 @node manual directive
@@ -3075,6 +3102,10 @@ clock by the equivalent amount, making it correct immediately.
 BE WARNED - certain software will be seriously affected by such jumps to
 the system time.  (That is the reason why chronyd uses slewing
 normally.)
+
+The @code{makestep} directive in the configuration file can be used
+to step the clock automatically when the adjustment is larger than a
+specified threshold, see @ref{makestep directive}.
 @c }}}
 @c {{{ manual
 @node manual command

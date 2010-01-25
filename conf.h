@@ -60,6 +60,7 @@ extern int CNF_GetDumpOnExit(void);
 extern int CNF_GetManualEnabled(void);
 extern int CNF_GetCommandPort(void);
 extern int CNF_GetRTCOnUTC(void);
+extern void CNF_GetMakeStep(int *limit, double *threshold);
 extern void CNF_GetLogChange(int *enabled, double *threshold);
 extern void CNF_GetMailOnChange(int *enabled, double *threshold, char **user);
 extern int CNF_GetNoClientLog(void);

@@ -555,16 +555,19 @@ lcl_RegisterSystemDrivers(lcl_ReadFrequencyDriver read_freq,
 
 /* ================================================== */
 /* Look at the current difference between the system time and the NTP
-   time, and make a step to cancel it. */
+   time, and make a step to cancel it if it's larger than the threshold. */
 
 int
-LCL_MakeStep(void)
+LCL_MakeStep(double threshold)
 {
   struct timeval raw;
   double correction;
 
   LCL_ReadRawTime(&raw);
   correction = LCL_GetOffsetCorrection(&raw);
+
+  if (fabs(correction) <= threshold)
+    return 0;
 
   /* Cancel remaining slew and make the step */
   LCL_AccumulateOffset(correction);

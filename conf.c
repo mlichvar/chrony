@@ -92,6 +92,7 @@ static void parse_cmdport(const char *);
 static void parse_rtconutc(const char *);
 static void parse_noclientlog(const char *);
 static void parse_clientloglimit(const char *);
+static void parse_makestep(const char *);
 static void parse_logchange(const char *);
 static void parse_mailonchange(const char *);
 static void parse_bindaddress(const char *);
@@ -145,6 +146,10 @@ static int enable_manual=0;
 /* Flag set if the RTC runs UTC (default is it runs local time
    incl. daylight saving). */
 static int rtc_on_utc = 0;
+
+/* Limit and threshold for clock stepping */
+static int make_step_limit = 0;
+static double make_step_threshold = 0.0;
 
 /* Flag set if we should log to syslog when a time adjustment
    exceeding the threshold is initiated */
@@ -220,6 +225,7 @@ static const Command commands[] = {
   {"rtconutc", 8, parse_rtconutc},
   {"noclientlog", 11, parse_noclientlog},
   {"clientloglimit", 14, parse_clientloglimit},
+  {"makestep", 8, parse_makestep},
   {"logchange", 9, parse_logchange},
   {"mailonchange", 12, parse_mailonchange},
   {"bindaddress", 11, parse_bindaddress},
@@ -789,6 +795,19 @@ parse_clientloglimit(const char *line)
 /* ================================================== */
 
 static void
+parse_makestep(const char *line)
+{
+  if (sscanf(line, "%lf %d", &make_step_threshold, &make_step_limit) != 2) {
+    make_step_limit = 0;
+    LOG(LOGS_WARN, LOGF_Configure,
+        "Could not read threshold or update limit for stepping clock at line %d\n",
+        line_number);
+  }
+}
+
+/* ================================================== */
+
+static void
 parse_logchange(const char *line)
 {
   if (sscanf(line, "%lf", &log_change_threshold) == 1) {
@@ -1315,6 +1334,15 @@ int
 CNF_GetRTCOnUTC(void)
 {
   return rtc_on_utc;
+}
+
+/* ================================================== */
+
+void
+CNF_GetMakeStep(int *limit, double *threshold)
+{
+  *limit = make_step_limit;
+  *threshold = make_step_threshold;
 }
 
 /* ================================================== */

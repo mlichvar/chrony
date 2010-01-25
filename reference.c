@@ -61,6 +61,10 @@ static double max_update_skew;
 /* Flag indicating that we are initialised */
 static int initialised = 0;
 
+/* Threshold and update limit for stepping clock */
+static int make_step_limit;
+static double make_step_threshold;
+
 /* Flag and threshold for logging clock changes to syslog */
 static int do_log_change;
 static double log_change_threshold;
@@ -161,6 +165,7 @@ REF_Initialise(void)
 
   enable_local_stratum = CNF_AllowLocalReference(&local_stratum);
 
+  CNF_GetMakeStep(&make_step_limit, &make_step_threshold);
   CNF_GetLogChange(&do_log_change, &log_change_threshold);
   CNF_GetMailOnChange(&do_mail_change, &mail_change_threshold, &mail_change_user);
 
@@ -314,6 +319,19 @@ maybe_log_offset(double offset)
     }
   }
 
+}
+
+/* ================================================== */
+
+static void
+maybe_make_step()
+{
+  if (make_step_limit == 0) {
+    return;
+  } else if (make_step_limit > 0) {
+    make_step_limit--;
+  }
+  LCL_MakeStep(make_step_threshold);
 }
 
 /* ================================================== */
@@ -487,6 +505,8 @@ REF_SetReference(int stratum,
     our_residual_freq = frequency;
   }
 
+  maybe_make_step();
+
   abs_freq_ppm = LCL_ReadAbsoluteFrequency();
 
   write_log(ref_time,
@@ -530,6 +550,7 @@ REF_SetManualReference
 
   maybe_log_offset(offset);
   LCL_AccumulateFrequencyAndOffset(frequency, offset);
+  maybe_make_step();
 
   abs_freq_ppm = LCL_ReadAbsoluteFrequency();
 
