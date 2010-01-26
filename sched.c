@@ -440,7 +440,7 @@ dispatch_timeouts(struct timeval *now) {
   TimerQueueEntry *ptr;
   int n_done = 0;
 
-  while ((n_timer_queue_entries > 0) &&
+  if ((n_timer_queue_entries > 0) &&
          (UTI_CompareTimevals(now, &(timer_queue.next->tv)) >= 0)) {
     ptr = timer_queue.next;
 
