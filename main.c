@@ -255,7 +255,7 @@ int main
     } else if (!strcmp("-6", *argv)) {
       DNS_SetAddressFamily(IPADDR_INET6);
     } else {
-      LOG(LOGS_WARN, LOGF_Main, "Unrecognized command line option [%s]", *argv);
+      LOG_FATAL(LOGF_Main, "Unrecognized command line option [%s]", *argv);
     }
   }
 
