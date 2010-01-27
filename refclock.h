@@ -39,6 +39,7 @@ typedef struct {
   int filter_length;
   int pps_rate;
   unsigned long ref_id;
+  unsigned long lock_ref_id;
   double offset;
   double delay;
 } RefclockParameters;

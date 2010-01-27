@@ -436,7 +436,7 @@ static void
 parse_refclock(const char *line)
 {
   int i, n, poll, dpoll, filter_length, pps_rate;
-  unsigned long ref_id;
+  unsigned long ref_id, lock_ref_id;
   double offset, delay;
   const char *tmp;
   char name[5], cmd[10 + 1], *param;
@@ -453,6 +453,7 @@ parse_refclock(const char *line)
   offset = 0.0;
   delay = 1e-9;
   ref_id = 0;
+  lock_ref_id = 0;
 
   if (sscanf(line, "%4s%n", name, &n) != 1) {
     LOG(LOGS_WARN, LOGF_Configure, "Could not read refclock driver name at line %d", line_number);
@@ -481,6 +482,10 @@ parse_refclock(const char *line)
       if (sscanf(line, "%4s%n", (char *)ref, &n) != 1)
         break;
       ref_id = ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
+    } else if (!strncasecmp(cmd, "lock", 4)) {
+      if (sscanf(line, "%4s%n", (char *)ref, &n) != 1)
+        break;
+      lock_ref_id = ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
     } else if (!strncasecmp(cmd, "poll", 4)) {
       if (sscanf(line, "%d%n", &poll, &n) != 1) {
         break;
@@ -518,6 +523,7 @@ parse_refclock(const char *line)
   refclock_sources[i].offset = offset;
   refclock_sources[i].delay = delay;
   refclock_sources[i].ref_id = ref_id;
+  refclock_sources[i].lock_ref_id = lock_ref_id;
 
   n_refclock_sources++;
 }

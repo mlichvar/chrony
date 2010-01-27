@@ -2289,6 +2289,12 @@ PPS signal frequency (in Hz).  This option only controls how the
 received pulses are aligned.  To actually receive more than one
 pulse per second, a negative @code{dpoll} has to be specified (-3 for
 5Hz signal).  The default is 1.
+@item lock
+This option can be used to lock a PPS refclock to another refclock
+whose reference id is specified by this option.  In this mode received
+pulses are aligned directly to unfiltered samples from the refclock.
+By default, pulses are aligned to local clock, but only when it is
+well synchronised.
 @item offset
 This option can be used to compensate a constant error.  The specified
 offset (in seconds) is applied to all samples produced by the
