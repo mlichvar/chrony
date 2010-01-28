@@ -58,6 +58,7 @@ struct RCL_Instance_Record {
   RefclockDriver *driver;
   void *data;
   char *driver_parameter;
+  int driver_parameter_length;
   int driver_poll;
   int driver_polled;
   int poll;
@@ -169,6 +170,7 @@ RCL_AddRefclock(RefclockParameters *params)
 
   inst->data = NULL;
   inst->driver_parameter = params->driver_parameter;
+  inst->driver_parameter_length = 0;
   inst->driver_poll = params->driver_poll;
   inst->poll = params->poll;
   inst->missed_samples = 0;
@@ -180,6 +182,15 @@ RCL_AddRefclock(RefclockParameters *params)
   inst->delay = params->delay;
   inst->timeout_id = -1;
   inst->source = NULL;
+
+  if (inst->driver_parameter) {
+    int i;
+
+    inst->driver_parameter_length = strlen(inst->driver_parameter);
+    for (i = 0; i < inst->driver_parameter_length; i++)
+      if (inst->driver_parameter[i] == ':')
+        inst->driver_parameter[i] = '\0';
+  }
 
   if (pps_source) {
     if (inst->pps_rate < 1)
@@ -276,6 +287,31 @@ char *
 RCL_GetDriverParameter(RCL_Instance instance)
 {
   return instance->driver_parameter;
+}
+
+char *
+RCL_GetDriverOption(RCL_Instance instance, char *name)
+{
+  char *s, *e;
+  int n;
+
+  s = instance->driver_parameter;
+  e = s + instance->driver_parameter_length;
+  n = strlen(name);
+
+  while (1) {
+    s += strlen(s) + 1;
+    if (s >= e)
+      break;
+    if (!strncmp(name, s, n)) {
+      if (s[n] == '=')
+        return s + n + 1;
+      if (s[n] == '\0')
+        return s + n;
+    }
+  }
+
+  return NULL;
 }
 
 int

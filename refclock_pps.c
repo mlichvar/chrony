@@ -46,15 +46,10 @@ static int pps_initialise(RCL_Instance instance) {
   pps_params_t params;
   struct pps_instance *pps;
   int fd, edge_clear, mode;
-  char *path, *s;
+  char *path;
 
   path = RCL_GetDriverParameter(instance);
-
-  edge_clear = 0;
-  if ((s = strrchr(path, ':')) != NULL) {
-    *s = '\0';
-    edge_clear = atoi(s + 1);
-  }
+  edge_clear = RCL_GetDriverOption(instance, "clear") ? 1 : 0;
 
   fd = open(path, O_RDWR);
   if (fd < 0) {

@@ -2229,8 +2229,8 @@ There are currently three drivers implemented:
 @table @code
 @item PPS
 Pulse per second (PPS) API driver.  The parameter is a path to the PPS
-device.  Assert events are used by default.  The path can have
-:1 appended to use clear events instead.
+device.  Assert events are used by default.  Driver option
+@code{:clear} can be appended to the path to use clear events instead.
 
 PPS refclock needs another source (NTP or non-PPS refclock) or local
 directive (@pxref{local directive}) enabled to function.  For example:
