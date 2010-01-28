@@ -56,12 +56,15 @@ struct shmTime {
 };
 
 static int shm_initialise(RCL_Instance instance) {
-  int id, param;
+  int id, param, perm;
+  char *s;
   struct shmTime *shm;
 
   param = atoi(RCL_GetDriverParameter(instance));
+  s = RCL_GetDriverOption(instance, "perm");
+  perm = s ? strtol(s, NULL, 8) : 0600;
 
-  id = shmget(SHMKEY + param, sizeof (struct shmTime), IPC_CREAT | 0700);
+  id = shmget(SHMKEY + param, sizeof (struct shmTime), IPC_CREAT | perm);
   if (id == -1) {
     LOG_FATAL(LOGF_Refclock, "shmget() failed");
     return 0;

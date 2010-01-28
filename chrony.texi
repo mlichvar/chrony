@@ -2242,14 +2242,18 @@ refclock PPS /dev/pps0
 
 @item SHM
 NTP shared memory driver.  The parameter is the number of the
-shared memory segment that should be used to read timestamps, usually
+shared memory segment that should be used for receiving timestamps, usually
 0, 1, 2 or 3.  For example:
 
 @example
 refclock SHM 1 poll 3 refid GPS1
 @end example
 
-Software that can be used as a source of timestamps includes
+A driver option in form @code{:perm=NNN} can be appended to the
+segment number to create the segment with permissions other than the
+default @code{0600}. 
+
+Software that can be used as a source of reference time includes
 @code{gpsd} and @code{shmpps}.
 @item SOCK
 Unix domain socket driver.  The parameter is a path to the socket
