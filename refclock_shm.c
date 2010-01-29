@@ -62,7 +62,7 @@ static int shm_initialise(RCL_Instance instance) {
 
   param = atoi(RCL_GetDriverParameter(instance));
   s = RCL_GetDriverOption(instance, "perm");
-  perm = s ? strtol(s, NULL, 8) : 0600;
+  perm = s ? strtol(s, NULL, 8) & 0777 : 0600;
 
   id = shmget(SHMKEY + param, sizeof (struct shmTime), IPC_CREAT | perm);
   if (id == -1) {
