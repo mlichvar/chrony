@@ -1,3 +1,12 @@
+New in version 1.23.1
+=====================
+
+Security fixes
+--------------
+* Don't reply to invalid cmdmon packets (CVE-2010-0292)
+* Limit client log memory size (CVE-2010-0293)
+* Limit rate of syslog messages (CVE-2010-0294)
+
 New in version 1.23
 ===================
 
