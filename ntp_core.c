@@ -326,6 +326,8 @@ create_instance(NTP_Remote_Address *remote_addr, NTP_Mode mode, SourceParameters
   result->local_rx.tv_usec = 0;
   result->local_tx.tv_sec = 0;
   result->local_tx.tv_usec = 0;
+  result->local_ntp_tx.hi = 0;
+  result->local_ntp_tx.lo = 0;
 
   return result;
 
