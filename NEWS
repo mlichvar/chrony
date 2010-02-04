@@ -1,6 +1,14 @@
 New in version 1.24
 ===================
 
+Security fixes
+--------------
+* Don't reply to invalid cmdmon packets (CVE-2010-0292)
+* Limit client log memory size (CVE-2010-0293)
+* Limit rate of syslog messages (CVE-2010-0294)
+
+Bug fixes/Enhancements
+----------------------
 * Support for reference clocks (SHM, SOCK, PPS drivers)
 * IPv6 support
 * Linux capabilities support (to drop root privileges)
@@ -12,8 +20,10 @@ New in version 1.24
 * NTP client support for KoD RATE
 * Read kernel timestamps for received NTP packets
 * Reply to NTP requests with correct address on multihomed hosts
-* Add option to limit client log memory size
 * Retry name resolving after temporary failure
+* Fix makestep command, make it available on all systems
+* Add makestep directive for automatic clock stepping
+* Don't require _bigadj kernel symbol on NetBSD
 * Avoid blocking read in Linux RTC driver
 * Support for Linux on S/390 and PowerPC
 * Fix various bugs on 64-bit systems
