@@ -2623,6 +2623,8 @@ Only the following commands can be used @emph{without} providing a
 password:
 
 @itemize @bullet
+@item @code{activity}
+@item @code{clients}
 @item @code{dns}
 @item @code{exit}
 @item @code{help}
