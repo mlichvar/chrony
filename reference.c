@@ -573,11 +573,10 @@ REF_SetUnsynchronised(void)
 {
   /* Variables required for logging to statistics log */
   struct timeval now;
-  double local_clock_err;
 
   assert(initialised);
 
-  LCL_ReadCookedTime(&now, &local_clock_err);
+  LCL_ReadCookedTime(&now, NULL);
 
   write_log(&now,
             "0.0.0.0",
@@ -725,7 +724,7 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
   double correction;
 
   LCL_ReadRawTime(&now_raw);
-  correction = LCL_GetOffsetCorrection(&now_raw);
+  LCL_GetOffsetCorrection(&now_raw, &correction, NULL);
   UTI_AddDoubleToTimeval(&now_raw, correction, &now_cooked);
 
   if (are_we_synchronised) {

@@ -78,12 +78,11 @@ timeout_handler(void *arbitrary)
   unsigned long our_ref_id;
   struct timeval our_ref_time;
   double our_root_delay, our_root_dispersion;
-  double local_time_err;
   struct timeval local_transmit;
 
   version = 3;
 
-  LCL_ReadCookedTime(&local_transmit, &local_time_err);
+  LCL_ReadCookedTime(&local_transmit, NULL);
   REF_GetReferenceParams(&local_transmit,
                          &are_we_synchronised, &leap_status,
                          &our_stratum,
@@ -116,7 +115,7 @@ timeout_handler(void *arbitrary)
   message.receive_ts.hi = 0UL;
   message.receive_ts.lo = 0UL;
 
-  LCL_ReadCookedTime(&local_transmit, &local_time_err);
+  LCL_ReadCookedTime(&local_transmit, NULL);
   UTI_TimevalToInt64(&local_transmit, &message.transmit_ts);
   NIO_SendNormalPacket(&message, &d->addr);
 

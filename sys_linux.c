@@ -538,7 +538,7 @@ read_frequency(void)
 
 static void
 get_offset_correction(struct timeval *raw,
-                      double *corr)
+                      double *corr, double *err)
 {
 
   /* Correction is given by these things :
@@ -602,6 +602,7 @@ again:
   }  
 
   *corr = - (offset_register + fast_slew_remaining) + adjtime_left;
+  *err = 0.0;
 
   return;
 }

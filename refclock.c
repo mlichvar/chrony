@@ -317,10 +317,10 @@ RCL_GetDriverOption(RCL_Instance instance, char *name)
 int
 RCL_AddSample(RCL_Instance instance, struct timeval *sample_time, double offset, NTP_Leap leap_status)
 {
-  double correction;
+  double correction, err;
   struct timeval cooked_time;
 
-  correction = LCL_GetOffsetCorrection(sample_time);
+  LCL_GetOffsetCorrection(sample_time, &correction, &err);
   UTI_AddDoubleToTimeval(sample_time, correction, &cooked_time);
 
   if (!valid_sample_time(instance, sample_time))
@@ -342,7 +342,7 @@ RCL_AddSample(RCL_Instance instance, struct timeval *sample_time, double offset,
 int
 RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
 {
-  double correction, offset;
+  double correction, err, offset;
   struct timeval cooked_time;
   int rate;
 
@@ -352,7 +352,7 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
   NTP_Leap leap;
   unsigned long ref_id;
 
-  correction = LCL_GetOffsetCorrection(pulse_time);
+  LCL_GetOffsetCorrection(pulse_time, &correction, &err);
   UTI_AddDoubleToTimeval(pulse_time, correction, &cooked_time);
 
   if (!valid_sample_time(instance, pulse_time))

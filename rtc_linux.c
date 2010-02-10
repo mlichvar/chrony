@@ -911,7 +911,7 @@ read_from_device(void *any)
     /* Read RTC time, sandwiched between two polls of the system clock
        so we can bound any error. */
 
-    SCH_GetFileReadyTime(&sys_time);
+    SCH_GetFileReadyTime(&sys_time, NULL);
 
     status = ioctl(fd, RTC_RD_TIME, &rtc_raw);
     if (status < 0) {
@@ -1139,7 +1139,6 @@ int
 RTC_Linux_Trim(void)
 {
   struct timeval now;
-  double local_clock_err;
 
 
   /* Remember the slope coefficient - we won't be able to determine a
@@ -1158,7 +1157,7 @@ RTC_Linux_Trim(void)
        want |E| <= 0.5, which implies R <= S <= R+1, i.e. R is just
        the rounded down part of S, i.e. the seconds part. */
 
-    LCL_ReadCookedTime(&now, &local_clock_err);
+    LCL_ReadCookedTime(&now, NULL);
     
     set_rtc(now.tv_sec);
 

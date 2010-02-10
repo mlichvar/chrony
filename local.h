@@ -50,11 +50,13 @@ extern void LCL_ReadRawTime(struct timeval *);
 
 extern void LCL_ReadCookedTime(struct timeval *t, double *err);
 
-/* Read the current offset between the system clock and true time
-   (i.e. 'cooked' - 'raw') (in seconds).  Only intended for use in
-   status reporting, really. */
+/* Convert raw time to cooked. */
+extern void LCL_CookTime(struct timeval *raw, struct timeval *cooked, double *err);
 
-extern double LCL_GetOffsetCorrection(struct timeval *raw);
+/* Read the current offset between the system clock and true time
+   (i.e. 'cooked' - 'raw') (in seconds). */
+
+extern void LCL_GetOffsetCorrection(struct timeval *raw, double *correction, double *err);
 
 /* Type of routines that may be invoked as callbacks when there is a
    change to the frequency or offset.

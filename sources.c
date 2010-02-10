@@ -385,7 +385,6 @@ SRC_SelectSource(unsigned long match_addr)
 {
   int i, j, index;
   struct timeval now;
-  double local_clock_err;
   int src_select_ok;
   double src_offset, src_offset_sd, src_frequency, src_skew;
   double src_accrued_dispersion;
@@ -412,7 +411,7 @@ SRC_SelectSource(unsigned long match_addr)
     return;
   }
 
-  LCL_ReadCookedTime(&now, &local_clock_err);
+  LCL_ReadCookedTime(&now, NULL);
 
   /* Step 1 - build intervals about each source */
   n_endpoints = 0;
@@ -704,7 +703,7 @@ SRC_SelectSource(unsigned long match_addr)
         /* Now just use the statistics of the selected source for
            trimming the local clock */
 
-        LCL_ReadCookedTime(&now, &local_clock_err);
+        LCL_ReadCookedTime(&now, NULL);
 
         SST_GetTrackingData(sources[selected_source_index]->stats, &now,
                             &src_offset, &src_offset_sd,

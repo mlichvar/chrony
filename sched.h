@@ -62,7 +62,7 @@ extern void SCH_RemoveInputFileHandler(int fd);
 
 /* Get the time (cooked) when file descriptor became ready, intended for use
    in file handlers */
-extern void SCH_GetFileReadyTime(struct timeval *tv);
+extern void SCH_GetFileReadyTime(struct timeval *tv, double *err);
 
 /* This queues a timeout to elapse at a given (raw) local time */
 extern SCH_TimeoutID SCH_AddTimeout(struct timeval *tv, SCH_TimeoutHandler, SCH_ArbitraryArgument);

@@ -188,14 +188,13 @@ int
 MNL_AcceptTimestamp(struct timeval *ts, long *offset_cs, double *dfreq_ppm, double *new_afreq_ppm)
 {
   struct timeval now;
-  double local_clock_err;
   double offset;
   int i;
 
   if (enabled) {
 
     /* Check whether timestamp is within margin of old one */
-    LCL_ReadCookedTime(&now, &local_clock_err);
+    LCL_ReadCookedTime(&now, NULL);
 
     UTI_DiffTimevalsToDouble(&offset, &now, ts);
 
@@ -303,7 +302,6 @@ MNL_DeleteSample(int index)
 {
   int i;
   struct timeval now;
-  double local_clock_err;
 
   if ((index < 0) || (index >= n_samples)) {
     return 0;
@@ -319,7 +317,7 @@ MNL_DeleteSample(int index)
 
   /* Now re-estimate.  NULLs because we don't want the parameters back
      in this case. */
-  LCL_ReadCookedTime(&now, &local_clock_err);
+  LCL_ReadCookedTime(&now, NULL);
   estimate_and_set_system(&now, 0, 0.0, NULL, NULL, NULL);
 
   return 1;

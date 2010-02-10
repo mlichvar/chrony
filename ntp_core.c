@@ -523,7 +523,6 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   NTP_Packet message;
   int version;
   int leap;
-  double local_time_err;
   struct timeval local_transmit;
 
   /* Parameters read from reference module */
@@ -535,7 +534,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
 
   version = 3;
 
-  LCL_ReadCookedTime(&local_transmit, &local_time_err);
+  LCL_ReadCookedTime(&local_transmit, NULL);
   REF_GetReferenceParams(&local_transmit,
                          &are_we_synchronised, &leap_status,
                          &our_stratum,
@@ -582,7 +581,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   /* Transmit - this our local time right now!  Also, we might need to
      store this for our own use later, next time we receive a message
      from the source we're sending to now. */
-  LCL_ReadCookedTime(&local_transmit, &local_time_err);
+  LCL_ReadCookedTime(&local_transmit, NULL);
 
   /* Authenticate */
   if (do_auth) {

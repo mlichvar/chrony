@@ -991,10 +991,9 @@ handle_source_data(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   RPT_SourceReport report;
   struct timeval now_corr;
-  double local_clock_err;
 
   /* Get data */
-  LCL_ReadCookedTime(&now_corr, &local_clock_err);
+  LCL_ReadCookedTime(&now_corr, NULL);
   if (SRC_ReportSource(ntohl(rx_message->data.source_data.index), &report, &now_corr)) {
     switch (SRC_GetType(ntohl(rx_message->data.source_data.index))) {
       case SRC_NTP:
@@ -1394,9 +1393,8 @@ handle_sourcestats(CMD_Request *rx_message, CMD_Reply *tx_message)
   int status;
   RPT_SourcestatsReport report;
   struct timeval now_corr;
-  double local_clock_err;
 
-  LCL_ReadCookedTime(&now_corr, &local_clock_err);
+  LCL_ReadCookedTime(&now_corr, NULL);
   status = SRC_ReportSourcestats(ntohl(rx_message->data.sourcestats.index),
                                  &report, &now_corr);
 
@@ -1531,9 +1529,8 @@ handle_client_accesses(CMD_Request *rx_message, CMD_Reply *tx_message)
   IPAddr ip;
   int i;
   struct timeval now;
-  double local_time_error;
 
-  LCL_ReadCookedTime(&now, &local_time_error);
+  LCL_ReadCookedTime(&now, NULL);
 
   nc = ntohl(rx_message->data.client_accesses.n_clients);
   tx_message->status = htons(STT_SUCCESS);
@@ -1585,9 +1582,8 @@ handle_client_accesses_by_index(CMD_Request *rx_message, CMD_Reply *tx_message)
   unsigned long first_index, n_indices, last_index, n_indices_in_table;
   int i, j;
   struct timeval now;
-  double local_time_error;
 
-  LCL_ReadCookedTime(&now, &local_time_error);
+  LCL_ReadCookedTime(&now, NULL);
 
   first_index = ntohl(rx_message->data.client_accesses_by_index.first_index);
   n_indices = ntohl(rx_message->data.client_accesses_by_index.n_indices);
@@ -1742,7 +1738,6 @@ read_from_cmd_socket(void *anything)
   unsigned long rx_attempt;
   struct timeval now;
   struct timeval cooked_now;
-  double local_clock_err;
 
   flags = 0;
   rx_message_length = sizeof(rx_message);
@@ -1762,7 +1757,7 @@ read_from_cmd_socket(void *anything)
   expected_length = PKL_CommandLength(&rx_message);
 
   LCL_ReadRawTime(&now);
-  LCL_ReadCookedTime(&cooked_now, &local_clock_err);
+  LCL_CookTime(&now, &cooked_now, NULL);
 
   tx_message.version = PROTO_VERSION_NUMBER;
   tx_message.pkt_type = PKT_TYPE_CMD_REPLY;

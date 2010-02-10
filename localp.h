@@ -54,7 +54,7 @@ typedef void (*lcl_ApplyStepOffsetDriver)(double offset);
 /* System driver to convert a raw time to an adjusted (cooked) time.
    The number of seconds returned in 'corr' have to be added to the
    raw time to get the corrected time */
-typedef void (*lcl_OffsetCorrectionDriver)(struct timeval *raw, double *corr);
+typedef void (*lcl_OffsetCorrectionDriver)(struct timeval *raw, double *corr, double *err);
 
 /* System driver to schedule leap second */
 typedef void (*lcl_SetLeapDriver)(int leap);

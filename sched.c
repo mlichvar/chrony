@@ -73,6 +73,7 @@ static FileHandlerEntry file_handlers[FD_SET_SIZE];
 
 /* Last timestamp when a file descriptor became readable */
 static struct timeval last_fdready;
+static double last_fdready_err;
 
 /* ================================================== */
 
@@ -229,9 +230,11 @@ SCH_RemoveInputFileHandler(int fd)
 /* ================================================== */
 
 void
-SCH_GetFileReadyTime(struct timeval *tv)
+SCH_GetFileReadyTime(struct timeval *tv, double *err)
 {
   *tv = last_fdready;
+  if (err)
+    *err = last_fdready_err;
 }
 
 /* ================================================== */
@@ -525,7 +528,6 @@ SCH_MainLoop(void)
   int status;
   struct timeval tv, *ptv;
   struct timeval now;
-  double err;
 
   if (!initialised) {
     CROAK("Should be initialised");
@@ -570,7 +572,7 @@ SCH_MainLoop(void)
     } else if (status > 0) {
       /* A file descriptor is ready to read */
 
-      LCL_ReadCookedTime(&last_fdready, &err);
+      LCL_ReadCookedTime(&last_fdready, &last_fdready_err);
       dispatch_filehandlers(status, &rd);
 
     } else {

@@ -264,11 +264,12 @@ read_frequency(void)
 
 static void
 get_offset_correction(struct timeval *raw,
-                      double *corr)
+                      double *corr, double *err)
 {
   stop_adjust();
   *corr = -offset_register;
   start_adjust();
+  *err = 0.0;
 }
 
 /* ================================================== */

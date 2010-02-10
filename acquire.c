@@ -248,7 +248,6 @@ probe_source(SourceRecord *src)
   int version = 3;
   NTP_Mode my_mode = MODE_CLIENT;
   struct timeval cooked;
-  double local_time_err;
   union sockaddr_in46 his_addr;
   int sock_fd;
   socklen_t addrlen;
@@ -300,7 +299,7 @@ probe_source(SourceRecord *src)
   }
 
 
-  LCL_ReadCookedTime(&cooked, &local_time_err);
+  LCL_ReadCookedTime(&cooked, NULL);
   UTI_TimevalToInt64(&cooked, &pkt.transmit_ts);
 
   if (sendto(sock_fd, (void *) &pkt, NTP_NORMAL_PACKET_SIZE,
@@ -449,7 +448,7 @@ read_from_socket(void *anything)
   his_addr_len = sizeof(his_addr);
 
   /* Get timestamp */
-  SCH_GetFileReadyTime(&now);
+  SCH_GetFileReadyTime(&now, NULL);
 
   sock_fd = (long)anything;
   status = recvfrom (sock_fd, (char *)&msg, message_length, flags,

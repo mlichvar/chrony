@@ -316,8 +316,6 @@ LCL_ReadRawTime(struct timeval *result)
   if (!(gettimeofday(result, &tz) >= 0)) {
     CROAK("Could not get time of day");
   }
-  return;
-
 }
 
 /* ================================================== */
@@ -326,30 +324,34 @@ void
 LCL_ReadCookedTime(struct timeval *result, double *err)
 {
   struct timeval raw;
-  double correction;
 
   LCL_ReadRawTime(&raw);
-
-  /* For now, cheat and set the error to zero in all cases.
-   */
-
-  *err = 0.0;
-
-  /* Call system specific driver to get correction */
-  (*drv_offset_convert)(&raw, &correction);
-  UTI_AddDoubleToTimeval(&raw, correction, result);
-
-  return;
+  LCL_CookTime(&raw, result, err);
 }
 
 /* ================================================== */
 
-double
-LCL_GetOffsetCorrection(struct timeval *raw)
+void
+LCL_CookTime(struct timeval *raw, struct timeval *cooked, double *err)
 {
   double correction;
-  (*drv_offset_convert)(raw, &correction);
-  return correction;
+
+  LCL_GetOffsetCorrection(raw, &correction, err);
+  UTI_AddDoubleToTimeval(raw, correction, cooked);
+}
+
+/* ================================================== */
+
+void
+LCL_GetOffsetCorrection(struct timeval *raw, double *correction, double *err)
+{
+  double e;
+
+  /* Call system specific driver to get correction */
+  (*drv_offset_convert)(raw, correction, &e);
+
+  if (err)
+    *err = e;
 }
 
 /* ================================================== */
@@ -370,7 +372,6 @@ LCL_SetAbsoluteFrequency(double afreq_ppm)
 {
   ChangeListEntry *ptr;
   struct timeval raw, cooked;
-  double correction;
   double dfreq;
   
   /* Call the system-specific driver for setting the frequency */
@@ -380,8 +381,7 @@ LCL_SetAbsoluteFrequency(double afreq_ppm)
   dfreq = 1.0e-6 * (afreq_ppm - current_freq_ppm) / (1.0 - 1.0e-6 * current_freq_ppm);
 
   LCL_ReadRawTime(&raw);
-  (drv_offset_convert)(&raw, &correction);
-  UTI_AddDoubleToTimeval(&raw, correction, &cooked);
+  LCL_CookTime(&raw, &cooked, NULL);
 
   /* Dispatch to all handlers */
   for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
@@ -399,7 +399,6 @@ LCL_AccumulateDeltaFrequency(double dfreq)
 {
   ChangeListEntry *ptr;
   struct timeval raw, cooked;
-  double correction;
 
   /* Work out new absolute frequency.  Note that absolute frequencies
    are handled in units of ppm, whereas the 'dfreq' argument is in
@@ -412,8 +411,7 @@ LCL_AccumulateDeltaFrequency(double dfreq)
   (*drv_set_freq)(current_freq_ppm);
 
   LCL_ReadRawTime(&raw);
-  (drv_offset_convert)(&raw, &correction);
-  UTI_AddDoubleToTimeval(&raw, correction, &cooked);
+  LCL_CookTime(&raw, &cooked, NULL);
 
   /* Dispatch to all handlers */
   for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
@@ -429,14 +427,12 @@ LCL_AccumulateOffset(double offset)
 {
   ChangeListEntry *ptr;
   struct timeval raw, cooked;
-  double correction;
 
   /* In this case, the cooked time to be passed to the notify clients
      has to be the cooked time BEFORE the change was made */
 
   LCL_ReadRawTime(&raw);
-  (drv_offset_convert)(&raw, &correction);
-  UTI_AddDoubleToTimeval(&raw, correction, &cooked);
+  LCL_CookTime(&raw, &cooked, NULL);
 
   (*drv_accrue_offset)(offset);
 
@@ -454,14 +450,12 @@ LCL_ApplyStepOffset(double offset)
 {
   ChangeListEntry *ptr;
   struct timeval raw, cooked;
-  double correction;
 
   /* In this case, the cooked time to be passed to the notify clients
      has to be the cooked time BEFORE the change was made */
 
   LCL_ReadRawTime(&raw);
-  (drv_offset_convert)(&raw, &correction);
-  UTI_AddDoubleToTimeval(&raw, correction, &cooked);
+  LCL_CookTime(&raw, &cooked, NULL);
 
   (*drv_apply_step_offset)(offset);
 
@@ -479,14 +473,12 @@ LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset)
 {
   ChangeListEntry *ptr;
   struct timeval raw, cooked;
-  double correction;
   double old_freq_ppm;
 
   LCL_ReadRawTime(&raw);
-  (drv_offset_convert)(&raw, &correction);
   /* Due to modifying the offset, this has to be the cooked time prior
      to the change we are about to make */
-  UTI_AddDoubleToTimeval(&raw, correction, &cooked);
+  LCL_CookTime(&raw, &cooked, NULL);
 
   old_freq_ppm = current_freq_ppm;
 
@@ -563,7 +555,7 @@ LCL_MakeStep(double threshold)
   double correction;
 
   LCL_ReadRawTime(&raw);
-  correction = LCL_GetOffsetCorrection(&raw);
+  LCL_GetOffsetCorrection(&raw, &correction, NULL);
 
   if (fabs(correction) <= threshold)
     return 0;

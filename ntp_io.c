@@ -281,6 +281,7 @@ read_from_socket(void *anything)
   union sockaddr_in46 where_from;
   unsigned int flags = 0;
   struct timeval now;
+  double now_err;
   NTP_Remote_Address remote_addr;
   char cmsgbuf[256];
   struct msghdr msg;
@@ -289,7 +290,7 @@ read_from_socket(void *anything)
 
   assert(initialised);
 
-  SCH_GetFileReadyTime(&now);
+  SCH_GetFileReadyTime(&now, &now_err);
 
   iov.iov_base = message.arbitrary;
   iov.iov_len = sizeof(message);
@@ -346,16 +347,9 @@ read_from_socket(void *anything)
 #ifdef SO_TIMESTAMP
       if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SO_TIMESTAMP) {
         struct timeval tv;
-        double correction;
 
         memcpy(&tv, CMSG_DATA(cmsg), sizeof(tv));
-        correction = LCL_GetOffsetCorrection(&tv);
-        UTI_AddDoubleToTimeval(&tv, correction, &tv);
-#if 0
-        UTI_DiffTimevalsToDouble(&correction, &now, &tv);
-        LOG(LOGS_INFO, LOGF_NtpIO, "timestamp diff: %f", correction);
-#endif
-        now = tv;
+        LCL_CookTime(&tv, &now, &now_err);
       }
 #endif
     }
