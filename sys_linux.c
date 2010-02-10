@@ -189,6 +189,99 @@ static int slew_delta_tick;
    (sys_adjtimex() in the kernel bounds this to 10%) */
 static int max_tick_bias;
 
+/* The latest time at which system clock may still be slewed by previous
+   adjtime() call and maximum offset correction error it can cause */
+static struct timeval slow_slew_error_end;
+static int slow_slew_error;
+
+/* The latest time at which 'tick' in kernel may be actually updated
+   and maximum offset correction error it can cause */
+static struct timeval fast_slew_error_end;
+static double fast_slew_error;
+
+/* The rate at which frequency and tick values are updated in kernel. */
+static int tick_update_hz;
+
+/* ================================================== */
+/* These routines are used to estimate maximum error in offset correction */
+
+static void
+update_slow_slew_error(int offset)
+{
+  struct timezone tz;
+  struct timeval now, newend;
+
+  if (offset == 0 && slow_slew_error == 0)
+    return;
+
+  if (gettimeofday(&now, &tz) < 0) {
+    CROAK("gettimeofday() failed");
+  }
+
+  if (offset < 0)
+    offset = -offset;
+
+  /* assume 500ppm rate and one sec delay, plus 10 percent for fast slewing */
+  UTI_AddDoubleToTimeval(&now, (offset + 999) / 500 * 1.1, &newend);
+
+  if (offset > 500)
+    offset = 500;
+
+  if (slow_slew_error > offset) {
+    double previous_left;
+
+    UTI_DiffTimevalsToDouble(&previous_left, &slow_slew_error_end, &now);
+    if (previous_left > 0.0) {
+      if (offset == 0)
+        newend = slow_slew_error_end;
+      offset = slow_slew_error;
+    }
+  }
+
+  slow_slew_error = offset;
+  slow_slew_error_end = newend;
+}
+
+static double
+get_slow_slew_error(struct timeval *now)
+{
+  double left;
+
+  if (slow_slew_error == 0)
+    return 0.0;
+
+  UTI_DiffTimevalsToDouble(&left, &slow_slew_error_end, now);
+  return left > 0.0 ? slow_slew_error / 1e6 : 0.0;
+}
+
+static void
+update_fast_slew_error(struct timeval *now)
+{
+  double max_tick;
+
+  max_tick = current_total_tick +
+    (delta_total_tick > 0.0 ? delta_total_tick : 0.0);
+
+  UTI_AddDoubleToTimeval(now, 1e6 * max_tick / nominal_tick / tick_update_hz,
+      &fast_slew_error_end);
+  fast_slew_error = fabs(1e6 * delta_total_tick / nominal_tick / tick_update_hz);
+}
+
+static double
+get_fast_slew_error(struct timeval *now)
+{
+  double left;
+
+  if (fast_slew_error == 0.0)
+    return 0.0;
+
+  UTI_DiffTimevalsToDouble(&left, &fast_slew_error_end, now);
+  if (left < -10.0)
+    fast_slew_error = 0.0;
+
+  return left > 0.0 ? fast_slew_error : 0.0;
+}
+
 /* ================================================== */
 /* This routine stops a fast slew, determines how long the slew has
    been running for, and consequently how much adjustment has actually
@@ -198,12 +291,10 @@ static int max_tick_bias;
 static void
 stop_fast_slew(void)
 {
-  struct timeval T1, T1d, T1a;
+  struct timeval T1;
   struct timezone tz;
-  double end_window;
   double fast_slew_done;
   double slew_duration;
-  double introduced_dispersion;
 
   /* Should never get here unless this is true */
   if (!fast_slewing) {
@@ -218,24 +309,17 @@ stop_fast_slew(void)
   if (TMX_SetTick(current_tick) < 0) {
     CROAK("adjtimex() failed in stop_fast_slew");
   }
-  
-  if (gettimeofday(&T1d, &tz) < 0) {
-    CROAK("gettimeofday() failed in stop_fast_slew");
-  }
 
   fast_slewing = 0;
 
-  UTI_AverageDiffTimevals(&T1, &T1d, &T1a, &end_window);
-  UTI_DiffTimevalsToDouble(&slew_duration, &T1a, &slew_start_tv);
-  
+  UTI_DiffTimevalsToDouble(&slew_duration, &T1, &slew_start_tv);
+
   /* Compute the dispersion we have introduced by changing tick this
-     way.  If the two samples of gettimeofday differ, there is an
-     uncertainty window wrt when the frequency change actually applies
-     from.  We handle this by adding dispersion to all statistics held
+     way.  We handle this by adding dispersion to all statistics held
      at higher levels in the system. */
 
-  introduced_dispersion = end_window * delta_total_tick;
-  lcl_InvokeDispersionNotifyHandlers(introduced_dispersion);
+  update_fast_slew_error(&T1);
+  lcl_InvokeDispersionNotifyHandlers(fast_slew_error);
 
   fast_slew_done = delta_total_tick * slew_duration /
     (current_total_tick + delta_total_tick);
@@ -244,6 +328,40 @@ stop_fast_slew(void)
 
 }
 
+/* ================================================== */
+/* This routine reschedules fast slew timeout after frequency was changed */
+
+static void
+adjust_fast_slew(double old_tick, double old_delta_tick)
+{
+  struct timeval tv, end_of_slew;
+  struct timezone tz;
+  double fast_slew_done, slew_duration, dseconds;
+
+  assert(fast_slewing);
+
+  if (gettimeofday(&tv, &tz) < 0) {
+    CROAK("gettimeofday() failed in stop_fast_slew");
+  }
+  
+  UTI_DiffTimevalsToDouble(&slew_duration, &tv, &slew_start_tv);
+
+  fast_slew_done = old_delta_tick * slew_duration / (old_tick + old_delta_tick);
+  offset_register += fast_slew_wanted + fast_slew_done;
+
+  dseconds = -offset_register * (current_total_tick + delta_total_tick) / delta_total_tick;
+
+  if (dseconds > 3600 * 24 * 7)
+    dseconds = 3600 * 24 * 7;
+  UTI_AddDoubleToTimeval(&tv, dseconds, &end_of_slew);
+
+  slew_start_tv = tv;
+  fast_slew_wanted = offset_register;
+  offset_register = 0.0;
+
+  SCH_RemoveTimeout(slew_timeout_id);
+  slew_timeout_id = SCH_AddTimeout(&end_of_slew, handle_end_of_slew, NULL);
+}
 
 /* ================================================== */
 /* This routine is called to start a clock offset adjustment */
@@ -254,11 +372,9 @@ initiate_slew(void)
   double dseconds;
   long tick_adjust;
   long offset;
-  struct timeval T0, T0d, T0a;
+  struct timeval T0;
   struct timeval end_of_slew;
   struct timezone tz;
-  double start_window;
-  double introduced_dispersion;
 
   /* Don't want to get here if we already have an adjust on the go! */
   if (fast_slewing) {
@@ -277,6 +393,7 @@ initiate_slew(void)
     }
     offset_register -= (double) offset / 1.0e6;
     slow_slewing = 0;
+    update_slow_slew_error(0);
   }
 
   if (fabs(offset_register) < MAX_ADJUST_WITH_ADJTIME) {
@@ -290,6 +407,7 @@ initiate_slew(void)
         CROAK("adjtimex() failed in initiate_slew");
       }
       slow_slewing = 1;
+      update_slow_slew_error(offset);
     }
   } else {
 
@@ -332,31 +450,20 @@ initiate_slew(void)
       CROAK("adjtimex() failed to start big slew");
     }
 
-    if (gettimeofday(&T0d, &tz) < 0) {
-      CROAK("gettimeofday() failed in initiate_slew");
-    }
-
-    /* Now work out the uncertainty in when we actually started the
-       slew. */
-    
-    UTI_AverageDiffTimevals(&T0, &T0d, &T0a, &start_window);
-
     /* Compute the dispersion we have introduced by changing tick this
-    way.  If the two samples of gettimeofday differ, there is an
-    uncertainty window wrt when the frequency change actually applies
-    from.  We handle this by adding dispersion to all statistics held
+    way.  We handle this by adding dispersion to all statistics held
     at higher levels in the system. */
 
-    introduced_dispersion = start_window * delta_total_tick;
-    lcl_InvokeDispersionNotifyHandlers(introduced_dispersion);
+    update_fast_slew_error(&T0);
+    lcl_InvokeDispersionNotifyHandlers(fast_slew_error);
 
     fast_slewing = 1;
-    slew_start_tv = T0a;
+    slew_start_tv = T0;
 
     /* Set up timeout for end of slew, limit to one week */
     if (dseconds > 3600 * 24 * 7)
       dseconds = 3600 * 24 * 7;
-    UTI_AddDoubleToTimeval(&T0a, dseconds, &end_of_slew);
+    UTI_AddDoubleToTimeval(&T0, dseconds, &end_of_slew);
 
     slew_timeout_id = SCH_AddTimeout(&end_of_slew, handle_end_of_slew, NULL);
 
@@ -448,23 +555,16 @@ apply_step_offset(double offset)
    clock runs fast when uncompensated.  */
 
 static void
-set_frequency(double freq_ppm) {
-
+set_frequency(double freq_ppm)
+{
   long required_tick;
   double required_freq; /* what we use */
   double scaled_freq; /* what adjtimex & the kernel use */
+  double old_total_tick;
   int required_delta_tick;
   int neg; /* True if estimate is that local clock runs slow,
               i.e. positive frequency correction required */
 
-
-  /* If we in the middle of slewing the time by having the value of
-     tick altered, we have to stop doing that, because the timeout
-     expiry etc will change if we don't. */
-
-  if (fast_slewing) {
-    abort_slew();
-  }
 
   if (freq_ppm < 0.0) {
     neg = 1;
@@ -486,20 +586,28 @@ set_frequency(double freq_ppm) {
     scaled_freq = -freq_scale * required_freq;
   }
 
-  if (TMX_SetFrequency(scaled_freq, required_tick) < 0) {
-    char buffer[1024];
-    sprintf(buffer, "adjtimex failed for set_frequency, freq_ppm=%10.4e scaled_freq=%10.4e required_tick=%ld",
-            freq_ppm, scaled_freq, required_tick);
-    CROAK(buffer);
-  }
-
   current_tick = required_tick;
+  old_total_tick = current_total_tick;
   current_total_tick = ((double)current_tick + required_freq/dhz) / 1.0e6 ;
 
-  initiate_slew(); /* Restart any slews that need to be restarted */
+  /* Don't change tick if we are fast slewing, just reschedule the timeout */
+  if (fast_slewing) {
+    required_tick = slewing_tick;
+  }
 
-  return;
+  if (TMX_SetFrequency(scaled_freq, required_tick) < 0) {
+    LOG_FATAL(LOGF_SysLinux, "adjtimex failed for set_frequency, freq_ppm=%10.4e scaled_freq=%10.4e required_tick=%ld",
+        freq_ppm, scaled_freq, required_tick);
+  }
 
+  if (fast_slewing) {
+    double old_delta_tick;
+
+    old_delta_tick = delta_total_tick;
+    delta_total_tick = ((double)slewing_tick + required_freq/dhz) / 1.0e6 -
+      current_total_tick;
+    adjust_fast_slew(old_total_tick, old_delta_tick);
+  }
 }
 
 /* ================================================== */
@@ -590,6 +698,8 @@ again:
     }
   }
 
+  update_slow_slew_error(offset);
+
   adjtime_left = (double)offset / 1.0e6;
 
   if (fast_slewing) {
@@ -602,7 +712,7 @@ again:
   }  
 
   *corr = - (offset_register + fast_slew_remaining) + adjtime_left;
-  *err = 0.0;
+  *err = get_slow_slew_error(raw) + get_fast_slew_error(raw);
 
   return;
 }
@@ -701,6 +811,7 @@ get_version_specific_details(void)
   nominal_tick = (1000000L + (hz/2))/hz; /* Mirror declaration in kernel */
   slew_delta_tick = nominal_tick / 12;
   max_tick_bias = nominal_tick / 10;
+  tick_update_hz = hz;
 
   LOG(LOGS_INFO, LOGF_SysLinux, "set_config_hz=%d hz=%d shift_hz=%d basic_freq_scale=%.8f nominal_tick=%d slew_delta_tick=%d max_tick_bias=%d",
       set_config_hz, hz, shift_hz, basic_freq_scale, nominal_tick, slew_delta_tick, max_tick_bias);
@@ -815,6 +926,11 @@ get_version_specific_details(void)
           /* These don't need scaling */
           freq_scale = 1.0;
           have_readonly_adjtime = 2;
+          if (minor == 6 && patch < 33) {
+            /* Tickless kernels before 2.6.33 accumulated ticks only in
+               half-second intervals. */
+            tick_update_hz = 2;
+          }
           break;
         default:
           LOG_FATAL(LOGF_SysLinux, "Kernel version not supported yet, sorry.");
