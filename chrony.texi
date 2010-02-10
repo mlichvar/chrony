@@ -2002,7 +2002,7 @@ An example line (which actually appears as a single line in the file)
 from the refclocks log file is shown below.
 
 @example
-2009-11-30 14:33:27.000000 PPS2    7 N 1  4.900000e-07 -6.741777e-07
+2009-11-30 14:33:27.000000 PPS2    7 N 1  4.900000e-07 -6.741777e-07  1.000e-06
 @end example
 
 The columns are as follows (the quantities in square brackets are the
@@ -2030,6 +2030,8 @@ Local clock error measured by refclock driver. [4.900000e-07]
 @item
 Local clock error with applied corrections.  Positive indicates
 that the local clock is slow. [-6.741777e-07]
+@item
+Assumed dispersion of the sample. [1.000e-06]
 @end enumerate
 
 A banner is periodically written to the log file to indicate the

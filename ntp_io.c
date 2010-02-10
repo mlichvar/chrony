@@ -356,11 +356,11 @@ read_from_socket(void *anything)
 
     if (status == NTP_NORMAL_PACKET_SIZE) {
 
-      NSR_ProcessReceive((NTP_Packet *) &message.ntp_pkt, &now, &remote_addr);
+      NSR_ProcessReceive((NTP_Packet *) &message.ntp_pkt, &now, now_err, &remote_addr);
 
     } else if (status == sizeof(NTP_Packet)) {
 
-      NSR_ProcessAuthenticatedReceive((NTP_Packet *) &message.ntp_pkt, &now, &remote_addr);
+      NSR_ProcessAuthenticatedReceive((NTP_Packet *) &message.ntp_pkt, &now, now_err, &remote_addr);
 
     } else {
 

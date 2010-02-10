@@ -264,7 +264,7 @@ NSR_RemoveSource(NTP_Remote_Address *remote_addr)
 
 /* This routine is called by ntp_io when a new packet arrives off the network.*/
 void
-NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, NTP_Remote_Address *remote_addr)
+NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr)
 {
   int slot, found;
 
@@ -278,9 +278,9 @@ NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, NTP_Remote_Address 
   
   find_slot(remote_addr, &slot, &found);
   if (found == 2) { /* Must match IP address AND port number */
-    NCR_ProcessNoauthKnown(message, now, records[slot].data);
+    NCR_ProcessNoauthKnown(message, now, now_err, records[slot].data);
   } else {
-    NCR_ProcessNoauthUnknown(message, now, remote_addr);
+    NCR_ProcessNoauthUnknown(message, now, now_err, remote_addr);
   }
 }
 
@@ -288,7 +288,7 @@ NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, NTP_Remote_Address 
 
 /* This routine is called by ntp_io when a new packet with an authentication tail arrives off the network */
 void
-NSR_ProcessAuthenticatedReceive(NTP_Packet *message, struct timeval *now, NTP_Remote_Address *remote_addr)
+NSR_ProcessAuthenticatedReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr)
 {
   int slot, found;
 
@@ -296,9 +296,9 @@ NSR_ProcessAuthenticatedReceive(NTP_Packet *message, struct timeval *now, NTP_Re
 
   find_slot(remote_addr, &slot, &found);
   if (found == 2) {
-    NCR_ProcessAuthKnown(message, now, records[slot].data);
+    NCR_ProcessAuthKnown(message, now, now_err, records[slot].data);
   } else {
-    NCR_ProcessAuthUnknown(message, now, remote_addr);
+    NCR_ProcessAuthUnknown(message, now, now_err, remote_addr);
   }
 }
 

@@ -754,7 +754,7 @@ transmit_timeout(void *arg)
 /* ================================================== */
 
 static void
-receive_packet(NTP_Packet *message, struct timeval *now, NCR_Instance inst, int do_auth)
+receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Instance inst, int do_auth)
 {
   int pkt_leap;
   int source_is_synchronized;
@@ -928,7 +928,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, NCR_Instance inst, int 
     skew = source_freq_hi - source_freq_lo;
     
     /* and then calculate peer dispersion */
-    epsilon = LCL_GetSysPrecisionAsQuantum() + skew * local_interval;
+    epsilon = LCL_GetSysPrecisionAsQuantum() + now_err + skew * local_interval;
     
   } else {
     /* If test3 failed, we probably can't calculate these quantities
@@ -1318,6 +1318,7 @@ static void
 process_known
 (NTP_Packet *message,           /* the received message */
  struct timeval *now,           /* timestamp at time of receipt */
+ double now_err,
  NCR_Instance inst,             /* the instance record for this peer/server */
  int do_auth                   /* whether the received packet allegedly contains
                                    authentication info*/
@@ -1406,7 +1407,7 @@ process_known
         case MODE_ACTIVE:
           /* Ordinary symmetric peering */
           CLG_LogNTPPeerAccess(&inst->remote_addr.ip_addr, (time_t) now->tv_sec);
-          receive_packet(message, now, inst, do_auth);
+          receive_packet(message, now, now_err, inst, do_auth);
           break;
         case MODE_PASSIVE:
           /* In this software this case should not arise, we don't
@@ -1416,7 +1417,7 @@ process_known
           /* This is where we have the remote configured as a server and he has
              us configured as a peer - fair enough. */
           CLG_LogNTPPeerAccess(&inst->remote_addr.ip_addr, (time_t) now->tv_sec);
-          receive_packet(message, now, inst, do_auth);
+          receive_packet(message, now, now_err, inst, do_auth);
           break;
         case MODE_SERVER:
           /* Nonsense - we can't have a preconfigured server */
@@ -1437,14 +1438,14 @@ process_known
         case MODE_ACTIVE:
           /* Slightly bizarre combination, but we can still process it */
           CLG_LogNTPPeerAccess(&inst->remote_addr.ip_addr, (time_t) now->tv_sec);
-          receive_packet(message, now, inst, do_auth);
+          receive_packet(message, now, now_err, inst, do_auth);
           break;
         case MODE_PASSIVE:
           /* We have no passive peers in this software */
           break;
         case MODE_CLIENT:
           /* Standard case where he's a server and we're the client */
-          receive_packet(message, now, inst, do_auth);
+          receive_packet(message, now, now_err, inst, do_auth);
           break;
         case MODE_SERVER:
           /* RFC1305 error condition. */
@@ -1465,7 +1466,7 @@ process_known
           /* This would arise if we have the remote configured as a peer and
              he does not have us configured */
           CLG_LogNTPPeerAccess(&inst->remote_addr.ip_addr, (time_t) now->tv_sec);
-          receive_packet(message, now, inst, do_auth);
+          receive_packet(message, now, now_err, inst, do_auth);
           break;
         case MODE_PASSIVE:
           /* Error condition in RFC1305.  Also, we can't have any
@@ -1474,7 +1475,7 @@ process_known
           break;
         case MODE_CLIENT:
           /* This is a wierd combination - how could it arise? */
-          receive_packet(message, now, inst, do_auth);
+          receive_packet(message, now, now_err, inst, do_auth);
           break;
         case MODE_SERVER:
           /* Error condition in RFC1305 */
@@ -1507,10 +1508,10 @@ process_known
    and it relates to a source we have an ongoing protocol exchange with */
 
 void
-NCR_ProcessNoauthKnown(NTP_Packet *message, struct timeval *now, NCR_Instance inst)
+NCR_ProcessNoauthKnown(NTP_Packet *message, struct timeval *now, double now_err, NCR_Instance inst)
 {
 
-  process_known(message, now, inst, 0);
+  process_known(message, now, now_err, inst, 0);
 
 }
 
@@ -1519,7 +1520,7 @@ NCR_ProcessNoauthKnown(NTP_Packet *message, struct timeval *now, NCR_Instance in
    and we do not recognize its source */
 
 void
-NCR_ProcessNoauthUnknown(NTP_Packet *message, struct timeval *now, NTP_Remote_Address *remote_addr)
+NCR_ProcessNoauthUnknown(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr)
 {
 
   NTP_Mode his_mode;
@@ -1576,9 +1577,9 @@ NCR_ProcessNoauthUnknown(NTP_Packet *message, struct timeval *now, NTP_Remote_Ad
    exchange with */
 
 void
-NCR_ProcessAuthKnown(NTP_Packet *message, struct timeval *now, NCR_Instance data)
+NCR_ProcessAuthKnown(NTP_Packet *message, struct timeval *now, double now_err, NCR_Instance data)
 {
-  process_known(message, now, data, 1);
+  process_known(message, now, now_err, data, 1);
 
 }
 
@@ -1587,7 +1588,7 @@ NCR_ProcessAuthKnown(NTP_Packet *message, struct timeval *now, NCR_Instance data
    the network, and we do not recognize its source */
 
 void
-NCR_ProcessAuthUnknown(NTP_Packet *message, struct timeval *now, NTP_Remote_Address *remote_addr)
+NCR_ProcessAuthUnknown(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr)
 {
 
   NTP_Mode his_mode;
