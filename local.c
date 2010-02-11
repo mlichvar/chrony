@@ -123,13 +123,12 @@ calculate_sys_precision(void)
   if (!(best_dusec > 0)) {
     CROAK("best_dusec should be positive");
   }
+  precision_quantum = best_dusec * 1.0e-6;
   precision_log = 0;
   while (best_dusec < 500000) {
     precision_log--;
     best_dusec *= 2;
   }
-
-  precision_quantum = 1.0 / (double)(1<<(-precision_log));
 
   return;
 }
