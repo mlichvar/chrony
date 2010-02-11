@@ -33,6 +33,7 @@
 #include "util.h"
 #include "sources.h"
 #include "logging.h"
+#include "regress.h"
 #include "sched.h"
 #include "mkdirpp.h"
 
@@ -53,7 +54,10 @@ struct MedianFilter {
   int used;
   int last;
   struct FilterSample *samples;
-  int *sort_array;
+  int *selected;
+  double *x_data;
+  double *y_data;
+  double *w_data;
 };
 
 struct RCL_Instance_Record {
@@ -99,6 +103,7 @@ static void filter_fini(struct MedianFilter *filter);
 static void filter_reset(struct MedianFilter *filter);
 static void filter_add_sample(struct MedianFilter *filter, struct timeval *sample_time, double offset, double dispersion);
 static int filter_get_last_sample(struct MedianFilter *filter, struct timeval *sample_time, double *offset, double *dispersion);
+static int filter_select_samples(struct MedianFilter *filter);
 static int filter_get_sample(struct MedianFilter *filter, struct timeval *sample_time, double *offset, double *dispersion);
 static void filter_slew_samples(struct MedianFilter *filter, struct timeval *when, double dfreq, double doffset);
 static void filter_add_dispersion(struct MedianFilter *filter, double dispersion);
@@ -611,14 +616,20 @@ filter_init(struct MedianFilter *filter, int length)
   filter->used = 0;
   filter->last = -1;
   filter->samples = MallocArray(struct FilterSample, filter->length);
-  filter->sort_array = MallocArray(int, filter->length);
+  filter->selected = MallocArray(int, filter->length);
+  filter->x_data = MallocArray(double, filter->length);
+  filter->y_data = MallocArray(double, filter->length);
+  filter->w_data = MallocArray(double, filter->length);
 }
 
 static void
 filter_fini(struct MedianFilter *filter)
 {
   Free(filter->samples);
-  Free(filter->sort_array);
+  Free(filter->selected);
+  Free(filter->x_data);
+  Free(filter->y_data);
+  Free(filter->w_data);
 }
 
 static void
@@ -671,76 +682,128 @@ sample_compare(const void *a, const void *b)
   return 0;
 }
 
+int
+filter_select_samples(struct MedianFilter *filter)
+{
+  int i, j, k, o, from, to, *selected;
+  double min_dispersion;
+
+  if (filter->used < 1)
+    return 0;
+
+  selected = filter->selected;
+
+  for (i = 1, min_dispersion = filter->samples[0].dispersion; i < filter->used; i++) {
+    if (min_dispersion > filter->samples[i].dispersion)
+      min_dispersion = filter->samples[i].dispersion;
+  }
+
+  /* select samples with dispersion better than 1.5 * minimum */
+  for (i = j = 0; i < filter->used; i++) {
+    if (filter->samples[i].dispersion <= 1.5 * min_dispersion)
+      selected[j++] = i;
+  }
+
+  assert(j > 0);
+
+  /* and sort their indices by offset */
+  tmp_sorted_array = filter->samples;
+  qsort(selected, j, sizeof (int), sample_compare);
+
+  /* select half of the samples closest to the median */ 
+  if (j > 2) {
+    from = (j + 2) / 4;
+    to = j - from;
+  } else {
+    from = 0;
+    to = j;
+  }
+
+  /* mark unused samples and sort the rest from oldest to newest */
+
+  o = filter->used - filter->index - 1;
+
+  for (i = 0; i < from; i++)
+    selected[i] = -1;
+  for (; i < to; i++)
+    selected[i] = (selected[i] + o) % filter->used;
+  for (; i < filter->used; i++)
+    selected[i] = -1;
+
+  for (i = from; i < to; i++) {
+    j = selected[i];
+    selected[i] = -1;
+    while (j != -1 && selected[j] != j) {
+      k = selected[j];
+      selected[j] = j;
+      j = k;
+    }
+  }
+
+  for (i = j = 0, k = -1; i < filter->used; i++) {
+    if (selected[i] != -1)
+      selected[j++] = (selected[i] + filter->used - o) % filter->used;
+  }
+
+  return j;
+}
+
 static int
 filter_get_sample(struct MedianFilter *filter, struct timeval *sample_time, double *offset, double *dispersion)
 {
-  if (filter->used == 0)
+  struct FilterSample *s, *ls;
+  int i, n;
+  double x, y, d, e;
+
+  n = filter_select_samples(filter);
+
+  if (n < 1)
     return 0;
 
-  if (filter->used == 1) {
-    *sample_time = filter->samples[filter->index].sample_time;
-    *offset = filter->samples[filter->index].offset;
-    *dispersion = filter->samples[filter->index].dispersion;
-  } else {
-    struct FilterSample *s;
-    int i, j, from, to;
-    double x, x1, y, d, e, min_dispersion;
+  ls = &filter->samples[filter->selected[n - 1]];
 
-    /* find minimum dispersion */
-    for (i = 1, min_dispersion = filter->samples[0].dispersion; i < filter->used; i++) {
-      if (min_dispersion > filter->samples[i].dispersion)
-        min_dispersion = filter->samples[i].dispersion;
-    }
+  /* prepare data */
+  for (i = 0; i < n; i++) {
+    s = &filter->samples[filter->selected[i]];
 
-    /* select samples with dispersion better than 1.5 * minimum */
-    for (i = j = 0; i < filter->used; i++) {
-      if (filter->samples[i].dispersion <= 1.5 * min_dispersion)
-        filter->sort_array[j++] = i;
-    }
-
-    assert(j > 0);
-    
-    /* and sort their indexes by offset */
-    tmp_sorted_array = filter->samples;
-    qsort(filter->sort_array, j, sizeof (int), sample_compare);
-
-    /* select half of the samples closest to the median */ 
-    if (j > 2) {
-      from = (j + 2) / 4;
-      to = j - from;
-    } else {
-      from = 0;
-      to = j;
-    }
-
-    /* average offset and sample time */ 
-    for (i = from, x = y = 0.0; i < to; i++) {
-      s = &filter->samples[filter->sort_array[i]];
-#if 0
-      LOG(LOGS_INFO, LOGF_Refclock, "refclock averaging sample: offset %.9f dispersion %.9f [%s]",
-          s->offset, s->dispersion, UTI_TimevalToString(&filter->samples[i].sample_time));
-#endif
-      UTI_DiffTimevalsToDouble(&x1, &s->sample_time, &filter->samples[0].sample_time);
-      x += x1;
-      y += s->offset;
-    }
-
-    x /= to - from;
-    y /= to - from;
-
-    for (i = from, d = e = 0.0; i < to; i++) {
-      s = &filter->samples[filter->sort_array[i]];
-      d += (s->offset - y) * (s->offset - y);
-      e += s->dispersion;
-    }
-
-    d = sqrt(d / (to - from));
-    e /= to - from;
-
-    UTI_AddDoubleToTimeval(&filter->samples[0].sample_time, x, sample_time);
-    *offset = y;
-    *dispersion = d + e;
+    UTI_DiffTimevalsToDouble(&filter->x_data[i], &s->sample_time, &ls->sample_time);
+    filter->y_data[i] = s->offset;
+    filter->w_data[i] = s->dispersion;
   }
+
+  /* mean offset, sample time and sample dispersion */ 
+  for (i = 0, x = y = e = 0.0; i < n; i++) {
+    x += filter->x_data[i];
+    y += filter->y_data[i];
+    e += filter->w_data[i];
+  }
+  x /= n;
+  y /= n;
+  e /= n;
+
+  if (n >= 4) {
+    double b0, b1, s2, sb0, sb1;
+
+    /* set y axis to the mean sample time */
+    for (i = 0; i < n; i++)
+      filter->x_data[i] -= x;
+
+    /* make a linear fit and use the estimated standard deviation of intercept
+       as dispersion */
+    RGR_WeightedRegression(filter->x_data, filter->y_data, filter->w_data, n,
+        &b0, &b1, &s2, &sb0, &sb1);
+    d = sb0;
+  } else if (n >= 2) {
+    for (i = 0, d = 0.0; i < n; i++)
+      d += (filter->y_data[i] - y) * (filter->y_data[i] - y);
+    d = sqrt(d / (n - 1));
+  } else {
+    d = 0.0;
+  }
+
+  UTI_AddDoubleToTimeval(&ls->sample_time, x, sample_time);
+  *offset = y;
+  *dispersion = d + e;
 
   return 1;
 }
