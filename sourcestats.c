@@ -717,6 +717,19 @@ SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffs
 
 /* ================================================== */
 
+void 
+SST_AddDispersion(SST_Stats inst, double dispersion)
+{
+  int i;
+
+  for (i=0; i < inst->n_samples; i++) {
+    inst->root_dispersions[i] += dispersion;
+    inst->peer_dispersions[i] += dispersion;
+  }
+}
+
+/* ================================================== */
+
 double
 SST_PredictOffset(SST_Stats inst, struct timeval *when)
 {

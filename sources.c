@@ -130,6 +130,8 @@ static int selected_source_index; /* Which source index is currently
 static void
 slew_sources(struct timeval *raw, struct timeval *cooked, double dfreq, double afreq,
              double doffset, int is_step_change, void *anything);
+static void
+add_dispersion(double dispersion, void *anything);
 static char *
 source_to_string(SRC_Instance inst);
 
@@ -144,6 +146,7 @@ void SRC_Initialise(void) {
   initialised = 1;
 
   LCL_AddParameterChangeHandler(slew_sources, NULL);
+  LCL_AddDispersionNotifyHandler(add_dispersion, NULL);
 
   return;
 }
@@ -153,6 +156,7 @@ void SRC_Initialise(void) {
 void SRC_Finalise(void)
 {
   LCL_RemoveParameterChangeHandler(slew_sources, NULL);
+  LCL_RemoveDispersionNotifyHandler(add_dispersion, NULL);
   initialised = 0;
   return;
 }
@@ -805,6 +809,20 @@ slew_sources(struct timeval *raw,
     SST_SlewSamples(sources[i]->stats, cooked, dfreq, doffset);
   }
   
+}
+
+/* ================================================== */
+/* This routine is called when an indeterminate offset is introduced
+   into the local time. */
+
+static void
+add_dispersion(double dispersion, void *anything)
+{
+  int i;
+
+  for (i = 0; i < n_sources; i++) {
+    SST_AddDispersion(sources[i]->stats, dispersion);
+  }
 }
 
 /* ================================================== */

@@ -91,6 +91,7 @@ static int pps_stratum(RCL_Instance instance, struct timeval *tv);
 static void poll_timeout(void *arg);
 static void slew_samples(struct timeval *raw, struct timeval *cooked, double dfreq, double afreq,
              double doffset, int is_step_change, void *anything);
+static void add_dispersion(double dispersion, void *anything);
 static void log_sample(RCL_Instance instance, struct timeval *sample_time, int pulse, double raw_offset, double cooked_offset, double dispersion);
 
 static void filter_init(struct MedianFilter *filter, int length);
@@ -100,6 +101,7 @@ static void filter_add_sample(struct MedianFilter *filter, struct timeval *sampl
 static int filter_get_last_sample(struct MedianFilter *filter, struct timeval *sample_time, double *offset, double *dispersion);
 static int filter_get_sample(struct MedianFilter *filter, struct timeval *sample_time, double *offset, double *dispersion);
 static void filter_slew_samples(struct MedianFilter *filter, struct timeval *when, double dfreq, double doffset);
+static void filter_add_dispersion(struct MedianFilter *filter, double dispersion);
 
 void
 RCL_Initialise(void)
@@ -134,8 +136,10 @@ RCL_Finalise(void)
     Free(inst->driver_parameter);
   }
 
-  if (n_sources > 0)
+  if (n_sources > 0) {
     LCL_RemoveParameterChangeHandler(slew_samples, NULL);
+    LCL_RemoveDispersionNotifyHandler(add_dispersion, NULL);
+  }
 
   if (logfile)
     fclose(logfile);
@@ -250,8 +254,10 @@ RCL_StartRefclocks(void)
       inst->lock_ref = -1;
   }
 
-  if (n_sources > 0)
+  if (n_sources > 0) {
     LCL_AddParameterChangeHandler(slew_samples, NULL);
+    LCL_AddDispersionNotifyHandler(add_dispersion, NULL);
+  }
 }
 
 void
@@ -549,6 +555,15 @@ slew_samples(struct timeval *raw, struct timeval *cooked, double dfreq, double a
 }
 
 static void
+add_dispersion(double dispersion, void *anything)
+{
+  int i;
+
+  for (i = 0; i < n_sources; i++)
+    filter_add_dispersion(&refclocks[i].filter, dispersion);
+}
+
+static void
 log_sample(RCL_Instance instance, struct timeval *sample_time, int pulse, double raw_offset, double cooked_offset, double dispersion)
 {
   char sync_stats[4] = {'N', '+', '-', '?'};
@@ -750,5 +765,15 @@ filter_slew_samples(struct MedianFilter *filter, struct timeval *when, double df
     LOG(LOGS_INFO, LOGF_Refclock, "i=%d old_off=%.9f new_off=%.9f",
         i, prev_offset, filter->samples[i].offset);
 #endif
+  }
+}
+
+static void
+filter_add_dispersion(struct MedianFilter *filter, double dispersion)
+{
+  int i;
+
+  for (i = 0; i < filter->used; i++) {
+    filter->samples[i].dispersion += dispersion;
   }
 }

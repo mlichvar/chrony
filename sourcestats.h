@@ -125,6 +125,9 @@ SST_GetReferenceData(SST_Stats inst, struct timeval *now,
 
 extern void SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffset);
 
+/* This routine is called when an indeterminate offset is introduced
+   into the local time. */
+extern void SST_AddDispersion(SST_Stats inst, double dispersion);
 
 /* Predict the offset of the local clock relative to a given source at
    a given local cooked time. Positive indicates local clock is FAST
