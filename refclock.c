@@ -470,7 +470,8 @@ pps_stratum(RCL_Instance instance, struct timeval *tv)
 
   /* Or the current source is another PPS refclock */ 
   for (i = 0; i < n_sources; i++) {
-    if (refclocks[i].ref_id == ref_id && refclocks[i].pps_rate)
+    if (refclocks[i].ref_id == ref_id &&
+        refclocks[i].pps_rate && refclocks[i].lock_ref == -1)
       return stratum - 1;
   }
 
@@ -508,7 +509,7 @@ poll_timeout(void *arg)
           offset, dispersion, UTI_TimevalToString(&sample_time));
 #endif
 
-      if (inst->pps_rate)
+      if (inst->pps_rate && inst->lock_ref == -1)
         /* Handle special case when PPS is used with local stratum */
         stratum = pps_stratum(inst, &sample_time);
       else
