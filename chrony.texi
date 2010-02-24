@@ -1759,8 +1759,8 @@ rate, and any slews made, to a file called tracking.log.
 This option logs information about the system's real-time clock.
 
 @item refclocks
-This option logs the raw reference clock measurements to a file
-called refclocks.log.
+This option logs the raw and filtered reference clock measurements to
+a file called refclocks.log.
 @end table
 
 The files are written to the directory specified by the logdir
@@ -2017,16 +2017,18 @@ date/time pair is expressed in UTC, not the local time zone.
 @item
 Reference ID of refclock from which measurement comes. [PPS2]
 @item
-Sequence number of driver poll within one polling interval. [7]
+Sequence number of driver poll within one polling interval for raw
+samples, or @code{-} for filtered samples. [7]
 @item
 Leap status (@code{N} means normal, @code{+} means that the last minute
 of today has 61 seconds, @code{-} means that the last minute of the day
 has 59 seconds). [N]
 @item
 Flag indicating whether the sample comes from PPS source. (1 for yes,
-0 for no). [1]
+0 for no, or @code{-} for filtered sample). [1]
 @item
-Local clock error measured by refclock driver. [4.900000e-07]
+Local clock error measured by refclock driver, or @code{-} for
+filtered sample. [4.900000e-07]
 @item
 Local clock error with applied corrections.  Positive indicates
 that the local clock is slow. [-6.741777e-07]

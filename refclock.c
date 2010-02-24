@@ -96,7 +96,7 @@ static void poll_timeout(void *arg);
 static void slew_samples(struct timeval *raw, struct timeval *cooked, double dfreq, double afreq,
              double doffset, int is_step_change, void *anything);
 static void add_dispersion(double dispersion, void *anything);
-static void log_sample(RCL_Instance instance, struct timeval *sample_time, int pulse, double raw_offset, double cooked_offset, double dispersion);
+static void log_sample(RCL_Instance instance, struct timeval *sample_time, int filtered, int pulse, double raw_offset, double cooked_offset, double dispersion);
 
 static void filter_init(struct MedianFilter *filter, int length);
 static void filter_fini(struct MedianFilter *filter);
@@ -353,15 +353,14 @@ RCL_AddSample(RCL_Instance instance, struct timeval *sample_time, double offset,
   if (!valid_sample_time(instance, sample_time))
     return 0;
 
-#if 0
-  LOG(LOGS_INFO, LOGF_Refclock, "refclock sample offset=%.9f cooked=%.9f",
-      offset, offset - correction + instance->offset);
-#endif
-
   filter_add_sample(&instance->filter, &cooked_time, offset - correction + instance->offset, dispersion);
   instance->leap_status = leap_status;
 
-  log_sample(instance, &cooked_time, 0, offset, offset - correction + instance->offset, dispersion);
+  log_sample(instance, &cooked_time, 0, 0, offset, offset - correction + instance->offset, dispersion);
+
+  /* for logging purposes */
+  if (!instance->driver->poll)
+    instance->driver_polled++;
 
   return 1;
 }
@@ -443,15 +442,14 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
     }
   }
 
-#if 0
-  LOG(LOGS_INFO, LOGF_Refclock, "refclock pulse second=%.9f offset=%.9f",
-      second, offset);
-#endif
-
   filter_add_sample(&instance->filter, &cooked_time, offset, dispersion);
   instance->leap_status = LEAP_Normal;
 
-  log_sample(instance, &cooked_time, 1, second, offset, dispersion);
+  log_sample(instance, &cooked_time, 0, 1, second, offset, dispersion);
+
+  /* for logging purposes */
+  if (!instance->driver->poll)
+    instance->driver_polled++;
 
   return 1;
 }
@@ -532,11 +530,6 @@ poll_timeout(void *arg)
     inst->driver_polled = 0;
 
     if (sample_ok) {
-#if 0
-      LOG(LOGS_INFO, LOGF_Refclock, "refclock filtered sample: offset=%.9f dispersion=%.9f [%s]",
-          offset, dispersion, UTI_TimevalToString(&sample_time));
-#endif
-
       if (inst->pps_rate && inst->lock_ref == -1)
         /* Handle special case when PPS is used with local stratum */
         stratum = pps_stratum(inst, &sample_time);
@@ -546,6 +539,8 @@ poll_timeout(void *arg)
       SRC_SetReachable(inst->source);
       SRC_AccumulateSample(inst->source, &sample_time, offset,
           inst->delay, dispersion, inst->delay, dispersion, stratum, inst->leap_status);
+
+      log_sample(inst, &sample_time, 1, 0, 0.0, offset, dispersion);
       inst->missed_samples = 0;
     } else {
       inst->missed_samples++;
@@ -582,7 +577,7 @@ add_dispersion(double dispersion, void *anything)
 }
 
 static void
-log_sample(RCL_Instance instance, struct timeval *sample_time, int pulse, double raw_offset, double cooked_offset, double dispersion)
+log_sample(RCL_Instance instance, struct timeval *sample_time, int filtered, int pulse, double raw_offset, double cooked_offset, double dispersion)
 {
   char sync_stats[4] = {'N', '+', '-', '?'};
 
@@ -605,7 +600,9 @@ log_sample(RCL_Instance instance, struct timeval *sample_time, int pulse, double
         "   Date (UTC) Time         Refid  DP L P  Raw offset   Cooked offset      Disp.\n"
         "===============================================================================\n");
   }
-  fprintf(logfile, "%s.%06d %-5s %3d %1c %1d %13.6e %13.6e %10.3e\n",
+
+  if (!filtered) {
+    fprintf(logfile, "%s.%06d %-5s %3d %1c %1d %13.6e %13.6e %10.3e\n",
       UTI_TimeToLogForm(sample_time->tv_sec),
       (int)sample_time->tv_usec,
       UTI_RefidToString(instance->ref_id),
@@ -615,6 +612,15 @@ log_sample(RCL_Instance instance, struct timeval *sample_time, int pulse, double
       raw_offset,
       cooked_offset,
       dispersion);
+  } else {
+    fprintf(logfile, "%s.%06d %-5s   - %1c -       -       %13.6e %10.3e\n",
+      UTI_TimeToLogForm(sample_time->tv_sec),
+      (int)sample_time->tv_usec,
+      UTI_RefidToString(instance->ref_id),
+      sync_stats[instance->leap_status],
+      cooked_offset,
+      dispersion);
+  }
   fflush(logfile);
 }
 
