@@ -210,9 +210,6 @@ RCL_AddRefclock(RefclockParameters *params)
     inst->pps_rate = 0;
   }
 
-  if (inst->driver_poll > inst->poll)
-    inst->driver_poll = inst->poll;
-
   if (params->ref_id)
     inst->ref_id = params->ref_id;
   else {
@@ -220,6 +217,22 @@ RCL_AddRefclock(RefclockParameters *params)
 
     snprintf((char *)ref, 5, "%3s%d", params->driver_name, n_sources % 10);
     inst->ref_id = ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
+  }
+
+  if (inst->driver->poll) {
+    int max_samples;
+
+    if (inst->driver_poll > inst->poll)
+      inst->driver_poll = inst->poll;
+
+    max_samples = 1 << (inst->poll - inst->driver_poll);
+    if (max_samples < params->filter_length) {
+      if (max_samples < 4) {
+        LOG(LOGS_WARN, LOGF_Refclock, "Setting filter length for %s to %d",
+            UTI_RefidToString(inst->ref_id), max_samples);
+      }
+      params->filter_length = max_samples;
+    }
   }
 
   if (inst->driver->init)
@@ -691,28 +704,46 @@ filter_select_samples(struct MedianFilter *filter)
   if (filter->used < 1)
     return 0;
 
+  /* for lengths below 4 require full filter,
+     for 4 and above require at least 4 samples */
+  if ((filter->length < 4 && filter->used != filter->length) ||
+      (filter->length >= 4 && filter->used < 4))
+    return 0;
+
   selected = filter->selected;
 
-  for (i = 1, min_dispersion = filter->samples[0].dispersion; i < filter->used; i++) {
-    if (min_dispersion > filter->samples[i].dispersion)
-      min_dispersion = filter->samples[i].dispersion;
+  if (filter->used > 4) {
+    /* select samples with dispersion better than 1.5 * minimum */
+
+    for (i = 1, min_dispersion = filter->samples[0].dispersion; i < filter->used; i++) {
+      if (min_dispersion > filter->samples[i].dispersion)
+        min_dispersion = filter->samples[i].dispersion;
+    }
+
+    for (i = j = 0; i < filter->used; i++) {
+      if (filter->samples[i].dispersion <= 1.5 * min_dispersion)
+        selected[j++] = i;
+    }
+  } else {
+    j = 0;
   }
 
-  /* select samples with dispersion better than 1.5 * minimum */
-  for (i = j = 0; i < filter->used; i++) {
-    if (filter->samples[i].dispersion <= 1.5 * min_dispersion)
-      selected[j++] = i;
-  }
+  if (j < 4) {
+    /* select all samples */
 
-  assert(j > 0);
+    for (j = 0; j < filter->used; j++)
+      selected[j] = j;
+  }
 
   /* and sort their indices by offset */
   tmp_sorted_array = filter->samples;
   qsort(selected, j, sizeof (int), sample_compare);
 
-  /* select half of the samples closest to the median */ 
+  /* select 60 percent of the samples closest to the median */ 
   if (j > 2) {
-    from = (j + 2) / 4;
+    from = j / 5;
+    if (from < 1)
+      from = 1;
     to = j - from;
   } else {
     from = 0;

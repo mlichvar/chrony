@@ -448,7 +448,7 @@ parse_refclock(const char *line)
 
   poll = 4;
   dpoll = 0;
-  filter_length = 15;
+  filter_length = 64;
   pps_rate = 0;
   offset = 0.0;
   delay = 1e-9;

@@ -2287,9 +2287,11 @@ driver name and the number of the refclock are used as refid.  Each
 refclock has to use an unique refid.
 @item filter
 This option sets the length of the median filter which is used to
-reduce noise.  With each poll about half of the stored samples are
+reduce noise.  With each poll about 40 percent of the stored samples is
 discarded and one final sample is calculated as average of the
-remaining samples.  The default is 15.
+remaining samples.  If the length is 4 or above, at least 4 samples
+have to be collected between polls.  For lengths below 4, the filter
+has to be full.  The default is 64.
 @item rate
 PPS signal frequency (in Hz).  This option only controls how the
 received pulses are aligned.  To actually receive more than one
