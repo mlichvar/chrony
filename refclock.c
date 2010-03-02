@@ -53,6 +53,8 @@ struct MedianFilter {
   int index;
   int used;
   int last;
+  int avg_var_n;
+  double avg_var;
   struct FilterSample *samples;
   int *selected;
   double *x_data;
@@ -101,6 +103,7 @@ static void log_sample(RCL_Instance instance, struct timeval *sample_time, int f
 static void filter_init(struct MedianFilter *filter, int length);
 static void filter_fini(struct MedianFilter *filter);
 static void filter_reset(struct MedianFilter *filter);
+static double filter_get_avg_sample_dispersion(struct MedianFilter *filter);
 static void filter_add_sample(struct MedianFilter *filter, struct timeval *sample_time, double offset, double dispersion);
 static int filter_get_last_sample(struct MedianFilter *filter, struct timeval *sample_time, double *offset, double *dispersion);
 static int filter_select_samples(struct MedianFilter *filter);
@@ -348,7 +351,7 @@ RCL_AddSample(RCL_Instance instance, struct timeval *sample_time, double offset,
 
   LCL_GetOffsetCorrection(sample_time, &correction, &dispersion);
   UTI_AddDoubleToTimeval(sample_time, correction, &cooked_time);
-  dispersion += LCL_GetSysPrecisionAsQuantum();
+  dispersion += LCL_GetSysPrecisionAsQuantum() + filter_get_avg_sample_dispersion(&instance->filter);
 
   if (!valid_sample_time(instance, sample_time))
     return 0;
@@ -374,7 +377,7 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
 
   LCL_GetOffsetCorrection(pulse_time, &correction, &dispersion);
   UTI_AddDoubleToTimeval(pulse_time, correction, &cooked_time);
-  dispersion += LCL_GetSysPrecisionAsQuantum();
+  dispersion += LCL_GetSysPrecisionAsQuantum() + filter_get_avg_sample_dispersion(&instance->filter);
 
   if (!valid_sample_time(instance, pulse_time))
     return 0;
@@ -526,7 +529,6 @@ poll_timeout(void *arg)
     int sample_ok, stratum;
 
     sample_ok = filter_get_sample(&inst->filter, &sample_time, &offset, &dispersion);
-    filter_reset(&inst->filter);
     inst->driver_polled = 0;
 
     if (sample_ok) {
@@ -634,6 +636,9 @@ filter_init(struct MedianFilter *filter, int length)
   filter->index = -1;
   filter->used = 0;
   filter->last = -1;
+  /* set first estimate to system precision */
+  filter->avg_var_n = 0;
+  filter->avg_var = LCL_GetSysPrecisionAsQuantum() * LCL_GetSysPrecisionAsQuantum();
   filter->samples = MallocArray(struct FilterSample, filter->length);
   filter->selected = MallocArray(int, filter->length);
   filter->x_data = MallocArray(double, filter->length);
@@ -656,6 +661,12 @@ filter_reset(struct MedianFilter *filter)
 {
   filter->index = -1;
   filter->used = 0;
+}
+
+static double
+filter_get_avg_sample_dispersion(struct MedianFilter *filter)
+{
+  return sqrt(filter->avg_var);
 }
 
 static void
@@ -789,8 +800,8 @@ static int
 filter_get_sample(struct MedianFilter *filter, struct timeval *sample_time, double *offset, double *dispersion)
 {
   struct FilterSample *s, *ls;
-  int i, n;
-  double x, y, d, e;
+  int i, n, dof;
+  double x, y, d, e, var, prev_avg_var;
 
   n = filter_select_samples(filter);
 
@@ -818,6 +829,8 @@ filter_get_sample(struct MedianFilter *filter, struct timeval *sample_time, doub
   y /= n;
   e /= n;
 
+  e -= sqrt(filter->avg_var);
+
   if (n >= 4) {
     double b0, b1, s2, sb0, sb1;
 
@@ -829,18 +842,53 @@ filter_get_sample(struct MedianFilter *filter, struct timeval *sample_time, doub
        as dispersion */
     RGR_WeightedRegression(filter->x_data, filter->y_data, filter->w_data, n,
         &b0, &b1, &s2, &sb0, &sb1);
+    var = s2;
     d = sb0;
+    dof = n - 2;
   } else if (n >= 2) {
     for (i = 0, d = 0.0; i < n; i++)
       d += (filter->y_data[i] - y) * (filter->y_data[i] - y);
-    d = sqrt(d / (n - 1));
+    var = d / (n - 1);
+    d = sqrt(var);
+    dof = n - 1;
   } else {
-    d = 0.0;
+    var = filter->avg_var;
+    d = sqrt(var);
+    dof = 1;
   }
+
+  /* avoid having zero dispersion */
+  if (var < 1e-20) {
+    var = 1e-20;
+    d = sqrt(var);
+  }
+
+  prev_avg_var = filter->avg_var;
+
+  /* update exponential moving average of the variance */
+  if (filter->avg_var_n > 100) {
+    filter->avg_var += dof / (dof + 100.0) * (var - filter->avg_var);
+  } else {
+    filter->avg_var = (filter->avg_var * filter->avg_var_n + var * dof) /
+      (dof + filter->avg_var_n);
+    if (filter->avg_var_n == 0)
+      prev_avg_var = filter->avg_var;
+    filter->avg_var_n += dof;
+  }
+
+  /* reduce noise in sourcestats weights by using the long-term average
+     instead of the estimated variance if it's not significantly lower */
+  if (var * dof / RGR_GetChi2Coef(dof) < prev_avg_var)
+    d = sqrt(filter->avg_var) * d / sqrt(var);
+
+  if (d < e)
+    d = e;
 
   UTI_AddDoubleToTimeval(&ls->sample_time, x, sample_time);
   *offset = y;
-  *dispersion = d + e;
+  *dispersion = d;
+
+  filter_reset(filter);
 
   return 1;
 }
