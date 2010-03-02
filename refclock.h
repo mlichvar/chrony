@@ -42,6 +42,7 @@ typedef struct {
   unsigned long lock_ref_id;
   double offset;
   double delay;
+  double precision;
 } RefclockParameters;
 
 typedef struct RCL_Instance_Record *RCL_Instance;

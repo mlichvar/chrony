@@ -2315,6 +2315,9 @@ to be inaccurate (in seconds).  Increasing the value is useful to
 avoid having no majority in the source selection algorithm or to make
 the algorithm prefer other refclocks.  The default is 1e-9 (1
 nanosecond).
+@item precision
+Refclock precision (in seconds).  The default is 1e-6 (1 microsecond)
+for SHM refclock, and 1e-9 (1 nanosecond) for SOCK and PPS refclocks.
 @end table
 
 @c }}}

@@ -78,6 +78,7 @@ struct RCL_Instance_Record {
   unsigned long lock_ref;
   double offset;
   double delay;
+  double precision;
   SCH_TimeoutID timeout_id;
   SRC_Instance source;
 };
@@ -166,11 +167,14 @@ RCL_AddRefclock(RefclockParameters *params)
 
   if (strncmp(params->driver_name, "SHM", 4) == 0) {
     inst->driver = &RCL_SHM_driver;
+    inst->precision = 1e-6;
   } else if (strncmp(params->driver_name, "SOCK", 4) == 0) {
     inst->driver = &RCL_SOCK_driver;
+    inst->precision = 1e-9;
     pps_source = 1;
   } else if (strncmp(params->driver_name, "PPS", 4) == 0) {
     inst->driver = &RCL_PPS_driver;
+    inst->precision = 1e-9;
     pps_source = 1;
   } else {
     LOG_FATAL(LOGF_Refclock, "unknown refclock driver %s", params->driver_name);
@@ -194,6 +198,8 @@ RCL_AddRefclock(RefclockParameters *params)
   inst->lock_ref = params->lock_ref_id;
   inst->offset = params->offset;
   inst->delay = params->delay;
+  if (params->precision > 0.0)
+    inst->precision = params->precision;
   inst->timeout_id = -1;
   inst->source = NULL;
 
@@ -351,7 +357,7 @@ RCL_AddSample(RCL_Instance instance, struct timeval *sample_time, double offset,
 
   LCL_GetOffsetCorrection(sample_time, &correction, &dispersion);
   UTI_AddDoubleToTimeval(sample_time, correction, &cooked_time);
-  dispersion += LCL_GetSysPrecisionAsQuantum() + filter_get_avg_sample_dispersion(&instance->filter);
+  dispersion += instance->precision + filter_get_avg_sample_dispersion(&instance->filter);
 
   if (!valid_sample_time(instance, sample_time))
     return 0;
@@ -377,7 +383,7 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
 
   LCL_GetOffsetCorrection(pulse_time, &correction, &dispersion);
   UTI_AddDoubleToTimeval(pulse_time, correction, &cooked_time);
-  dispersion += LCL_GetSysPrecisionAsQuantum() + filter_get_avg_sample_dispersion(&instance->filter);
+  dispersion += instance->precision + filter_get_avg_sample_dispersion(&instance->filter);
 
   if (!valid_sample_time(instance, pulse_time))
     return 0;
