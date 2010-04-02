@@ -104,4 +104,6 @@ extern void NCR_IncrementActivityCounters(NCR_Instance inst, int *online, int *o
 
 extern NTP_Remote_Address *NCR_GetRemoteAddress(NCR_Instance instance);
 
+extern int NCR_IsSyncPeer(NCR_Instance instance);
+
 #endif /* GOT_NTP_CORE_H */

@@ -355,18 +355,27 @@ NSR_TakeSourcesOnline(IPAddr *mask, IPAddr *address)
 int
 NSR_TakeSourcesOffline(IPAddr *mask, IPAddr *address)
 {
-  int i;
-  int any;
+  int i, any, syncpeer;
 
   any = 0;
+  syncpeer = -1;
   for (i=0; i<N_RECORDS; i++) {
     if (records[i].remote_addr) {
       if (address->family == IPADDR_UNSPEC ||
           !UTI_CompareIPs(&records[i].remote_addr->ip_addr, address, mask)) {
         any = 1;
+        if (NCR_IsSyncPeer(records[i].data)) {
+          syncpeer = i;
+          continue;
+        }
         NCR_TakeSourceOffline(records[i].data);
       }
     }
+  }
+
+  /* Take sync peer offline as last to avoid reference switching */
+  if (syncpeer >= 0) {
+    NCR_TakeSourceOffline(records[syncpeer].data);
   }
 
   return any;

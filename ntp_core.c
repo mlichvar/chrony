@@ -1709,6 +1709,8 @@ NCR_TakeSourceOffline(NCR_Instance inst)
         SCH_RemoveTimeout(inst->timeout_id);
         inst->timer_running = 0;
         inst->opmode = MD_OFFLINE;
+        /* Mark source unreachable */
+        SRC_UnsetReachable(inst->source);
       }
       break;
     case MD_OFFLINE:
@@ -1920,6 +1922,13 @@ NTP_Remote_Address *
 NCR_GetRemoteAddress(NCR_Instance inst) 
 {
   return &inst->remote_addr;
+}
+
+/* ================================================== */
+
+int NCR_IsSyncPeer(NCR_Instance inst)
+{
+  return SRC_IsSyncPeer(inst->source);
 }
 
 /* ================================================== */
