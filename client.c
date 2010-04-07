@@ -1483,21 +1483,26 @@ print_seconds(unsigned long s)
 static void
 print_nanoseconds(double s)
 {
-  unsigned long ms, ns;
+  s = fabs(s);
 
-  ns = s * 1e9 + 0.5;
-  ms = s * 1e3 + 0.5;
-
-  if (ns <= 9999) {
-    printf("%4ldns", ns);
-  } else if (ns <= 9999499) {
-    printf("%4ldus", (ns + 500) / 1000);
-  } else if (ms <= 9999) {
-    printf("%4ldms", ms);
-  } else if (ms <= 999949) {
-    printf("%3ld.%01lds", (ms + 50) / 1000, ((ms + 50) / 100) % 10);
+  if (s < 9999.5e-9) {
+    printf("%4.0fns", s * 1e9);
+  } else if (s < 9999.5e-6) {
+    printf("%4.0fus", s * 1e6);
+  } else if (s < 9999.5e-3) {
+    printf("%4.0fms", s * 1e3);
+  } else if (s < 999.5) {
+    printf("%5.1fs", s);
+  } else if (s < 99999.5) {
+    printf("%5.0fs", s);
+  } else if (s < 99999.5 * 60) {
+    printf("%5.0fm", s / 60);
+  } else if (s < 99999.5 * 3600) {
+    printf("%5.0fh", s / 3600);
+  } else if (s < 99999.5 * 3600 * 24) {
+    printf("%5.0fd", s / (3600 * 24));
   } else {
-    printf("%5lds", (ms + 500) / 1000);
+    printf("%5.0fy", s / (3600 * 24 * 365));
   }
 }
 
@@ -1506,26 +1511,40 @@ print_nanoseconds(double s)
 static void
 print_signed_nanoseconds(double s)
 {
-  long ms, ns, sign;
+  double x;
 
-  if (s >= 0.0) {
-    ns = s * 1e9 + 0.5;
-    ms = s * 1e3 + 0.5;
-    sign = 1;
+  x = fabs(s);
+
+  if (x < 9999.5e-9) {
+    printf("%+5.0fns", s * 1e9);
+  } else if (x < 9999.5e-6) {
+    printf("%+5.0fus", s * 1e6);
+  } else if (x < 9999.5e-3) {
+    printf("%+5.0fms", s * 1e3);
+  } else if (x < 999.5) {
+    printf("%+6.1fs", s);
+  } else if (x < 99999.5) {
+    printf("%+6.0fs", s);
+  } else if (x < 99999.5 * 60) {
+    printf("%+6.0fm", s / 60);
+  } else if (x < 99999.5 * 3600) {
+    printf("%+6.0fh", s / 3600);
+  } else if (x < 99999.5 * 3600 * 24) {
+    printf("%+6.0fd", s / (3600 * 24));
   } else {
-    ns = -s * 1e9 + 0.5;
-    ms = -s * 1e3 + 0.5;
-    sign = -1;
+    printf("%+6.0fy", s / (3600 * 24 * 365));
   }
+}
 
-  if (ns <= 9999) {
-    printf("%+5ldns", ns * sign);
-  } else if (ns <= 9999499) {
-    printf("%+5ldus", (ns + 500) / 1000 * sign);
-  } else if (ms <= 9999) {
-    printf("%+5ldms", ms * sign);
+/* ================================================== */
+
+static void
+print_freq_ppm(double f)
+{
+  if (fabs(f) < 99999.5) {
+    printf("%10.3f", f);
   } else {
-    printf("%+6lds", (ms + 500) / 1000 * sign);
+    printf("%10.0f", f);
   }
 }
 
@@ -1713,7 +1732,11 @@ process_cmd_sourcestats(char *line)
 
           printf("%-25s  %2lu  %2lu  ", hostname_buf, n_samples, n_runs);
           print_seconds(span_seconds);
-          printf(" %10.3f %10.3f  ", resid_freq_ppm, skew_ppm);
+          printf(" ");
+          print_freq_ppm(resid_freq_ppm);
+          printf(" ");
+          print_freq_ppm(skew_ppm);
+          printf("  ");
           print_signed_nanoseconds(est_offset);
           printf("  ");
           print_nanoseconds(sd);
