@@ -37,6 +37,7 @@
 #include "conf.h"
 #include "logging.h"
 #include "local.h"
+#include "sched.h"
 
 /* ================================================== */
 
@@ -88,6 +89,27 @@ static LOG_FileID logfileid;
 
 /* Reference ID supplied when we are locally referenced */
 #define LOCAL_REFERENCE_ID 0x7f7f0101UL
+
+/* ================================================== */
+
+/* Exponential moving averages of absolute clock frequencies
+   used as a fallback when synchronisation is lost. */
+
+struct fb_drift {
+  double freq;
+  double secs;
+};
+
+static int fb_drift_min;
+static int fb_drift_max;
+
+static struct fb_drift *fb_drifts = NULL;
+static int next_fb_drift;
+static SCH_TimeoutID fb_drift_timeout_id;
+
+/* Timestamp of last reference update */
+static struct timeval last_ref_update;
+static double last_ref_update_interval;
 
 /* ================================================== */
 
@@ -150,6 +172,18 @@ REF_Initialise(void)
   CNF_GetLogChange(&do_log_change, &log_change_threshold);
   CNF_GetMailOnChange(&do_mail_change, &mail_change_threshold, &mail_change_user);
 
+  CNF_GetFallbackDrifts(&fb_drift_min, &fb_drift_max);
+
+  if (fb_drift_max >= fb_drift_min && fb_drift_min > 0) {
+    fb_drifts = MallocArray(struct fb_drift, fb_drift_max - fb_drift_min + 1);
+    memset(fb_drifts, 0, sizeof (struct fb_drift) * (fb_drift_max - fb_drift_min + 1));
+    next_fb_drift = 0;
+    fb_drift_timeout_id = -1;
+    last_ref_update.tv_sec = 0;
+    last_ref_update.tv_usec = 0;
+    last_ref_update_interval = 0;
+  }
+
   /* And just to prevent anything wierd ... */
   if (do_log_change) {
     log_change_threshold = fabs(log_change_threshold);
@@ -166,6 +200,8 @@ REF_Finalise(void)
   if (our_leap_sec) {
     LCL_SetLeap(0);
   }
+
+  Free(fb_drifts);
 
   initialised = 0;
   return;
@@ -242,6 +278,117 @@ update_drift_file(double freq_ppm, double skew)
   }
 
   Free(temp_drift_file);
+}
+
+/* ================================================== */
+
+static void
+update_fb_drifts(double freq_ppm, double update_interval)
+{
+  int i, secs;
+
+  assert(are_we_synchronised);
+
+  if (next_fb_drift > 0) {
+#if 0
+    /* Reset drifts that were used when we were unsynchronised */
+    for (i = 0; i < next_fb_drift - fb_drift_min; i++)
+      fb_drifts[i].secs = 0.0;
+#endif
+    next_fb_drift = 0;
+  }
+
+  if (fb_drift_timeout_id != -1) {
+    SCH_RemoveTimeout(fb_drift_timeout_id);
+    fb_drift_timeout_id = -1;
+  }
+
+  if (update_interval < 0.0 || update_interval > last_ref_update_interval * 4.0)
+    return;
+
+  for (i = 0; i < fb_drift_max - fb_drift_min + 1; i++) {
+    /* Don't allow differences larger than 10 ppm */
+    if (fabs(freq_ppm - fb_drifts[i].freq) > 10.0)
+      fb_drifts[i].secs = 0.0;
+
+    secs = 1 << (i + fb_drift_min);
+    if (fb_drifts[i].secs < secs) {
+      /* Calculate average over 2 * secs interval before switching to
+         exponential updating */
+      fb_drifts[i].freq = (fb_drifts[i].freq * fb_drifts[i].secs +
+          update_interval * 0.5 * freq_ppm) / (update_interval * 0.5 + fb_drifts[i].secs);
+      fb_drifts[i].secs += update_interval * 0.5;
+    } else {
+      /* Update exponential moving average. The smoothing factor for update
+         interval equal to secs is about 0.63, for half interval about 0.39,
+         for double interval about 0.86. */
+      fb_drifts[i].freq += (1 - 1.0 / exp(update_interval / secs)) *
+        (freq_ppm - fb_drifts[i].freq);
+    }
+
+#if 0
+    LOG(LOGS_INFO, LOGF_Reference, "Fallback drift %d updated: %f ppm %f seconds",
+        i + fb_drift_min, fb_drifts[i].freq, fb_drifts[i].secs);
+#endif
+  }
+}
+
+/* ================================================== */
+
+static void
+fb_drift_timeout(void *arg)
+{
+  assert(are_we_synchronised == 0);
+  assert(next_fb_drift >= fb_drift_min && next_fb_drift <= fb_drift_max);
+
+  fb_drift_timeout_id = -1;
+
+  LCL_SetAbsoluteFrequency(fb_drifts[next_fb_drift - fb_drift_min].freq);
+  REF_SetUnsynchronised();
+}
+
+/* ================================================== */
+
+static void
+schedule_fb_drift(struct timeval *now)
+{
+  int i, c, secs;
+  double unsynchronised;
+  struct timeval when;
+
+  if (fb_drift_timeout_id != -1)
+    return; /* already scheduled */
+
+  UTI_DiffTimevalsToDouble(&unsynchronised, now, &last_ref_update);
+
+  for (c = 0, i = fb_drift_min; i <= fb_drift_max; i++) {
+    secs = 1 << i;
+
+    if (fb_drifts[i - fb_drift_min].secs < secs)
+      continue;
+
+    if (unsynchronised < secs && i > next_fb_drift)
+      break;
+
+    c = i;
+  }
+
+  if (c > next_fb_drift) {
+    LCL_SetAbsoluteFrequency(fb_drifts[c - fb_drift_min].freq);
+    next_fb_drift = c;
+#if 0
+    LOG(LOGS_INFO, LOGF_Reference, "Fallback drift %d set", c);
+#endif
+  }
+
+  if (i <= fb_drift_max) {
+    next_fb_drift = i;
+    UTI_AddDoubleToTimeval(now, secs - unsynchronised, &when);
+    fb_drift_timeout_id = SCH_AddTimeout(&when, fb_drift_timeout, NULL);
+#if 0
+    LOG(LOGS_INFO, LOGF_Reference, "Fallback drift %d scheduled", i);
+#endif
+  }
 }
 
 /* ================================================== */
@@ -487,6 +634,17 @@ REF_SetReference(int stratum,
     update_drift_file(abs_freq_ppm, our_skew);
   }
 
+  /* Update fallback drifts */
+  if (fb_drifts) {
+    double update_interval;
+
+    UTI_DiffTimevalsToDouble(&update_interval, ref_time, &last_ref_update);
+
+    update_fb_drifts(abs_freq_ppm, update_interval);
+    last_ref_update = *ref_time;
+    last_ref_update_interval = update_interval;
+  }
+
   /* And now set the freq and offset to zero */
   our_frequency = 0.0;
   our_offset = 0.0;
@@ -544,6 +702,10 @@ REF_SetUnsynchronised(void)
   assert(initialised);
 
   LCL_ReadCookedTime(&now, NULL);
+
+  if (fb_drifts) {
+    schedule_fb_drift(&now);
+  }
 
   write_log(&now,
             "0.0.0.0",

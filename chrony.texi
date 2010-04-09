@@ -1175,6 +1175,7 @@ directives can occur in any order in the file.
 * driftfile directive::         Specify location of file containing drift data
 * dumpdir directive::           Specify directory for dumping measurements
 * dumponexit directive::        Dump measurements when daemon exits
+* fallbackdrift directive::     Specify fallback drift intervals
 * initstepslew directive::      Trim the system clock on boot-up.
 * keyfile directive::           Specify location of file containing keys
 * linux_hz directive::          Define a non-standard value of the kernel HZ constant
@@ -1562,6 +1563,34 @@ A source whose reference id (the IP address for IPv4 sources) is
 If this command is present, it indicates that @code{chronyd} should save
 the measurement history for each of its time sources recorded whenever
 the program exits.  (See the dumpdir command above).
+@c }}}
+@c {{{ fallbackdrift
+@node fallbackdrift directive
+@subsection fallbackdrift
+Fallback drifts are long-term averages of the system clock drift
+calculated over exponentially increasing intervals.  They are used
+when the clock is unsynchronised to avoid quickly drifting away from
+true time if there was a short-term deviation in drift before the
+synchronisation was lost.
+
+The directive specifies the minimum and maximum interval for how long
+the system clock has to be unsynchronised to switch between fallback
+drifts.  They are defined as a power of 2 (in seconds).  The syntax is
+as follows
+
+@example
+fallbackdrift 16 19
+@end example
+
+In this example, the minimum interval is 16 (18 hours) and maximum
+interval is 19 (6 days).  The system clock frequency will be set to
+the first fallback 18 hours after the synchronisation was lost, to the
+second after 36 hours, etc.  This might be a good setting to cover
+daily and weekly temperature fluctuations.
+
+By default (or if the specified maximum or minimum is 0), no fallbacks
+will be used and the clock frequency will stay at the last value
+calculated before synchronisation was lost.
 @c }}}
 @c {{{ initstepslew
 @node initstepslew directive

@@ -92,6 +92,7 @@ static void parse_cmdport(const char *);
 static void parse_rtconutc(const char *);
 static void parse_noclientlog(const char *);
 static void parse_clientloglimit(const char *);
+static void parse_fallbackdrift(const char *);
 static void parse_makestep(const char *);
 static void parse_logchange(const char *);
 static void parse_mailonchange(const char *);
@@ -166,6 +167,10 @@ static int no_client_log = 0;
 /* Limit memory allocated for the clients log */
 static unsigned long client_log_limit = 524288;
 
+/* Minimum and maximum fallback drift intervals */
+static int fb_drift_min = 0;
+static int fb_drift_max = 0;
+
 /* IP addresses for binding the NTP socket to.  UNSPEC family means INADDR_ANY
    will be used */
 static IPAddr bind_address4, bind_address6;
@@ -225,6 +230,7 @@ static const Command commands[] = {
   {"rtconutc", 8, parse_rtconutc},
   {"noclientlog", 11, parse_noclientlog},
   {"clientloglimit", 14, parse_clientloglimit},
+  {"fallbackdrift", 13, parse_fallbackdrift},
   {"makestep", 8, parse_makestep},
   {"logchange", 9, parse_logchange},
   {"mailonchange", 12, parse_mailonchange},
@@ -800,6 +806,16 @@ parse_clientloglimit(const char *line)
   if (client_log_limit == 0) {
     /* unlimited */
     client_log_limit = (unsigned long)-1;
+  }
+}
+
+/* ================================================== */
+
+static void
+parse_fallbackdrift(const char *line)
+{
+  if (sscanf(line, "%d %d", &fb_drift_min, &fb_drift_max) != 2) {
+    LOG(LOGS_WARN, LOGF_Configure, "Could not read fallback drift intervals at line %d", line_number);
   }
 }
 
@@ -1420,6 +1436,15 @@ unsigned long
 CNF_GetClientLogLimit(void)
 {
   return client_log_limit;
+}
+
+/* ================================================== */
+
+void
+CNF_GetFallbackDrifts(int *min, int *max)
+{
+  *min = fb_drift_min;
+  *max = fb_drift_max;
 }
 
 /* ================================================== */
