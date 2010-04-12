@@ -53,6 +53,7 @@
 #include "clientlog.h"
 #include "broadcast.h"
 #include "nameserv.h"
+#include "tempcomp.h"
 
 /* ================================================== */
 
@@ -86,6 +87,7 @@ MAI_CleanupAndExit(void)
     SRC_DumpSources();
   }
 
+  TMC_Finalise();
   MNL_Finalise();
   ACQ_Finalise();
   KEY_Finalise();
@@ -326,6 +328,7 @@ int main
   KEY_Initialise();
   ACQ_Initialise();
   MNL_Initialise();
+  TMC_Initialise();
 
   LOG_CreateLogFileDir();
 

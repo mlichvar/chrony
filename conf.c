@@ -105,6 +105,7 @@ static void parse_linux_hz(const char *);
 static void parse_linux_freq_scale(const char *);
 static void parse_sched_priority(const char *);
 static void parse_lockall(const char *);
+static void parse_tempcomp(const char *);
 
 /* ================================================== */
 /* Configuration variables */
@@ -125,6 +126,7 @@ static int do_log_statistics = 0;
 static int do_log_tracking = 0;
 static int do_log_rtc = 0;
 static int do_log_refclocks = 0;
+static int do_log_tempcomp = 0;
 static int do_dump_on_exit = 0;
 static char *logdir = ".";
 static char *dumpdir = ".";
@@ -183,6 +185,11 @@ static IPAddr bind_cmd_address4, bind_cmd_address6;
  * chronyds being started. */
 static char *pidfile = "/var/run/chronyd.pid";
 
+/* Temperature sensor, update interval and compensation coefficients */
+static char *tempcomp_file = NULL;
+static double tempcomp_interval;
+static double tempcomp_T0, tempcomp_k0, tempcomp_k1, tempcomp_k2;
+
 /* Boolean for whether the Linux HZ value has been overridden, and the
  * new value. */
 static int set_linux_hz = 0;
@@ -239,6 +246,7 @@ static const Command commands[] = {
   {"rtcdevice", 9, parse_rtcdevice},
   {"pidfile", 7, parse_pidfile},
   {"broadcast", 9, parse_broadcast},
+  {"tempcomp", 8, parse_tempcomp},
   {"linux_hz", 8, parse_linux_hz},
   {"linux_freq_scale", 16, parse_linux_freq_scale},
   {"sched_priority", 14, parse_sched_priority},
@@ -679,6 +687,9 @@ parse_log(const char *line)
       } else if (!strncmp(line, "refclocks", 9)) {
         do_log_refclocks = 1;
         line += 9;
+      } else if (!strncmp(line, "tempcomp", 8)) {
+        do_log_tempcomp = 1;
+        line += 8;
       } else {
         break;
       }
@@ -1115,6 +1126,34 @@ parse_broadcast(const char *line)
 /* ================================================== */
 
 static void
+parse_tempcomp(const char *line)
+{
+  const char *tmp;
+
+  while (isspace(line[0]))
+    line++;
+  tmp = line;
+  while (line[0] != '\0' && !isspace(line[0]))
+    line++;
+
+  if (line == tmp) {
+    LOG(LOGS_WARN, LOGF_Configure, "Could not read tempcomp filename at line %d", line_number);
+    return;
+  }
+
+  if (sscanf(line, "%lf %lf %lf %lf %lf", &tempcomp_interval, &tempcomp_T0, &tempcomp_k0, &tempcomp_k1, &tempcomp_k2) != 5) {
+    LOG(LOGS_WARN, LOGF_Configure, "Could not read tempcomp interval or coefficients at line %d", line_number);
+    return;
+  }
+
+  tempcomp_file = MallocArray(char, 1 + line - tmp);
+  strncpy(tempcomp_file, tmp, line - tmp);
+  tempcomp_file[line - tmp] = '\0';
+}
+
+/* ================================================== */
+
+static void
 parse_linux_hz(const char *line)
 {
   if (1 == sscanf(line, "%d", &linux_hz)) {
@@ -1273,10 +1312,19 @@ CNF_GetLogRtc(void)
 }
 
 /* ================================================== */
+
 int
 CNF_GetLogRefclocks(void)
 {
   return do_log_refclocks;
+}
+
+/* ================================================== */
+
+int
+CNF_GetLogTempComp(void)
+{
+  return do_log_tempcomp;
 }
 
 /* ================================================== */
@@ -1513,4 +1561,17 @@ int
 CNF_GetLockMemory(void)
 {
   return lock_memory;
+}
+
+/* ================================================== */
+
+void
+CNF_GetTempComp(char **file, double *interval, double *T0, double *k0, double *k1, double *k2)
+{
+  *file = tempcomp_file;
+  *interval = tempcomp_interval;
+  *T0 = tempcomp_T0;
+  *k0 = tempcomp_k0;
+  *k1 = tempcomp_k1;
+  *k2 = tempcomp_k2;
 }

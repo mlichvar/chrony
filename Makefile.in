@@ -46,7 +46,7 @@ OBJS = util.o sched.o regress.o local.o \
 	nameserv.o acquire.o manual.o addrfilt.o \
 	cmdparse.o mkdirpp.o rtc.o pktlength.o clientlog.o \
 	broadcast.o refclock.o refclock_shm.o refclock_sock.o \
-	refclock_pps.o
+	refclock_pps.o tempcomp.o
 
 EXTRA_OBJS=@EXTRA_OBJECTS@
 

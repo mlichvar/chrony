@@ -45,6 +45,9 @@
 /* Variable to store the current frequency, in ppm */
 static double current_freq_ppm;
 
+/* Temperature compensation, in ppm */
+static double temp_comp_ppm;
+
 /* ================================================== */
 /* Store the system dependent drivers */
 
@@ -152,6 +155,7 @@ LCL_Initialise(void)
 
   /* This ought to be set from the system driver layer */
   current_freq_ppm = 0.0;
+  temp_comp_ppm = 0.0;
 
   calculate_sys_precision();
 }
@@ -360,7 +364,16 @@ LCL_GetOffsetCorrection(struct timeval *raw, double *correction, double *err)
 double
 LCL_ReadAbsoluteFrequency(void)
 {
-  return (*drv_read_freq)();
+  double freq;
+
+  freq = (*drv_read_freq)();
+
+  /* Undo temperature compensation */
+  if (temp_comp_ppm != 0.0) {
+    freq = (freq + temp_comp_ppm) / (1.0 - 1.0e-6 * temp_comp_ppm);
+  }
+
+  return freq;
 }
 
 /* ================================================== */
@@ -374,6 +387,11 @@ LCL_SetAbsoluteFrequency(double afreq_ppm)
   struct timeval raw, cooked;
   double dfreq;
   
+  /* Apply temperature compensation */
+  if (temp_comp_ppm != 0.0) {
+    afreq_ppm = afreq_ppm * (1.0 - 1.0e-6 * temp_comp_ppm) - temp_comp_ppm;
+  }
+
   /* Call the system-specific driver for setting the frequency */
   
   (*drv_set_freq)(afreq_ppm);
@@ -575,6 +593,29 @@ LCL_SetLeap(int leap)
   if (drv_set_leap) {
     (drv_set_leap)(leap);
   }
+
+  return;
+}
+
+/* ================================================== */
+
+void
+LCL_SetTempComp(double comp)
+{
+  if (temp_comp_ppm == comp)
+    return;
+
+  /* Undo previous compensation */
+  current_freq_ppm = (current_freq_ppm + temp_comp_ppm) /
+    (1.0 - 1.0e-6 * temp_comp_ppm);
+
+  /* Apply new compensation */
+  current_freq_ppm = current_freq_ppm * (1.0 - 1.0e-6 * comp) - comp;
+
+  temp_comp_ppm = comp;
+
+  /* Call the system-specific driver for setting the frequency */
+  (*drv_set_freq)(current_freq_ppm);
 
   return;
 }

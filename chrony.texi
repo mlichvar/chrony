@@ -1200,6 +1200,7 @@ directives can occur in any order in the file.
 * server directive::            Specify an NTP server
 * sched_priority directive::    Require real-time scheduling and specify a priority for it.
 * lock_all directive::          Require that chronyd be locked into RAM. 
+* tempcomp directive::          Specify temperature sensor and compensation coefficients
 
 @end menu
 @c }}}
@@ -1790,6 +1791,9 @@ This option logs information about the system's real-time clock.
 @item refclocks
 This option logs the raw and filtered reference clock measurements to
 a file called refclocks.log.
+@item tempcomp
+This option logs the temperature measurements and system rate
+compensations to a file called tempcomp.log.
 @end table
 
 The files are written to the directory specified by the logdir
@@ -1807,6 +1811,7 @@ log measurements statistics tracking
 * tracking log::                The format of the tracking log
 * RTC log::                     The format of the RTC log
 * refclocks log::               The format of the refclocks log
+* tempcomp log::                The format of the tempcomp log
 @end menu
 @c }}}
 @c {{{ measurements.log
@@ -2063,6 +2068,36 @@ Local clock error with applied corrections.  Positive indicates
 that the local clock is slow. [-6.741777e-07]
 @item
 Assumed dispersion of the sample. [1.000e-06]
+@end enumerate
+
+A banner is periodically written to the log file to indicate the
+meanings of the columns.
+@c }}}
+@c {{{ tempcomp.log
+@node tempcomp log
+@subsubsection Tempcomp log file format
+
+An example line (which actually appears as a single line in the file)
+from the tempcomp log file is shown below.
+
+@example
+2010-04-19 10:39:48  2.8000e+04  3.6600e-01
+@end example
+
+The columns are as follows (the quantities in square brackets are the
+values from the example line above) :
+
+@enumerate 1
+@item
+Date [2010-04-19]
+@item
+Hour:Minute:Second [10:39:48].  Note that the
+date/time pair is expressed in UTC, not the local time zone.
+@item
+Temperature read from tempcomp file. [2.8000e+04]
+@item
+Applied compensation in ppm, positive means the system clock is
+running faster than it would be without the compensation. [3.6600e-01]
 @end enumerate
 
 A banner is periodically written to the log file to indicate the
@@ -2563,6 +2598,49 @@ chronyc's @code{online} (@pxref{online command}) command when the link has been
 established, to enable measurements to start.)
 
 @end table
+@c }}}
+@c {{{ tempcomp
+@node tempcomp directive
+@subsection tempcomp
+Normally, changes in rate of drift of the system clock are caused mainly by
+changes in temperature of the crystal oscillator on the mainboard.
+
+If there are available temperature measurements from a sensor close to the
+oscillator, @code{tempcomp} directive can be used to compensate for the changes
+in rate and possibly improve clock accuracy.
+
+Whether it will really help depends on many factors, including resolution of
+the sensor, noise in measurements, time source polling interval, compensation
+update interval, how good are the temperature coefficients, and how close is
+the sensor to the oscillator.  The frequency reported in tracking.log should
+be more stable and the offsets should be smaller.
+
+The directive has six parameters: path to the file which contains current
+temperature in text format, update interval (in seconds), and temperature
+coefficients T0, k0, k1, k2.
+
+The frequency compensation is calculated (in ppm) as 
+
+@code{k0 + (T - T0) * k1 + (T - T0)^2 * k2}
+
+The result has to be between -10 ppm and 10 ppm, otherwise the measurement is
+considered to be faulty and will be ignored.  The k0 coefficient can be used to
+get the results in that range.
+
+Valid measurements and calculated corrections are logged to tempcomp.log file if
+enabled with @code{log tempcomp} directive.
+
+An example of use is
+
+@example
+tempcomp /sys/class/hwmon/hwmon1/device/temp2_input 30 26000 0.0 0.000183 0.0
+@end example
+
+The measured temperature will be read from the file in Linux sysfs filesystem
+every 30 seconds.  When the temperature is 26 degress (26000), the system clock
+frequency will not be adjusted.  When it is 27 degrees (27000), the clock will
+be set to run 0.183ppm faster than it would be without the compensation, etc.
+
 @c }}}
 @c }}}
 @c {{{ S:Running chronyc

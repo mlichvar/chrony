@@ -53,6 +53,7 @@ extern int CNF_GetLogStatistics(void);
 extern int CNF_GetLogTracking(void);
 extern int CNF_GetLogRtc(void);
 extern int CNF_GetLogRefclocks(void);
+extern int CNF_GetLogTempComp(void);
 extern char *CNF_GetKeysFile(void);
 extern char *CNF_GetRtcFile(void);
 extern unsigned long CNF_GetCommandKey(void);
@@ -80,5 +81,7 @@ extern void CNF_SetupAccessRestrictions(void);
 
 extern int CNF_GetSchedPriority(void);
 extern int CNF_GetLockMemory(void);
+
+extern void CNF_GetTempComp(char **file, double *interval, double *T0, double *k0, double *k1, double *k2);
 
 #endif /* GOT_CONF_H */
