@@ -327,6 +327,8 @@ int main
   ACQ_Initialise();
   MNL_Initialise();
 
+  LOG_CreateLogFileDir();
+
   /* From now on, it is safe to do finalisation on exit */
   initialised = 1;
 

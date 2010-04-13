@@ -38,7 +38,6 @@
 #include "conf.h"
 #include "logging.h"
 #include "local.h"
-#include "mkdirpp.h"
 
 /* ================================================== */
 /* Define the maxumum number of samples that we want
@@ -53,12 +52,8 @@
 #define MJD_1970 40587
 
 /* ================================================== */
-/* File to which statistics are logged, NULL if none */
-static FILE *logfile = NULL;
-static char *logfilename = NULL;
-static unsigned long logwrites = 0;
 
-#define STATISTICS_LOG "statistics.log"
+static LOG_FileID logfileid;
 
 /* ================================================== */
 /* This data structure is used to hold the history of data from the
@@ -154,24 +149,9 @@ struct SST_Stats_Record {
 void
 SST_Initialise(void)
 {
-  char *direc;
-
-  if (CNF_GetLogStatistics()) {
-    direc = CNF_GetLogDir();
-    if (!mkdir_and_parents(direc)) {
-      LOG(LOGS_ERR, LOGF_SourceStats, "Could not create directory %s", direc);
-      logfile = NULL;
-    } else {
-      logfilename = MallocArray(char, 2 + strlen(direc) + strlen(STATISTICS_LOG));
-      strcpy(logfilename, direc);
-      strcat(logfilename, "/");
-      strcat(logfilename, STATISTICS_LOG);
-      logfile = fopen(logfilename, "a");
-      if (!logfile) {
-        LOG(LOGS_WARN, LOGF_SourceStats, "Couldn't open logfile %s for update", logfilename);
-      }
-    }
-  }
+  logfileid = CNF_GetLogStatistics() ? LOG_FileOpen("statistics",
+      "   Date (UTC) Time     IP Address    Std dev'n Est offset  Offset sd  Diff freq   Est skew  Stress  Ns  Bs  Nr")
+    : -1;
 }
 
 /* ================================================== */
@@ -179,9 +159,6 @@ SST_Initialise(void)
 void
 SST_Finalise(void)
 {
-  if (logfile) {
-    fclose(logfile);
-  }
 }
 
 /* ================================================== */
@@ -463,17 +440,8 @@ SST_DoNewRegression(SST_Stats inst)
       }
     }
 
-    if (logfile) {
-
-      if (((logwrites++) % 32) == 0) {
-        fprintf(logfile,
-                "==============================================================================================================\n"
-                "   Date (UTC) Time     IP Address    Std dev'n Est offset  Offset sd  Diff freq   Est skew  Stress  Ns  Bs  Nr\n"
-                "==============================================================================================================\n");
-      }
-      
-            
-      fprintf(logfile, "%s %-15s %10.3e %10.3e %10.3e %10.3e %10.3e %7.1e %3d %3d %3d\n",
+    if (logfileid != -1) {
+      LOG_FileWrite(logfileid, "%s %-15s %10.3e %10.3e %10.3e %10.3e %10.3e %7.1e %3d %3d %3d",
               UTI_TimeToLogForm(inst->offset_time.tv_sec),
               inst->ip_addr ? UTI_IPToString(inst->ip_addr) : UTI_RefidToString(inst->refid),
               sqrt(inst->variance),
@@ -484,8 +452,6 @@ SST_DoNewRegression(SST_Stats inst)
               stress,
               inst->n_samples,
               best_start, nruns);
-
-      fflush(logfile);
     }
 
     prune_register(inst, best_start, bad_points);
@@ -925,21 +891,6 @@ SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report, struct ti
   report->resid_freq_ppm = 1.0e6 * inst->estimated_frequency;
   report->skew_ppm = 1.0e6 * inst->skew;
   report->sd = sqrt(inst->variance);
-}
-
-/* ================================================== */
-
-void
-SST_CycleLogFile(void)
-{
-  if (logfile && logfilename) {
-    fclose(logfile);
-    logfile = fopen(logfilename, "a");
-    if (!logfile) {
-      LOG(LOGS_WARN, LOGF_SourceStats, "Could not reopen logfile %s", logfilename);
-    }
-    logwrites = 0;
-  }
 }
 
 /* ================================================== */

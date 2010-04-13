@@ -35,7 +35,6 @@
 #include "logging.h"
 #include "regress.h"
 #include "sched.h"
-#include "mkdirpp.h"
 
 /* list of refclock drivers */
 extern RefclockDriver RCL_SHM_driver;
@@ -88,10 +87,7 @@ struct RCL_Instance_Record {
 static struct RCL_Instance_Record refclocks[MAX_RCL_SOURCES];
 static int n_sources = 0;
 
-#define REFCLOCKS_LOG "refclocks.log"
-static FILE *logfile = NULL;
-static char *logfilename = NULL;
-static unsigned long logwrites = 0;
+static LOG_FileID logfileid;
 
 static int valid_sample_time(RCL_Instance instance, struct timeval *tv);
 static int pps_stratum(RCL_Instance instance, struct timeval *tv);
@@ -117,17 +113,9 @@ RCL_Initialise(void)
 {
   CNF_AddRefclocks();
 
-  if (CNF_GetLogRefclocks()) {
-    char *logdir = CNF_GetLogDir();
-    if (!mkdir_and_parents(logdir)) {
-      LOG(LOGS_ERR, LOGF_Refclock, "Could not create directory %s", logdir);
-    } else {
-      logfilename = MallocArray(char, 2 + strlen(logdir) + strlen(REFCLOCKS_LOG));
-      strcpy(logfilename, logdir);
-      strcat(logfilename, "/");
-      strcat(logfilename, REFCLOCKS_LOG);
-    }
-  }
+  logfileid = CNF_GetLogRefclocks() ? LOG_FileOpen("refclocks",
+      "   Date (UTC) Time         Refid  DP L P  Raw offset   Cooked offset      Disp.")
+    : -1;
 }
 
 void
@@ -149,10 +137,6 @@ RCL_Finalise(void)
     LCL_RemoveParameterChangeHandler(slew_samples, NULL);
     LCL_RemoveDispersionNotifyHandler(add_dispersion, NULL);
   }
-
-  if (logfile)
-    fclose(logfile);
-  Free(logfilename);
 }
 
 int
@@ -463,16 +447,6 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
   return 1;
 }
 
-void
-RCL_CycleLogFile(void)
-{
-  if (logfile) {
-    fclose(logfile);
-    logfile = NULL;
-    logwrites = 0;
-  }
-}
-
 static int
 valid_sample_time(RCL_Instance instance, struct timeval *tv)
 {
@@ -589,28 +563,11 @@ log_sample(RCL_Instance instance, struct timeval *sample_time, int filtered, int
 {
   char sync_stats[4] = {'N', '+', '-', '?'};
 
-  if (!logfilename)
+  if (logfileid == -1)
     return;
 
-  if (!logfile) {
-      logfile = fopen(logfilename, "a");
-      if (!logfile) {
-        LOG(LOGS_WARN, LOGF_Refclock, "Couldn't open logfile %s for update", logfilename);
-        Free(logfilename);
-        logfilename = NULL;
-        return;
-      }
-  }
-
-  if (((logwrites++) % 32) == 0) {
-    fprintf(logfile,
-        "===============================================================================\n"
-        "   Date (UTC) Time         Refid  DP L P  Raw offset   Cooked offset      Disp.\n"
-        "===============================================================================\n");
-  }
-
   if (!filtered) {
-    fprintf(logfile, "%s.%06d %-5s %3d %1c %1d %13.6e %13.6e %10.3e\n",
+    LOG_FileWrite(logfileid, "%s.%06d %-5s %3d %1c %1d %13.6e %13.6e %10.3e",
       UTI_TimeToLogForm(sample_time->tv_sec),
       (int)sample_time->tv_usec,
       UTI_RefidToString(instance->ref_id),
@@ -621,7 +578,7 @@ log_sample(RCL_Instance instance, struct timeval *sample_time, int filtered, int
       cooked_offset,
       dispersion);
   } else {
-    fprintf(logfile, "%s.%06d %-5s   - %1c -       -       %13.6e %10.3e\n",
+    LOG_FileWrite(logfileid, "%s.%06d %-5s   - %1c -       -       %13.6e %10.3e",
       UTI_TimeToLogForm(sample_time->tv_sec),
       (int)sample_time->tv_usec,
       UTI_RefidToString(instance->ref_id),
@@ -629,7 +586,6 @@ log_sample(RCL_Instance instance, struct timeval *sample_time, int filtered, int
       cooked_offset,
       dispersion);
   }
-  fflush(logfile);
 }
 
 static void

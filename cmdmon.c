@@ -1459,11 +1459,7 @@ handle_trimrtc(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_cyclelogs(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  NCR_CycleLogFile();
-  SST_CycleLogFile();
-  REF_CycleLogFile();
-  RTC_CycleLogFile();
-  RCL_CycleLogFile();
+  LOG_CycleLogFiles();
   
   tx_message->status = htons(STT_SUCCESS);
   return;

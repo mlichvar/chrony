@@ -144,6 +144,4 @@ extern int REF_IsLocalActive(void);
 
 extern void REF_GetTrackingReport(RPT_TrackingReport *rep);
 
-extern void REF_CycleLogFile(void);
-
 #endif /* GOT_REFERENCE_H */

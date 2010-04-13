@@ -37,7 +37,6 @@
 #include "conf.h"
 #include "logging.h"
 #include "local.h"
-#include "mkdirpp.h"
 
 /* ================================================== */
 
@@ -82,12 +81,8 @@ static void update_drift_file(double, double);
 #define MAIL_PROGRAM "/usr/lib/sendmail"
 
 /* ================================================== */
-/* File to which statistics are logged, NULL if none */
-static FILE *logfile = NULL;
-static char *logfilename = NULL;
-static unsigned long logwrites = 0;
 
-#define TRACKING_LOG "tracking.log"
+static LOG_FileID logfileid;
 
 /* ================================================== */
 
@@ -99,7 +94,6 @@ static unsigned long logwrites = 0;
 void
 REF_Initialise(void)
 {
-  char *direc;
   FILE *in;
   char line[1024];
   double file_freq_ppm, file_skew_ppm;
@@ -144,22 +138,9 @@ REF_Initialise(void)
     
   LCL_SetAbsoluteFrequency(our_frequency_ppm);
 
-  if (CNF_GetLogTracking()) {
-    direc = CNF_GetLogDir();
-    if (!mkdir_and_parents(direc)) {
-      LOG(LOGS_ERR, LOGF_Reference, "Could not create directory %s", direc);
-      logfile = NULL;
-    } else {
-      logfilename = MallocArray(char, 2 + strlen(direc) + strlen(TRACKING_LOG));
-      strcpy(logfilename, direc);
-      strcat(logfilename, "/");
-      strcat(logfilename, TRACKING_LOG);
-      logfile = fopen(logfilename, "a");
-      if (!logfile) {
-        LOG(LOGS_WARN, LOGF_Reference, "Couldn't open logfile %s for update", logfilename);
-      }
-    }
-  }
+  logfileid = CNF_GetLogTracking() ? LOG_FileOpen("tracking",
+      "   Date (UTC) Time     IP Address   St   Freq ppm   Skew ppm     Offset")
+    : -1;
 
   max_update_skew = fabs(CNF_GetMaxUpdateSkew()) * 1.0e-6;
 
@@ -184,10 +165,6 @@ REF_Finalise(void)
 {
   if (our_leap_sec) {
     LCL_SetLeap(0);
-  }
-
-  if (logfile) {
-    fclose(logfile);
   }
 
   initialised = 0;
@@ -377,19 +354,9 @@ update_leap_status(NTP_Leap leap)
 static void
 write_log(struct timeval *ref_time, char *ref, int stratum, double freq, double skew, double offset)
 {
-  if (logfile) {
-
-    if (((logwrites++) % 32) == 0) {
-      fprintf(logfile,
-              "=======================================================================\n"
-              "   Date (UTC) Time     IP Address   St   Freq ppm   Skew ppm     Offset\n"
-              "=======================================================================\n");
-    }
-          
-    fprintf(logfile, "%s %-15s %2d %10.3f %10.3f %10.3e\n",
+  if (logfileid != -1) {
+    LOG_FileWrite(logfileid, "%s %-15s %2d %10.3f %10.3f %10.3e",
             UTI_TimeToLogForm(ref_time->tv_sec), ref, stratum, freq, skew, offset);
-    
-    fflush(logfile);
   }
 }
 
@@ -771,21 +738,6 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
     rep->root_dispersion = 0.0;
   }
 
-}
-
-/* ================================================== */
-
-void
-REF_CycleLogFile(void)
-{
-  if (logfile && logfilename) {
-    fclose(logfile);
-    logfile = fopen(logfilename, "a");
-    if (!logfile) {
-      LOG(LOGS_WARN, LOGF_Reference, "Could not reopen logfile %s", logfilename);
-    }
-    logwrites = 0;
-  }
 }
 
 /* ================================================== */

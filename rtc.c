@@ -50,7 +50,6 @@ static struct {
   int  (*write_parameters)(void);
   int  (*get_report)(RPT_RTC_Report *report);
   int  (*trim)(void);
-  void (*cycle_logfile)(void);
 } driver =
 {
 #if defined LINUX && defined FEAT_RTC
@@ -61,10 +60,8 @@ static struct {
   RTC_Linux_StartMeasurements,
   RTC_Linux_WriteParameters,
   RTC_Linux_GetReport,
-  RTC_Linux_Trim,
-  RTC_Linux_CycleLogFile
+  RTC_Linux_Trim
 #else
-  NULL,
   NULL,
   NULL,
   NULL,
@@ -205,16 +202,6 @@ RTC_Trim(void)
     return (driver.trim)();
   } else {
     return 0;
-  }
-}
-
-/* ================================================== */
-
-void
-RTC_CycleLogFile(void)
-{
-  if (driver_initialised) {
-    (driver.cycle_logfile)();
   }
 }
 

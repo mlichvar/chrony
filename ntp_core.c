@@ -44,17 +44,11 @@
 #include "keys.h"
 #include "md5.h"
 #include "addrfilt.h"
-#include "mkdirpp.h"
 #include "clientlog.h"
 
 /* ================================================== */
-/* File handle for file to which we write the measurement log */
-static FILE *logfile = NULL;
 
-static char *logfilename = NULL;
-static unsigned long logwrites=0;
-
-#define MEASUREMENTS_LOG "measurements.log" 
+static LOG_FileID logfileid;
 
 /* ================================================== */
 
@@ -217,24 +211,9 @@ static void determine_md5_delay(void);
 void
 NCR_Initialise(void)
 {
-  char *direc;
-
-  if (CNF_GetLogMeasurements()) {
-    direc = CNF_GetLogDir();
-    if (!mkdir_and_parents(direc)) {
-      LOG(LOGS_ERR, LOGF_NtpCore, "Could not create directory %s", direc);
-      logfile = NULL;
-    } else {
-      logfilename = MallocArray(char, 2 + strlen(direc) + strlen(MEASUREMENTS_LOG));
-      strcpy(logfilename, direc);
-      strcat(logfilename, "/");
-      strcat(logfilename, MEASUREMENTS_LOG);
-      logfile = fopen(logfilename, "a");
-      if (!logfile) {
-        LOG(LOGS_WARN, LOGF_NtpCore, "Couldn't open logfile %s for update", logfilename);
-      }
-    }
-  }
+  logfileid = CNF_GetLogMeasurements() ? LOG_FileOpen("measurements",
+      "   Date (UTC) Time     IP Address   L St 1234 ab 5678 LP RP SC  Offset     Peer del. Peer disp. Root del.  Root disp.")
+    : -1;
 
   access_auth_table = ADF_CreateTable();
 
@@ -247,10 +226,6 @@ NCR_Initialise(void)
 void
 NCR_Finalise(void)
 {
-  if (logfile) {
-    fclose(logfile);
-  }
-
   ADF_DestroyTable(access_auth_table);
 
 }
@@ -1260,15 +1235,8 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   }
 
   /* Do measurement logging */
-  if (logfile) {
-    if (((logwrites++) % 32) == 0) {
-      fprintf(logfile,
-              "=====================================================================================================================\n"
-              "   Date (UTC) Time     IP Address   L St 1234 ab 5678 LP RP SC  Offset     Peer del. Peer disp. Root del.  Root disp.\n"
-              "=====================================================================================================================\n");
-    }
-
-    fprintf(logfile, "%s %-15s %1c %2d %1d%1d%1d%1d %1d%1d %1d%1d%1d%1d %2d %2d %2d %10.3e %10.3e %10.3e %10.3e %10.3e\n",
+  if (logfileid != -1) {
+    LOG_FileWrite(logfileid, "%s %-15s %1c %2d %1d%1d%1d%1d %1d%1d %1d%1d%1d%1d %2d %2d %2d %10.3e %10.3e %10.3e %10.3e %10.3e",
             UTI_TimeToLogForm(sample_time.tv_sec),
             UTI_IPToString(&inst->remote_addr.ip_addr),
             sync_stats[pkt_leap],
@@ -1280,7 +1248,6 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
             (inst->score),
             theta, delta, epsilon,
             pkt_root_delay, pkt_root_dispersion);
-    fflush(logfile);
   }            
 
 
@@ -1874,21 +1841,6 @@ int
 NCR_CheckAccessRestriction(IPAddr *ip_addr)
 {
   return ADF_IsAllowed(access_auth_table, ip_addr);
-}
-
-/* ================================================== */
-
-void
-NCR_CycleLogFile(void)
-{
-  if (logfile && logfilename) {
-    fclose(logfile);
-    logfile = fopen(logfilename, "a");
-    if (!logfile) {
-      LOG(LOGS_WARN, LOGF_NtpCore, "Could not reopen logfile %s", logfilename);
-    }
-    logwrites = 0;
-  }
 }
 
 /* ================================================== */

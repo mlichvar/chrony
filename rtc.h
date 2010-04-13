@@ -47,6 +47,4 @@ extern int RTC_WriteParameters(void);
 
 extern int RTC_Trim(void);
 
-extern void RTC_CycleLogFile(void);
-
 #endif /* GOT_RTC_H */

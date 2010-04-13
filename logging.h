@@ -109,4 +109,14 @@ extern int croak(const char *file, int line, const char *msg);
 #define CROAK(message) croak(__FILE__, __LINE__, message);
 #endif
 
+/* File logging functions */
+
+typedef int LOG_FileID;
+
+extern LOG_FileID LOG_FileOpen(const char *name, const char *banner);
+extern void LOG_FileWrite(LOG_FileID id, const char *format, ...);
+
+extern void LOG_CreateLogFileDir(void);
+extern void LOG_CycleLogFiles(void);
+
 #endif /* GOT_LOGGING_H */

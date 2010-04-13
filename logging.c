@@ -31,8 +31,10 @@
 #include "sysincl.h"
 
 #include "main.h"
+#include "conf.h"
 #include "logging.h"
 #include "version.h"
+#include "mkdirpp.h"
 
 /* ================================================== */
 /* Flag indicating we have initialised */
@@ -45,6 +47,20 @@ static time_t last_limited = 0;
 #ifdef WINNT
 static FILE *logfile;
 #endif
+
+struct LogFile {
+  const char *name;
+  const char *banner;
+  FILE *file;
+  unsigned long writes;
+};
+
+static int n_filelogs = 0;
+
+/* Increase this when adding a new logfile */
+#define MAX_FILELOGS 5
+
+static struct LogFile logfiles[MAX_FILELOGS];
 
 /* ================================================== */
 /* Init function */
@@ -76,6 +92,8 @@ LOG_Finalise(void)
     closelog();
   }
 #endif
+
+  LOG_CycleLogFiles();
 
   initialised = 0;
   return;
@@ -245,6 +263,99 @@ croak(const char *file, int line, const char *msg)
   a = * (int *) 0;
   return a; /* Can't happen - this stops the optimiser optimising the
                line above */
+}
+
+/* ================================================== */
+
+LOG_FileID
+LOG_FileOpen(const char *name, const char *banner)
+{
+  assert(n_filelogs < MAX_FILELOGS);
+
+  logfiles[n_filelogs].name = name;
+  logfiles[n_filelogs].banner = banner;
+  logfiles[n_filelogs].file = NULL;
+  logfiles[n_filelogs].writes = 0;
+
+  return n_filelogs++;
+}
+
+/* ================================================== */
+
+void
+LOG_FileWrite(LOG_FileID id, const char *format, ...)
+{
+  va_list other_args;
+
+  if (id < 0 || id >= n_filelogs || !logfiles[id].name)
+    return;
+
+  if (!logfiles[id].file) {
+    char filename[512];
+
+    if (snprintf(filename, sizeof(filename), "%s/%s.log",
+          CNF_GetLogDir(), logfiles[id].name) >= sizeof(filename) ||
+        !(logfiles[id].file = fopen(filename, "a"))) {
+      LOG(LOGS_WARN, LOGF_Refclock, "Couldn't open logfile %s for update", filename);
+      logfiles[id].name = NULL;
+      return;
+    }
+  }
+
+  if (logfiles[id].writes++ % 32 == 0) {
+    char bannerline[256];
+    int i, bannerlen;
+
+    bannerlen = strlen(logfiles[id].banner);
+
+    for (i = 0; i < bannerlen; i++)
+      bannerline[i] = '=';
+    bannerline[i] = '\0';
+
+    fprintf(logfiles[id].file, "%s\n", bannerline);
+    fprintf(logfiles[id].file, "%s\n", logfiles[id].banner);
+    fprintf(logfiles[id].file, "%s\n", bannerline);
+  }
+
+  va_start(other_args, format);
+  vfprintf(logfiles[id].file, format, other_args);
+  va_end(other_args);
+  fprintf(logfiles[id].file, "\n");
+
+  fflush(logfiles[id].file);
+}
+
+/* ================================================== */
+
+void
+LOG_CreateLogFileDir(void)
+{
+  const char *logdir;
+
+  if (n_filelogs <= 0)
+    return;
+
+  logdir = CNF_GetLogDir();
+
+  if (!mkdir_and_parents(logdir)) {
+    LOG(LOGS_ERR, LOGF_Logging, "Could not create directory %s", logdir);
+    n_filelogs = 0;
+  }
+}
+
+/* ================================================== */
+
+void
+LOG_CycleLogFiles(void)
+{
+  LOG_FileID i;
+
+  for (i = 0; i < n_filelogs; i++) {
+    if (logfiles[i].file)
+      fclose(logfiles[i].file);
+    logfiles[i].file = NULL;
+    logfiles[i].writes = 0;
+  }
 }
 
 /* ================================================== */

@@ -61,7 +61,6 @@
 #include "io_linux.h"
 #include "conf.h"
 #include "memory.h"
-#include "mkdirpp.h"
 
 struct rtc_time {
 	int tm_sec;
@@ -180,11 +179,7 @@ static int rtc_on_utc = 1;
 
 /* ================================================== */
 
-static FILE *logfile=NULL;
-static char *logfilename = NULL;
-static unsigned long logwrites=0;
-
-#define RTC_LOG "rtc.log"
+static LOG_FileID logfileid;
 
 /* ================================================== */
 
@@ -542,7 +537,6 @@ int
 RTC_Linux_Initialise(void)
 {
   int major, minor, patch;
-  char *direc;
 
   /* Check whether we can support the real time clock.
 
@@ -627,18 +621,9 @@ RTC_Linux_Initialise(void)
   /* Register slew handler */
   LCL_AddParameterChangeHandler(slew_samples, NULL);
 
-  if (CNF_GetLogRtc()) {
-    direc = CNF_GetLogDir();
-    if (!mkdir_and_parents(direc)) {
-      LOG(LOGS_ERR, LOGF_RtcLinux, "Could not create directory %s", direc);
-    } else {
-      logfilename = MallocArray(char, 2 + strlen(direc) + strlen(RTC_LOG));
-      strcpy(logfilename, direc);
-      strcat(logfilename, "/");
-      strcat(logfilename, RTC_LOG);
-    }
-  }
-
+  logfileid = CNF_GetLogRtc() ? LOG_FileOpen("rtc",
+      "   Date (UTC) Time   RTC fast (s) Val   Est fast (s)   Slope (ppm)  Ns  Nr Meas")
+    : -1;
   return 1;
 }
 
@@ -661,11 +646,6 @@ RTC_Linux_Finalise(void)
     (void) RTC_Linux_WriteParameters();
 
   }
-
-  if (logfile) {
-    fclose(logfile);
-  }
-  Free(logfilename);
 }
 
 /* ================================================== */
@@ -837,33 +817,14 @@ process_reading(time_t rtc_time, struct timeval *system_time)
   }  
 
 
-  if (logfilename) {
-    if (!logfile) {
-      logfile = fopen(logfilename, "a");
-      if (!logfile) {
-        LOG(LOGS_WARN, LOGF_RtcLinux, "Couldn't open logfile %s for update", logfilename);
-        Free(logfilename);
-        logfilename = NULL;
-        return;
-      }
-    }
-
+  if (logfileid != -1) {
     rtc_fast = (double)(rtc_time - system_time->tv_sec) - 1.0e-6 * (double) system_time->tv_usec;
 
-    if (((logwrites++) % 32) == 0) {
-      fprintf(logfile,
-              "===============================================================================\n"
-              "   Date (UTC) Time   RTC fast (s) Val   Est fast (s)   Slope (ppm)  Ns  Nr Meas\n"
-              "===============================================================================\n");
-    }
-    
-    fprintf(logfile, "%s %14.6f %1d  %14.6f  %12.3f  %2d  %2d %4d\n",
+    LOG_FileWrite(logfileid, "%s %14.6f %1d  %14.6f  %12.3f  %2d  %2d %4d",
             UTI_TimeToLogForm(system_time->tv_sec),
             rtc_fast,
             coefs_valid,
             coef_seconds_fast, coef_gain_rate * 1.0e6, n_samples, n_runs, measurement_period);
-
-    fflush(logfile);
   }    
 
 }
@@ -892,10 +853,6 @@ read_from_device(void *any)
     switch_interrupts(0); /* Likely to raise error too, but just to be sure... */
     close(fd);
     fd = -1;
-    if (logfile) {
-      fclose(logfile);
-      logfile = NULL;
-    }
     return;
   }    
 
@@ -1176,18 +1133,6 @@ RTC_Linux_Trim(void)
 
   return 1;
   
-}
-
-/* ================================================== */
-
-void
-RTC_Linux_CycleLogFile(void)
-{
-  if (logfile) {
-    fclose(logfile);
-    logfile = NULL;
-    logwrites = 0;
-  }
 }
 
 /* ================================================== */
