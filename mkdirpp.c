@@ -86,6 +86,7 @@ mkdir_and_parents(const char *path)
       p[i] = 0;
 
       if (do_dir(p) < 0) {
+        free(p);
         return 0;
       }
 
