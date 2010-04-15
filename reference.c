@@ -76,6 +76,7 @@ static char *mail_change_user;
 
 /* Filename of the drift file. */
 static char *drift_file=NULL;
+static double drift_file_age;
 
 static void update_drift_file(double, double);
 
@@ -155,7 +156,7 @@ REF_Initialise(void)
           drift_file);
     }
 
-    update_drift_file(our_frequency_ppm,our_skew);
+    drift_file_age = 0.0;
   }
     
   LCL_SetAbsoluteFrequency(our_frequency_ppm);
@@ -199,6 +200,10 @@ REF_Finalise(void)
 {
   if (our_leap_sec) {
     LCL_SetLeap(0);
+  }
+
+  if (drift_file && drift_file_age > 0.0) {
+    update_drift_file(LCL_ReadAbsoluteFrequency(), our_skew);
   }
 
   Free(fb_drifts);
@@ -531,6 +536,8 @@ REF_SetReference(int stratum,
 
   double abs_freq_ppm;
 
+  double update_interval;
+
   assert(initialised);
 
   /* Avoid getting NaNs */
@@ -630,20 +637,24 @@ REF_SetReference(int stratum,
             1.0e6*our_skew,
             our_offset);
 
+  UTI_DiffTimevalsToDouble(&update_interval, ref_time, &last_ref_update);
+
   if (drift_file) {
-    update_drift_file(abs_freq_ppm, our_skew);
+    /* Update drift file at most once per hour */
+    drift_file_age += update_interval;
+    if (drift_file_age < 0.0 || drift_file_age > 3600.0) {
+      update_drift_file(abs_freq_ppm, our_skew);
+      drift_file_age = 0.0;
+    }
   }
 
   /* Update fallback drifts */
   if (fb_drifts) {
-    double update_interval;
-
-    UTI_DiffTimevalsToDouble(&update_interval, ref_time, &last_ref_update);
-
     update_fb_drifts(abs_freq_ppm, update_interval);
-    last_ref_update = *ref_time;
-    last_ref_update_interval = update_interval;
   }
+
+  last_ref_update = *ref_time;
+  last_ref_update_interval = update_interval;
 
   /* And now set the freq and offset to zero */
   our_frequency = 0.0;
