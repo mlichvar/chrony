@@ -1221,7 +1221,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     case MD_BURST_WAS_OFFLINE:
 
       requeue_transmit = 1;
-      delay_time = 0.0;
+      delay_time = SAMPLING_SEPARATION;
       break;
 
     default:
