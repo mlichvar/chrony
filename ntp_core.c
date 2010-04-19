@@ -1110,6 +1110,24 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   }
 
+  /* Reduce polling rate if KoD RATE was received */
+  if (kod_rate && valid_kod) {
+    if (inst->remote_poll > inst->minpoll) {
+      inst->minpoll = inst->remote_poll;
+      if (inst->minpoll > inst->maxpoll)
+        inst->maxpoll = inst->minpoll;
+      if (inst->minpoll > inst->local_poll)
+        inst->local_poll = inst->minpoll;
+      LOG(LOGS_WARN, LOGF_NtpCore, "Received KoD RATE from %s, minpoll set to %d", UTI_IPToString(&inst->remote_addr.ip_addr), inst->minpoll);
+    }
+
+    /* Stop ongoing burst */
+    if (inst->opmode == MD_BURST_WAS_OFFLINE || inst->opmode == MD_BURST_WAS_ONLINE) {
+      inst->burst_good_samples_to_go = 0;
+      LOG(LOGS_WARN, LOGF_NtpCore, "Received KoD RATE from %s, burst sampling stopped", UTI_IPToString(&inst->remote_addr.ip_addr), inst->minpoll);
+    }
+  }
+
   /* If we're in burst mode, check whether the burst is completed and
      revert to the previous mode */
 
@@ -1212,16 +1230,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   }
 
-  /* Reduce polling if KoD RATE was received */
   if (kod_rate && valid_kod) {
-    if (inst->remote_poll > inst->minpoll) {
-      inst->minpoll = inst->remote_poll;
-      if (inst->minpoll > inst->maxpoll)
-        inst->maxpoll = inst->minpoll;
-      if (inst->minpoll > inst->local_poll)
-        inst->local_poll = inst->minpoll;
-      LOG(LOGS_INFO, LOGF_NtpCore, "Received KoD RATE from %s, minpoll set to %d", UTI_IPToString(&inst->remote_addr.ip_addr), inst->minpoll);
-    }
     /* Back off for a while */
     delay_time += (double) (4 * (1UL << inst->minpoll));
   }
