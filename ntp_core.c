@@ -704,6 +704,8 @@ transmit_timeout(void *arg)
       break;
     case MD_OFFLINE:
       do_timer = 0;
+      /* Mark source unreachable */
+      SRC_UnsetReachable(inst->source);
       break;
     case MD_BURST_WAS_ONLINE:
     case MD_BURST_WAS_OFFLINE:
@@ -1177,6 +1179,8 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   switch (inst->opmode) {
     case MD_OFFLINE:
       requeue_transmit = 0;
+      /* Mark source unreachable */
+      SRC_UnsetReachable(inst->source);
       break; /* Even if we've received something, we don't want to
                 transmit back.  This might be a symmetric active peer
                 that is trying to talk to us. */
