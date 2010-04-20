@@ -40,8 +40,9 @@ typedef double (*lcl_ReadFrequencyDriver)(void);
 
 /* System driver to set the current local frequency, in ppm relative
    to nominal.  A positive value indicates that the local clock runs
-   fast when uncompensated. */
-typedef void (*lcl_SetFrequencyDriver)(double freq_ppm);
+   fast when uncompensated.  Return actual frequency (may be different
+   from the requested frequency due to clamping or rounding). */
+typedef double (*lcl_SetFrequencyDriver)(double freq_ppm);
 
 /* System driver to accrue an offset. A positive argument means slew
    the clock forwards. */

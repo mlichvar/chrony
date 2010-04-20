@@ -244,12 +244,14 @@ apply_step_offset(double offset)
 
 /* ================================================== */
 
-static void
+static double
 set_frequency(double new_freq_ppm)
 {
   stop_adjust();
   current_freq = new_freq_ppm * 1.0e-6;
   start_adjust();
+
+  return current_freq * 1.0e6;
 }
 
 /* ================================================== */

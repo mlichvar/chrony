@@ -54,7 +54,7 @@ read_timeout(void *arg)
 
     /* Don't allow corrections above 10 ppm */
     if (fabs(comp) < 10.0) {
-      LCL_SetTempComp(comp);
+      comp = LCL_SetTempComp(comp);
 
       if (logfileid != -1) {
         struct timeval now;

@@ -562,7 +562,7 @@ apply_step_offset(double offset)
    convention is that this is called with a positive argument if the local
    clock runs fast when uncompensated.  */
 
-static void
+static double
 set_frequency(double freq_ppm)
 {
   long required_tick;
@@ -603,7 +603,7 @@ set_frequency(double freq_ppm)
     required_tick = slewing_tick;
   }
 
-  if (TMX_SetFrequency(scaled_freq, required_tick) < 0) {
+  if (TMX_SetFrequency(&scaled_freq, required_tick) < 0) {
     LOG_FATAL(LOGF_SysLinux, "adjtimex failed for set_frequency, freq_ppm=%10.4e scaled_freq=%10.4e required_tick=%ld",
         freq_ppm, scaled_freq, required_tick);
   }
@@ -616,6 +616,8 @@ set_frequency(double freq_ppm)
       current_total_tick;
     adjust_fast_slew(old_total_tick, old_delta_tick);
   }
+
+  return dhz * (nominal_tick - current_tick) - scaled_freq / freq_scale;
 }
 
 /* ================================================== */

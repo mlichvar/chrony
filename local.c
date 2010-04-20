@@ -394,7 +394,7 @@ LCL_SetAbsoluteFrequency(double afreq_ppm)
 
   /* Call the system-specific driver for setting the frequency */
   
-  (*drv_set_freq)(afreq_ppm);
+  afreq_ppm = (*drv_set_freq)(afreq_ppm);
 
   dfreq = (afreq_ppm - current_freq_ppm) / (1.0e6 + current_freq_ppm);
 
@@ -417,6 +417,9 @@ LCL_AccumulateDeltaFrequency(double dfreq)
 {
   ChangeListEntry *ptr;
   struct timeval raw, cooked;
+  double old_freq_ppm;
+
+  old_freq_ppm = current_freq_ppm;
 
   /* Work out new absolute frequency.  Note that absolute frequencies
    are handled in units of ppm, whereas the 'dfreq' argument is in
@@ -425,7 +428,8 @@ LCL_AccumulateDeltaFrequency(double dfreq)
   current_freq_ppm = (1.0 + dfreq) * current_freq_ppm + 1.0e6 * dfreq;
 
   /* Call the system-specific driver for setting the frequency */
-  (*drv_set_freq)(current_freq_ppm);
+  current_freq_ppm = (*drv_set_freq)(current_freq_ppm);
+  dfreq = (current_freq_ppm - old_freq_ppm) / (1.0e6 + old_freq_ppm);
 
   LCL_ReadRawTime(&raw);
   LCL_CookTime(&raw, &cooked, NULL);
@@ -510,7 +514,9 @@ LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset)
 #endif
 
   /* Call the system-specific driver for setting the frequency */
-  (*drv_set_freq)(current_freq_ppm);
+  current_freq_ppm = (*drv_set_freq)(current_freq_ppm);
+  dfreq = (current_freq_ppm - old_freq_ppm) / (1.0e6 + old_freq_ppm);
+
   (*drv_accrue_offset)(doffset);
 
   /* Dispatch to all handlers */
@@ -599,25 +605,30 @@ LCL_SetLeap(int leap)
 
 /* ================================================== */
 
-void
+double
 LCL_SetTempComp(double comp)
 {
+  double uncomp_freq_ppm;
+
   if (temp_comp_ppm == comp)
-    return;
+    return comp;
 
   /* Undo previous compensation */
   current_freq_ppm = (current_freq_ppm + temp_comp_ppm) /
     (1.0 - 1.0e-6 * temp_comp_ppm);
 
+  uncomp_freq_ppm = current_freq_ppm;
+
   /* Apply new compensation */
   current_freq_ppm = current_freq_ppm * (1.0 - 1.0e-6 * comp) - comp;
 
-  temp_comp_ppm = comp;
-
   /* Call the system-specific driver for setting the frequency */
-  (*drv_set_freq)(current_freq_ppm);
+  current_freq_ppm = (*drv_set_freq)(current_freq_ppm);
 
-  return;
+  temp_comp_ppm = (uncomp_freq_ppm - current_freq_ppm) /
+    (1.0e-6 * uncomp_freq_ppm + 1.0);
+
+  return temp_comp_ppm;
 }
 
 /* ================================================== */

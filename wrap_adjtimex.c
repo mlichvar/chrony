@@ -66,13 +66,14 @@ TMX_ApplyOffset(long *offset)
 }
 
 int
-TMX_SetFrequency(double freq, long tick)
+TMX_SetFrequency(double *freq, long tick)
 {
   struct timex txc;
   
   txc.modes = ADJ_TICK | ADJ_FREQUENCY | ADJ_STATUS;
 
-  txc.freq = (long)(freq * (double)(1 << SHIFT_USEC));
+  txc.freq = (long)(*freq * (double)(1 << SHIFT_USEC));
+  *freq = txc.freq / (double)(1 << SHIFT_USEC);
   txc.tick = tick;
   txc.status = STA_UNSYNC; /* Prevent any of the FLL/PLL stuff coming
                               up */

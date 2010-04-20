@@ -186,7 +186,9 @@ extern void LCL_SetLeap(int leap);
 
 /* Routine to set a frequency correction (in ppm) that should be applied
    to local clock to compensate for temperature changes.  A positive
-   argument means that the clock frequency should be increased. */
-extern void LCL_SetTempComp(double comp);
+   argument means that the clock frequency should be increased. Return the
+   actual compensation (may be different from the requested compensation
+   due to clamping or rounding). */
+extern double LCL_SetTempComp(double comp);
 
 #endif /* GOT_LOCAL_H */
