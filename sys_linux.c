@@ -528,6 +528,7 @@ apply_step_offset(double offset)
 {
   struct timeval old_time, new_time;
   struct timezone tz;
+  double err;
 
   if (fast_slewing) {
     abort_slew();
@@ -542,6 +543,13 @@ apply_step_offset(double offset)
   if (settimeofday(&new_time, &tz) < 0) {
     CROAK("settimeofday in apply_step_offset");
   }
+
+  if (gettimeofday(&old_time, &tz) < 0) {
+    CROAK("gettimeofday in apply_step_offset");
+  }
+
+  UTI_DiffTimevalsToDouble(&err, &old_time, &new_time);
+  lcl_InvokeDispersionNotifyHandlers(fabs(err));
 
   initiate_slew();
 
