@@ -566,6 +566,7 @@ static double
 set_frequency(double freq_ppm)
 {
   long required_tick;
+  long min_allowed_tick, max_allowed_tick;
   double required_freq; /* what we use */
   double scaled_freq; /* what adjtimex & the kernel use */
   double old_total_tick;
@@ -592,6 +593,18 @@ set_frequency(double freq_ppm)
     /* Uncompensated local clock runs fast */
     required_tick = nominal_tick - required_delta_tick;
     scaled_freq = -freq_scale * required_freq;
+  }
+
+  min_allowed_tick = nominal_tick - max_tick_bias + 5;
+  max_allowed_tick = nominal_tick + max_tick_bias - 5;
+
+  if (required_tick < min_allowed_tick || required_tick > max_allowed_tick) {
+    LOG(LOGS_WARN, LOGF_SysLinux, "Required tick %ld outside allowed range (%ld .. %ld)", required_tick, min_allowed_tick, max_allowed_tick);
+    if (required_tick < min_allowed_tick) {
+      required_tick = min_allowed_tick;
+    } else {
+      required_tick = max_allowed_tick;
+    }
   }
 
   current_tick = required_tick;
