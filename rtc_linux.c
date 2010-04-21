@@ -314,7 +314,7 @@ slew_samples
   double old_seconds_fast, old_gain_rate;
 
   new_freq = 1.0e-6 * afreq_ppm;
-  old_freq = (new_freq - dfreq) / (1.0 - dfreq);
+  old_freq = (new_freq - dfreq) / (1.0 + dfreq);
 
   for (i=0; i<n_samples; i++) {
     UTI_DiffTimevalsToDouble(&elapsed, cooked, system_times + i);

@@ -378,7 +378,7 @@ LCL_SetAbsoluteFrequency(double afreq_ppm)
   
   (*drv_set_freq)(afreq_ppm);
 
-  dfreq = 1.0e-6 * (afreq_ppm - current_freq_ppm) / (1.0 - 1.0e-6 * current_freq_ppm);
+  dfreq = (afreq_ppm - current_freq_ppm) / (1.0e6 + current_freq_ppm);
 
   LCL_ReadRawTime(&raw);
   LCL_CookTime(&raw, &cooked, NULL);
@@ -404,8 +404,7 @@ LCL_AccumulateDeltaFrequency(double dfreq)
    are handled in units of ppm, whereas the 'dfreq' argument is in
    terms of the gradient of the (offset) v (local time) function. */
 
-  current_freq_ppm = (1.0 - dfreq) * current_freq_ppm +
-    (1.0e6 * dfreq);
+  current_freq_ppm = (1.0 + dfreq) * current_freq_ppm + 1.0e6 * dfreq;
 
   /* Call the system-specific driver for setting the frequency */
   (*drv_set_freq)(current_freq_ppm);
@@ -485,8 +484,7 @@ LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset)
   /* Work out new absolute frequency.  Note that absolute frequencies
    are handled in units of ppm, whereas the 'dfreq' argument is in
    terms of the gradient of the (offset) v (local time) function. */
-  current_freq_ppm = (1.0 - dfreq) * old_freq_ppm +
-    (1.0e6 * dfreq);
+  current_freq_ppm = (1.0 + dfreq) * old_freq_ppm + 1.0e6 * dfreq;
 
 #ifdef TRACEON
   LOG(LOGS_INFO, LOGF_Local, "old_freq=%.3fppm new_freq=%.3fppm offset=%.6fsec",
