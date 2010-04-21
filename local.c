@@ -403,7 +403,7 @@ LCL_SetAbsoluteFrequency(double afreq_ppm)
 
   /* Dispatch to all handlers */
   for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
-    (ptr->handler)(&raw, &cooked, dfreq, afreq_ppm, 0.0, 0, ptr->anything);
+    (ptr->handler)(&raw, &cooked, dfreq, 0.0, 0, ptr->anything);
   }
 
   current_freq_ppm = afreq_ppm;
@@ -432,7 +432,7 @@ LCL_AccumulateDeltaFrequency(double dfreq)
 
   /* Dispatch to all handlers */
   for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
-    (ptr->handler)(&raw, &cooked, dfreq, current_freq_ppm, 0.0, 0, ptr->anything);
+    (ptr->handler)(&raw, &cooked, dfreq, 0.0, 0, ptr->anything);
   }
 
 }
@@ -455,7 +455,7 @@ LCL_AccumulateOffset(double offset)
 
   /* Dispatch to all handlers */
   for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
-    (ptr->handler)(&raw, &cooked, 0.0, current_freq_ppm, offset, 0, ptr->anything);
+    (ptr->handler)(&raw, &cooked, 0.0, offset, 0, ptr->anything);
   }
 
 }
@@ -478,7 +478,7 @@ LCL_ApplyStepOffset(double offset)
 
   /* Dispatch to all handlers */
   for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
-    (ptr->handler)(&raw, &cooked, 0.0, current_freq_ppm, offset, 1, ptr->anything);
+    (ptr->handler)(&raw, &cooked, 0.0, offset, 1, ptr->anything);
   }
 
 }
@@ -515,7 +515,7 @@ LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset)
 
   /* Dispatch to all handlers */
   for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
-    (ptr->handler)(&raw, &cooked, dfreq, current_freq_ppm, doffset, 0, ptr->anything);
+    (ptr->handler)(&raw, &cooked, dfreq, doffset, 0, ptr->anything);
   }
 
 

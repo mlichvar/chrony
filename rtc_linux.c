@@ -302,19 +302,14 @@ run_regression(int new_sample,
 static void
 slew_samples
 (struct timeval *raw, struct timeval *cooked,
- double dfreq, double afreq_ppm,
+ double dfreq,
  double doffset, int is_step_change,
  void *anything)
 {
   int i;
   double elapsed;
-  double new_freq;
-  double old_freq;
   double delta_time;
   double old_seconds_fast, old_gain_rate;
-
-  new_freq = 1.0e-6 * afreq_ppm;
-  old_freq = (new_freq - dfreq) / (1.0 + dfreq);
 
   for (i=0; i<n_samples; i++) {
     UTI_DiffTimevalsToDouble(&elapsed, cooked, system_times + i);
@@ -330,12 +325,12 @@ slew_samples
 
   if (coefs_valid) {
     coef_seconds_fast += doffset;
-    coef_gain_rate = 1.0 - ((1.0 + new_freq) / (1.0 + old_freq)) * (1.0 - coef_gain_rate);
+    coef_gain_rate = 1.0 - (1.0 + dfreq) * (1.0 - coef_gain_rate);
   }
 
 #if 0
-  LOG(LOGS_INFO, LOGF_RtcLinux, "dfreq=%.8f doffset=%.6f new_freq=%.3f old_freq=%.3f old_fast=%.6f old_rate=%.3f new_fast=%.6f new_rate=%.3f",
-      dfreq, doffset, 1.0e6*new_freq, 1.0e6*old_freq,
+  LOG(LOGS_INFO, LOGF_RtcLinux, "dfreq=%.8f doffset=%.6f old_fast=%.6f old_rate=%.3f new_fast=%.6f new_rate=%.3f",
+      dfreq, doffset,
       old_seconds_fast, 1.0e6 * old_gain_rate,
       coef_seconds_fast, 1.0e6 * coef_gain_rate);
 #endif

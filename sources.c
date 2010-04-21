@@ -128,7 +128,7 @@ static int selected_source_index; /* Which source index is currently
 /* Forward prototype */
 
 static void
-slew_sources(struct timeval *raw, struct timeval *cooked, double dfreq, double afreq,
+slew_sources(struct timeval *raw, struct timeval *cooked, double dfreq,
              double doffset, int is_step_change, void *anything);
 static void
 add_dispersion(double dispersion, void *anything);
@@ -798,7 +798,6 @@ static void
 slew_sources(struct timeval *raw,
              struct timeval *cooked,
              double dfreq,
-             double afreq,
              double doffset,
              int is_step_change,
              void *anything)

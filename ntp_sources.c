@@ -66,7 +66,6 @@ static void
 slew_sources(struct timeval *raw,
              struct timeval *cooked,
              double dfreq,
-             double afreq,
              double doffset,
              int is_step_change,
              void *anything);
@@ -308,7 +307,6 @@ static void
 slew_sources(struct timeval *raw,
              struct timeval *cooked,
              double dfreq,
-             double afreq,
              double doffset,
              int is_step_change,
              void *anything)

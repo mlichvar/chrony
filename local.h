@@ -68,10 +68,6 @@ extern void LCL_GetOffsetCorrection(struct timeval *raw, double *correction, dou
    dfreq : delta frequency relative to previous value (in terms of
    seconds gained by system clock per unit system clock time)
 
-   afreq : absolute frequency relative to uncompensated system (in
-   terms of ppm seconds gained by system clock per unit of the
-   uncalibrated system clock)
-
    doffset : delta offset applied (positive => make local system fast
    by that amount, negative => make it slow by that amount)
 
@@ -83,7 +79,7 @@ extern void LCL_GetOffsetCorrection(struct timeval *raw, double *correction, dou
 
 typedef void (*LCL_ParameterChangeHandler)
      (struct timeval *raw, struct timeval *cooked,
-      double dfreq, double afreq_ppm,
+      double dfreq,
       double doffset, int is_step_change,
       void *anything
       );

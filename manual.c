@@ -74,7 +74,6 @@ static void
 slew_samples(struct timeval *raw,
              struct timeval *cooked, 
              double dfreq,
-             double afreq,
              double doffset,
              int is_step_change,
              void *not_used);
@@ -229,7 +228,6 @@ static void
 slew_samples(struct timeval *raw,
              struct timeval *cooked, 
              double dfreq,
-             double afreq,
              double doffset,
              int is_step_change,
              void *not_used)
