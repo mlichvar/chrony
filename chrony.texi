@@ -2207,6 +2207,7 @@ loss rate is not very reliable.
 
 The @code{maxupdateskew} parameter allows the threshold for determining
 whether an estimate may be so unreliable that it should not be used.
+By default, the threshold is 1000 ppm.
 
 The syntax is
 

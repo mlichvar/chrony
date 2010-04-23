@@ -117,7 +117,7 @@ static char *keys_file = NULL;
 static char *drift_file = NULL;
 static char *rtc_file = NULL;
 static unsigned long command_key_id;
-static double max_update_skew = DBL_MAX;
+static double max_update_skew = 1000.0;
 
 static int cmd_port = -1;
 
