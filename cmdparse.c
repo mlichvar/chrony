@@ -56,6 +56,7 @@ CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src)
   src->params.max_delay_ratio = 16384.0;
   src->params.online = 1;
   src->params.auto_offline = 0;
+  src->params.iburst = 0;
 
   result = CPS_Success;
   
@@ -142,6 +143,9 @@ CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src)
 
         } else if (!strncasecmp(cmd, "auto_offline", 12)) {
           src->params.auto_offline = 1;
+        
+        } else if (!strncasecmp(cmd, "iburst", 6)) {
+          src->params.iburst = 1;
         
         } else {
           result = CPS_BadOption;

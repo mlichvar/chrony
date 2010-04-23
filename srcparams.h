@@ -37,6 +37,7 @@ typedef struct {
   int online;
   int auto_offline;
   int presend_minpoll;
+  int iburst;
   unsigned long authkey;
   double max_delay;
   double max_delay_ratio;

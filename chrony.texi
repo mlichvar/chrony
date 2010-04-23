@@ -2597,6 +2597,10 @@ chrony when disconnecting the dial-up link.  (It will still be necessary to use
 chronyc's @code{online} (@pxref{online command}) command when the link has been
 established, to enable measurements to start.)
 
+@item iburst
+On start, make four measurements over a short duration (rather than
+the usual periodic measurements).
+
 @end table
 @c }}}
 @c {{{ tempcomp

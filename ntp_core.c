@@ -290,6 +290,10 @@ create_instance(NTP_Remote_Address *remote_addr, NTP_Mode mode, SourceParameters
     result->opmode = MD_OFFLINE;
   }
   
+  if (params->iburst) {
+    NCR_InitiateSampleBurst(result, 4, 8);
+  }
+
   result->auto_offline = params->auto_offline;
   
   result->local_poll = params->minpoll;

@@ -912,7 +912,8 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
       msg->data.ntp_source.max_delay_ratio = UTI_FloatHostToNetwork(data.params.max_delay_ratio);
       msg->data.ntp_source.flags = htonl(
           (data.params.online ? REQ_ADDSRC_ONLINE : 0) |
-          (data.params.auto_offline ? REQ_ADDSRC_AUTOOFFLINE : 0));
+          (data.params.auto_offline ? REQ_ADDSRC_AUTOOFFLINE : 0) |
+          (data.params.iburst ? REQ_ADDSRC_IBURST : 0));
       result = 1;
 
       break;

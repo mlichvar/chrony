@@ -215,6 +215,7 @@ typedef struct {
 /* Flags used in NTP source requests */
 #define REQ_ADDSRC_ONLINE 0x1
 #define REQ_ADDSRC_AUTOOFFLINE 0x2
+#define REQ_ADDSRC_IBURST 0x4
 
 typedef struct {
   IPAddr ip_addr;
