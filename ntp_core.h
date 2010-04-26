@@ -38,6 +38,10 @@
 #include "ntp.h"
 #include "reports.h"
 
+typedef enum {
+  NTP_SERVER, NTP_PEER
+} NTP_Source_Type;
+
 /* This is a private data type used for storing the instance record for
    each source that we are chiming with */
 typedef struct NCR_Instance_Record *NCR_Instance;
@@ -46,11 +50,8 @@ typedef struct NCR_Instance_Record *NCR_Instance;
 extern void NCR_Initialise(void);
 extern void NCR_Finalise(void);
 
-/* Get a new instance for a server */
-extern NCR_Instance NCR_GetServerInstance(NTP_Remote_Address *remote_addr, SourceParameters *params);
-
-/* Get a new instance for a peer */
-extern NCR_Instance NCR_GetPeerInstance(NTP_Remote_Address *remote_addr, SourceParameters *params);
+/* Get a new instance for a server or peer */
+extern NCR_Instance NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParameters *params);
 
 /* Destroy an instance */
 extern void NCR_DestroyInstance(NCR_Instance instance);

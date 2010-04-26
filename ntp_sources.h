@@ -45,18 +45,13 @@
 typedef enum {
   NSR_Success, /* Operation successful */
   NSR_NoSuchSource, /* Remove - attempt to remove a source that is not known */
-  NSR_AlreadyInUse, /* AddServer, AddPeer - attempt to add a source that is already known */ 
-  NSR_TooManySources, /* AddServer, AddPeer - too many sources already present */
-  NSR_InvalidAF /* AddServer, AddPeer - attempt to add a source with invalid address family */
+  NSR_AlreadyInUse, /* AddSource - attempt to add a source that is already known */ 
+  NSR_TooManySources, /* AddSource - too many sources already present */
+  NSR_InvalidAF /* AddSource - attempt to add a source with invalid address family */
 } NSR_Status;
 
-/* Procedure to add a new server source (to which this machine will be
-   a client) */
-extern NSR_Status NSR_AddServer(NTP_Remote_Address *remote_addr, SourceParameters *params);
-
-/* Procedure to add a new peer source.  We will use symmetric active
-   mode packets when communicating with this source */
-extern NSR_Status NSR_AddPeer(NTP_Remote_Address *remote_addr, SourceParameters *params);
+/* Procedure to add a new server or peer source. */
+extern NSR_Status NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParameters *params);
 
 /* Procedure to remove a source */
 extern NSR_Status NSR_RemoveSource(NTP_Remote_Address *remote_addr);

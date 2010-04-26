@@ -170,10 +170,9 @@ find_slot(NTP_Remote_Address *remote_addr, int *slot, int *found)
 
 /* ================================================== */
 
-/* Procedure to add a new server source (to which this machine will be
-   a client) */
+/* Procedure to add a new source */
 NSR_Status
-NSR_AddServer(NTP_Remote_Address *remote_addr, SourceParameters *params)
+NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParameters *params)
 {
   int slot, found;
 
@@ -195,40 +194,7 @@ NSR_AddServer(NTP_Remote_Address *remote_addr, SourceParameters *params)
       return NSR_InvalidAF;
     } else {
       n_sources++;
-      records[slot].data = NCR_GetServerInstance(remote_addr, params); /* Will need params passing through */
-      records[slot].remote_addr = NCR_GetRemoteAddress(records[slot].data);
-      return NSR_Success;
-    }
-  }
-}
-
-/* ================================================== */
-
-/* Procedure to add a new peer. */
-NSR_Status
-NSR_AddPeer(NTP_Remote_Address *remote_addr, SourceParameters *params)
-{
-  int slot, found;
-
-  assert(initialised);
-
-#if 0
-  LOG(LOGS_INFO, LOGF_NtpSources, "IP=%s port=%d", UTI_IPToString(&remote_addr->ip_addr), remote_addr->port);
-#endif
-
-  /* Find empty bin & check that we don't have the address already */
-  find_slot(remote_addr, &slot, &found);
-  if (found) {
-    return NSR_AlreadyInUse;
-  } else {
-    if (n_sources == MAX_SOURCES) {
-      return NSR_TooManySources;
-    } else if (remote_addr->ip_addr.family != IPADDR_INET4 &&
-               remote_addr->ip_addr.family != IPADDR_INET6) {
-      return NSR_InvalidAF;
-    } else {
-      n_sources++;
-      records[slot].data = NCR_GetPeerInstance(remote_addr, params); /* Will need params passing through */
+      records[slot].data = NCR_GetInstance(remote_addr, type, params); /* Will need params passing through */
       records[slot].remote_addr = NCR_GetRemoteAddress(records[slot].data);
       return NSR_Success;
     }

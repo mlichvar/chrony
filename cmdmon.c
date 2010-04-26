@@ -1233,7 +1233,7 @@ handle_add_server(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.iburst = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_IBURST ? 1 : 0;
   params.max_delay = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay);
   params.max_delay_ratio = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_ratio);
-  status = NSR_AddServer(&rem_addr, &params);
+  status = NSR_AddSource(&rem_addr, NTP_SERVER, &params);
   switch (status) {
     case NSR_Success:
       tx_message->status = htons(STT_SUCCESS);
@@ -1274,7 +1274,7 @@ handle_add_peer(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.iburst = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_IBURST ? 1 : 0;
   params.max_delay = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay);
   params.max_delay_ratio = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_ratio);
-  status = NSR_AddPeer(&rem_addr, &params);
+  status = NSR_AddSource(&rem_addr, NTP_PEER, &params);
   switch (status) {
     case NSR_Success:
       tx_message->status = htons(STT_SUCCESS);

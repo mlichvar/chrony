@@ -260,10 +260,6 @@ static int line_number;
 
 /* ================================================== */
 
-typedef enum {
-  SERVER, PEER
-} NTP_Source_Type;
-
 typedef struct {
   NTP_Source_Type type;
   IPAddr ip_addr;
@@ -433,7 +429,7 @@ parse_lockall(const char *line)
 static void
 parse_server(const char *line)
 {
-  parse_source(line, SERVER);
+  parse_source(line, NTP_SERVER);
 }
 
 /* ================================================== */
@@ -441,7 +437,7 @@ parse_server(const char *line)
 static void
 parse_peer(const char *line)
 {
-  parse_source(line, PEER);
+  parse_source(line, NTP_PEER);
 }
 
 /* ================================================== */
@@ -1199,16 +1195,7 @@ CNF_AddSources(void) {
     memset(&server.local_ip_addr, 0, sizeof (server.local_ip_addr));
     server.port = ntp_sources[i].port;
 
-    switch (ntp_sources[i].type) {
-      case SERVER:
-        NSR_AddServer(&server, &ntp_sources[i].params);
-        break;
-
-      case PEER:
-        NSR_AddPeer(&server, &ntp_sources[i].params);
-        break;
-    }
-
+    NSR_AddSource(&server, ntp_sources[i].type, &ntp_sources[i].params);
   }
 
   return;

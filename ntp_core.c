@@ -247,15 +247,24 @@ start_initial_timeout(NCR_Instance inst)
 
 /* ================================================== */
 
-static NCR_Instance
-create_instance(NTP_Remote_Address *remote_addr, NTP_Mode mode, SourceParameters *params)
+NCR_Instance
+NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParameters *params)
 {
   NCR_Instance result;
 
   result = MallocNew(struct NCR_Instance_Record);
 
   result->remote_addr = *remote_addr;
-  result->mode = mode;
+  switch (type) {
+    case NTP_SERVER:
+      result->mode = MODE_CLIENT;
+      break;
+    case NTP_PEER:
+      result->mode = MODE_ACTIVE;
+      break;
+    default:
+      assert(0);
+  }
 
   result->minpoll = params->minpoll;
   result->maxpoll = params->maxpoll;
@@ -310,24 +319,6 @@ create_instance(NTP_Remote_Address *remote_addr, NTP_Mode mode, SourceParameters
 
   return result;
 
-}
-
-/* ================================================== */
-
-/* Get a new instance for a server */
-NCR_Instance
-NCR_GetServerInstance(NTP_Remote_Address *remote_addr, SourceParameters *params)
-{
-  return create_instance(remote_addr, MODE_CLIENT, params);
-}
-
-/* ================================================== */
-
-/* Get a new instance for a peer */
-NCR_Instance
-NCR_GetPeerInstance(NTP_Remote_Address *remote_addr, SourceParameters *params)
-{
-  return create_instance(remote_addr, MODE_ACTIVE, params);
 }
 
 /* ================================================== */
