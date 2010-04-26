@@ -150,7 +150,7 @@ open_io(const char *hostname, int port)
   IPAddr ip;
 
   /* Note, this call could block for a while */
-  if (!DNS_Name2IPAddress(hostname, &ip, 0)) {
+  if (DNS_Name2IPAddress(hostname, &ip) != DNS_Success) {
     fprintf(stderr, "Could not get IP address for %s\n", hostname);
     exit(1);
   }
@@ -330,7 +330,7 @@ read_address_integer(char *line, IPAddr *address, int *value)
     fprintf(stderr, "Invalid syntax for address value\n");
     ok = 0;
   } else {
-    if (!DNS_Name2IPAddress(hostname, address, 0)) {
+    if (DNS_Name2IPAddress(hostname, address) != DNS_Success) {
       fprintf(stderr, "Could not get address for hostname\n");
       ok = 0;
     } else {
@@ -355,7 +355,7 @@ read_address_double(char *line, IPAddr *address, double *value)
     fprintf(stderr, "Invalid syntax for address value\n");
     ok = 0;
   } else {
-    if (!DNS_Name2IPAddress(hostname, address, 0)) {
+    if (DNS_Name2IPAddress(hostname, address) != DNS_Success) {
       fprintf(stderr, "Could not get address for hostname\n");
       ok = 0;
     } else {
@@ -621,7 +621,7 @@ parse_allow_deny(CMD_Request *msg, char *line)
         if (*q == '\n') *q = 0;
         q++;
       }
-      if (!DNS_Name2IPAddress(p, &ip, 0)) {
+      if (DNS_Name2IPAddress(p, &ip) != DNS_Success) {
         fprintf(stderr, "Could not read address\n");
         return 0;
       } else {
@@ -795,7 +795,7 @@ accheck_getaddr(char *line, IPAddr *addr)
         if (*q == '\n') *q = 0;
         q++;
       }
-      if (!DNS_Name2IPAddress(p, &ip, 0)) {
+      if (DNS_Name2IPAddress(p, &ip) != DNS_Success) {
         return 0;
       } else {
         *addr = ip;
@@ -982,7 +982,7 @@ process_cmd_delete(CMD_Request *msg, char *line)
     fprintf(stderr, "Invalid syntax for address\n");
     ok = 0;
   } else {
-    if (!DNS_Name2IPAddress(hostname, &address, 0)) {
+    if (DNS_Name2IPAddress(hostname, &address) != DNS_Success) {
       fprintf(stderr, "Could not get address for hostname\n");
       ok = 0;
     } else {

@@ -38,9 +38,6 @@
 
 /* ================================================== */
 
-#define MAXRETRIES 10
-static unsigned int retries = 0;
-
 static int address_family = IPADDR_UNSPEC;
 
 void
@@ -49,8 +46,8 @@ DNS_SetAddressFamily(int family)
   address_family = family;
 }
 
-int 
-DNS_Name2IPAddress(const char *name, IPAddr *addr, int retry)
+DNS_Status 
+DNS_Name2IPAddress(const char *name, IPAddr *addr)
 {
 #ifdef HAVE_IPV6
   struct addrinfo hints, *res, *ai;
@@ -63,17 +60,10 @@ DNS_Name2IPAddress(const char *name, IPAddr *addr, int retry)
   hints.ai_flags = AI_ADDRCONFIG;
 #endif
 
-try_again:
   result = getaddrinfo(name, NULL, &hints, &res);
 
   if (result) {
-    if (retry && result == EAI_AGAIN && retries < MAXRETRIES) {
-      sleep(2 << retries);
-      retries++;
-      res_init();
-      goto try_again;
-    }
-    return 0;
+    return result == EAI_AGAIN ? DNS_TryAgain : DNS_Failure;
   }
 
   for (ai = res; !result && ai != NULL; ai = ai->ai_next) {
@@ -96,21 +86,16 @@ try_again:
   }
 
   freeaddrinfo(res);
-  return result;
+  return result ? DNS_Success : DNS_Failure;
 #else
   struct hostent *host;
   char *address0;
   
-try_again:
   host = gethostbyname(name);
 
   if (host == NULL) {
-    if (retry && h_errno == TRY_AGAIN && retries < MAXRETRIES) {
-      sleep(2 << retries);
-      retries++;
-      res_init();
-      goto try_again;
-    }
+    if (h_errno == TRY_AGAIN)
+      return DNS_TryAgain;
   } else {
     addr->family = IPADDR_INET4;
     address0 = host->h_addr_list[0];
@@ -118,10 +103,10 @@ try_again:
                      (((unsigned long)address0[1])<<16) |
                      (((unsigned long)address0[2])<<8) |
                      (((unsigned long)address0[3])));
-    return 1;
+    return DNS_Success;
   }
 
-  return 0;
+  return DNS_Failure;
 #endif
 }
 
@@ -186,6 +171,14 @@ DNS_IPAddress2Name(IPAddr *ip_addr, char *name, int len)
     return 0;
 
   return 1;
+}
+
+/* ================================================== */
+
+void
+DNS_Reload(void)
+{
+  res_init();
 }
 
 /* ================================================== */

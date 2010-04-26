@@ -754,7 +754,7 @@ parse_initstepslew(const char *line)
   }
   while (*p) {
     if (sscanf(p, "%" SHOSTNAME_LEN "s%n", hostname, &n) == 1) {
-      if (DNS_Name2IPAddress(hostname, &ip_addr, 1)) {
+      if (DNS_Name2IPAddress(hostname, &ip_addr) == DNS_Success) {
         init_srcs_ip[n_init_srcs] = ip_addr;
         ++n_init_srcs;
       }
@@ -962,7 +962,7 @@ parse_allow_deny(const char *line, AllowDeny *list, int allow)
       }
 
     } else {
-      if (DNS_Name2IPAddress(p, &ip_addr, 1)) {
+      if (DNS_Name2IPAddress(p, &ip_addr) == DNS_Success) {
         new_node = MallocNew(AllowDeny);
         new_node->allow = allow;
         new_node->all = all;
