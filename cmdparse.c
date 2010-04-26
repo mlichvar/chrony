@@ -33,6 +33,7 @@
 #include "sysincl.h"
 
 #include "cmdparse.h"
+#include "memory.h"
 #include "nameserv.h"
 
 #define MAXLEN 2047
@@ -66,6 +67,10 @@ CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src)
     s = DNS_Name2IPAddress(hostname, &src->ip_addr);
     if (s == DNS_Success) {
       ok = 1;
+      src->name = NULL;
+    } else if (s == DNS_TryAgain) {
+      ok = 1;
+      src->ip_addr.family = IPADDR_UNSPEC;
     }
   }
 
@@ -158,6 +163,13 @@ CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src)
         done = 1;
       }
     } while (!done);
+  }
+
+  if (ok && src->ip_addr.family == IPADDR_UNSPEC) {
+    n = strlen(hostname);
+    src->name = MallocArray(char, n + 1);
+    strncpy(src->name, hostname, n);
+    src->name[n] = '\0';
   }
 
   return result;

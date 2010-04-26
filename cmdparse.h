@@ -49,6 +49,7 @@ typedef enum {
 
 typedef struct {
   IPAddr ip_addr;
+  char *name;
   unsigned short port;
   SourceParameters params;
 } CPS_NTP_Source;

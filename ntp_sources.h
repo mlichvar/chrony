@@ -53,6 +53,11 @@ typedef enum {
 /* Procedure to add a new server or peer source. */
 extern NSR_Status NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParameters *params);
 
+/* Procedure to add a new server or peer source with currently unknown address.
+   The name will be periodically resolved in exponentially increasing intervals
+   until it succeeds or fails with a non-temporary error. */
+extern void NSR_AddUnresolvedSource(char *name, int port, NTP_Source_Type type, SourceParameters *params);
+
 /* Procedure to remove a source */
 extern NSR_Status NSR_RemoveSource(NTP_Remote_Address *remote_addr);
 

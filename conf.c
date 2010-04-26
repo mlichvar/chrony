@@ -262,9 +262,7 @@ static int line_number;
 
 typedef struct {
   NTP_Source_Type type;
-  IPAddr ip_addr;
-  unsigned short port;
-  SourceParameters params;
+  CPS_NTP_Source params;
 } NTP_Source;
 
 #define MAX_NTP_SOURCES 64
@@ -355,23 +353,14 @@ CNF_ReadFile(const char *filename)
 static void
 parse_source(const char *line, NTP_Source_Type type)
 {
-  int i;
-  NTP_Source s;
   CPS_Status status;
-  CPS_NTP_Source params;
 
-  s.type = type;
-  status = CPS_ParseNTPSourceAdd(line, &params);
+  ntp_sources[n_ntp_sources].type = type;
+  status = CPS_ParseNTPSourceAdd(line, &ntp_sources[n_ntp_sources].params);
 
   switch (status) {
     case CPS_Success:
-      s.port = params.port;
-      s.ip_addr = params.ip_addr;
-      s.params = params.params;
-
-      i = n_ntp_sources++;
-      ntp_sources[i] = s;
-
+      n_ntp_sources++;
       break;
     case CPS_BadOption:
       LOG(LOGS_WARN, LOGF_Configure, "Unrecognized subcommand at line %d", line_number);
@@ -1191,11 +1180,16 @@ CNF_AddSources(void) {
   int i;
 
   for (i=0; i<n_ntp_sources; i++) {
-    server.ip_addr = ntp_sources[i].ip_addr;
-    memset(&server.local_ip_addr, 0, sizeof (server.local_ip_addr));
-    server.port = ntp_sources[i].port;
+    if (ntp_sources[i].params.ip_addr.family != IPADDR_UNSPEC) {
+      server.ip_addr = ntp_sources[i].params.ip_addr;
+      memset(&server.local_ip_addr, 0, sizeof (server.local_ip_addr));
+      server.port = ntp_sources[i].params.port;
 
-    NSR_AddSource(&server, ntp_sources[i].type, &ntp_sources[i].params);
+      NSR_AddSource(&server, ntp_sources[i].type, &ntp_sources[i].params.params);
+    } else {
+      NSR_AddUnresolvedSource(ntp_sources[i].params.name, ntp_sources[i].params.port,
+          ntp_sources[i].type, &ntp_sources[i].params.params);
+    }
   }
 
   return;

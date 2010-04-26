@@ -902,6 +902,13 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
   status = CPS_ParseNTPSourceAdd(line, &data);
   switch (status) {
     case CPS_Success:
+      /* Don't retry name resolving */
+      if (data.ip_addr.family == IPADDR_UNSPEC) {
+        Free(data.name);
+        fprintf(stderr, "Invalid host/IP address\n");
+        break;
+      }
+
       msg->data.ntp_source.port = htonl((unsigned long) data.port);
       UTI_IPHostToNetwork(&data.ip_addr, &msg->data.ntp_source.ip_addr);
       msg->data.ntp_source.minpoll = htonl(data.params.minpoll);

@@ -37,6 +37,9 @@
 #include "util.h"
 #include "logging.h"
 #include "local.h"
+#include "memory.h"
+#include "nameserv.h"
+#include "sched.h"
 
 /* ================================================== */
 
@@ -59,6 +62,19 @@ static int n_sources;
 
 /* The largest number of sources we want to have stored in the hash table */
 #define MAX_SOURCES 64
+
+/* Source with unknown address (which may be resolved later) */
+struct UnresolvedSource {
+  char *name;
+  int port;
+  NTP_Source_Type type;
+  SourceParameters params;
+  struct UnresolvedSource *next;
+};
+
+static struct UnresolvedSource *unresolved_sources = NULL;
+static int resolving_interval = 0;
+static SCH_TimeoutID resolving_id;
 
 /* ================================================== */
 /* Forward prototypes */
@@ -203,6 +219,75 @@ NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParam
 
 /* ================================================== */
 
+static void
+resolve_sources(void *arg)
+{
+  NTP_Remote_Address address;
+  struct UnresolvedSource *us, **i;
+  DNS_Status s;
+
+  memset(&address.local_ip_addr, 0, sizeof (address.local_ip_addr));
+
+  DNS_Reload();
+
+  for (i = &unresolved_sources; *i; ) {
+    us = *i;
+    s = DNS_Name2IPAddress(us->name, &address.ip_addr);
+    if (s == DNS_TryAgain) {
+      i = &(*i)->next;
+      continue;
+    } else if (s == DNS_Success) {
+      address.port = us->port;
+      NSR_AddSource(&address, us->type, &us->params);
+    } else {
+      LOG(LOGS_WARN, LOGF_NtpSources, "Invalid host %s", us->name);
+    }
+    
+    *i = us->next;
+
+    Free(us->name);
+    Free(us);
+  }
+
+  if (unresolved_sources) {
+    /* Try again later */
+    if (resolving_interval < 9)
+      resolving_interval++;
+    resolving_id = SCH_AddTimeoutByDelay(7 * (1 << resolving_interval), resolve_sources, NULL);
+  } else {
+    resolving_interval = 0;
+  }
+}
+
+/* ================================================== */
+
+/* Procedure to add a new server or peer source, but instead of an IP address
+   only a name is provided */
+void
+NSR_AddUnresolvedSource(char *name, int port, NTP_Source_Type type, SourceParameters *params)
+{
+  struct UnresolvedSource *us, **i;
+
+  us = MallocNew(struct UnresolvedSource);
+
+  us->name = name;
+  us->port = port;
+  us->type = type;
+  us->params = *params;
+  us->next = NULL;
+
+  for (i = &unresolved_sources; *i; i = &(*i)->next)
+    ;
+  *i = us;
+
+  if (!resolving_interval) {
+    resolving_interval = 2;
+    resolving_id = SCH_AddTimeoutByDelay(7 * (1 << resolving_interval), resolve_sources, NULL);
+  }
+}
+
+/* ================================================== */
+
 /* Procedure to remove a source.  We don't bother whether the port
    address is matched - we're only interested in removing a record for
    the right IP address.  Thus the caller can specify the port number
@@ -309,6 +394,13 @@ NSR_TakeSourcesOnline(IPAddr *mask, IPAddr *address)
         NCR_TakeSourceOnline(records[i].data);
       }
     }
+  }
+
+  if (resolving_interval) {
+    /* Try to resolve any unresolved sources now */
+    SCH_RemoveTimeout(resolving_id);
+    resolving_interval--;
+    resolve_sources(NULL);
   }
 
   return any;
@@ -472,6 +564,7 @@ void
 NSR_GetActivityReport(RPT_ActivityReport *report)
 {
   int i;
+  struct UnresolvedSource *us;
 
   report->online = 0;
   report->offline = 0;
@@ -484,6 +577,12 @@ NSR_GetActivityReport(RPT_ActivityReport *report)
                                     &report->burst_online, &report->burst_offline);
     }
   }
+
+  /* Add unresolved sources to offline count */
+  for (us = unresolved_sources; us; us = us->next) {
+    report->offline++;
+  }
+
   return;
 }
 
