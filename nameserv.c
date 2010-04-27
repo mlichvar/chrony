@@ -89,7 +89,6 @@ DNS_Name2IPAddress(const char *name, IPAddr *addr)
   return result ? DNS_Success : DNS_Failure;
 #else
   struct hostent *host;
-  char *address0;
   
   host = gethostbyname(name);
 
@@ -98,11 +97,7 @@ DNS_Name2IPAddress(const char *name, IPAddr *addr)
       return DNS_TryAgain;
   } else {
     addr->family = IPADDR_INET4;
-    address0 = host->h_addr_list[0];
-    addr->addr.in4 = ((((unsigned long)address0[0])<<24) |
-                     (((unsigned long)address0[1])<<16) |
-                     (((unsigned long)address0[2])<<8) |
-                     (((unsigned long)address0[3])));
+    addr->addr.in4 = ntohl(*(uint32_t *)host->h_addr_list[0]);
     return DNS_Success;
   }
 
