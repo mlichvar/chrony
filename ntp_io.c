@@ -454,7 +454,14 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
   if (!cmsglen)
     msg.msg_control = NULL;
 
-  if (sendmsg(sock_fd, &msg, 0) < 0 && !LOG_RateLimited()) {
+  if (sendmsg(sock_fd, &msg, 0) < 0 &&
+#ifdef ENETUNREACH
+      errno != ENETUNREACH &&
+#endif
+#ifdef ENETDOWN
+      errno != ENETDOWN &&
+#endif
+      !LOG_RateLimited()) {
     LOG(LOGS_WARN, LOGF_NtpIO, "Could not send to %s:%d : %s",
         UTI_IPToString(&remote_addr->ip_addr), remote_addr->port, strerror(errno));
   }
