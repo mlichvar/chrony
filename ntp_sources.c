@@ -403,6 +403,15 @@ NSR_TakeSourcesOnline(IPAddr *mask, IPAddr *address)
     }
   }
 
+  if (address->family == IPADDR_UNSPEC) {
+    struct UnresolvedSource *us;
+
+    for (us = unresolved_sources; us; us = us->next) {
+      any = 1;
+      us->params.online = 1;
+    }
+  }
+
   return any;
 }
 
@@ -432,6 +441,15 @@ NSR_TakeSourcesOffline(IPAddr *mask, IPAddr *address)
   /* Take sync peer offline as last to avoid reference switching */
   if (syncpeer >= 0) {
     NCR_TakeSourceOffline(records[syncpeer].data);
+  }
+
+  if (address->family == IPADDR_UNSPEC) {
+    struct UnresolvedSource *us;
+
+    for (us = unresolved_sources; us; us = us->next) {
+      any = 1;
+      us->params.online = 0;
+    }
   }
 
   return any;
