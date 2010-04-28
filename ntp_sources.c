@@ -385,6 +385,13 @@ NSR_TakeSourcesOnline(IPAddr *mask, IPAddr *address)
   int i;
   int any;
 
+  /* Try to resolve unresolved sources now */
+  if (resolving_interval) {
+    SCH_RemoveTimeout(resolving_id);
+    resolving_interval--;
+    resolve_sources(NULL);
+  }
+
   any = 0;
   for (i=0; i<N_RECORDS; i++) {
     if (records[i].remote_addr) {
@@ -394,13 +401,6 @@ NSR_TakeSourcesOnline(IPAddr *mask, IPAddr *address)
         NCR_TakeSourceOnline(records[i].data);
       }
     }
-  }
-
-  if (resolving_interval) {
-    /* Try to resolve any unresolved sources now */
-    SCH_RemoveTimeout(resolving_id);
-    resolving_interval--;
-    resolve_sources(NULL);
   }
 
   return any;
