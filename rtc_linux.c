@@ -314,7 +314,7 @@ slew_samples
   for (i=0; i<n_samples; i++) {
     UTI_DiffTimevalsToDouble(&elapsed, cooked, system_times + i);
 
-    delta_time = -(elapsed * dfreq) - doffset;
+    delta_time = elapsed * dfreq - doffset;
 
     UTI_AddDoubleToTimeval(system_times + i, delta_time, system_times + i);
 
@@ -325,7 +325,7 @@ slew_samples
 
   if (coefs_valid) {
     coef_seconds_fast += doffset;
-    coef_gain_rate = 1.0 - (1.0 + dfreq) * (1.0 - coef_gain_rate);
+    coef_gain_rate = (1.0 + dfreq) * (1.0 + coef_gain_rate) - 1.0;
   }
 
 #if 0
