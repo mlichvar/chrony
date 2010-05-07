@@ -859,16 +859,12 @@ static void
 filter_slew_samples(struct MedianFilter *filter, struct timeval *when, double dfreq, double doffset)
 {
   int i;
-  double elapsed, delta_time, prev_offset;
+  double delta_time, prev_offset;
   struct timeval *sample;
 
   for (i = 0; i < filter->used; i++) {
     sample = &filter->samples[i].sample_time;
-
-    UTI_DiffTimevalsToDouble(&elapsed, when, sample);
-    delta_time = elapsed * dfreq - doffset;
-    UTI_AddDoubleToTimeval(sample, delta_time, sample);
-
+    UTI_AdjustTimeval(sample, when, sample, &delta_time, dfreq, doffset);
     prev_offset = filter->samples[i].offset;
     filter->samples[i].offset -= delta_time;
 #if 0

@@ -89,7 +89,7 @@ extern int UTI_CompareIPs(IPAddr *a, IPAddr *b, IPAddr *mask);
 extern char *UTI_TimeToLogForm(time_t t);
 
 /* Adjust time following a frequency/offset change */
-extern void UTI_AdjustTimeval(struct timeval *old_tv, struct timeval *when, struct timeval *new_tv, double dfreq, double doffset);
+extern void UTI_AdjustTimeval(struct timeval *old_tv, struct timeval *when, struct timeval *new_tv, double *delta, double dfreq, double doffset);
 
 
 extern void UTI_TimevalToInt64(struct timeval *src, NTP_int64 *dest);

@@ -232,12 +232,11 @@ slew_samples(struct timeval *raw,
              int is_step_change,
              void *not_used)
 {
-  double elapsed, delta_time;
+  double delta_time;
   int i;
   for (i=0; i<n_samples; i++) {
-    UTI_DiffTimevalsToDouble(&elapsed, cooked, &samples[i].when);
-    delta_time = elapsed * dfreq - doffset;
-    UTI_AddDoubleToTimeval(&samples[i].when, delta_time, &samples[i].when);
+    UTI_AdjustTimeval(&samples[i].when, cooked, &samples[i].when, &delta_time,
+        dfreq, doffset);
     samples[i].offset += delta_time;
   }
   return;

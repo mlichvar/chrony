@@ -307,17 +307,12 @@ slew_samples
  void *anything)
 {
   int i;
-  double elapsed;
   double delta_time;
   double old_seconds_fast, old_gain_rate;
 
   for (i=0; i<n_samples; i++) {
-    UTI_DiffTimevalsToDouble(&elapsed, cooked, system_times + i);
-
-    delta_time = elapsed * dfreq - doffset;
-
-    UTI_AddDoubleToTimeval(system_times + i, delta_time, system_times + i);
-
+    UTI_AdjustTimeval(system_times + i, cooked, system_times + i, &delta_time,
+        dfreq, doffset);
   }
 
   old_seconds_fast = coef_seconds_fast;

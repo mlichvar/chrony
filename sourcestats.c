@@ -635,7 +635,6 @@ void
 SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffset)
 {
   int n, i;
-  double elapsed;
   double delta_time;
   struct timeval *sample, prev;
   double prev_offset, prev_freq;
@@ -645,13 +644,7 @@ SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffs
   for (i=0; i<n; i++) {
     sample = &(inst->sample_times[i]);
     prev = *sample;
-#if 0
-    UTI_AdjustTimeval(sample, when, sample, dfreq, doffset);
-    /* Can't easily use this because we need to slew offset */
-#endif
-    UTI_DiffTimevalsToDouble(&elapsed, when, sample);
-    delta_time = elapsed * dfreq - doffset;
-    UTI_AddDoubleToTimeval(sample, delta_time, sample);
+    UTI_AdjustTimeval(sample, when, sample, &delta_time, dfreq, doffset);
     prev_offset = inst->offsets[i];
     inst->offsets[i] += delta_time;
 #ifdef TRACEON
@@ -662,12 +655,11 @@ SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffs
   }
 
   /* Do a half-baked update to the regression estimates */
-  UTI_DiffTimevalsToDouble(&elapsed, when, &(inst->offset_time));
   prev = inst->offset_time;
-  delta_time = elapsed * dfreq - doffset;
-  UTI_AddDoubleToTimeval(&(inst->offset_time), delta_time, &(inst->offset_time));
   prev_offset = inst->estimated_offset;
   prev_freq = inst->estimated_frequency;
+  UTI_AdjustTimeval(&(inst->offset_time), when, &(inst->offset_time),
+      &delta_time, dfreq, doffset);
   inst->estimated_offset += delta_time;
   inst->estimated_frequency -= dfreq;
 

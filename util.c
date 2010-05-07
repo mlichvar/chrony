@@ -442,13 +442,13 @@ UTI_TimeToLogForm(time_t t)
 /* ================================================== */
 
 void
-UTI_AdjustTimeval(struct timeval *old_tv, struct timeval *when, struct timeval *new_tv, double dfreq, double doffset)
+UTI_AdjustTimeval(struct timeval *old_tv, struct timeval *when, struct timeval *new_tv, double *delta_time, double dfreq, double doffset)
 {
-  double elapsed, delta_time;
+  double elapsed;
 
   UTI_DiffTimevalsToDouble(&elapsed, when, old_tv);
-  delta_time = elapsed * dfreq - doffset;
-  UTI_AddDoubleToTimeval(old_tv, delta_time, new_tv);
+  *delta_time = elapsed * dfreq - doffset;
+  UTI_AddDoubleToTimeval(old_tv, *delta_time, new_tv);
 }
 
 /* ================================================== */
