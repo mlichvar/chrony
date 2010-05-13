@@ -295,19 +295,41 @@ NSR_AddUnresolvedSource(char *name, int port, NTP_Source_Type type, SourceParame
 NSR_Status
 NSR_RemoveSource(NTP_Remote_Address *remote_addr)
 {
-  int slot, found;
+  int i, slot, found;
+  SourceRecord temp_records[N_RECORDS];
 
   assert(initialised);
 
   find_slot(remote_addr, &slot, &found);
   if (!found) {
     return NSR_NoSuchSource;
-  } else {
-    n_sources--;
-    records[slot].remote_addr = NULL;
-    NCR_DestroyInstance(records[slot].data);
-    return NSR_Success;
   }
+
+  n_sources--;
+  records[slot].remote_addr = NULL;
+  NCR_DestroyInstance(records[slot].data);
+
+  /* Rehash the table to make sure there are no broken probe sequences.
+     This is costly, but it's not expected to happen frequently. */
+
+  memcpy(temp_records, records, sizeof (records));
+
+  for (i = 0; i < N_RECORDS; i++) {
+    records[i].remote_addr = NULL;
+  }
+  
+  for (i = 0; i < N_RECORDS; i++) {
+    if (!temp_records[i].remote_addr)
+      continue;
+
+    find_slot(temp_records[i].remote_addr, &slot, &found);
+    assert(!found);
+
+    records[slot].remote_addr = temp_records[i].remote_addr;
+    records[slot].data = temp_records[i].data;
+  }
+
+  return NSR_Success;
 }
 
 /* ================================================== */
