@@ -76,6 +76,7 @@ int TMX_GetOffsetLeftOld(long *offset);
 int TMX_GetOffsetLeft(long *offset);
 int TMX_ReadCurrentParams(struct tmx_params *params);
 int TMX_SetLeap(int leap);
+int TMX_SetSync(int sync);
 
 #endif  /* GOT_WRAP_ADJTIMEX_H */
 

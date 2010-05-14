@@ -991,6 +991,8 @@ SYS_Linux_Initialise(void)
   lcl_RegisterSystemDrivers(read_frequency, set_frequency,
                             accrue_offset, apply_step_offset,
                             get_offset_correction, set_leap);
+
+  TMX_SetSync(CNF_GetRTCSync());
 }
 
 /* ================================================== */

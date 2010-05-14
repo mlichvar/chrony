@@ -39,8 +39,7 @@
 #include "chrony_timex.h"
 #include "wrap_adjtimex.h"
 
-/* Save leap status between calls */
-static int leap_status = 0;
+static int status = 0;
 
 int
 TMX_SetTick(long tick)
@@ -75,9 +74,16 @@ TMX_SetFrequency(double *freq, long tick)
   txc.freq = (long)(*freq * (double)(1 << SHIFT_USEC));
   *freq = txc.freq / (double)(1 << SHIFT_USEC);
   txc.tick = tick;
-  txc.status = STA_UNSYNC; /* Prevent any of the FLL/PLL stuff coming
-                              up */
-  txc.status |= leap_status; /* Preserve leap bits */
+
+  /* Prevent any of the FLL/PLL stuff coming up */
+  txc.status = status; 
+
+  if (!(status & STA_UNSYNC)) {
+    /* maxerror has to be reset periodically to prevent kernel
+       from enabling UNSYNC flag */
+    txc.modes |= ADJ_MAXERROR;
+    txc.maxerror = 0;
+  }
 
   return adjtimex(&txc);
 }
@@ -165,16 +171,32 @@ TMX_SetLeap(int leap)
 {
   struct timex txc;
 
+  status &= ~(STA_INS | STA_DEL);
+
   if (leap > 0) {
-    leap_status = STA_INS;
+    status |= STA_INS;
   } else if (leap < 0) {
-    leap_status = STA_DEL;
-  } else {
-    leap_status = 0;
+    status |= STA_DEL;
   }
   
   txc.modes = ADJ_STATUS;
-  txc.status = STA_UNSYNC | leap_status;
+  txc.status = status;
+
+  return adjtimex(&txc);
+}
+
+int TMX_SetSync(int sync)
+{
+  struct timex txc;
+
+  if (sync) {
+    status &= ~STA_UNSYNC;
+  } else {
+    status |= STA_UNSYNC;
+  }
+
+  txc.modes = ADJ_STATUS;
+  txc.status = status;
 
   return adjtimex(&txc);
 }

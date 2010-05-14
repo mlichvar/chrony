@@ -90,6 +90,7 @@ static void parse_cmdallow(const char *);
 static void parse_cmddeny(const char *);
 static void parse_cmdport(const char *);
 static void parse_rtconutc(const char *);
+static void parse_rtcsync(const char *);
 static void parse_noclientlog(const char *);
 static void parse_clientloglimit(const char *);
 static void parse_fallbackdrift(const char *);
@@ -149,6 +150,9 @@ static int enable_manual=0;
 /* Flag set if the RTC runs UTC (default is it runs local time
    incl. daylight saving). */
 static int rtc_on_utc = 0;
+
+/* Flag set if the RTC should be automatically synchronised by kernel */
+static int rtc_sync = 0;
 
 /* Limit and threshold for clock stepping */
 static int make_step_limit = 0;
@@ -235,6 +239,7 @@ static const Command commands[] = {
   {"cmddeny", 7, parse_cmddeny},
   {"cmdport", 7, parse_cmdport},
   {"rtconutc", 8, parse_rtconutc},
+  {"rtcsync", 7, parse_rtcsync},
   {"noclientlog", 11, parse_noclientlog},
   {"clientloglimit", 14, parse_clientloglimit},
   {"fallbackdrift", 13, parse_fallbackdrift},
@@ -780,6 +785,14 @@ static void
 parse_rtconutc(const char *line)
 {
   rtc_on_utc = 1;
+}
+
+/* ================================================== */
+
+static void
+parse_rtcsync(const char *line)
+{
+  rtc_sync = 1;
 }
 
 /* ================================================== */
@@ -1390,6 +1403,14 @@ int
 CNF_GetRTCOnUTC(void)
 {
   return rtc_on_utc;
+}
+
+/* ================================================== */
+
+int
+CNF_GetRTCSync(void)
+{
+  return rtc_sync;
 }
 
 /* ================================================== */

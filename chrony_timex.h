@@ -36,6 +36,7 @@ struct timex {
 };
 
 #define ADJ_FREQUENCY		0x0002	/* frequency offset */
+#define ADJ_MAXERROR		0x0004	/* maximum time error */
 #define ADJ_STATUS		0x0010	/* clock status */
 #define ADJ_TICK		0x4000	/* tick value */
 #define ADJ_OFFSET_SINGLESHOT	0x8001	/* old-fashioned adjtime */

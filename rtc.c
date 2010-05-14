@@ -86,6 +86,10 @@ RTC_Initialise(void)
   file_name = CNF_GetRtcFile();
 
   if (file_name) {
+    if (CNF_GetRTCSync()) {
+      LOG_FATAL(LOGF_Rtc, "rtcfile directive cannot be used with rtcsync");
+    }
+
     if (driver.init) {
       if ((driver.init)()) {
         ok = 1;

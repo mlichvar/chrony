@@ -1197,6 +1197,7 @@ directives can occur in any order in the file.
 * rtcdevice directive::         Specify name of enhanced RTC device (if not /dev/rtc)
 * rtcfile directive::           Specify the file where real-time clock data is stored
 * rtconutc directive::          Specify that the real time clock keeps UTC not local time
+* rtcsync directive::           Specify that RTC should be automatically synchronised by kernel
 * server directive::            Specify an NTP server
 * sched_priority directive::    Require real-time scheduling and specify a priority for it.
 * lock_all directive::          Require that chronyd be locked into RAM. 
@@ -2457,6 +2458,17 @@ or ends.
 If the @code{rtconutc} directive appears, it means the RTC is required
 to keep UTC.  The directive takes no arguments.  It is equivalent to
 specifying the @code{-u} switch to the Linux @file{/sbin/clock} program.
+@c }}}
+@c {{{ rtcsync
+@node rtcsync directive
+@subsection rtcsync
+
+The @code{rtcsync} directive will enable a kernel mode where the
+system time is copied to the real time clock (RTC) every 11 minutes.
+
+This directive is supported only on Linux and cannot be used when the
+normal RTC tracking is enabled, i.e. when the @code{rtcfile} directive
+is used.
 @c }}}
 @c {{{ sched_priority
 @node sched_priority directive
