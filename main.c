@@ -261,6 +261,8 @@ int main
     }
   }
 
+  CNF_ReadFile(conf_file);
+
 #ifndef SYS_WINNT
   if (getuid() != 0) {
     /* This write to the terminal is OK, it comes before we turn into a daemon */
@@ -287,8 +289,6 @@ int main
    * be done *AFTER* the daemon-creation fork() */
   write_lockfile();
 #endif
-
-  CNF_ReadFile(conf_file);
 
   if (do_init_rtc) {
     RTC_TimePreInit();
