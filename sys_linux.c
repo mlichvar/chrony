@@ -119,18 +119,9 @@ static void handle_end_of_slew(void *anything);
 
 /* ================================================== */
 
-inline static int
-our_round(double x) {
-  int y;
-  y = (int)(x + 0.5);
-  while ((double)y < x - 0.5) y++;
-  while ((double)y > x + 0.5) y--;
-  return y;
-}
-
 inline static long
-our_lround(double x) {
-  int y;
+our_round(double x) {
+  long y;
 
   if (x > 0.0)
 	  y = x + 0.5;
@@ -398,7 +389,7 @@ initiate_slew(void)
 
   if (fabs(offset_register) < MAX_ADJUST_WITH_ADJTIME) {
     /* Use adjtime to do the shift */
-    offset = our_lround(1.0e6 * -offset_register);
+    offset = our_round(1.0e6 * -offset_register);
 
     offset_register += offset * 1e-6;
 
