@@ -1815,7 +1815,7 @@ read_from_cmd_socket(void *anything)
   if (rx_message.version != PROTO_VERSION_NUMBER) {
     tx_message.status = htons(STT_NOHOSTACCESS);
     if (!LOG_RateLimited()) {
-      LOG(LOGS_WARN, LOGF_CmdMon, "Read packet with protocol version %d (expected %d) from %s:%hu", rx_message.version, PROTO_VERSION_NUMBER, UTI_IPToString(&remote_ip), remote_port);
+      LOG(LOGS_WARN, LOGF_CmdMon, "Read command packet with protocol version %d (expected %d) from %s:%hu", rx_message.version, PROTO_VERSION_NUMBER, UTI_IPToString(&remote_ip), remote_port);
     }
     if (allowed)
       CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
@@ -1829,7 +1829,7 @@ read_from_cmd_socket(void *anything)
 
   if (read_length != expected_length) {
     if (!LOG_RateLimited()) {
-      LOG(LOGS_WARN, LOGF_CmdMon, "Read incorrectly sized packet from %s:%hu", UTI_IPToString(&remote_ip), remote_port);
+      LOG(LOGS_WARN, LOGF_CmdMon, "Read incorrectly sized command packet from %s:%hu", UTI_IPToString(&remote_ip), remote_port);
     }
     if (allowed)
       CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
