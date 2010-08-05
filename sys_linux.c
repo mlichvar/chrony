@@ -678,13 +678,10 @@ get_offset_correction(struct timeval *raw,
   if (!slow_slewing) {
     offset = 0;
   } else {
-again:
     switch (have_readonly_adjtime) {
       case 2:
         if (TMX_GetOffsetLeft(&offset) < 0) {
-          LOG(LOGS_INFO, LOGF_SysLinux, "adjtimex() doesn't support ADJ_OFFSET_SS_READ");
-          have_readonly_adjtime = 0;
-          goto again;
+          CROAK("adjtimex() failed in get_offset_correction");
         }
         break;
       case 0:
@@ -933,18 +930,18 @@ get_version_specific_details(void)
             have_readonly_adjtime = 0;
             break;
           }
-          /* Let's be optimistic that these will be the same until proven
-             otherwise :-) */
-        case 7:
-        case 8:
-          /* These don't need scaling */
-          freq_scale = 1.0;
-          have_readonly_adjtime = 2;
-          if (minor == 6 && patch < 33) {
+          if (patch < 33) {
             /* Tickless kernels before 2.6.33 accumulated ticks only in
                half-second intervals. */
             tick_update_hz = 2;
           }
+          /* Let's be optimistic that these will be the same until proven
+             otherwise :-) */
+        case 7:
+        case 8:
+          /* These don't seem to need scaling */
+          freq_scale = 1.0;
+          have_readonly_adjtime = 2;
           break;
         default:
           LOG_FATAL(LOGF_SysLinux, "Kernel version not supported yet, sorry.");
@@ -971,6 +968,8 @@ get_version_specific_details(void)
 void
 SYS_Linux_Initialise(void)
 {
+  long offset;
+
   offset_register = 0.0;
   fast_slewing = 0;
 
@@ -982,6 +981,16 @@ SYS_Linux_Initialise(void)
   lcl_RegisterSystemDrivers(read_frequency, set_frequency,
                             accrue_offset, apply_step_offset,
                             get_offset_correction, set_leap);
+
+  offset = 0;
+  if (TMX_ApplyOffset(&offset) < 0) {
+    CROAK("adjtimex() failed in initialise");
+  }
+
+  if (have_readonly_adjtime == 2 && (TMX_GetOffsetLeft(&offset) < 0 || offset)) {
+    LOG(LOGS_INFO, LOGF_SysLinux, "adjtimex() doesn't support ADJ_OFFSET_SS_READ");
+    have_readonly_adjtime = 0;
+  }
 
   TMX_SetSync(CNF_GetRTCSync());
 }
