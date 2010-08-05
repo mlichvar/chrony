@@ -77,6 +77,9 @@ int TMX_GetOffsetLeft(long *offset);
 int TMX_ReadCurrentParams(struct tmx_params *params);
 int TMX_SetLeap(int leap);
 int TMX_SetSync(int sync);
+int TMX_EnableNanoPLL(void);
+int TMX_ApplyPLLOffset(long offset);
+int TMX_GetPLLOffsetLeft(long *offset);
 
 #endif  /* GOT_WRAP_ADJTIMEX_H */
 

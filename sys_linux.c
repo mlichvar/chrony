@@ -113,6 +113,11 @@ txc.modes is set to ADJ_OFFSET_SS_READ. */
 
 static int have_readonly_adjtime;
 
+/* Flag indicating whether kernel supports PLL in nanosecond resolution.
+   If supported, it will be used instead of adjtime() for very small
+   adjustments. */
+static int have_nanopll;
+
 /* ================================================== */
 
 static void handle_end_of_slew(void *anything);
@@ -136,6 +141,9 @@ static double offset_register;
 
 /* Flag set true if an adjtime slew was started and still may be running */
 static int slow_slewing;
+
+/* Flag set true if a PLL nano slew was started and still may be running */
+static int nano_slewing;
 
 /* Flag set true if a fast slew (one done by altering tick) is being
    run at the moment */
@@ -173,6 +181,9 @@ static double delta_total_tick;
    assuming it is resync'ed about once per day. (TBC) */
 #define MAX_ADJUST_WITH_ADJTIME (0.2)
 
+/* Max amount of time that should be adjusted by kernel PLL */
+#define MAX_ADJUST_WITH_NANOPLL (1.0e-5)
+
 /* The amount by which we alter 'tick' when doing a large slew */
 static int slew_delta_tick;
 
@@ -184,6 +195,11 @@ static int max_tick_bias;
    adjtime() call and maximum offset correction error it can cause */
 static struct timeval slow_slew_error_end;
 static int slow_slew_error;
+
+/* Timeval at which the latest nano PLL adjustment was started and maximum
+   offset correction error it can cause */
+static struct timeval nano_slew_error_start;
+static int nano_slew_error;
 
 /* The latest time at which 'tick' in kernel may be actually updated
    and maximum offset correction error it can cause */
@@ -243,6 +259,48 @@ get_slow_slew_error(struct timeval *now)
 
   UTI_DiffTimevalsToDouble(&left, &slow_slew_error_end, now);
   return left > 0.0 ? slow_slew_error / 1e6 : 0.0;
+}
+
+static void
+update_nano_slew_error(long offset, int new)
+{
+  struct timezone tz;
+  struct timeval now;
+  double ago;
+
+  if (offset == 0 && nano_slew_error == 0)
+    return;
+
+  if (gettimeofday(&now, &tz) < 0) {
+    CROAK("gettimeofday() failed");
+  }
+
+  /* maximum error in offset reported by adjtimex, assuming PLL constant 0 
+     and SHIFT_PLL = 2 */
+  offset /= new ? 4 : 3;
+  if (offset < 0)
+    offset = -offset;
+
+  UTI_DiffTimevalsToDouble(&ago, &now, &nano_slew_error_start);
+  if (ago > 1.1) {
+    if (!new && nano_slew_error > offset)
+      nano_slew_error = offset;
+  } else {
+    if (nano_slew_error < offset)
+      nano_slew_error = offset;
+  }
+
+  if (new)
+    nano_slew_error_start = now;
+}
+
+static double
+get_nano_slew_error(void)
+{
+  if (nano_slew_error == 0)
+    return 0.0;
+
+  return nano_slew_error / 1e9;
 }
 
 static void
@@ -376,7 +434,7 @@ initiate_slew(void)
     return;
   }
 
-  /* Cancel any standard adjtime that is running */
+  /* Cancel any slewing that is running */
   if (slow_slewing) {
     offset = 0;
     if (TMX_ApplyOffset(&offset) < 0) {
@@ -385,13 +443,35 @@ initiate_slew(void)
     offset_register -= (double) offset / 1.0e6;
     slow_slewing = 0;
     update_slow_slew_error(0);
+  } else if (nano_slewing) {
+    if (TMX_GetPLLOffsetLeft(&offset) < 0) {
+      CROAK("adjtimex() failed in accrue_offset");
+    }
+    offset_register -= (double) offset / 1.0e9;
+
+    offset = 0;
+    if (TMX_ApplyPLLOffset(offset) < 0) {
+      CROAK("adjtimex() failed in accrue_offset");
+    }
+    nano_slewing = 0;
+    update_nano_slew_error(offset, 1);
   }
 
-  if (fabs(offset_register) < MAX_ADJUST_WITH_ADJTIME) {
+  if (have_nanopll && fabs(offset_register) < MAX_ADJUST_WITH_NANOPLL) {
+    /* Use PLL with fixed frequency to do the shift */
+    offset = 1.0e9 * -offset_register;
+
+    if (TMX_ApplyPLLOffset(offset) < 0) {
+      CROAK("adjtimex() failed in accrue_offset");
+    }
+    offset_register = 0.0;
+    nano_slewing = 1;
+    update_nano_slew_error(offset, 1);
+  } else if (fabs(offset_register) < MAX_ADJUST_WITH_ADJTIME) {
     /* Use adjtime to do the shift */
     offset = our_round(1.0e6 * -offset_register);
 
-    offset_register += offset * 1e-6;
+    offset_register += offset / 1.0e6;
 
     if (offset != 0) {
       if (TMX_ApplyOffset(&offset) < 0) {
@@ -666,14 +746,14 @@ get_offset_correction(struct timeval *raw,
   /* Correction is given by these things :
      1. Any value in offset register
      2. Amount of fast slew remaining
-     3. Any amount of adjtime correction remaining */
+     3. Any amount of adjtime correction remaining
+     4. Any amount of nanopll correction remaining */
 
 
-  double adjtime_left;
   double fast_slew_duration;
   double fast_slew_achieved;
   double fast_slew_remaining;
-  long offset, toffset;
+  long offset, noffset, toffset;
 
   if (!slow_slewing) {
     offset = 0;
@@ -708,10 +788,19 @@ get_offset_correction(struct timeval *raw,
       slow_slewing = 0;
     }
   }
-
   update_slow_slew_error(offset);
 
-  adjtime_left = (double)offset / 1.0e6;
+  if (!nano_slewing) {
+    noffset = 0;
+  } else {
+    if (TMX_GetPLLOffsetLeft(&noffset) < 0) {
+      CROAK("adjtimex() failed in get_offset_correction");
+    }
+    if (noffset == 0) {
+      nano_slewing = 0;
+    }
+  }
+  update_nano_slew_error(noffset, 0);
 
   if (fast_slewing) {
     UTI_DiffTimevalsToDouble(&fast_slew_duration, raw, &slew_start_tv);
@@ -722,8 +811,8 @@ get_offset_correction(struct timeval *raw,
     fast_slew_remaining = 0.0;
   }  
 
-  *corr = - (offset_register + fast_slew_remaining) + adjtime_left;
-  *err = get_slow_slew_error(raw) + get_fast_slew_error(raw);
+  *corr = - (offset_register + fast_slew_remaining) + offset / 1.0e6 + noffset / 1.0e9;
+  *err = get_slow_slew_error(raw) + get_fast_slew_error(raw) + get_nano_slew_error();;
 
   return;
 }
@@ -867,6 +956,8 @@ get_version_specific_details(void)
   version_major = major;
   version_minor = minor;
   version_patchlevel = patch;
+
+  have_nanopll = 0;
   
   switch (major) {
     case 1:
@@ -942,6 +1033,7 @@ get_version_specific_details(void)
           /* These don't seem to need scaling */
           freq_scale = 1.0;
           have_readonly_adjtime = 2;
+          have_nanopll = 1;
           break;
         default:
           LOG_FATAL(LOGF_SysLinux, "Kernel version not supported yet, sorry.");
@@ -990,6 +1082,11 @@ SYS_Linux_Initialise(void)
   if (have_readonly_adjtime == 2 && (TMX_GetOffsetLeft(&offset) < 0 || offset)) {
     LOG(LOGS_INFO, LOGF_SysLinux, "adjtimex() doesn't support ADJ_OFFSET_SS_READ");
     have_readonly_adjtime = 0;
+  }
+
+  if (have_nanopll && TMX_EnableNanoPLL() < 0) {
+    LOG(LOGS_INFO, LOGF_SysLinux, "adjtimex() doesn't support nanosecond PLL");
+    have_nanopll = 0;
   }
 
   TMX_SetSync(CNF_GetRTCSync());

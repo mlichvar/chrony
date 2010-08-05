@@ -74,8 +74,6 @@ TMX_SetFrequency(double *freq, long tick)
   txc.freq = (long)(*freq * (double)(1 << SHIFT_USEC));
   *freq = txc.freq / (double)(1 << SHIFT_USEC);
   txc.tick = tick;
-
-  /* Prevent any of the FLL/PLL stuff coming up */
   txc.status = status; 
 
   if (!(status & STA_UNSYNC)) {
@@ -199,6 +197,47 @@ int TMX_SetSync(int sync)
   txc.status = status;
 
   return adjtimex(&txc);
+}
+
+int
+TMX_EnableNanoPLL(void)
+{
+  struct timex txc;
+  int result;
+
+  txc.modes = ADJ_STATUS | ADJ_OFFSET | ADJ_TIMECONST | ADJ_NANO;
+  txc.status = STA_PLL | STA_FREQHOLD;
+  txc.offset = 0;
+  txc.constant = 0;
+  result = adjtimex(&txc);
+  if (result < 0 || !(txc.status & STA_NANO) || txc.offset || txc.constant)
+    return -1;
+
+  status |= STA_PLL | STA_FREQHOLD;
+  return result;
+}
+
+int
+TMX_ApplyPLLOffset(long offset)
+{
+  struct timex txc;
+
+  txc.modes = ADJ_OFFSET | ADJ_TIMECONST | ADJ_NANO;
+  txc.offset = offset;
+  txc.constant = 0;
+  return adjtimex(&txc);
+}
+
+int
+TMX_GetPLLOffsetLeft(long *offset)
+{
+  struct timex txc;
+  int result;
+
+  txc.modes = 0;
+  result = adjtimex(&txc);
+  *offset = txc.offset;
+  return result;
 }
 
 #endif

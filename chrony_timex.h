@@ -35,9 +35,12 @@ struct timex {
 	int  :32; int  :32; int  :32; int  :32;
 };
 
+#define ADJ_OFFSET		0x0001  /* time offset */
 #define ADJ_FREQUENCY		0x0002	/* frequency offset */
 #define ADJ_MAXERROR		0x0004	/* maximum time error */
 #define ADJ_STATUS		0x0010	/* clock status */
+#define ADJ_TIMECONST		0x0020  /* pll time constant */
+#define ADJ_NANO		0x2000  /* select nanosecond resolution */
 #define ADJ_TICK		0x4000	/* tick value */
 #define ADJ_OFFSET_SINGLESHOT	0x8001	/* old-fashioned adjtime */
 #define ADJ_OFFSET_SS_READ	0xa001  /* read-only adjtime */
@@ -60,6 +63,7 @@ struct timex {
 #define STA_PPSERROR	0x0800	/* PPS signal calibration error (ro) */
 
 #define STA_CLOCKERR	0x1000	/* clock hardware fault (ro) */
+#define STA_NANO	0x2000  /* resolution (0 = us, 1 = ns) (ro) */
 
 /* This doesn't seem to be in any include files !! */
 
