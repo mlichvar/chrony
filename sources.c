@@ -891,8 +891,6 @@ SRC_ReloadSources(void)
       LOG(LOGS_WARN, LOGF_Sources, "Could not open dump file %s", filename);
     } else {
       if (SST_LoadFromFile(sources[i]->stats, in)) {
-        /* We might want to use SST_DoUpdateRegression here, but we
-           need to check it has the same functionality */
         SST_DoNewRegression(sources[i]->stats);
       } else {
         LOG(LOGS_WARN, LOGF_Sources, "Problem loading from file %s", filename);

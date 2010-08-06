@@ -469,43 +469,6 @@ SST_DoNewRegression(SST_Stats inst)
 }
 
 /* ================================================== */
-/* This function does a simple regression on what is in the register,
-   without trying to optimise the error bounds on the frequency by
-   deleting old samples */
-
-void
-SST_DoUpdateRegression(SST_Stats inst)
-{
-  double times_back[MAX_SAMPLES];
-  double freq_error_bound;
-  double est_intercept, est_slope, est_var_base, est_intercept_sd, est_slope_sd;
-
-  convert_to_intervals(inst, times_back);
-
-  if (inst->n_samples >= 3) { /* Otherwise, we're wasting our time - we
-                                 can't do a useful linear regression
-                                 with less than 3 points */
-    
-    RGR_WeightedRegression(times_back, inst->offsets, inst->weights,
-                           inst->n_samples,
-                           &est_intercept, &est_slope, &est_var_base,
-                           &est_intercept_sd, &est_slope_sd);
-
-    freq_error_bound = est_slope_sd * RGR_GetTCoef(inst->n_samples - 2);
-
-    inst->estimated_frequency = est_slope;
-    inst->skew = freq_error_bound;
-
-  } else {
-    inst->estimated_frequency = 0.0;
-    inst->skew = WORST_CASE_FREQ_BOUND;
-  }
-
-  find_best_sample_index(inst, times_back);
-
-}
-
-/* ================================================== */
 
 void
 SST_GetReferenceData(SST_Stats inst, struct timeval *now, 
