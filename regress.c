@@ -218,7 +218,6 @@ n_runs_from_residuals(double *resid, int n)
 /* Return a boolean indicating whether we had enough points for
    regression */
 
-#define RESID_SIZE 1024
 #define MIN_SAMPLES_FOR_REGRESS 3
 
 int
@@ -252,7 +251,7 @@ RGR_FindBestRegression
 )
 {
   double P, Q, U, V, W; /* total */
-  double resid[RESID_SIZE];
+  double resid[MAX_POINTS];
   double ss;
   double a, b, u, ui, aa;
 
