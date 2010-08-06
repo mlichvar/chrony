@@ -134,10 +134,6 @@ struct SST_Stats_Record {
      time of the measurements */
   double root_dispersions[MAX_SAMPLES];
 
-  /* This array contains the weights to be used in the regression
-     analysis for each of the samples. */
-  double weights[MAX_SAMPLES];
-
   /* This array contains the strata that were associated with the sources
      at the times the samples were generated */
   int strata[MAX_SAMPLES];
@@ -206,7 +202,6 @@ move_stats_entry(SST_Stats inst, int src, int dest)
   inst->peer_dispersions[dest] = inst->peer_dispersions[src];
   inst->root_delays[dest] = inst->root_delays[src];
   inst->root_dispersions[dest] = inst->root_dispersions[src];
-  inst->weights[dest] = inst->weights[src];
   inst->strata[dest] = inst->strata[src];
 }
 
@@ -262,15 +257,6 @@ SST_AccumulateSample(SST_Stats inst, struct timeval *sample_time,
   inst->peer_dispersions[n] = peer_dispersion;
   inst->root_delays[n] = root_delay;
   inst->root_dispersions[n] = root_dispersion;
-
-#if 0
-  /* The weight is worked out when we run the regression algorithm */
-  root_distance = root_dispersion + 0.5 * fabs(root_delay);
-  
-  /* For now, this is the formula for the weight functions */
-  inst->weights[n] = root_distance * root_distance;
-#endif
-
   inst->strata[n] = stratum;
  
   ++inst->n_samples;
@@ -369,6 +355,7 @@ SST_DoNewRegression(SST_Stats inst)
 {
   double times_back[MAX_SAMPLES];
   double peer_distances[MAX_SAMPLES];
+  double weights[MAX_SAMPLES];
 
   int bad_points[MAX_SAMPLES];
   int degrees_of_freedom;
@@ -399,11 +386,11 @@ SST_DoNewRegression(SST_Stats inst)
 
     for (i=0; i<inst->n_samples; i++) {
       sd_weight = 1.0 + SD_TO_DIST_RATIO * (peer_distances[i] - min_distance) / min_distance;
-      inst->weights[i] = sd_weight * sd_weight;
+      weights[i] = sd_weight * sd_weight;
     } 
   }         
 
-  regression_ok = RGR_FindBestRegression(times_back, inst->offsets, inst->weights,
+  regression_ok = RGR_FindBestRegression(times_back, inst->offsets, weights,
                                          inst->n_samples,
                                          &est_intercept, &est_slope, &est_var,
                                          &est_intercept_sd, &est_slope_sd,
@@ -716,7 +703,7 @@ SST_SaveToFile(SST_Stats inst, FILE *out)
             inst->peer_dispersions[i],
             inst->root_delays[i],
             inst->root_dispersions[i],
-            inst->weights[i],
+            1.0, /* used to be inst->weights[i] */
             inst->strata[i]);
 
   }
@@ -731,6 +718,7 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
   int i, line_number;
   char line[1024];
   unsigned long sec, usec;
+  double weight;
 
   if (fgets(line, sizeof(line), in) &&
       (sscanf(line, "%d", &inst->n_samples) == 1)) {
@@ -747,7 +735,7 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
                   &(inst->peer_dispersions[i]),
                   &(inst->root_delays[i]),
                   &(inst->root_dispersions[i]),
-                  &(inst->weights[i]),
+                  &weight, /* not used anymore */
                   &(inst->strata[i])) != 10)) {
 
         /* This is the branch taken if the read FAILED */
