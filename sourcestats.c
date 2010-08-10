@@ -48,9 +48,6 @@
    2000ppm, which would be pretty bad */
 #define WORST_CASE_FREQ_BOUND (2000.0/1.0e6)
 
-/* Day number of 1 Jan 1970 */
-#define MJD_1970 40587
-
 /* ================================================== */
 
 static LOG_FileID logfileid;
@@ -210,7 +207,7 @@ move_stats_entry(SST_Stats inst, int src, int dest)
    For now, just discard the oldest sample.  */
 
 static void
-prune_register(SST_Stats inst, int new_oldest, int *bad_points)
+prune_register(SST_Stats inst, int new_oldest)
 {
   int i, j;
 
@@ -219,12 +216,10 @@ prune_register(SST_Stats inst, int new_oldest, int *bad_points)
   }
    
   for (i=0, j=new_oldest; j<inst->n_samples; j++) {
-    if (!bad_points || !bad_points[j]) {
       if (j != i) {
         move_stats_entry(inst, j, i);
       }
       i++;
-    }
   }
   inst->n_samples = i;
 
@@ -240,12 +235,9 @@ SST_AccumulateSample(SST_Stats inst, struct timeval *sample_time,
                      int stratum)
 {
   int n;
-#if 0
-  double root_distance;
-#endif
 
   if (inst->n_samples == MAX_SAMPLES) {
-    prune_register(inst, 1, NULL);
+    prune_register(inst, 1);
   }
 
   n = inst->n_samples;
@@ -357,7 +349,6 @@ SST_DoNewRegression(SST_Stats inst)
   double peer_distances[MAX_SAMPLES];
   double weights[MAX_SAMPLES];
 
-  int bad_points[MAX_SAMPLES];
   int degrees_of_freedom;
   int best_start;
   double est_intercept, est_slope, est_var, est_intercept_sd, est_slope_sd;
@@ -395,10 +386,6 @@ SST_DoNewRegression(SST_Stats inst)
                                          &est_intercept, &est_slope, &est_var,
                                          &est_intercept_sd, &est_slope_sd,
                                          &best_start, &nruns, &degrees_of_freedom);
-
-  /* This is a legacy of when the regression routine found outliers
-     for us.  We don't use it anymore. */
-  memset((void *) bad_points, 0, MAX_SAMPLES * sizeof(int));
 
   if (regression_ok) {
 
@@ -441,7 +428,7 @@ SST_DoNewRegression(SST_Stats inst)
               best_start, nruns);
     }
 
-    prune_register(inst, best_start, bad_points);
+    prune_register(inst, best_start);
 
   } else {
 #if 0
@@ -721,7 +708,7 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
   double weight;
 
   if (fgets(line, sizeof(line), in) &&
-      (sscanf(line, "%d", &inst->n_samples) == 1)) {
+      (sscanf(line, "%u", &inst->n_samples) == 1) && inst->n_samples <= MAX_SAMPLES) {
 
     line_number = 2;
 
