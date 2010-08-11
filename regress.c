@@ -258,6 +258,9 @@ RGR_FindBestRegression
   int start, nruns, npoints, npoints_left;
   int i;
 
+  assert(n <= MAX_POINTS);
+  assert(MAX_POINTS < sizeof (critical_runs10) / sizeof (critical_runs10[0]));
+
   if (n < MIN_SAMPLES_FOR_REGRESS) {
     return 0;
   }
@@ -520,6 +523,8 @@ RGR_FindBestRobustRegression
   double s2, sb, incr;
   double mx, dx, my, dy;
   int nruns = 0;
+
+  assert(n < MAX_POINTS);
 
   if (n < 2) {
     return 0;
