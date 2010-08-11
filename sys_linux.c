@@ -271,27 +271,38 @@ update_nano_slew_error(long offset, int new)
   if (offset == 0 && nano_slew_error == 0)
     return;
 
-  if (gettimeofday(&now, &tz) < 0) {
-    CROAK("gettimeofday() failed");
-  }
-
   /* maximum error in offset reported by adjtimex, assuming PLL constant 0 
      and SHIFT_PLL = 2 */
   offset /= new ? 4 : 3;
   if (offset < 0)
     offset = -offset;
 
-  UTI_DiffTimevalsToDouble(&ago, &now, &nano_slew_error_start);
-  if (ago > 1.1) {
-    if (!new && nano_slew_error > offset)
-      nano_slew_error = offset;
+  if (new || nano_slew_error_start.tv_sec > 0) {
+    if (gettimeofday(&now, &tz) < 0) {
+      CROAK("gettimeofday() failed");
+    }
+  }
+
+  /* When PLL offset is newly set, use the maximum of the old and new error.
+     Otherwise use the minimum, but only when the last update is older than
+     1.1 seconds to be sure the previous adjustment is already gone. */
+  if (!new) {
+    if (nano_slew_error > offset) {
+      if (nano_slew_error_start.tv_sec == 0) {
+        nano_slew_error = offset;
+      } else {
+        UTI_DiffTimevalsToDouble(&ago, &now, &nano_slew_error_start);
+        if (ago > 1.1) {
+          nano_slew_error_start.tv_sec = 0;
+          nano_slew_error = offset;
+        }
+      }
+    }
   } else {
     if (nano_slew_error < offset)
       nano_slew_error = offset;
-  }
-
-  if (new)
     nano_slew_error_start = now;
+  }
 }
 
 static double
@@ -448,6 +459,7 @@ initiate_slew(void)
       CROAK("adjtimex() failed in accrue_offset");
     }
     offset_register -= (double) offset / 1.0e9;
+    update_nano_slew_error(offset, 0);
 
     offset = 0;
     if (TMX_ApplyPLLOffset(offset) < 0) {
