@@ -287,7 +287,8 @@ get_offset_correction(struct timeval *raw,
   stop_adjust();
   *corr = -offset_register;
   start_adjust();
-  *err = 0.0;
+  if (err)
+    *err = 0.0;
   return;
 }
 

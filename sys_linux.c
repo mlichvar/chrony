@@ -800,7 +800,6 @@ get_offset_correction(struct timeval *raw,
       slow_slewing = 0;
     }
   }
-  update_slow_slew_error(offset);
 
   if (!nano_slewing) {
     noffset = 0;
@@ -812,7 +811,6 @@ get_offset_correction(struct timeval *raw,
       nano_slewing = 0;
     }
   }
-  update_nano_slew_error(noffset, 0);
 
   if (fast_slewing) {
     UTI_DiffTimevalsToDouble(&fast_slew_duration, raw, &slew_start_tv);
@@ -824,7 +822,12 @@ get_offset_correction(struct timeval *raw,
   }  
 
   *corr = - (offset_register + fast_slew_remaining) + offset / 1.0e6 + noffset / 1.0e9;
-  *err = get_slow_slew_error(raw) + get_fast_slew_error(raw) + get_nano_slew_error();;
+
+  if (err) {
+    update_slow_slew_error(offset);
+    update_nano_slew_error(noffset, 0);
+    *err = get_slow_slew_error(raw) + get_fast_slew_error(raw) + get_nano_slew_error();;
+  }
 
   return;
 }

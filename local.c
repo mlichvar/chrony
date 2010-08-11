@@ -349,13 +349,8 @@ LCL_CookTime(struct timeval *raw, struct timeval *cooked, double *err)
 void
 LCL_GetOffsetCorrection(struct timeval *raw, double *correction, double *err)
 {
-  double e;
-
   /* Call system specific driver to get correction */
-  (*drv_offset_convert)(raw, correction, &e);
-
-  if (err)
-    *err = e;
+  (*drv_offset_convert)(raw, correction, err);
 }
 
 /* ================================================== */
