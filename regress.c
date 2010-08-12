@@ -69,9 +69,7 @@ RGR_WeightedRegression
   double u, ui, aa;
   int i;
 
-  if (n<3) {
-    CROAK("Insufficient points");
-  }
+  assert(n >= 3);
 
   W = U = 0;
   for (i=0; i<n; i++) {
@@ -358,9 +356,7 @@ find_ordered_entry_with_flags(double *x, int n, int index, int *flags)
   double piv;
   int pivind;
 
-  if (index < 0) {
-    CROAK("Negative index");
-  }
+  assert(index >= 0);
 
   /* If this bit of the array is already sorted, simple! */
   if (flags[index]) {
@@ -404,8 +400,6 @@ find_ordered_entry_with_flags(double *x, int n, int index, int *flags)
         v = r - 1;
       } else if (index > r) {
         u = l;
-      } else {
-        CROAK("Impossible");
       }
     }
   } while (1);
@@ -619,7 +613,7 @@ RGR_FindBestRobustRegression
         bhi = bmid;
         rhi = rmid;
       } else {
-        CROAK("Impossible");
+        assert(0);
       }
     } while ((bhi - blo) > tol);
 

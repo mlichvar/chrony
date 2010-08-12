@@ -1210,7 +1210,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
           
           break;
         default:
-          CROAK("Impossible");
+          assert(0);
           break;
       }
       
@@ -1224,7 +1224,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
       break;
 
     default:
-      CROAK("Impossible");
+      assert(0);
       break;
 
   }
@@ -1786,7 +1786,7 @@ NCR_InitiateSampleBurst(NCR_Instance inst, int n_good_samples, int n_total_sampl
 
 
       default:
-        CROAK("Impossible");
+        assert(0);
         break;
     }
   }
@@ -1808,7 +1808,7 @@ NCR_ReportSource(NCR_Instance inst, RPT_SourceReport *report, struct timeval *no
       report->mode = RPT_NTP_PEER;
       break;
     default:
-      CROAK("Impossible");
+      assert(0);
   }
   
   return;
@@ -1872,7 +1872,7 @@ NCR_IncrementActivityCounters(NCR_Instance inst, int *online, int *offline,
       ++*offline;
       break;
     default:
-      CROAK("Impossible");
+      assert(0);
       break;
   }
 }

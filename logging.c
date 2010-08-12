@@ -250,22 +250,6 @@ LOG_RateLimited(void)
 }
 
 /* ================================================== */
-/* Force a core dump and exit without doing abort() or assert(0).
-   These do funny things with the call stack in the core file that is
-   generated, which makes diagnosis difficult. */
-
-int
-croak(const char *file, int line, const char *msg)
-{
-  int a;
-  LOG(LOGS_ERR, LOGF_Util, "Unexpected condition [%s] at %s:%d, core dumped",
-      msg, file, line);
-  a = * (int *) 0;
-  return a; /* Can't happen - this stops the optimiser optimising the
-               line above */
-}
-
-/* ================================================== */
 
 LOG_FileID
 LOG_FileOpen(const char *name, const char *banner)

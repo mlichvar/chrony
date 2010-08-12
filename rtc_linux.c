@@ -193,12 +193,7 @@ discard_samples(int new_first)
 {
   int n_to_save;
 
-  if (!(new_first < n_samples)) {
-    CROAK("new_first should be < n_samples");
-  }
-  if (!(new_first >= 0)) {
-    CROAK("new_first should be non-negative");
-  }
+  assert(new_first >= 0 && new_first < n_samples);
 
   n_to_save = n_samples - new_first;
 
@@ -802,7 +797,7 @@ process_reading(time_t rtc_time, struct timeval *system_time)
       }
       break;
     default:
-      CROAK("Impossible");
+      assert(0);
       break;
   }  
 
@@ -937,7 +932,7 @@ turn_off_interrupt:
 
       break;
     default:
-      CROAK("Impossible");
+      assert(0);
       break;
   }
 

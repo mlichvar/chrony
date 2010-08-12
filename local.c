@@ -123,9 +123,9 @@ calculate_sys_precision(void)
       iters++;
     }
   } while (iters < NITERS);
-  if (!(best_dusec > 0)) {
-    CROAK("best_dusec should be positive");
-  }
+
+  assert(best_dusec > 0);
+
   precision_quantum = best_dusec * 1.0e-6;
   precision_log = 0;
   while (best_dusec < 500000) {
@@ -196,7 +196,7 @@ LCL_AddParameterChangeHandler(LCL_ParameterChangeHandler handler, void *anything
   /* Check that the handler is not already registered */
   for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
     if (!(ptr->handler != handler || ptr->anything != anything)) {
-      CROAK("a handler is already registered");
+      assert(0);
     }
   }
 
@@ -234,9 +234,7 @@ void LCL_RemoveParameterChangeHandler(LCL_ParameterChangeHandler handler, void *
     }
   }
 
-  if (!ok) {
-    CROAK("did not find a matching handler");
-  }
+  assert(ok);
 
   /* Unlink entry from the list */
   ptr->next->prev = ptr->prev;
@@ -257,7 +255,7 @@ LCL_AddDispersionNotifyHandler(LCL_DispersionNotifyHandler handler, void *anythi
   /* Check that the handler is not already registered */
   for (ptr = dispersion_notify_list.next; ptr != &dispersion_notify_list; ptr = ptr->next) {
     if (!(ptr->handler != handler || ptr->anything != anything)) {
-      CROAK("a handler is already registered");
+      assert(0);
     }
   }
 
@@ -295,9 +293,7 @@ void LCL_RemoveDispersionNotifyHandler(LCL_DispersionNotifyHandler handler, void
     }
   }
 
-  if (!ok) {
-    CROAK("no matching handler found");
-  }
+  assert(ok);
 
   /* Unlink entry from the list */
   ptr->next->prev = ptr->prev;
@@ -317,8 +313,8 @@ LCL_ReadRawTime(struct timeval *result)
 {
   struct timezone tz;
 
-  if (!(gettimeofday(result, &tz) >= 0)) {
-    CROAK("Could not get time of day");
+  if (gettimeofday(result, &tz) < 0) {
+    LOG_FATAL(LOGF_Local, "gettimeofday() failed");
   }
 }
 

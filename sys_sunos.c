@@ -91,18 +91,18 @@ clock_initialise(void)
   current_freq = 0.0;
 
   if (gettimeofday(&T0, &tz) < 0) {
-    CROAK("gettimeofday() failed in clock_initialise()");
+    LOG_FATAL(LOGF_SysSunOS, "gettimeofday() failed");
   }
 
   newadj.tv_sec = 0;
   newadj.tv_usec = 0;
 
   if (adjtime(&newadj, &oldadj) < 0) {
-    CROAK("adjtime() failed in clock_initialise");
+    LOG_FATAL(LOGF_SysSunOS, "adjtime() failed");
   }
 
   if (adjtime(&newadj, &oldadj) < 0) {
-    CROAK("adjtime() failed in clock_initialise");
+    LOG_FATAL(LOGF_SysSunOS, "adjtime() failed");
   }
 
   return;
@@ -136,7 +136,7 @@ start_adjust(void)
 
   /* Determine the amount of error built up since the last adjustment */
   if (gettimeofday(&T1, &tz) < 0) {
-    CROAK("gettimeofday() failed in start_adjust");
+    LOG_FATAL(LOGF_SysSunOS, "gettimeofday() failed");
   }
 
   UTI_DiffTimevalsToDouble(&elapsed, &T1, &T0);
@@ -167,7 +167,7 @@ start_adjust(void)
   UTI_DiffTimevalsToDouble(&rounding_error, &newadj, &exact_newadj);
 
   if (adjtime(&newadj, &oldadj) < 0) {
-    CROAK("adjtime() failed in start_adjust");
+    LOG_FATAL(LOGF_SysSunOS, "adjtime() failed");
   }
 
   UTI_TimevalToDouble(&oldadj, &old_adjust_remaining);
@@ -195,11 +195,11 @@ stop_adjust(void)
   zeroadj.tv_usec = 0;
 
   if (adjtime(&zeroadj, &remadj) < 0) {
-    CROAK("adjtime() failed in stop_adjust");
+    LOG_FATAL(LOGF_SysSunOS, "adjtime() failed");
   }
 
   if (gettimeofday(&T1, &tz) < 0) {
-    CROAK("gettimeofday() failed in stop_adjust");
+    LOG_FATAL(LOGF_SysSunOS, "gettimeofday() failed");
   }
   
   UTI_DiffTimevalsToDouble(&elapsed, &T1, &T0);
@@ -242,13 +242,13 @@ apply_step_offset(double offset)
   
   stop_adjust();
   if (gettimeofday(&old_time, &tz) < 0) {
-    CROAK("gettimeofday in apply_step_offset");
+    LOG_FATAL(LOGF_SysSunOS, "gettimeofday() failed");
   }
 
   UTI_AddDoubleToTimeval(&old_time, -offset, &new_time);
 
   if (settimeofday(&new_time, &tz) < 0) {
-    CROAK("settimeofday in apply_step_offset");
+    LOG_FATAL(LOGF_SysSunOS, "settimeofday() failed");
   }
 
   UTI_AddDoubleToTimeval(&T0, offset, &T1);
@@ -343,9 +343,7 @@ setup_kernel(unsigned long on_off)
   unsigned long our_tick = 10000;
   unsigned long default_tickadj = 625;
 
-  if (on_off!=1 && on_off!=0) {
-    CROAK("on_off should be 0 or 1");
-  }
+  assert(on_off == 1 || on_off == 0);
 
   kt = kvm_open(NULL, NULL, NULL, O_RDWR, NULL);
   if (!kt) {

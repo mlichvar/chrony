@@ -222,7 +222,7 @@ update_slow_slew_error(int offset)
     return;
 
   if (gettimeofday(&now, &tz) < 0) {
-    CROAK("gettimeofday() failed");
+    LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
   }
 
   if (offset < 0)
@@ -279,7 +279,7 @@ update_nano_slew_error(long offset, int new)
 
   if (new || nano_slew_error_start.tv_sec > 0) {
     if (gettimeofday(&now, &tz) < 0) {
-      CROAK("gettimeofday() failed");
+      LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
     }
   }
 
@@ -357,17 +357,15 @@ stop_fast_slew(void)
   double slew_duration;
 
   /* Should never get here unless this is true */
-  if (!fast_slewing) {
-    CROAK("Should be fast slewing");
-  }
+  assert(fast_slewing);
   
   /* Now set the thing off */
   if (gettimeofday(&T1, &tz) < 0) {
-    CROAK("gettimeofday() failed in stop_fast_slew");
+    LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
   }
   
   if (TMX_SetTick(current_tick) < 0) {
-    CROAK("adjtimex() failed in stop_fast_slew");
+    LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
   }
 
   fast_slewing = 0;
@@ -401,7 +399,7 @@ adjust_fast_slew(double old_tick, double old_delta_tick)
   assert(fast_slewing);
 
   if (gettimeofday(&tv, &tz) < 0) {
-    CROAK("gettimeofday() failed in stop_fast_slew");
+    LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
   }
   
   UTI_DiffTimevalsToDouble(&slew_duration, &tv, &slew_start_tv);
@@ -437,9 +435,7 @@ initiate_slew(void)
   struct timezone tz;
 
   /* Don't want to get here if we already have an adjust on the go! */
-  if (fast_slewing) {
-    CROAK("Should not be fast slewing");
-  }
+  assert(!fast_slewing);
 
   if (offset_register == 0.0) {
     return;
@@ -449,21 +445,21 @@ initiate_slew(void)
   if (slow_slewing) {
     offset = 0;
     if (TMX_ApplyOffset(&offset) < 0) {
-      CROAK("adjtimex() failed in accrue_offset");
+      LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
     }
     offset_register -= (double) offset / 1.0e6;
     slow_slewing = 0;
     update_slow_slew_error(0);
   } else if (nano_slewing) {
     if (TMX_GetPLLOffsetLeft(&offset) < 0) {
-      CROAK("adjtimex() failed in accrue_offset");
+      LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
     }
     offset_register -= (double) offset / 1.0e9;
     update_nano_slew_error(offset, 0);
 
     offset = 0;
     if (TMX_ApplyPLLOffset(offset) < 0) {
-      CROAK("adjtimex() failed in accrue_offset");
+      LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
     }
     nano_slewing = 0;
     update_nano_slew_error(offset, 1);
@@ -474,7 +470,7 @@ initiate_slew(void)
     offset = 1.0e9 * -offset_register;
 
     if (TMX_ApplyPLLOffset(offset) < 0) {
-      CROAK("adjtimex() failed in accrue_offset");
+      LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
     }
     offset_register = 0.0;
     nano_slewing = 1;
@@ -487,7 +483,7 @@ initiate_slew(void)
 
     if (offset != 0) {
       if (TMX_ApplyOffset(&offset) < 0) {
-        CROAK("adjtimex() failed in initiate_slew");
+        LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
       }
       slow_slewing = 1;
       update_slow_slew_error(offset);
@@ -524,13 +520,11 @@ initiate_slew(void)
 
     /* Now set the thing off */
     if (gettimeofday(&T0, &tz) < 0) {
-      CROAK("gettimeofday() failed in initiate_slew");
+      LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
     }
 
     if (TMX_SetTick(slewing_tick) < 0) {
-      LOG(LOGS_INFO, LOGF_SysLinux, "c_t=%ld ta=%ld sl_t=%ld dtt=%e",
-          current_tick, tick_adjust, slewing_tick, delta_total_tick);
-      CROAK("adjtimex() failed to start big slew");
+      LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
     }
 
     /* Compute the dispersion we have introduced by changing tick this
@@ -618,17 +612,17 @@ apply_step_offset(double offset)
   }
 
   if (gettimeofday(&old_time, &tz) < 0) {
-    CROAK("gettimeofday in apply_step_offset");
+    LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
   }
 
   UTI_AddDoubleToTimeval(&old_time, -offset, &new_time);
 
   if (settimeofday(&new_time, &tz) < 0) {
-    CROAK("settimeofday in apply_step_offset");
+    LOG_FATAL(LOGF_SysLinux, "settimeofday() failed");
   }
 
   if (gettimeofday(&old_time, &tz) < 0) {
-    CROAK("gettimeofday in apply_step_offset");
+    LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
   }
 
   UTI_DiffTimevalsToDouble(&err, &old_time, &new_time);
@@ -727,7 +721,7 @@ read_frequency(void)
   double freq_term;
 
   if (TMX_GetFrequency(&unscaled_freq) < 0) {
-    CROAK("adjtimex failed in read_frequency");
+    LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
   }
 
   /* Use current_tick here rather than txc.tick, otherwise we're
@@ -773,22 +767,22 @@ get_offset_correction(struct timeval *raw,
     switch (have_readonly_adjtime) {
       case 2:
         if (TMX_GetOffsetLeft(&offset) < 0) {
-          CROAK("adjtimex() failed in get_offset_correction");
+          LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
         }
         break;
       case 0:
         toffset = 0;
         if (TMX_ApplyOffset(&toffset) < 0) {
-          CROAK("adjtimex() failed in get_offset_correction");
+          LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
         }
         offset = toffset;
         if (TMX_ApplyOffset(&toffset) < 0) {
-          CROAK("adjtimex() failed in get_offset_correction");
+          LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
         }
         break;
       case 1:
         if (TMX_GetOffsetLeftOld(&offset) < 0) {
-          CROAK("adjtimex() failed in get_offset_correction");
+          LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
         }
         break;
       default:
@@ -805,7 +799,7 @@ get_offset_correction(struct timeval *raw,
     noffset = 0;
   } else {
     if (TMX_GetPLLOffsetLeft(&noffset) < 0) {
-      CROAK("adjtimex() failed in get_offset_correction");
+      LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
     }
     if (noffset == 0) {
       nano_slewing = 0;
@@ -1091,7 +1085,7 @@ SYS_Linux_Initialise(void)
 
   offset = 0;
   if (TMX_ApplyOffset(&offset) < 0) {
-    CROAK("adjtimex() failed in initialise");
+    LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
   }
 
   if (have_readonly_adjtime == 2 && (TMX_GetOffsetLeft(&offset) < 0 || offset)) {

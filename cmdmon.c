@@ -261,16 +261,10 @@ prepare_socket(int family)
 void
 CAM_Initialise(void)
 {
-
-  if (initialised) {
-    CROAK("Shouldn't be initialised");
-  }
-
+  assert(!initialised);
   initialised = 1;
 
-  if ((sizeof(permissions)/sizeof(permissions[0])) != N_REQUEST_TYPES) {
-    CROAK("Permissions table size wrong");
-  }
+  assert(sizeof (permissions) / sizeof (permissions[0]) == N_REQUEST_TYPES);
 
   utoken = (unsigned long) time(NULL);
 
@@ -1248,7 +1242,7 @@ handle_add_server(CMD_Request *rx_message, CMD_Reply *tx_message)
       tx_message->status = htons(STT_INVALIDAF);
       break;
     case NSR_NoSuchSource:
-      CROAK("Impossible");
+      assert(0);
       break;
   }
 }
@@ -1289,7 +1283,7 @@ handle_add_peer(CMD_Request *rx_message, CMD_Reply *tx_message)
       tx_message->status = htons(STT_INVALIDAF);
       break;
     case NSR_NoSuchSource:
-      CROAK("Impossible");
+      assert(0);
       break;
   }
 }
@@ -1317,7 +1311,7 @@ handle_del_source(CMD_Request *rx_message, CMD_Reply *tx_message)
     case NSR_TooManySources:
     case NSR_AlreadyInUse:
     case NSR_InvalidAF:
-      CROAK("Impossible");
+      assert(0);
       break;
   }
 }
@@ -1508,7 +1502,7 @@ handle_subnets_accessed(CMD_Request *rx_message, CMD_Reply *tx_message)
         tx_message->status = htons(STT_INACTIVE);
         return;
       default:
-        CROAK("Impossible");
+        assert(0);
         break;
     }
   }
@@ -1563,7 +1557,7 @@ handle_client_accesses(CMD_Request *rx_message, CMD_Reply *tx_message)
         tx_message->status = htons(STT_INACTIVE);
         return;
       default:
-        CROAK("Impossible");
+        assert(0);
         break;
     }
   }
@@ -1615,7 +1609,7 @@ handle_client_accesses_by_index(CMD_Request *rx_message, CMD_Reply *tx_message)
         tx_message->status = htons(STT_INACTIVE);
         return;
       default:
-        CROAK("Impossible");
+        assert(0);
         break;
     }
   }
@@ -2011,7 +2005,7 @@ read_from_cmd_socket(void *anything)
         allowed = 1;
         break;
       default:
-        CROAK("Impossible");
+        assert(0);
     }
 
     if (allowed) {

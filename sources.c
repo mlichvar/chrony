@@ -169,9 +169,7 @@ SRC_Instance SRC_CreateNewInstance(unsigned long ref_id, SRC_Type type, IPAddr *
 {
   SRC_Instance result;
 
-  if (!initialised) {
-    CROAK("Should be initialised");
-  }
+  assert(initialised);
 
   result = MallocNew(struct SRC_Instance_Record);
   result->stats = SST_CreateInstance(ref_id, addr);
@@ -214,9 +212,7 @@ void SRC_DestroyInstance(SRC_Instance instance)
 {
   int dead_index, i;
 
-  if (!initialised) {
-    CROAK("Should be initialised");
-  }
+  assert(initialised);
 
   if (instance->index == selected_source_index) {
     instance->reachable = 0;
@@ -251,9 +247,7 @@ void SRC_DestroyInstance(SRC_Instance instance)
 
 void SRC_GetFrequencyRange(SRC_Instance instance, double *lo, double *hi)
 {
-  if (!initialised) {
-    CROAK("Should be initialised");
-  }
+  assert(initialised);
 
   SST_GetFrequencyRange(instance->stats, lo, hi);
   return;
@@ -284,9 +278,7 @@ void SRC_AccumulateSample
  NTP_Leap leap_status)
 {
 
-  if (!initialised) {
-    CROAK("Should be initialised");
-  }
+  assert(initialised);
 
   inst->leap_status = leap_status;
 
@@ -372,7 +364,7 @@ source_to_string(SRC_Instance inst)
     case SRC_REFCLOCK:
       return UTI_RefidToString(inst->ref_id);
     default:
-      CROAK("Unknown source type");
+      assert(0);
   }
   return NULL;
 }
@@ -530,7 +522,7 @@ SRC_SelectSource(unsigned long match_addr)
           break;
 
         case CENTRE:
-          CROAK("CENTRE cannot occur");
+          assert(0);
           break;
 
         case HIGH:
