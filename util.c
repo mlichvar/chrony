@@ -506,9 +506,8 @@ UTI_TimevalNetworkToHost(Timeval *src, struct timeval *dest)
      is only 32-bit */
   if (sizeof (time_t) > 4 && sec_high == TV_NOHIGHSEC) {
     struct timeval now;
-    struct timezone tz;
 
-    gettimeofday(&now, &tz);
+    gettimeofday(&now, NULL);
     sec_high = now.tv_sec >> 16 >> 16;
   }
   dest->tv_sec = (time_t)sec_high << 16 << 16 | sec_low;

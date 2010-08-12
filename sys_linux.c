@@ -215,13 +215,12 @@ static int tick_update_hz;
 static void
 update_slow_slew_error(int offset)
 {
-  struct timezone tz;
   struct timeval now, newend;
 
   if (offset == 0 && slow_slew_error == 0)
     return;
 
-  if (gettimeofday(&now, &tz) < 0) {
+  if (gettimeofday(&now, NULL) < 0) {
     LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
   }
 
@@ -264,7 +263,6 @@ get_slow_slew_error(struct timeval *now)
 static void
 update_nano_slew_error(long offset, int new)
 {
-  struct timezone tz;
   struct timeval now;
   double ago;
 
@@ -278,7 +276,7 @@ update_nano_slew_error(long offset, int new)
     offset = -offset;
 
   if (new || nano_slew_error_start.tv_sec > 0) {
-    if (gettimeofday(&now, &tz) < 0) {
+    if (gettimeofday(&now, NULL) < 0) {
       LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
     }
   }
@@ -352,7 +350,6 @@ static void
 stop_fast_slew(void)
 {
   struct timeval T1;
-  struct timezone tz;
   double fast_slew_done;
   double slew_duration;
 
@@ -360,7 +357,7 @@ stop_fast_slew(void)
   assert(fast_slewing);
   
   /* Now set the thing off */
-  if (gettimeofday(&T1, &tz) < 0) {
+  if (gettimeofday(&T1, NULL) < 0) {
     LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
   }
   
@@ -393,12 +390,11 @@ static void
 adjust_fast_slew(double old_tick, double old_delta_tick)
 {
   struct timeval tv, end_of_slew;
-  struct timezone tz;
   double fast_slew_done, slew_duration, dseconds;
 
   assert(fast_slewing);
 
-  if (gettimeofday(&tv, &tz) < 0) {
+  if (gettimeofday(&tv, NULL) < 0) {
     LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
   }
   
@@ -432,7 +428,6 @@ initiate_slew(void)
   long offset;
   struct timeval T0;
   struct timeval end_of_slew;
-  struct timezone tz;
 
   /* Don't want to get here if we already have an adjust on the go! */
   assert(!fast_slewing);
@@ -519,7 +514,7 @@ initiate_slew(void)
     dseconds = - offset_register * (current_total_tick + delta_total_tick) / delta_total_tick;
 
     /* Now set the thing off */
-    if (gettimeofday(&T0, &tz) < 0) {
+    if (gettimeofday(&T0, NULL) < 0) {
       LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
     }
 
@@ -604,24 +599,23 @@ static void
 apply_step_offset(double offset)
 {
   struct timeval old_time, new_time;
-  struct timezone tz;
   double err;
 
   if (fast_slewing) {
     abort_slew();
   }
 
-  if (gettimeofday(&old_time, &tz) < 0) {
+  if (gettimeofday(&old_time, NULL) < 0) {
     LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
   }
 
   UTI_AddDoubleToTimeval(&old_time, -offset, &new_time);
 
-  if (settimeofday(&new_time, &tz) < 0) {
+  if (settimeofday(&new_time, NULL) < 0) {
     LOG_FATAL(LOGF_SysLinux, "settimeofday() failed");
   }
 
-  if (gettimeofday(&old_time, &tz) < 0) {
+  if (gettimeofday(&old_time, NULL) < 0) {
     LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
   }
 

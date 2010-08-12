@@ -104,16 +104,15 @@ static void
 calculate_sys_precision(void)
 {
   struct timeval tv, old_tv, first_tv;
-  struct timezone tz;
   int dusec, best_dusec;
   int iters;
 
-  gettimeofday(&old_tv, &tz);
+  gettimeofday(&old_tv, NULL);
   first_tv = old_tv;
   best_dusec = 1000000; /* Assume we must be better than a second */
   iters = 0;
   do {
-    gettimeofday(&tv, &tz);
+    gettimeofday(&tv, NULL);
     dusec = 1000000*(tv.tv_sec - old_tv.tv_sec) + (tv.tv_usec - old_tv.tv_usec);
     old_tv = tv;
     if (dusec > 0)  {
@@ -311,9 +310,7 @@ void LCL_RemoveDispersionNotifyHandler(LCL_DispersionNotifyHandler handler, void
 void
 LCL_ReadRawTime(struct timeval *result)
 {
-  struct timezone tz;
-
-  if (gettimeofday(result, &tz) < 0) {
+  if (gettimeofday(result, NULL) < 0) {
     LOG_FATAL(LOGF_Local, "gettimeofday() failed");
   }
 }

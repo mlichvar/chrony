@@ -78,13 +78,12 @@ static void
 clock_initialise(void)
 {
   struct timeval newadj, oldadj;
-  struct timezone tz;
 
   offset_register = 0.0;
   adjustment_requested = 0.0;
   current_freq = 0.0;
 
-  if (gettimeofday(&T0, &tz) < 0) {
+  if (gettimeofday(&T0, NULL) < 0) {
     LOG_FATAL(LOGF_SysNetBSD, "gettimeofday() failed");
   }
 
@@ -113,7 +112,6 @@ start_adjust(void)
 {
   struct timeval newadj, oldadj;
   struct timeval T1;
-  struct timezone tz;
   double elapsed, accrued_error;
   double adjust_required;
   struct timeval exact_newadj;
@@ -122,7 +120,7 @@ start_adjust(void)
   double old_adjust_remaining;
 
   /* Determine the amount of error built up since the last adjustment */
-  if (gettimeofday(&T1, &tz) < 0) {
+  if (gettimeofday(&T1, NULL) < 0) {
     LOG_FATAL(LOGF_SysNetBSD, "gettimeofday() failed");
   }
 
@@ -169,7 +167,6 @@ static void
 stop_adjust(void)
 {
   struct timeval T1;
-  struct timezone tz;
   struct timeval zeroadj, remadj;
   double adjustment_remaining, adjustment_achieved;
   double elapsed, elapsed_plus_adjust;
@@ -181,7 +178,7 @@ stop_adjust(void)
     LOG_FATAL(LOGF_SysNetBSD, "adjtime() failed");
   }
 
-  if (gettimeofday(&T1, &tz) < 0) {
+  if (gettimeofday(&T1, NULL) < 0) {
     LOG_FATAL(LOGF_SysNetBSD, "gettimeofday() failed");
   }
   
@@ -221,17 +218,16 @@ static void
 apply_step_offset(double offset)
 {
   struct timeval old_time, new_time, T1;
-  struct timezone tz;
   
   stop_adjust();
 
-  if (gettimeofday(&old_time, &tz) < 0) {
+  if (gettimeofday(&old_time, NULL) < 0) {
     LOG_FATAL(LOGF_SysNetBSD, "gettimeofday() failed");
   }
 
   UTI_AddDoubleToTimeval(&old_time, -offset, &new_time);
 
-  if (settimeofday(&new_time, &tz) < 0) {
+  if (settimeofday(&new_time, NULL) < 0) {
     LOG_FATAL(LOGF_SysNetBSD, "settimeofday() failed");
   }
 

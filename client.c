@@ -1015,7 +1015,6 @@ process_cmd_password(CMD_Request *msg, char *line)
 {
   char *p, *q;
   char *password;
-  struct timezone tz;
   struct timeval now;
 
   p = line;
@@ -1049,7 +1048,7 @@ process_cmd_password(CMD_Request *msg, char *line)
     *p = 0;
   }
     
-  if (gettimeofday(&now, &tz) < 0) {
+  if (gettimeofday(&now, NULL) < 0) {
     printf("500 - Could not read time of day\n");
     return 0;
   } else {
