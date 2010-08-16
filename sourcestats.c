@@ -425,9 +425,10 @@ SST_DoNewRegression(SST_Stats inst)
 #endif
     inst->estimated_frequency = 0.0;
     inst->skew = WORST_CASE_FREQ_BOUND;
+    best_start = 0;
   }
 
-  find_best_sample_index(inst, times_back);
+  find_best_sample_index(inst, times_back + best_start);
 
 }
 
