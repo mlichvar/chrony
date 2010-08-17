@@ -29,6 +29,8 @@ else
   CCWARNFLAGS=""
 fi
 
+MYLDFLAGS="${LDFLAGS}"
+
 # ======================================================================
 # FUNCTIONS
 
@@ -51,7 +53,7 @@ test_code () {
     echo "return 0; }"
   ) > docheck.c
 
-  ${MYCC} ${MYCFLAGS} ${MYCPPFLAGS} $cflags -o docheck docheck.c $ldflags >/dev/null 2>&1
+  $MYCC $MYCFLAGS $MYCPPFLAGS $cflags -o docheck docheck.c $ldflags $MYLDFLAGS >/dev/null 2>&1
   if [ $? -eq 0 ]
   then
     printf "Yes\n"
@@ -465,7 +467,7 @@ sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
 	s%@CCWARNFLAGS@%${CCWARNFLAGS}%;\
 	s%@CPPFLAGS@%${CPPFLAGS}%;\
 	s%@LIBS@%${LIBS}%;\
-	s%@LDFLAGS@%${LDFLAGS}%;\
+	s%@LDFLAGS@%${MYLDFLAGS}%;\
 	s%@EXTRA_LIBS@%${EXTRA_LIBS}%;\
 	s%@SYSDEFS@%${SYSDEFS}%;\
 	s%@EXTRA_DEFS@%${EXTRA_DEFS}%;\
