@@ -66,12 +66,15 @@ struct SST_Stats_Record {
      buffer. */
   int n_samples;
 
+  /* Number of extra samples stored in sample_times and offsets arrays that are
+     used to extend runs test */
+  int runs_samples;
+
   /* The index of the newest sample */
   int last_sample;
 
-  /* The index in the registers of the best individual sample that we
-     are holding, in terms of the minimum root distance at the present
-     time */
+  /* The best individual sample that we are holding, in terms of the minimum
+     root distance at the present time */
   int best_single_sample;
 
   /* This is the estimated offset (+ve => local fast) at a particular time */
@@ -101,7 +104,7 @@ struct SST_Stats_Record {
 
   /* This array contains the sample epochs, in terms of the local
      clock. */
-  struct timeval sample_times[MAX_SAMPLES];
+  struct timeval sample_times[MAX_SAMPLES * REGRESS_RUNS_RATIO];
 
   /* This is an array of offsets, in seconds, corresponding to the
      sample times.  In this module, we use the convention that
@@ -109,7 +112,7 @@ struct SST_Stats_Record {
      means it is SLOW.  This is contrary to the convention in the NTP
      stuff; that part of the code is written to correspond with
      RFC1305 conventions. */
-  double offsets[MAX_SAMPLES];
+  double offsets[MAX_SAMPLES * REGRESS_RUNS_RATIO];
 
   /* This is an array of the offsets as originally measured.  Local
      clock fast of real time is indicated by positive values.  This
@@ -167,6 +170,7 @@ SST_CreateInstance(unsigned long refid, IPAddr *addr)
   inst->refid = refid;
   inst->ip_addr = addr;
   inst->n_samples = 0;
+  inst->runs_samples = 0;
   inst->last_sample = 0;
   inst->estimated_frequency = 0;
   inst->skew = 2000.0e-6;
@@ -199,6 +203,11 @@ prune_register(SST_Stats inst, int new_oldest)
 {
   assert(inst->n_samples >= new_oldest);
   inst->n_samples -= new_oldest;
+  inst->runs_samples += new_oldest;
+  if (inst->runs_samples > inst->n_samples * (REGRESS_RUNS_RATIO - 1))
+    inst->runs_samples = inst->n_samples * (REGRESS_RUNS_RATIO - 1);
+  
+  assert(inst->n_samples + inst->runs_samples <= MAX_SAMPLES * REGRESS_RUNS_RATIO);
 }
 
 /* ================================================== */
@@ -210,33 +219,47 @@ SST_AccumulateSample(SST_Stats inst, struct timeval *sample_time,
                      double root_delay, double root_dispersion,
                      int stratum)
 {
-  int n;
+  int n, m;
 
   if (inst->n_samples == MAX_SAMPLES) {
     prune_register(inst, 1);
   }
 
-  n = inst->last_sample = (inst->last_sample + 1) % MAX_SAMPLES;
+  n = inst->last_sample = (inst->last_sample + 1) %
+    (MAX_SAMPLES * REGRESS_RUNS_RATIO);
+  m = n % MAX_SAMPLES;
 
   inst->sample_times[n] = *sample_time;
   inst->offsets[n] = offset;
-  inst->orig_offsets[n] = offset;
-  inst->peer_delays[n] = peer_delay;
-  inst->peer_dispersions[n] = peer_dispersion;
-  inst->root_delays[n] = root_delay;
-  inst->root_dispersions[n] = root_dispersion;
-  inst->strata[n] = stratum;
+  inst->orig_offsets[m] = offset;
+  inst->peer_delays[m] = peer_delay;
+  inst->peer_dispersions[m] = peer_dispersion;
+  inst->root_delays[m] = root_delay;
+  inst->root_dispersions[m] = root_dispersion;
+  inst->strata[m] = stratum;
  
   ++inst->n_samples;
 }
 
 /* ================================================== */
-/* Return index of the i-th sample in the circular buffer */
+/* Return index of the i-th sample in the sample_times and offset buffers,
+   i can be negative down to -runs_samples */
+
+static int
+get_runsbuf_index(SST_Stats inst, int i)
+{
+  return (unsigned int)(inst->last_sample + 2 * MAX_SAMPLES * REGRESS_RUNS_RATIO -
+      inst->n_samples + i + 1) % (MAX_SAMPLES * REGRESS_RUNS_RATIO);
+}
+
+/* ================================================== */
+/* Return index of the i-th sample in the other buffers */
 
 static int
 get_buf_index(SST_Stats inst, int i)
 {
-  return (unsigned int)(inst->last_sample + MAX_SAMPLES - inst->n_samples + i + 1) % MAX_SAMPLES;
+  return (unsigned int)(inst->last_sample + MAX_SAMPLES * REGRESS_RUNS_RATIO -
+      inst->n_samples + i + 1) % MAX_SAMPLES;
 }
 
 /* ================================================== */
@@ -251,10 +274,10 @@ convert_to_intervals(SST_Stats inst, double *times_back)
   int i;
 
   newest_tv = &(inst->sample_times[inst->last_sample]);
-  for (i=0; i<inst->n_samples; i++) {
+  for (i = -inst->runs_samples; i < inst->n_samples; i++) {
     /* The entries in times_back[] should end up negative */
     UTI_DiffTimevalsToDouble(&times_back[i],
-        &inst->sample_times[get_buf_index(inst, i)], newest_tv);
+        &inst->sample_times[get_runsbuf_index(inst, i)], newest_tv);
   }
 }
 
@@ -268,42 +291,25 @@ find_best_sample_index(SST_Stats inst, double *times_back)
 
   double root_distance, best_root_distance;
   double elapsed;
-  int i, j, l, n, best_index;
+  int i, j, best_index;
 
-  n = inst->n_samples - 1;
-  best_index = l = inst->last_sample;
-  best_root_distance = inst->root_dispersions[l] + 0.5 * fabs(inst->root_delays[l]);
-#if 0
-  LOG(LOGS_INFO, LOGF_SourceStats, "n=%d brd=%f", n, best_root_distance);
-#endif
-  for (i=0; i<n; i++) {
+  best_index = -1;
+  best_root_distance = DBL_MAX;
+
+  for (i = 0; i < inst->n_samples; i++) {
     j = get_buf_index(inst, i);
+
     elapsed = -times_back[i];
-#if 0
-    LOG(LOGS_INFO, LOGF_SourceStats, "n=%d i=%d latest=[%s] doing=[%s] elapsed=%f", n, i, 
-        UTI_TimevalToString(&inst->sample_times[l]),
-        UTI_TimevalToString(&inst->sample_times[j]),
-        elapsed);
-#endif
-
-    /* Because the loop does not consider the most recent sample, this assertion must hold */
-    if (elapsed <= 0.0) {
-      LOG(LOGS_ERR, LOGF_SourceStats, "Elapsed<0! n=%d i=%d latest=[%s] doing=[%s] elapsed=%f",
-          n, i, 
-          UTI_TimevalToString(&inst->sample_times[l]),
-          UTI_TimevalToString(&inst->sample_times[j]),
-          elapsed);
-
-      elapsed = fabs(elapsed);
-    }
+    assert(elapsed >= 0.0);
 
     root_distance = inst->root_dispersions[j] + elapsed * inst->skew + 0.5 * fabs(inst->root_delays[j]);
     if (root_distance < best_root_distance) {
       best_root_distance = root_distance;
-      best_index = j;
+      best_index = i;
     }
   }
-  
+
+  assert(best_index >= 0);
   inst->best_single_sample = best_index;
 
 #if 0
@@ -331,13 +337,13 @@ find_best_sample_index(SST_Stats inst, double *times_back)
 void
 SST_DoNewRegression(SST_Stats inst)
 {
-  double times_back[MAX_SAMPLES];
-  double offsets[MAX_SAMPLES];
+  double times_back[MAX_SAMPLES * REGRESS_RUNS_RATIO];
+  double offsets[MAX_SAMPLES * REGRESS_RUNS_RATIO];
   double peer_distances[MAX_SAMPLES];
   double weights[MAX_SAMPLES];
 
   int degrees_of_freedom;
-  int best_start;
+  int best_start, times_back_start;
   double est_intercept, est_slope, est_var, est_intercept_sd, est_slope_sd;
   int i, j, nruns;
   double min_distance;
@@ -346,17 +352,16 @@ SST_DoNewRegression(SST_Stats inst)
 
   int regression_ok;
 
-  convert_to_intervals(inst, times_back);
+  convert_to_intervals(inst, times_back + inst->runs_samples);
 
   if (inst->n_samples > 0) {
-    for (i=0; i<inst->n_samples; i++) {
-      j = get_buf_index(inst, i);
-      offsets[i] = inst->offsets[j];
-      peer_distances[i] = 0.5 * fabs(inst->peer_delays[j]) + inst->peer_dispersions[j];
+    for (i = -inst->runs_samples; i < inst->n_samples; i++) {
+      offsets[i + inst->runs_samples] = inst->offsets[get_runsbuf_index(inst, i)];
     }
   
-    min_distance = peer_distances[0];
-    for (i=1; i<inst->n_samples; i++) {
+    for (i = 0, min_distance = DBL_MAX; i < inst->n_samples; i++) {
+      j = get_buf_index(inst, i);
+      peer_distances[i] = 0.5 * fabs(inst->peer_delays[j]) + inst->peer_dispersions[j];
       if (peer_distances[i] < min_distance) {
         min_distance = peer_distances[i];
       }
@@ -370,8 +375,9 @@ SST_DoNewRegression(SST_Stats inst)
     } 
   }         
 
-  regression_ok = RGR_FindBestRegression(times_back, offsets, weights,
-                                         inst->n_samples,
+  regression_ok = RGR_FindBestRegression(times_back + inst->runs_samples,
+                                         offsets + inst->runs_samples, weights,
+                                         inst->n_samples, inst->runs_samples,
                                          &est_intercept, &est_slope, &est_var,
                                          &est_intercept_sd, &est_slope_sd,
                                          &best_start, &nruns, &degrees_of_freedom);
@@ -417,18 +423,18 @@ SST_DoNewRegression(SST_Stats inst)
               best_start, nruns);
     }
 
+    times_back_start = inst->runs_samples + best_start;
     prune_register(inst, best_start);
-
   } else {
 #if 0
     LOG(LOGS_INFO, LOGF_SourceStats, "too few points (%d) for regression", inst->n_samples);
 #endif
     inst->estimated_frequency = 0.0;
     inst->skew = WORST_CASE_FREQ_BOUND;
-    best_start = 0;
+    times_back_start = 0;
   }
 
-  find_best_sample_index(inst, times_back + best_start);
+  find_best_sample_index(inst, times_back + times_back_start);
 
 }
 
@@ -442,22 +448,23 @@ SST_GetReferenceData(SST_Stats inst, struct timeval *now,
 {
 
   double elapsed;
-  int n;
+  int i, j;
 
   *frequency = inst->estimated_frequency;
   *skew = inst->skew;
 
-  n = inst->best_single_sample;
+  i = get_runsbuf_index(inst, inst->best_single_sample);
+  j = get_buf_index(inst, inst->best_single_sample);
 
-  UTI_DiffTimevalsToDouble(&elapsed, now, &(inst->sample_times[n]));
-  *root_delay = inst->root_delays[n];
-  *root_dispersion = inst->root_dispersions[n] + elapsed * inst->skew;
-  *offset = inst->offsets[n] + elapsed * inst->estimated_frequency;
-  *stratum = inst->strata[n];
+  UTI_DiffTimevalsToDouble(&elapsed, now, &inst->sample_times[i]);
+  *root_delay = inst->root_delays[j];
+  *root_dispersion = inst->root_dispersions[j] + elapsed * inst->skew;
+  *offset = inst->offsets[i] + elapsed * inst->estimated_frequency;
+  *stratum = inst->strata[j];
 
 #ifdef TRACEON
   LOG(LOGS_INFO, LOGF_SourceStats, "n=%d freq=%f skew=%f del=%f disp=%f ofs=%f str=%d",
-      n, *frequency, *skew, *root_delay, *root_dispersion, *offset, *stratum);
+      inst->n_samples, *frequency, *skew, *root_delay, *root_dispersion, *offset, *stratum);
 #endif
 
   return;
@@ -493,20 +500,22 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
   double average_offset;
   double sample_elapsed;
   double elapsed;
-  int n;
+  int i, j;
   double peer_distance;
   
-  n = inst->best_single_sample;
-  *stratum = inst->strata[n];
+  i = get_runsbuf_index(inst, inst->best_single_sample);
+  j = get_buf_index(inst, inst->best_single_sample);
+
+  *stratum = inst->strata[j];
   *variance = inst->variance;
 
-  peer_distance = inst->peer_dispersions[n] + 0.5 * fabs(inst->peer_delays[n]);
+  peer_distance = inst->peer_dispersions[j] + 0.5 * fabs(inst->peer_delays[j]);
   UTI_DiffTimevalsToDouble(&elapsed, now, &(inst->offset_time));
 
-  UTI_DiffTimevalsToDouble(&sample_elapsed, now, &(inst->sample_times[n]));
-  *best_offset = inst->offsets[n] + sample_elapsed * inst->estimated_frequency;
-  *best_root_delay = inst->root_delays[n];
-  *best_root_dispersion = inst->root_dispersions[n] + sample_elapsed * inst->skew;
+  UTI_DiffTimevalsToDouble(&sample_elapsed, now, &inst->sample_times[i]);
+  *best_offset = inst->offsets[i] + sample_elapsed * inst->estimated_frequency;
+  *best_root_delay = inst->root_delays[j];
+  *best_root_dispersion = inst->root_dispersions[j] + sample_elapsed * inst->skew;
 
   average_offset = inst->estimated_offset + inst->estimated_frequency * elapsed;
   if (fabs(average_offset - *best_offset) <= peer_distance) {
@@ -517,7 +526,7 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
 
 #ifdef TRACEON
   LOG(LOGS_INFO, LOGF_SourceStats, "n=%d off=%f del=%f dis=%f var=%f pdist=%f avoff=%f avok=%d",
-      n, *best_offset, *best_root_delay, *best_root_dispersion, *variance,
+      inst->n_samples, *best_offset, *best_root_delay, *best_root_dispersion, *variance,
       peer_distance, average_offset, *average_ok);
 #endif
 
@@ -532,26 +541,27 @@ SST_GetTrackingData(SST_Stats inst, struct timeval *now,
                     double *accrued_dispersion,
                     double *frequency, double *skew)
 {
-  int n;
+  int i, j;
   double peer_distance;
   double elapsed_offset, elapsed_sample;
 
-  n = inst->best_single_sample;
+  i = get_runsbuf_index(inst, inst->best_single_sample);
+  j = get_buf_index(inst, inst->best_single_sample);
 
   *frequency = inst->estimated_frequency;
   *skew = inst->skew;
 
-  peer_distance = inst->peer_dispersions[n] + 0.5 * fabs(inst->peer_delays[n]);
+  peer_distance = inst->peer_dispersions[j] + 0.5 * fabs(inst->peer_delays[j]);
   UTI_DiffTimevalsToDouble(&elapsed_offset, now, &(inst->offset_time));
   *average_offset = inst->estimated_offset + inst->estimated_frequency * elapsed_offset;
   *offset_sd = inst->estimated_offset_sd + elapsed_offset * inst->skew;
 
-  UTI_DiffTimevalsToDouble(&elapsed_sample, now, &(inst->sample_times[n]));
+  UTI_DiffTimevalsToDouble(&elapsed_sample, now, &inst->sample_times[i]);
   *accrued_dispersion = inst->skew * elapsed_sample;
 
 #ifdef TRACEON
   LOG(LOGS_INFO, LOGF_SourceStats, "n=%d freq=%f (%.3fppm) skew=%f (%.3fppm) pdist=%f avoff=%f offsd=%f accrdis=%f",
-      n, *frequency, 1.0e6* *frequency, *skew, 1.0e6* *skew, peer_distance, *average_offset, *offset_sd, *accrued_dispersion);
+      inst->n_samples, *frequency, 1.0e6* *frequency, *skew, 1.0e6* *skew, peer_distance, *average_offset, *offset_sd, *accrued_dispersion);
 #endif
 
 }
@@ -561,15 +571,13 @@ SST_GetTrackingData(SST_Stats inst, struct timeval *now,
 void
 SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffset)
 {
-  int m, n, i;
+  int m, i;
   double delta_time;
   struct timeval *sample, prev;
   double prev_offset, prev_freq;
 
-  n = inst->n_samples;
-
-  for (m = 0; m < n; m++) {
-    i = get_buf_index(inst, m);
+  for (m = -inst->runs_samples; m < inst->n_samples; m++) {
+    i = get_runsbuf_index(inst, m);
     sample = &(inst->sample_times[i]);
     prev = *sample;
     UTI_AdjustTimeval(sample, when, sample, &delta_time, dfreq, doffset);
@@ -661,24 +669,25 @@ SST_MinRoundTripDelay(SST_Stats inst)
 void
 SST_SaveToFile(SST_Stats inst, FILE *out)
 {
-  int m, i;
+  int m, i, j;
 
   fprintf(out, "%d\n", inst->n_samples);
 
   for(m = 0; m < inst->n_samples; m++) {
-    i = get_buf_index(inst, m);
+    i = get_runsbuf_index(inst, m);
+    j = get_buf_index(inst, m);
 
     fprintf(out, "%08lx %08lx %.6e %.6e %.6e %.6e %.6e %.6e %.6e %d\n",
             (unsigned long) inst->sample_times[i].tv_sec,
             (unsigned long) inst->sample_times[i].tv_usec,
             inst->offsets[i],
-            inst->orig_offsets[i],
-            inst->peer_delays[i],
-            inst->peer_dispersions[i],
-            inst->root_delays[i],
-            inst->root_dispersions[i],
+            inst->orig_offsets[j],
+            inst->peer_delays[j],
+            inst->peer_dispersions[j],
+            inst->root_delays[j],
+            inst->root_dispersions[j],
             1.0, /* used to be inst->weights[i] */
-            inst->strata[i]);
+            inst->strata[j]);
 
   }
 }
@@ -733,6 +742,7 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
   }
 
   inst->last_sample = inst->n_samples - 1;
+  inst->runs_samples = 0;
 
   return 1;
 
@@ -743,17 +753,18 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
 void
 SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timeval *now)
 {
-  int n;
+  int i, j;
   struct timeval ago;
 
   if (inst->n_samples > 0) {
-    n = inst->last_sample;
-    report->orig_latest_meas = inst->orig_offsets[n];
-    report->latest_meas = inst->offsets[n];
-    report->latest_meas_err = 0.5*inst->root_delays[n] + inst->root_dispersions[n];
-    report->stratum = inst->strata[n];
+    i = get_runsbuf_index(inst, inst->n_samples - 1);
+    j = get_buf_index(inst, inst->n_samples - 1);
+    report->orig_latest_meas = inst->orig_offsets[j];
+    report->latest_meas = inst->offsets[i];
+    report->latest_meas_err = 0.5*inst->root_delays[j] + inst->root_dispersions[j];
+    report->stratum = inst->strata[j];
 
-    UTI_DiffTimevals(&ago, now, &inst->sample_times[n]);
+    UTI_DiffTimevals(&ago, now, &inst->sample_times[i]);
     report->latest_meas_ago = ago.tv_sec;
   } else {
     report->latest_meas_ago = 86400 * 365 * 10;
@@ -779,28 +790,30 @@ SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report, struct ti
 {
   double dspan;
   double elapsed, sample_elapsed;
-  int n, nb;
+  int li, lj, bi, bj;
 
   report->n_samples = inst->n_samples;
   report->n_runs = inst->nruns;
 
   if (inst->n_samples > 1) {
-    n = inst->last_sample;
-    UTI_DiffTimevalsToDouble(&dspan, &inst->sample_times[n],
-        &inst->sample_times[get_buf_index(inst, 0)]);
+    li = get_runsbuf_index(inst, inst->n_samples - 1);
+    lj = get_buf_index(inst, inst->n_samples - 1);
+    UTI_DiffTimevalsToDouble(&dspan, &inst->sample_times[li],
+        &inst->sample_times[get_runsbuf_index(inst, 0)]);
     report->span_seconds = (unsigned long) (dspan + 0.5);
 
     if (inst->n_samples > 3) {
       UTI_DiffTimevalsToDouble(&elapsed, now, &inst->offset_time);
-      nb = inst->best_single_sample;
-      UTI_DiffTimevalsToDouble(&sample_elapsed, now, &(inst->sample_times[nb]));
+      bi = get_runsbuf_index(inst, inst->best_single_sample);
+      bj = get_buf_index(inst, inst->best_single_sample);
+      UTI_DiffTimevalsToDouble(&sample_elapsed, now, &inst->sample_times[bi]);
       report->est_offset = inst->estimated_offset + elapsed * inst->estimated_frequency;
       report->est_offset_err = (inst->estimated_offset_sd +
                  sample_elapsed * inst->skew +
-                 (0.5*inst->root_delays[nb] + inst->root_dispersions[nb]));
+                 (0.5*inst->root_delays[bj] + inst->root_dispersions[bj]));
     } else {
-      report->est_offset = inst->offsets[n];
-      report->est_offset_err = 0.5*inst->root_delays[n] + inst->root_dispersions[n];
+      report->est_offset = inst->offsets[li];
+      report->est_offset_err = 0.5*inst->root_delays[lj] + inst->root_dispersions[lj];
     }
   } else {
     report->span_seconds = 0;

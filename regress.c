@@ -226,6 +226,9 @@ RGR_FindBestRegression
                                    less reliable) */
  
  int n,                         /* number of data points */
+ int m,                         /* number of extra samples in x and y arrays
+                                   (negative index) which can be used to
+                                   extend runs test */
 
  /* And now the results */
 
@@ -249,15 +252,15 @@ RGR_FindBestRegression
 )
 {
   double P, Q, U, V, W; /* total */
-  double resid[MAX_POINTS];
+  double resid[MAX_POINTS * REGRESS_RUNS_RATIO];
   double ss;
   double a, b, u, ui, aa;
 
-  int start, nruns, npoints, npoints_left;
+  int start, resid_start, nruns, npoints;
   int i;
 
   assert(n <= MAX_POINTS);
-  assert(MAX_POINTS < sizeof (critical_runs10) / sizeof (critical_runs10[0]));
+  assert(n * REGRESS_RUNS_RATIO < sizeof (critical_runs10) / sizeof (critical_runs10[0]));
 
   if (n < MIN_SAMPLES_FOR_REGRESS) {
     return 0;
@@ -282,20 +285,22 @@ RGR_FindBestRegression
       V += ui   * ui   / w[i];
     }
 
-    npoints = n - start;
     b = Q / V;
     a = (P / W) - (b * u);
 
-    for (i=start; i<n; i++) {
-      resid[i] = y[i] - a - b*x[i];
+    /* Get residuals also for the extra samples before start */
+    resid_start = n - (n - start) * REGRESS_RUNS_RATIO;
+    if (resid_start < -m)
+      resid_start = -m;
+
+    for (i=resid_start; i<n; i++) {
+      resid[i - resid_start] = y[i] - a - b*x[i];
     }
 
     /* Count number of runs */
-    nruns = n_runs_from_residuals(resid + start, npoints); 
+    nruns = n_runs_from_residuals(resid, n - resid_start); 
 
-    npoints_left = n - start - 1;
-
-    if ((nruns > critical_runs10[npoints]) || (npoints_left < MIN_SAMPLES_FOR_REGRESS)) {
+    if (nruns > critical_runs10[n - resid_start] || n - start <= MIN_SAMPLES_FOR_REGRESS) {
       break;
     } else {
       /* Try dropping one sample at a time until the runs test passes. */
@@ -310,7 +315,7 @@ RGR_FindBestRegression
 
   ss = 0.0;
   for (i=start; i<n; i++) {
-    ss += resid[i]*resid[i] / w[i];
+    ss += resid[i - resid_start]*resid[i - resid_start] / w[i];
   }
 
   npoints = n - start;
