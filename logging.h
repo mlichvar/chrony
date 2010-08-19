@@ -86,7 +86,8 @@ extern void LOG_Fatal_Function(LOG_Facility facility, const char *format, ...);
 /* Position in code reporting function */
 extern void LOG_Position(const char *filename, int line_number, const char *function_name);
 
-extern void LOG_GoDaemon(void);
+/* Log messages to syslog instead of stderr */
+extern void LOG_OpenSystemLog(void);
 
 /* Return zero once per 10 seconds */
 extern int LOG_RateLimited(void);

@@ -1046,6 +1046,9 @@ Information messages and warnings will be logged to syslog.
 The command line options supported are as follows:
 
 @table @code
+@item -n
+When run in this mode, the program will not detach itself from the
+terminal.
 @item -d
 When run in this mode, the program will not detach itself from the
 terminal, and all messages will be sent to the terminal instead of to

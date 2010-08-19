@@ -210,12 +210,55 @@ write_lockfile(void)
 
 /* ================================================== */
 
+static void
+go_daemon(void)
+{
+#ifdef WINNT
+
+
+#else
+
+  int pid, fd;
+
+  /* Does this preserve existing signal handlers? */
+  pid = fork();
+
+  if (pid < 0) {
+    LOG(LOGS_ERR, LOGF_Logging, "Could not detach, fork failed : %s", strerror(errno));
+  } else if (pid > 0) {
+    exit(0); /* In the 'grandparent' */
+  } else {
+
+    setsid();
+
+    /* Do 2nd fork, as-per recommended practice for launching daemons. */
+    pid = fork();
+
+    if (pid < 0) {
+      LOG(LOGS_ERR, LOGF_Logging, "Could not detach, fork failed : %s", strerror(errno));
+    } else if (pid > 0) {
+      exit(0); /* In the 'parent' */
+    } else {
+      /* In the child we want to leave running as the daemon */
+
+      /* Don't keep stdin/out/err from before. */
+      for (fd=0; fd<1024; fd++) {
+        close(fd);
+      }
+    }
+  }
+
+#endif
+}
+
+/* ================================================== */
+
 int main
 (int argc, char **argv)
 {
   char *conf_file = NULL;
   char *user = NULL;
-  int debug = 0;
+  int debug = 0, nofork = 0;
   int do_init_rtc = 0;
   int other_pid;
   int lock_memory = 0, sched_priority = 0;
@@ -250,8 +293,11 @@ int main
       /* This write to the terminal is OK, it comes before we turn into a daemon */
       printf("chronyd (chrony) version %s\n", PROGRAM_VERSION_STRING);
       exit(0);
+    } else if (!strcmp("-n", *argv)) {
+      nofork = 1;
     } else if (!strcmp("-d", *argv)) {
       debug = 1;
+      nofork = 1;
     } else if (!strcmp("-4", *argv)) {
       DNS_SetAddressFamily(IPADDR_INET4);
     } else if (!strcmp("-6", *argv)) {
@@ -270,10 +316,13 @@ int main
     exit(1);
   }
 
-
   /* Turn into a daemon */
+  if (!nofork) {
+    go_daemon();
+  }
+
   if (!debug) {
-    LOG_GoDaemon();
+    LOG_OpenSystemLog();
   }
   
   /* Check whether another chronyd may already be running.  Do this after
