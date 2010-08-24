@@ -59,6 +59,7 @@ CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src)
   src->params.online = 1;
   src->params.auto_offline = 0;
   src->params.iburst = 0;
+  src->params.min_stratum = 0;
 
   result = CPS_Success;
   
@@ -153,6 +154,15 @@ CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src)
         
         } else if (!strncasecmp(cmd, "iburst", 6)) {
           src->params.iburst = 1;
+
+        } else if (!strncasecmp(cmd, "minstratum", 10)) {
+          if (sscanf(line, "%d%n", &src->params.min_stratum, &n) != 1) {
+            result = CPS_BadMinstratum;
+            ok = 0;
+            done = 1;
+          } else {
+            line += n;
+          }
         
         } else {
           result = CPS_BadOption;

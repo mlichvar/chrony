@@ -394,6 +394,9 @@ parse_source(const char *line, NTP_Source_Type type)
     case CPS_BadKey:
       LOG(LOGS_WARN, LOGF_Configure, "Unreadable key value at line %d", line_number);
       break;
+    case CPS_BadMinstratum:
+      LOG(LOGS_WARN, LOGF_Configure, "Unreadable minstratum value at line %d", line_number);
+      break;
   }
 
   return;

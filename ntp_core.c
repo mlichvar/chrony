@@ -107,6 +107,9 @@ struct NCR_Instance_Record {
   int minpoll;                  /* Log2 of minimum defined polling interval */
   int maxpoll;                  /* Log2 of maximum defined polling interval */
 
+  int min_stratum;              /* Increase stratum in received packets to the
+                                   minimum */
+
   double max_delay;             /* Maximum round-trip delay to the
                                    peer that we can tolerate and still
                                    use the sample for generating
@@ -268,6 +271,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
 
   result->minpoll = params->minpoll;
   result->maxpoll = params->maxpoll;
+  result->min_stratum = params->min_stratum;
 
   result->presend_minpoll = params->presend_minpoll;
   result->presend_done = 0;
@@ -979,6 +983,11 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   /* as per the NPT v4 documentation*/
   if (message->stratum <= NTP_INVALID_STRATUM) {
     message->stratum = NTP_MAX_STRATUM + 1;
+  }
+
+  /* Increase stratum to the configured minimum */
+  if (message->stratum < inst->min_stratum) {
+    message->stratum = inst->min_stratum;
   }
 
   /* Test 7 checks that the stratum in the packet is appropriate */
