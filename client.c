@@ -459,6 +459,28 @@ process_cmd_maxdelayratio(CMD_Request *msg, char *line)
 /* ================================================== */
 
 static int
+process_cmd_minstratum(CMD_Request *msg, char *line)
+{
+  IPAddr address;
+  int min_stratum;
+  int ok;
+  
+  if (read_address_integer(line, &address, &min_stratum)) {
+    UTI_IPHostToNetwork(&address, &msg->data.modify_minstratum.address);
+    msg->data.modify_minstratum.new_min_stratum = htonl(min_stratum);
+    msg->command = htons(REQ_MODIFY_MINSTRATUM);
+    ok = 1;
+  } else {
+    ok = 0;
+  }
+
+  return ok;
+
+}
+
+/* ================================================== */
+
+static int
 process_cmd_maxupdateskew(CMD_Request *msg, char *line)
 {
   int ok;
@@ -1138,9 +1160,10 @@ give_help(void)
   printf("manual list : Show previous settime entries\n");
   printf("maxdelay <address> <new-max-delay> : Modify maximum round-trip valid sample delay for source\n");
   printf("maxdelayratio <address> <new-max-ratio> : Modify max round-trip delay ratio for source\n");
-  printf("maxpoll <address> <new-minpoll> : Modify maximum polling interval of source\n");
+  printf("maxpoll <address> <new-maxpoll> : Modify maximum polling interval of source\n");
   printf("maxupdateskew <new-max-skew> : Modify maximum skew for a clock frequency update to be made\n");
   printf("minpoll <address> <new-minpoll> : Modify minimum polling interval of source\n");
+  printf("minstratum <address> <new-min-stratum> : Modify minimum stratum of source\n");
   printf("offline [<mask>/<masked-address>] : Set sources in subnet to offline status\n");
   printf("online [<mask>/<masked-address>] : Set sources in subnet to online status\n");
   printf("password [<new-password>] : Set command authentication password\n");
@@ -2349,6 +2372,8 @@ process_line(char *line, int *quit)
     do_normal_submit = process_cmd_maxdelay(&tx_message, p+8);
   } else if (!strncmp(p, "maxupdateskew", 13)) {
     do_normal_submit = process_cmd_maxupdateskew(&tx_message, p+13);
+  } else if (!strncmp(p, "minstratum", 10)) {
+    do_normal_submit = process_cmd_minstratum(&tx_message, p+10);
   } else if (!strncmp(p, "settime", 7)) {
     do_normal_submit = 0;
     ret = process_cmd_settime(p+7);

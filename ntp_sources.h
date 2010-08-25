@@ -91,6 +91,8 @@ extern int NSR_ModifyMaxdelay(IPAddr *address, double new_max_delay);
 
 extern int NSR_ModifyMaxdelayratio(IPAddr *address, double new_max_delay_ratio);
 
+extern int NSR_ModifyMinstratum(IPAddr *address, int new_min_stratum);
+
 extern int NSR_InitiateSampleBurst(int n_good_samples, int n_total_samples, IPAddr *mask, IPAddr *address);
 
 extern void NSR_ReportSource(RPT_SourceReport *report, struct timeval *now);

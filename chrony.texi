@@ -2821,6 +2821,7 @@ interface.
 * maxpoll command::             Set maximum polling interval for a source
 * maxupdateskew command::       Set safety threshold for clock gain/loss rate
 * minpoll command::             Set minimum polling interval for a source
+* minstratum command::          Set minimum stratum for a source
 * offline command::             Warn that connectivity to a source will be lost
 * online command::              Warn that connectivity to a source has been restored
 * password command::            Provide password needed for most commands
@@ -3444,6 +3445,35 @@ which sets the minimum polling interval for the host @code{foo.bar.com}
 to 32 seconds.
 
 Note that the new minimum polling interval only takes effect after the
+next measurement has been made.
+@c }}}
+@c {{{ minstratum
+@node minstratum command
+@subsubsection minstratum
+The @code{minstratum} command is used to modify the minimum stratum
+for one of the current set of sources.  It is equivalent to the
+@code{minstratum} option in the @code{server} directive in the
+configuration file (@pxref{server directive}).
+
+The syntax is as follows
+
+@example
+minstratum <host> <new-min-stratum>
+@end example
+
+where the host can be specified as either a machine name or
+IP address.
+
+An example is 
+
+@example
+minpoll foo.bar.com 5
+@end example
+
+which sets the minimum stratum for the host @code{foo.bar.com}
+to 5.
+
+Note that the new minimum stratum only takes effect after the
 next measurement has been made.
 @c }}}
 @c {{{ offline

@@ -1750,6 +1750,16 @@ NCR_ModifyMaxdelayratio(NCR_Instance inst, double new_max_delay_ratio)
 /* ================================================== */
 
 void
+NCR_ModifyMinstratum(NCR_Instance inst, int new_min_stratum)
+{
+  inst->min_stratum = new_min_stratum;
+  LOG(LOGS_INFO, LOGF_NtpCore, "Source %s new minstratum %d",
+      UTI_IPToString(&inst->remote_addr.ip_addr), new_min_stratum);
+}
+
+/* ================================================== */
+
+void
 NCR_InitiateSampleBurst(NCR_Instance inst, int n_good_samples, int n_total_samples)
 {
 

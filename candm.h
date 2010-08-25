@@ -86,7 +86,8 @@
 #define REQ_MANUAL_DELETE 42
 #define REQ_MAKESTEP 43
 #define REQ_ACTIVITY 44
-#define N_REQUEST_TYPES 45
+#define REQ_MODIFY_MINSTRATUM 45
+#define N_REQUEST_TYPES 46
 
 /* Special utoken value used to log on with first exchange being the
    password.  (This time value has long since gone by) */
@@ -161,6 +162,12 @@ typedef struct {
   Float new_max_delay_ratio;
   int32_t EOR;
 } REQ_Modify_Maxdelayratio;
+
+typedef struct {
+  IPAddr address;
+  int32_t new_min_stratum;
+  int32_t EOR;
+} REQ_Modify_Minstratum;
 
 typedef struct {
   Float new_max_update_skew;
@@ -370,6 +377,7 @@ typedef struct {
     REQ_Dump dump;
     REQ_Modify_Maxdelay modify_maxdelay;
     REQ_Modify_Maxdelayratio modify_maxdelayratio;
+    REQ_Modify_Minstratum modify_minstratum;
     REQ_Modify_Maxupdateskew modify_maxupdateskew;
     REQ_Logon logon;
     REQ_Settime settime;
