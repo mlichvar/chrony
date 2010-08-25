@@ -236,6 +236,8 @@ RCL_AddRefclock(RefclockParameters *params)
 
   filter_init(&inst->filter, params->filter_length);
 
+  inst->source = SRC_CreateNewInstance(inst->ref_id, SRC_REFCLOCK, NULL);
+
 #if 0
   LOG(LOGS_INFO, LOGF_Refclock, "refclock added poll=%d dpoll=%d filter=%d",
 		  inst->poll, inst->driver_poll, params->filter_length);
@@ -253,7 +255,6 @@ RCL_StartRefclocks(void)
   for (i = 0; i < n_sources; i++) {
     RCL_Instance inst = &refclocks[i];
 
-    inst->source = SRC_CreateNewInstance(inst->ref_id, SRC_REFCLOCK, NULL);
     inst->timeout_id = SCH_AddTimeoutByDelay(0.0, poll_timeout, (void *)inst);
 
     if (inst->lock_ref) {

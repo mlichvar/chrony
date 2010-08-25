@@ -95,10 +95,10 @@ MAI_CleanupAndExit(void)
   NSR_Finalise();
   NCR_Finalise();
   BRD_Finalise();
-  SRC_Finalise();
   SST_Finalise();
   REF_Finalise();
   RCL_Finalise();
+  SRC_Finalise();
   RTC_Finalise();
   CAM_Finalise();
   NIO_Finalise();
@@ -349,6 +349,7 @@ int main
   NIO_Initialise();
   CAM_Initialise();
   RTC_Initialise();
+  SRC_Initialise();
   RCL_Initialise();
 
   /* Command-line switch must have priority */
@@ -369,7 +370,6 @@ int main
 
   REF_Initialise();
   SST_Initialise();
-  SRC_Initialise();
   BRD_Initialise();
   NCR_Initialise();
   NSR_Initialise();
