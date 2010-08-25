@@ -172,6 +172,7 @@ SST_CreateInstance(unsigned long refid, IPAddr *addr)
   inst->n_samples = 0;
   inst->runs_samples = 0;
   inst->last_sample = 0;
+  inst->best_single_sample = 0;
   inst->estimated_frequency = 0;
   inst->skew = 2000.0e-6;
   inst->skew_dirn = SST_Skew_Nochange;
@@ -292,6 +293,9 @@ find_best_sample_index(SST_Stats inst, double *times_back)
   double root_distance, best_root_distance;
   double elapsed;
   int i, j, best_index;
+
+  if (!inst->n_samples)
+    return;
 
   best_index = -1;
   best_root_distance = DBL_MAX;
