@@ -43,6 +43,7 @@ typedef struct {
   double offset;
   double delay;
   double precision;
+  SRC_SelectOption sel_option;
 } RefclockParameters;
 
 typedef struct RCL_Instance_Record *RCL_Instance;

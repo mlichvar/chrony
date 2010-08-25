@@ -236,7 +236,7 @@ RCL_AddRefclock(RefclockParameters *params)
 
   filter_init(&inst->filter, params->filter_length);
 
-  inst->source = SRC_CreateNewInstance(inst->ref_id, SRC_REFCLOCK, NULL);
+  inst->source = SRC_CreateNewInstance(inst->ref_id, SRC_REFCLOCK, params->sel_option, NULL);
 
 #if 0
   LOG(LOGS_INFO, LOGF_Refclock, "refclock added poll=%d dpoll=%d filter=%d",

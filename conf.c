@@ -448,6 +448,7 @@ parse_refclock(const char *line)
   const char *tmp;
   char name[5], cmd[10 + 1], *param;
   unsigned char ref[5];
+  SRC_SelectOption sel_option;
 
   i = n_refclock_sources;
   if (i >= MAX_RCL_SOURCES)
@@ -462,6 +463,7 @@ parse_refclock(const char *line)
   precision = 0.0;
   ref_id = 0;
   lock_ref_id = 0;
+  sel_option = SRC_SelectNormal;
 
   if (sscanf(line, "%4s%n", name, &n) != 1) {
     LOG(LOGS_WARN, LOGF_Configure, "Could not read refclock driver name at line %d", line_number);
@@ -518,6 +520,12 @@ parse_refclock(const char *line)
     } else if (!strncasecmp(cmd, "precision", 9)) {
       if (sscanf(line, "%lf%n", &precision, &n) != 1)
         break;
+    } else if (!strncasecmp(cmd, "noselect", 8)) {
+      n = 0;
+      sel_option = SRC_SelectNoselect;
+    } else if (!strncasecmp(cmd, "prefer", 6)) {
+      n = 0;
+      sel_option = SRC_SelectPrefer;
     } else {
       LOG(LOGS_WARN, LOGF_Configure, "Unknown refclock parameter %s at line %d", cmd, line_number);
       break;
@@ -534,6 +542,7 @@ parse_refclock(const char *line)
   refclock_sources[i].offset = offset;
   refclock_sources[i].delay = delay;
   refclock_sources[i].precision = precision;
+  refclock_sources[i].sel_option = sel_option;
   refclock_sources[i].ref_id = ref_id;
   refclock_sources[i].lock_ref_id = lock_ref_id;
 

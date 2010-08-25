@@ -55,10 +55,17 @@ typedef enum {
   SRC_REFCLOCK                  /* Rerefence clock */
 } SRC_Type;
 
+/* Options used when selecting sources */ 
+typedef enum {
+  SRC_SelectNormal,
+  SRC_SelectNoselect,
+  SRC_SelectPrefer
+} SRC_SelectOption;
+
 /* Function to create a new instance.  This would be called by one of
    the individual source-type instance creation routines. */
 
-extern SRC_Instance SRC_CreateNewInstance(unsigned long ref_id, SRC_Type type, IPAddr *addr);
+extern SRC_Instance SRC_CreateNewInstance(unsigned long ref_id, SRC_Type type, SRC_SelectOption sel_option, IPAddr *addr);
 
 /* Function to get rid of a source when it is being unconfigured.
    This may cause the current reference source to be reselected, if this

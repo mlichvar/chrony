@@ -1246,7 +1246,11 @@ handle_add_server(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.iburst = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_IBURST ? 1 : 0;
   params.max_delay = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay);
   params.max_delay_ratio = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_ratio);
-  params.min_stratum = 0;       /* not transmitted in cmdmon protocol yet */
+
+ /* not transmitted in cmdmon protocol yet */
+  params.min_stratum = 0;       
+  params.sel_option = SRC_SelectNormal;
+
   status = NSR_AddSource(&rem_addr, NTP_SERVER, &params);
   switch (status) {
     case NSR_Success:
@@ -1288,7 +1292,11 @@ handle_add_peer(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.iburst = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_IBURST ? 1 : 0;
   params.max_delay = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay);
   params.max_delay_ratio = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_ratio);
-  params.min_stratum = 0;       /* not transmitted in cmdmon protocol yet */
+
+ /* not transmitted in cmdmon protocol yet */
+  params.min_stratum = 0;       
+  params.sel_option = SRC_SelectNormal;
+
   status = NSR_AddSource(&rem_addr, NTP_PEER, &params);
   switch (status) {
     case NSR_Success:

@@ -31,6 +31,8 @@
 #ifndef GOT_SRCPARAMS_H
 #define GOT_SRCPARAMS_H
 
+#include "sources.h"
+
 typedef struct {
   int minpoll;
   int maxpoll;
@@ -42,6 +44,7 @@ typedef struct {
   unsigned long authkey;
   double max_delay;
   double max_delay_ratio;
+  SRC_SelectOption sel_option;
 } SourceParameters;
 
 #define INACTIVE_AUTHKEY 0UL

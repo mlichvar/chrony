@@ -60,6 +60,7 @@ CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src)
   src->params.auto_offline = 0;
   src->params.iburst = 0;
   src->params.min_stratum = 0;
+  src->params.sel_option = SRC_SelectNormal;
 
   result = CPS_Success;
   
@@ -163,6 +164,12 @@ CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src)
           } else {
             line += n;
           }
+
+        } else if (!strncasecmp(cmd, "noselect", 8)) {
+          src->params.sel_option = SRC_SelectNoselect;
+        
+        } else if (!strncasecmp(cmd, "prefer", 6)) {
+          src->params.sel_option = SRC_SelectPrefer;
         
         } else {
           result = CPS_BadOption;

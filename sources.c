@@ -100,6 +100,9 @@ struct SRC_Instance_Record {
   /* Type of the source */
   SRC_Type type;
 
+  /* Options used when selecting sources */ 
+  SRC_SelectOption sel_option;
+
   struct SelectInfo sel_info;
 };
 
@@ -165,7 +168,7 @@ void SRC_Finalise(void)
 /* Function to create a new instance.  This would be called by one of
    the individual source-type instance creation routines. */
 
-SRC_Instance SRC_CreateNewInstance(unsigned long ref_id, SRC_Type type, IPAddr *addr)
+SRC_Instance SRC_CreateNewInstance(unsigned long ref_id, SRC_Type type, SRC_SelectOption sel_option, IPAddr *addr)
 {
   SRC_Instance result;
 
@@ -196,6 +199,7 @@ SRC_Instance SRC_CreateNewInstance(unsigned long ref_id, SRC_Type type, IPAddr *
   result->reachable = 0;
   result->status = SRC_BAD_STATS;
   result->type = type;
+  result->sel_option = sel_option;
 
   n_sources++;
 
@@ -414,7 +418,7 @@ SRC_SelectSource(unsigned long match_addr)
   n_reachable_sources = 0;
   for (i=0; i<n_sources; i++) {
 
-    if (sources[i]->reachable) {
+    if (sources[i]->reachable && sources[i]->sel_option != SRC_SelectNoselect) {
 
       ++n_reachable_sources;
 
@@ -638,11 +642,39 @@ SRC_SelectSource(unsigned long match_addr)
       }
       n_sel_sources = j;
 
-      /* Now find minimum stratum.  If none are left now,
-         tough. RFC1305 is not so harsh on pruning sources due to
-         excess variance, which prevents this from happening */
-
       if (n_sel_sources > 0) {
+        /* Accept leap second status if more than half of selectable sources agree */
+
+        for (i=j1=j2=0; i<n_sel_sources; i++) {
+          index = sel_sources[i];
+          if (sources[index]->leap_status == LEAP_InsertSecond) {
+            j1++;
+          } else if (sources[index]->leap_status == LEAP_DeleteSecond) {
+            j2++;
+          }
+        }
+
+        if (j1 > n_sel_sources / 2) {
+          leap_status = LEAP_InsertSecond;
+        } else if (j2 > n_sel_sources / 2) {
+          leap_status = LEAP_DeleteSecond;
+        }
+
+        /* If there are any sources with prefer option, reduce the list again
+           only to the prefer sources */
+        for (i=j=0; i<n_sel_sources; i++) {
+          if (sources[sel_sources[i]]->sel_option == SRC_SelectPrefer) {
+            sel_sources[j++] = sel_sources[i];
+          }
+        }
+        if (j > 0) {
+          n_sel_sources = j;
+        }
+
+        /* Now find minimum stratum.  If none are left now,
+           tough. RFC1305 is not so harsh on pruning sources due to
+           excess variance, which prevents this from happening */
+
         index = sel_sources[0];
         min_stratum = sources[index]->sel_info.stratum;
         for (i=1; i<n_sel_sources; i++) {
@@ -708,23 +740,6 @@ SRC_SelectSource(unsigned long match_addr)
 
         total_root_dispersion = (src_accrued_dispersion +
                                  sources[selected_source_index]->sel_info.root_dispersion);
-
-        /* Accept leap second status if more than half of selectable sources agree */
-
-        for (i=j1=j2=0; i<n_sel_sources; i++) {
-          index = sel_sources[i];
-          if (sources[index]->leap_status == LEAP_InsertSecond) {
-            j1++;
-          } else if (sources[index]->leap_status == LEAP_DeleteSecond) {
-            j2++;
-          }
-        }
-
-        if (j1 > n_sel_sources / 2) {
-          leap_status = LEAP_InsertSecond;
-        } else if (j2 > n_sel_sources / 2) {
-          leap_status = LEAP_DeleteSecond;
-        }
 
         if ((match_addr == 0) ||
             (match_addr == sources[selected_source_index]->ref_id)) {
