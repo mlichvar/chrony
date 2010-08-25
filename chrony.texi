@@ -2617,6 +2617,14 @@ established, to enable measurements to start.)
 On start, make four measurements over a short duration (rather than
 the usual periodic measurements).
 
+@item minstratum
+When the synchronisation source is selected from available sources, sources
+with lower stratum are normally preferred.  This option can be used to increase
+stratum of the source to the specified minimum, so @code{chronyd} will avoid
+selecting that source.  This is useful with low stratum sources that are known
+to be unrealiable or inaccurate and which should be used only when other
+sources are unreachable.
+
 @end table
 @c }}}
 @c {{{ tempcomp
