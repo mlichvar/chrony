@@ -1228,7 +1228,7 @@ handle_cmdaccheck(CMD_Request *rx_message, CMD_Reply *tx_message)
 /* ================================================== */
 
 static void
-handle_add_server(CMD_Request *rx_message, CMD_Reply *tx_message)
+handle_add_source(NTP_Source_Type type, CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   NTP_Remote_Address rem_addr;
   SourceParameters params;
@@ -1251,53 +1251,7 @@ handle_add_server(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.min_stratum = 0;       
   params.sel_option = SRC_SelectNormal;
 
-  status = NSR_AddSource(&rem_addr, NTP_SERVER, &params);
-  switch (status) {
-    case NSR_Success:
-      tx_message->status = htons(STT_SUCCESS);
-      break;
-    case NSR_AlreadyInUse:
-      tx_message->status = htons(STT_SOURCEALREADYKNOWN);
-      break;
-    case NSR_TooManySources:
-      tx_message->status = htons(STT_TOOMANYSOURCES);
-      break;
-    case NSR_InvalidAF:
-      tx_message->status = htons(STT_INVALIDAF);
-      break;
-    case NSR_NoSuchSource:
-      assert(0);
-      break;
-  }
-}
-
-/* ================================================== */
-
-static void
-handle_add_peer(CMD_Request *rx_message, CMD_Reply *tx_message)
-{
-  NTP_Remote_Address rem_addr;
-  SourceParameters params;
-  NSR_Status status;
-  
-  UTI_IPNetworkToHost(&rx_message->data.ntp_source.ip_addr, &rem_addr.ip_addr);
-  rem_addr.local_ip_addr.family = IPADDR_UNSPEC;
-  rem_addr.port = (unsigned short)(ntohl(rx_message->data.ntp_source.port));
-  params.minpoll = ntohl(rx_message->data.ntp_source.minpoll);
-  params.maxpoll = ntohl(rx_message->data.ntp_source.maxpoll);
-  params.presend_minpoll = ntohl(rx_message->data.ntp_source.presend_minpoll);
-  params.authkey = ntohl(rx_message->data.ntp_source.authkey);
-  params.online  = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_ONLINE ? 1 : 0;
-  params.auto_offline = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_AUTOOFFLINE ? 1 : 0;
-  params.iburst = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_IBURST ? 1 : 0;
-  params.max_delay = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay);
-  params.max_delay_ratio = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_ratio);
-
- /* not transmitted in cmdmon protocol yet */
-  params.min_stratum = 0;       
-  params.sel_option = SRC_SelectNormal;
-
-  status = NSR_AddSource(&rem_addr, NTP_PEER, &params);
+  status = NSR_AddSource(&rem_addr, type, &params);
   switch (status) {
     case NSR_Success:
       tx_message->status = htons(STT_SUCCESS);
@@ -2167,11 +2121,11 @@ read_from_cmd_socket(void *anything)
           break;
 
         case REQ_ADD_SERVER:
-          handle_add_server(&rx_message, &tx_message);
+          handle_add_source(NTP_SERVER, &rx_message, &tx_message);
           break;
 
         case REQ_ADD_PEER:
-          handle_add_peer(&rx_message, &tx_message);
+          handle_add_source(NTP_PEER, &rx_message, &tx_message);
           break;
 
         case REQ_DEL_SOURCE:
