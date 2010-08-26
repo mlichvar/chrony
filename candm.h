@@ -223,6 +223,8 @@ typedef struct {
 #define REQ_ADDSRC_ONLINE 0x1
 #define REQ_ADDSRC_AUTOOFFLINE 0x2
 #define REQ_ADDSRC_IBURST 0x4
+#define REQ_ADDSRC_PREFER 0x8
+#define REQ_ADDSRC_NOSELECT 0x10
 
 typedef struct {
   IPAddr ip_addr;
