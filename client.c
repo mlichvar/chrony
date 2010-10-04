@@ -2516,7 +2516,7 @@ process_line(char *line, int *quit)
 /* ================================================== */
 
 static int
-process_args(int argc, char **argv)
+process_args(int argc, char **argv, int multi)
 {
   int total_length, i, ret, quit;
   char *line;
@@ -2527,15 +2527,25 @@ process_args(int argc, char **argv)
   }
 
   line = (char *) malloc((2 + total_length) * sizeof(char));
-  line[0] = 0;
-  for (i=0; i<argc; i++) {
-    strcat(line, argv[i]);
-    if (i + 1 < argc)
-      strcat(line, " ");
-  }
-  strcat(line, "\n");
 
-  ret = process_line(line, &quit);
+  for (i = 0; i < argc; i++) {
+    line[0] = '\0';
+    if (multi) {
+      strcat(line, argv[i]);
+    } else {
+      for (; i < argc; i++) {
+        strcat(line, argv[i]);
+        if (i + 1 < argc)
+          strcat(line, " ");
+      }
+    }
+
+    strcat(line, "\n");
+
+    ret = process_line(line, &quit);
+    if (!ret)
+      break;
+  }
 
   free(line);
 
@@ -2563,7 +2573,7 @@ main(int argc, char **argv)
   char *line;
   const char *progname = argv[0];
   const char *hostname = "localhost";
-  int quit = 0, ret = 1;
+  int quit = 0, ret = 1, multi = 0;
   int port = DEFAULT_CANDM_PORT;
 
   /* Parse command line options */
@@ -2578,6 +2588,8 @@ main(int argc, char **argv)
       if (*argv) {
         port = atoi(*argv);
       }
+    } else if (!strcmp(*argv, "-m")) {
+      multi = 1;
     } else if (!strcmp(*argv, "-n")) {
       no_dns = 1;
     } else if (!strcmp(*argv, "-4")) {
@@ -2590,7 +2602,7 @@ main(int argc, char **argv)
       printf("chronyc (chrony) version %s\n", PROGRAM_VERSION_STRING);
       exit(0);
     } else if (!strncmp(*argv, "-", 1)) {
-      fprintf(stderr, "Usage : %s [-h <hostname>] [-p <port-number>] [-n] [-4|-6] [command]\n", progname);
+      fprintf(stderr, "Usage : %s [-h <hostname>] [-p <port-number>] [-n] [-4|-6] [-m] [command]\n", progname);
       exit(1);
     } else {
       break; /* And process remainder of line as a command */
@@ -2608,7 +2620,7 @@ main(int argc, char **argv)
   open_io(hostname, port);
 
   if (argc > 0) {
-    ret = process_args(argc, argv);
+    ret = process_args(argc, argv, multi);
   } else {
     do {
       line = read_line();
