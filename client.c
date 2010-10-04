@@ -1179,6 +1179,8 @@ give_help(void)
   printf("\n");
   printf("dns -n|+n : Disable/enable resolving IP addresses to hostnames\n");
   printf("dns -4|-6|-46 : Resolve hostnames only to IPv4/IPv6/both addresses\n");
+  printf("timeout <milliseconds> : Set initial response timeout\n");
+  printf("retries <n> : Set maximum number of retries\n");
   printf("exit|quit : Leave the program\n");
   printf("help : Generate this help\n");
   printf("\n");
@@ -1190,8 +1192,8 @@ static unsigned long sequence = 0;
 static unsigned long utoken = 0;
 static unsigned long token = 0;
 
-#define MAX_ATTEMPTS 3
-
+static int max_retries = 2;
+static int initial_timeout = 1000;
 
 /* This is the core protocol module.  Complete particular fields in
    the outgoing packet, send it, wait for a response, handle retries,
@@ -1210,8 +1212,8 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
   int read_length;
   int expected_length;
   int command_length;
-  struct timeval timeout;
-  int timeout_seconds;
+  struct timeval tv;
+  int timeout;
   int n_attempts;
   fd_set rdfd, wrfd, exfd;
 
@@ -1225,8 +1227,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
   request->utoken = htonl(utoken);
   request->token = htonl(token);
 
-  timeout_seconds = 1;
-
+  timeout = initial_timeout;
 
   n_attempts = 0;
 
@@ -1262,17 +1263,17 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
     /* Increment this for next time */
     ++ request->attempt;
       
-    timeout.tv_sec = timeout_seconds;
-    timeout.tv_usec = 0;
+    tv.tv_sec = timeout / 1000;
+    tv.tv_usec = timeout % 1000 * 1000;
+    timeout *= 2;
 
-    timeout_seconds *= 2;
     FD_ZERO(&rdfd);
     FD_ZERO(&wrfd);
     FD_ZERO(&exfd);
 
     FD_SET(sock_fd, &rdfd);
 
-    select_status = select(sock_fd + 1, &rdfd, &wrfd, &exfd, &timeout);
+    select_status = select(sock_fd + 1, &rdfd, &wrfd, &exfd, &tv);
 
     if (select_status < 0) {
 #if 0
@@ -1281,7 +1282,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
     } else if (select_status == 0) {
       /* Timeout must have elapsed, try a resend? */
       n_attempts ++;
-      if (n_attempts == MAX_ATTEMPTS) {
+      if (n_attempts > max_retries) {
         return 0;
       }
 
@@ -1304,7 +1305,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
            going to a dead port - but only if the daemon machine is
            running Linux (Solaris doesn't return anything) */
         n_attempts++;
-        if (n_attempts == MAX_ATTEMPTS) {
+        if (n_attempts > max_retries) {
           return 0;
         }
       } else {
@@ -1333,7 +1334,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
         
         if (bad_length || bad_sender || bad_sequence) {
           n_attempts++;
-          if (n_attempts == MAX_ATTEMPTS) {
+          if (n_attempts > max_retries) {
             return 0;
           }
           continue;
@@ -1349,7 +1350,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
         
         if (bad_header) {
           n_attempts++;
-          if (n_attempts == MAX_ATTEMPTS) {
+          if (n_attempts > max_retries) {
             return 0;
           }
           continue;
@@ -2332,6 +2333,38 @@ process_cmd_dns(const char *line)
 /* ================================================== */
 
 static int
+process_cmd_timeout(const char *line)
+{
+  int timeout;
+
+  timeout = atoi(line);
+  if (timeout < 100) {
+    fprintf(stderr, "Timeout %d is too short\n", timeout);
+    return 0;
+  }
+  initial_timeout = timeout;
+  return 1;
+}
+
+/* ================================================== */
+
+static int
+process_cmd_retries(const char *line)
+{
+  int retries;
+
+  retries = atoi(line);
+  if (retries < 0) {
+    fprintf(stderr, "Invalid maximum number of retries\n");
+    return 0;
+  }
+  max_retries = retries;
+  return 1;
+}
+
+/* ================================================== */
+
+static int
 process_line(char *line, int *quit)
 {
   char *p;
@@ -2448,6 +2481,12 @@ process_line(char *line, int *quit)
     do_normal_submit = 0;
   } else if (!strncmp(p, "dns ", 4)) {
     ret = process_cmd_dns(p+4);
+    do_normal_submit = 0;
+  } else if (!strncmp(p, "timeout", 7)) {
+    ret = process_cmd_timeout(p+7);
+    do_normal_submit = 0;
+  } else if (!strncmp(p, "retries", 7)) {
+    ret = process_cmd_retries(p+7);
     do_normal_submit = 0;
   } else if (!strncmp(p, "help", 4)) {
     do_normal_submit = 0;

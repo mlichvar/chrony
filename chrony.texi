@@ -2836,10 +2836,12 @@ interface.
 * online command::              Warn that connectivity to a source has been restored
 * password command::            Provide password needed for most commands
 * quit command::                Exit from chronyc
+* retries command::             Set maximum number of retries
 * rtcdata command::             Display RTC parameters
 * settime command::             Provide a manual input of the current time
 * sources command::             Display information about the current set of sources
 * sourcestats command::         Display the rate & offset estimation performance of sources
+* timeout command::             Set initial response timeout
 * tracking command::            Display system clock performance
 * trimrtc command::             Correct the RTC time to the current system time
 * writertc command::            Write the RTC parameters to file.
@@ -3604,6 +3606,15 @@ directive}).
 The quit command exits from chronyc and returns the user to the shell
 (same as the exit command).
 @c }}}
+@c {{{ retries
+@node retries command
+@subsubsection retries
+The @code{retries} command sets the maximum number of retries for
+@code{chronyc} requests before giving up.  The response timeout is controlled
+by @code{timeout} command (@pxref{timeout command}).
+
+The default is 2.
+@c }}}
 @c {{{ rtcdata
 @node rtcdata command
 @subsubsection rtcdata
@@ -3840,6 +3851,16 @@ This is the estimated offset of the source.
 This is the estimated sample standard deviation.
 
 @end table
+@c }}}
+@c {{{ timeout
+@node timeout command
+@subsubsection timeout
+The @code{timeout} command sets the initial timeout for @code{chronyc} requests
+in milliseconds.  If no response is received from @code{chronyd}, the timeout is
+doubled and the request is resent.  The maximum number of retries is configured
+with the @code{retries} command (@pxref{retries command}).
+
+The default is 1000 milliseconds.
 @c }}}
 @c {{{ tracking
 @node tracking command
