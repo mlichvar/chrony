@@ -1190,7 +1190,7 @@ static unsigned long sequence = 0;
 static unsigned long utoken = 0;
 static unsigned long token = 0;
 
-#define MAX_ATTEMPTS 5
+#define MAX_ATTEMPTS 3
 
 
 /* This is the core protocol module.  Complete particular fields in
@@ -1225,8 +1225,8 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
   request->utoken = htonl(utoken);
   request->token = htonl(token);
 
+  timeout_seconds = 1;
 
-  timeout_seconds = 2;
 
   n_attempts = 0;
 
@@ -1265,7 +1265,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
     timeout.tv_sec = timeout_seconds;
     timeout.tv_usec = 0;
 
-    timeout_seconds += 1;
+    timeout_seconds *= 2;
     FD_ZERO(&rdfd);
     FD_ZERO(&wrfd);
     FD_ZERO(&exfd);
