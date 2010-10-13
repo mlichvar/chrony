@@ -233,6 +233,7 @@ void
 LOG_FileWrite(LOG_FileID id, const char *format, ...)
 {
   va_list other_args;
+  int banner;
 
   if (id < 0 || id >= n_filelogs || !logfiles[id].name)
     return;
@@ -249,7 +250,8 @@ LOG_FileWrite(LOG_FileID id, const char *format, ...)
     }
   }
 
-  if (logfiles[id].writes++ % 32 == 0) {
+  banner = CNF_GetLogBanner();
+  if (banner && logfiles[id].writes++ % banner == 0) {
     char bannerline[256];
     int i, bannerlen;
 

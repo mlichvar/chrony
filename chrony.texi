@@ -1185,6 +1185,7 @@ directives can occur in any order in the file.
 * linux_freq_scale directive::  Define a non-standard value to compensate the kernel frequency bias
 * local directive::             Allow unsynchronised machine to act as server
 * log directive::               Make daemon log certain sets of information
+* logbanner directive::         Specify how often is banner written to log files
 * logchange directive::         Generate syslog messages if large offsets occur
 * logdir directive::            Specify directory for logging
 * mailonchange directive::      Send email if a clock correction above a threshold occurs
@@ -2107,6 +2108,16 @@ running faster than it would be without the compensation. [3.6600e-01]
 A banner is periodically written to the log file to indicate the
 meanings of the columns.
 @c }}}
+@c }}}
+@c {{{ logbanner
+@node logbanner directive
+@subsection logbanner
+A banner is periodically written to the log files enabled by the
+@code{log} directive to indicate the meanings of the columns.
+
+The @code{logbanner} directive specifies after how many entries in the
+log file should be the banner written. The default is 32, and 0 can be
+used to disable it entirely.
 @c }}}
 @c {{{ logchange
 @node logchange directive

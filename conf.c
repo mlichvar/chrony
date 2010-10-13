@@ -74,6 +74,7 @@ static void parse_dumponexit(const char *);
 static void parse_keyfile(const char *);
 static void parse_rtcfile(const char *);
 static void parse_log(const char *);
+static void parse_logbanner(const char *);
 static void parse_logdir(const char *);
 static void parse_maxupdateskew(const char *);
 static void parse_peer(const char *);
@@ -129,6 +130,7 @@ static int do_log_rtc = 0;
 static int do_log_refclocks = 0;
 static int do_log_tempcomp = 0;
 static int do_dump_on_exit = 0;
+static int log_banner = 32;
 static char *logdir = ".";
 static char *dumpdir = ".";
 
@@ -224,6 +226,7 @@ static const Command commands[] = {
   {"driftfile", 9, parse_driftfile},
   {"keyfile", 7, parse_keyfile},
   {"rtcfile", 7, parse_rtcfile},
+  {"logbanner", 9, parse_logbanner},
   {"logdir", 6, parse_logdir},
   {"log", 3, parse_log},
   {"dumponexit", 10, parse_dumponexit},
@@ -641,6 +644,16 @@ parse_rtcdevice(const char *line)
 {
   rtc_device = MallocArray(char, 1 + strlen(line));
   sscanf(line, "%s", rtc_device);
+}
+
+/* ================================================== */
+
+static void
+parse_logbanner(const char *line)
+{
+  if (sscanf(line, "%d", &log_banner) != 1) {
+    LOG(LOGS_WARN, LOGF_Configure, "Could not read logbanner number at line %d in file", line_number);
+  }
 }
 
 /* ================================================== */
@@ -1270,6 +1283,14 @@ char *
 CNF_GetDriftFile(void)
 {
   return drift_file;
+}
+
+/* ================================================== */
+
+int
+CNF_GetLogBanner(void)
+{
+  return log_banner;
 }
 
 /* ================================================== */
