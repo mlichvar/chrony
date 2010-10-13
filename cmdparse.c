@@ -49,17 +49,17 @@ CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src)
   CPS_Status result;
   DNS_Status s;
   
-  src->port = 123;
-  src->params.minpoll = 6;
-  src->params.maxpoll = 10;
-  src->params.presend_minpoll = 0;
+  src->port = SRC_DEFAULT_PORT;
+  src->params.minpoll = SRC_DEFAULT_MINPOLL;
+  src->params.maxpoll = SRC_DEFAULT_MAXPOLL;
+  src->params.presend_minpoll = SRC_DEFAULT_PRESEND_MINPOLL;
   src->params.authkey = INACTIVE_AUTHKEY;
-  src->params.max_delay = 16.0;
-  src->params.max_delay_ratio = 16384.0;
+  src->params.max_delay = SRC_DEFAULT_MAXDELAY;
+  src->params.max_delay_ratio = SRC_DEFAULT_MAXDELAYRATIO;
   src->params.online = 1;
   src->params.auto_offline = 0;
   src->params.iburst = 0;
-  src->params.min_stratum = 0;
+  src->params.min_stratum = SRC_DEFAULT_MINSTRATUM;
   src->params.sel_option = SRC_SelectNormal;
 
   result = CPS_Success;

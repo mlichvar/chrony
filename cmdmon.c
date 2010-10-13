@@ -1250,7 +1250,7 @@ handle_add_source(NTP_Source_Type type, CMD_Request *rx_message, CMD_Reply *tx_m
   params.max_delay_ratio = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_ratio);
 
  /* not transmitted in cmdmon protocol yet */
-  params.min_stratum = 0;       
+  params.min_stratum = SRC_DEFAULT_MINSTRATUM;       
 
   status = NSR_AddSource(&rem_addr, type, &params);
   switch (status) {

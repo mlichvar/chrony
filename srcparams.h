@@ -47,6 +47,13 @@ typedef struct {
   SRC_SelectOption sel_option;
 } SourceParameters;
 
+#define SRC_DEFAULT_PORT 123
+#define SRC_DEFAULT_MINPOLL 6
+#define SRC_DEFAULT_MAXPOLL 10
+#define SRC_DEFAULT_PRESEND_MINPOLL 0
+#define SRC_DEFAULT_MAXDELAY 16.0
+#define SRC_DEFAULT_MAXDELAYRATIO 16384.0
+#define SRC_DEFAULT_MINSTRATUM 0
 #define INACTIVE_AUTHKEY 0UL
 
 #endif /* GOT_SRCPARAMS_H */

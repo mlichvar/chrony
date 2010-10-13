@@ -931,7 +931,7 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
         break;
       }
 
-      if (data.params.min_stratum) {
+      if (data.params.min_stratum != SRC_DEFAULT_MINSTRATUM) {
         fprintf(stderr, "Option minstratum not supported\n");
         break;
       }
