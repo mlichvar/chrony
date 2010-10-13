@@ -1861,8 +1861,8 @@ Local poll [10]
 Remote poll [10]
 @item
 `Score' (an internal score within each polling level used to decide when
-to increase or decrease the polling level.  This is adjusted based on
-changes to the variance of the measurements obtained from the source). [1]
+to increase or decrease the polling level.  This is adjusted based on number
+of measurements currently being used for the regression algorithm). [1.0]
 @item
 The estimated local clock error (`theta' in RFC1305).  Positive indicates that the local clock is slow. [-4.966e-03].
 @item
@@ -2628,6 +2628,12 @@ stratum of the source to the specified minimum, so @code{chronyd} will avoid
 selecting that source.  This is useful with low stratum sources that are known
 to be unrealiable or inaccurate and which should be used only when other
 sources are unreachable.
+
+@item polltarget
+Target number of measurements to use for the regression algorithm which
+@code{chronyd} will try to maintain by adjusting polling interval between
+@code{minpoll} and @code{maxpoll}.  A higher target makes @code{chronyd} prefer
+shorter polling intervals.  The default is 6 and a useful range is 6 to 60.
 
 @item prefer
 Prefer this source over sources without prefer option.

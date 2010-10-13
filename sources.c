@@ -1027,3 +1027,11 @@ SRC_Skew_Direction SRC_LastSkewChange(SRC_Instance inst)
 }
 
 /* ================================================== */
+
+int
+SRC_Samples(SRC_Instance inst)
+{
+  return SST_Samples(inst->stats);
+}
+
+/* ================================================== */

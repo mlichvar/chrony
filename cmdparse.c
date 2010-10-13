@@ -60,6 +60,7 @@ CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src)
   src->params.auto_offline = 0;
   src->params.iburst = 0;
   src->params.min_stratum = SRC_DEFAULT_MINSTRATUM;
+  src->params.poll_target = SRC_DEFAULT_POLLTARGET;
   src->params.sel_option = SRC_SelectNormal;
 
   result = CPS_Success;
@@ -159,6 +160,15 @@ CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src)
         } else if (!strncasecmp(cmd, "minstratum", 10)) {
           if (sscanf(line, "%d%n", &src->params.min_stratum, &n) != 1) {
             result = CPS_BadMinstratum;
+            ok = 0;
+            done = 1;
+          } else {
+            line += n;
+          }
+
+        } else if (!strncasecmp(cmd, "polltarget", 10)) {
+          if (sscanf(line, "%d%n", &src->params.poll_target, &n) != 1) {
+            result = CPS_BadPolltarget;
             ok = 0;
             done = 1;
           } else {

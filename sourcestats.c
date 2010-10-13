@@ -789,6 +789,14 @@ SST_Skew_Direction SST_LastSkewChange(SST_Stats inst)
 
 /* ================================================== */
 
+int
+SST_Samples(SST_Stats inst)
+{
+  return inst->n_samples;
+}
+
+/* ================================================== */
+
 void
 SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report, struct timeval *now)
 {

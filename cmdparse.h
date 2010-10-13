@@ -45,7 +45,8 @@ typedef enum {
   CPS_BadMaxdelayratio,
   CPS_BadMaxdelay,
   CPS_BadKey,
-  CPS_BadMinstratum
+  CPS_BadMinstratum,
+  CPS_BadPolltarget
 } CPS_Status;
 
 typedef struct {

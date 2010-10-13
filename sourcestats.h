@@ -153,5 +153,7 @@ typedef enum {
 
 extern SST_Skew_Direction SST_LastSkewChange(SST_Stats inst);
 
+extern int SST_Samples(SST_Stats inst);
+
 #endif /* GOT_SOURCESTATS_H */
 

@@ -56,10 +56,6 @@ static LOG_FileID logfileid;
 #define MJD_1970 40587
 
 /* ================================================== */
-
-#define ZONE_WIDTH 4
-
-/* ================================================== */
 /* Enumeration used for remembering the operating mode of one of the
    sources */
 
@@ -109,6 +105,10 @@ struct NCR_Instance_Record {
 
   int min_stratum;              /* Increase stratum in received packets to the
                                    minimum */
+
+  int poll_target;              /* Target number of sourcestats samples */
+
+  double poll_score;            /* Score of current local poll */
 
   double max_delay;             /* Maximum round-trip delay to the
                                    peer that we can tolerate and still
@@ -163,8 +163,6 @@ struct NCR_Instance_Record {
 
   SRC_Instance source;
 
-  int score;
-
   int burst_good_samples_to_go;
   int burst_total_samples_to_go;
 
@@ -215,7 +213,7 @@ void
 NCR_Initialise(void)
 {
   logfileid = CNF_GetLogMeasurements() ? LOG_FileOpen("measurements",
-      "   Date (UTC) Time     IP Address   L St 1234 ab 5678 LP RP SC  Offset     Peer del. Peer disp. Root del.  Root disp.")
+      "   Date (UTC) Time     IP Address   L St 1234 ab 5678 LP RP Score Offset     Peer del. Peer disp. Root del.  Root disp.")
     : -1;
 
   access_auth_table = ADF_CreateTable();
@@ -292,7 +290,8 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->remote_orig.hi = 0;
   result->remote_orig.lo = 0;
 
-  result->score = 0;
+  result->poll_target = params->poll_target;
+  result->poll_score = 0.0;
 
   if (params->online) {
     start_initial_timeout(result);
@@ -448,29 +447,28 @@ check_packet_auth(NTP_Packet *pkt, unsigned long keyid)
 /* ================================================== */
 
 static void
-normalise_score(NCR_Instance inst)
+adjust_poll(NCR_Instance inst, double adj)
 {
+  inst->poll_score += adj;
 
-  while (inst->score >= ZONE_WIDTH) {
-    ++inst->local_poll;
-    inst->score -= ZONE_WIDTH;
+  if (inst->poll_score >= 1.0) {
+    inst->local_poll += (int)inst->poll_score;
+    inst->poll_score -= (int)inst->poll_score;
   }
-  while (inst->score < 0) {
-    if (inst->local_poll > 0) {
-      --inst->local_poll;
-    }
-    inst->score += ZONE_WIDTH;
+
+  if (inst->poll_score < 0.0) {
+    inst->local_poll += (int)(inst->poll_score - 1.0);
+    inst->poll_score -= (int)(inst->poll_score - 1.0);
   }
   
   /* Clamp polling interval to defined range */
   if (inst->local_poll < inst->minpoll) {
     inst->local_poll = inst->minpoll;
-    inst->score = 0;
+    inst->poll_score = 0;
   } else if (inst->local_poll > inst->maxpoll) {
     inst->local_poll = inst->maxpoll;
-    inst->score = ZONE_WIDTH - 1;
+    inst->poll_score = 1.0;
   }
-
 }
 
 /* ================================================== */
@@ -652,13 +650,11 @@ transmit_timeout(void *arg)
   if (SRC_IsSyncPeer(inst->source)) {
     if (inst->tx_count >= 2) {
       /* Implies we have missed at least one transmission */
-      inst->score -= 3;
-      normalise_score(inst);
+      adjust_poll(inst, -0.75);
     }
   } else {
     if (inst->tx_count >= 2) {
-      inst->score += 1;
-      normalise_score(inst);
+      adjust_poll(inst, 0.25);
     }
   }
 
@@ -810,7 +806,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   int poll_to_use;
   double delay_time = 0;
   int requeue_transmit = 0;
-  int delta_score;
+  double poll_adj;
 
   /* ==================== */
 
@@ -1089,31 +1085,22 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
         temp>>=1;
       } while (temp);
       
-      inst->local_poll -= shift;
-      inst->score = 0;
+      poll_adj = -shift - inst->poll_score + 0.5;
       
     } else {
+      int samples = SRC_Samples(inst->source);
 
-      switch (SRC_LastSkewChange(inst->source)) {
-        case SRC_Skew_Decrease:
-          delta_score = 1;
-          break;
-        case SRC_Skew_Nochange:
-          delta_score = 0;
-          break;
-        case SRC_Skew_Increase:
-          delta_score = -2;
-          break;
-        default: /* Should not happen! */
-          delta_score = 0;
-          break;
-      }      
+      /* Adjust polling interval so that the number of sourcestats samples
+         remains close to the target value */
+      poll_adj = ((double)samples / inst->poll_target - 1.0) / inst->poll_target;
 
-      inst->score += delta_score;
+      /* Use higher gain when decreasing the interval */
+      if (samples < inst->poll_target) {
+        poll_adj *= 2.0;
+      }
     }
 
-    normalise_score(inst);
-
+    adjust_poll(inst, poll_adj);
   }
 
   /* Reduce polling rate if KoD RATE was received */
@@ -1253,7 +1240,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   /* Do measurement logging */
   if (logfileid != -1) {
-    LOG_FileWrite(logfileid, "%s %-15s %1c %2d %1d%1d%1d%1d %1d%1d %1d%1d%1d%1d %2d %2d %2d %10.3e %10.3e %10.3e %10.3e %10.3e",
+    LOG_FileWrite(logfileid, "%s %-15s %1c %2d %1d%1d%1d%1d %1d%1d %1d%1d%1d%1d %2d %2d %4.2f %10.3e %10.3e %10.3e %10.3e %10.3e",
             UTI_TimeToLogForm(sample_time.tv_sec),
             UTI_IPToString(&inst->remote_addr.ip_addr),
             sync_stats[pkt_leap],
@@ -1262,7 +1249,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
             test4a, test4b,
             test5, test6, test7, test8,
             inst->local_poll, inst->remote_poll,
-            (inst->score),
+            inst->poll_score,
             theta, delta, epsilon,
             pkt_root_delay, pkt_root_dispersion);
   }            
@@ -1668,7 +1655,7 @@ NCR_TakeSourceOnline(NCR_Instance inst)
         /* We are not already actively polling it */
         LOG(LOGS_INFO, LOGF_NtpCore, "Source %s online", UTI_IPToString(&inst->remote_addr.ip_addr));
         inst->local_poll = inst->minpoll;
-        inst->score = (ZONE_WIDTH >> 1);
+        inst->poll_score = 0.5;
         inst->opmode = MD_ONLINE;
         start_initial_timeout(inst);
       }

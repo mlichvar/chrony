@@ -397,6 +397,9 @@ parse_source(const char *line, NTP_Source_Type type)
     case CPS_BadMinstratum:
       LOG(LOGS_WARN, LOGF_Configure, "Unreadable minstratum value at line %d", line_number);
       break;
+    case CPS_BadPolltarget:
+      LOG(LOGS_WARN, LOGF_Configure, "Unreadable polltarget value at line %d", line_number);
+      break;
   }
 
   return;

@@ -165,5 +165,7 @@ typedef enum {
 
 extern SRC_Skew_Direction SRC_LastSkewChange(SRC_Instance inst);
 
+extern int SRC_Samples(SRC_Instance inst);
+
 #endif /* GOT_SOURCES_H */
 

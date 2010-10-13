@@ -936,6 +936,11 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
         break;
       }
 
+      if (data.params.poll_target != SRC_DEFAULT_POLLTARGET) {
+        fprintf(stderr, "Option polltarget not supported\n");
+        break;
+      }
+
       msg->data.ntp_source.port = htonl((unsigned long) data.port);
       UTI_IPHostToNetwork(&data.ip_addr, &msg->data.ntp_source.ip_addr);
       msg->data.ntp_source.minpoll = htonl(data.params.minpoll);
@@ -982,6 +987,9 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
       break;
     case CPS_BadMinstratum:
       fprintf(stderr, "Unreadable minstratum value\n");
+      break;
+    case CPS_BadPolltarget:
+      fprintf(stderr, "Unreadable polltarget value\n");
       break;
   }
 
