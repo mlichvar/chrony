@@ -1747,6 +1747,16 @@ NCR_ModifyMinstratum(NCR_Instance inst, int new_min_stratum)
 /* ================================================== */
 
 void
+NCR_ModifyPolltarget(NCR_Instance inst, int new_poll_target)
+{
+  inst->poll_target = new_poll_target;
+  LOG(LOGS_INFO, LOGF_NtpCore, "Source %s new polltarget %d",
+      UTI_IPToString(&inst->remote_addr.ip_addr), new_poll_target);
+}
+
+/* ================================================== */
+
+void
 NCR_InitiateSampleBurst(NCR_Instance inst, int n_good_samples, int n_total_samples)
 {
 

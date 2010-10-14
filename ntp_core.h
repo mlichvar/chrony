@@ -93,6 +93,8 @@ extern void NCR_ModifyMaxdelayratio(NCR_Instance inst, double new_max_delay_rati
 
 extern void NCR_ModifyMinstratum(NCR_Instance inst, int new_min_stratum);
 
+extern void NCR_ModifyPolltarget(NCR_Instance inst, int new_poll_target);
+
 extern void NCR_InitiateSampleBurst(NCR_Instance inst, int n_good_samples, int n_total_samples);
 
 extern void NCR_ReportSource(NCR_Instance inst, RPT_SourceReport *report, struct timeval *now);

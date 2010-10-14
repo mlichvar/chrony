@@ -2855,6 +2855,7 @@ interface.
 * offline command::             Warn that connectivity to a source will be lost
 * online command::              Warn that connectivity to a source has been restored
 * password command::            Provide password needed for most commands
+* polltarget command::          Set poll target for a source
 * quit command::                Exit from chronyc
 * retries command::             Set maximum number of retries
 * rtcdata command::             Display RTC parameters
@@ -3619,6 +3620,32 @@ library.  Other systems do not have this restriction.)
 The password is any string of characters not containing whitespace.  It
 has to match @code{chronyd's} currently defined command key (@pxref{commandkey
 directive}).
+@c }}}
+@c {{{ polltarget
+@node polltarget command
+@subsubsection polltarget
+The @code{polltarget} command is used to modify the poll target for
+one of the current set of sources.  It is equivalent to the
+@code{polltarget} option in the @code{server} directive in the
+configuration file (@pxref{server directive}).
+
+The syntax is as follows
+
+@example
+polltarget <host> <new-poll-target>
+@end example
+
+where the host can be specified as either a machine name or
+IP address.
+
+An example is 
+
+@example
+polltarget foo.bar.com 12
+@end example
+
+which sets the poll target for the host @code{foo.bar.com}
+to 12.
 @c }}}
 @c {{{ quit
 @node quit command

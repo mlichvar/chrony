@@ -575,6 +575,25 @@ NSR_ModifyMinstratum(IPAddr *address, int new_min_stratum)
 /* ================================================== */
 
 int
+NSR_ModifyPolltarget(IPAddr *address, int new_poll_target)
+{
+  int slot, found;
+  NTP_Remote_Address addr;
+  addr.ip_addr = *address;
+  addr.port = 0;
+
+  find_slot(&addr, &slot, &found);
+  if (found == 0) {
+    return 0;
+  } else {
+    NCR_ModifyPolltarget(records[slot].data, new_poll_target);
+    return 1;
+  }
+}
+
+/* ================================================== */
+
+int
 NSR_InitiateSampleBurst(int n_good_samples, int n_total_samples,
                         IPAddr *mask, IPAddr *address)
 {

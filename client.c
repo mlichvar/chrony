@@ -481,6 +481,28 @@ process_cmd_minstratum(CMD_Request *msg, char *line)
 /* ================================================== */
 
 static int
+process_cmd_polltarget(CMD_Request *msg, char *line)
+{
+  IPAddr address;
+  int poll_target;
+  int ok;
+  
+  if (read_address_integer(line, &address, &poll_target)) {
+    UTI_IPHostToNetwork(&address, &msg->data.modify_polltarget.address);
+    msg->data.modify_polltarget.new_poll_target = htonl(poll_target);
+    msg->command = htons(REQ_MODIFY_POLLTARGET);
+    ok = 1;
+  } else {
+    ok = 0;
+  }
+
+  return ok;
+
+}
+
+/* ================================================== */
+
+static int
 process_cmd_maxupdateskew(CMD_Request *msg, char *line)
 {
   int ok;
@@ -2417,6 +2439,8 @@ process_line(char *line, int *quit)
     do_normal_submit = process_cmd_maxupdateskew(&tx_message, p+13);
   } else if (!strncmp(p, "minstratum", 10)) {
     do_normal_submit = process_cmd_minstratum(&tx_message, p+10);
+  } else if (!strncmp(p, "polltarget", 10)) {
+    do_normal_submit = process_cmd_polltarget(&tx_message, p+10);
   } else if (!strncmp(p, "settime", 7)) {
     do_normal_submit = 0;
     ret = process_cmd_settime(p+7);

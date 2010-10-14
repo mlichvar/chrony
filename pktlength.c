@@ -149,6 +149,8 @@ PKL_CommandLength(CMD_Request *r)
         return offsetof(CMD_Request, data.activity.EOR);
       case REQ_MODIFY_MINSTRATUM:
         return offsetof(CMD_Request, data.modify_minstratum.EOR);
+      case REQ_MODIFY_POLLTARGET:
+        return offsetof(CMD_Request, data.modify_polltarget.EOR);
       default:
         /* If we fall through the switch, it most likely means we've forgotten to implement a new case */
         assert(0);
