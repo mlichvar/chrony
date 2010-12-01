@@ -1801,7 +1801,7 @@ process_cmd_sourcestats(char *line)
             hostname_buf[25] = 0;
           }
 
-          printf("%-25s  %2lu  %2lu  ", hostname_buf, n_samples, n_runs);
+          printf("%-25s %3lu %3lu  ", hostname_buf, n_samples, n_runs);
           print_seconds(span_seconds);
           printf(" ");
           print_freq_ppm(resid_freq_ppm);
