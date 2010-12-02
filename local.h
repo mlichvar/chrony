@@ -165,6 +165,10 @@ extern int LCL_GetSysPrecisionAsLog(void);
 /* Routine to read the system precision in terms of the actual time step */
 extern double LCL_GetSysPrecisionAsQuantum(void);
 
+/* Routine to read the maximum frequency error of the local clock.  This
+   is a frequency stability, not an absolute error. */
+extern double LCL_GetMaxClockError(void);
+
 /* Routine to initialise the module (to be called once at program
    start-up) */
 

@@ -34,6 +34,7 @@
 #include <assert.h>
 #include <stddef.h>
 
+#include "conf.h"
 #include "local.h"
 #include "localp.h"
 #include "memory.h"
@@ -90,6 +91,8 @@ static DispersionNotifyListEntry dispersion_notify_list;
 
 static int precision_log;
 static double precision_quantum;
+
+static double max_clock_error;
 
 /* ================================================== */
 
@@ -157,6 +160,8 @@ LCL_Initialise(void)
   temp_comp_ppm = 0.0;
 
   calculate_sys_precision();
+
+  max_clock_error = CNF_GetMaxClockError() * 1e-6;
 }
 
 /* ================================================== */
@@ -183,6 +188,14 @@ double
 LCL_GetSysPrecisionAsQuantum(void)
 {
   return precision_quantum;
+}
+
+/* ================================================== */
+
+double
+LCL_GetMaxClockError(void)
+{
+  return max_clock_error;
 }
 
 /* ================================================== */

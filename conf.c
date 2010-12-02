@@ -77,6 +77,7 @@ static void parse_log(const char *);
 static void parse_logbanner(const char *);
 static void parse_logdir(const char *);
 static void parse_maxupdateskew(const char *);
+static void parse_maxclockerror(const char *);
 static void parse_peer(const char *);
 static void parse_acquisitionport(const char *);
 static void parse_port(const char *);
@@ -120,6 +121,7 @@ static char *drift_file = NULL;
 static char *rtc_file = NULL;
 static unsigned long command_key_id;
 static double max_update_skew = 1000.0;
+static double max_clock_error = 10; /* in ppm */
 
 static int cmd_port = -1;
 
@@ -232,6 +234,7 @@ static const Command commands[] = {
   {"dumponexit", 10, parse_dumponexit},
   {"dumpdir", 7, parse_dumpdir},
   {"maxupdateskew", 13, parse_maxupdateskew},
+  {"maxclockerror", 13, parse_maxclockerror},
   {"commandkey", 10, parse_commandkey},
   {"initstepslew", 12, parse_initstepslew},
   {"local", 5, parse_local},
@@ -588,6 +591,16 @@ parse_maxupdateskew(const char *line)
 {
   if (sscanf(line, "%lf", &max_update_skew) != 1) {
     LOG(LOGS_WARN, LOGF_Configure, "Could not read max update skew at line %d in file", line_number);
+  }
+}
+
+/* ================================================== */
+
+static void
+parse_maxclockerror(const char *line)
+{
+  if (sscanf(line, "%lf", &max_clock_error) != 1) {
+    LOG(LOGS_WARN, LOGF_Configure, "Could not read max clock error at line %d in file", line_number);
   }
 }
 
@@ -1403,6 +1416,14 @@ double
 CNF_GetMaxUpdateSkew(void)
 {
   return max_update_skew;
+}
+
+/* ================================================== */
+
+double
+CNF_GetMaxClockError(void)
+{
+  return max_clock_error;
 }
 
 /* ================================================== */

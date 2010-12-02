@@ -1191,6 +1191,7 @@ directives can occur in any order in the file.
 * mailonchange directive::      Send email if a clock correction above a threshold occurs
 * makestep directive::          Step system clock if large correction is needed
 * manual directive::            Allow manual entry using chronyc's settime cmd.
+* maxclockerror directive::     Set maximum frequency error of local clock
 * maxupdateskew directive::     Stop bad estimates upsetting machine clock
 * noclientlog directive::       Prevent chronyd from gathering data about clients
 * clientloglimit directive::    Set client log memory limit
@@ -2208,6 +2209,25 @@ the @code{manual} command in chronyc (@pxref{manual command}).  (The
 idea of the two commands is that the @code{manual} command controls the
 manual clock driver's behaviour, whereas the @code{settime} command
 allows samples of manually entered time to be provided).
+@c }}}
+@c {{{ maxclockerror
+@node maxclockerror directive
+@subsection maxclockerror
+The @code{maxclockerror} directive sets the maximum assumed frequency
+error of the local clock.  This is a frequency stability of the clock,
+not an absolute frequency error.
+
+By default, the maximum assumed error is set to 10 ppm.
+
+The syntax is
+
+@example
+maxclockerror <error-in-ppm>
+@end example
+
+Typical values for <error-in-ppm> might be 10 for a low quality clock
+to 0.1 for a high quality clock using a temperature compensated
+crystal oscillator.
 @c }}}
 @c {{{ maxupdateskew
 @node maxupdateskew directive

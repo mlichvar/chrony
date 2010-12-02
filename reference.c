@@ -757,7 +757,7 @@ REF_GetReferenceParams
     *stratum = our_stratum;
 
     UTI_DiffTimevalsToDouble(&elapsed, local_time, &our_ref_time);
-    extra_dispersion = (our_skew + fabs(our_residual_freq)) * elapsed;
+    extra_dispersion = (our_skew + fabs(our_residual_freq) + LCL_GetMaxClockError()) * elapsed;
 
     *leap_status = our_leap_status;
     *ref_id = our_ref_id;
@@ -870,7 +870,7 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
   if (are_we_synchronised) {
     
     UTI_DiffTimevalsToDouble(&elapsed, &now_cooked, &our_ref_time);
-    extra_dispersion = (our_skew + fabs(our_residual_freq)) * elapsed;
+    extra_dispersion = (our_skew + fabs(our_residual_freq) + LCL_GetMaxClockError()) * elapsed;
     
     rep->ref_id = our_ref_id;
     rep->ip_addr = our_ref_ip;
