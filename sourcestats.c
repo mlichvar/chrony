@@ -233,7 +233,7 @@ SST_AccumulateSample(SST_Stats inst, struct timeval *sample_time,
   inst->sample_times[n] = *sample_time;
   inst->offsets[n] = offset;
   inst->orig_offsets[m] = offset;
-  inst->peer_delays[m] = peer_delay;
+  inst->peer_delays[m] = fabs(peer_delay);
   inst->peer_dispersions[m] = peer_dispersion;
   inst->root_delays[m] = root_delay;
   inst->root_dispersions[m] = root_dispersion;
@@ -365,7 +365,7 @@ SST_DoNewRegression(SST_Stats inst)
   
     for (i = 0, min_distance = DBL_MAX; i < inst->n_samples; i++) {
       j = get_buf_index(inst, i);
-      peer_distances[i] = 0.5 * fabs(inst->peer_delays[j]) + inst->peer_dispersions[j];
+      peer_distances[i] = 0.5 * inst->peer_delays[j] + inst->peer_dispersions[j];
       if (peer_distances[i] < min_distance) {
         min_distance = peer_distances[i];
       }
@@ -513,7 +513,7 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
   *stratum = inst->strata[j];
   *variance = inst->variance;
 
-  peer_distance = inst->peer_dispersions[j] + 0.5 * fabs(inst->peer_delays[j]);
+  peer_distance = inst->peer_dispersions[j] + 0.5 * inst->peer_delays[j];
   UTI_DiffTimevalsToDouble(&elapsed, now, &(inst->offset_time));
 
   UTI_DiffTimevalsToDouble(&sample_elapsed, now, &inst->sample_times[i]);
@@ -555,7 +555,7 @@ SST_GetTrackingData(SST_Stats inst, struct timeval *now,
   *frequency = inst->estimated_frequency;
   *skew = inst->skew;
 
-  peer_distance = inst->peer_dispersions[j] + 0.5 * fabs(inst->peer_delays[j]);
+  peer_distance = inst->peer_dispersions[j] + 0.5 * inst->peer_delays[j];
   UTI_DiffTimevalsToDouble(&elapsed_offset, now, &(inst->offset_time));
   *average_offset = inst->estimated_offset + inst->estimated_frequency * elapsed_offset;
   *offset_sd = inst->estimated_offset_sd + elapsed_offset * inst->skew;
@@ -659,7 +659,7 @@ SST_MinRoundTripDelay(SST_Stats inst)
   int i;
 
   for (i = 0, min_delay = DBL_MAX; i < inst->n_samples; i++) {
-    delay = fabs(inst->peer_delays[get_buf_index(inst, i)]);
+    delay = inst->peer_delays[get_buf_index(inst, i)];
     if (delay < min_delay)
       min_delay = delay;
   }
