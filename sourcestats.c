@@ -77,6 +77,9 @@ struct SST_Stats_Record {
      root distance at the present time */
   int best_single_sample;
 
+  /* The index of the sample with minimum delay in peer_delays */
+  int min_delay_sample;
+
   /* This is the estimated offset (+ve => local fast) at a particular time */
   double estimated_offset;
   double estimated_offset_sd;
@@ -144,6 +147,11 @@ struct SST_Stats_Record {
 
 /* ================================================== */
 
+static void find_min_delay_sample(SST_Stats inst);
+static int get_buf_index(SST_Stats inst, int i);
+
+/* ================================================== */
+
 void
 SST_Initialise(void)
 {
@@ -173,6 +181,7 @@ SST_CreateInstance(unsigned long refid, IPAddr *addr)
   inst->runs_samples = 0;
   inst->last_sample = 0;
   inst->best_single_sample = 0;
+  inst->min_delay_sample = 0;
   inst->estimated_frequency = 0;
   inst->skew = 2000.0e-6;
   inst->skew_dirn = SST_Skew_Nochange;
@@ -202,6 +211,9 @@ SST_DeleteInstance(SST_Stats inst)
 static void
 prune_register(SST_Stats inst, int new_oldest)
 {
+  if (!new_oldest)
+    return;
+
   assert(inst->n_samples >= new_oldest);
   inst->n_samples -= new_oldest;
   inst->runs_samples += new_oldest;
@@ -209,6 +221,8 @@ prune_register(SST_Stats inst, int new_oldest)
     inst->runs_samples = inst->n_samples * (REGRESS_RUNS_RATIO - 1);
   
   assert(inst->n_samples + inst->runs_samples <= MAX_SAMPLES * REGRESS_RUNS_RATIO);
+
+  find_min_delay_sample(inst);
 }
 
 /* ================================================== */
@@ -239,6 +253,9 @@ SST_AccumulateSample(SST_Stats inst, struct timeval *sample_time,
   inst->root_dispersions[m] = root_dispersion;
   inst->strata[m] = stratum;
  
+  if (!inst->n_samples || inst->peer_delays[m] < inst->peer_delays[inst->min_delay_sample])
+    inst->min_delay_sample = m;
+
   ++inst->n_samples;
 }
 
@@ -321,6 +338,22 @@ find_best_sample_index(SST_Stats inst, double *times_back)
 #endif
 
   return;
+}
+
+/* ================================================== */
+
+static void
+find_min_delay_sample(SST_Stats inst)
+{
+  int i, index;
+
+  inst->min_delay_sample = get_buf_index(inst, 0);
+
+  for (i = 1; i < inst->n_samples; i++) {
+    index = get_buf_index(inst, i);
+    if (inst->peer_delays[index] < inst->peer_delays[inst->min_delay_sample])
+      inst->min_delay_sample = index;
+  }
 }
 
 /* ================================================== */
@@ -655,15 +688,9 @@ SST_PredictOffset(SST_Stats inst, struct timeval *when)
 double
 SST_MinRoundTripDelay(SST_Stats inst)
 {
-  double min_delay, delay;
-  int i;
-
-  for (i = 0, min_delay = DBL_MAX; i < inst->n_samples; i++) {
-    delay = inst->peer_delays[get_buf_index(inst, i)];
-    if (delay < min_delay)
-      min_delay = delay;
-  }
-  return min_delay;
+  if (!inst->n_samples)
+    return DBL_MAX;
+  return inst->peer_delays[inst->min_delay_sample];
 }
 
 /* ================================================== */
@@ -747,6 +774,8 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
 
   inst->last_sample = inst->n_samples - 1;
   inst->runs_samples = 0;
+
+  find_min_delay_sample(inst);
 
   return 1;
 
