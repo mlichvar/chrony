@@ -45,6 +45,7 @@ typedef struct {
   unsigned long authkey;
   double max_delay;
   double max_delay_ratio;
+  double max_delay_dev_ratio;
   SRC_SelectOption sel_option;
 } SourceParameters;
 
@@ -54,6 +55,7 @@ typedef struct {
 #define SRC_DEFAULT_PRESEND_MINPOLL 0
 #define SRC_DEFAULT_MAXDELAY 16.0
 #define SRC_DEFAULT_MAXDELAYRATIO 16384.0
+#define SRC_DEFAULT_MAXDELAYDEVRATIO 10.0
 #define SRC_DEFAULT_MINSTRATUM 0
 #define SRC_DEFAULT_POLLTARGET 6
 #define INACTIVE_AUTHKEY 0UL

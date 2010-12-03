@@ -1271,6 +1271,7 @@ handle_add_source(NTP_Source_Type type, CMD_Request *rx_message, CMD_Reply *tx_m
  /* not transmitted in cmdmon protocol yet */
   params.min_stratum = SRC_DEFAULT_MINSTRATUM;       
   params.poll_target = SRC_DEFAULT_POLLTARGET;
+  params.max_delay_dev_ratio = SRC_DEFAULT_MAXDELAYDEVRATIO;
 
   status = NSR_AddSource(&rem_addr, type, &params);
   switch (status) {

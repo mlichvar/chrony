@@ -145,6 +145,10 @@ extern double SRC_PredictOffset(SRC_Instance inst, struct timeval *when);
    currently held in the register */
 extern double SRC_MinRoundTripDelay(SRC_Instance inst);
 
+/* This routine determines if a new sample is good enough that it should be
+   accumulated */
+extern int SRC_IsGoodSample(SRC_Instance inst, double offset, double delay, double max_delay_dev_ratio, double clock_error, struct timeval *when);
+
 extern void SRC_DumpSources(void);
 
 extern void SRC_ReloadSources(void);

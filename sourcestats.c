@@ -694,6 +694,45 @@ SST_MinRoundTripDelay(SST_Stats inst)
 }
 
 /* ================================================== */
+
+int
+SST_IsGoodSample(SST_Stats inst, double offset, double delay,
+    double max_delay_dev_ratio, double clock_error, struct timeval *when)
+{
+  double elapsed, allowed_increase, delay_increase;
+
+  if (inst->n_samples < 3)
+    return 1;
+
+  UTI_DiffTimevalsToDouble(&elapsed, when, &inst->offset_time);
+
+  /* Require that the ratio of the increase in delay from the minimum to the
+     standard deviation is less than max_delay_dev_ratio. In the allowed
+     increase in delay include also skew and clock_error. */
+    
+  allowed_increase = sqrt(inst->variance) * max_delay_dev_ratio +
+    elapsed * (inst->skew + clock_error);
+  delay_increase = (delay - SST_MinRoundTripDelay(inst)) / 2.0;
+
+  if (delay_increase < allowed_increase)
+    return 1;
+
+  offset -= inst->estimated_offset + elapsed * inst->estimated_frequency;
+
+  /* Before we decide to drop the sample, make sure the difference between
+     measured offset and predicted offset is not significantly larger than
+     the increase in delay */
+  if (fabs(offset) - delay_increase > allowed_increase)
+    return 1;
+
+#if 0
+  LOG(LOGS_INFO, LOGF_SourceStats, "bad sample: offset=%f delay=%f incr_delay=%f allowed=%f", offset, delay, allowed_increase, delay_increase);
+#endif
+
+  return 0;
+}
+
+/* ================================================== */
 /* This is used to save the register to a file, so that we can reload
    it after restarting the daemon */
 

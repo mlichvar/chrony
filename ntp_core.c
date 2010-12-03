@@ -119,6 +119,8 @@ struct NCR_Instance_Record {
                                    min_delay_in_register that we can
                                    tolerate.  */
 
+  double max_delay_dev_ratio;   /* Maximum ratio of increase in delay / stddev */
+
   int do_auth;                  /* Flag indicating whether we
                                    authenticate packets we send to
                                    this machine (if it's serving us or
@@ -213,7 +215,7 @@ void
 NCR_Initialise(void)
 {
   logfileid = CNF_GetLogMeasurements() ? LOG_FileOpen("measurements",
-      "   Date (UTC) Time     IP Address   L St 1234 ab 5678 LP RP Score Offset     Peer del. Peer disp. Root del.  Root disp.")
+      "   Date (UTC) Time     IP Address   L St 1234 abc 5678 LP RP Score Offset     Peer del. Peer disp. Root del.  Root disp.")
     : -1;
 
   access_auth_table = ADF_CreateTable();
@@ -284,6 +286,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
 
   result->max_delay = params->max_delay;
   result->max_delay_ratio = params->max_delay_ratio;
+  result->max_delay_dev_ratio = params->max_delay_dev_ratio;
 
   result->tx_count = 0;
 
@@ -777,7 +780,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   int test1, test2, test3, test4, test5, test6, test7, test8;
 
-  int test4a, test4b;
+  int test4a, test4b, test4c;
 
   /* In the words of section 3.4.4 of RFC1305, valid_data means
      that the NTP protocol association with the peer/server is
@@ -941,6 +944,18 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     test4b = 1; /* Success */
   }
 
+  /* Test 4c (additional to RFC1305) requires that the ratio of the
+     increase in delay from the minimum one in the stats data register to
+     the standard deviation of the offsets in the register is less than an
+     administrator-defined value or the difference between measured offset
+     and predicted offset is larger than the increase in delay */
+  if (!SRC_IsGoodSample(inst->source, -theta, delta, inst->max_delay_dev_ratio,
+        LCL_GetMaxClockError(), &sample_time)) {
+    test4c = 0; /* Failed */
+  } else {
+    test4c = 1; /* Success */
+  }
+
   /* Test 5 relates to authentication. */
   if (inst->do_auth) {
     if (do_auth) {
@@ -1011,7 +1026,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   valid_kod = test1 && test2 && test5;
 
-  valid_data = test1 && test2 && test3 && test4 && test4a && test4b;
+  valid_data = test1 && test2 && test3 && test4 && test4a && test4b && test4c;
   valid_header = test5 && test6 && test7 && test8;
 
   root_delay = pkt_root_delay + delta;
@@ -1240,13 +1255,13 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   /* Do measurement logging */
   if (logfileid != -1) {
-    LOG_FileWrite(logfileid, "%s %-15s %1c %2d %1d%1d%1d%1d %1d%1d %1d%1d%1d%1d %2d %2d %4.2f %10.3e %10.3e %10.3e %10.3e %10.3e",
+    LOG_FileWrite(logfileid, "%s %-15s %1c %2d %1d%1d%1d%1d %1d%1d%1d %1d%1d%1d%1d %2d %2d %4.2f %10.3e %10.3e %10.3e %10.3e %10.3e",
             UTI_TimeToLogForm(sample_time.tv_sec),
             UTI_IPToString(&inst->remote_addr.ip_addr),
             sync_stats[pkt_leap],
             message->stratum,
             test1, test2, test3, test4,
-            test4a, test4b,
+            test4a, test4b, test4c,
             test5, test6, test7, test8,
             inst->local_poll, inst->remote_poll,
             inst->poll_score,

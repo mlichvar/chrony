@@ -42,6 +42,7 @@ typedef enum {
   CPS_BadMinpoll,
   CPS_BadMaxpoll,
   CPS_BadPresend,
+  CPS_BadMaxdelaydevratio,
   CPS_BadMaxdelayratio,
   CPS_BadMaxdelay,
   CPS_BadKey,

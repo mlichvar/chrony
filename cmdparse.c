@@ -56,6 +56,7 @@ CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src)
   src->params.authkey = INACTIVE_AUTHKEY;
   src->params.max_delay = SRC_DEFAULT_MAXDELAY;
   src->params.max_delay_ratio = SRC_DEFAULT_MAXDELAYRATIO;
+  src->params.max_delay_dev_ratio = SRC_DEFAULT_MAXDELAYDEVRATIO;
   src->params.online = 1;
   src->params.auto_offline = 0;
   src->params.iburst = 0;
@@ -118,6 +119,14 @@ CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src)
         } else if (!strncasecmp(cmd, "presend", 7)) {
           if (sscanf(line, "%d%n", &src->params.presend_minpoll, &n) != 1) {
             result = CPS_BadPresend;
+            ok = 0;
+            done = 1;
+          } else {
+            line += n;
+          }
+        } else if (!strncasecmp(cmd, "maxdelaydevratio", 16)) {
+          if (sscanf(line, "%lf%n", &src->params.max_delay_dev_ratio, &n) != 1) {
+            result = CPS_BadMaxdelaydevratio;
             ok = 0;
             done = 1;
           } else {

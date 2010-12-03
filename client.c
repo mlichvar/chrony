@@ -963,6 +963,11 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
         break;
       }
 
+      if (data.params.max_delay_dev_ratio != SRC_DEFAULT_MAXDELAYDEVRATIO) {
+        fprintf(stderr, "Option maxdelaydevratio not supported\n");
+        break;
+      }
+
       msg->data.ntp_source.port = htonl((unsigned long) data.port);
       UTI_IPHostToNetwork(&data.ip_addr, &msg->data.ntp_source.ip_addr);
       msg->data.ntp_source.minpoll = htonl(data.params.minpoll);
@@ -997,6 +1002,9 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
       break;
     case CPS_BadPresend:
       fprintf(stderr, "Unreadable presend value\n");
+      break;
+    case CPS_BadMaxdelaydevratio:
+      fprintf(stderr, "Unreadable max delay dev ratio value\n");
       break;
     case CPS_BadMaxdelayratio:
       fprintf(stderr, "Unreadable max delay ratio value\n");

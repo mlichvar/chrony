@@ -1828,7 +1828,7 @@ An example line (which actually appears as a single line in the file)
 from the measurements log file is shown below.
 
 @example
-1998-07-22 05:40:50 158.152.1.76    N  8 1111 11 1111 10 10  1 \
+2010-12-22 05:40:50 158.152.1.76    N  8 1111 111 1111 10 10 1.0 \
    -4.966e-03  2.296e-01  1.577e-05  1.615e-01  7.446e-03
 @end example
 
@@ -1837,7 +1837,7 @@ values from the example line above) :
 
 @enumerate 1
 @item
-Date [1998-07-22]
+Date [2010-12-22]
 @item
 Hour:Minute:Second [05:40:50].  Note that the date/time pair is
 expressed in UTC, not the local time zone.
@@ -1853,8 +1853,8 @@ Stratum of remote computer. [2]
 @item
 RFC1305 tests 1 through 4 (1=pass, 0=fail) [1111]
 @item
-Tests for maximum delay and maximum delay ratio, against user defined
-parameters (1=pass, 0=fail) [11]
+Tests for maximum delay, maximum delay ratio and maximum delay dev ratio,
+against defined parameters (1=pass, 0=fail) [111]
 @item
 RFC1305 tests 5 through 8 (1=pass, 0=fail) [1111]
 @item
@@ -2594,6 +2594,12 @@ keeps a record of the minimum round-trip delay amongst the previous
 measurements that it has buffered.  If a measurement has a round trip
 delay that is greater than the maxdelayratio times the minimum delay, it
 will be rejected.
+
+@item maxdelaydevratio
+If a measurement has ratio of the increase in round-trip delay from
+the minimum delay amongst the previous measurements to the standard
+deviation of the previous measurements that is greater than
+maxdelaydevratio, it will be rejected. The default is 10.0.
 
 @item presend
 If the timing measurements being made by @code{chronyd} are the only

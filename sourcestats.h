@@ -137,6 +137,11 @@ extern double SST_PredictOffset(SST_Stats inst, struct timeval *when);
 /* Find the minimum round trip delay in the register */
 extern double SST_MinRoundTripDelay(SST_Stats inst);
 
+/* This routine determines if a new sample is good enough that it should be
+   accumulated */
+extern int SST_IsGoodSample(SST_Stats inst, double offset, double delay,
+   double max_delay_dev_ratio, double clock_error, struct timeval *when);
+
 extern void SST_SaveToFile(SST_Stats inst, FILE *out);
 
 extern int SST_LoadFromFile(SST_Stats inst, FILE *in);

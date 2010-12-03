@@ -795,6 +795,16 @@ SRC_MinRoundTripDelay(SRC_Instance inst)
 }
 
 /* ================================================== */
+
+int
+SRC_IsGoodSample(SRC_Instance inst, double offset, double delay,
+   double max_delay_dev_ratio, double clock_error, struct timeval *when)
+{
+  return SST_IsGoodSample(inst->stats, offset, delay, max_delay_dev_ratio,
+      clock_error, when);
+}
+
+/* ================================================== */
 /* This routine is registered as a callback with the local clock
    module, to be called whenever the local clock changes frequency or
    is slewed.  It runs through all the existing source statistics, and

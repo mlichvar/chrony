@@ -391,6 +391,9 @@ parse_source(const char *line, NTP_Source_Type type)
     case CPS_BadPresend:
       LOG(LOGS_WARN, LOGF_Configure, "Unreadable presend value at line %d", line_number);
       break;
+    case CPS_BadMaxdelaydevratio:
+      LOG(LOGS_WARN, LOGF_Configure, "Unreadable max delay dev ratio value at line %d", line_number);
+      break;
     case CPS_BadMaxdelayratio:
       LOG(LOGS_WARN, LOGF_Configure, "Unreadable max delay ratio value at line %d", line_number);
       break;
