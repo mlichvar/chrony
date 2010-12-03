@@ -65,6 +65,8 @@ PKL_CommandLength(CMD_Request *r)
         return offsetof(CMD_Request, data.modify_maxdelay.EOR);
       case REQ_MODIFY_MAXDELAYRATIO:
         return offsetof(CMD_Request, data.modify_maxdelayratio.EOR);
+      case REQ_MODIFY_MAXDELAYDEVRATIO:
+        return offsetof(CMD_Request, data.modify_maxdelaydevratio.EOR);
       case REQ_MODIFY_MAXUPDATESKEW:
         return offsetof(CMD_Request, data.modify_maxupdateskew.EOR);
       case REQ_LOGON :

@@ -160,7 +160,8 @@ static int permissions[] = {
   PERMIT_AUTH, /* MAKESTEP */
   PERMIT_OPEN, /* ACTIVITY */
   PERMIT_AUTH, /* MODIFY_MINSTRATUM */
-  PERMIT_AUTH  /* MODIFY_POLLTARGET */
+  PERMIT_AUTH, /* MODIFY_POLLTARGET */
+  PERMIT_AUTH  /* MODIFY_MAXDELAYDEVRATIO */
 };
 
 /* ================================================== */
@@ -895,6 +896,23 @@ handle_modify_maxdelayratio(CMD_Request *rx_message, CMD_Reply *tx_message)
   UTI_IPNetworkToHost(&rx_message->data.modify_maxdelayratio.address, &address);
   status = NSR_ModifyMaxdelayratio(&address,
                                    UTI_FloatNetworkToHost(rx_message->data.modify_maxdelayratio.new_max_delay_ratio));
+  if (status) {
+    tx_message->status = htons(STT_SUCCESS);
+  } else {
+    tx_message->status = htons(STT_NOSUCHSOURCE);
+  }
+}
+
+/* ================================================== */
+
+static void
+handle_modify_maxdelaydevratio(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  int status;
+  IPAddr address;
+  UTI_IPNetworkToHost(&rx_message->data.modify_maxdelaydevratio.address, &address);
+  status = NSR_ModifyMaxdelaydevratio(&address,
+                                   UTI_FloatNetworkToHost(rx_message->data.modify_maxdelaydevratio.new_max_delay_dev_ratio));
   if (status) {
     tx_message->status = htons(STT_SUCCESS);
   } else {
@@ -2050,6 +2068,10 @@ read_from_cmd_socket(void *anything)
 
         case REQ_MODIFY_MAXDELAYRATIO:
           handle_modify_maxdelayratio(&rx_message, &tx_message);
+          break;
+
+        case REQ_MODIFY_MAXDELAYDEVRATIO:
+          handle_modify_maxdelaydevratio(&rx_message, &tx_message);
           break;
 
         case REQ_MODIFY_MAXUPDATESKEW:

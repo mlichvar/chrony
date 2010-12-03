@@ -2874,6 +2874,7 @@ interface.
 * manual command::              Enable/disable/configure options for settime
 * maxdelay command::            Set max measurement delay for a source
 * maxdelayratio command::       Set max measurement delay for a source as ratio
+* maxdelaydevratio command::    Set max measurement delay for a source as ratio to deviation
 * maxpoll command::             Set maximum polling interval for a source
 * maxupdateskew command::       Set safety threshold for clock gain/loss rate
 * minpoll command::             Set minimum polling interval for a source
@@ -3437,6 +3438,22 @@ address @code{2001:db8::1} to be double the retained minimum.
 
 As for @code{maxdelay}, any measurement whose network delay is too large
 will be discarded.
+@c }}}
+@c {{{ maxdelaydevratio
+@node maxdelaydevratio command
+@subsubsection maxdelaydevratio
+This allows the @code{maxdelaydevratio} option for one of the sources to be
+modified, in the same way as specifying the @code{maxdelaydevratio} option
+for the @code{server} directive in the configuration file (@pxref{server
+directive}).
+
+The following examples illustrate the syntax
+
+@example
+maxdelaydevratio foo.bar.com 0.1
+maxdelaydevratio 1.2.3.4 1.0
+maxdelaydevratio 2001:db8::1 100.0
+@end example
 @c }}}
 @c {{{ maxpoll
 @node maxpoll command

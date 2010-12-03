@@ -91,6 +91,8 @@ extern void NCR_ModifyMaxdelay(NCR_Instance inst, double new_max_delay);
 
 extern void NCR_ModifyMaxdelayratio(NCR_Instance inst, double new_max_delay_ratio);
 
+extern void NCR_ModifyMaxdelaydevratio(NCR_Instance inst, double new_max_delay_dev_ratio);
+
 extern void NCR_ModifyMinstratum(NCR_Instance inst, int new_min_stratum);
 
 extern void NCR_ModifyPolltarget(NCR_Instance inst, int new_poll_target);

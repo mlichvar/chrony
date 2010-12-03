@@ -556,6 +556,25 @@ NSR_ModifyMaxdelayratio(IPAddr *address, double new_max_delay_ratio)
 /* ================================================== */
 
 int
+NSR_ModifyMaxdelaydevratio(IPAddr *address, double new_max_delay_dev_ratio)
+{
+  int slot, found;
+  NTP_Remote_Address addr;
+  addr.ip_addr = *address;
+  addr.port = 0;
+
+  find_slot(&addr, &slot, &found);
+  if (found == 0) {
+    return 0;
+  } else {
+    NCR_ModifyMaxdelaydevratio(records[slot].data, new_max_delay_dev_ratio);
+    return 1;
+  }
+}
+
+/* ================================================== */
+
+int
 NSR_ModifyMinstratum(IPAddr *address, int new_min_stratum)
 {
   int slot, found;

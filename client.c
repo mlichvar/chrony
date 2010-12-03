@@ -437,6 +437,28 @@ process_cmd_maxdelay(CMD_Request *msg, char *line)
 /* ================================================== */
 
 static int
+process_cmd_maxdelaydevratio(CMD_Request *msg, char *line)
+{
+  IPAddr address;
+  double max_delay_dev_ratio;
+  int ok;
+  
+  if (read_address_double(line, &address, &max_delay_dev_ratio)) {
+    UTI_IPHostToNetwork(&address, &msg->data.modify_maxdelaydevratio.address);
+    msg->data.modify_maxdelayratio.new_max_delay_ratio = UTI_FloatHostToNetwork(max_delay_dev_ratio);
+    msg->command = htons(REQ_MODIFY_MAXDELAYDEVRATIO);
+    ok = 1;
+  } else {
+    ok = 0;
+  }
+
+  return ok;
+
+}
+
+/* ================================================== */
+
+static int
 process_cmd_maxdelayratio(CMD_Request *msg, char *line)
 {
   IPAddr address;
@@ -2439,6 +2461,8 @@ process_line(char *line, int *quit)
     do_normal_submit = process_cmd_maxpoll(&tx_message, p+7);
   } else if (!strncmp(p, "dump", 4)) {
     process_cmd_dump(&tx_message, p+4);
+  } else if (!strncmp(p, "maxdelaydevratio", 16)) {
+    do_normal_submit = process_cmd_maxdelaydevratio(&tx_message, p+16);
   } else if (!strncmp(p, "maxdelayratio", 13)) {
     do_normal_submit = process_cmd_maxdelayratio(&tx_message, p+13);
   } else if (!strncmp(p, "maxdelay", 8)) {

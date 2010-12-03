@@ -91,6 +91,8 @@ extern int NSR_ModifyMaxdelay(IPAddr *address, double new_max_delay);
 
 extern int NSR_ModifyMaxdelayratio(IPAddr *address, double new_max_delay_ratio);
 
+extern int NSR_ModifyMaxdelaydevratio(IPAddr *address, double new_max_delay_ratio);
+
 extern int NSR_ModifyMinstratum(IPAddr *address, int new_min_stratum);
 
 extern int NSR_ModifyPolltarget(IPAddr *address, int new_poll_target);

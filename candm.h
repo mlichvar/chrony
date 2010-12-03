@@ -88,7 +88,8 @@
 #define REQ_ACTIVITY 44
 #define REQ_MODIFY_MINSTRATUM 45
 #define REQ_MODIFY_POLLTARGET 46
-#define N_REQUEST_TYPES 47
+#define REQ_MODIFY_MAXDELAYDEVRATIO 47
+#define N_REQUEST_TYPES 48
 
 /* Special utoken value used to log on with first exchange being the
    password.  (This time value has long since gone by) */
@@ -163,6 +164,12 @@ typedef struct {
   Float new_max_delay_ratio;
   int32_t EOR;
 } REQ_Modify_Maxdelayratio;
+
+typedef struct {
+  IPAddr address;
+  Float new_max_delay_dev_ratio;
+  int32_t EOR;
+} REQ_Modify_Maxdelaydevratio;
 
 typedef struct {
   IPAddr address;
@@ -386,6 +393,7 @@ typedef struct {
     REQ_Dump dump;
     REQ_Modify_Maxdelay modify_maxdelay;
     REQ_Modify_Maxdelayratio modify_maxdelayratio;
+    REQ_Modify_Maxdelaydevratio modify_maxdelaydevratio;
     REQ_Modify_Minstratum modify_minstratum;
     REQ_Modify_Polltarget modify_polltarget;
     REQ_Modify_Maxupdateskew modify_maxupdateskew;
