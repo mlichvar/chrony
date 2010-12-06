@@ -778,7 +778,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   struct timeval local_average, remote_average;
   double local_interval, remote_interval;
 
-  int test1, test2, test3, test4, test5, test6, test7, test8;
+  int test1, test2, test3, test4, test5, test6, test7, test7i, test7ii, test8;
 
   int test4a, test4b, test4c;
 
@@ -788,8 +788,8 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
      obtained from the packet is suitable for use in synchronising
      our local clock.  Wierd choice of terminology. */
 
-  int valid_data;
-  int valid_header;
+  int valid_data, valid_header;
+  int good_data, good_header;
 
   /* Kiss-of-Death packets */
   int kod_rate = 0;
@@ -1001,13 +1001,21 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     message->stratum = inst->min_stratum;
   }
 
-  /* Test 7 checks that the stratum in the packet is appropriate */
-  if ((message->stratum > REF_GetOurStratum()) ||
-      (message->stratum > NTP_MAX_STRATUM)) {
-    test7 = 0; /* Failed */
+  /* Test 7i checks that the stratum in the packet is valid */
+  if (message->stratum > NTP_MAX_STRATUM) {
+    test7i = 0; /* Failed */
   } else {
-    test7 = 1;
+    test7i = 1;
   }
+
+  /* Test 7ii checks that the stratum in the packet is not higher than ours */
+  if (message->stratum > REF_GetOurStratum()) {
+    test7ii = 0; /* Failed */
+  } else {
+    test7ii = 1;
+  }
+
+  test7 = test7i && test7ii;
 
   /* Test 8 checks that the root delay and dispersion quoted in 
      the packet are appropriate */
@@ -1026,8 +1034,10 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   valid_kod = test1 && test2 && test5;
 
-  valid_data = test1 && test2 && test3 && test4 && test4a && test4b && test4c;
-  valid_header = test5 && test6 && test7 && test8;
+  valid_data = test1 && test2 && test3 && test4 && test4a && test4b;
+  good_data = valid_data && test4c;
+  valid_header = test5 && test6 && test7i && test8;
+  good_header = valid_header && test7ii;
 
   root_delay = pkt_root_delay + delta;
   root_dispersion = pkt_root_dispersion + epsilon;
@@ -1055,36 +1065,40 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   LOG(LOGS_INFO, LOGF_NtpCore, "theta=%f delta=%f epsilon=%f root_delay=%f root_dispersion=%f",
       theta, delta, epsilon, root_delay, root_dispersion);
 
-  LOG(LOGS_INFO, LOGF_NtpCore, "test1=%d test2=%d test3=%d test4=%d valid_data=%d",
-      test1, test2, test3, test4, valid_data);
+  LOG(LOGS_INFO, LOGF_NtpCore, "test1=%d test2=%d test3=%d test4=%d valid_data=%d good_data=%d",
+      test1, test2, test3, test4, valid_data, good_data);
 
-  LOG(LOGS_INFO, LOGF_NtpCore, "test5=%d test6=%d test7=%d test8=%d valid_header=%d",
-      test5, test6, test7, test8, valid_header);
+  LOG(LOGS_INFO, LOGF_NtpCore, "test5=%d test6=%d test7=%d test8=%d valid_header=%d good_header=%d",
+      test5, test6, test7, test8, valid_header, good_header);
 
   LOG(LOGS_INFO, LOGF_NtpCore, "kod_rate=%d valid_kod=%d", kod_rate, valid_kod);
 #endif
 
   if (valid_header && valid_data) {
     inst->tx_count = 0;
-    SRC_SetReachable(inst->source);
+
+    /* Mark the source as suitable for synchronisation when both header and
+       data are good, unmark when header is not good (i.e. the stratum is
+       higher than ours) */
+    if (good_header) {
+      if (good_data) {
+        SRC_SetReachable(inst->source);
+      }
+    } else {
+      SRC_UnsetReachable(inst->source);
+    }
   }
 
   /* Do this before we accumulate a new sample into the stats registers, obviously */
   estimated_offset = SRC_PredictOffset(inst->source, &sample_time);
 
-  if (valid_data) {
+  if (valid_header && good_data) {
     SRC_AccumulateSample(inst->source,
                          &sample_time,
                          theta, delta, epsilon,
                          root_delay, root_dispersion,
                          message->stratum, (NTP_Leap) pkt_leap);
-  }
 
-
-  /* Only do performance monitoring if we got valid data! */
-
-  if (valid_data) {
-    
     /* Now examine the registers.  First though, if the prediction is
        not even within +/- the peer distance of the peer, we are clearly
        not tracking the peer at all well, so we back off the sampling
@@ -1116,6 +1130,10 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     }
 
     adjust_poll(inst, poll_adj);
+  } else if (valid_header && valid_data) {
+
+    /* Slowly increase the polling interval if we can't get good_data */
+    adjust_poll(inst, 0.1);
   }
 
   /* Reduce polling rate if KoD RATE was received */
