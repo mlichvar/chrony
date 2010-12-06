@@ -1222,6 +1222,7 @@ give_help(void)
   printf("manual list : Show previous settime entries\n");
   printf("maxdelay <address> <new-max-delay> : Modify maximum round-trip valid sample delay for source\n");
   printf("maxdelayratio <address> <new-max-ratio> : Modify max round-trip delay ratio for source\n");
+  printf("maxdelaydevratio <address> <new-max-ratio> : Modify max round-trip delay dev ratio for source\n");
   printf("maxpoll <address> <new-maxpoll> : Modify maximum polling interval of source\n");
   printf("maxupdateskew <new-max-skew> : Modify maximum skew for a clock frequency update to be made\n");
   printf("minpoll <address> <new-minpoll> : Modify minimum polling interval of source\n");
@@ -1229,6 +1230,7 @@ give_help(void)
   printf("offline [<mask>/<masked-address>] : Set sources in subnet to offline status\n");
   printf("online [<mask>/<masked-address>] : Set sources in subnet to online status\n");
   printf("password [<new-password>] : Set command authentication password\n");
+  printf("polltarget <address> <new-poll-target> : Modify poll target of source\n");
   printf("rtcdata : Print current RTC performance parameters\n");
   printf("settime <date/time (e.g. Nov 21, 1997 16:30:05 or 16:30:05)> : Manually set the daemon time\n");
   printf("sources [-v] : Display information about current sources\n");
