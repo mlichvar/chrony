@@ -1885,7 +1885,7 @@ meanings of the columns.
 @subsubsection Statistics log file format
 
 An example line (which actually appears as a single line in the file)
-from the measurements log file is shown below.
+from the statistics log file is shown below.
 
 @example
 1998-07-22 05:40:50 158.152.1.76     6.261e-03 -3.247e-03 \
@@ -1949,7 +1949,7 @@ meanings of the columns.
 @subsubsection Tracking log file format
 
 An example line (which actually appears as a single line in the file)
-from the measurements log file is shown below.
+from the tracking log file is shown below.
 
 @example
 1998-07-22 05:40:50 158.152.1.76     3    340.529      1.606  1.046e-03
