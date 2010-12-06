@@ -645,20 +645,13 @@ transmit_timeout(void *arg)
     /* Nothing */
   }
 
-  /* If the source to which we are currently locked starts to lose
-     connectivity, increase the sampling rate to try and bring it
-     back.  If any other source loses connectivity, back off the
-     sampling rate to reduce wasted sampling. */
+  /* If the source loses connectivity, back off the sampling rate to reduce
+     wasted sampling. If it's the source to which we are currently locked,
+     back off slower. */
 
-  if (SRC_IsSyncPeer(inst->source)) {
-    if (inst->tx_count >= 2) {
-      /* Implies we have missed at least one transmission */
-      adjust_poll(inst, -0.75);
-    }
-  } else {
-    if (inst->tx_count >= 2) {
-      adjust_poll(inst, 0.25);
-    }
+  if (inst->tx_count >= 2) {
+    /* Implies we have missed at least one transmission */
+    adjust_poll(inst, SRC_IsSyncPeer(inst->source) ? 0.1 : 0.25);
   }
 
   my_mode = inst->mode;
