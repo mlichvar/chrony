@@ -1231,6 +1231,7 @@ give_help(void)
   printf("online [<mask>/<masked-address>] : Set sources in subnet to online status\n");
   printf("password [<new-password>] : Set command authentication password\n");
   printf("polltarget <address> <new-poll-target> : Modify poll target of source\n");
+  printf("reselect : Reselect synchronisation source\n");
   printf("rtcdata : Print current RTC performance parameters\n");
   printf("settime <date/time (e.g. Nov 21, 1997 16:30:05 or 16:30:05)> : Manually set the daemon time\n");
   printf("sources [-v] : Display information about current sources\n");
@@ -2372,6 +2373,14 @@ process_cmd_activity(const char *line)
 
 /* ================================================== */
 
+static void
+process_cmd_reselect(CMD_Request *msg, char *line)
+{
+  msg->command = htons(REQ_RESELECT);
+}
+
+/* ================================================== */
+
 static int
 process_cmd_dns(const char *line)
 {
@@ -2545,6 +2554,8 @@ process_line(char *line, int *quit)
   } else if (!strncmp(p, "activity", 8)) {
     ret = process_cmd_activity(p+8);
     do_normal_submit = 0;
+  } else if (!strncmp(p, "reselect", 8)) {
+    process_cmd_reselect(&tx_message, p+8);
   } else if (!strncmp(p, "dns ", 4)) {
     ret = process_cmd_dns(p+4);
     do_normal_submit = 0;

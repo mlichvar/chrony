@@ -779,6 +779,16 @@ SRC_SelectSource(unsigned long match_addr)
 }
 
 /* ================================================== */
+/* Force reselecting the best source */
+
+void
+SRC_ReselectSource(void)
+{
+  selected_source_index = INVALID_SOURCE;
+  SRC_SelectSource(0);
+}
+
+/* ================================================== */
 
 double
 SRC_PredictOffset(SRC_Instance inst, struct timeval *when)

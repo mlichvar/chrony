@@ -136,6 +136,9 @@ extern void SRC_UnsetReachable(SRC_Instance instance);
    selected reference make a difference) */
 extern void SRC_SelectSource(unsigned long match_addr);
 
+/* Force reselecting the best source */
+extern void SRC_ReselectSource(void);
+
 /* Predict the offset of the local clock relative to a given source at
    a given local cooked time. Positive indicates local clock is FAST
    relative to reference. */

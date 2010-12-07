@@ -161,7 +161,8 @@ static int permissions[] = {
   PERMIT_OPEN, /* ACTIVITY */
   PERMIT_AUTH, /* MODIFY_MINSTRATUM */
   PERMIT_AUTH, /* MODIFY_POLLTARGET */
-  PERMIT_AUTH  /* MODIFY_MAXDELAYDEVRATIO */
+  PERMIT_AUTH, /* MODIFY_MAXDELAYDEVRATIO */
+  PERMIT_AUTH  /* RESELECT */
 };
 
 /* ================================================== */
@@ -1709,6 +1710,16 @@ handle_activity(CMD_Request *rx_message, CMD_Reply *tx_message)
 
 /* ================================================== */
 
+static void
+handle_reselect(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  SRC_ReselectSource();
+  tx_message->status = htons(STT_SUCCESS);
+  return;
+}
+
+/* ================================================== */
+
 #if 0
 /* ================================================== */
 
@@ -2234,6 +2245,10 @@ read_from_cmd_socket(void *anything)
 
         case REQ_ACTIVITY:
           handle_activity(&rx_message, &tx_message);
+          break;
+
+        case REQ_RESELECT:
+          handle_reselect(&rx_message, &tx_message);
           break;
 
         case REQ_MODIFY_MINSTRATUM:

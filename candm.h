@@ -89,7 +89,8 @@
 #define REQ_MODIFY_MINSTRATUM 45
 #define REQ_MODIFY_POLLTARGET 46
 #define REQ_MODIFY_MAXDELAYDEVRATIO 47
-#define N_REQUEST_TYPES 48
+#define REQ_RESELECT 48
+#define N_REQUEST_TYPES 49
 
 /* Special utoken value used to log on with first exchange being the
    password.  (This time value has long since gone by) */
@@ -338,6 +339,10 @@ typedef struct {
   int32_t EOR;
 } REQ_Activity;
 
+typedef struct {
+  int32_t EOR;
+} REQ_Reselect;
+
 /* ================================================== */
 
 #define PKT_TYPE_CMD_REQUEST 1
@@ -423,6 +428,7 @@ typedef struct {
     REQ_ManualDelete manual_delete;
     REQ_MakeStep make_step;
     REQ_Activity activity;
+    REQ_Reselect reselect;
   } data; /* Command specific parameters */
 
 } CMD_Request;

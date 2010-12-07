@@ -2883,6 +2883,7 @@ interface.
 * password command::            Provide password needed for most commands
 * polltarget command::          Set poll target for a source
 * quit command::                Exit from chronyc
+* reselect command::            Reselect synchronisation source
 * retries command::             Set maximum number of retries
 * rtcdata command::             Display RTC parameters
 * settime command::             Provide a manual input of the current time
@@ -3694,6 +3695,16 @@ to 12.
 @subsubsection quit
 The quit command exits from chronyc and returns the user to the shell
 (same as the exit command).
+@c }}}
+@c {{{ reselect command
+@node reselect command
+@subsubsection reselect
+To avoid excessive switching between sources, @code{chronyd} may stay
+synchronised to a source even when it is not currently the best one among the
+available sources.
+
+The @code{reselect} command can be used to force @code{chronyd} to
+reselect the best synchronisation source.
 @c }}}
 @c {{{ retries
 @node retries command

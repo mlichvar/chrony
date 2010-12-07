@@ -149,6 +149,8 @@ PKL_CommandLength(CMD_Request *r)
         return offsetof(CMD_Request, data.make_step.EOR);
       case REQ_ACTIVITY:
         return offsetof(CMD_Request, data.activity.EOR);
+      case REQ_RESELECT:
+        return offsetof(CMD_Request, data.reselect.EOR);
       case REQ_MODIFY_MINSTRATUM:
         return offsetof(CMD_Request, data.modify_minstratum.EOR);
       case REQ_MODIFY_POLLTARGET:
