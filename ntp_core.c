@@ -172,15 +172,21 @@ struct NCR_Instance_Record {
 
 /* ================================================== */
 /* Initial delay period before first packet is transmitted (in seconds) */
-#define INITIAL_DELAY 2.0
+#define INITIAL_DELAY 0.2
 
 /* Spacing required between samples for any two servers/peers (to
    minimise risk of network collisions) (in seconds) */
-#define SAMPLING_SEPARATION 2.0
+#define SAMPLING_SEPARATION 0.2
+
+/* Spacing between samples in burst mode for one server/peer */
+#define BURST_INTERVAL 2.0
 
 /* Time to wait before retransmitting in burst mode, if we did not get
    a reply to the previous probe */
 #define BURST_TIMEOUT 8.0
+
+/* Time to wait after sending echo to 'warm up' link */
+#define WARM_UP_DELAY 4.0
 
 /* The NTP protocol version that we support */
 #define NTP_VERSION 3
@@ -581,13 +587,6 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   }
 
 }
-
-
-/* ================================================== */
-
-/* ================================================== */
-
-#define WARM_UP_DELAY 4.0
 
 /* ================================================== */
 /* Timeout handler for transmitting to a source. */
@@ -1242,7 +1241,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     case MD_BURST_WAS_OFFLINE:
 
       requeue_transmit = 1;
-      delay_time = SAMPLING_SEPARATION;
+      delay_time = BURST_INTERVAL;
       break;
 
     default:
