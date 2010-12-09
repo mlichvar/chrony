@@ -72,8 +72,9 @@ extern SCH_TimeoutID SCH_AddTimeoutByDelay(double delay, SCH_TimeoutHandler, SCH
 
 /* This queues a timeout in a particular class, ensuring that the
    expiry time is at least a given separation away from any other
-   timeout in the same class */
-extern SCH_TimeoutID SCH_AddTimeoutInClass(double min_delay, double separation,
+   timeout in the same class, given randomness is added to the delay
+   and separation */
+extern SCH_TimeoutID SCH_AddTimeoutInClass(double min_delay, double separation, double randomness,
                                            SCH_TimeoutClass class,
                                            SCH_TimeoutHandler handler, SCH_ArbitraryArgument);
 

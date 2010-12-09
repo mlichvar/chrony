@@ -121,7 +121,7 @@ timeout_handler(void *arbitrary)
 
   /* Requeue timeout.  Don't care if interval drifts gradually, so just do it
    * at the end. */
-  SCH_AddTimeoutInClass((double) d->interval, 1.0,
+  SCH_AddTimeoutInClass((double) d->interval, 1.0, 0.02,
                         SCH_NtpBroadcastClass,
                         timeout_handler, (void *) d);
 
@@ -148,7 +148,7 @@ BRD_AddDestination(IPAddr *addr, unsigned short port, int interval)
   destinations[n_destinations].addr.port = port;
   destinations[n_destinations].interval = interval;
 
-  SCH_AddTimeoutInClass((double) interval, 1.0,
+  SCH_AddTimeoutInClass((double) interval, 1.0, 0.0,
                         SCH_NtpBroadcastClass,
                         timeout_handler, (void *)(destinations + n_destinations));
   

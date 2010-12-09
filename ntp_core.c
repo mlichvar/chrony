@@ -178,6 +178,9 @@ struct NCR_Instance_Record {
    minimise risk of network collisions) (in seconds) */
 #define SAMPLING_SEPARATION 0.2
 
+/* Randomness added to spacing between samples for one server/peer */
+#define SAMPLING_RANDOMNESS 0.02
+
 /* Spacing between samples in burst mode for one server/peer */
 #define BURST_INTERVAL 2.0
 
@@ -247,6 +250,7 @@ start_initial_timeout(NCR_Instance inst)
 
   /* Start timer for first transmission */
   inst->timeout_id = SCH_AddTimeoutInClass(INITIAL_DELAY, SAMPLING_SEPARATION,
+                                           SAMPLING_RANDOMNESS,
                                            SCH_NtpSamplingClass,
                                            transmit_timeout, (void *)inst);
   inst->timer_running = 1;
@@ -622,6 +626,7 @@ transmit_timeout(void *arg)
     /* Requeue timeout */
     inst->timer_running = 1;
     inst->timeout_id = SCH_AddTimeoutInClass(WARM_UP_DELAY, SAMPLING_SEPARATION,
+                                             SAMPLING_RANDOMNESS,
                                              SCH_NtpSamplingClass,
                                              transmit_timeout, (void *)inst);
 
@@ -707,6 +712,7 @@ transmit_timeout(void *arg)
   if (do_timer) {
     inst->timer_running = 1;
     inst->timeout_id = SCH_AddTimeoutInClass(timeout_delay, SAMPLING_SEPARATION,
+                                             SAMPLING_RANDOMNESS,
                                              SCH_NtpSamplingClass,
                                              transmit_timeout, (void *)inst);
   } else {
@@ -1259,6 +1265,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     /* Get rid of old timeout and start a new one */
     SCH_RemoveTimeout(inst->timeout_id);
     inst->timeout_id = SCH_AddTimeoutInClass(delay_time, SAMPLING_SEPARATION,
+                                             SAMPLING_RANDOMNESS,
                                              SCH_NtpSamplingClass,
                                              transmit_timeout, (void *)inst);
   }
@@ -1818,6 +1825,7 @@ NCR_InitiateSampleBurst(NCR_Instance inst, int n_good_samples, int n_total_sampl
         }
         inst->timer_running = 1;
         inst->timeout_id = SCH_AddTimeoutInClass(0.0, SAMPLING_SEPARATION,
+                                                 SAMPLING_RANDOMNESS,
                                                  SCH_NtpSamplingClass,
                                                  transmit_timeout, (void *) inst);
         break;
@@ -1831,6 +1839,7 @@ NCR_InitiateSampleBurst(NCR_Instance inst, int n_good_samples, int n_total_sampl
         }
         inst->timer_running = 1;
         inst->timeout_id = SCH_AddTimeoutInClass(0.0, SAMPLING_SEPARATION,
+                                                 SAMPLING_RANDOMNESS,
                                                  SCH_NtpSamplingClass,
                                                  transmit_timeout, (void *) inst);
         break;

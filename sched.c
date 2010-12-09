@@ -129,6 +129,7 @@ handle_slew(struct timeval *raw,
 void
 SCH_Initialise(void)
 {
+  struct timeval tv;
 
   FD_ZERO(&read_fds);
   n_read_fds = 0;
@@ -142,6 +143,9 @@ SCH_Initialise(void)
   need_to_exit = 0;
 
   LCL_AddParameterChangeHandler(handle_slew, NULL);
+
+  LCL_ReadRawTime(&tv);
+  srandom(tv.tv_sec * tv.tv_usec);
 
   initialised = 1;
 
@@ -322,17 +326,23 @@ SCH_AddTimeoutByDelay(double delay, SCH_TimeoutHandler handler, SCH_ArbitraryArg
 /* ================================================== */
 
 SCH_TimeoutID
-SCH_AddTimeoutInClass(double min_delay, double separation,
+SCH_AddTimeoutInClass(double min_delay, double separation, double randomness,
                       SCH_TimeoutClass class,
                       SCH_TimeoutHandler handler, SCH_ArbitraryArgument arg)
 {
   TimerQueueEntry *new_tqe;
   TimerQueueEntry *ptr;
   struct timeval now;
-  double diff;
+  double diff, r;
   double new_min_delay;
 
   assert(initialised);
+
+  if (randomness > 0.0) {
+    r = random() % 0xffff / (0xffff - 1.0) * randomness + 1.0;
+    min_delay *= r;
+    separation *= r;
+  }
   
   LCL_ReadRawTime(&now);
   new_min_delay = min_delay;
