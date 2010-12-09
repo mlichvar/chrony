@@ -346,8 +346,7 @@ SCH_AddTimeoutInClass(double min_delay, double separation,
         if (new_min_delay - diff < separation) {
           new_min_delay = diff + separation;
         }
-      }
-      if (new_min_delay < diff) {
+      } else {
         if (diff - new_min_delay < separation) {
           new_min_delay = diff + separation;
         }
