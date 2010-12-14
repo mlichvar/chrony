@@ -384,7 +384,7 @@ SST_DoNewRegression(SST_Stats inst)
   double est_intercept, est_slope, est_var, est_intercept_sd, est_slope_sd;
   int i, j, nruns;
   double min_distance;
-  double sd_weight;
+  double sd_weight, sd;
   double old_skew, old_freq, stress;
 
   int regression_ok;
@@ -406,11 +406,15 @@ SST_DoNewRegression(SST_Stats inst)
 
     /* And now, work out the weight vector */
 
+    sd = sqrt(inst->variance);
+    if (sd > min_distance || sd <= 0.0)
+      sd = min_distance;
+
     for (i=0; i<inst->n_samples; i++) {
-      sd_weight = 1.0 + SD_TO_DIST_RATIO * (peer_distances[i] - min_distance) / min_distance;
+      sd_weight = 1.0 + SD_TO_DIST_RATIO * (peer_distances[i] - min_distance) / sd;
       weights[i] = sd_weight * sd_weight;
-    } 
-  }         
+    }
+  }
 
   regression_ok = RGR_FindBestRegression(times_back + inst->runs_samples,
                                          offsets + inst->runs_samples, weights,
