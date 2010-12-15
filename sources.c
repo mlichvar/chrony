@@ -622,7 +622,7 @@ SRC_SelectSource(unsigned long match_addr)
          variance */
       for (i=0; i<n_sel_sources; i++) {
         index = sel_sources[i];
-        if (sources[index]->sel_info.variance > min_distance) {
+        if (sqrt(sources[index]->sel_info.variance) > min_distance) {
           sel_sources[i] = INVALID_SOURCE;
           sources[index]->status = SRC_JITTERY;
 #if 0
