@@ -73,6 +73,9 @@ struct SST_Stats_Record {
   /* The index of the newest sample */
   int last_sample;
 
+  /* Flag indicating whether last regression was successful */
+  int regression_ok;
+
   /* The best individual sample that we are holding, in terms of the minimum
      root distance at the present time */
   int best_single_sample;
@@ -180,6 +183,7 @@ SST_CreateInstance(unsigned long refid, IPAddr *addr)
   inst->n_samples = 0;
   inst->runs_samples = 0;
   inst->last_sample = 0;
+  inst->regression_ok = 0;
   inst->best_single_sample = 0;
   inst->min_delay_sample = 0;
   inst->estimated_frequency = 0;
@@ -387,8 +391,6 @@ SST_DoNewRegression(SST_Stats inst)
   double sd_weight, sd;
   double old_skew, old_freq, stress;
 
-  int regression_ok;
-
   convert_to_intervals(inst, times_back + inst->runs_samples);
 
   if (inst->n_samples > 0) {
@@ -416,14 +418,14 @@ SST_DoNewRegression(SST_Stats inst)
     }
   }
 
-  regression_ok = RGR_FindBestRegression(times_back + inst->runs_samples,
+  inst->regression_ok = RGR_FindBestRegression(times_back + inst->runs_samples,
                                          offsets + inst->runs_samples, weights,
                                          inst->n_samples, inst->runs_samples,
                                          &est_intercept, &est_slope, &est_var,
                                          &est_intercept_sd, &est_slope_sd,
                                          &best_start, &nruns, &degrees_of_freedom);
 
-  if (regression_ok) {
+  if (inst->regression_ok) {
 
     old_skew = inst->skew;
     old_freq = inst->estimated_frequency;
@@ -536,12 +538,13 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
                      int *stratum,
                      double *best_offset, double *best_root_delay,
                      double *best_root_dispersion,
-                     double *variance, int *average_ok)
+                     double *variance, int *select_ok)
 {
   double average_offset;
   double sample_elapsed;
   double elapsed;
   int i, j;
+  int average_ok;
   double peer_distance;
   
   i = get_runsbuf_index(inst, inst->best_single_sample);
@@ -558,17 +561,20 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
   *best_root_delay = inst->root_delays[j];
   *best_root_dispersion = inst->root_dispersions[j] + sample_elapsed * inst->skew;
 
+  /* average_ok ignored for now */
   average_offset = inst->estimated_offset + inst->estimated_frequency * elapsed;
   if (fabs(average_offset - *best_offset) <= peer_distance) {
-    *average_ok = 1;
+    average_ok = 1;
   } else {
-    *average_ok = 0;
+    average_ok = 0;
   }
 
+  *select_ok = inst->regression_ok;
+
 #ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_SourceStats, "n=%d off=%f del=%f dis=%f var=%f pdist=%f avoff=%f avok=%d",
+  LOG(LOGS_INFO, LOGF_SourceStats, "n=%d off=%f del=%f dis=%f var=%f pdist=%f avoff=%f avok=%d selok=%d",
       inst->n_samples, *best_offset, *best_root_delay, *best_root_dispersion, *variance,
-      peer_distance, average_offset, *average_ok);
+      peer_distance, average_offset, average_ok, *select_ok);
 #endif
 
   return;

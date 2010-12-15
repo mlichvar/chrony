@@ -385,7 +385,6 @@ SRC_SelectSource(unsigned long match_addr)
 {
   int i, j, index;
   struct timeval now;
-  int src_select_ok;
   double src_offset, src_offset_sd, src_frequency, src_skew;
   double src_accrued_dispersion;
   int n_endpoints, j1, j2;
@@ -397,7 +396,6 @@ SRC_SelectSource(unsigned long match_addr)
   int min_distance_index;
   struct SelectInfo *si;
   double total_root_dispersion;
-  int n_reachable_sources;
 
   NTP_Leap leap_status = LEAP_Normal;
 
@@ -415,12 +413,10 @@ SRC_SelectSource(unsigned long match_addr)
 
   /* Step 1 - build intervals about each source */
   n_endpoints = 0;
-  n_reachable_sources = 0;
+  n_sel_sources = 0;
   for (i=0; i<n_sources; i++) {
 
     if (sources[i]->reachable && sources[i]->sel_option != SRC_SelectNoselect) {
-
-      ++n_reachable_sources;
 
       si = &(sources[i]->sel_info);
       SST_GetSelectionData(sources[i]->stats, &now,
@@ -430,10 +426,6 @@ SRC_SelectSource(unsigned long match_addr)
                            &(si->root_dispersion),
                            &(si->variance),
                            &(si->select_ok));
-
-      /* Eventually this might be a flag indicating whether the get
-         selection data call was successful.  For now it always is. */
-      src_select_ok = 1;
 
       si->root_distance = si->root_dispersion + 0.5 * fabs(si->root_delay);
       si->lo_limit = si->best_offset - si->root_distance;
@@ -446,7 +438,8 @@ SRC_SelectSource(unsigned long match_addr)
           si->lo_limit, si->hi_limit);
 #endif
       
-      if (src_select_ok) {
+      if (si->select_ok) {
+        ++n_sel_sources;
 
         sources[i]->status = SRC_OK; /* For now */
 
@@ -544,7 +537,7 @@ SRC_SelectSource(unsigned long match_addr)
         best_depth, best_lo, best_hi);
 #endif
 
-    if (best_depth <= n_reachable_sources/2) {
+    if (best_depth <= n_sel_sources/2) {
       /* Could not even get half the reachable sources to agree -
          clearly we can't synchronise.
 

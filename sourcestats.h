@@ -89,7 +89,7 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
                      double *best_offset, double *best_root_delay,
                      double *best_root_dispersion,
                      double *variance,
-                     int *average_ok);
+                     int *select_ok);
 
 /* Get data needed when setting up tracking on this source */
 extern void
