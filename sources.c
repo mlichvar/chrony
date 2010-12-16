@@ -404,13 +404,13 @@ source_to_string(SRC_Instance inst)
 /* This function selects the current reference from amongst the pool
    of sources we are holding. 
    
-   Updates are only made to the local reference if match_addr is zero or is
-   equal to the selected reference source address */
+   Updates are only made to the local reference if a new source is selected
+   or match_addr is equal to the selected reference source address */
 
 void
 SRC_SelectSource(unsigned long match_addr)
 {
-  int i, j, index;
+  int i, j, index, old_selected_index;
   struct timeval now;
   double src_offset, src_offset_sd, src_frequency, src_skew;
   double src_accrued_dispersion;
@@ -425,14 +425,15 @@ SRC_SelectSource(unsigned long match_addr)
   double total_root_dispersion;
 
   NTP_Leap leap_status = LEAP_Normal;
+  old_selected_index = selected_source_index;
 
   if (n_sources == 0) {
     /* In this case, we clearly cannot synchronise to anything */
     if (selected_source_index != INVALID_SOURCE) {
       LOG(LOGS_INFO, LOGF_Sources, "Can't synchronise: no sources");
+      selected_source_index = INVALID_SOURCE;
+      REF_SetUnsynchronised();
     }
-    selected_source_index = INVALID_SOURCE;
-    REF_SetUnsynchronised();
     return;
   }
 
@@ -581,7 +582,6 @@ SRC_SelectSource(unsigned long match_addr)
         LOG(LOGS_INFO, LOGF_Sources, "Can't synchronise: no majority");
       }
       selected_source_index = INVALID_SOURCE;
-      REF_SetUnsynchronised();
 
       /* .. and mark all sources as falsetickers (so they appear thus
          on the outputs from the command client) */
@@ -750,21 +750,23 @@ SRC_SelectSource(unsigned long match_addr)
 
         sources[selected_source_index]->status = SRC_SYNC;
 
-        /* Now just use the statistics of the selected source for
-           trimming the local clock */
+        /* Update local reference only when a new source was selected or a new
+           sample was received (i.e. match_addr is equal to selected ref_id) */
+        if (selected_source_index != old_selected_index ||
+            match_addr == sources[selected_source_index]->ref_id) {
 
-        LCL_ReadCookedTime(&now, NULL);
+          /* Now just use the statistics of the selected source for
+             trimming the local clock */
 
-        SST_GetTrackingData(sources[selected_source_index]->stats, &now,
-                            &src_offset, &src_offset_sd,
-                            &src_accrued_dispersion,
-                            &src_frequency, &src_skew);
+          LCL_ReadCookedTime(&now, NULL);
 
-        total_root_dispersion = (src_accrued_dispersion +
-                                 sources[selected_source_index]->sel_info.root_dispersion);
+          SST_GetTrackingData(sources[selected_source_index]->stats, &now,
+                              &src_offset, &src_offset_sd,
+                              &src_accrued_dispersion,
+                              &src_frequency, &src_skew);
 
-        if ((match_addr == 0) ||
-            (match_addr == sources[selected_source_index]->ref_id)) {
+          total_root_dispersion = (src_accrued_dispersion +
+              sources[selected_source_index]->sel_info.root_dispersion);
 
           REF_SetReference(min_stratum, leap_status,
                            sources[selected_source_index]->ref_id,
@@ -782,11 +784,7 @@ SRC_SelectSource(unsigned long match_addr)
           LOG(LOGS_INFO, LOGF_Sources, "Can't synchronise: no selectable sources");
         }
         selected_source_index = INVALID_SOURCE;
-        REF_SetUnsynchronised();
-
       }
-
-
     }
 
   } else {
@@ -795,9 +793,12 @@ SRC_SelectSource(unsigned long match_addr)
       LOG(LOGS_INFO, LOGF_Sources, "Can't synchronise: no reachable sources");
     }
     selected_source_index = INVALID_SOURCE;
-    REF_SetUnsynchronised();
   }
 
+  if (selected_source_index == INVALID_SOURCE &&
+      selected_source_index != old_selected_index) {
+    REF_SetUnsynchronised();
+  }
 }
 
 /* ================================================== */
