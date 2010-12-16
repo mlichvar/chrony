@@ -636,18 +636,6 @@ transmit_timeout(void *arg)
   inst->presend_done = 0; /* Reset for next time */
 
   ++inst->tx_count;
-  if (inst->tx_count >= 9) {
-    /* Mark source unreachable */
-    SRC_UnsetReachable(inst->source);
-  } else if (inst->tx_count >= 3) {
-    if (inst->auto_offline) {
-      NCR_TakeSourceOffline(inst);
-    }
-    /* Do reselection */
-    SRC_SelectSource(0);
-  } else {
-    /* Nothing */
-  }
 
   /* If the source loses connectivity, back off the sampling rate to reduce
      wasted sampling. If it's the source to which we are currently locked,
@@ -655,7 +643,14 @@ transmit_timeout(void *arg)
 
   if (inst->tx_count >= 2) {
     /* Implies we have missed at least one transmission */
+
     adjust_poll(inst, SRC_IsSyncPeer(inst->source) ? 0.1 : 0.25);
+
+    SRC_UpdateReachability(inst->source, 0);
+
+    if (inst->auto_offline && inst->tx_count >= 3) {
+      NCR_TakeSourceOffline(inst);
+    }
   }
 
   my_mode = inst->mode;
@@ -700,7 +695,7 @@ transmit_timeout(void *arg)
     case MD_OFFLINE:
       do_timer = 0;
       /* Mark source unreachable */
-      SRC_UnsetReachable(inst->source);
+      SRC_ResetReachability(inst->source);
       break;
     case MD_BURST_WAS_ONLINE:
     case MD_BURST_WAS_OFFLINE:
@@ -1074,16 +1069,17 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   if (valid_header && valid_data) {
     inst->tx_count = 0;
+    SRC_UpdateReachability(inst->source, 1);
 
     /* Mark the source as suitable for synchronisation when both header and
        data are good, unmark when header is not good (i.e. the stratum is
        higher than ours) */
     if (good_header) {
       if (good_data) {
-        SRC_SetReachable(inst->source);
+        SRC_SetSelectable(inst->source);
       }
     } else {
-      SRC_UnsetReachable(inst->source);
+      SRC_UnsetSelectable(inst->source);
     }
   }
 
@@ -1202,7 +1198,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     case MD_OFFLINE:
       requeue_transmit = 0;
       /* Mark source unreachable */
-      SRC_UnsetReachable(inst->source);
+      SRC_ResetReachability(inst->source);
       break; /* Even if we've received something, we don't want to
                 transmit back.  This might be a symmetric active peer
                 that is trying to talk to us. */
@@ -1714,7 +1710,7 @@ NCR_TakeSourceOffline(NCR_Instance inst)
         inst->timer_running = 0;
         inst->opmode = MD_OFFLINE;
         /* Mark source unreachable */
-        SRC_UnsetReachable(inst->source);
+        SRC_ResetReachability(inst->source);
       }
       break;
     case MD_OFFLINE:

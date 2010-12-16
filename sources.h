@@ -120,11 +120,17 @@ extern void SRC_AccumulateSample(SRC_Instance instance, struct timeval *sample_t
 
 /* This routine indicates that packets with valid headers are being
    received from the designated source */
-extern void SRC_SetReachable(SRC_Instance instance);
+extern void SRC_SetSelectable(SRC_Instance instance);
 
 /* This routine indicates that we are no longer receiving packets with
    valid headers from the designated source */
-extern void SRC_UnsetReachable(SRC_Instance instance);
+extern void SRC_UnsetSelectable(SRC_Instance instance);
+
+/* This routine updates the reachability register */
+extern void SRC_UpdateReachability(SRC_Instance inst, int reachable);
+
+/* This routine marks the source unreachable */
+extern void SRC_ResetReachability(SRC_Instance inst);
 
 /* This routine is used to select the best source from amongst those
    we currently have valid data on, and use it as the tracking base

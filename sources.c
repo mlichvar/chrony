@@ -90,9 +90,11 @@ struct SRC_Instance_Record {
                                    reference _it_ is sync'd to) */
   IPAddr *ip_addr;              /* Its IP address if NTP source */
 
-  /* Flag indicating that we are receiving packets with valid headers
-     from this source and can use it as a reference */
-  int reachable;
+  /* Flag indicating that we can use this source as a reference */
+  int selectable;
+
+  /* Reachability register */
+  int reachability;
 
   /* Flag indicating the status of the source */
   SRC_Status status;
@@ -126,6 +128,9 @@ static int max_n_sources; /* Capacity of the table */
 static int selected_source_index; /* Which source index is currently
                                      selected (set to INVALID_SOURCE
                                      if no current valid reference) */
+
+/* Keep reachability status for last 8 samples */
+#define REACH_BITS 8
 
 /* ================================================== */
 /* Forward prototype */
@@ -196,7 +201,8 @@ SRC_Instance SRC_CreateNewInstance(unsigned long ref_id, SRC_Type type, SRC_Sele
   result->leap_status = LEAP_Normal;
   result->ref_id = ref_id;
   result->ip_addr = addr;
-  result->reachable = 0;
+  result->selectable = 0;
+  result->reachability = 0;
   result->status = SRC_BAD_STATS;
   result->type = type;
   result->sel_option = sel_option;
@@ -218,10 +224,7 @@ void SRC_DestroyInstance(SRC_Instance instance)
 
   assert(initialised);
 
-  if (instance->index == selected_source_index) {
-    instance->reachable = 0;
-    SRC_SelectSource(0);
-  }
+  SRC_UnsetSelectable(instance);
 
   SST_DeleteInstance(instance->stats);
   dead_index = instance->index;
@@ -304,9 +307,9 @@ void SRC_AccumulateSample
 /* ================================================== */
 
 void
-SRC_SetReachable(SRC_Instance inst)
+SRC_SetSelectable(SRC_Instance inst)
 {
-  inst->reachable = 1;
+  inst->selectable = 1;
 
 #ifdef TRACEON
   LOG(LOGS_INFO, LOGF_Sources, "%s", source_to_string(inst));
@@ -319,9 +322,9 @@ SRC_SetReachable(SRC_Instance inst)
 /* ================================================== */
 
 void
-SRC_UnsetReachable(SRC_Instance inst)
+SRC_UnsetSelectable(SRC_Instance inst)
 {
-  inst->reachable = 0;
+  inst->selectable = 0;
 
 #ifdef TRACEON
   LOG(LOGS_INFO, LOGF_Sources, "%s%s", source_to_string(inst),
@@ -334,6 +337,30 @@ SRC_UnsetReachable(SRC_Instance inst)
     SRC_SelectSource(0);
   }
 
+}
+
+/* ================================================== */
+
+void
+SRC_UpdateReachability(SRC_Instance inst, int reachable)
+{
+  inst->reachability <<= 1;
+  inst->reachability |= !!reachable;
+  inst->reachability &= ~(-1 << REACH_BITS);
+
+  if (!reachable && inst->index == selected_source_index) {
+    /* Try to select a better source */
+    SRC_SelectSource(0);
+  }
+}
+
+/* ================================================== */
+
+void
+SRC_ResetReachability(SRC_Instance inst)
+{
+  inst->reachability = 0;
+  SRC_UpdateReachability(inst, 0);
 }
 
 /* ================================================== */
@@ -416,7 +443,8 @@ SRC_SelectSource(unsigned long match_addr)
   n_sel_sources = 0;
   for (i=0; i<n_sources; i++) {
 
-    if (sources[i]->reachable && sources[i]->sel_option != SRC_SelectNoselect) {
+    if (sources[i]->selectable && sources[i]->reachability &&
+        sources[i]->sel_option != SRC_SelectNoselect) {
 
       si = &(sources[i]->sel_info);
       SST_GetSelectionData(sources[i]->stats, &now,

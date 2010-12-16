@@ -69,7 +69,6 @@ struct RCL_Instance_Record {
   int driver_poll;
   int driver_polled;
   int poll;
-  int missed_samples;
   int leap_status;
   int pps_rate;
   struct MedianFilter filter;
@@ -175,7 +174,6 @@ RCL_AddRefclock(RefclockParameters *params)
   inst->driver_parameter_length = 0;
   inst->driver_poll = params->driver_poll;
   inst->poll = params->poll;
-  inst->missed_samples = 0;
   inst->driver_polled = 0;
   inst->leap_status = 0;
   inst->pps_rate = params->pps_rate;
@@ -255,6 +253,7 @@ RCL_StartRefclocks(void)
   for (i = 0; i < n_sources; i++) {
     RCL_Instance inst = &refclocks[i];
 
+    SRC_SetSelectable(inst->source);
     inst->timeout_id = SCH_AddTimeoutByDelay(0.0, poll_timeout, (void *)inst);
 
     if (inst->lock_ref) {
@@ -519,16 +518,13 @@ poll_timeout(void *arg)
       else
         stratum = 0;
 
-      SRC_SetReachable(inst->source);
+      SRC_UpdateReachability(inst->source, 1);
       SRC_AccumulateSample(inst->source, &sample_time, offset,
           inst->delay, dispersion, inst->delay, dispersion, stratum, inst->leap_status);
 
       log_sample(inst, &sample_time, 1, 0, 0.0, offset, dispersion);
-      inst->missed_samples = 0;
     } else {
-      inst->missed_samples++;
-      if (inst->missed_samples > 9)
-        SRC_UnsetReachable(inst->source);
+      SRC_UpdateReachability(inst->source, 0);
     }
   }
 
