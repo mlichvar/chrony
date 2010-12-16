@@ -611,11 +611,12 @@ SRC_SelectSource(unsigned long match_addr)
       LOG(LOGS_INFO, LOGF_Sources, "min_distance=%f", min_distance);
 #endif
 
-      /* Now go through and prune any sources that have excessive
+      /* Now go through and prune any NTP sources that have excessive
          variance */
       for (i=0; i<n_sel_sources; i++) {
         index = sel_sources[i];
-        if (sqrt(sources[index]->sel_info.variance) > min_distance) {
+        if (sources[index]->type == SRC_NTP &&
+            sqrt(sources[index]->sel_info.variance) > min_distance) {
           sel_sources[i] = INVALID_SOURCE;
           sources[index]->status = SRC_JITTERY;
 #if 0
