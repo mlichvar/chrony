@@ -190,6 +190,9 @@ REF_Initialise(void)
     log_change_threshold = fabs(log_change_threshold);
   }
 
+  /* Make first entry in tracking log */
+  REF_SetUnsynchronised();
+
   return;
 }
 
