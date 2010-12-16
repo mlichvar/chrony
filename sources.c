@@ -423,6 +423,8 @@ SRC_SelectSource(unsigned long match_addr)
   int min_distance_index;
   struct SelectInfo *si;
   double total_root_dispersion;
+  int n_badstats_sources;
+  int max_sel_reach, max_badstat_reach;
 
   NTP_Leap leap_status = LEAP_Normal;
   old_selected_index = selected_source_index;
@@ -442,6 +444,8 @@ SRC_SelectSource(unsigned long match_addr)
   /* Step 1 - build intervals about each source */
   n_endpoints = 0;
   n_sel_sources = 0;
+  n_badstats_sources = 0;
+  max_sel_reach = max_badstat_reach = 0;
   for (i=0; i<n_sources; i++) {
 
     if (sources[i]->selectable && sources[i]->reachability &&
@@ -487,14 +491,39 @@ SRC_SelectSource(unsigned long match_addr)
 
         n_endpoints += 2;
 
+        if (max_sel_reach < sources[i]->reachability) {
+          max_sel_reach = sources[i]->reachability;
+        }
       } else {
+        ++n_badstats_sources;
         sources[i]->status = SRC_BAD_STATS;
+
+        if (max_badstat_reach < sources[i]->reachability) {
+          max_badstat_reach = sources[i]->reachability;
+        }
       }
     } else {
       /* If the source is not reachable, there is no way we will pick
          it. */
       sources[i]->status = SRC_UNREACHABLE;
     }
+  }
+
+#if 0
+  LOG(LOGS_INFO, LOGF_Sources, "badstat_sources=%d sel_sources=%d badstat_reach=%x sel_reach=%x",
+      n_badstats_sources, n_sel_sources, max_badstat_reach, max_sel_reach);
+#endif
+
+  /* Wait for the next call if we have no source selected and there is
+     a source with bad stats (has less than 3 samples) with reachability
+     equal to shifted maximum reachability of sources with valid stats.
+     This delays selecting source on start with servers using the same
+     polling interval until they all have valid stats. */
+
+  if (n_badstats_sources && n_sel_sources &&
+      selected_source_index == INVALID_SOURCE && 
+      max_sel_reach >> 1 == max_badstat_reach) {
+    return;
   }
 
 #if 0
