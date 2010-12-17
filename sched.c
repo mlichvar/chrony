@@ -110,6 +110,9 @@ static SCH_TimeoutID next_tqe_id;
 /* Pointer to head of free list */
 static TimerQueueEntry *tqe_free_list = NULL;
 
+/* Timestamp when was last timeout dispatched for each class */
+static struct timeval last_class_dispatch[SCH_NumberOfClasses];
+
 /* ================================================== */
 
 static int need_to_exit;
@@ -337,6 +340,7 @@ SCH_AddTimeoutInClass(double min_delay, double separation, double randomness,
   double new_min_delay;
 
   assert(initialised);
+  assert(class < SCH_NumberOfClasses);
 
   if (randomness > 0.0) {
     r = random() % 0xffff / (0xffff - 1.0) * randomness + 1.0;
@@ -346,6 +350,12 @@ SCH_AddTimeoutInClass(double min_delay, double separation, double randomness,
   
   LCL_ReadRawTime(&now);
   new_min_delay = min_delay;
+
+  /* Check the separation from the last dispatched timeout */
+  UTI_DiffTimevalsToDouble(&diff, &now, &last_class_dispatch[class]);
+  if (diff < separation && diff >= 0.0 && diff + new_min_delay < separation) {
+    new_min_delay = separation - diff;
+  }
 
   /* Scan through list for entries in the same class and increase min_delay
      if necessary to keep at least the separation away */
@@ -432,6 +442,8 @@ dispatch_timeouts(struct timeval *now) {
   if ((n_timer_queue_entries > 0) &&
          (UTI_CompareTimevals(now, &(timer_queue.next->tv)) >= 0)) {
     ptr = timer_queue.next;
+
+    last_class_dispatch[ptr->class] = *now;
 
     handler = ptr->handler;
     arg = ptr->arg;
