@@ -599,7 +599,6 @@ static void
 transmit_timeout(void *arg)
 {
   NCR_Instance inst = (NCR_Instance) arg;
-  NTP_Mode my_mode;
   double timeout_delay=0.0;
   int do_timer = 0;
   int do_auth;
@@ -653,19 +652,19 @@ transmit_timeout(void *arg)
     }
   }
 
-  my_mode = inst->mode;
-
   if (inst->do_auth && KEY_KeyKnown(inst->auth_key_id)) {
     do_auth = 1;
   } else {
     do_auth = 0;
   }
 
-  transmit_packet(my_mode, inst->local_poll,
-                  do_auth, inst->auth_key_id,
-                  &inst->remote_orig,
-                  &inst->local_rx, &inst->local_tx, &inst->local_ntp_tx,
-                  &inst->remote_addr);
+  if (inst->opmode != MD_OFFLINE) {
+    transmit_packet(inst->mode, inst->local_poll,
+                    do_auth, inst->auth_key_id,
+                    &inst->remote_orig,
+                    &inst->local_rx, &inst->local_tx, &inst->local_ntp_tx,
+                    &inst->remote_addr);
+  }
 
 
   switch (inst->opmode) {
