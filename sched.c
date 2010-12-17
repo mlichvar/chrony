@@ -395,11 +395,8 @@ void
 SCH_RemoveTimeout(SCH_TimeoutID id)
 {
   TimerQueueEntry *ptr;
-  int ok;
 
   assert(initialised);
-
-  ok = 0;
 
   for (ptr = timer_queue.next; ptr != &timer_queue; ptr = ptr->next) {
 
@@ -416,14 +413,9 @@ SCH_RemoveTimeout(SCH_TimeoutID id)
       /* Release memory back to the operating system */
       release_tqe(ptr);
 
-      ok = 1;
-
       break;
     }
   }
-
-  assert(ok);
-
 }
 
 /* ================================================== */
@@ -433,27 +425,24 @@ SCH_RemoveTimeout(SCH_TimeoutID id)
 static int
 dispatch_timeouts(struct timeval *now) {
   TimerQueueEntry *ptr;
+  SCH_TimeoutHandler handler;
+  SCH_ArbitraryArgument arg;
   int n_done = 0;
 
   if ((n_timer_queue_entries > 0) &&
          (UTI_CompareTimevals(now, &(timer_queue.next->tv)) >= 0)) {
     ptr = timer_queue.next;
 
+    handler = ptr->handler;
+    arg = ptr->arg;
+
+    SCH_RemoveTimeout(ptr->id);
+
     /* Dispatch the handler */
-    (ptr->handler)(ptr->arg);
+    (handler)(arg);
 
     /* Increment count of timeouts handled */
     ++n_done;
-
-    /* Unlink entry from the queue */
-    ptr->prev->next = ptr->next;
-    ptr->next->prev = ptr->prev;
-
-    /* Decrement count of entries in queue */
-    --n_timer_queue_entries;
-
-    /* Delete entry */
-    release_tqe(ptr);
   }
 
   return n_done;
