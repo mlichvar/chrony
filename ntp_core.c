@@ -1682,6 +1682,7 @@ NCR_TakeSourceOnline(NCR_Instance inst)
       if (!inst->timer_running) {
         /* We are not already actively polling it */
         LOG(LOGS_INFO, LOGF_NtpCore, "Source %s online", UTI_IPToString(&inst->remote_addr.ip_addr));
+        inst->tx_count = 0;
         inst->local_poll = inst->minpoll;
         inst->poll_score = 0.5;
         inst->opmode = MD_ONLINE;
