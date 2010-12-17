@@ -35,10 +35,12 @@
 
 typedef unsigned long SCH_TimeoutID;
 
-typedef unsigned long SCH_TimeoutClass;
-static const SCH_TimeoutClass SCH_ReservedTimeoutValue = 0;
-static const SCH_TimeoutClass SCH_NtpSamplingClass = 1;
-static const SCH_TimeoutClass SCH_NtpBroadcastClass = 2;
+typedef enum {
+  SCH_ReservedTimeoutValue = 0,
+  SCH_NtpSamplingClass,
+  SCH_NtpBroadcastClass,
+  SCH_NumberOfClasses /* needs to be last */
+} SCH_TimeoutClass;
 
 typedef void* SCH_ArbitraryArgument;
 typedef void (*SCH_FileHandler)(SCH_ArbitraryArgument);
