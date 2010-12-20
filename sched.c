@@ -496,7 +496,7 @@ handle_slew(struct timeval *raw,
             void *anything)
 {
   TimerQueueEntry *ptr;
-  struct timeval T1;
+  int i;
 
   if (is_step_change) {
     /* We're not interested in anything else - it won't affect the
@@ -504,10 +504,12 @@ handle_slew(struct timeval *raw,
        occurs, just shift all the timeouts by the offset */
     
     for (ptr = timer_queue.next; ptr != &timer_queue; ptr = ptr->next) {
-      UTI_AddDoubleToTimeval(&ptr->tv, -doffset, &T1);
-      ptr->tv = T1;
+      UTI_AddDoubleToTimeval(&ptr->tv, -doffset, &ptr->tv);
     }
 
+    for (i = 0; i < SCH_NumberOfClasses; i++) {
+      UTI_AddDoubleToTimeval(&last_class_dispatch[i], -doffset, &last_class_dispatch[i]);
+    }
   }
 }
 
