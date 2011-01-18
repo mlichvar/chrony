@@ -105,6 +105,8 @@ static int sock_initialise(RCL_Instance instance)
     return 0;
   }
 
+  UTI_FdSetCloexec(sockfd);
+
   unlink(path);
   if (bind(sockfd, (struct sockaddr *)&s, sizeof (s)) < 0) {
     LOG_FATAL(LOGF_Refclock, "bind() failed");

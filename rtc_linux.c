@@ -591,6 +591,9 @@ RTC_Linux_Initialise(void)
     return 0;
   }
 
+  /* Close on exec */
+  UTI_FdSetCloexec(fd);
+
   n_samples = 0;
   n_samples_since_regression = 0;
   n_runs = 0;

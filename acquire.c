@@ -168,6 +168,9 @@ prepare_socket(int family)
     LOG_FATAL(LOGF_Acquire, "Could not open socket : %s", strerror(errno));
   }
 
+  /* Close on exec */
+  UTI_FdSetCloexec(sock_fd);
+
   if (port_number == 0) {
     /* Don't bother binding this socket - we're not fussed what port
        number it gets */

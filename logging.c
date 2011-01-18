@@ -35,6 +35,7 @@
 #include "logging.h"
 #include "version.h"
 #include "mkdirpp.h"
+#include "util.h"
 
 /* ================================================== */
 /* Flag indicating we have initialised */
@@ -248,6 +249,9 @@ LOG_FileWrite(LOG_FileID id, const char *format, ...)
       logfiles[id].name = NULL;
       return;
     }
+
+    /* Close on exec */
+    UTI_FdSetCloexec(fileno(logfiles[id].file));
   }
 
   banner = CNF_GetLogBanner();

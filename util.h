@@ -102,6 +102,9 @@ extern void UTI_TimevalHostToNetwork(struct timeval *src, Timeval *dest);
 extern double UTI_FloatNetworkToHost(Float x);
 extern Float UTI_FloatHostToNetwork(double x);
 
+/* Set FD_CLOEXEC on descriptor */
+extern void UTI_FdSetCloexec(int fd);
+
 #if defined (INLINE_UTILITIES)
 #define INLINE_STATIC inline static
 #include "util.c"

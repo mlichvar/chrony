@@ -600,3 +600,17 @@ UTI_FloatHostToNetwork(double x)
 }
 
 /* ================================================== */
+
+void
+UTI_FdSetCloexec(int fd)
+{
+  int flags;
+
+  flags = fcntl(fd, F_GETFD);
+  if (flags != -1) {
+    flags |= FD_CLOEXEC;
+    fcntl(fd, F_SETFD, flags);
+  }
+}
+
+/* ================================================== */

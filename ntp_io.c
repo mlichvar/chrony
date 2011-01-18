@@ -121,6 +121,9 @@ prepare_socket(int family)
     return -1;
   }
 
+  /* Close on exec */
+  UTI_FdSetCloexec(sock_fd);
+
   /* Make the socket capable of re-using an old address */
   if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&on_off, sizeof(on_off)) < 0) {
     LOG(LOGS_ERR, LOGF_NtpIO, "Could not set reuseaddr socket options");
