@@ -1784,6 +1784,7 @@ read_from_cmd_socket(void *anything)
 
   read_length = status;
   expected_length = PKL_CommandLength(&rx_message);
+  rx_command = ntohs(rx_message.command);
 
   LCL_ReadRawTime(&now);
   LCL_CookTime(&now, &cooked_now, NULL);
@@ -1858,6 +1859,18 @@ read_from_cmd_socket(void *anything)
     return;
   }
 
+  if (rx_command >= N_REQUEST_TYPES) {
+    if (!LOG_RateLimited()) {
+      LOG(LOGS_WARN, LOGF_CmdMon, "Read command packet with invalid command %d from %s:%hu", rx_command, UTI_IPToString(&remote_ip), remote_port);
+    }
+    if (allowed)
+      CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
+
+    tx_message.status = htons(STT_INVALID);
+    transmit_reply(&tx_message, &where_from);
+    return;
+  }
+
   if (read_length != expected_length) {
     if (!LOG_RateLimited()) {
       LOG(LOGS_WARN, LOGF_CmdMon, "Read incorrectly sized command packet from %s:%hu", UTI_IPToString(&remote_ip), remote_port);
@@ -1887,8 +1900,6 @@ read_from_cmd_socket(void *anything)
 
     return;
   }
-
-  rx_command = ntohs(rx_message.command);
 
   /* OK, we have a valid message.  Now dispatch on message type and process it. */
 
@@ -2015,10 +2026,9 @@ read_from_cmd_socket(void *anything)
   tx_message.token = htonl(tx_message_token);
 
 
-  /* If command type is invalid, send back reply */
   if (rx_command >= N_REQUEST_TYPES) {
-    tx_message.status = htons(STT_INVALID);
-    tx_message.reply = htons(RPY_NULL);
+    /* This should be already handled */
+    assert(0);
   } else {
     allowed = 0;
 

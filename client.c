@@ -1309,6 +1309,8 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
     }
 
     command_length = PKL_CommandLength(request);
+    assert(command_length > 0);
+
 #if 0
     printf("Sent command length=%d bytes\n", command_length);
 #endif
