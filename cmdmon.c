@@ -1370,6 +1370,7 @@ handle_dfreq(CMD_Request *rx_message, CMD_Reply *tx_message)
   dfreq = UTI_FloatNetworkToHost(rx_message->data.dfreq.dfreq);
   LCL_AccumulateDeltaFrequency(dfreq * 1.0e-6);
   LOG(LOGS_INFO, LOGF_CmdMon, "Accumulated delta freq of %.3fppm", dfreq);
+  tx_message->status = htons(STT_SUCCESS);
 }
 
 /* ================================================== */
@@ -1384,6 +1385,7 @@ handle_doffset(CMD_Request *rx_message, CMD_Reply *tx_message)
   doffset = (double) sec + 1.0e-6 * (double) usec;
   LOG(LOGS_INFO, LOGF_CmdMon, "Accumulated delta offset of %.6f seconds", doffset);
   LCL_AccumulateOffset(doffset);
+  tx_message->status = htons(STT_SUCCESS);
 }
 
 /* ================================================== */
