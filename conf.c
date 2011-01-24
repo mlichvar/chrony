@@ -78,6 +78,7 @@ static void parse_logbanner(const char *);
 static void parse_logdir(const char *);
 static void parse_maxupdateskew(const char *);
 static void parse_maxclockerror(const char *);
+static void parse_reselectdist(const char *);
 static void parse_peer(const char *);
 static void parse_acquisitionport(const char *);
 static void parse_port(const char *);
@@ -122,6 +123,8 @@ static char *rtc_file = NULL;
 static unsigned long command_key_id;
 static double max_update_skew = 1000.0;
 static double max_clock_error = 10; /* in ppm */
+
+static double reselect_distance = 1e-4;
 
 static int cmd_port = -1;
 
@@ -258,6 +261,7 @@ static const Command commands[] = {
   {"pidfile", 7, parse_pidfile},
   {"broadcast", 9, parse_broadcast},
   {"tempcomp", 8, parse_tempcomp},
+  {"reselectdist", 12, parse_reselectdist},
   {"linux_hz", 8, parse_linux_hz},
   {"linux_freq_scale", 16, parse_linux_freq_scale},
   {"sched_priority", 14, parse_sched_priority},
@@ -604,6 +608,16 @@ parse_maxclockerror(const char *line)
 {
   if (sscanf(line, "%lf", &max_clock_error) != 1) {
     LOG(LOGS_WARN, LOGF_Configure, "Could not read max clock error at line %d in file", line_number);
+  }
+}
+
+/* ================================================== */
+
+static void
+parse_reselectdist(const char *line)
+{
+  if (sscanf(line, "%lf", &reselect_distance) != 1) {
+    LOG(LOGS_WARN, LOGF_Configure, "Could not read reselect distance at line %d in file", line_number);
   }
 }
 
@@ -1431,6 +1445,14 @@ CNF_GetMaxClockError(void)
 
 /* ================================================== */
 
+double
+CNF_GetReselectDistance(void)
+{
+  return reselect_distance;
+}
+
+/* ================================================== */
+
 int
 CNF_GetManualEnabled(void)
 {
@@ -1637,3 +1659,4 @@ CNF_GetTempComp(char **file, double *interval, double *T0, double *k0, double *k
   *k1 = tempcomp_k1;
   *k2 = tempcomp_k2;
 }
+

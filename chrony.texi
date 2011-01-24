@@ -1199,6 +1199,7 @@ directives can occur in any order in the file.
 * pidfile directive::           Specify the file where chronyd's pid is written
 * port directive::              Set port to use for NTP packets
 * refclock directive::          Specify a reference clock
+* reselectdist directive::      Set improvement in distance needed to reselect a source
 * rtcdevice directive::         Specify name of enhanced RTC device (if not /dev/rtc)
 * rtcfile directive::           Specify the file where real-time clock data is stored
 * rtconutc directive::          Specify that the real time clock keeps UTC not local time
@@ -2424,6 +2425,22 @@ Prefer this source over sources without prefer option.
 Never select this source.  This is particularly useful for monitoring.
 @end table
 
+@c }}}
+@c {{{ reselectdist
+@node reselectdist directive
+@subsection reselectdist
+When @code{chronyd} selects synchronisation source from available sources, it
+will prefer the one with minimum synchronisation distance.  However, to
+avoid frequent reselecting when there are sources with similar distance, a
+fixed distance is added to the distance for sources that are currently not
+selected.  This can be set with the @code{reselectdist} option.  By default, the
+distance is 100 microseconds.
+
+The syntax is
+
+@example
+reselectdist <dist-in-seconds>
+@end example
 @c }}}
 @c {{{ rtcdevice
 @node rtcdevice directive

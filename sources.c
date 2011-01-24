@@ -105,6 +105,9 @@ struct SRC_Instance_Record {
   /* Options used when selecting sources */ 
   SRC_SelectOption sel_option;
 
+  /* Score against currently selected source */
+  double sel_score;
+
   struct SelectInfo sel_info;
 };
 
@@ -132,6 +135,11 @@ static int selected_source_index; /* Which source index is currently
 /* Keep reachability status for last 8 samples */
 #define REACH_BITS 8
 
+/* Score needed to replace the currently selected source */
+#define SCORE_LIMIT 10.0
+
+static double reselect_distance;
+
 /* ================================================== */
 /* Forward prototype */
 
@@ -151,6 +159,7 @@ void SRC_Initialise(void) {
   n_sources = 0;
   max_n_sources = 0;
   selected_source_index = INVALID_SOURCE;
+  reselect_distance = CNF_GetReselectDistance();
   initialised = 1;
 
   LCL_AddParameterChangeHandler(slew_sources, NULL);
@@ -205,6 +214,7 @@ SRC_Instance SRC_CreateNewInstance(unsigned long ref_id, SRC_Type type, SRC_Sele
   result->reachability = 0;
   result->status = SRC_BAD_STATS;
   result->type = type;
+  result->sel_score = 1.0;
   result->sel_option = sel_option;
 
   n_sources++;
@@ -420,11 +430,12 @@ SRC_SelectSource(unsigned long match_addr)
   int n_sel_sources;
   double distance, min_distance;
   int stratum, min_stratum;
-  int min_distance_index;
   struct SelectInfo *si;
   double total_root_dispersion;
   int n_badstats_sources;
   int max_sel_reach, max_badstat_reach;
+  int max_score_index;
+  double max_score;
 
   NTP_Leap leap_status = LEAP_Normal;
   old_selected_index = selected_source_index;
@@ -734,47 +745,89 @@ SRC_SelectSource(unsigned long match_addr)
           if (stratum < min_stratum) min_stratum = stratum;
         }
 
-        /* Find the best source with minimum stratum */
-        min_distance_index = INVALID_SOURCE;
-        for (i=0; i<n_sel_sources; i++) {
-          index = sel_sources[i];
-          if (sources[index]->sel_info.stratum == min_stratum) {
-            if ((min_distance_index == INVALID_SOURCE) ||
-                (sources[index]->sel_info.root_distance < min_distance)) {
-              min_distance = sources[index]->sel_info.root_distance;
-              min_distance_index = index;
-            }
-          }
-        }
-
 #if 0
         LOG(LOGS_INFO, LOGF_Sources, "min_stratum=%d", min_stratum);
 #endif
 
-        /* Does the current source have this stratum, doesn't have distance
-           much worse than the best source and is it still a survivor? */
+        /* Update scores and find source with maximum score */
+
+        max_score_index = INVALID_SOURCE;
+        max_score = 0.0;
+
+        for (i = 0; i < n_sources; i++) {
+
+          /* Reset score for non-selectable sources */
+          if (sources[i]->status != SRC_SELECTABLE) {
+            sources[i]->sel_score = 1.0;
+            continue;
+          }
+            
+          /* And for sources with stratum higher than the minimum */
+          if (sources[i]->sel_info.stratum > min_stratum) {
+            sources[i]->sel_score = 1.0;
+            continue;
+          }
+
+          distance = sources[i]->sel_info.root_distance + reselect_distance;
+
+          if (selected_source_index != INVALID_SOURCE) {
+
+            /* Update score, but only for source pairs where one source
+               has a new sample */
+            if (sources[i]->ref_id == match_addr ||
+                sources[selected_source_index]->ref_id == match_addr) {
+
+              sources[i]->sel_score *=
+                sources[selected_source_index]->sel_info.root_distance / distance;
+
+              if (sources[i]->sel_score < 1.0)
+                sources[i]->sel_score = 1.0;
+            }
+
+          } else {
+
+            /* When there is no selected source yet, assign scores so the
+               source with minimum distance will have maximum score. The scores
+               will be immediately reset. */
+
+            sources[i]->sel_score = 1.0 / distance; 
+          }
+
+#if 0
+          LOG(LOGS_INFO, LOGF_Sources, "select score=%f refid=%lx match_refid=%lx status=%d dist=%f",
+              sources[i]->sel_score, sources[i]->ref_id, match_addr, sources[i]->status, distance);
+#endif
+        
+          if (max_score < sources[i]->sel_score) {
+            max_score = sources[i]->sel_score;
+            max_score_index = i;
+          }
+        }
+
+        assert(max_score_index != INVALID_SOURCE);
+
+        /* Does the current source have this stratum, is it still a survivor
+           and no other source has reached the score limit? */
 
         if ((selected_source_index == INVALID_SOURCE) ||
             (sources[selected_source_index]->status != SRC_SELECTABLE) ||
             (sources[selected_source_index]->sel_info.stratum > min_stratum) ||
-            (sources[selected_source_index]->sel_info.root_distance > 10 * min_distance)) {
+            (max_score_index != selected_source_index && max_score > SCORE_LIMIT)) {
           
           /* We have to elect a new synchronisation source */
 
-          selected_source_index = min_distance_index;
+          selected_source_index = max_score_index;
           LOG(LOGS_INFO, LOGF_Sources, "Selected source %s",
                 source_to_string(sources[selected_source_index]));
                                  
+#if 0
+          LOG(LOGS_INFO, LOGF_Sources, "new_sel_index=%d", selected_source_index);
+#endif
 
-#if 0
-          LOG(LOGS_INFO, LOGF_Sources, "new_sel_index=%d", min_distance_index);
-#endif
-        } else {
-          /* We retain the existing sync source, see p40 of RFC1305b.ps */
-#if 0
-          LOG(LOGS_INFO, LOGF_Sources, "existing reference retained", min_distance_index);
-#endif
-          
+          /* New source has been selected, reset all scores */
+          for (i=0; i < n_sources; i++) {
+            sources[i]->sel_score = 1.0;
+          }
         }
 
         sources[selected_source_index]->status = SRC_SYNC;
