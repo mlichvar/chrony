@@ -1081,14 +1081,18 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
       case SRC_JITTERY:
         report->state = RPT_JITTERY;
         break;
+      case SRC_BAD_STATS:
       case SRC_UNREACHABLE:
         report->state = RPT_UNREACH;
         break;
       case SRC_FALSETICKER:
         report->state = RPT_FALSETICKER;
         break;
-      default:
+      case SRC_SELECTABLE:
         report->state = RPT_OTHER;
+        break;
+      default:
+        assert(0);
         break;
     }
     /* Call stats module to fill out estimates */
