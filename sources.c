@@ -428,7 +428,7 @@ SRC_SelectSource(unsigned long match_addr)
   double best_lo, best_hi;
   int depth, best_depth;
   int n_sel_sources;
-  double distance, min_distance;
+  double distance;
   int stratum, min_stratum;
   struct SelectInfo *si;
   double total_root_dispersion;
@@ -660,6 +660,7 @@ SRC_SelectSource(unsigned long match_addr)
         }
       }
 
+#if 0
       /* We now have a list of indices for the sources which pass the
          false-ticker test.  Now go on to reject those whose variance is
          greater than the minimum distance of any other */
@@ -692,6 +693,7 @@ SRC_SelectSource(unsigned long match_addr)
 #endif
         }
       }
+#endif
 
       /* Now crunch the list and mark all sources as selectable */
       for (i=j=0; i<n_sel_sources; i++) {
