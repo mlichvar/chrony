@@ -1089,7 +1089,7 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
         report->state = RPT_FALSETICKER;
         break;
       case SRC_SELECTABLE:
-        report->state = RPT_OTHER;
+        report->state = RPT_CANDIDATE;
         break;
       default:
         assert(0);

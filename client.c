@@ -1739,6 +1739,8 @@ process_cmd_sources(char *line)
               printf("="); break;
             case RPY_SD_MD_REF:
               printf("#"); break;
+            default:
+              printf(" ");
           }
           switch (state) {
             case RPY_SD_ST_SYNC:
@@ -1749,8 +1751,12 @@ process_cmd_sources(char *line)
               printf("x"); break;
             case RPY_SD_ST_JITTERY:
               printf("~"); break;
-            case RPY_SD_ST_OTHER:
+            case RPY_SD_ST_CANDIDATE:
               printf("+"); break;
+            case RPY_SD_ST_OUTLYER:
+              printf("-"); break;
+            default:
+              printf(" ");
           }
 
           printf(" %-25s    %2d   %2d   ", hostname_buf, stratum, poll);

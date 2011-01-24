@@ -1077,8 +1077,8 @@ handle_source_data(CMD_Request *rx_message, CMD_Reply *tx_message)
       case RPT_JITTERY:
         tx_message->data.source_data.state   = htons(RPY_SD_ST_JITTERY);
         break;
-      case RPT_OTHER:
-        tx_message->data.source_data.state   = htons(RPY_SD_ST_OTHER);
+      case RPT_CANDIDATE:
+        tx_message->data.source_data.state   = htons(RPY_SD_ST_CANDIDATE);
         break;
     }
     switch (report.mode) {

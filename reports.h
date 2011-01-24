@@ -41,7 +41,7 @@ typedef struct {
   int stratum;
   int poll;
   enum {RPT_NTP_CLIENT, RPT_NTP_PEER, RPT_LOCAL_REFERENCE} mode;
-  enum {RPT_SYNC, RPT_UNREACH, RPT_FALSETICKER, RPT_JITTERY, RPT_OTHER} state;
+  enum {RPT_SYNC, RPT_UNREACH, RPT_FALSETICKER, RPT_JITTERY, RPT_CANDIDATE} state;
 
   unsigned long latest_meas_ago; /* seconds */
   double orig_latest_meas; /* seconds */
