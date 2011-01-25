@@ -1206,6 +1206,7 @@ directives can occur in any order in the file.
 * rtcsync directive::           Specify that RTC should be automatically synchronised by kernel
 * server directive::            Specify an NTP server
 * sched_priority directive::    Require real-time scheduling and specify a priority for it.
+* stratumweight directive::     Specify how important is stratum when selecting source
 * lock_all directive::          Require that chronyd be locked into RAM. 
 * tempcomp directive::          Specify temperature sensor and compensation coefficients
 
@@ -2543,6 +2544,26 @@ resource requirements are modest, but it should result in lower and
 more consistent latency since Chronyd will not need to wait for the
 scheduler to get around to running it.  You should not use this unless
 you really need it.  The sched_setscheduler man page has more details.
+@c }}}
+@c {{{ stratumweight
+@node stratumweight directive
+@subsection stratumweight
+
+The @code{stratumweight} directive sets how much distance should be added
+per stratum to the synchronisation distance when @code{chronyd} selects
+the synchronisation source from available sources.
+
+The syntax is
+
+@example
+stratumweight <dist-in-seconds>
+@end example
+
+By default, it is 1 second.  This usually means that sources with lower stratum
+will be preferred to sources with higher stratum even when their distance is
+significantly worse.  Setting @code{stratumweight} to 0 makes @code{chronyd}
+ignore stratum when selecting the source.
+
 @c }}}
 @c {{{ lock_all
 @node lock_all directive

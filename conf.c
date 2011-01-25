@@ -79,6 +79,7 @@ static void parse_logdir(const char *);
 static void parse_maxupdateskew(const char *);
 static void parse_maxclockerror(const char *);
 static void parse_reselectdist(const char *);
+static void parse_stratumweight(const char *);
 static void parse_peer(const char *);
 static void parse_acquisitionport(const char *);
 static void parse_port(const char *);
@@ -125,6 +126,7 @@ static double max_update_skew = 1000.0;
 static double max_clock_error = 10; /* in ppm */
 
 static double reselect_distance = 1e-4;
+static double stratum_weight = 1.0;
 
 static int cmd_port = -1;
 
@@ -262,6 +264,7 @@ static const Command commands[] = {
   {"broadcast", 9, parse_broadcast},
   {"tempcomp", 8, parse_tempcomp},
   {"reselectdist", 12, parse_reselectdist},
+  {"stratumweight", 13, parse_stratumweight},
   {"linux_hz", 8, parse_linux_hz},
   {"linux_freq_scale", 16, parse_linux_freq_scale},
   {"sched_priority", 14, parse_sched_priority},
@@ -618,6 +621,16 @@ parse_reselectdist(const char *line)
 {
   if (sscanf(line, "%lf", &reselect_distance) != 1) {
     LOG(LOGS_WARN, LOGF_Configure, "Could not read reselect distance at line %d in file", line_number);
+  }
+}
+
+/* ================================================== */
+
+static void
+parse_stratumweight(const char *line)
+{
+  if (sscanf(line, "%lf", &stratum_weight) != 1) {
+    LOG(LOGS_WARN, LOGF_Configure, "Could not read stratum weight at line %d in file", line_number);
   }
 }
 
@@ -1449,6 +1462,14 @@ double
 CNF_GetReselectDistance(void)
 {
   return reselect_distance;
+}
+
+/* ================================================== */
+
+double
+CNF_GetStratumWeight(void)
+{
+  return stratum_weight;
 }
 
 /* ================================================== */
