@@ -772,8 +772,10 @@ SRC_SelectSource(unsigned long match_addr)
             continue;
           }
             
-          distance = sources[i]->sel_info.root_distance + reselect_distance +
+          distance = sources[i]->sel_info.root_distance +
             (sources[i]->sel_info.stratum - min_stratum) * stratum_weight;
+          if (sources[i]->type == SRC_NTP)
+            distance += reselect_distance;
 
           if (selected_source_index != INVALID_SOURCE) {
 
