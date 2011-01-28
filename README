@@ -144,6 +144,9 @@ Acknowledgements
 The following people have provided patches and other major contributions
 to the program :
 
+Benny Lyne Amorsen <benny@amorsen.dk>
+    Patch to add minstratum option
+
 Andrew Bishop <amb@gedanken.demon.co.uk>
     Fixes for bugs in logging when in daemon mode
     Fixes for compiler warnings
@@ -198,6 +201,9 @@ Liam Hatton <me@liamhatton.com>
 Jachym Holecek <jakym@volny.cz>
     Patch to make Linux real time clock work with devfs
 
+Håkan Johansson <f96hajo@chalmers.se>
+    Patch to avoid large values in sources and sourcestats output
+
 Jim Knoble <jmknoble@pobox.com>
     Fixes for compiler warnings
 
@@ -209,7 +215,12 @@ Miroslav Lichvar <mlichvar@redhat.com>
     IPv6 support
     Linux capabilities support
     Leap second support
-    Various bug fixes and improvements
+    Improved source selection
+    Improved sample history trimming
+    Improved polling interval adjustment
+    Improved stability with temporary asymmetric delays
+    Temperature compensation
+    Many other bug fixes and improvements
 
 Victor Moroz <vim@prv.adlum.ru>
     Patch to support Linux with HZ!=100
