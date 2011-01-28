@@ -1,8 +1,4 @@
 /*
-  $Header: /cvs/src/chrony/acquire.h,v 1.9 2002/02/28 23:27:07 richard Exp $
-
-  =======================================================================
-
   chronyd/chronyc - Programs for keeping computer clocks accurate.
 
  **********************************************************************

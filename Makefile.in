@@ -1,9 +1,5 @@
 ##################################################
 #
-# $Header: /cvs/src/chrony/Makefile.in,v 1.48 2003/09/19 22:48:26 richard Exp $
-#
-# =======================================================================
-#
 # chronyd/chronyc - Programs for keeping computer clocks accurate.
 # 
 # Copyright (C) Richard P. Curnow  1997-2003

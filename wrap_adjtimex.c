@@ -1,8 +1,4 @@
 /*
-  $Header: /cvs/src/chrony/wrap_adjtimex.c,v 1.9 2002/11/19 21:33:42 richard Exp $
-
-  =======================================================================
-
   chronyd/chronyc - Programs for keeping computer clocks accurate.
 
  **********************************************************************

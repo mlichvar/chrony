@@ -1,8 +1,4 @@
 /*
-  $Header: /cvs/src/chrony/sys.c,v 1.11 2002/02/28 23:27:14 richard Exp $
-
-  =======================================================================
-
   chronyd/chronyc - Programs for keeping computer clocks accurate.
 
  **********************************************************************
