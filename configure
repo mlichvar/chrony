@@ -152,6 +152,7 @@ feat_readline=1
 try_readline=1
 try_editline=1
 feat_rtc=1
+try_rtc=0
 feat_linuxcaps=1
 try_linuxcaps=0
 readline_lib=""
@@ -269,11 +270,8 @@ case $SYSTEM in
     ;;
     Linux* )
         EXTRA_OBJECTS="sys_linux.o wrap_adjtimex.o"
-        if [ $feat_rtc -eq 1 ] ; then
-            EXTRA_OBJECTS="$EXTRA_OBJECTS rtc_linux.o"
-            EXTRA_DEFS="$EXTRA_DEFS -DFEAT_RTC=1"
-        fi
         try_linuxcaps=1
+        try_rtc=1
         try_setsched=1
         try_lockmem=1
         SYSDEFS="-DLINUX"
@@ -369,6 +367,14 @@ if [ $feat_linuxcaps = "1" ] && [ $try_linuxcaps = "1" ] && \
 then
     EXTRA_DEFS="${EXTRA_DEFS} -DFEAT_LINUXCAPS=1"
     EXTRA_LIBS="-lcap"
+fi
+
+if [ $feat_rtc = "1" ] && [ $try_rtc = "1" ] && \
+  test_code '<linux/rtc.h>' 'sys/ioctl.h linux/rtc.h' '' '' \
+    'ioctl(1, RTC_UIE_ON&RTC_UIE_OFF&RTC_RD_TIME&RTC_SET_TIME, 0&RTC_UF);'
+then
+    EXTRA_OBJECTS="$EXTRA_OBJECTS rtc_linux.o"
+    EXTRA_DEFS="$EXTRA_DEFS -DFEAT_RTC=1"
 fi
 
 if [ $try_setsched = "1" ] && \

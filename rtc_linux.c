@@ -45,6 +45,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <string.h>
+#include <linux/rtc.h>
 
 #include "logging.h"
 #include "sched.h"
@@ -54,21 +55,8 @@
 #include "regress.h"
 #include "rtc.h"
 #include "rtc_linux.h"
-#include "io_linux.h"
 #include "conf.h"
 #include "memory.h"
-
-struct rtc_time {
-	int tm_sec;
-	int tm_min;
-	int tm_hour;
-	int tm_mday;
-	int tm_mon;
-	int tm_year;
-	int tm_wday;
-	int tm_yday;
-	int tm_isdst;
-};
 
 /* ================================================== */
 /* Forward prototypes */
@@ -846,7 +834,7 @@ read_from_device(void *any)
     return;
   }
 
-  if ((data & RTC_UIE) == RTC_UIE) {
+  if ((data & RTC_UF) == RTC_UF) {
     /* Update interrupt detected */
     
     /* Read RTC time, sandwiched between two polls of the system clock
