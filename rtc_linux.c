@@ -669,6 +669,9 @@ set_rtc(time_t new_rtc_time)
   rtc_raw.tm_mday = rtc_tm.tm_mday;
   rtc_raw.tm_mon = rtc_tm.tm_mon;
   rtc_raw.tm_year = rtc_tm.tm_year;
+  rtc_raw.tm_wday = rtc_tm.tm_wday;
+  rtc_raw.tm_yday = rtc_tm.tm_yday;
+  rtc_raw.tm_isdst = rtc_tm.tm_isdst;
 
   status = ioctl(fd, RTC_SET_TIME, &rtc_raw);
   if (status < 0) {
