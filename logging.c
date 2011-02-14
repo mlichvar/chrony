@@ -30,7 +30,6 @@
 #include "main.h"
 #include "conf.h"
 #include "logging.h"
-#include "version.h"
 #include "mkdirpp.h"
 #include "util.h"
 
@@ -190,7 +189,6 @@ LOG_OpenSystemLog(void)
 #else
   system_log = 1;
   openlog("chronyd", LOG_PID, LOG_DAEMON);
-  LOG(LOGS_INFO, LOGF_Logging, "chronyd version %s starting", PROGRAM_VERSION_STRING);
 #endif
 }
 

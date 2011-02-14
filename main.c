@@ -320,6 +320,8 @@ int main
     LOG_OpenSystemLog();
   }
   
+  LOG(LOGS_INFO, LOGF_Main, "chronyd version %s starting", PROGRAM_VERSION_STRING);
+
   /* Check whether another chronyd may already be running.  Do this after
    * forking, so that message logging goes to the right place (i.e. syslog), in
    * case this chronyd is being run from a boot script. */
