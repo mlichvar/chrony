@@ -114,7 +114,6 @@ MAI_CleanupAndExit(void)
 static void
 signal_cleanup(int x)
 {
-  LOG(LOGS_WARN, LOGF_Main, "chronyd exiting on signal");
   if (!initialised) exit(0);
   SCH_QuitProgram();
 }
@@ -396,6 +395,8 @@ int main
   /* The program normally runs under control of the main loop in
      the scheduler. */
   SCH_MainLoop();
+
+  LOG(LOGS_INFO, LOGF_Main, "chronyd exiting");
 
   MAI_CleanupAndExit();
 
