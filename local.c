@@ -103,12 +103,11 @@ static double max_clock_error;
 static void
 calculate_sys_precision(void)
 {
-  struct timeval tv, old_tv, first_tv;
+  struct timeval tv, old_tv;
   int dusec, best_dusec;
   int iters;
 
   gettimeofday(&old_tv, NULL);
-  first_tv = old_tv;
   best_dusec = 1000000; /* Assume we must be better than a second */
   iters = 0;
   do {

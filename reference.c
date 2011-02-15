@@ -363,7 +363,7 @@ schedule_fb_drift(struct timeval *now)
 
   UTI_DiffTimevalsToDouble(&unsynchronised, now, &last_ref_update);
 
-  for (c = 0, i = fb_drift_min; i <= fb_drift_max; i++) {
+  for (c = secs = 0, i = fb_drift_min; i <= fb_drift_max; i++) {
     secs = 1 << i;
 
     if (fb_drifts[i - fb_drift_min].secs < secs)

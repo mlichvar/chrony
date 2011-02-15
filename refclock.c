@@ -867,6 +867,8 @@ filter_slew_samples(struct MedianFilter *filter, struct timeval *when, double df
 #if 0
     LOG(LOGS_INFO, LOGF_Refclock, "i=%d old_off=%.9f new_off=%.9f",
         i, prev_offset, filter->samples[i].offset);
+#else
+    (void)prev_offset;
 #endif
   }
 }

@@ -572,6 +572,8 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
   LOG(LOGS_INFO, LOGF_SourceStats, "n=%d off=%f del=%f dis=%f var=%f pdist=%f avoff=%f avok=%d selok=%d",
       inst->n_samples, *best_offset, *best_root_delay, *best_root_dispersion, *variance,
       peer_distance, average_offset, average_ok, *select_ok);
+#else
+  (void)average_ok;
 #endif
 
   return;
@@ -585,17 +587,14 @@ SST_GetTrackingData(SST_Stats inst, struct timeval *now,
                     double *accrued_dispersion,
                     double *frequency, double *skew)
 {
-  int i, j;
-  double peer_distance;
+  int i;
   double elapsed_offset, elapsed_sample;
 
   i = get_runsbuf_index(inst, inst->best_single_sample);
-  j = get_buf_index(inst, inst->best_single_sample);
 
   *frequency = inst->estimated_frequency;
   *skew = inst->skew;
 
-  peer_distance = inst->peer_dispersions[j] + 0.5 * inst->peer_delays[j];
   UTI_DiffTimevalsToDouble(&elapsed_offset, now, &(inst->offset_time));
   *average_offset = inst->estimated_offset + inst->estimated_frequency * elapsed_offset;
   *offset_sd = inst->estimated_offset_sd + elapsed_offset * inst->skew;
@@ -604,8 +603,8 @@ SST_GetTrackingData(SST_Stats inst, struct timeval *now,
   *accrued_dispersion = inst->skew * elapsed_sample;
 
 #ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_SourceStats, "n=%d freq=%f (%.3fppm) skew=%f (%.3fppm) pdist=%f avoff=%f offsd=%f accrdis=%f",
-      inst->n_samples, *frequency, 1.0e6* *frequency, *skew, 1.0e6* *skew, peer_distance, *average_offset, *offset_sd, *accrued_dispersion);
+  LOG(LOGS_INFO, LOGF_SourceStats, "n=%d freq=%f (%.3fppm) skew=%f (%.3fppm) avoff=%f offsd=%f accrdis=%f",
+      inst->n_samples, *frequency, 1.0e6* *frequency, *skew, 1.0e6* *skew, *average_offset, *offset_sd, *accrued_dispersion);
 #endif
 
 }
@@ -631,6 +630,8 @@ SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffs
     LOG(LOGS_INFO, LOGF_SourceStats, "i=%d old_st=[%s] new_st=[%s] old_off=%f new_off=%f",
         i, UTI_TimevalToString(&prev), UTI_TimevalToString(sample),
         prev_offset, inst->offsets[i]);
+#else
+    (void)prev_offset;
 #endif
   }
 
@@ -648,6 +649,8 @@ SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffs
       UTI_TimevalToString(&prev), UTI_TimevalToString(&(inst->offset_time)),
       prev_offset, inst->estimated_offset,
       1.0e6*prev_freq, 1.0e6*inst->estimated_frequency);
+#else
+  (void)prev; (void)prev_freq;
 #endif
 
   return;

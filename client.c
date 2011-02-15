@@ -1787,7 +1787,7 @@ process_cmd_sourcestats(char *line)
 
   char hostname_buf[50];
   unsigned long n_samples, n_runs, span_seconds;
-  double resid_freq_ppm, skew_ppm, sd, est_offset, est_offset_err;
+  double resid_freq_ppm, skew_ppm, sd, est_offset;
   unsigned long ref_id;
   IPAddr ip_addr;
 
@@ -1827,7 +1827,7 @@ process_cmd_sourcestats(char *line)
           skew_ppm = UTI_FloatNetworkToHost(reply.data.sourcestats.skew_ppm);
           sd = UTI_FloatNetworkToHost(reply.data.sourcestats.sd);
           est_offset = UTI_FloatNetworkToHost(reply.data.sourcestats.est_offset);
-          est_offset_err = UTI_FloatNetworkToHost(reply.data.sourcestats.est_offset_err);
+          /* est_offset_err = UTI_FloatNetworkToHost(reply.data.sourcestats.est_offset_err); */
 
           if (ip_addr.family == IPADDR_UNSPEC)
             snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_RefidToString(ref_id));

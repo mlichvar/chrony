@@ -232,13 +232,11 @@ run_regression(int new_sample,
 {
   double rtc_rel[MAX_SAMPLES]; /* Relative times on RTC axis */
   double offsets[MAX_SAMPLES]; /* How much the RTC is fast of the system clock */
-  int i, n;
+  int i;
   double est_intercept, est_slope;
   int best_new_start;
 
   if (n_samples > 0) {
-
-    n = n_samples - 1;
 
     for (i=0; i<n_samples; i++) {
       rtc_rel[i] = rtc_trim[i] + (double)(rtc_sec[i] - rtc_ref);
@@ -307,6 +305,8 @@ slew_samples
       dfreq, doffset,
       old_seconds_fast, 1.0e6 * old_gain_rate,
       coef_seconds_fast, 1.0e6 * coef_gain_rate);
+#else
+  (void)old_seconds_fast; (void)old_gain_rate;
 #endif
 
 }
