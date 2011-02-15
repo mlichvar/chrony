@@ -138,6 +138,7 @@ REF_Initialise(void)
           /* We have read valid data */
           our_frequency_ppm = file_freq_ppm;
           our_skew = 1.0e-6 * file_skew_ppm;
+          LOG(LOGS_INFO, LOGF_Reference, "Frequency %.3f +- %.3f ppm read from %s", file_freq_ppm, file_skew_ppm, drift_file);
         } else {
           LOG(LOGS_WARN, LOGF_Reference, "Could not parse valid frequency and skew from driftfile %s",
               drift_file);
@@ -147,9 +148,6 @@ REF_Initialise(void)
             drift_file);
       }
       fclose(in);
-    } else {
-      LOG(LOGS_WARN, LOGF_Reference, "Could not open driftfile %s for reading",
-          drift_file);
     }
 
     drift_file_age = 0.0;
