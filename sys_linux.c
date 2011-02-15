@@ -895,8 +895,10 @@ get_version_specific_details(void)
     LOG_FATAL(LOGF_SysLinux, "Can't determine hz (txc.tick=%ld txc.freq=%ld (%.8f) txc.offset=%ld)",
               tmx_params.tick, tmx_params.freq, tmx_params.dfreq, tmx_params.offset);
   } else {
+#if 0
     LOG(LOGS_INFO, LOGF_SysLinux, "Initial txc.tick=%ld txc.freq=%ld (%.8f) txc.offset=%ld => hz=%d shift_hz=%d",
         tmx_params.tick, tmx_params.freq, tmx_params.dfreq, tmx_params.offset, hz, shift_hz);
+#endif
   }
 
   CNF_GetLinuxHz(&set_config_hz, &config_hz);
@@ -1046,10 +1048,11 @@ get_version_specific_details(void)
   /* Override freq_scale if it appears in conf file */
   CNF_GetLinuxFreqScale(&set_config_freq_scale, &config_freq_scale);
   calculated_freq_scale = freq_scale;
-  if (set_config_freq_scale) freq_scale = config_freq_scale;
-  
-  LOG(LOGS_INFO, LOGF_SysLinux, "calculated_freq_scale=%.8f freq_scale=%.8f",
-      calculated_freq_scale, freq_scale);
+  if (set_config_freq_scale) {
+    freq_scale = config_freq_scale;
+    LOG(LOGS_INFO, LOGF_SysLinux, "calculated_freq_scale=%.8f freq_scale=%.8f",
+        calculated_freq_scale, freq_scale);
+  }
 
 }
 
@@ -1154,7 +1157,9 @@ SYS_Linux_DropRoot(char *user)
 
   cap_free(cap);
 
+#if 0
   LOG(LOGS_INFO, LOGF_SysLinux, "Privileges dropped to user %s", user);
+#endif
 }
 #endif
 
@@ -1183,7 +1188,9 @@ void SYS_Linux_SetScheduler(int SchedPriority)
       LOG(LOGS_ERR, LOGF_SysLinux, "sched_setscheduler() failed");
     }
     else {
+#if 0
       LOG(LOGS_INFO, LOGF_SysLinux, "Enabled SCHED_FIFO with priority %d", sched.sched_priority);
+#endif
     }
   }
 }
@@ -1207,7 +1214,9 @@ void SYS_Linux_MemLockAll(int LockAll)
 	LOG(LOGS_ERR, LOGF_SysLinux, "mlockall() failed");
       }
       else {
+#if 0
 	LOG(LOGS_INFO, LOGF_SysLinux, "Successfully locked into RAM");
+#endif
       }
     }
   }
