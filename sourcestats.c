@@ -619,6 +619,9 @@ SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffs
   struct timeval *sample, prev;
   double prev_offset, prev_freq;
 
+  if (!inst->n_samples)
+    return;
+
   for (m = -inst->runs_samples; m < inst->n_samples; m++) {
     i = get_runsbuf_index(inst, m);
     sample = &(inst->sample_times[i]);
