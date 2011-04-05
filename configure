@@ -102,6 +102,7 @@ For better control, use the options below.
   --disable-pps          Disable PPS API support
   --disable-rtc          Don't include RTC even on Linux
   --disable-linuxcaps    Disable Linux capabilities support
+  --enable-forcednsretry Force retry on DNS failure
 
 Fine tuning of the installation directories:
   --sysconfdir=DIR       chrony.conf location [/etc]
@@ -162,6 +163,7 @@ feat_ipv6=1
 feat_pps=1
 try_setsched=0
 try_lockmem=0
+feat_forcednsretry=0
 
 for option
 do
@@ -225,6 +227,9 @@ do
     ;;
     --disable-linuxcaps)
       feat_linuxcaps=0
+    ;;
+    --enable-forcednsretry)
+      feat_forcednsretry=1
     ;;
     --host-system=* )
       OPERATINGSYSTEM=`echo $option | sed -e 's/^.*=//;'`
@@ -397,6 +402,11 @@ if [ $try_lockmem = "1" ] && \
      mlockall(MCL_CURRENT|MCL_FUTURE);'
 then
   SYSDEFS="${SYSDEFS} -DHAVE_MLOCKALL"
+fi
+
+if [ $feat_forcednsretry = "1" ]
+then
+    EXTRA_DEFS="$EXTRA_DEFS -DFORCE_DNSRETRY=1"
 fi
 
 READLINE_COMPILE=""

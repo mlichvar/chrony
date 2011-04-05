@@ -56,7 +56,11 @@ DNS_Name2IPAddress(const char *name, IPAddr *addr)
   result = getaddrinfo(name, NULL, &hints, &res);
 
   if (result) {
+#ifdef FORCE_DNSRETRY
+    return DNS_TryAgain;
+#else
     return result == EAI_AGAIN ? DNS_TryAgain : DNS_Failure;
+#endif
   }
 
   for (ai = res; !result && ai != NULL; ai = ai->ai_next) {
@@ -94,7 +98,12 @@ DNS_Name2IPAddress(const char *name, IPAddr *addr)
     return DNS_Success;
   }
 
+#ifdef FORCE_DNSRETRY
+  return DNS_TryAgain;
+#else
   return DNS_Failure;
+#endif
+
 #endif
 }
 
