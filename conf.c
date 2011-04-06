@@ -107,6 +107,7 @@ static void parse_linux_freq_scale(const char *);
 static void parse_sched_priority(const char *);
 static void parse_lockall(const char *);
 static void parse_tempcomp(const char *);
+static void parse_include(const char *);
 
 /* ================================================== */
 /* Configuration variables */
@@ -261,6 +262,7 @@ static const Command commands[] = {
   {"tempcomp", 8, parse_tempcomp},
   {"reselectdist", 12, parse_reselectdist},
   {"stratumweight", 13, parse_stratumweight},
+  {"include", 7, parse_include},
   {"linux_hz", 8, parse_linux_hz},
   {"linux_freq_scale", 16, parse_linux_freq_scale},
   {"sched_priority", 14, parse_sched_priority},
@@ -313,6 +315,7 @@ CNF_ReadFile(const char *filename)
   char line[2048];
   char *p;
   int i, ok;
+  int prev_line_number;
 
   if (filename == NULL) {
     filename = DEFAULT_CONF_FILE;
@@ -322,6 +325,9 @@ CNF_ReadFile(const char *filename)
   if (!in) {
     LOG(LOGS_ERR, LOGF_Configure, "Could not open configuration file [%s]", filename);
   } else {
+
+    /* Save current line number in case this is an included file */
+    prev_line_number = line_number;
 
     line_number = 0;
 
@@ -356,6 +362,8 @@ CNF_ReadFile(const char *filename)
       }
 
     }
+
+    line_number = prev_line_number;
 
     fclose(in);
   }
@@ -1214,6 +1222,16 @@ parse_tempcomp(const char *line)
   tempcomp_file = MallocArray(char, 1 + line - tmp);
   strncpy(tempcomp_file, tmp, line - tmp);
   tempcomp_file[line - tmp] = '\0';
+}
+
+/* ================================================== */
+
+static void
+parse_include(const char *line)
+{
+  while (isspace(line[0]))
+    line++;
+  CNF_ReadFile(line);
 }
 
 /* ================================================== */

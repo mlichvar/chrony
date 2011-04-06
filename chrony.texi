@@ -1179,6 +1179,7 @@ directives can occur in any order in the file.
 * dumpdir directive::           Specify directory for dumping measurements
 * dumponexit directive::        Dump measurements when daemon exits
 * fallbackdrift directive::     Specify fallback drift intervals
+* include directive::           Include a configuration file
 * initstepslew directive::      Trim the system clock on boot-up.
 * keyfile directive::           Specify location of file containing keys
 * linux_hz directive::          Define a non-standard value of the kernel HZ constant
@@ -1600,6 +1601,17 @@ daily and weekly temperature fluctuations.
 By default (or if the specified maximum or minimum is 0), no fallbacks
 will be used and the clock frequency will stay at the last value
 calculated before synchronisation was lost.
+@c }}}
+@c {{{ include
+@node include directive
+@subsection include
+The @code{include} directive includes a specified configuration file.
+This is useful when maintaining configuration on multiple hosts to
+keep the differences in a separate file.
+
+@example
+include /etc/chrony/local.conf
+@end example
 @c }}}
 @c {{{ initstepslew
 @node initstepslew directive
