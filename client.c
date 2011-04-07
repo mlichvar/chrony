@@ -2621,8 +2621,6 @@ process_args(int argc, char **argv, int multi)
       }
     }
 
-    strcat(line, "\n");
-
     ret = process_line(line, &quit);
     if (!ret)
       break;
