@@ -365,7 +365,8 @@ typedef struct {
    Version 4 : IPv6 addressing added, 64-bit time values, sourcestats 
    and tracking reports extended, added flags to NTP source request,
    trimmed source report, replaced fixed-point format with floating-point
-   and used also instead of integer microseconds
+   and used also instead of integer microseconds, new commands: modify stratum,
+   modify polltarget, modify maxdelaydevratio, reselect, reselectdistance
 
  */
 
