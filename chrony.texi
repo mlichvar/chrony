@@ -2934,6 +2934,7 @@ interface.
 * polltarget command::          Set poll target for a source
 * quit command::                Exit from chronyc
 * reselect command::            Reselect synchronisation source
+* reselectdist command::        Set improvement in distance needed to reselect a source
 * retries command::             Set maximum number of retries
 * rtcdata command::             Display RTC parameters
 * settime command::             Provide a manual input of the current time
@@ -3755,6 +3756,13 @@ available sources.
 
 The @code{reselect} command can be used to force @code{chronyd} to
 reselect the best synchronisation source.
+@c }}}
+@c {{{ reselectdist command
+@node reselectdist command
+@subsubsection reselectdist
+The @code{reselectdist} command sets the reselect distance.  It is equivalent
+to the @code{reselectdist} directive in the configuration file
+(@pxref{reselectdist directive}).
 @c }}}
 @c {{{ retries
 @node retries command

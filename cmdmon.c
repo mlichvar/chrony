@@ -158,7 +158,8 @@ static int permissions[] = {
   PERMIT_AUTH, /* MODIFY_MINSTRATUM */
   PERMIT_AUTH, /* MODIFY_POLLTARGET */
   PERMIT_AUTH, /* MODIFY_MAXDELAYDEVRATIO */
-  PERMIT_AUTH  /* RESELECT */
+  PERMIT_AUTH, /* RESELECT */
+  PERMIT_AUTH  /* RESELECTDISTANCE */
 };
 
 /* ================================================== */
@@ -1712,6 +1713,18 @@ handle_activity(CMD_Request *rx_message, CMD_Reply *tx_message)
 /* ================================================== */
 
 static void
+handle_reselect_distance(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  double dist;
+  dist = UTI_FloatNetworkToHost(rx_message->data.reselect_distance.distance);
+  SRC_SetReselectDistance(dist);
+  tx_message->status = htons(STT_SUCCESS);
+  return;
+}
+
+/* ================================================== */
+
+static void
 handle_reselect(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   SRC_ReselectSource();
@@ -2256,6 +2269,10 @@ read_from_cmd_socket(void *anything)
 
         case REQ_ACTIVITY:
           handle_activity(&rx_message, &tx_message);
+          break;
+
+        case REQ_RESELECTDISTANCE:
+          handle_reselect_distance(&rx_message, &tx_message);
           break;
 
         case REQ_RESELECT:

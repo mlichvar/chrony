@@ -2377,6 +2377,23 @@ process_cmd_activity(const char *line)
 
 /* ================================================== */
 
+static int
+process_cmd_reselectdist(CMD_Request *msg, char *line)
+{
+  double dist;
+  int ok;
+  msg->command = htons(REQ_RESELECTDISTANCE);
+  if (sscanf(line, "%lf", &dist) == 1) {
+    msg->data.reselect_distance.distance = UTI_FloatHostToNetwork(dist);
+    ok = 1;
+  } else {
+    ok = 0;
+  }
+  return ok;
+}
+
+/* ================================================== */
+
 static void
 process_cmd_reselect(CMD_Request *msg, char *line)
 {
@@ -2558,6 +2575,8 @@ process_line(char *line, int *quit)
   } else if (!strncmp(p, "activity", 8)) {
     ret = process_cmd_activity(p+8);
     do_normal_submit = 0;
+  } else if (!strncmp(p, "reselectdist", 12)) {
+    do_normal_submit = process_cmd_reselectdist(&tx_message, p+12);
   } else if (!strncmp(p, "reselect", 8)) {
     process_cmd_reselect(&tx_message, p+8);
   } else if (!strncmp(p, "dns ", 4)) {

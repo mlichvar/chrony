@@ -86,7 +86,8 @@
 #define REQ_MODIFY_POLLTARGET 46
 #define REQ_MODIFY_MAXDELAYDEVRATIO 47
 #define REQ_RESELECT 48
-#define N_REQUEST_TYPES 49
+#define REQ_RESELECTDISTANCE 49
+#define N_REQUEST_TYPES 50
 
 /* Special utoken value used to log on with first exchange being the
    password.  (This time value has long since gone by) */
@@ -339,6 +340,11 @@ typedef struct {
   int32_t EOR;
 } REQ_Reselect;
 
+typedef struct {
+  Float distance;
+  int32_t EOR;
+} REQ_ReselectDistance;
+
 /* ================================================== */
 
 #define PKT_TYPE_CMD_REQUEST 1
@@ -425,6 +431,7 @@ typedef struct {
     REQ_MakeStep make_step;
     REQ_Activity activity;
     REQ_Reselect reselect;
+    REQ_ReselectDistance reselect_distance;
   } data; /* Command specific parameters */
 
 } CMD_Request;

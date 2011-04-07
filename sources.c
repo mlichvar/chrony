@@ -901,6 +901,17 @@ SRC_ReselectSource(void)
 
 /* ================================================== */
 
+void
+SRC_SetReselectDistance(double distance)
+{
+  if (reselect_distance != distance) {
+    reselect_distance = distance;
+    LOG(LOGS_INFO, LOGF_Sources, "New reselect distance %f", distance);
+  }
+}
+
+/* ================================================== */
+
 double
 SRC_PredictOffset(SRC_Instance inst, struct timeval *when)
 {
