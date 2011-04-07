@@ -2288,7 +2288,7 @@ read_from_cmd_socket(void *anything)
           break;
 
         default:
-          /* Ignore message */
+          assert(0);
           break;
       }
     } else {
