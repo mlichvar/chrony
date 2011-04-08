@@ -2338,30 +2338,33 @@ udp/11123.
 @c {{{ refclock
 @node refclock directive
 @subsection refclock
-The @code{refclock} directive allows reference clocks to be specified.
-The directive is immediately followed by a refclock driver name and
-its parameter.
+Reference clocks allows very accurate synchronisation and @code{chronyd}
+can function as a stratum 1 server.  They are specified by the
+@code{refclock} directive.  It has two mandatory parameters, a refclock driver
+name and a driver specific parameter.
 
-There are currently three drivers implemented:
+There are currently three drivers included:
 
 @table @code
 @item PPS
-Pulse per second (PPS) API driver.  The parameter is a path to the PPS
-device.  Assert events are used by default.  Driver option
-@code{:clear} can be appended to the path to use clear events instead.
+PPSAPI (pulse per second) driver.  The parameter is the path to a PPS
+device.  Assert events are used by default.  Driver option @code{:clear}
+can be appended to the path if clear events should be used instead.
 
-PPS refclock needs another source (NTP or non-PPS refclock) or local
-directive (@pxref{local directive}) enabled to function.  For example:
+As PPS refclock gets only sub-second time information, it needs another
+source (NTP or non-PPS refclock) or local directive (@pxref{local
+directive}) enabled to work.  For example:
 
 @example
-refclock SHM 0 offset 0.5 delay 0.1
-refclock PPS /dev/pps0
+refclock PPS /dev/pps0 lock NMEA
+refclock SHM 0 offset 0.5 delay 0.1 refid NMEA noselect
 @end example
 
 @item SHM
-NTP shared memory driver.  The parameter is the number of the
-shared memory segment that should be used for receiving timestamps, usually
-0, 1, 2 or 3.  For example:
+NTP shared memory driver.  This driver uses a shared memory segment to
+receive data from another daemon which communicates with an actual
+reference clock.  The parameter is the number of a shared memory segment,
+usually 0, 1, 2 or 3.  For example:
 
 @example
 refclock SHM 1 poll 3 refid GPS1
@@ -2371,15 +2374,25 @@ A driver option in form @code{:perm=NNN} can be appended to the
 segment number to create the segment with permissions other than the
 default @code{0600}. 
 
-Software that can be used as a source of reference time includes
-@code{gpsd} and @code{shmpps}.
+Some examples of applications that can be used as SHM sources are @code{gpsd},
+@code{shmpps} and @code{radioclk}.
 @item SOCK
-Unix domain socket driver.  The parameter is a path to the socket
-which is used as the source of timestamps.  This is as a better
-alternative to SHM, it does not require polling, the offset
-resolution is not limited to microsecond and it supports PPS.
-The format for messages sent over the socket is declared in file
-@code{refclock_sock.c}.
+Unix domain socket driver.  It is similar to the SHM driver, but uses a
+different format and uses a socket instead of shared memory.  It does not
+require polling, the offset resolution is not limited to microseconds and it
+supports transmitting of PPS data.  The parameter is a path to the socket which
+will be created by @code{chronyd} and used to receive the messages.  The format
+of messages sent over the socket is described in the
+@code{refclock_sock.c} file.
+
+Recent versions of the @code{gpsd} daemon include support for the SOCK
+protocol.  The path where the socket should be created is described in the
+@code{gpsd(8)} man page.  For example:
+
+@example
+refclock SOCK /tmp/chrony.tty0.sock
+@end example
+
 @end table
 
 The @code{refclock} command also supports a number of subfields (which
@@ -2391,7 +2404,8 @@ Timestamps produced by refclock drivers are not used immediately, but
 they are stored and processed by a median filter in intervals
 specified by this option.  This is defined as a power of 2.  The
 default is 4 (16 seconds).  A shorter interval allows @code{chronyd}
-to react faster to frequency changes, but it may increase noise.
+to react faster to changes in clock frequency, but it may decrease
+the accuracy if the source is too noisy.
 @item dpoll
 Some drivers are not controlled by external events and thus require
 polling.  Again this is defined as a power of 2 and can be negative
@@ -2400,7 +2414,7 @@ for sub-second intervals.  The default is 0 (1 second).
 This option is used to specify a reference id of the refclock, as up
 to four ASCII characters.  By default, first three characters from
 driver name and the number of the refclock are used as refid.  Each
-refclock has to use an unique refid.
+refclock must have an unique refid.
 @item filter
 This option sets the length of the median filter which is used to
 reduce noise.  With each poll about 40 percent of the stored samples is
@@ -2435,7 +2449,8 @@ for SHM refclock, and 1e-9 (1 nanosecond) for SOCK and PPS refclocks.
 @item prefer
 Prefer this source over sources without prefer option.
 @item noselect
-Never select this source.  This is particularly useful for monitoring.
+Never select this source.  This is useful for monitoring or with sources
+which are not very accurate, but are locked with a PPS refclock.
 @end table
 
 @c }}}
