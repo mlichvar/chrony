@@ -2231,7 +2231,7 @@ The @code{maxclockerror} directive sets the maximum assumed frequency
 error of the local clock.  This is a frequency stability of the clock,
 not an absolute frequency error.
 
-By default, the maximum assumed error is set to 10 ppm.
+By default, the maximum assumed error is set to 1 ppm.
 
 The syntax is
 
