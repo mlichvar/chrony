@@ -530,10 +530,10 @@ REF_SetReference(int stratum,
   double delta_freq1, delta_freq2;
   double skew1, skew2;
   double our_frequency;
-
   double abs_freq_ppm;
-
   double update_interval;
+  double elapsed;
+  struct timeval now;
 
   assert(initialised);
 
@@ -570,9 +570,12 @@ REF_SetReference(int stratum,
   else
     our_ref_ip.family = IPADDR_UNSPEC;
   our_ref_time = *ref_time;
-  our_offset = offset;
   our_root_delay = root_delay;
   our_root_dispersion = root_dispersion;
+
+  LCL_ReadCookedTime(&now, NULL);
+  UTI_DiffTimevalsToDouble(&elapsed, &now, ref_time);
+  our_offset = offset + elapsed * frequency;
 
   update_leap_status(leap);
 
@@ -627,14 +630,14 @@ REF_SetReference(int stratum,
 
   abs_freq_ppm = LCL_ReadAbsoluteFrequency();
 
-  write_log(ref_time,
+  write_log(&now,
             our_ref_ip.family != IPADDR_UNSPEC ? UTI_IPToString(&our_ref_ip) : UTI_RefidToString(our_ref_id),
             our_stratum,
             abs_freq_ppm,
             1.0e6*our_skew,
             our_offset);
 
-  UTI_DiffTimevalsToDouble(&update_interval, ref_time, &last_ref_update);
+  UTI_DiffTimevalsToDouble(&update_interval, &now, &last_ref_update);
 
   if (drift_file) {
     /* Update drift file at most once per hour */
@@ -650,7 +653,7 @@ REF_SetReference(int stratum,
     update_fb_drifts(abs_freq_ppm, update_interval);
   }
 
-  last_ref_update = *ref_time;
+  last_ref_update = now;
   last_ref_update_interval = update_interval;
 
   /* And now set the freq and offset to zero */

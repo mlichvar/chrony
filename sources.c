@@ -424,9 +424,9 @@ void
 SRC_SelectSource(unsigned long match_addr)
 {
   int i, j, index, old_selected_index;
-  struct timeval now;
+  struct timeval now, ref_time;
   double src_offset, src_offset_sd, src_frequency, src_skew;
-  double src_accrued_dispersion;
+  double src_root_delay, src_root_dispersion;
   int n_endpoints, j1, j2;
   double best_lo, best_hi;
   int depth, best_depth;
@@ -434,7 +434,6 @@ SRC_SelectSource(unsigned long match_addr)
   double distance, sel_src_distance;
   int stratum, min_stratum;
   struct SelectInfo *si;
-  double total_root_dispersion;
   int n_badstats_sources;
   int max_sel_reach, max_badstat_reach;
   int max_score_index;
@@ -846,25 +845,20 @@ SRC_SelectSource(unsigned long match_addr)
           /* Now just use the statistics of the selected source for
              trimming the local clock */
 
-          LCL_ReadCookedTime(&now, NULL);
-
-          SST_GetTrackingData(sources[selected_source_index]->stats, &now,
+          SST_GetTrackingData(sources[selected_source_index]->stats, &ref_time,
                               &src_offset, &src_offset_sd,
-                              &src_accrued_dispersion,
-                              &src_frequency, &src_skew);
-
-          total_root_dispersion = (src_accrued_dispersion +
-              sources[selected_source_index]->sel_info.root_dispersion);
+                              &src_frequency, &src_skew,
+                              &src_root_delay, &src_root_dispersion);
 
           REF_SetReference(min_stratum, leap_status,
                            sources[selected_source_index]->ref_id,
                            sources[selected_source_index]->ip_addr,
-                           &now,
+                           &ref_time,
                            src_offset,
                            src_frequency,
                            src_skew,
-                           sources[selected_source_index]->sel_info.root_delay,
-                           total_root_dispersion);
+                           src_root_delay,
+                           src_root_dispersion);
         }
 
       } else {

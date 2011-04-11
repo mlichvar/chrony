@@ -582,29 +582,30 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
 /* ================================================== */
 
 void
-SST_GetTrackingData(SST_Stats inst, struct timeval *now,
+SST_GetTrackingData(SST_Stats inst, struct timeval *ref_time,
                     double *average_offset, double *offset_sd,
-                    double *accrued_dispersion,
-                    double *frequency, double *skew)
+                    double *frequency, double *skew,
+                    double *root_delay, double *root_dispersion)
 {
-  int i;
-  double elapsed_offset, elapsed_sample;
+  int i, j;
+  double elapsed_sample;
 
   i = get_runsbuf_index(inst, inst->best_single_sample);
+  j = get_buf_index(inst, inst->best_single_sample);
 
+  *ref_time = inst->offset_time;
+  *average_offset = inst->estimated_offset;
+  *offset_sd = inst->estimated_offset_sd;
   *frequency = inst->estimated_frequency;
   *skew = inst->skew;
+  *root_delay = inst->root_delays[j];
 
-  UTI_DiffTimevalsToDouble(&elapsed_offset, now, &(inst->offset_time));
-  *average_offset = inst->estimated_offset + inst->estimated_frequency * elapsed_offset;
-  *offset_sd = inst->estimated_offset_sd + elapsed_offset * inst->skew;
-
-  UTI_DiffTimevalsToDouble(&elapsed_sample, now, &inst->sample_times[i]);
-  *accrued_dispersion = inst->skew * elapsed_sample;
+  UTI_DiffTimevalsToDouble(&elapsed_sample, &inst->offset_time, &inst->sample_times[i]);
+  *root_dispersion = inst->root_dispersions[j] + inst->skew * elapsed_sample;
 
 #ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_SourceStats, "n=%d freq=%f (%.3fppm) skew=%f (%.3fppm) avoff=%f offsd=%f accrdis=%f",
-      inst->n_samples, *frequency, 1.0e6* *frequency, *skew, 1.0e6* *skew, *average_offset, *offset_sd, *accrued_dispersion);
+  LOG(LOGS_INFO, LOGF_SourceStats, "n=%d freq=%f (%.3fppm) skew=%f (%.3fppm) avoff=%f offsd=%f disp=%f",
+      inst->n_samples, *frequency, 1.0e6* *frequency, *skew, 1.0e6* *skew, *average_offset, *offset_sd, *root_dispersion);
 #endif
 
 }

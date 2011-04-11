@@ -89,10 +89,10 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
 
 /* Get data needed when setting up tracking on this source */
 extern void
-SST_GetTrackingData(SST_Stats inst, struct timeval *now,
+SST_GetTrackingData(SST_Stats inst, struct timeval *ref_time,
                     double *average_offset, double *offset_sd,
-                    double *accrued_dispersion,
-                    double *frequency, double *skew);
+                    double *frequency, double *skew,
+                    double *root_delay, double *root_dispersion);
 
 /* Get parameters for using this source as the reference */
 extern void
