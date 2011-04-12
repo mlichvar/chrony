@@ -493,14 +493,22 @@ initiate_slew(void)
     max_allowed_tick = nominal_tick + max_tick_bias;
 
     if (offset_register > 0) {
+      if (current_tick <= min_allowed_tick) {
+        return;
+      }
+
       slewing_tick = current_tick - slew_delta_tick;
-      if (slewing_tick <= min_allowed_tick) {
-        slewing_tick = min_allowed_tick + 1;
+      if (slewing_tick < min_allowed_tick) {
+        slewing_tick = min_allowed_tick;
       }
     } else {
+      if (current_tick >= max_allowed_tick) {
+        return;
+      }
+
       slewing_tick = current_tick + slew_delta_tick;
-      if (slewing_tick >= max_allowed_tick) {
-        slewing_tick = max_allowed_tick - 1;
+      if (slewing_tick > max_allowed_tick) {
+        slewing_tick = max_allowed_tick;
       }
     }
 
@@ -508,6 +516,8 @@ initiate_slew(void)
 
     delta_total_tick = (double) tick_adjust / 1.0e6;
     dseconds = - offset_register * (current_total_tick + delta_total_tick) / delta_total_tick;
+
+    assert(dseconds > 0.0);
 
     /* Now set the thing off */
     if (gettimeofday(&T0, NULL) < 0) {
@@ -662,8 +672,8 @@ set_frequency(double freq_ppm)
     scaled_freq = -freq_scale * required_freq;
   }
 
-  min_allowed_tick = nominal_tick - max_tick_bias + 5;
-  max_allowed_tick = nominal_tick + max_tick_bias - 5;
+  min_allowed_tick = nominal_tick - max_tick_bias;
+  max_allowed_tick = nominal_tick + max_tick_bias;
 
   if (required_tick < min_allowed_tick || required_tick > max_allowed_tick) {
     LOG(LOGS_WARN, LOGF_SysLinux, "Required tick %ld outside allowed range (%ld .. %ld)", required_tick, min_allowed_tick, max_allowed_tick);
