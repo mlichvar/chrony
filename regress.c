@@ -232,6 +232,7 @@ RGR_FindBestRegression
  double *b0,                    /* estimated y axis intercept */
  double *b1,                    /* estimated slope */
  double *s2,                    /* estimated variance of data points */
+ double *us2,                   /* estimated unweighted variance of data points */
  
  double *sb0,                   /* estimated standard deviation of
                                    intercept */
@@ -250,7 +251,7 @@ RGR_FindBestRegression
 {
   double P, Q, U, V, W; /* total */
   double resid[MAX_POINTS * REGRESS_RUNS_RATIO];
-  double ss;
+  double ss, uss;
   double a, b, u, ui, aa;
 
   int start, resid_start, nruns, npoints;
@@ -310,17 +311,20 @@ RGR_FindBestRegression
   *b1 = b;
   *b0 = a;
 
-  ss = 0.0;
+  ss = uss = 0.0;
   for (i=start; i<n; i++) {
     ss += resid[i - resid_start]*resid[i - resid_start] / w[i];
+    uss += resid[i - resid_start]*resid[i - resid_start];
   }
 
   npoints = n - start;
-  ss /= (double)(npoints - 2);
+  ss /= npoints - 2;
+  uss /= npoints - 2;
   *sb1 = sqrt(ss / V);
   aa = u * (*sb1);
   *sb0 = sqrt((ss / W) + (aa * aa));
-  *s2 = ss * (double) npoints / W;
+  *s2 = ss * npoints / W;
+  *us2 = uss;
 
   *new_start = start;
   *dof = npoints - 2;
