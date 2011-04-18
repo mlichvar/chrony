@@ -13,7 +13,8 @@ New in version 1.25
 * Add iburst, minstratum, maxdelaydevratio, polltarget,
   prefer, noselect options
 * Add rtcsync directive to enable Linux 11-minute mode
-* Add reselectdist, stratumweight, logbanner, maxclockerror directives
+* Add reselectdist, stratumweight, logbanner, maxclockerror,
+  include directives
 * Add -n option to not detach daemon from terminal
 * Fix pidfile directive
 * Fix name resolving with disabled IPv6 support
@@ -23,9 +24,9 @@ New in version 1.25
 * Fix file descriptor leaks
 * Increase burst polling interval and stop on KoD RATE
 * Set maxupdateskew to 1000 ppm by default
-* Consider offline sources unreachable
 * Require password for clients command
 * Update drift file at most once per hour
+* Use system headers for Linux RTC support
 * Reduce default chronyc timeout and make it configurable
 * Avoid large values in chronyc sources and sourcestats output
 * Add reselect command to force reselecting best source
