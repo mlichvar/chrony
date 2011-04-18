@@ -299,6 +299,10 @@ RGR_FindBestRegression
     nruns = n_runs_from_residuals(resid, n - resid_start); 
 
     if (nruns > critical_runs[n - resid_start] || n - start <= MIN_SAMPLES_FOR_REGRESS) {
+      if (resid_start < 0) {
+        /* Ignore extra samples in returned nruns */
+        nruns = n_runs_from_residuals(resid - resid_start, n); 
+      }
       break;
     } else {
       /* Try dropping one sample at a time until the runs test passes. */
