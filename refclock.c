@@ -825,8 +825,8 @@ filter_get_sample(struct MedianFilter *filter, struct timeval *sample_time, doub
   prev_avg_var = filter->avg_var;
 
   /* update exponential moving average of the variance */
-  if (filter->avg_var_n > 100) {
-    filter->avg_var += dof / (dof + 100.0) * (var - filter->avg_var);
+  if (filter->avg_var_n > 50) {
+    filter->avg_var += dof / (dof + 50.0) * (var - filter->avg_var);
   } else {
     filter->avg_var = (filter->avg_var * filter->avg_var_n + var * dof) /
       (dof + filter->avg_var_n);
