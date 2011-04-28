@@ -105,9 +105,6 @@ struct SST_Stats_Record {
   /* This is the estimated residual variance of the data points */
   double variance;
 
-  /* This is the estimated unweighted variance of the data points */
-  double uvariance;
-
   /* This array contains the sample epochs, in terms of the local
      clock. */
   struct timeval sample_times[MAX_SAMPLES * REGRESS_RUNS_RATIO];
@@ -193,7 +190,7 @@ SST_CreateInstance(unsigned long refid, IPAddr *addr)
   inst->estimated_offset_sd = 86400.0; /* Assume it's at least within a day! */
   inst->offset_time.tv_sec = 0;
   inst->offset_time.tv_usec = 0;
-  inst->variance = inst->uvariance = 16.0;
+  inst->variance = 16.0;
   inst->nruns = 0;
   return inst;
 }
@@ -367,7 +364,7 @@ find_min_delay_sample(SST_Stats inst)
    time.  E.g. a value of 4 means that we think the standard deviation
    is four times the fluctuation  of the peer distance */
 
-#define SD_TO_DIST_RATIO 1.4
+#define SD_TO_DIST_RATIO 1.0
 
 /* ================================================== */
 /* This function runs the linear regression operation on the data.  It
@@ -385,7 +382,7 @@ SST_DoNewRegression(SST_Stats inst)
 
   int degrees_of_freedom;
   int best_start, times_back_start;
-  double est_intercept, est_slope, est_var, est_uvar, est_intercept_sd, est_slope_sd;
+  double est_intercept, est_slope, est_var, est_intercept_sd, est_slope_sd;
   int i, j, nruns;
   double min_distance;
   double sd_weight, sd;
@@ -408,7 +405,7 @@ SST_DoNewRegression(SST_Stats inst)
 
     /* And now, work out the weight vector */
 
-    sd = sqrt(inst->uvariance);
+    sd = sqrt(inst->variance);
     if (sd > min_distance || sd <= 0.0)
       sd = min_distance;
 
@@ -421,7 +418,7 @@ SST_DoNewRegression(SST_Stats inst)
   inst->regression_ok = RGR_FindBestRegression(times_back + inst->runs_samples,
                                          offsets + inst->runs_samples, weights,
                                          inst->n_samples, inst->runs_samples,
-                                         &est_intercept, &est_slope, &est_var, &est_uvar,
+                                         &est_intercept, &est_slope, &est_var,
                                          &est_intercept_sd, &est_slope_sd,
                                          &best_start, &nruns, &degrees_of_freedom);
 
@@ -436,7 +433,6 @@ SST_DoNewRegression(SST_Stats inst)
     inst->offset_time = inst->sample_times[inst->last_sample];
     inst->estimated_offset_sd = est_intercept_sd;
     inst->variance = est_var;
-    inst->uvariance = est_uvar;
     inst->nruns = nruns;
 
     stress = fabs(old_freq - inst->estimated_frequency) / old_skew;

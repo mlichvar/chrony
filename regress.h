@@ -86,7 +86,6 @@ RGR_FindBestRegression
  double *b0,                    /* estimated y axis intercept */
  double *b1,                    /* estimated slope */
  double *s2,                    /* estimated variance of data points */
- double *us2,                   /* estimated unweighted variance of data points */
  
  double *sb0,                   /* estimated standard deviation of
                                    intercept */
