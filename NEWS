@@ -6,6 +6,7 @@ New in version 1.25
 * Improve polling interval adjustment
 * Improve stability with temporary asymmetric delays
 * Improve source selection
+* Improve initial synchronisation
 * Add delayed server name resolving
 * Add temperature compensation
 * Add nanosecond slewing to Linux driver
