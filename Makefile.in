@@ -49,6 +49,8 @@ EXTRA_OBJS=@EXTRA_OBJECTS@
 CLI_OBJS = client.o md5.o nameserv.o getdate.o cmdparse.o \
            pktlength.o util.o
 
+ALL_OBJS = $(OBJS) $(EXTRA_OBJS) $(CLI_OBJS)
+
 SRCS = $(patsubst %.o,%.c,$(OBJS))
 EXTRA_SRCS = $(patsubst %.o,%.c,$(EXTRA_OBJS))
 
@@ -79,14 +81,12 @@ conf.o : conf.c
 client.o : client.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) @READLINE_COMPILE@ -c $<
 
-.depend : 
-	gcc -MM $(SRCS) $(EXTRA_SRCS) > .depend
-
-distclean :
-	-rm -f *.o *.s chronyc chronyd core options.h Makefile *~
+distclean : clean
+	-rm -f Makefile
 
 clean :
 	-rm -f *.o *.s chronyc chronyd core *~
+	-rm -rf .deps
 
 version.h : version.txt
 	./mkversion
@@ -163,3 +163,10 @@ chrony.info : chrony.texi
 faq.php : faq.txt faqgen.pl
 	perl faqgen.pl < faq.txt > faq.php
 
+.deps:
+	@mkdir .deps
+
+.deps/%.d: %.c .deps
+	@$(CC) -MM $(CPPFLAGS) -MT '$(<:%.c=%.o) $@' $< -o $@
+
+-include $(ALL_OBJS:%.o=.deps/%.d)
