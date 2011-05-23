@@ -24,6 +24,8 @@
   Deal with broadcast server functions.
   */
 
+#include "config.h"
+
 #include "sysincl.h"
 #include "memory.h"
 

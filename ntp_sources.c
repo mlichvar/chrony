@@ -27,6 +27,8 @@
 
   */
 
+#include "config.h"
+
 #include "sysincl.h"
 
 #include "ntp_sources.h"

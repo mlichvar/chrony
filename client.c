@@ -26,6 +26,8 @@
   from it whilst running.
   */
 
+#include "config.h"
+
 #include "sysincl.h"
 
 #include "candm.h"

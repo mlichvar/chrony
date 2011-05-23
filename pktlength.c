@@ -26,6 +26,8 @@
   integer endianness within the structures.
 
   */
+#include "config.h"
+
 #include "sysincl.h"
 
 #include "util.h"

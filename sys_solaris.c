@@ -24,6 +24,8 @@
   Driver file for Solaris operating system
   */
 
+#include "config.h"
+
 #ifdef SOLARIS
 
 #include <kvm.h>

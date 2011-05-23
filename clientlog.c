@@ -31,6 +31,8 @@
 
   */
 
+#include "config.h"
+
 #include "sysincl.h"
 #include "clientlog.h"
 #include "conf.h"

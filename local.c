@@ -28,6 +28,8 @@
   They interface with the system specific driver files in sys_*.c
   */
 
+#include "config.h"
+
 #include <assert.h>
 #include <stddef.h>
 

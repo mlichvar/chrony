@@ -8,6 +8,8 @@
 #
 # =======================================================================
 
+rm -f config.h
+
 # This configure script determines the operating system type and version
 
 if [ "x${CC}" = "x" ]; then
@@ -69,7 +71,7 @@ test_code () {
 #}}}
 #{{{ usage
 usage () {
-  cat <<EOF;
+  cat <<EOF
 \`configure' configures tdl to adapt to many kinds of systems.
 
 Usage: ./configure [OPTION]...
@@ -133,6 +135,15 @@ EOF
 
 }
 #}}}
+#{{{
+add_def () {
+  if [ "x$2" = "x" ]; then
+    echo "#define $1 1" >> config.h
+  else
+    echo "#define $1 $2" >> config.h
+  fi
+}
+#}}}
 
 # ======================================================================
 
@@ -169,7 +180,7 @@ for option
 do
     case "$option" in
     --trace )
-      EXTRA_DEFS="-DTRACEON"
+      add_def TRACEON
     ;;
     --disable-readline )
       feat_readline=0
@@ -257,17 +268,17 @@ case $SYSTEM in
         4.* )
             EXTRA_OBJECTS="sys_sunos.o strerror.o"
             EXTRA_LIBS="-lkvm"
-            SYSDEFS="-DSUNOS"
+            add_def SUNOS
             echo "Configuring for SunOS (" $SYSTEM "version" $VERSION ")"
         ;;
         5.* )
             EXTRA_OBJECTS="sys_solaris.o"
             EXTRA_LIBS="-lsocket -lnsl -lkvm -lelf"
             EXTRA_CLI_LIBS="-lsocket -lnsl"
-            SYSDEFS="-DSOLARIS"
+            add_def SOLARIS
             echo "Configuring for Solaris (" $SYSTEM "SunOS version" $VERSION ")"
             if [ $VERSION = "5.3" ]; then
-                SYSDEFS="$SYSDEFS -DHAS_NO_BZERO"
+                add_def HAS_NO_BZERO
                 echo "Using memset() instead of bzero()"
             fi
         ;;
@@ -279,12 +290,12 @@ case $SYSTEM in
         try_rtc=1
         try_setsched=1
         try_lockmem=1
-        SYSDEFS="-DLINUX"
+        add_def LINUX
         echo "Configuring for " $SYSTEM
         if [ "${MACHINE}" = "alpha" ]; then
            echo "Enabling -mieee"
            # FIXME: Should really test for GCC
-           SYSDEFS="$SYSDEFS -mieee -DALPHA"
+           MYCFLAGS="$MYCFLAGS -mieee"
         fi
     ;;
 
@@ -293,7 +304,7 @@ case $SYSTEM in
         # be supported with the SunOS 4.x driver files.
         EXTRA_OBJECTS="sys_sunos.o strerror.o"
         EXTRA_LIBS="-lkvm"
-        SYSDEFS="-DSUNOS"
+        add_def SUNOS
         echo "Configuring for $SYSTEM (using SunOS driver)"
     ;;
     NetBSD-* )
@@ -308,13 +319,13 @@ case $SYSTEM in
         EXTRA_OBJECTS="sys_solaris.o"                
         EXTRA_LIBS="-lsocket -lnsl -lkvm -lelf"      
         EXTRA_CLI_LIBS="-lsocket -lnsl"                              
-        SYSDEFS="-DSOLARIS"                               
+        add_def SOLARIS
         echo "Configuring for Solaris (" $SYSTEM "SunOS version" $VERSION ")" 
     ;;                                                                        
     CYGWIN32_NT-i[3456]86 )
         EXTRA_OBJECTS="sys_winnt.o"
         EXTRA_LIBS=""
-        SYSDEFS="-DWINNT"
+        add_def WINNT
         echo "Configuring for Windows NT (Cygwin32)"
     ;;
     * )
@@ -336,11 +347,11 @@ else
 fi
   
 if test_code '<stdint.h>' 'stdint.h' '' '' ''; then
-  SYSDEFS="${SYSDEFS} -DHAS_STDINT_H"
+  add_def HAS_STDINT_H
 fi
 
 if test_code '<inttypes.h>' 'inttypes.h' '' '' ''; then
-  SYSDEFS="${SYSDEFS} -DHAS_INTTYPES_H"
+  add_def HAS_INTTYPES_H
 fi
 
 if [ $feat_ipv6 = "1" ] && \
@@ -350,7 +361,7 @@ if [ $feat_ipv6 = "1" ] && \
     n.sin6_addr = in6addr_any;
     return !inet_ntop(AF_INET6, &n.sin6_addr.s6_addr, p, sizeof(p));'
 then
-  SYSDEFS="${SYSDEFS} -DHAVE_IPV6"
+  add_def HAVE_IPV6
 fi
 
 if [ $feat_pps = "1" ] && \
@@ -360,7 +371,7 @@ if [ $feat_pps = "1" ] && \
     struct timespec ts;
     return time_pps_fetch(h, PPS_TSFMT_TSPEC, &i, &ts);'
 then
-  SYSDEFS="${SYSDEFS} -DHAVE_PPSAPI"
+  add_def HAVE_PPSAPI
 fi
 
 if [ $feat_linuxcaps = "1" ] && [ $try_linuxcaps = "1" ] && \
@@ -370,7 +381,7 @@ if [ $feat_linuxcaps = "1" ] && [ $try_linuxcaps = "1" ] && \
     '' '-lcap' \
     'prctl(PR_SET_KEEPCAPS, 1);cap_set_proc(cap_from_text("cap_sys_time=ep"));'
 then
-    EXTRA_DEFS="${EXTRA_DEFS} -DFEAT_LINUXCAPS=1"
+    add_def FEAT_LINUXCAPS
     EXTRA_LIBS="-lcap"
 fi
 
@@ -379,7 +390,7 @@ if [ $feat_rtc = "1" ] && [ $try_rtc = "1" ] && \
     'ioctl(1, RTC_UIE_ON&RTC_UIE_OFF&RTC_RD_TIME&RTC_SET_TIME, 0&RTC_UF);'
 then
     EXTRA_OBJECTS="$EXTRA_OBJECTS rtc_linux.o"
-    EXTRA_DEFS="$EXTRA_DEFS -DFEAT_RTC=1"
+    add_def FEAT_RTC
 fi
 
 if [ $try_setsched = "1" ] && \
@@ -390,7 +401,7 @@ if [ $try_setsched = "1" ] && \
      sched_get_priority_max(SCHED_FIFO);
      sched_setscheduler(0, SCHED_FIFO, &sched);'
 then
-  SYSDEFS="${SYSDEFS} -DHAVE_SCHED_SETSCHEDULER"
+  add_def HAVE_SCHED_SETSCHEDULER
 fi
 
 if [ $try_lockmem = "1" ] && \
@@ -401,12 +412,12 @@ if [ $try_lockmem = "1" ] && \
      setrlimit(RLIMIT_MEMLOCK, &rlim);
      mlockall(MCL_CURRENT|MCL_FUTURE);'
 then
-  SYSDEFS="${SYSDEFS} -DHAVE_MLOCKALL"
+  add_def HAVE_MLOCKALL
 fi
 
 if [ $feat_forcednsretry = "1" ]
 then
-    EXTRA_DEFS="$EXTRA_DEFS -DFORCE_DNSRETRY=1"
+  add_def FORCE_DNSRETRY
 fi
 
 READLINE_COMPILE=""
@@ -417,7 +428,9 @@ if [ $feat_readline = "1" ]; then
       "$readline_inc" "$readline_lib -ledit" \
       'add_history(readline("prompt"));'
     then
-      READLINE_COMPILE="-DFEAT_READLINE=1 -DUSE_EDITLINE=1 $readline_inc"
+      add_def FEAT_READLINE
+      add_def USE_EDITLINE
+      READLINE_COMPILE="$readline_inc"
       READLINE_LINK="$readline_lib -ledit"
     fi
   fi
@@ -427,7 +440,8 @@ if [ $feat_readline = "1" ]; then
       "$readline_inc" "$readline_lib $ncurses_lib -lreadline -lncurses" \
       'add_history(readline("prompt"));'
     then
-      READLINE_COMPILE="-DFEAT_READLINE=1 $readline_inc"
+      add_def FEAT_READLINE
+      READLINE_COMPILE="$readline_inc"
       READLINE_LINK="$readline_lib $ncurses_lib -lreadline -lncurses"
     fi
   fi
@@ -478,6 +492,8 @@ if [ "x$SETDOCDIR" != "x" ]; then
   DOCDIR=$SETDOCDIR
 fi
 
+add_def DEFAULT_CONF_DIR "\"$SYSCONFDIR\""
+
 sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
 	s%@CC@%${MYCC}%;\
 	s%@CFLAGS@%${MYCFLAGS}%;\
@@ -486,8 +502,6 @@ sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
 	s%@LIBS@%${LIBS}%;\
 	s%@LDFLAGS@%${MYLDFLAGS}%;\
 	s%@EXTRA_LIBS@%${EXTRA_LIBS}%;\
-	s%@SYSDEFS@%${SYSDEFS}%;\
-	s%@EXTRA_DEFS@%${EXTRA_DEFS}%;\
 	s%@EXTRA_CLI_LIBS@%${EXTRA_CLI_LIBS}%;\
 	s%@READLINE_COMPILE@%${READLINE_COMPILE}%;\
 	s%@READLINE_LINK@%${READLINE_LINK}%;\

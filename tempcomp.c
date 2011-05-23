@@ -25,6 +25,8 @@
 
   */
 
+#include "config.h"
+
 #include "conf.h"
 #include "local.h"
 #include "memory.h"

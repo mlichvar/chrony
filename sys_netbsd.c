@@ -25,6 +25,8 @@
   Driver file for the NetBSD operating system.
   */
 
+#include "config.h"
+
 #ifdef __NetBSD__
 
 #include <kvm.h>

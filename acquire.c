@@ -37,6 +37,8 @@
 
   */
 
+#include "config.h"
+
 #include "sysincl.h"
 
 #include "acquire.h"

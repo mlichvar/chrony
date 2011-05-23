@@ -30,6 +30,8 @@
 
   */
 
+#include "config.h"
+
 #include <stddef.h>
 
 #include "manual.h"

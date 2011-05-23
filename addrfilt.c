@@ -28,6 +28,8 @@
 
   */
 
+#include "config.h"
+
 #include "sysincl.h"
 
 #include "addrfilt.h"

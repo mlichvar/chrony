@@ -26,6 +26,8 @@
   analysis on the samples obtained from the sources,
   to determined frequencies and error bounds. */
 
+#include "config.h"
+
 #include "sysincl.h"
 
 #include "sourcestats.h"

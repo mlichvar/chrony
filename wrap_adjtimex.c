@@ -29,6 +29,8 @@
 
   */
 
+#include "config.h"
+
 #ifdef LINUX
 
 #define _LOOSE_KERNEL_NAMES

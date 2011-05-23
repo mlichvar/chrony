@@ -25,6 +25,8 @@
   in the various operating-system specific modules
   */
 
+#include "config.h"
+
 #include "sys.h"
 #include "logging.h"
 

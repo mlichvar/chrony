@@ -36,6 +36,8 @@
 
   */
 
+#include "config.h"
+
 #include "sysincl.h"
 
 #include "conf.h"

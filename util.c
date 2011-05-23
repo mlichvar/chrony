@@ -25,6 +25,8 @@
   Various utility functions
   */
 
+#include "config.h"
+
 #include "sysincl.h"
 
 #include "util.h"

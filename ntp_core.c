@@ -25,6 +25,8 @@
   Core NTP protocol engine
   */
 
+#include "config.h"
+
 #include "sysincl.h"
 
 #include "ntp_core.h"

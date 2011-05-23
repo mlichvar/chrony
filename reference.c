@@ -25,6 +25,8 @@
   This module keeps track of the source which we are claiming to be
   our reference, for the purposes of generating outgoing NTP packets */
 
+#include "config.h"
+
 #include "sysincl.h"
 
 #include "memory.h"

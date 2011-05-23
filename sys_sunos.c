@@ -24,6 +24,8 @@
   Driver file for the SunOS 4.1.x operating system.
   */
 
+#include "config.h"
+
 #ifdef SUNOS
 
 #include <kvm.h>

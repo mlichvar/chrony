@@ -25,6 +25,8 @@
   Module to handle logging of diagnostic information
   */
 
+#include "config.h"
+
 #include "sysincl.h"
 
 #include "main.h"

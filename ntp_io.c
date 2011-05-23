@@ -26,6 +26,8 @@
   This file deals with the IO aspects of reading and writing NTP packets
   */
 
+#include "config.h"
+
 #include "sysincl.h"
 
 #include "ntp_io.h"

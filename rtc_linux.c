@@ -26,6 +26,8 @@
 
   */
 
+#include "config.h"
+
 #if defined LINUX
 
 #ifdef sparc

@@ -24,6 +24,8 @@
   Replacement strerror function for systems that don't have it
   */
 
+#include "config.h"
+
 #ifdef SUNOS
 
 #include <errno.h>

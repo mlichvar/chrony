@@ -25,6 +25,8 @@
   The main program
   */
 
+#include "config.h"
+
 #include "sysincl.h"
 
 #include "main.h"

@@ -25,6 +25,8 @@
 
   */
 
+#include "config.h"
+
 #include "refclock.h"
 
 #if HAVE_PPSAPI

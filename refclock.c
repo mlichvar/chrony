@@ -25,6 +25,8 @@
 
   */
 
+#include "config.h"
+
 #include "refclock.h"
 #include "reference.h"
 #include "conf.h"
