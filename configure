@@ -27,9 +27,7 @@ fi
 MYCPPFLAGS="${CPPFLAGS}"
 
 if [ "x${MYCC}" = "xgcc" ]; then
-  CCWARNFLAGS="-Wmissing-prototypes -Wall"
-else
-  CCWARNFLAGS=""
+  MYCFLAGS="${MYCFLAGS} -Wmissing-prototypes -Wall"
 fi
 
 MYLDFLAGS="${LDFLAGS}"
@@ -497,7 +495,6 @@ add_def DEFAULT_CONF_DIR "\"$SYSCONFDIR\""
 sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
 	s%@CC@%${MYCC}%;\
 	s%@CFLAGS@%${MYCFLAGS}%;\
-	s%@CCWARNFLAGS@%${CCWARNFLAGS}%;\
 	s%@CPPFLAGS@%${CPPFLAGS}%;\
 	s%@LIBS@%${LIBS}%;\
 	s%@LDFLAGS@%${MYLDFLAGS}%;\

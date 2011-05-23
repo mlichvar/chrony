@@ -29,8 +29,7 @@ INFODIR=@INFODIR@
 DOCDIR=@DOCDIR@
 
 CC = @CC@
-CCWARNFLAGS = @CCWARNFLAGS@
-OPTFLAGS = @CFLAGS@
+CFLAGS = @CFLAGS@
 CPPFLAGS = @CPPFLAGS@
 
 DESTDIR=
@@ -62,18 +61,16 @@ LIBS = @LIBS@
 EXTRA_LIBS=@EXTRA_LIBS@
 EXTRA_CLI_LIBS=@EXTRA_CLI_LIBS@
 
-CFLAGS = $(CCWARNFLAGS) $(OPTFLAGS)
-
 # Until we have a main procedure we can link, just build object files
 # to test compilation
 
 all : chronyd chronyc
 
 chronyd : $(OBJS) $(EXTRA_OBJS)
-	$(CC) $(OPTFLAGS) -o chronyd $(OBJS) $(EXTRA_OBJS) $(LDFLAGS) $(LIBS) $(EXTRA_LIBS)
+	$(CC) $(CFLAGS) -o chronyd $(OBJS) $(EXTRA_OBJS) $(LDFLAGS) $(LIBS) $(EXTRA_LIBS)
 
 chronyc : $(CLI_OBJS)
-	$(CC) $(OPTFLAGS) -o chronyc $(CLI_OBJS) $(LDFLAGS) @READLINE_LINK@ $(LIBS) $(EXTRA_CLI_LIBS)
+	$(CC) $(CFLAGS) -o chronyc $(CLI_OBJS) $(LDFLAGS) @READLINE_LINK@ $(LIBS) $(EXTRA_CLI_LIBS)
 
 client.o : client.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) @READLINE_COMPILE@ -c $<
