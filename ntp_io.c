@@ -159,6 +159,16 @@ prepare_socket(int family)
       LOG(LOGS_ERR, LOGF_NtpIO, "Could not request IPV6_V6ONLY socket option");
     }
 #endif
+
+#ifdef IPV6_RECVPKTINFO
+    if (setsockopt(sock_fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
+      LOG(LOGS_ERR, LOGF_NtpIO, "Could not request IPv6 packet info socket option");
+    }
+#elif defined(IPV6_PKTINFO)
+    if (setsockopt(sock_fd, IPPROTO_IPV6, IPV6_PKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
+      LOG(LOGS_ERR, LOGF_NtpIO, "Could not request IPv6 packet info socket option");
+    }
+#endif
   }
 #endif
 
@@ -345,6 +355,17 @@ read_from_socket(void *anything)
       }
 #endif
 
+#ifdef IPV6_PKTINFO
+      if (cmsg->cmsg_level == IPPROTO_IPV6 && cmsg->cmsg_type == IPV6_PKTINFO) {
+        struct in6_pktinfo ipi;
+
+        memcpy(&ipi, CMSG_DATA(cmsg), sizeof(ipi));
+        memcpy(&remote_addr.local_ip_addr.addr.in6, &ipi.ipi6_addr.s6_addr,
+            sizeof (remote_addr.local_ip_addr.addr.in6));
+        remote_addr.local_ip_addr.family = IPADDR_INET6;
+      }
+#endif
+
 #ifdef SO_TIMESTAMP
       if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SO_TIMESTAMP) {
         struct timeval tv;
@@ -442,6 +463,25 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
 
     ipi = (struct in_pktinfo *) CMSG_DATA(cmsg);
     ipi->ipi_spec_dst.s_addr = htonl(remote_addr->local_ip_addr.addr.in4);
+  }
+#endif
+
+#ifdef IPV6_PKTINFO
+  if (remote_addr->local_ip_addr.family == IPADDR_INET6) {
+    struct cmsghdr *cmsg;
+    struct in6_pktinfo *ipi;
+
+    cmsg = CMSG_FIRSTHDR(&msg);
+    memset(cmsg, 0, CMSG_SPACE(sizeof(struct in6_pktinfo)));
+    cmsglen += CMSG_SPACE(sizeof(struct in6_pktinfo));
+
+    cmsg->cmsg_level = IPPROTO_IPV6;
+    cmsg->cmsg_type = IPV6_PKTINFO;
+    cmsg->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
+
+    ipi = (struct in6_pktinfo *) CMSG_DATA(cmsg);
+    memcpy(&ipi->ipi6_addr.s6_addr, &remote_addr->local_ip_addr.addr.in6,
+        sizeof(ipi->ipi6_addr.s6_addr));
   }
 #endif
 
