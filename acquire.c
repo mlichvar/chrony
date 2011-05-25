@@ -63,6 +63,10 @@
 
 #define RETRANSMISSION_TIMEOUT (1.0)
 
+#define NTP_VERSION 3
+#define NTP_MAX_COMPAT_VERSION 4
+#define NTP_MIN_COMPAT_VERSION 2
+
 typedef struct {
   IPAddr ip_addr;               /* Address of the server */
   int sanity;                   /* Flag indicating whether source
@@ -246,7 +250,7 @@ static void
 probe_source(SourceRecord *src)
 {
   NTP_Packet pkt;
-  int version = 3;
+  int version = NTP_VERSION;
   NTP_Mode my_mode = MODE_CLIENT;
   struct timeval cooked;
   union sockaddr_in46 his_addr;
@@ -372,7 +376,7 @@ process_receive(NTP_Packet *msg, SourceRecord *src, struct timeval *now)
   mode = lvm & 0x7;
 
   if ((leap == LEAP_Unsynchronised) ||
-      (version != 3) ||
+      (version  < NTP_MIN_COMPAT_VERSION || version > NTP_MAX_COMPAT_VERSION) ||
       (mode != MODE_SERVER && mode != MODE_PASSIVE)) {
     return;
   }

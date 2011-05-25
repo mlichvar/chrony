@@ -192,6 +192,10 @@ struct NCR_Instance_Record {
 /* The NTP protocol version that we support */
 #define NTP_VERSION 3
 
+/* Compatible NTP protocol versions */
+#define NTP_MAX_COMPAT_VERSION 4
+#define NTP_MIN_COMPAT_VERSION 2
+
 /* Maximum allowed dispersion - as defined in RFC1305 (16 seconds) */
 #define NTP_MAX_DISPERSION 16.0
 
@@ -515,7 +519,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   struct timeval our_ref_time;
   double our_root_delay, our_root_dispersion;
 
-  version = 3;
+  version = NTP_VERSION;
 
   LCL_ReadCookedTime(&local_transmit, NULL);
   REF_GetReferenceParams(&local_transmit,
@@ -1329,7 +1333,7 @@ process_known
 
   /* Check version */
   version = (message->lvm >> 3) & 0x7;
-  if (version != NTP_VERSION) {
+  if (version < NTP_MIN_COMPAT_VERSION || version > NTP_MAX_COMPAT_VERSION) {
     /* Ignore packet, but might want to log it */
     return;
   } 
@@ -1521,7 +1525,14 @@ NCR_ProcessNoauthUnknown(NTP_Packet *message, struct timeval *now, double now_er
 
   NTP_Mode his_mode;
   NTP_Mode my_mode;
-  int my_poll;
+  int my_poll, version;
+
+  /* Check version */
+  version = (message->lvm >> 3) & 0x7;
+  if (version < NTP_MIN_COMPAT_VERSION || version > NTP_MAX_COMPAT_VERSION) {
+    /* Ignore packet, but might want to log it */
+    return;
+  }
 
   if (ADF_IsAllowed(access_auth_table, &remote_addr->ip_addr)) {
 
@@ -1589,9 +1600,16 @@ NCR_ProcessAuthUnknown(NTP_Packet *message, struct timeval *now, double now_err,
 
   NTP_Mode his_mode;
   NTP_Mode my_mode;
-  int my_poll;
+  int my_poll, version;
   int valid_key, valid_auth;
   unsigned long key_id;
+
+  /* Check version */
+  version = (message->lvm >> 3) & 0x7;
+  if (version < NTP_MIN_COMPAT_VERSION || version > NTP_MAX_COMPAT_VERSION) {
+    /* Ignore packet, but might want to log it */
+    return;
+  }
 
   if (ADF_IsAllowed(access_auth_table, &remote_addr->ip_addr)) {
 
