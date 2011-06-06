@@ -897,7 +897,6 @@ get_version_specific_details(void)
   int config_hz, set_config_hz; /* values of HZ from conf file */
   int set_config_freq_scale;
   double config_freq_scale;
-  double calculated_freq_scale;
   struct tmx_params tmx_params;
   struct utsname uts;
   
@@ -927,10 +926,6 @@ get_version_specific_details(void)
   slew_delta_tick = nominal_tick / 12;
   max_tick_bias = nominal_tick / 10;
   tick_update_hz = hz;
-
-  LOG(LOGS_INFO, LOGF_SysLinux, "set_config_hz=%d hz=%d shift_hz=%d basic_freq_scale=%.8f nominal_tick=%d slew_delta_tick=%d max_tick_bias=%d",
-      set_config_hz, hz, shift_hz, basic_freq_scale, nominal_tick, slew_delta_tick, max_tick_bias);
-
 
   /* The basic_freq_scale comes from:
      * the kernel increments the usec counter HZ times per second (if the timer
@@ -1007,12 +1002,12 @@ get_version_specific_details(void)
 
   /* Override freq_scale if it appears in conf file */
   CNF_GetLinuxFreqScale(&set_config_freq_scale, &config_freq_scale);
-  calculated_freq_scale = freq_scale;
   if (set_config_freq_scale) {
     freq_scale = config_freq_scale;
-    LOG(LOGS_INFO, LOGF_SysLinux, "calculated_freq_scale=%.8f freq_scale=%.8f",
-        calculated_freq_scale, freq_scale);
   }
+
+  LOG(LOGS_INFO, LOGF_SysLinux, "hz=%d shift_hz=%d freq_scale=%.8f nominal_tick=%d slew_delta_tick=%d max_tick_bias=%d",
+      hz, shift_hz, freq_scale, nominal_tick, slew_delta_tick, max_tick_bias);
 }
 
 /* ================================================== */
