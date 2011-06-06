@@ -873,6 +873,30 @@ guess_hz_and_shift_hz(int tick, int *hz, int *shift_hz)
 /* ================================================== */
 
 static int
+get_hz_and_shift_hz(int *hz, int *shift_hz)
+{
+#ifdef _SC_CLK_TCK
+  if ((*hz = sysconf(_SC_CLK_TCK)) < 1) {
+    return 0;
+  }
+
+  if (*hz == 100) {
+    *shift_hz = 7;
+    return 1;
+  }
+
+  for (*shift_hz = 1; (*hz >> *shift_hz) > 1; (*shift_hz)++)
+    ;
+
+  return 1;
+#else
+  return 0;
+#endif
+}
+
+/* ================================================== */
+
+static int
 kernelvercmp(int major1, int minor1, int patch1,
     int major2, int minor2, int patch2)
 {
@@ -900,18 +924,20 @@ get_version_specific_details(void)
   struct tmx_params tmx_params;
   struct utsname uts;
   
-  TMX_ReadCurrentParams(&tmx_params);
-  
-  guess_hz_and_shift_hz(tmx_params.tick, &hz, &shift_hz);
+  if (!get_hz_and_shift_hz(&hz, &shift_hz)) {
+    TMX_ReadCurrentParams(&tmx_params);
 
-  if (!shift_hz) {
-    LOG_FATAL(LOGF_SysLinux, "Can't determine hz (txc.tick=%ld txc.freq=%ld (%.8f) txc.offset=%ld)",
-              tmx_params.tick, tmx_params.freq, tmx_params.dfreq, tmx_params.offset);
-  } else {
+    guess_hz_and_shift_hz(tmx_params.tick, &hz, &shift_hz);
+
+    if (!shift_hz) {
+      LOG_FATAL(LOGF_SysLinux, "Can't determine hz (txc.tick=%ld txc.freq=%ld (%.8f) txc.offset=%ld)",
+          tmx_params.tick, tmx_params.freq, tmx_params.dfreq, tmx_params.offset);
+    } else {
 #if 0
-    LOG(LOGS_INFO, LOGF_SysLinux, "Initial txc.tick=%ld txc.freq=%ld (%.8f) txc.offset=%ld => hz=%d shift_hz=%d",
-        tmx_params.tick, tmx_params.freq, tmx_params.dfreq, tmx_params.offset, hz, shift_hz);
+      LOG(LOGS_INFO, LOGF_SysLinux, "Initial txc.tick=%ld txc.freq=%ld (%.8f) txc.offset=%ld => hz=%d shift_hz=%d",
+          tmx_params.tick, tmx_params.freq, tmx_params.dfreq, tmx_params.offset, hz, shift_hz);
 #endif
+    }
   }
 
   CNF_GetLinuxHz(&set_config_hz, &config_hz);
