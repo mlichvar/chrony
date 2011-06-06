@@ -106,8 +106,7 @@ static int version_patchlevel;
 /* Flag indicating whether adjtimex() returns the remaining time adjustment
 or not.  If not we have to read the outstanding adjustment by setting it to
 zero, examining the return value and setting the outstanding adjustment back
-again.  If 1, txc.modes equal to zero is used to read the time.  If 2,
-txc.modes is set to ADJ_OFFSET_SS_READ. */
+again. */
 
 static int have_readonly_adjtime;
 
@@ -766,29 +765,19 @@ get_offset_correction(struct timeval *raw,
   if (!slow_slewing) {
     offset = 0;
   } else {
-    switch (have_readonly_adjtime) {
-      case 2:
-        if (TMX_GetOffsetLeft(&offset) < 0) {
-          LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
-        }
-        break;
-      case 0:
-        toffset = 0;
-        if (TMX_ApplyOffset(&toffset) < 0) {
-          LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
-        }
-        offset = toffset;
-        if (TMX_ApplyOffset(&toffset) < 0) {
-          LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
-        }
-        break;
-      case 1:
-        if (TMX_GetOffsetLeftOld(&offset) < 0) {
-          LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
-        }
-        break;
-      default:
-        assert(0);
+    if (have_readonly_adjtime) {
+      if (TMX_GetOffsetLeft(&offset) < 0) {
+        LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
+      }
+    } else {
+      toffset = 0;
+      if (TMX_ApplyOffset(&toffset) < 0) {
+        LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
+      }
+      offset = toffset;
+      if (TMX_ApplyOffset(&toffset) < 0) {
+        LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
+      }
     }
 
     if (offset == 0) {
@@ -1006,7 +995,7 @@ get_version_specific_details(void)
   if (kernelvercmp(major, minor, patch, 2, 6, 27) < 0) {
     have_readonly_adjtime = 0;
   } else {
-    have_readonly_adjtime = 2;
+    have_readonly_adjtime = 1;
   }
 
   /* ADJ_NANO support */
@@ -1051,7 +1040,7 @@ SYS_Linux_Initialise(void)
     LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
   }
 
-  if (have_readonly_adjtime == 2 && (TMX_GetOffsetLeft(&offset) < 0 || offset)) {
+  if (have_readonly_adjtime && (TMX_GetOffsetLeft(&offset) < 0 || offset)) {
     LOG(LOGS_INFO, LOGF_SysLinux, "adjtimex() doesn't support ADJ_OFFSET_SS_READ");
     have_readonly_adjtime = 0;
   }

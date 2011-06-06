@@ -97,17 +97,6 @@ TMX_GetFrequency(double *freq)
 }
 
 int
-TMX_GetOffsetLeftOld(long *offset)
-{
-  struct timex txc;
-  int result;
-  txc.modes = 0; /* pure read */
-  result = adjtimex(&txc);
-  *offset = txc.offset;
-  return result;
-}
-
-int
 TMX_GetOffsetLeft(long *offset)
 {
   struct timex txc;
