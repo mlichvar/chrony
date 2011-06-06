@@ -31,8 +31,6 @@ extern void SYS_Linux_Initialise(void);
 
 extern void SYS_Linux_Finalise(void);
 
-extern void SYS_Linux_GetKernelVersion(int *major, int *minor, int *patchlevel);
-
 extern void SYS_Linux_DropRoot(char *user);
 
 extern void SYS_Linux_MemLockAll(int LockAll);

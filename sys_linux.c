@@ -1087,16 +1087,6 @@ SYS_Linux_Finalise(void)
 
 /* ================================================== */
 
-void
-SYS_Linux_GetKernelVersion(int *major, int *minor, int *patchlevel)
-{
-  *major = version_major;
-  *minor = version_minor;
-  *patchlevel = version_patchlevel;
-}
-
-/* ================================================== */
-
 #ifdef FEAT_LINUXCAPS
 void
 SYS_Linux_DropRoot(char *user)

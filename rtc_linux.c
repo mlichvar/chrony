@@ -507,62 +507,6 @@ write_coefs_to_file(int valid,time_t ref_time,double offset,double rate)
 int
 RTC_Linux_Initialise(void)
 {
-  int major, minor, patch;
-
-  /* Check whether we can support the real time clock.
-
-     Linux 1.2.x - haven't checked yet
-
-     Linux 1.3.x - don't know, haven't got a system to look at
-
-     Linux 2.0.x - For x<=31, using any variant of the adjtimex() call
-     sets the kernel into a mode where the RTC was updated every 11
-     minutes.  The only way to escape this is to use settimeofday().
-     Since we need to have sole control over the RTC to be able to
-     measure its drift rate, and there is no 'notify' callback to warn
-     you that the kernel is going to do this, I can't see a way to
-     support this.
-
-     Linux 2.0.x - For x>=32 the adjtimex()/RTC behaviour was
-     modified, so that as long as the STA_UNSYNC flag is set the RTC
-     is left alone.  This is the mode we exploit here, so that the RTC
-     continues to go its own sweet way, unless we make updates to it
-     from this module.
-
-     Linux 2.1.x - don't know, haven't got a system to look at.
-
-     Linux 2.2.x, 2.3.x and 2.4.x are believed to be OK for all
-     patch levels
-
-     */
-
-  SYS_Linux_GetKernelVersion(&major, &minor, &patch);
-
-  /* Obviously this test can get more elaborate when we know about
-     more system types. */
-  if (major != 2) {
-    return 0;
-  } else {
-    switch (minor) {
-      case 0:
-        if (patch <= 31) {
-          return 0;
-        }
-        break;
-      case 1:
-        return 0;
-        break;
-      case 2:
-      case 3:
-      case 4:
-      case 5:
-      case 6:
-      case 7:
-      case 8:
-        break; /* OK for all patch levels */
-    } 
-  }
-
   /* Setup details depending on configuration options */
   setup_config();
 
