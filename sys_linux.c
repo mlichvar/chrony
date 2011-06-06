@@ -882,6 +882,19 @@ guess_hz_and_shift_hz(int tick, int *hz, int *shift_hz)
 }
 
 /* ================================================== */
+
+static int
+kernelvercmp(int major1, int minor1, int patch1,
+    int major2, int minor2, int patch2)
+{
+  if (major1 != major2)
+    return major1 - major2;
+  if (minor1 != minor2)
+    return minor1 - minor2;
+  return patch1 - patch2;
+}
+
+/* ================================================== */
 /* Compute the scaling to use on any frequency we set, according to
    the vintage of the Linux kernel being used. */
 
@@ -972,91 +985,35 @@ get_version_specific_details(void)
   version_minor = minor;
   version_patchlevel = patch;
 
-  have_nanopll = 0;
-  
-  switch (major) {
-    case 1:
-      /* Does Linux v1.x even support HZ!=100? */
-      switch (minor) {
-        case 2:
-          if (patch == 13) {
-            freq_scale = (hz==100) ? (128.0 / 100.0) : basic_freq_scale ; /* I _think_! */
-	    have_readonly_adjtime = 1;
-          } else {
-            LOG_FATAL(LOGF_SysLinux, "Kernel version not supported yet, sorry.");
-          }
-          break;
-        case 3:
-          /* I guess the change from the 1.2.x scaling to the 2.0.x
-             scaling must have happened during 1.3 development.  I
-             haven't a clue where though, until someone looks it
-             up. */
-          LOG_FATAL(LOGF_SysLinux, "Kernel version not supported yet, sorry.");
-          break;
-        default:
-          LOG_FATAL(LOGF_SysLinux, "Kernel version not supported yet, sorry.");
-          break;
-      }
-      break;
-    case 2:
-      switch (minor) {
-        case 0:
-          if (patch < 32) {
-            freq_scale = (hz==100) ? (128.0 / 125.0) : basic_freq_scale;
-	    have_readonly_adjtime = 1;
-          } else if (patch >= 32) {
-            freq_scale = (hz==100) ? (128.0 / 128.125) : basic_freq_scale;
-	    
-	    /* The functionality in kernel/time.c in the kernel source
-               was modified with regard to what comes back in the
-               txc.offset field on return from adjtimex.  If txc.modes
-               was ADJ_OFFSET_SINGLESHOT on entry, the outstanding
-               adjustment is returned, however the running offset will
-               be modified to the passed value. */
-	    have_readonly_adjtime = 0;
-          }
-          break;
-        case 1:
-          /* I know that earlier 2.1 kernels were like 2.0.31, hence
-             the settings below.  However, the 2.0.32 behaviour may
-             have been added late in the 2.1 series, however I have no
-             idea at which patch level.  Leave it like this until
-             someone supplies some info. */
-          freq_scale = (hz==100) ? (128.0 / 125.0) : basic_freq_scale;
-          have_readonly_adjtime = 0; /* For safety ! */
-          break;
-        case 2:
-        case 3:
-        case 4:
-        case 5:
-        case 6:
-          if (minor < 6 || patch < 27) {
-            /* These seem to be like 2.0.32 */
-            freq_scale = (hz==100) ? (128.0 / 128.125) : basic_freq_scale;
-            have_readonly_adjtime = 0;
-            break;
-          }
-          if (patch < 33) {
-            /* Tickless kernels before 2.6.33 accumulated ticks only in
-               half-second intervals. */
-            tick_update_hz = 2;
-          }
-          /* fall through */
-        default:
-          /* These don't seem to need scaling */
-          freq_scale = 1.0;
-          have_readonly_adjtime = 2;
-          have_nanopll = 1;
-          break;
-      }
-      break;
-    default:
-      /* Let's be optimistic that these will be the same until proven
-         otherwise :-) */
-      freq_scale = 1.0;
-      have_readonly_adjtime = 2;
-      have_nanopll = 1;
-      break;
+  if (kernelvercmp(major, minor, patch, 2, 2, 0) < 0) {
+    LOG_FATAL(LOGF_SysLinux, "Kernel version not supported, sorry.");
+  }
+
+  if (kernelvercmp(major, minor, patch, 2, 6, 27) < 0) {
+    freq_scale = (hz == 100) ? (128.0 / 128.125) : basic_freq_scale;
+  } else {
+    /* These don't seem to need scaling */
+    freq_scale = 1.0;
+
+    if (kernelvercmp(major, minor, patch, 2, 6, 33) < 0) {
+      /* Tickless kernels before 2.6.33 accumulated ticks only in
+         half-second intervals */
+      tick_update_hz = 2;
+    }
+  }
+
+  /* ADJ_OFFSET_SS_READ support */
+  if (kernelvercmp(major, minor, patch, 2, 6, 27) < 0) {
+    have_readonly_adjtime = 0;
+  } else {
+    have_readonly_adjtime = 2;
+  }
+
+  /* ADJ_NANO support */
+  if (kernelvercmp(major, minor, patch, 2, 6, 27) < 0) {
+    have_nanopll = 0;
+  } else {
+    have_nanopll = 1;
   }
 
   /* Override freq_scale if it appears in conf file */
@@ -1067,7 +1024,6 @@ get_version_specific_details(void)
     LOG(LOGS_INFO, LOGF_SysLinux, "calculated_freq_scale=%.8f freq_scale=%.8f",
         calculated_freq_scale, freq_scale);
   }
-
 }
 
 /* ================================================== */
