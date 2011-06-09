@@ -160,7 +160,7 @@ faq.php : faq.txt faqgen.pl
 .deps:
 	@mkdir .deps
 
-.deps/%.d: %.c .deps
+.deps/%.d: %.c | .deps
 	@$(CC) -MM $(CPPFLAGS) -MT '$(<:%.c=%.o) $@' $< -o $@
 
 -include $(ALL_OBJS:%.o=.deps/%.d)
