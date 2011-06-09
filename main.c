@@ -45,7 +45,6 @@
 #include "keys.h"
 #include "acquire.h"
 #include "manual.h"
-#include "version.h"
 #include "rtc.h"
 #include "refclock.h"
 #include "clientlog.h"
@@ -288,7 +287,7 @@ int main
       do_init_rtc = 1;
     } else if (!strcmp("-v", *argv) || !strcmp("--version",*argv)) {
       /* This write to the terminal is OK, it comes before we turn into a daemon */
-      printf("chronyd (chrony) version %s\n", PROGRAM_VERSION_STRING);
+      printf("chronyd (chrony) version %s\n", CHRONY_VERSION);
       exit(0);
     } else if (!strcmp("-n", *argv)) {
       nofork = 1;
@@ -322,7 +321,7 @@ int main
     LOG_OpenSystemLog();
   }
   
-  LOG(LOGS_INFO, LOGF_Main, "chronyd version %s starting", PROGRAM_VERSION_STRING);
+  LOG(LOGS_INFO, LOGF_Main, "chronyd version %s starting", CHRONY_VERSION);
 
   /* Check whether another chronyd may already be running.  Do this after
    * forking, so that message logging goes to the right place (i.e. syslog), in

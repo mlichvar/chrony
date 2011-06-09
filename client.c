@@ -33,7 +33,6 @@
 #include "candm.h"
 #include "nameserv.h"
 #include "md5.h"
-#include "version.h"
 #include "getdate.h"
 #include "cmdparse.h"
 #include "pktlength.h"
@@ -2662,7 +2661,7 @@ display_gpl(void)
            "chrony comes with ABSOLUTELY NO WARRANTY.  This is free software, and\n"
            "you are welcome to redistribute it under certain conditions.  See the\n"
            "GNU General Public License version 2 for details.\n\n",
-           PROGRAM_VERSION_STRING);
+           CHRONY_VERSION);
 }
 
 /* ================================================== */
@@ -2699,7 +2698,7 @@ main(int argc, char **argv)
       DNS_SetAddressFamily(IPADDR_INET6);
       hostname = "::1";
     } else if (!strcmp("-v", *argv) || !strcmp("--version",*argv)) {
-      printf("chronyc (chrony) version %s\n", PROGRAM_VERSION_STRING);
+      printf("chronyc (chrony) version %s\n", CHRONY_VERSION);
       exit(0);
     } else if (!strncmp(*argv, "-", 1)) {
       fprintf(stderr, "Usage : %s [-h <hostname>] [-p <port-number>] [-n] [-4|-6] [-m] [command]\n", progname);

@@ -82,9 +82,6 @@ clean :
 	-rm -f *.o *.s chronyc chronyd core *~
 	-rm -rf .deps
 
-version.h : version.txt
-	./mkversion
-
 getdate.c : ;
 getdate :
 	bison -o getdate.c getdate.y
@@ -126,8 +123,6 @@ install: chronyd chronyc
 
 %.s : %.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -S $<
-
-main.o logging.o client.o : version.h
 
 # makeinfo v4 required to generate plain text and html
 MAKEINFO:=makeinfo

@@ -501,6 +501,12 @@ fi
 
 add_def DEFAULT_CONF_DIR "\"$SYSCONFDIR\""
 
+if [ -f version.txt ]; then
+  add_def CHRONY_VERSION "\"`cat version.txt`\""
+else
+  add_def CHRONY_VERSION "\"DEVELOPMENT\""
+fi
+
 sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
 	s%@CC@%${MYCC}%;\
 	s%@CFLAGS@%${MYCFLAGS}%;\
