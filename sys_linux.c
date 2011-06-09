@@ -115,6 +115,9 @@ static int have_readonly_adjtime;
    adjustments. */
 static int have_nanopll;
 
+/* Flag indicating whether adjtimex() can step the clock */
+static int have_setoffset;
+
 /* ================================================== */
 
 static void handle_end_of_slew(void *anything);
@@ -612,22 +615,28 @@ apply_step_offset(double offset)
     abort_slew();
   }
 
-  if (gettimeofday(&old_time, NULL) < 0) {
-    LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
+  if (have_setoffset) {
+    if (TMX_ApplyStepOffset(-offset) < 0) {
+      LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
+    }
+  } else {
+    if (gettimeofday(&old_time, NULL) < 0) {
+      LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
+    }
+
+    UTI_AddDoubleToTimeval(&old_time, -offset, &new_time);
+
+    if (settimeofday(&new_time, NULL) < 0) {
+      LOG_FATAL(LOGF_SysLinux, "settimeofday() failed");
+    }
+
+    if (gettimeofday(&old_time, NULL) < 0) {
+      LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
+    }
+
+    UTI_DiffTimevalsToDouble(&err, &old_time, &new_time);
+    lcl_InvokeDispersionNotifyHandlers(fabs(err));
   }
-
-  UTI_AddDoubleToTimeval(&old_time, -offset, &new_time);
-
-  if (settimeofday(&new_time, NULL) < 0) {
-    LOG_FATAL(LOGF_SysLinux, "settimeofday() failed");
-  }
-
-  if (gettimeofday(&old_time, NULL) < 0) {
-    LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
-  }
-
-  UTI_DiffTimevalsToDouble(&err, &old_time, &new_time);
-  lcl_InvokeDispersionNotifyHandlers(fabs(err));
 
   initiate_slew();
 
@@ -1010,6 +1019,13 @@ get_version_specific_details(void)
     have_nanopll = 1;
   }
 
+  /* ADJ_SETOFFSET support */
+  if (kernelvercmp(major, minor, patch, 2, 6, 39) < 0) {
+    have_setoffset = 0;
+  } else {
+    have_setoffset = 1;
+  }
+
   /* Override freq_scale if it appears in conf file */
   CNF_GetLinuxFreqScale(&set_config_freq_scale, &config_freq_scale);
   if (set_config_freq_scale) {
@@ -1047,6 +1063,11 @@ SYS_Linux_Initialise(void)
   if (have_nanopll && TMX_EnableNanoPLL() < 0) {
     LOG(LOGS_INFO, LOGF_SysLinux, "adjtimex() doesn't support nanosecond PLL");
     have_nanopll = 0;
+  }
+
+  if (have_setoffset && TMX_TestStepOffset() < 0) {
+    LOG(LOGS_INFO, LOGF_SysLinux, "adjtimex() doesn't support ADJ_SETOFFSET");
+    have_setoffset = 0;
   }
 
   TMX_SetSync(CNF_GetRTCSync());

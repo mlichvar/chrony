@@ -75,6 +75,8 @@ int TMX_SetSync(int sync);
 int TMX_EnableNanoPLL(void);
 int TMX_ApplyPLLOffset(long offset);
 int TMX_GetPLLOffsetLeft(long *offset);
+int TMX_TestStepOffset(void);
+int TMX_ApplyStepOffset(double offset);
 
 #endif  /* GOT_WRAP_ADJTIMEX_H */
 
