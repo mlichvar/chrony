@@ -70,9 +70,9 @@ typedef struct {
 
 static FileHandlerEntry file_handlers[FD_SET_SIZE];
 
-/* Last timestamp when a file descriptor became readable */
-static struct timeval last_fdready;
-static double last_fdready_err;
+/* Timestamp when last select() returned */
+static struct timeval last_select_ts, last_select_ts_raw;
+static double last_select_ts_err;
 
 /* ================================================== */
 
@@ -229,9 +229,9 @@ SCH_RemoveInputFileHandler(int fd)
 void
 SCH_GetFileReadyTime(struct timeval *tv, double *err)
 {
-  *tv = last_fdready;
+  *tv = last_select_ts;
   if (err)
-    *err = last_fdready_err;
+    *err = last_select_ts_err;
 }
 
 /* ================================================== */
@@ -514,13 +514,42 @@ handle_slew(struct timeval *raw,
 
 /* ================================================== */
 
+/* Try to handle unexpected backward time jump */
+
+static void
+recover_backjump(struct timeval *raw, struct timeval *cooked, int timeout)
+{
+      double diff, err;
+
+      UTI_DiffTimevalsToDouble(&diff, &last_select_ts_raw, raw);
+
+      if (n_timer_queue_entries > 0) {
+        UTI_DiffTimevalsToDouble(&err, &(timer_queue.next->tv), &last_select_ts_raw);
+      } else {
+        err = 0.0;
+      }
+
+      diff += err;
+
+      if (timeout) {
+        err = 1.0;
+      }
+
+      LOG(LOGS_WARN, LOGF_Scheduler, "Backward time jump detected! (correction %.1f +- %.1f seconds)", diff, err);
+
+      LCL_NotifyExternalTimeStep(raw, cooked, diff, err);
+}
+
+/* ================================================== */
+
 void
 SCH_MainLoop(void)
 {
   fd_set rd;
   int status;
   struct timeval tv, *ptv;
-  struct timeval now;
+  struct timeval now, cooked;
+  double err;
 
   assert(initialised);
 
@@ -557,12 +586,23 @@ SCH_MainLoop(void)
 
     status = select(one_highest_fd, &rd, NULL, NULL, ptv);
 
+    LCL_ReadRawTime(&now);
+    LCL_CookTime(&now, &cooked, &err);
+
+    /* Check if time didn't jump backwards */
+    if (last_select_ts_raw.tv_sec > now.tv_sec + 1) {
+      recover_backjump(&now, &cooked, status == 0);
+    }
+
+    last_select_ts_raw = now;
+    last_select_ts = cooked;
+    last_select_ts_err = err;
+
     if (status < 0) {
       assert(need_to_exit);
     } else if (status > 0) {
       /* A file descriptor is ready to read */
 
-      LCL_ReadCookedTime(&last_fdready, &last_fdready_err);
       dispatch_filehandlers(status, &rd);
 
     } else {

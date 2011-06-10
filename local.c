@@ -489,6 +489,22 @@ LCL_ApplyStepOffset(double offset)
 /* ================================================== */
 
 void
+LCL_NotifyExternalTimeStep(struct timeval *raw, struct timeval *cooked,
+    double offset, double dispersion)
+{
+  ChangeListEntry *ptr;
+
+  /* Dispatch to all handlers */
+  for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
+    (ptr->handler)(raw, cooked, 0.0, offset, 1, ptr->anything);
+  }
+
+  lcl_InvokeDispersionNotifyHandlers(dispersion);
+}
+
+/* ================================================== */
+
+void
 LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset)
 {
   ChangeListEntry *ptr;

@@ -151,6 +151,11 @@ extern void LCL_AccumulateOffset(double offset);
 
 extern void LCL_ApplyStepOffset(double offset);
 
+/* Routine to invoke notify handlers on an unexpected time jump
+   in system clock */
+extern void LCL_NotifyExternalTimeStep(struct timeval *raw, struct timeval *cooked,
+    double offset, double dispersion);
+
 /* Perform the combination of modifying the frequency and applying
    a slew, in one easy step */
 extern void LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset);
