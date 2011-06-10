@@ -509,6 +509,8 @@ handle_slew(struct timeval *raw,
     for (i = 0; i < SCH_NumberOfClasses; i++) {
       UTI_AddDoubleToTimeval(&last_class_dispatch[i], -doffset, &last_class_dispatch[i]);
     }
+
+    UTI_AddDoubleToTimeval(&last_select_ts_raw, -doffset, &last_select_ts_raw);
   }
 }
 
