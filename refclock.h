@@ -32,7 +32,7 @@
 #include "sources.h"
 
 typedef struct {
-  char driver_name[4];
+  char *driver_name;
   char *driver_parameter;
   int driver_poll;
   int poll;

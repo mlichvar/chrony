@@ -471,7 +471,7 @@ parse_refclock(const char *line)
   unsigned long ref_id, lock_ref_id;
   double offset, delay, precision;
   const char *tmp;
-  char name[5], cmd[10 + 1], *param;
+  char cmd[10 + 1], *name, *param;
   unsigned char ref[5];
   SRC_SelectOption sel_option;
 
@@ -490,11 +490,20 @@ parse_refclock(const char *line)
   lock_ref_id = 0;
   sel_option = SRC_SelectNormal;
 
-  if (sscanf(line, "%4s%n", name, &n) != 1) {
+  while (isspace(line[0]))
+    line++;
+  tmp = line;
+  while (line[0] != '\0' && !isspace(line[0]))
+    line++;
+
+  if (line == tmp) {
     LOG(LOGS_WARN, LOGF_Configure, "Could not read refclock driver name at line %d", line_number);
     return;
   }
-  line += n;
+
+  name = MallocArray(char, 1 + line - tmp);
+  strncpy(name, tmp, line - tmp);
+  name[line - tmp] = '\0';
 
   while (isspace(line[0]))
     line++;
@@ -504,6 +513,7 @@ parse_refclock(const char *line)
 
   if (line == tmp) {
     LOG(LOGS_WARN, LOGF_Configure, "Could not read refclock parameter at line %d", line_number);
+    Free(name);
     return;
   }
 
@@ -558,7 +568,7 @@ parse_refclock(const char *line)
     line += n;
   }
 
-  strncpy(refclock_sources[i].driver_name, name, 4);
+  refclock_sources[i].driver_name = name;
   refclock_sources[i].driver_parameter = param;
   refclock_sources[i].driver_poll = dpoll;
   refclock_sources[i].poll = poll;

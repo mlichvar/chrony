@@ -150,14 +150,14 @@ RCL_AddRefclock(RefclockParameters *params)
   if (n_sources == MAX_RCL_SOURCES)
     return 0;
 
-  if (strncmp(params->driver_name, "SHM", 4) == 0) {
+  if (strcmp(params->driver_name, "SHM") == 0) {
     inst->driver = &RCL_SHM_driver;
     inst->precision = 1e-6;
-  } else if (strncmp(params->driver_name, "SOCK", 4) == 0) {
+  } else if (strcmp(params->driver_name, "SOCK") == 0) {
     inst->driver = &RCL_SOCK_driver;
     inst->precision = 1e-9;
     pps_source = 1;
-  } else if (strncmp(params->driver_name, "PPS", 4) == 0) {
+  } else if (strcmp(params->driver_name, "PPS") == 0) {
     inst->driver = &RCL_PPS_driver;
     inst->precision = 1e-9;
     pps_source = 1;
@@ -243,6 +243,8 @@ RCL_AddRefclock(RefclockParameters *params)
 		  inst->poll, inst->driver_poll, params->filter_length);
 #endif
   n_sources++;
+
+  Free(params->driver_name);
 
   return 1;
 }
