@@ -338,7 +338,7 @@ RCL_GetDriverOption(RCL_Instance instance, char *name)
 }
 
 int
-RCL_AddSample(RCL_Instance instance, struct timeval *sample_time, double offset, NTP_Leap leap_status)
+RCL_AddSample(RCL_Instance instance, struct timeval *sample_time, double offset, int leap)
 {
   double correction, dispersion;
   struct timeval cooked_time;
@@ -351,7 +351,17 @@ RCL_AddSample(RCL_Instance instance, struct timeval *sample_time, double offset,
     return 0;
 
   filter_add_sample(&instance->filter, &cooked_time, offset - correction + instance->offset, dispersion);
-  instance->leap_status = leap_status;
+
+  switch (leap) {
+    case LEAP_Normal:
+    case LEAP_InsertSecond:
+    case LEAP_DeleteSecond:
+      instance->leap_status = leap;
+      break;
+    default:
+      instance->leap_status = LEAP_Unsynchronised;
+      break;
+  }
 
   log_sample(instance, &cooked_time, 0, 0, offset, offset - correction + instance->offset, dispersion);
 
