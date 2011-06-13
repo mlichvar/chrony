@@ -91,7 +91,7 @@ timeout_handler(void *arbitrary)
   if (are_we_synchronised) {
     leap = (int) leap_status;
   } else {
-    leap = 3;
+    leap = LEAP_Unsynchronised;
   }
 
   message.lvm = ((leap << 6) &0xc0) | ((version << 3) & 0x38) | (MODE_BROADCAST & 0x07);

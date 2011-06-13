@@ -177,7 +177,7 @@ RCL_AddRefclock(RefclockParameters *params)
   inst->driver_poll = params->driver_poll;
   inst->poll = params->poll;
   inst->driver_polled = 0;
-  inst->leap_status = 0;
+  inst->leap_status = LEAP_Normal;
   inst->pps_rate = params->pps_rate;
   inst->lock_ref = params->lock_ref_id;
   inst->offset = params->offset;

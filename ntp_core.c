@@ -531,7 +531,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   if (are_we_synchronised) {
     leap = (int) leap_status;
   } else {
-    leap = 3;
+    leap = LEAP_Unsynchronised;
   }
 
   /* Generate transmit packet */
