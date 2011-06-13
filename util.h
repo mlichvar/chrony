@@ -71,13 +71,13 @@ extern char *UTI_TimevalToString(struct timeval *tv);
 extern char *UTI_TimestampToString(NTP_int64 *ts);
 
 /* Convert ref_id into a temporary string, for diagnostics */
-extern char *UTI_RefidToString(unsigned long ref_id);
+extern char *UTI_RefidToString(uint32_t ref_id);
 
 /* Convert an IP address to string, for diagnostics */
 extern char *UTI_IPToString(IPAddr *ip);
 
 extern int UTI_StringToIP(const char *addr, IPAddr *ip);
-extern unsigned long UTI_IPToRefid(IPAddr *ip);
+extern uint32_t UTI_IPToRefid(IPAddr *ip);
 extern void UTI_IPHostToNetwork(IPAddr *src, IPAddr *dest);
 extern void UTI_IPNetworkToHost(IPAddr *src, IPAddr *dest);
 extern int UTI_CompareIPs(IPAddr *a, IPAddr *b, IPAddr *mask);

@@ -61,7 +61,7 @@ typedef enum {
 /* Function to create a new instance.  This would be called by one of
    the individual source-type instance creation routines. */
 
-extern SRC_Instance SRC_CreateNewInstance(unsigned long ref_id, SRC_Type type, SRC_SelectOption sel_option, IPAddr *addr);
+extern SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, SRC_SelectOption sel_option, IPAddr *addr);
 
 /* Function to get rid of a source when it is being unconfigured.
    This may cause the current reference source to be reselected, if this
@@ -135,7 +135,7 @@ extern void SRC_ResetReachability(SRC_Instance inst);
    reference source address. (This avoids updating the frequency
    tracking for every sample from other sources - only the ones from
    the selected reference make a difference) */
-extern void SRC_SelectSource(unsigned long match_addr);
+extern void SRC_SelectSource(uint32_t match_refid);
 
 /* Force reselecting the best source */
 extern void SRC_ReselectSource(void);

@@ -515,7 +515,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   /* Parameters read from reference module */
   int are_we_synchronised, our_stratum;
   NTP_Leap leap_status;
-  unsigned long our_ref_id;
+  uint32_t our_ref_id;
   struct timeval our_ref_time;
   double our_root_delay, our_root_dispersion;
 

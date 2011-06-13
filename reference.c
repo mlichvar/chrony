@@ -45,7 +45,7 @@ static int local_stratum;
 static NTP_Leap our_leap_status;
 static int our_leap_sec;
 static int our_stratum;
-static unsigned long our_ref_id;
+static uint32_t our_ref_id;
 static IPAddr our_ref_ip;
 struct timeval our_ref_time; /* Stored relative to reference, NOT local time */
 static double our_offset;
@@ -516,7 +516,7 @@ write_log(struct timeval *ref_time, char *ref, int stratum, double freq, double 
 void
 REF_SetReference(int stratum,
                  NTP_Leap leap,
-                 unsigned long ref_id,
+                 uint32_t ref_id,
                  IPAddr *ref_ip,
                  struct timeval *ref_time,
                  double offset,
@@ -741,7 +741,7 @@ REF_GetReferenceParams
  int *is_synchronised,
  NTP_Leap *leap_status,
  int *stratum,
- unsigned long *ref_id,
+ uint32_t *ref_id,
  struct timeval *ref_time,
  double *root_delay,
  double *root_dispersion
@@ -794,7 +794,7 @@ REF_GetReferenceParams
 
     *leap_status = LEAP_Unsynchronised;
     *stratum = 0;
-    *ref_id = 0UL;
+    *ref_id = 0;
     ref_time->tv_sec = ref_time->tv_usec = 0;
     /* These values seem to be standard for a client, and
        any peer or client of ours will ignore them anyway because
@@ -900,7 +900,7 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
 
   } else {
 
-    rep->ref_id = 0UL;
+    rep->ref_id = 0;
     rep->ip_addr.family = IPADDR_UNSPEC;
     rep->stratum = 0;
     rep->ref_time.tv_sec = 0;

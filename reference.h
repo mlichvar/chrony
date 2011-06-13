@@ -71,7 +71,7 @@ extern void REF_GetReferenceParams
  int *is_synchronised,
  NTP_Leap *leap,
  int *stratum,
- unsigned long *ref_id,
+ uint32_t *ref_id,
  struct timeval *ref_time,
  double *root_delay,
  double *root_dispersion
@@ -105,7 +105,7 @@ extern void REF_SetReference
 (
  int stratum,
  NTP_Leap leap,
- unsigned long ref_id,
+ uint32_t ref_id,
  IPAddr *ref_ip,
  struct timeval *ref_time,
  double offset,

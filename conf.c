@@ -468,7 +468,7 @@ static void
 parse_refclock(const char *line)
 {
   int i, n, poll, dpoll, filter_length, pps_rate;
-  unsigned long ref_id, lock_ref_id;
+  uint32_t ref_id, lock_ref_id;
   double offset, delay, precision;
   const char *tmp;
   char cmd[10 + 1], *name, *param;

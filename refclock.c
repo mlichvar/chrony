@@ -74,8 +74,8 @@ struct RCL_Instance_Record {
   int leap_status;
   int pps_rate;
   struct MedianFilter filter;
-  unsigned long ref_id;
-  unsigned long lock_ref;
+  uint32_t ref_id;
+  uint32_t lock_ref;
   double offset;
   double delay;
   double precision;
@@ -279,7 +279,7 @@ void
 RCL_ReportSource(RPT_SourceReport *report, struct timeval *now)
 {
   int i;
-  unsigned long ref_id;
+  uint32_t ref_id;
 
   assert(report->ip_addr.family == IPADDR_INET4);
   ref_id = report->ip_addr.addr.in4;
@@ -420,7 +420,7 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
     int is_synchronised, stratum;
     double root_delay, root_dispersion, distance;
     NTP_Leap leap;
-    unsigned long ref_id;
+    uint32_t ref_id;
 
     /* Ignore the pulse if we are not well synchronized */
 
@@ -471,7 +471,7 @@ pps_stratum(RCL_Instance instance, struct timeval *tv)
   int is_synchronised, stratum, i;
   double root_delay, root_dispersion;
   NTP_Leap leap;
-  unsigned long ref_id;
+  uint32_t ref_id;
 
   REF_GetReferenceParams(tv, &is_synchronised, &leap, &stratum,
       &ref_id, &ref_time, &root_delay, &root_dispersion);

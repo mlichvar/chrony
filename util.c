@@ -240,7 +240,7 @@ UTI_TimestampToString(NTP_int64 *ts)
 /* ================================================== */
 
 char *
-UTI_RefidToString(unsigned long ref_id)
+UTI_RefidToString(uint32_t ref_id)
 {
   unsigned int i, j, c;
   char buf[5], *result;
@@ -333,7 +333,7 @@ UTI_StringToIP(const char *addr, IPAddr *ip)
 
 /* ================================================== */
 
-unsigned long
+uint32_t
 UTI_IPToRefid(IPAddr *ip)
 {
   MD5_CTX ctx;

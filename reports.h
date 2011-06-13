@@ -46,7 +46,7 @@ typedef struct {
 } RPT_SourceReport ;
 
 typedef struct {
-  unsigned long ref_id;
+  uint32_t ref_id;
   IPAddr ip_addr;
   unsigned long stratum;
   struct timeval ref_time;
@@ -59,7 +59,7 @@ typedef struct {
 } RPT_TrackingReport;
 
 typedef struct {
-  unsigned long ref_id;
+  uint32_t ref_id;
   IPAddr ip_addr;
   unsigned long n_samples;
   unsigned long n_runs;

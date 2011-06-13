@@ -1789,7 +1789,7 @@ process_cmd_sourcestats(char *line)
   char hostname_buf[50];
   unsigned long n_samples, n_runs, span_seconds;
   double resid_freq_ppm, skew_ppm, sd, est_offset;
-  unsigned long ref_id;
+  uint32_t ref_id;
   IPAddr ip_addr;
 
   verbose = check_for_verbose_flag(line);
@@ -1868,7 +1868,7 @@ process_cmd_tracking(char *line)
   CMD_Request request;
   CMD_Reply reply;
   IPAddr ip_addr;
-  unsigned long ref_id;
+  uint32_t ref_id;
   char host[50];
   char *ref_ip;
   struct timeval ref_time;

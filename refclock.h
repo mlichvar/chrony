@@ -38,8 +38,8 @@ typedef struct {
   int poll;
   int filter_length;
   int pps_rate;
-  unsigned long ref_id;
-  unsigned long lock_ref_id;
+  uint32_t ref_id;
+  uint32_t lock_ref_id;
   double offset;
   double delay;
   double precision;

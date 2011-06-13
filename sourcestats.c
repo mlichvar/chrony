@@ -58,7 +58,7 @@ static LOG_FileID logfileid;
 struct SST_Stats_Record {
 
   /* Reference ID and IP address of source, used for logging to statistics log */
-  unsigned long refid;
+  uint32_t refid;
   IPAddr *ip_addr;
 
   /* Number of samples currently stored.  The samples are stored in circular
@@ -173,7 +173,7 @@ SST_Finalise(void)
 /* This function creates a new instance of the statistics handler */
 
 SST_Stats
-SST_CreateInstance(unsigned long refid, IPAddr *addr)
+SST_CreateInstance(uint32_t refid, IPAddr *addr)
 {
   SST_Stats inst;
   inst = MallocNew(struct SST_Stats_Record);

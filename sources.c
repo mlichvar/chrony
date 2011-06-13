@@ -84,8 +84,8 @@ struct SRC_Instance_Record {
   SST_Stats stats;
   NTP_Leap leap_status;         /* Leap status */
   int index;                    /* Index back into the array of source */
-  unsigned long ref_id;         /* The reference ID of this source
-                                   (i.e. its IP address, NOT the
+  uint32_t ref_id;              /* The reference ID of this source
+                                   (i.e. from its IP address, NOT the
                                    reference _it_ is sync'd to) */
   IPAddr *ip_addr;              /* Its IP address if NTP source */
 
@@ -183,7 +183,7 @@ void SRC_Finalise(void)
 /* Function to create a new instance.  This would be called by one of
    the individual source-type instance creation routines. */
 
-SRC_Instance SRC_CreateNewInstance(unsigned long ref_id, SRC_Type type, SRC_SelectOption sel_option, IPAddr *addr)
+SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, SRC_SelectOption sel_option, IPAddr *addr)
 {
   SRC_Instance result;
 
@@ -420,10 +420,10 @@ source_to_string(SRC_Instance inst)
    of sources we are holding. 
    
    Updates are only made to the local reference if a new source is selected
-   or match_addr is equal to the selected reference source address */
+   or match_refid is equal to the selected reference source refid */
 
 void
-SRC_SelectSource(unsigned long match_addr)
+SRC_SelectSource(uint32_t match_refid)
 {
   int i, j, index, old_selected_index;
   struct timeval now, ref_time;
@@ -783,8 +783,8 @@ SRC_SelectSource(unsigned long match_addr)
 
             /* Update score, but only for source pairs where one source
                has a new sample */
-            if (sources[i]->ref_id == match_addr ||
-                sources[selected_source_index]->ref_id == match_addr) {
+            if (sources[i]->ref_id == match_refid ||
+                sources[selected_source_index]->ref_id == match_refid) {
 
               sources[i]->sel_score *= sel_src_distance / distance;
 
@@ -803,7 +803,7 @@ SRC_SelectSource(unsigned long match_addr)
 
 #if 0
           LOG(LOGS_INFO, LOGF_Sources, "select score=%f refid=%lx match_refid=%lx status=%d dist=%f",
-              sources[i]->sel_score, sources[i]->ref_id, match_addr, sources[i]->status, distance);
+              sources[i]->sel_score, sources[i]->ref_id, match_refid, sources[i]->status, distance);
 #endif
         
           if (max_score < sources[i]->sel_score) {
@@ -840,9 +840,9 @@ SRC_SelectSource(unsigned long match_addr)
         sources[selected_source_index]->status = SRC_SYNC;
 
         /* Update local reference only when a new source was selected or a new
-           sample was received (i.e. match_addr is equal to selected ref_id) */
+           sample was received (i.e. match_refid is equal to selected refid) */
         if (selected_source_index != old_selected_index ||
-            match_addr == sources[selected_source_index]->ref_id) {
+            match_refid == sources[selected_source_index]->ref_id) {
 
           /* Now just use the statistics of the selected source for
              trimming the local clock */

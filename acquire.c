@@ -270,7 +270,7 @@ probe_source(SourceRecord *src)
   pkt.precision = -6; /* as ntpdate */
   pkt.root_delay = double_to_int32(1.0); /* 1 second */
   pkt.root_dispersion = double_to_int32(1.0); /* likewise */
-  pkt.reference_id = 0UL;
+  pkt.reference_id = 0;
   pkt.reference_ts.hi = 0; /* Set to 0 */
   pkt.reference_ts.lo = 0; /* Set to 0 */
   pkt.originate_ts.hi = 0; /* Set to 0 */
