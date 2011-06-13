@@ -1082,11 +1082,10 @@ process_cmd_delete(CMD_Request *msg, char *line)
       fprintf(stderr, "Could not get address for hostname\n");
       ok = 0;
     } else {
+      UTI_IPHostToNetwork(&address, &msg->data.del_source.ip_addr);
       ok = 1;
     }
   }
-
-  UTI_IPHostToNetwork(&address, &msg->data.del_source.ip_addr);
 
   return ok;
   

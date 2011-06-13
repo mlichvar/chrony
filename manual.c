@@ -145,6 +145,8 @@ estimate_and_set_system(struct timeval *now, int offset_provided, double offset,
     }
     b1 = freq = 0.0;
     found_freq = 0;
+    agos[0] = 0.0;
+    offsets[0] = b0;
   }
 
   if (offset_provided) {
