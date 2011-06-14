@@ -366,6 +366,8 @@ int main
     SYS_DropRoot(user);
   }
 
+  LOG_CreateLogFileDir();
+
   REF_Initialise();
   SST_Initialise();
   BRD_Initialise();
@@ -376,8 +378,6 @@ int main
   ACQ_Initialise();
   MNL_Initialise();
   TMC_Initialise();
-
-  LOG_CreateLogFileDir();
 
   /* From now on, it is safe to do finalisation on exit */
   initialised = 1;
