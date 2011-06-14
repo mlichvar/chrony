@@ -141,6 +141,7 @@ REF_Initialise(void)
           our_frequency_ppm = file_freq_ppm;
           our_skew = 1.0e-6 * file_skew_ppm;
           LOG(LOGS_INFO, LOGF_Reference, "Frequency %.3f +- %.3f ppm read from %s", file_freq_ppm, file_skew_ppm, drift_file);
+          LCL_SetAbsoluteFrequency(our_frequency_ppm);
         } else {
           LOG(LOGS_WARN, LOGF_Reference, "Could not parse valid frequency and skew from driftfile %s",
               drift_file);
@@ -155,7 +156,12 @@ REF_Initialise(void)
     drift_file_age = 0.0;
   }
     
-  LCL_SetAbsoluteFrequency(our_frequency_ppm);
+  if (our_frequency_ppm == 0.0) {
+    our_frequency_ppm = LCL_ReadAbsoluteFrequency();
+    if (our_frequency_ppm != 0.0) {
+      LOG(LOGS_INFO, LOGF_Reference, "Initial frequency %.3f ppm", our_frequency_ppm);
+    }
+  }
 
   logfileid = CNF_GetLogTracking() ? LOG_FileOpen("tracking",
       "   Date (UTC) Time     IP Address   St   Freq ppm   Skew ppm     Offset")

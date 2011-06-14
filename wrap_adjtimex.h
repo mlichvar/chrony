@@ -67,7 +67,7 @@ struct tmx_params {
 int TMX_SetTick(long tick);
 int TMX_ApplyOffset(long *offset);
 int TMX_SetFrequency(double *freq, long tick);
-int TMX_GetFrequency(double *freq);
+int TMX_GetFrequency(double *freq, long *tick);
 int TMX_GetOffsetLeft(long *offset);
 int TMX_ReadCurrentParams(struct tmx_params *params);
 int TMX_SetLeap(int leap);

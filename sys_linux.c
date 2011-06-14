@@ -720,15 +720,17 @@ read_frequency(void)
   double tick_term;
   double unscaled_freq;
   double freq_term;
+  long tick;
 
-  if (TMX_GetFrequency(&unscaled_freq) < 0) {
+  if (TMX_GetFrequency(&unscaled_freq, &tick) < 0) {
     LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
   }
 
-  /* Use current_tick here rather than txc.tick, otherwise we're
-     thrown off course when doing a fast slew (in which case, txc.tick
-     is nowhere near the nominal value) */
-  tick_term = dhz * (double)(nominal_tick - current_tick);
+  if (fast_slewing) {
+      tick -= slewing_tick - current_tick;
+  }
+
+  tick_term = dhz * (double)(nominal_tick - tick);
   freq_term = unscaled_freq / freq_scale;
   
 #if 0
@@ -1043,18 +1045,12 @@ void
 SYS_Linux_Initialise(void)
 {
   long offset;
+  double freq;
 
   offset_register = 0.0;
   fast_slewing = 0;
 
   get_version_specific_details();
-
-  current_tick = nominal_tick;
-  current_total_tick = 1.0 / dhz;
-
-  lcl_RegisterSystemDrivers(read_frequency, set_frequency,
-                            accrue_offset, apply_step_offset,
-                            get_offset_correction, set_leap);
 
   offset = 0;
   if (TMX_ApplyOffset(&offset) < 0) {
@@ -1072,6 +1068,14 @@ SYS_Linux_Initialise(void)
   }
 
   TMX_SetSync(CNF_GetRTCSync());
+
+  /* Read current kernel frequency */
+  TMX_GetFrequency(&freq, &current_tick);
+  current_total_tick = (current_tick + freq / freq_scale / dhz) / 1.0e6;
+
+  lcl_RegisterSystemDrivers(read_frequency, set_frequency,
+                            accrue_offset, apply_step_offset,
+                            get_offset_correction, set_leap);
 }
 
 /* ================================================== */

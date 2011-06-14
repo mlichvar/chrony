@@ -86,13 +86,14 @@ TMX_SetFrequency(double *freq, long tick)
 }
 
 int
-TMX_GetFrequency(double *freq)
+TMX_GetFrequency(double *freq, long *tick)
 {
   struct timex txc;
   int result;
   txc.modes = 0; /* pure read */
   result = adjtimex(&txc);
   *freq = txc.freq / (double)(1 << SHIFT_USEC);
+  *tick = txc.tick;
   return result;
 }
 
