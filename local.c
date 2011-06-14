@@ -358,14 +358,14 @@ LCL_GetOffsetCorrection(struct timeval *raw, double *correction, double *err)
 }
 
 /* ================================================== */
-/* This is just a simple passthrough of the system specific routine */
+/* Return current frequency */
 
 double
 LCL_ReadAbsoluteFrequency(void)
 {
   double freq;
 
-  freq = (*drv_read_freq)();
+  freq = current_freq_ppm; 
 
   /* Undo temperature compensation */
   if (temp_comp_ppm != 0.0) {
