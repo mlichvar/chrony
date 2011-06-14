@@ -129,6 +129,7 @@ REF_Initialise(void)
   our_frequency_ppm = 0.0;
   our_skew = 1.0; /* i.e. rather bad */
   our_residual_freq = 0.0;
+  drift_file_age = 0.0;
 
   /* Now see if we can get the drift file opened */
   drift_file = CNF_GetDriftFile();
@@ -142,6 +143,7 @@ REF_Initialise(void)
           our_skew = 1.0e-6 * file_skew_ppm;
           LOG(LOGS_INFO, LOGF_Reference, "Frequency %.3f +- %.3f ppm read from %s", file_freq_ppm, file_skew_ppm, drift_file);
           LCL_SetAbsoluteFrequency(our_frequency_ppm);
+          LCL_ReadCookedTime(&last_ref_update, NULL);
         } else {
           LOG(LOGS_WARN, LOGF_Reference, "Could not parse valid frequency and skew from driftfile %s",
               drift_file);
@@ -152,8 +154,6 @@ REF_Initialise(void)
       }
       fclose(in);
     }
-
-    drift_file_age = 0.0;
   }
     
   if (our_frequency_ppm == 0.0) {
