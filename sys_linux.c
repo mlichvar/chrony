@@ -649,29 +649,11 @@ set_frequency(double freq_ppm)
   double scaled_freq; /* what adjtimex & the kernel use */
   double old_total_tick;
   int required_delta_tick;
-  int neg; /* True if estimate is that local clock runs slow,
-              i.e. positive frequency correction required */
-
-
-  if (freq_ppm < 0.0) {
-    neg = 1;
-    freq_ppm = -freq_ppm;
-  } else {
-    neg = 0;
-  }
 
   required_delta_tick = our_round(freq_ppm / dhz);
-  required_freq = freq_ppm - dhz * (double) required_delta_tick;
-
-  if (neg) {
-    /* Uncompensated local clock runs slow */
-    required_tick = nominal_tick + required_delta_tick;
-    scaled_freq = freq_scale * required_freq;
-  } else {
-    /* Uncompensated local clock runs fast */
-    required_tick = nominal_tick - required_delta_tick;
-    scaled_freq = -freq_scale * required_freq;
-  }
+  required_freq = -(freq_ppm - dhz * required_delta_tick);
+  required_tick = nominal_tick - required_delta_tick;
+  scaled_freq = freq_scale * required_freq;
 
   min_allowed_tick = nominal_tick - max_tick_bias;
   max_allowed_tick = nominal_tick + max_tick_bias;
