@@ -318,6 +318,7 @@ SCH_AddTimeoutByDelay(double delay, SCH_TimeoutHandler handler, SCH_ArbitraryArg
   struct timeval now, then;
 
   assert(initialised);
+  assert(delay >= 0.0);
 
   LCL_ReadRawTime(&now);
   UTI_AddDoubleToTimeval(&now, delay, &then);
@@ -339,6 +340,7 @@ SCH_AddTimeoutInClass(double min_delay, double separation, double randomness,
   double new_min_delay;
 
   assert(initialised);
+  assert(min_delay >= 0.0);
   assert(class < SCH_NumberOfClasses);
 
   if (randomness > 0.0) {
