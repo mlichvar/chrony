@@ -2898,6 +2898,7 @@ password:
 @item @code{sources}
 @item @code{sourcestats}
 @item @code{tracking}
+@item @code{waitsync}
 @end itemize
 
 All other commands require a password to have been specified previously,
@@ -2958,6 +2959,7 @@ interface.
 * timeout command::             Set initial response timeout
 * tracking command::            Display system clock performance
 * trimrtc command::             Correct the RTC time to the current system time
+* waitsync command::            Wait until synchronised
 * writertc command::            Write the RTC parameters to file.
 @end menu
 @c }}}
@@ -4187,6 +4189,31 @@ across machine reboots even if the @code{trimrtc} command is never used
 @code{trimrtc} command is provided as a method by which it can be
 corrected, in a manner compatible with @code{chronyd} using it to
 maintain accurate time across machine reboots.
+@c }}}
+@c {{{ waitsync
+@node waitsync command
+@subsubsection waitsync
+The @code{waitsync} command waits for @code{chronyd} to synchronise.
+
+Up to three optional arguments can be specified, the first is the maximum
+number of tries in 10 second intervals before giving up and returning a
+non-zero error code.  When 0 is specified, or there are no arguments, the
+number of tries will not be limited.
+
+The second and third arguments are the maximum allowed remaining correction of
+the system clock and the maximum allowed skew (in ppm) as reported by the
+@code{tracking} command (@pxref{tracking command}) in the @code{System time}
+and @code{Skew} fields.  If not specified or zero, the value will not be
+checked.
+
+An example is
+
+@example
+waitsync 60 0.01
+@end example
+
+which will wait up to about 10 minutes for @code{chronyd} to synchronise to a
+source and the remaining correction to be less than 10 milliseconds.
 @c }}}
 @c {{{ writertc
 @node writertc command
