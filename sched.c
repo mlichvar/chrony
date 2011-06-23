@@ -527,6 +527,7 @@ handle_slew(struct timeval *raw,
     }
 
     UTI_AddDoubleToTimeval(&last_select_ts_raw, -doffset, &last_select_ts_raw);
+    UTI_AddDoubleToTimeval(&last_select_ts, -doffset, &last_select_ts);
   }
 }
 
