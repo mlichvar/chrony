@@ -430,18 +430,26 @@ SCH_RemoveTimeout(SCH_TimeoutID id)
 }
 
 /* ================================================== */
-/* The current time (now) has to be passed in from the
-   caller to avoid race conditions */
+/* Try to dispatch any timeouts that have already gone by, and
+   keep going until all are done.  (The earlier ones may take so
+   long to do that the later ones come around by the time they are
+   completed). */
 
-static int
+static void
 dispatch_timeouts(struct timeval *now) {
   TimerQueueEntry *ptr;
   SCH_TimeoutHandler handler;
   SCH_ArbitraryArgument arg;
-  int n_done = 0;
+  int n_done = 0, n_entries_on_start = n_timer_queue_entries;
 
-  if ((n_timer_queue_entries > 0) &&
-         (UTI_CompareTimevals(now, &(timer_queue.next->tv)) >= 0)) {
+  while (1) {
+    LCL_ReadRawTime(now);
+
+    if (!(n_timer_queue_entries > 0 &&
+          UTI_CompareTimevals(now, &(timer_queue.next->tv)) >= 0)) {
+      break;
+    }
+
     ptr = timer_queue.next;
 
     last_class_dispatch[ptr->class] = *now;
@@ -456,10 +464,16 @@ dispatch_timeouts(struct timeval *now) {
 
     /* Increment count of timeouts handled */
     ++n_done;
+
+    /* If more timeouts were handled than there were in the timer queue on
+       start, assume some code is scheduling timeouts with negative delays and
+       abort.  Make the actual limit higher in case the machine is temporarily
+       overloaded and dispatching the handlers takes more time than was delay
+       of a scheduled timeout. */
+    if (n_done > n_entries_on_start * 4) {
+      LOG_FATAL(LOGF_Scheduler, "Possible infinite loop in scheduling");
+    }
   }
-
-  return n_done;
-
 }
 
 /* ================================================== */
@@ -562,20 +576,15 @@ SCH_MainLoop(void)
     /* Copy current set of read file descriptors */
     memcpy((void *) &rd, (void *) &read_fds, sizeof(fd_set));
     
-    /* Try to dispatch any timeouts that have already gone by, and
-       keep going until all are done.  (The earlier ones may take so
-       long to do that the later ones come around by the time they are
-       completed). */
-
-    do {
-      LCL_ReadRawTime(&now);
-    } while (dispatch_timeouts(&now) > 0);
+    /* Dispatch timeouts and fill now with current raw time */
+    dispatch_timeouts(&now);
     
     /* Check whether there is a timeout and set it up */
     if (n_timer_queue_entries > 0) {
 
       UTI_DiffTimevals(&tv, &(timer_queue.next->tv), &now);
       ptv = &tv;
+      assert(tv.tv_sec > 0 || tv.tv_usec > 0);
 
     } else {
       ptv = NULL;
