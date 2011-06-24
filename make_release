@@ -1,5 +1,8 @@
 #!/bin/sh
 
+LANG=C
+export LANG
+
 if [ $# -ne 1 ]; then
   echo "Usage : $0 <version>"
   exit 2
@@ -7,6 +10,7 @@ fi
 
 version=$1
 subdir=chrony-${version}
+mandate=$(date +'%B %Y')
 
 umask 022
 
@@ -29,6 +33,12 @@ cd RELEASES/$subdir || exit 1
 echo $version > version.txt
 
 sed -e "s%@@VERSION@@%${version}%" < chrony.spec.sample > chrony.spec
+
+for m in chrony.1 chronyc.1 chrony.conf.5 chronyd.8; do
+  sed -e "s%@VERSION@%${version}%;s%@MAN_DATE@%${mandate}%" \
+    < $m > ${m}_
+  mv -f ${m}_ $m
+done
 
 makeinfo --no-headers --number-sections -o chrony.txt chrony.texi
 
