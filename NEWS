@@ -1,3 +1,13 @@
+New in version 1.26
+===================
+
+* Add compatibility with Linux 3.0 and later
+* Use proper source address in NTP replies on multihomed IPv6 hosts
+* Accept NTP packets with versions 4, 3 and 2
+* Cope with unexpected backward time jumps
+* Don't reset kernel frequency on start without drift file
+* Add waitsync command
+
 New in version 1.25
 ===================
 
