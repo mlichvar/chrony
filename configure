@@ -103,6 +103,7 @@ For better control, use the options below.
   --disable-rtc          Don't include RTC even on Linux
   --disable-linuxcaps    Disable Linux capabilities support
   --enable-forcednsretry Force retry on DNS failure
+  --with-sendmail=PATH   Path to sendmail binary [/usr/lib/sendmail]
 
 Fine tuning of the installation directories:
   --sysconfdir=DIR       chrony.conf location [/etc]
@@ -173,6 +174,7 @@ feat_pps=1
 try_setsched=0
 try_lockmem=0
 feat_forcednsretry=0
+mail_program="/usr/lib/sendmail"
 
 for option
 do
@@ -239,6 +241,9 @@ do
     ;;
     --enable-forcednsretry)
       feat_forcednsretry=1
+    ;;
+    --with-sendmail=* )
+      mail_program=`echo $option | sed -e 's/^.*=//;'`
     ;;
     --host-system=* )
       OPERATINGSYSTEM=`echo $option | sed -e 's/^.*=//;'`
@@ -500,6 +505,7 @@ if [ "x$SETDOCDIR" != "x" ]; then
 fi
 
 add_def DEFAULT_CONF_DIR "\"$SYSCONFDIR\""
+add_def MAIL_PROGRAM "\"$mail_program\""
 
 if [ -f version.txt ]; then
   add_def CHRONY_VERSION "\"`cat version.txt`\""

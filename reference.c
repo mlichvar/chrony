@@ -78,8 +78,6 @@ static double drift_file_age;
 
 static void update_drift_file(double, double);
 
-#define MAIL_PROGRAM "/usr/lib/sendmail"
-
 /* ================================================== */
 
 static LOG_FileID logfileid;
