@@ -1,52 +1,41 @@
-#!/usr/bin/env perl
+#!/bin/sh
 
-$tool = "chrony";
+if [ $# -ne 1 ]; then
+  echo "Usage : $0 <version>"
+  exit 2
+fi
 
-$version = shift || die "Usage : $0 <version>\n";
-$subdir = "${tool}-${version}";
+version=$1
+subdir=chrony-${version}
 
-unless (-d ".git") {
-  die "No .git subdirectory?"
-}
+umask 022
 
-unless (-d "RELEASES") {
-  mkdir "RELEASES", 0755;
-}
+if [ ! -d .git ]; then
+  echo "No .git subdirectory?"
+  exit 3
+fi
 
-system ("git tag -s $version");
-die "git-tag failed" if ($? != 0);
-if (-d "RELEASES/$subdir") {
-  system ("rm -rf RELEASES/$subdir");
-}
+[ -d RELEASES ] || mkdir RELEASES
 
-system ("git archive --format=tar --prefix=RELEASES/${subdir}/ $version | tar xf -");
-die "git-tar-tree failed" if ($? != 0);
+git tag -s $version || exit 1
 
-chdir "RELEASES";
-$here = qx/pwd/;
-chomp $here;
-chdir $subdir;
+rm -rf RELEASES/$subdir
 
-open (OUT, ">version.txt");
-print OUT $version."\n";
-close OUT;
+git archive --format=tar --prefix=RELEASES/${subdir}/ $version | \
+  tar xf - || exit 1
 
-open (IN, "<${tool}.spec.sample");
-open (OUT, ">${tool}.spec");
-while (<IN>) {
-  s/\@\@VERSION\@\@/$version/;
-  print OUT;
-}
-close (IN);
-close (OUT);
+cd RELEASES/$subdir || exit 1
 
-system("makeinfo --no-headers --number-sections -o chrony.txt chrony.texi");
-unlink "make_release";
-unlink "${tool}.spec.sample";
-unlink ".gitignore";
+echo $version > version.txt
 
-chdir $here;
-system ("tar cvf - $subdir | gzip -9 > ${subdir}.tar.gz");
-system ("gpg -b -a -o ${subdir}-tar-gz-asc.txt ${subdir}.tar.gz");
+sed -e "s%@@VERSION@@%${version}%" < chrony.spec.sample > chrony.spec
+
+makeinfo --no-headers --number-sections -o chrony.txt chrony.texi
+
+rm -f make_release chrony.spec.sample .gitignore
+
+cd ..
+tar cvf - $subdir | gzip -9 > ${subdir}.tar.gz
+gpg -b -a -o ${subdir}-tar-gz-asc.txt ${subdir}.tar.gz
 
 
