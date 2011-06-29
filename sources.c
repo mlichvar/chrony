@@ -411,6 +411,56 @@ source_to_string(SRC_Instance inst)
 }
 
 /* ================================================== */
+
+static void
+combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
+                double *offset_sd, double *frequency, double *skew)
+{
+  struct timeval src_ref_time;
+  double src_offset, src_offset_sd, src_frequency, src_skew;
+  double src_root_delay, src_root_dispersion, elapsed;
+  double weight, sum_weight, sum_offset, sum2_offset_sd, sum_frequency, sum_skew;
+  int i, index;
+
+  sum_weight = sum_offset = sum2_offset_sd = sum_frequency = sum_skew = 0.0;
+
+  for (i = 0; i < n_sel_sources; i++) {
+    index = sel_sources[i];
+    SST_GetTrackingData(sources[index]->stats, &src_ref_time,
+                        &src_offset, &src_offset_sd,
+                        &src_frequency, &src_skew,
+                        &src_root_delay, &src_root_dispersion);
+
+    UTI_DiffTimevalsToDouble(&elapsed, ref_time, &src_ref_time);
+    src_offset += elapsed * src_frequency;
+    weight = 1.0 / sources[index]->sel_info.root_distance;
+
+#ifdef TRACEON
+    LOG(LOGS_INFO, LOGF_Sources, "combining index=%d weight=%e offset=%e sd=%e freq=%e skew=%e",
+        index, weight, src_offset, src_offset_sd, src_frequency, src_skew);
+#endif
+
+    sum_weight += weight;
+    sum_offset += weight * src_offset;
+    sum2_offset_sd += weight * (src_offset_sd * src_offset_sd +
+        (src_offset - *offset) * (src_offset - *offset));
+    sum_frequency += weight * src_frequency;
+    sum_skew += weight * src_skew;
+  }
+
+  assert(sum_weight > 0.0);
+  *offset = sum_offset / sum_weight;
+  *offset_sd = sqrt(sum2_offset_sd / sum_weight);
+  *frequency = sum_frequency / sum_weight;
+  *skew = sum_skew / sum_weight;
+
+#ifdef TRACEON
+  LOG(LOGS_INFO, LOGF_Sources, "combined result offset=%e sd=%e freq=%e skew=%e",
+      *offset, *offset_sd, *frequency, *skew);
+#endif
+}
+
+/* ================================================== */
 /* This function selects the current reference from amongst the pool
    of sources we are holding. 
    
@@ -840,13 +890,18 @@ SRC_SelectSource(uint32_t match_refid)
         if (selected_source_index != old_selected_index ||
             match_refid == sources[selected_source_index]->ref_id) {
 
-          /* Now just use the statistics of the selected source for
-             trimming the local clock */
+          /* Now just use the statistics of the selected source combined with
+             the other selectable sources for trimming the local clock */
 
           SST_GetTrackingData(sources[selected_source_index]->stats, &ref_time,
                               &src_offset, &src_offset_sd,
                               &src_frequency, &src_skew,
                               &src_root_delay, &src_root_dispersion);
+
+          if (n_sel_sources > 1) {
+            combine_sources(n_sel_sources, &ref_time, &src_offset,
+                &src_offset_sd, &src_frequency, &src_skew);
+          }
 
           REF_SetReference(sources[selected_source_index]->sel_info.stratum,
                            leap_status,
