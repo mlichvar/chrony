@@ -6,6 +6,7 @@ New in version 1.26
 * Accept NTP packets with versions 4, 3 and 2
 * Cope with unexpected backward time jumps
 * Don't reset kernel frequency on start without drift file
+* Retry on permanent DNS error by default
 * Add waitsync command
 
 New in version 1.25
