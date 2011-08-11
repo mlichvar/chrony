@@ -282,14 +282,10 @@ LOG_CreateLogFileDir(void)
 {
   const char *logdir;
 
-  if (n_filelogs <= 0)
-    return;
-
   logdir = CNF_GetLogDir();
 
   if (!mkdir_and_parents(logdir)) {
     LOG(LOGS_ERR, LOGF_Logging, "Could not create directory %s", logdir);
-    n_filelogs = 0;
   }
 }
 
