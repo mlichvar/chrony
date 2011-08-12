@@ -932,7 +932,8 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
      round trip delay to the minimum one currently in the stats data
      register is less than an administrator-defined value */
 
-  if (fabs(delta/SRC_MinRoundTripDelay(inst->source)) > inst->max_delay_ratio) {
+  if (inst->max_delay_ratio > 1.0 &&
+      fabs(delta/SRC_MinRoundTripDelay(inst->source)) > inst->max_delay_ratio) {
     test4b = 0; /* Failed */
   } else {
     test4b = 1; /* Success */
