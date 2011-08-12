@@ -528,6 +528,14 @@ SST_GetFrequencyRange(SST_Stats inst,
   skew = inst->skew;
   *lo = freq - skew;
   *hi = freq + skew;
+
+  /* This function is currently used only to determine the values of delta
+     and epsilon in the ntp_core module. Limit the skew to a reasonable maximum
+     to avoid failing the dispersion test too easily. */
+  if (skew > WORST_CASE_FREQ_BOUND) {
+    *lo = -WORST_CASE_FREQ_BOUND;
+    *hi = WORST_CASE_FREQ_BOUND;
+  }
 }
 
 /* ================================================== */
