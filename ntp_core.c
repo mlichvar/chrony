@@ -894,7 +894,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     sample_time = local_average;
     
     /* Calculate skew */
-    skew = source_freq_hi - source_freq_lo;
+    skew = (source_freq_hi - source_freq_lo) / 2.0;
     
     /* and then calculate peer dispersion */
     epsilon = LCL_GetSysPrecisionAsQuantum() + now_err + skew * local_interval;
