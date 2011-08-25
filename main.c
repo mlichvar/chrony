@@ -303,9 +303,6 @@ int main
     }
   }
 
-  CNF_ReadFile(conf_file);
-
-#ifndef SYS_WINNT
   if (getuid() != 0) {
     /* This write to the terminal is OK, it comes before we turn into a daemon */
     fprintf(stderr,"Not superuser\n");
@@ -323,6 +320,8 @@ int main
   
   LOG(LOGS_INFO, LOGF_Main, "chronyd version %s starting", CHRONY_VERSION);
 
+  CNF_ReadFile(conf_file);
+
   /* Check whether another chronyd may already be running.  Do this after
    * forking, so that message logging goes to the right place (i.e. syslog), in
    * case this chronyd is being run from a boot script. */
@@ -335,7 +334,6 @@ int main
   /* Write our lockfile to prevent other chronyds running.  This has *GOT* to
    * be done *AFTER* the daemon-creation fork() */
   write_lockfile();
-#endif
 
   if (do_init_rtc) {
     RTC_TimePreInit();
