@@ -241,6 +241,9 @@ go_daemon(void)
       for (fd=0; fd<1024; fd++) {
         close(fd);
       }
+
+      /* Change current directory to / */
+      chdir("/");
     }
   }
 
