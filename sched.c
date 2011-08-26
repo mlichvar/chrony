@@ -466,11 +466,12 @@ dispatch_timeouts(struct timeval *now) {
     ++n_done;
 
     /* If more timeouts were handled than there were in the timer queue on
-       start, assume some code is scheduling timeouts with negative delays and
-       abort.  Make the actual limit higher in case the machine is temporarily
-       overloaded and dispatching the handlers takes more time than was delay
-       of a scheduled timeout. */
-    if (n_done > n_entries_on_start * 4) {
+       start and there are now, assume some code is scheduling timeouts with
+       negative delays and abort.  Make the actual limit higher in case the
+       machine is temporarily overloaded and dispatching the handlers takes
+       more time than was delay of a scheduled timeout. */
+    if (n_done > n_timer_queue_entries * 4 &&
+        n_done > n_entries_on_start * 4) {
       LOG_FATAL(LOGF_Scheduler, "Possible infinite loop in scheduling");
     }
   }
