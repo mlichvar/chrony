@@ -2390,7 +2390,7 @@ protocol.  The path where the socket should be created is described in the
 @code{gpsd(8)} man page.  For example:
 
 @example
-refclock SOCK /tmp/chrony.tty0.sock
+refclock SOCK /var/run/chrony.ttyS0.sock
 @end example
 
 @end table
