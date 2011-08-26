@@ -1832,34 +1832,22 @@ NCR_InitiateSampleBurst(NCR_Instance inst, int n_good_samples, int n_total_sampl
         break;
 
       case MD_ONLINE:
-        inst->opmode = MD_BURST_WAS_ONLINE;
-        inst->burst_good_samples_to_go = n_good_samples;
-        inst->burst_total_samples_to_go = n_total_samples;
-        if (inst->timer_running) {
-          SCH_RemoveTimeout(inst->timeout_id);
-        }
-        inst->timer_running = 1;
-        inst->timeout_id = SCH_AddTimeoutInClass(0.0, SAMPLING_SEPARATION,
-                                                 SAMPLING_RANDOMNESS,
-                                                 SCH_NtpSamplingClass,
-                                                 transmit_timeout, (void *) inst);
-        break;
-
       case MD_OFFLINE:
-        inst->opmode = MD_BURST_WAS_OFFLINE;
+        if (inst->opmode == MD_ONLINE)
+          inst->opmode = MD_BURST_WAS_ONLINE;
+        else
+          inst->opmode = MD_BURST_WAS_OFFLINE;
         inst->burst_good_samples_to_go = n_good_samples;
         inst->burst_total_samples_to_go = n_total_samples;
         if (inst->timer_running) {
           SCH_RemoveTimeout(inst->timeout_id);
         }
         inst->timer_running = 1;
-        inst->timeout_id = SCH_AddTimeoutInClass(0.0, SAMPLING_SEPARATION,
+        inst->timeout_id = SCH_AddTimeoutInClass(INITIAL_DELAY, SAMPLING_SEPARATION,
                                                  SAMPLING_RANDOMNESS,
                                                  SCH_NtpSamplingClass,
                                                  transmit_timeout, (void *) inst);
         break;
-
-
       default:
         assert(0);
         break;
