@@ -85,6 +85,12 @@ extern void LOG_Position(const char *filename, int line_number, const char *func
 /* Log messages to syslog instead of stderr */
 extern void LOG_OpenSystemLog(void);
 
+/* Send fatal message also to the foreground process */
+extern void LOG_SetParentFd(int fd);
+
+/* Close the pipe to the foreground process so it can exit */
+extern void LOG_CloseParentFd(void);
+
 /* Return zero once per 10 seconds */
 extern int LOG_RateLimited(void);
 

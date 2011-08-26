@@ -41,6 +41,8 @@ static int initialised = 0;
 
 static int system_log = 0;
 
+static int parent_fd = 0;
+
 static time_t last_limited = 0;
 
 #ifdef WINNT
@@ -154,6 +156,9 @@ LOG_Fatal_Function(LOG_Facility facility, const char *format, ...)
   } else {
     fprintf(stderr, "Fatal error : %s\n", buf);
   }
+  if (parent_fd) {
+    write(parent_fd, buf, strlen(buf) + 1);
+  }
 #endif
 
   MAI_CleanupAndExit();
@@ -192,6 +197,23 @@ LOG_OpenSystemLog(void)
   system_log = 1;
   openlog("chronyd", LOG_PID, LOG_DAEMON);
 #endif
+}
+
+/* ================================================== */
+
+void
+LOG_SetParentFd(int fd)
+{
+  parent_fd = fd;
+}
+
+/* ================================================== */
+
+void
+LOG_CloseParentFd()
+{
+  if (parent_fd > 0)
+    close(parent_fd);
 }
 
 /* ================================================== */
