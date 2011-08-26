@@ -47,7 +47,6 @@ typedef enum {
 } CPS_Status;
 
 typedef struct {
-  IPAddr ip_addr;
   char *name;
   unsigned short port;
   SourceParameters params;

@@ -45,7 +45,6 @@ CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src)
   int ok, n, done;
   char cmd[MAXLEN+1], hostname[MAXLEN+1];
   CPS_Status result;
-  DNS_Status s;
   
   src->port = SRC_DEFAULT_PORT;
   src->params.minpoll = SRC_DEFAULT_MINPOLL;
@@ -66,14 +65,7 @@ CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src)
   
   ok = 0;
   if (sscanf(line, "%" SMAXLEN "s%n", hostname, &n) == 1) {
-    s = DNS_Name2IPAddress(hostname, &src->ip_addr);
-    if (s == DNS_Success) {
-      ok = 1;
-      src->name = NULL;
-    } else if (s == DNS_TryAgain) {
-      ok = 1;
-      src->ip_addr.family = IPADDR_UNSPEC;
-    }
+    ok = 1;
   }
 
   if (!ok) {
@@ -199,7 +191,7 @@ CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src)
     } while (!done);
   }
 
-  if (ok && src->ip_addr.family == IPADDR_UNSPEC) {
+  if (ok) {
     n = strlen(hostname);
     src->name = MallocArray(char, n + 1);
     strncpy(src->name, hostname, n);

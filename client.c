@@ -960,17 +960,18 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
 {
   CPS_NTP_Source data;
   CPS_Status status;
+  IPAddr ip_addr;
   int result = 0;
   
   status = CPS_ParseNTPSourceAdd(line, &data);
   switch (status) {
     case CPS_Success:
-      /* Don't retry name resolving */
-      if (data.ip_addr.family == IPADDR_UNSPEC) {
+      if (DNS_Name2IPAddress(data.name, &ip_addr) != DNS_Success) {
         Free(data.name);
         fprintf(stderr, "Invalid host/IP address\n");
         break;
       }
+      Free(data.name);
 
       if (data.params.min_stratum != SRC_DEFAULT_MINSTRATUM) {
         fprintf(stderr, "Option minstratum not supported\n");
@@ -988,7 +989,7 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
       }
 
       msg->data.ntp_source.port = htonl((unsigned long) data.port);
-      UTI_IPHostToNetwork(&data.ip_addr, &msg->data.ntp_source.ip_addr);
+      UTI_IPHostToNetwork(&ip_addr, &msg->data.ntp_source.ip_addr);
       msg->data.ntp_source.minpoll = htonl(data.params.minpoll);
       msg->data.ntp_source.maxpoll = htonl(data.params.maxpoll);
       msg->data.ntp_source.presend_minpoll = htonl(data.params.presend_minpoll);

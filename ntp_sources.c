@@ -287,6 +287,19 @@ NSR_AddUnresolvedSource(char *name, int port, NTP_Source_Type type, SourceParame
 
 /* ================================================== */
 
+void
+NSR_ResolveSources(void)
+{
+  /* Try to resolve unresolved sources now */
+  if (resolving_interval) {
+    SCH_RemoveTimeout(resolving_id);
+    resolving_interval--;
+    resolve_sources(NULL);
+  }
+}
+
+/* ================================================== */
+
 /* Procedure to remove a source.  We don't bother whether the port
    address is matched - we're only interested in removing a record for
    the right IP address.  Thus the caller can specify the port number
@@ -406,12 +419,7 @@ NSR_TakeSourcesOnline(IPAddr *mask, IPAddr *address)
   int i;
   int any;
 
-  /* Try to resolve unresolved sources now */
-  if (resolving_interval) {
-    SCH_RemoveTimeout(resolving_id);
-    resolving_interval--;
-    resolve_sources(NULL);
-  }
+  NSR_ResolveSources();
 
   any = 0;
   for (i=0; i<N_RECORDS; i++) {

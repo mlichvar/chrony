@@ -1286,21 +1286,14 @@ CNF_ProcessInitStepSlew(void (*after_hook)(void *), void *anything)
 
 void
 CNF_AddSources(void) {
-  NTP_Remote_Address server;
   int i;
 
   for (i=0; i<n_ntp_sources; i++) {
-    if (ntp_sources[i].params.ip_addr.family != IPADDR_UNSPEC) {
-      server.ip_addr = ntp_sources[i].params.ip_addr;
-      memset(&server.local_ip_addr, 0, sizeof (server.local_ip_addr));
-      server.port = ntp_sources[i].params.port;
-
-      NSR_AddSource(&server, ntp_sources[i].type, &ntp_sources[i].params.params);
-    } else {
-      NSR_AddUnresolvedSource(ntp_sources[i].params.name, ntp_sources[i].params.port,
-          ntp_sources[i].type, &ntp_sources[i].params.params);
-    }
+    NSR_AddUnresolvedSource(ntp_sources[i].params.name, ntp_sources[i].params.port,
+        ntp_sources[i].type, &ntp_sources[i].params.params);
   }
+
+  NSR_ResolveSources();
 
   return;
 
