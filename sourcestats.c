@@ -239,8 +239,17 @@ SST_AccumulateSample(SST_Stats inst, struct timeval *sample_time,
 {
   int n, m;
 
+  /* Make room for the new sample */
   if (inst->n_samples == MAX_SAMPLES) {
     prune_register(inst, 1);
+  }
+
+  /* Make sure it's newer than the last sample */
+  if (inst->n_samples &&
+      UTI_CompareTimevals(&inst->sample_times[inst->last_sample], sample_time) >= 0) {
+    LOG(LOGS_WARN, LOGF_SourceStats, "Out of order sample detected, discarding history for %s",
+        inst->ip_addr ? UTI_IPToString(inst->ip_addr) : UTI_RefidToString(inst->refid));
+    prune_register(inst, inst->n_samples);
   }
 
   n = inst->last_sample = (inst->last_sample + 1) %
