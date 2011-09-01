@@ -362,9 +362,9 @@ NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP
   
   find_slot(remote_addr, &slot, &found);
   if (found == 2) { /* Must match IP address AND port number */
-    NCR_ProcessNoauthKnown(message, now, now_err, records[slot].data);
+    NCR_ProcessKnown(message, now, now_err, records[slot].data, 0);
   } else {
-    NCR_ProcessNoauthUnknown(message, now, now_err, remote_addr);
+    NCR_ProcessUnknown(message, now, now_err, remote_addr, 0);
   }
 }
 
@@ -380,9 +380,9 @@ NSR_ProcessAuthenticatedReceive(NTP_Packet *message, struct timeval *now, double
 
   find_slot(remote_addr, &slot, &found);
   if (found == 2) {
-    NCR_ProcessAuthKnown(message, now, now_err, records[slot].data);
+    NCR_ProcessKnown(message, now, now_err, records[slot].data, 1);
   } else {
-    NCR_ProcessAuthUnknown(message, now, now_err, remote_addr);
+    NCR_ProcessUnknown(message, now, now_err, remote_addr, 1);
   }
 }
 

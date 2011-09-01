@@ -1314,9 +1314,11 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
  */
 
 /* ================================================== */
+/* This routine is called when a new packet arrives off the network,
+   and it relates to a source we have an ongoing protocol exchange with */
 
-static void
-process_known
+void
+NCR_ProcessKnown
 (NTP_Packet *message,           /* the received message */
  struct timeval *now,           /* timestamp at time of receipt */
  double now_err,
@@ -1499,9 +1501,6 @@ process_known
       break;
       
   }
-
-
-
 }
 
 /* ================================================== */
@@ -1509,96 +1508,15 @@ process_known
    and it relates to a source we have an ongoing protocol exchange with */
 
 void
-NCR_ProcessNoauthKnown(NTP_Packet *message, struct timeval *now, double now_err, NCR_Instance inst)
+NCR_ProcessUnknown
+(NTP_Packet *message,           /* the received message */
+ struct timeval *now,           /* timestamp at time of receipt */
+ double now_err,                /* assumed error in the timestamp */
+ NTP_Remote_Address *remote_addr,
+ int do_auth                    /* whether the received packet allegedly contains
+                                   authentication info */
+ )
 {
-
-  process_known(message, now, now_err, inst, 0);
-
-}
-
-/* ================================================== */
-/* This routine is called when a new packet arrives off the network,
-   and we do not recognize its source */
-
-void
-NCR_ProcessNoauthUnknown(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr)
-{
-
-  NTP_Mode his_mode;
-  NTP_Mode my_mode;
-  int my_poll, version;
-
-  /* Check version */
-  version = (message->lvm >> 3) & 0x7;
-  if (version < NTP_MIN_COMPAT_VERSION || version > NTP_MAX_COMPAT_VERSION) {
-    /* Ignore packet, but might want to log it */
-    return;
-  }
-
-  if (ADF_IsAllowed(access_auth_table, &remote_addr->ip_addr)) {
-
-    his_mode = message->lvm & 0x07;
-
-    if (his_mode == MODE_CLIENT) {
-      /* We are server */
-      my_mode = MODE_SERVER;
-      CLG_LogNTPClientAccess(&remote_addr->ip_addr, (time_t) now->tv_sec);
-
-    } else if (his_mode == MODE_ACTIVE) {
-      /* We are symmetric passive, even though we don't ever lock to him */
-      my_mode = MODE_PASSIVE;
-      CLG_LogNTPPeerAccess(&remote_addr->ip_addr, (time_t) now->tv_sec);
-
-    } else {
-      my_mode = MODE_UNDEFINED;
-    }
-    
-    /* If we can't determine a sensible mode to reply with, it means
-       he has supplied a wierd mode in his request, so ignore it. */
-    
-    if (my_mode != MODE_UNDEFINED) {
-      
-      my_poll = message->poll; /* What should this be set to?  Does the client actually care? */
-      
-      transmit_packet(my_mode, my_poll,
-                      0, 0UL,
-                      &message->transmit_ts, /* Originate (for us) is the transmit time for the client */
-                      now, /* Time we received the packet */
-                      NULL, /* Don't care when we send reply, we aren't maintaining state about this client */
-                      NULL, /* Ditto */
-                      remote_addr);
-      
-    }
-  } else if (!LOG_RateLimited()) {
-    LOG(LOGS_WARN, LOGF_NtpCore, "NTP packet received from unauthorised host %s port %d",
-        UTI_IPToString(&remote_addr->ip_addr),
-        remote_addr->port);
-  }
-
-  return;
-
-}
-
-/* ================================================== */
-/* This routine is called when a new authenticated packet arrives off
-   the network, and it relates to a source we have an ongoing protocol
-   exchange with */
-
-void
-NCR_ProcessAuthKnown(NTP_Packet *message, struct timeval *now, double now_err, NCR_Instance data)
-{
-  process_known(message, now, now_err, data, 1);
-
-}
-
-/* ================================================== */
-/* This routine is called when a new authenticated packet arrives off
-   the network, and we do not recognize its source */
-
-void
-NCR_ProcessAuthUnknown(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr)
-{
-
   NTP_Mode his_mode;
   NTP_Mode my_mode;
   int my_poll, version;
@@ -1635,22 +1553,24 @@ NCR_ProcessAuthUnknown(NTP_Packet *message, struct timeval *now, double now_err,
 
     if (my_mode != MODE_UNDEFINED) {
 
-      /* Only reply if we know the key and the packet authenticates
-         properly. */
-      key_id = ntohl(message->auth_keyid);
-      valid_key = KEY_KeyKnown(key_id);
+      if (do_auth) {
+        /* Only reply if we know the key and the packet authenticates
+           properly. */
+        key_id = ntohl(message->auth_keyid);
+        valid_key = KEY_KeyKnown(key_id);
 
-      if (valid_key) {
-        valid_auth = check_packet_auth(message, key_id);
-      } else {
-        valid_auth = 0;
+        if (valid_key) {
+          valid_auth = check_packet_auth(message, key_id);
+        } else {
+          valid_auth = 0;
+        }
       }
 
-      if (valid_key && valid_auth) {
+      if (!do_auth || (valid_key && valid_auth)) {
         my_poll = message->poll; /* What should this be set to?  Does the client actually care? */
 
         transmit_packet(my_mode, my_poll,
-                        1, key_id,
+                        do_auth, do_auth ? key_id : 0,
                         &message->transmit_ts, /* Originate (for us) is the transmit time for the client */
                         now, /* Time we received the packet */
                         NULL, /* Don't care when we send reply, we aren't maintaining state about this client */
@@ -1658,10 +1578,12 @@ NCR_ProcessAuthUnknown(NTP_Packet *message, struct timeval *now, double now_err,
                         remote_addr);
       }
     }
+  } else if (!LOG_RateLimited()) {
+    LOG(LOGS_WARN, LOGF_NtpCore, "NTP packet received from unauthorised host %s port %d",
+        UTI_IPToString(&remote_addr->ip_addr),
+        remote_addr->port);
   }
   return;
-
-
 }
 
 /* ================================================== */
