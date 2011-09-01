@@ -31,7 +31,11 @@
 
 #if HAVE_PPSAPI
 
+#if defined(HAVE_SYS_TIMEPPS_H)
+#include <sys/timepps.h>
+#elif defined(HAVE_TIMEPPS_H)
 #include <timepps.h>
+#endif
 
 #include "logging.h"
 #include "memory.h"
