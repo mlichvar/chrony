@@ -174,6 +174,9 @@ static SCH_TimeoutID slew_timeout_id;
    a fast slew */
 static double delta_total_tick;
 
+/* Maximum length of one fast slew */
+#define MAX_FASTSLEW_TIMEOUT (3600 * 24 * 7)
+
 /* Max amount of time that we wish to slew by using adjtime (or its
    equivalent).  If more than this is outstanding, we alter the value
    of tick instead, for a set period.  Set this according to the
@@ -405,8 +408,8 @@ adjust_fast_slew(double old_tick, double old_delta_tick)
 
   dseconds = -offset_register * (current_total_tick + delta_total_tick) / delta_total_tick;
 
-  if (dseconds > 3600 * 24 * 7)
-    dseconds = 3600 * 24 * 7;
+  if (dseconds > MAX_FASTSLEW_TIMEOUT)
+    dseconds = MAX_FASTSLEW_TIMEOUT;
   UTI_AddDoubleToTimeval(&tv, dseconds, &end_of_slew);
 
   slew_start_tv = tv;
@@ -542,9 +545,8 @@ initiate_slew(void)
     fast_slewing = 1;
     slew_start_tv = T0;
 
-    /* Set up timeout for end of slew, limit to one week */
-    if (dseconds > 3600 * 24 * 7)
-      dseconds = 3600 * 24 * 7;
+    if (dseconds > MAX_FASTSLEW_TIMEOUT)
+      dseconds = MAX_FASTSLEW_TIMEOUT;
     UTI_AddDoubleToTimeval(&T0, dseconds, &end_of_slew);
 
     slew_timeout_id = SCH_AddTimeout(&end_of_slew, handle_end_of_slew, NULL);
