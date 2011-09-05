@@ -541,6 +541,7 @@ REF_SetReference(int stratum,
                  IPAddr *ref_ip,
                  struct timeval *ref_time,
                  double offset,
+                 double offset_sd,
                  double frequency,
                  double skew,
                  double root_delay,
@@ -556,6 +557,7 @@ REF_SetReference(int stratum,
   double abs_freq_ppm;
   double update_interval;
   double elapsed;
+  double correction_rate;
   struct timeval now;
 
   assert(initialised);
@@ -611,6 +613,20 @@ REF_SetReference(int stratum,
   }
   last_ref_update = now;
 
+  /* We want to correct the offset quickly, but we also want to keep the
+     frequency error caused by the correction itself low.
+
+     Define correction rate as the area of the region bounded by the graph of
+     offset corrected in time. Set the rate so that the time needed to correct
+     an offset equal to the current sourcestats stddev will be equal to the
+     update interval (assuming linear adjustment). The offset and the
+     time needed to make the correction are inversely proportional.
+
+     This is only a suggestion and it's up to the system driver how the
+     adjustment will be executed. */
+
+  correction_rate = 0.5 * offset_sd * update_interval;
+
   /* Eliminate updates that are based on totally unreliable frequency
      information */
 
@@ -645,7 +661,7 @@ REF_SetReference(int stratum,
     our_residual_freq = new_freq - our_frequency;
 
     maybe_log_offset(our_offset);
-    LCL_AccumulateFrequencyAndOffset(our_frequency, our_offset);
+    LCL_AccumulateFrequencyAndOffset(our_frequency, our_offset, correction_rate);
     
   } else {
 
@@ -653,7 +669,7 @@ REF_SetReference(int stratum,
     LOG(LOGS_INFO, LOGF_Reference, "Skew %f too large to track, offset=%f", skew, our_offset);
 #endif
     maybe_log_offset(our_offset);
-    LCL_AccumulateOffset(our_offset);
+    LCL_AccumulateOffset(our_offset, correction_rate);
 
     our_residual_freq = frequency;
   }
@@ -714,7 +730,7 @@ REF_SetManualReference
   our_residual_freq = 0.0;
 
   maybe_log_offset(offset);
-  LCL_AccumulateFrequencyAndOffset(frequency, offset);
+  LCL_AccumulateFrequencyAndOffset(frequency, offset, 0.0);
   maybe_make_step();
 
   abs_freq_ppm = LCL_ReadAbsoluteFrequency();

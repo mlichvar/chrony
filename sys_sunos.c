@@ -216,7 +216,7 @@ stop_adjust(void)
    slew backwards */
 
 static void
-accrue_offset(double offset)
+accrue_offset(double offset, double corr_rate)
 {
   stop_adjust();
   offset_register += offset;

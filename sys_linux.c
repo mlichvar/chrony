@@ -592,7 +592,7 @@ abort_slew(void)
    time) */
 
 static void
-accrue_offset(double offset)
+accrue_offset(double offset, double corr_rate)
 {
   /* Add the new offset to the register */
   offset_register += offset;

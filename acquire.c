@@ -708,7 +708,7 @@ process_measurements(void)
       LOG(LOGS_INFO, LOGF_Acquire, "System's initial offset : %.6f seconds %s of true (slew)",
           fabs(estimated_offset),
           (estimated_offset >= 0) ? "fast" : "slow");
-      LCL_AccumulateOffset(estimated_offset);
+      LCL_AccumulateOffset(estimated_offset, 0.0);
     }
 
   } else {

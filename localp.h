@@ -41,8 +41,9 @@ typedef double (*lcl_ReadFrequencyDriver)(void);
 typedef double (*lcl_SetFrequencyDriver)(double freq_ppm);
 
 /* System driver to accrue an offset. A positive argument means slew
-   the clock forwards. */
-typedef void (*lcl_AccrueOffsetDriver)(double offset);
+   the clock forwards.  The suggested correction rate of time to correct the
+   offset is given in 'corr_rate'. */
+typedef void (*lcl_AccrueOffsetDriver)(double offset, double corr_rate);
 
 /* System driver to apply a step offset. A positive argument means step
    the clock forwards. */

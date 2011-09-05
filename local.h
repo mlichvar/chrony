@@ -138,9 +138,10 @@ extern void LCL_AccumulateDeltaFrequency(double dfreq);
 /* Routine to apply an offset (in seconds) to the local clock.  The
    argument should be positive to move the clock backwards (i.e. the
    local clock is currently fast of true time), or negative to move it
-   forwards (i.e. it is currently slow of true time). */
+   forwards (i.e. it is currently slow of true time).  Provided is also
+   a suggested correction rate (correction time * offset). */
 
-extern void LCL_AccumulateOffset(double offset);
+extern void LCL_AccumulateOffset(double offset, double corr_rate);
 
 /* Routine to apply an immediate offset by doing a sudden step if
    possible. (Intended for use after an initial estimate of offset has
@@ -158,7 +159,7 @@ extern void LCL_NotifyExternalTimeStep(struct timeval *raw, struct timeval *cook
 
 /* Perform the combination of modifying the frequency and applying
    a slew, in one easy step */
-extern void LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset);
+extern void LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate);
 
 /* Routine to read the system precision as a log to base 2 value. */
 extern int LCL_GetSysPrecisionAsLog(void);

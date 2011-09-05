@@ -857,6 +857,7 @@ SRC_SelectSource(uint32_t match_refid)
                            sources[selected_source_index]->ip_addr,
                            &ref_time,
                            src_offset,
+                           src_offset_sd,
                            src_frequency,
                            src_skew,
                            src_root_delay,

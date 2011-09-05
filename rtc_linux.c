@@ -664,7 +664,7 @@ handle_initial_trim(void)
     sys_error_now = rtc_error_now - coef_seconds_fast;
           
     LOG(LOGS_INFO, LOGF_RtcLinux, "System trim from RTC = %f", sys_error_now);
-    LCL_AccumulateOffset(sys_error_now);
+    LCL_AccumulateOffset(sys_error_now, 0.0);
   } else {
     LOG(LOGS_WARN, LOGF_RtcLinux, "No valid file coefficients, cannot trim system time");
   }

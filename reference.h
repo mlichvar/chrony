@@ -109,6 +109,7 @@ extern void REF_SetReference
  IPAddr *ref_ip,
  struct timeval *ref_time,
  double offset,
+ double offset_sd,
  double frequency,
  double skew,
  double root_delay,

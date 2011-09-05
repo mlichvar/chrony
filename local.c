@@ -443,7 +443,7 @@ LCL_AccumulateDeltaFrequency(double dfreq)
 /* ================================================== */
 
 void
-LCL_AccumulateOffset(double offset)
+LCL_AccumulateOffset(double offset, double corr_rate)
 {
   ChangeListEntry *ptr;
   struct timeval raw, cooked;
@@ -454,7 +454,7 @@ LCL_AccumulateOffset(double offset)
   LCL_ReadRawTime(&raw);
   LCL_CookTime(&raw, &cooked, NULL);
 
-  (*drv_accrue_offset)(offset);
+  (*drv_accrue_offset)(offset, corr_rate);
 
   /* Dispatch to all handlers */
   for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
@@ -505,7 +505,7 @@ LCL_NotifyExternalTimeStep(struct timeval *raw, struct timeval *cooked,
 /* ================================================== */
 
 void
-LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset)
+LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate)
 {
   ChangeListEntry *ptr;
   struct timeval raw, cooked;
@@ -532,7 +532,7 @@ LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset)
   current_freq_ppm = (*drv_set_freq)(current_freq_ppm);
   dfreq = (current_freq_ppm - old_freq_ppm) / (1.0e6 + old_freq_ppm);
 
-  (*drv_accrue_offset)(doffset);
+  (*drv_accrue_offset)(doffset, corr_rate);
 
   /* Dispatch to all handlers */
   for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
@@ -598,7 +598,7 @@ LCL_MakeStep(double threshold)
     return 0;
 
   /* Cancel remaining slew and make the step */
-  LCL_AccumulateOffset(correction);
+  LCL_AccumulateOffset(correction, 0.0);
   LCL_ApplyStepOffset(-correction);
 
   LOG(LOGS_WARN, LOGF_Local, "System clock was stepped by %.3f seconds", correction);
