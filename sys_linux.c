@@ -185,7 +185,7 @@ static double delta_total_tick;
 #define MAX_ADJUST_WITH_ADJTIME (0.2)
 
 /* Max amount of time that should be adjusted by kernel PLL */
-#define MAX_ADJUST_WITH_NANOPLL (1.0e-5)
+#define MAX_ADJUST_WITH_NANOPLL (0.5)
 
 /* The amount by which we alter 'tick' when doing a large slew */
 static int slew_delta_tick;
@@ -211,6 +211,18 @@ static double fast_slew_error;
 
 /* The rate at which frequency and tick values are updated in kernel. */
 static int tick_update_hz;
+
+#define MIN_PLL_TIME_CONSTANT 0
+#define MAX_PLL_TIME_CONSTANT 10
+
+/* PLL time constant used when adjusting offset by PLL */
+static long pll_time_constant;
+
+/* Suggested offset correction rate (correction time * offset) */
+static double correction_rate;
+
+/* Kernel time constant shift */
+static int shift_pll;
 
 /* ================================================== */
 /* These routines are used to estimate maximum error in offset correction */
@@ -272,9 +284,8 @@ update_nano_slew_error(long offset, int new)
   if (offset == 0 && nano_slew_error == 0)
     return;
 
-  /* maximum error in offset reported by adjtimex, assuming PLL constant 0 
-     and SHIFT_PLL = 2 */
-  offset /= new ? 4 : 3;
+  /* maximum error in offset reported by adjtimex */
+  offset /= (1 << (shift_pll + pll_time_constant)) - (new ? 0 : 1);
   if (offset < 0)
     offset = -offset;
 
@@ -341,6 +352,27 @@ get_fast_slew_error(struct timeval *now)
     fast_slew_error = 0.0;
 
   return left > 0.0 ? fast_slew_error : 0.0;
+}
+
+/* ================================================== */
+/* Select PLL time constant according to the suggested correction rate. */
+
+static long
+get_pll_constant(double offset)
+{
+  long c;
+  double corr_time;
+ 
+  if (offset < 1e-9)
+    return MIN_PLL_TIME_CONSTANT;
+
+  corr_time = correction_rate / offset;
+
+  for (c = MIN_PLL_TIME_CONSTANT; c < MAX_PLL_TIME_CONSTANT; c++)
+    if (corr_time < 1 << (c + 1 + shift_pll))
+      break;
+
+  return c;
 }
 
 /* ================================================== */
@@ -456,7 +488,7 @@ initiate_slew(void)
     update_nano_slew_error(offset, 0);
 
     offset = 0;
-    if (TMX_ApplyPLLOffset(offset) < 0) {
+    if (TMX_ApplyPLLOffset(offset, MIN_PLL_TIME_CONSTANT) < 0) {
       LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
     }
     nano_slewing = 0;
@@ -464,13 +496,23 @@ initiate_slew(void)
   }
 
   if (have_nanopll && fabs(offset_register) < MAX_ADJUST_WITH_NANOPLL) {
-    /* Use PLL with fixed frequency to do the shift */
+    /* Use the PLL with fixed frequency to do the shift. Until the kernel has a
+       support for linear offset adjustments with programmable rate this is the
+       best we can do. */
     offset = 1.0e9 * -offset_register;
 
-    if (TMX_ApplyPLLOffset(offset) < 0) {
+    /* First adjustment after accrue_offset() sets the PLL time constant */
+    if (pll_time_constant < 0) {
+      pll_time_constant = get_pll_constant(fabs(offset_register));
+    }
+
+    assert(pll_time_constant >= MIN_PLL_TIME_CONSTANT &&
+        pll_time_constant <= MAX_PLL_TIME_CONSTANT);
+
+    if (TMX_ApplyPLLOffset(offset, pll_time_constant) < 0) {
       LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
     }
-    offset_register = 0.0;
+    offset_register = 0.0; /* Don't keep the sub-nanosecond leftover */
     nano_slewing = 1;
     update_nano_slew_error(offset, 1);
   } else if (fabs(offset_register) < MAX_ADJUST_WITH_ADJTIME) {
@@ -596,6 +638,11 @@ accrue_offset(double offset, double corr_rate)
 {
   /* Add the new offset to the register */
   offset_register += offset;
+
+  correction_rate = corr_rate;
+
+  /* Select a new time constant on the next adjustment */
+  pll_time_constant = -1;
 
   if (!fast_slewing) {
     initiate_slew();
@@ -1029,14 +1076,21 @@ get_version_specific_details(void)
     have_setoffset = 1;
   }
 
+  /* PLL time constant changed in 2.6.31 */
+  if (kernelvercmp(major, minor, patch, 2, 6, 31) < 0) {
+    shift_pll = 4;
+  } else {
+    shift_pll = 2;
+  }
+
   /* Override freq_scale if it appears in conf file */
   CNF_GetLinuxFreqScale(&set_config_freq_scale, &config_freq_scale);
   if (set_config_freq_scale) {
     freq_scale = config_freq_scale;
   }
 
-  LOG(LOGS_INFO, LOGF_SysLinux, "hz=%d shift_hz=%d freq_scale=%.8f nominal_tick=%d slew_delta_tick=%d max_tick_bias=%d",
-      hz, shift_hz, freq_scale, nominal_tick, slew_delta_tick, max_tick_bias);
+  LOG(LOGS_INFO, LOGF_SysLinux, "hz=%d shift_hz=%d freq_scale=%.8f nominal_tick=%d slew_delta_tick=%d max_tick_bias=%d shift_pll=%d",
+      hz, shift_hz, freq_scale, nominal_tick, slew_delta_tick, max_tick_bias, shift_pll);
 }
 
 /* ================================================== */

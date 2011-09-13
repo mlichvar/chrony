@@ -207,13 +207,13 @@ TMX_EnableNanoPLL(void)
 }
 
 int
-TMX_ApplyPLLOffset(long offset)
+TMX_ApplyPLLOffset(long offset, long constant)
 {
   struct timex txc;
 
   txc.modes = ADJ_OFFSET | ADJ_TIMECONST | ADJ_NANO;
   txc.offset = offset;
-  txc.constant = 0;
+  txc.constant = constant;
   return adjtimex(&txc);
 }
 
