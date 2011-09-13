@@ -1007,8 +1007,9 @@ get_version_specific_details(void)
     }
   }
 
-  /* ADJ_OFFSET_SS_READ support */
-  if (kernelvercmp(major, minor, patch, 2, 6, 27) < 0) {
+  /* ADJ_OFFSET_SS_READ support. It's available since 2.6.24,
+     but was buggy until 2.6.28. */
+  if (kernelvercmp(major, minor, patch, 2, 6, 28) < 0) {
     have_readonly_adjtime = 0;
   } else {
     have_readonly_adjtime = 1;
