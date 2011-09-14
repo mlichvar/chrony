@@ -695,6 +695,7 @@ handle_relock_after_trim(void)
     LOG(LOGS_WARN, LOGF_RtcLinux, "Could not do regression after trim");
   }
 
+  coefs_valid = 0;
   n_samples = 0;
   n_samples_since_regression = 0;
   operating_mode = OM_NORMAL;
@@ -1043,6 +1044,10 @@ RTC_Linux_Trim(void)
            regime. */
     n_samples = 0;
     operating_mode = OM_AFTERTRIM;
+
+    /* Zero the offset in case writertc is called or chronyd
+       is terminated during rapid sampling */
+    coef_seconds_fast = 0.0;
 
     /* And start rapid sampling, interrupts on now */
     if (timeout_running) {
