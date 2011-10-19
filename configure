@@ -472,6 +472,10 @@ if [ $feat_readline = "1" ]; then
   fi
 fi
 
+HASH_OBJ="hash_intmd5.o"
+HASH_COMPILE=""
+HASH_LINK=""
+
 SYSCONFDIR=/etc
 if [ "x$SETSYSCONFDIR" != "x" ]; then
   SYSCONFDIR=$SETSYSCONFDIR
@@ -536,6 +540,9 @@ sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
 	s%@EXTRA_CLI_LIBS@%${EXTRA_CLI_LIBS}%;\
 	s%@READLINE_COMPILE@%${READLINE_COMPILE}%;\
 	s%@READLINE_LINK@%${READLINE_LINK}%;\
+	s%@HASH_OBJ@%${HASH_OBJ}%;\
+	s%@HASH_LINK@%${HASH_LINK}%;\
+	s%@HASH_COMPILE@%${HASH_COMPILE}%;\
 	s%@SYSCONFDIR@%${SYSCONFDIR}%;\
 	s%@BINDIR@%${BINDIR}%;\
 	s%@SBINDIR@%${SBINDIR}%;\

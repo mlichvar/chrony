@@ -32,6 +32,7 @@
 #include "addressing.h"
 #include "ntp.h"
 #include "candm.h"
+#include "hash.h"
 
 /* Convert a timeval into a floating point number of seconds */
 extern void UTI_TimevalToDouble(struct timeval *a, double *b);
@@ -100,6 +101,11 @@ extern Float UTI_FloatHostToNetwork(double x);
 
 /* Set FD_CLOEXEC on descriptor */
 extern void UTI_FdSetCloexec(int fd);
+
+extern int UTI_GenerateNTPAuth(int hash_id, const unsigned char *key, int key_len,
+    const unsigned char *data, int data_len, unsigned char *auth, int auth_len);
+extern int UTI_CheckNTPAuth(int hash_id, const unsigned char *key, int key_len,
+    const unsigned char *data, int data_len, const unsigned char *auth, int auth_len);
 
 #if defined (INLINE_UTILITIES)
 #define INLINE_STATIC inline static

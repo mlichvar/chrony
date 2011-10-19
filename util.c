@@ -30,7 +30,7 @@
 #include "sysincl.h"
 
 #include "util.h"
-#include "md5.h"
+#include "hash.h"
 
 /* ================================================== */
 
@@ -336,16 +336,24 @@ UTI_StringToIP(const char *addr, IPAddr *ip)
 uint32_t
 UTI_IPToRefid(IPAddr *ip)
 {
-  MD5_CTX ctx;
+  static int MD5_hash = -1;
+  unsigned char buf[16];
 
   switch (ip->family) {
     case IPADDR_INET4:
       return ip->addr.in4;
     case IPADDR_INET6:
-      MD5Init(&ctx);
-      MD5Update(&ctx, (unsigned const char *) ip->addr.in6, sizeof (ip->addr.in6));
-      MD5Final(&ctx);
-      return ctx.digest[0] << 24 | ctx.digest[1] << 16 | ctx.digest[2] << 8 | ctx.digest[3];
+      if (MD5_hash < 0) {
+        MD5_hash = HSH_GetHashId("MD5");
+        assert(MD5_hash >= 0);
+      }
+
+      if (HSH_Hash(MD5_hash, (unsigned const char *)ip->addr.in6, sizeof
+            (ip->addr.in6), NULL, 0, buf, 16) != 16) {
+        assert(0);
+        return 0;
+      };
+      return buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
   }
   return 0;
 }
@@ -612,3 +620,22 @@ UTI_FdSetCloexec(int fd)
 }
 
 /* ================================================== */
+
+int
+UTI_GenerateNTPAuth(int hash_id, const unsigned char *key, int key_len,
+    const unsigned char *data, int data_len, unsigned char *auth, int auth_len)
+{
+  return HSH_Hash(hash_id, key, key_len, data, data_len, auth, auth_len);
+}
+
+/* ================================================== */
+
+int
+UTI_CheckNTPAuth(int hash_id, const unsigned char *key, int key_len,
+    const unsigned char *data, int data_len, const unsigned char *auth, int auth_len)
+{
+  unsigned char buf[MAX_HASH_LENGTH];
+
+  return UTI_GenerateNTPAuth(hash_id, key, key_len, data, data_len,
+        buf, sizeof (buf)) == auth_len && !memcmp(buf, auth, auth_len);
+}

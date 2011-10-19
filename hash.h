@@ -2,7 +2,7 @@
   chronyd/chronyc - Programs for keeping computer clocks accurate.
 
  **********************************************************************
- * Copyright (C) Richard P. Curnow  1997-2002
+ * Copyright (C) Miroslav Lichvar  2011
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
@@ -21,29 +21,21 @@
 
   =======================================================================
 
-  This is the header file for the NTP socket I/O bits.
+  Header file for crypto hashing.
 
   */
 
-#ifndef GOT_NTP_IO_H
-#define GOT_NTP_IO_H
+#ifndef GOT_HASH_H
+#define GOT_HASH_H
 
-#include "ntp.h"
-#include "addressing.h"
+/* length of hash values produced by SHA512 */
+#define MAX_HASH_LENGTH 64
 
-/* Function to initialise the module. */
-extern void NIO_Initialise(void);
+extern int HSH_GetHashId(const char *name);
 
-/* Function to finalise the module */
-extern void NIO_Finalise(void);
+extern unsigned int HSH_Hash(int id,
+    const unsigned char *in1, unsigned int in1_len,
+    const unsigned char *in2, unsigned int in2_len,
+    unsigned char *out, unsigned int out_len);
 
-/* Function to transmit a packet */
-extern void NIO_SendNormalPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr);
-
-/* Function to transmit an authenticated packet */
-extern void NIO_SendAuthenticatedPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, int auth_len);
-
-/* Function to send a datagram to a remote machine's UDP echo port. */
-extern void NIO_SendEcho(NTP_Remote_Address *remote_addr);
-
-#endif /* GOT_NTP_IO_H */
+#endif

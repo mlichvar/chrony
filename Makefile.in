@@ -34,26 +34,23 @@ CPPFLAGS = @CPPFLAGS@
 
 DESTDIR=
 
+HASH_OBJ = @HASH_OBJ@
+
 OBJS = util.o sched.o regress.o local.o \
 	sys.o main.o ntp_io.o ntp_core.o ntp_sources.o \
 	sources.o sourcestats.o reference.o \
-	logging.o conf.o cmdmon.o md5.o keys.o \
+	logging.o conf.o cmdmon.o keys.o \
 	nameserv.o acquire.o manual.o addrfilt.o \
 	cmdparse.o mkdirpp.o rtc.o pktlength.o clientlog.o \
 	broadcast.o refclock.o refclock_shm.o refclock_sock.o \
-	refclock_pps.o tempcomp.o
+	refclock_pps.o tempcomp.o $(HASH_OBJ)
 
 EXTRA_OBJS=@EXTRA_OBJECTS@
 
-CLI_OBJS = client.o md5.o nameserv.o getdate.o cmdparse.o \
-           pktlength.o util.o
+CLI_OBJS = client.o nameserv.o getdate.o cmdparse.o \
+           pktlength.o util.o $(HASH_OBJ)
 
 ALL_OBJS = $(OBJS) $(EXTRA_OBJS) $(CLI_OBJS)
-
-SRCS = $(patsubst %.o,%.c,$(OBJS))
-EXTRA_SRCS = $(patsubst %.o,%.c,$(EXTRA_OBJS))
-
-CLI_SRCS = $(patsubst %.o,%.c,$(CLI_OBJS))
 
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
@@ -67,13 +64,16 @@ EXTRA_CLI_LIBS=@EXTRA_CLI_LIBS@
 all : chronyd chronyc
 
 chronyd : $(OBJS) $(EXTRA_OBJS)
-	$(CC) $(CFLAGS) -o chronyd $(OBJS) $(EXTRA_OBJS) $(LDFLAGS) $(LIBS) $(EXTRA_LIBS)
+	$(CC) $(CFLAGS) -o chronyd $(OBJS) $(EXTRA_OBJS) $(LDFLAGS) @HASH_LINK@ $(LIBS) $(EXTRA_LIBS)
 
 chronyc : $(CLI_OBJS)
-	$(CC) $(CFLAGS) -o chronyc $(CLI_OBJS) $(LDFLAGS) @READLINE_LINK@ $(LIBS) $(EXTRA_CLI_LIBS)
+	$(CC) $(CFLAGS) -o chronyc $(CLI_OBJS) $(LDFLAGS) @READLINE_LINK@ @HASH_LINK@ $(LIBS) $(EXTRA_CLI_LIBS)
 
 client.o : client.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) @READLINE_COMPILE@ -c $<
+
+$(HASH_OBJ) : $(patsubst %.o,%.c,$(HASH_OBJ))
+	$(CC) $(CFLAGS) $(CPPFLAGS) @HASH_COMPILE@ -c $<
 
 distclean : clean
 	-rm -f Makefile

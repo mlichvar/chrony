@@ -32,7 +32,7 @@
 
 #include "candm.h"
 #include "nameserv.h"
-#include "md5.h"
+#include "hash.h"
 #include "getdate.h"
 #include "cmdparse.h"
 #include "pktlength.h"
@@ -1094,8 +1094,9 @@ process_cmd_delete(CMD_Request *msg, char *line)
 
 /* ================================================== */
 
+static char *password;
 static int password_seen = 0;
-static MD5_CTX md5_after_just_password;
+static int auth_hash_id;
 
 /* ================================================== */
 
@@ -1103,7 +1104,6 @@ static int
 process_cmd_password(CMD_Request *msg, char *line)
 {
   char *p, *q;
-  char *password;
   struct timeval now;
 
   p = line;
@@ -1128,15 +1128,6 @@ process_cmd_password(CMD_Request *msg, char *line)
     password_seen = 1;
   }
 
-  /* Generate MD5 initial context */
-  MD5Init(&md5_after_just_password);
-  MD5Update(&md5_after_just_password, (unsigned char *) password, strlen(password));
-  
-  /* Blank the password for security */
-  for (p = password; *p; p++) {
-    *p = 0;
-  }
-    
   if (gettimeofday(&now, NULL) < 0) {
     printf("500 - Could not read time of day\n");
     return 0;
@@ -1149,43 +1140,33 @@ process_cmd_password(CMD_Request *msg, char *line)
 
 /* ================================================== */
 
-static void
+static int
 generate_auth(CMD_Request *msg)
 {
-  MD5_CTX ctx;
-  int pkt_len;
+  int data_len;
 
-  pkt_len = PKL_CommandLength(msg);
-  ctx = md5_after_just_password;
-  MD5Update(&ctx, (unsigned char *) msg, offsetof(CMD_Request, auth));
-  if (pkt_len > offsetof(CMD_Request, data)) {
-    MD5Update(&ctx, (unsigned char *) &(msg->data), pkt_len - offsetof(CMD_Request, data));
-  }
-  MD5Final(&ctx);
-  memcpy(&(msg->auth), &ctx.digest, 16);
+  data_len = PKL_CommandLength(msg);
+
+  assert(auth_hash_id >= 0);
+
+  return UTI_GenerateNTPAuth(auth_hash_id, (unsigned char *)password, strlen(password),
+      (unsigned char *)msg, data_len, ((unsigned char *)msg) + data_len, sizeof (msg->auth));
 }
 
 /* ================================================== */
 
 static int
-check_reply_auth(CMD_Reply *msg)
+check_reply_auth(CMD_Reply *msg, int len)
 {
-  int pkt_len;
-  MD5_CTX ctx;
+  int data_len;
 
-  pkt_len = PKL_ReplyLength(msg);
-  ctx = md5_after_just_password;
-  MD5Update(&ctx, (unsigned char *) msg, offsetof(CMD_Request, auth));
-  if (pkt_len > offsetof(CMD_Reply, data)) {
-    MD5Update(&ctx, (unsigned char *) &(msg->data), pkt_len - offsetof(CMD_Reply, data));
-  }
-  MD5Final(&ctx);
+  data_len = PKL_ReplyLength(msg);
 
-  if (!memcmp((void *) &ctx.digest, (void *) &(msg->auth), 16)) {
-    return 1;
-  } else {
-    return 0;
-  }
+  assert(auth_hash_id >= 0);
+
+  return UTI_CheckNTPAuth(auth_hash_id, (unsigned char *)password, strlen(password),
+      (unsigned char *)msg, data_len,
+      ((unsigned char *)msg) + data_len, len - data_len);
 }
 
 /* ================================================== */
@@ -1238,6 +1219,7 @@ give_help(void)
   printf("waitsync [max-tries [max-correction [max-skew]]] : Wait until synchronised\n");
   printf("writertc : Save RTC parameters to file\n");
   printf("\n");
+  printf("authhash <name>: Set command authentication hash function\n");
   printf("dns -n|+n : Disable/enable resolving IP addresses to hostnames\n");
   printf("dns -4|-6|-46 : Resolve hostnames only to IPv4/IPv6/both addresses\n");
   printf("timeout <milliseconds> : Set initial response timeout\n");
@@ -1273,6 +1255,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
   int read_length;
   int expected_length;
   int command_length;
+  int auth_length;
   struct timeval tv;
   int timeout;
   int n_attempts;
@@ -1301,19 +1284,26 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
            packet and we won't get a token back */
         request->utoken = htonl(SPECIAL_UTOKEN);
       }
-      generate_auth(request);
+      auth_length = generate_auth(request);
     } else {
-      memset(request->auth, 0, sizeof (request->auth));
+      auth_length = 0;
     }
 
     command_length = PKL_CommandLength(request);
     assert(command_length > 0);
 
+    /* add empty MD5 auth so older servers will not drop the request
+       due to bad length */
+    if (!auth_length) {
+      memset(((char *)request) + command_length, 0, 16);
+      auth_length = 16;
+    }
+
 #if 0
-    printf("Sent command length=%d bytes\n", command_length);
+    printf("Sent command length=%d bytes auth length=%d bytes\n", command_length, auth_length);
 #endif
 
-    if (sendto(sock_fd, (void *) request, command_length, 0,
+    if (sendto(sock_fd, (void *) request, command_length + auth_length, 0,
                &his_addr.u, his_addr_len) < 0) {
 
 
@@ -1376,7 +1366,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
         read_length = recvfrom_status;
         expected_length = PKL_ReplyLength(reply);
 
-        bad_length = (read_length != expected_length);
+        bad_length = (read_length < expected_length);
         bad_sender = (where_from.u.sa_family != his_addr.u.sa_family ||
                       (where_from.u.sa_family == AF_INET &&
                        (where_from.in4.sin_addr.s_addr != his_addr.in4.sin_addr.s_addr ||
@@ -1431,7 +1421,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
 #endif
 
         if (password_seen) {
-          *reply_auth_ok = check_reply_auth(reply);
+          *reply_auth_ok = check_reply_auth(reply, read_length);
         } else {
           /* Assume in this case that the reply is always considered
              to be authentic */
@@ -2477,6 +2467,32 @@ process_cmd_dns(const char *line)
 /* ================================================== */
 
 static int
+process_cmd_authhash(const char *line)
+{
+  char hash_name[50];
+  int new_hash_id;
+
+  assert(auth_hash_id >= 0);
+
+  if (sscanf(line, "%49s", hash_name) != 1) {
+    fprintf(stderr, "Could not parse hash name\n");
+    return 0;
+  }
+
+  new_hash_id = HSH_GetHashId(hash_name);
+  if (new_hash_id < 0) {
+    fprintf(stderr, "Unknown hash name: %s\n", hash_name);
+    return 0;
+  }
+
+  auth_hash_id = new_hash_id;
+
+  return 1;
+}
+
+/* ================================================== */
+
+static int
 process_cmd_timeout(const char *line)
 {
   int timeout;
@@ -2634,6 +2650,9 @@ process_line(char *line, int *quit)
   } else if (!strncmp(p, "waitsync", 8)) {
     ret = process_cmd_waitsync(p+8);
     do_normal_submit = 0;
+  } else if (!strncmp(p, "authhash", 8)) {
+    ret = process_cmd_authhash(p+8);
+    do_normal_submit = 0;
   } else if (!strncmp(p, "dns ", 4)) {
     ret = process_cmd_dns(p+4);
     do_normal_submit = 0;
@@ -2769,6 +2788,10 @@ main(int argc, char **argv)
   if (on_terminal && (argc == 0)) {
     display_gpl();
   }
+
+  /* MD5 is the default authentication hash */
+  auth_hash_id = HSH_GetHashId("MD5");
+  assert(auth_hash_id >= 0);
   
   open_io(hostname, port);
 

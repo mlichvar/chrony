@@ -54,6 +54,7 @@ typedef enum {
   LOGF_CmdMon,
   LOGF_Acquire,
   LOGF_Manual,
+  LOGF_Keys,
   LOGF_Logging,
   LOGF_Rtc,
   LOGF_Regress,

@@ -54,11 +54,11 @@ extern void NCR_DestroyInstance(NCR_Instance instance);
 
 /* This routine is called when a new packet arrives off the network,
    and it relates to a source we have an ongoing protocol exchange with */
-extern void NCR_ProcessKnown(NTP_Packet *message, struct timeval *now, double now_err, NCR_Instance data, int do_auth);
+extern void NCR_ProcessKnown(NTP_Packet *message, struct timeval *now, double now_err, NCR_Instance data, int length);
 
 /* This routine is called when a new packet arrives off the network,
    and we do not recognize its source */
-extern void NCR_ProcessUnknown(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr, int do_auth);
+extern void NCR_ProcessUnknown(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr, int length);
 
 /* Slew receive and transmit times in instance records */
 extern void NCR_SlewTimes(NCR_Instance inst, struct timeval *when, double dfreq, double doffset);

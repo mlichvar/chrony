@@ -33,6 +33,8 @@
 #include <inttypes.h>
 #endif
 
+#include "hash.h"
+
 typedef struct {
   uint32_t hi;
   uint32_t lo;
@@ -40,7 +42,7 @@ typedef struct {
 
 typedef uint32_t NTP_int32;
 
-#define AUTH_DATA_LEN 16 
+#define MAX_NTP_AUTH_DATA_LEN MAX_HASH_LENGTH
 
 /* Type definition for leap bits */
 typedef enum {
@@ -72,7 +74,7 @@ typedef struct {
   NTP_int64 receive_ts;
   NTP_int64 transmit_ts;
   NTP_int32 auth_keyid;
-  uint8_t auth_data[AUTH_DATA_LEN];
+  uint8_t auth_data[MAX_NTP_AUTH_DATA_LEN];
 } NTP_Packet;
 
 /* We have to declare a buffer type to hold a datagram read from the
@@ -89,7 +91,7 @@ typedef union {
   uint8_t arbitrary[MAX_NTP_MESSAGE_SIZE];
 } ReceiveBuffer;
 
-#define NTP_NORMAL_PACKET_SIZE (sizeof(NTP_Packet) - (sizeof(NTP_int32) + AUTH_DATA_LEN))
+#define NTP_NORMAL_PACKET_SIZE offsetof(NTP_Packet, auth_keyid)
 
 /* ================================================== */
 

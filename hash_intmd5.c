@@ -2,7 +2,7 @@
   chronyd/chronyc - Programs for keeping computer clocks accurate.
 
  **********************************************************************
- * Copyright (C) Richard P. Curnow  1997-2002
+ * Copyright (C) Miroslav Lichvar  2011
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
@@ -21,29 +21,44 @@
 
   =======================================================================
 
-  This is the header file for the NTP socket I/O bits.
+  Routines implementing crypto hashing using internal MD5 implementation.
 
   */
 
-#ifndef GOT_NTP_IO_H
-#define GOT_NTP_IO_H
+#include "config.h"
+#include "sysincl.h"
+#include "hash.h"
+#include "memory.h"
 
-#include "ntp.h"
-#include "addressing.h"
+#include "md5.c"
 
-/* Function to initialise the module. */
-extern void NIO_Initialise(void);
+static MD5_CTX ctx;
 
-/* Function to finalise the module */
-extern void NIO_Finalise(void);
+int
+HSH_GetHashId(const char *name)
+{
+  /* only MD5 is supported */
+  if (strcmp(name, "MD5"))
+    return -1;
 
-/* Function to transmit a packet */
-extern void NIO_SendNormalPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr);
+  return 0;
+}
 
-/* Function to transmit an authenticated packet */
-extern void NIO_SendAuthenticatedPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, int auth_len);
+unsigned int
+HSH_Hash(int id, const unsigned char *in1, unsigned int in1_len,
+    const unsigned char *in2, unsigned int in2_len,
+    unsigned char *out, unsigned int out_len)
+{
+  if (out_len < 16)
+    return 0;
 
-/* Function to send a datagram to a remote machine's UDP echo port. */
-extern void NIO_SendEcho(NTP_Remote_Address *remote_addr);
+  MD5Init(&ctx);
+  MD5Update(&ctx, in1, in1_len);
+  if (in2)
+    MD5Update(&ctx, in2, in2_len);
+  MD5Final(&ctx);
 
-#endif /* GOT_NTP_IO_H */
+  memcpy(out, ctx.digest, 16);
+
+  return 16;
+}

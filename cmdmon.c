@@ -328,57 +328,28 @@ CAM_Finalise(void)
    rest of the packet */
 
 static int
-check_rx_packet_auth(CMD_Request *packet)
+check_rx_packet_auth(CMD_Request *packet, int packet_len)
 {
-
-  char *key;
-  int keylen;
-  int pkt_len;
-  MD5_CTX ctx;
+  int pkt_len, auth_len;
 
   pkt_len = PKL_CommandLength(packet);
+  auth_len = packet_len - pkt_len;
 
-  KEY_CommandKey(&key, &keylen);
-
-  MD5Init(&ctx);
-  MD5Update(&ctx, (unsigned char *) key, keylen);
-  MD5Update(&ctx, (unsigned char *) packet, offsetof(CMD_Request, auth));
-  if (pkt_len > offsetof(CMD_Request, data)) {
-    MD5Update(&ctx, (unsigned char *) &(packet->data), pkt_len - offsetof(CMD_Request, data));
-  }
-  MD5Final(&ctx);
-
-  if (!memcmp((void *) &ctx.digest, (void *) &(packet->auth), 16)) {
-    return 1;
-  } else {
-    return 0;
-  }
+  return KEY_CheckAuth(KEY_GetCommandKey(), (unsigned char *)packet,
+      pkt_len, ((unsigned char *)packet) + pkt_len, auth_len);
 }
 
 /* ================================================== */
 
-static void
+static int
 generate_tx_packet_auth(CMD_Reply *packet)
 {
-  char *key;
-  int keylen;
-  MD5_CTX ctx;
   int pkt_len;
 
   pkt_len = PKL_ReplyLength(packet);
 
-  KEY_CommandKey(&key, &keylen);
-
-  MD5Init(&ctx);
-  MD5Update(&ctx, (unsigned char *) key, keylen);
-  MD5Update(&ctx, (unsigned char *) packet, offsetof(CMD_Request, auth));
-  if (pkt_len > offsetof(CMD_Reply, data)) {
-    MD5Update(&ctx, (unsigned char *) &(packet->data), pkt_len - offsetof(CMD_Reply, data));
-  }
-  MD5Final(&ctx);
-
-  memcpy(&(packet->auth), &ctx.digest, 16);
-
+  return KEY_GenerateAuth(KEY_GetCommandKey(), (unsigned char *)packet,
+      pkt_len, ((unsigned char *)packet) + pkt_len, sizeof (packet->auth));
 }
 
 /* ================================================== */
@@ -720,7 +691,7 @@ print_reply_packet(CMD_Reply *pkt)
 /* ================================================== */
 
 static void
-transmit_reply(CMD_Reply *msg, union sockaddr_in46 *where_to)
+transmit_reply(CMD_Reply *msg, union sockaddr_in46 *where_to, int auth_len)
 {
   int status;
   int tx_message_length;
@@ -742,7 +713,7 @@ transmit_reply(CMD_Reply *msg, union sockaddr_in46 *where_to)
       assert(0);
   }
 
-  tx_message_length = PKL_ReplyLength(msg);
+  tx_message_length = PKL_ReplyLength(msg) + auth_len;
   status = sendto(sock_fd, (void *) msg, tx_message_length, 0,
                   &where_to->u, addrlen);
 
@@ -1756,7 +1727,7 @@ read_from_cmd_socket(void *anything)
 {
   int status;
   int read_length; /* Length of packet read */
-  int expected_length; /* Expected length of packet */
+  int expected_length; /* Expected length of packet without auth data */
   unsigned long flags;
   CMD_Request rx_message;
   CMD_Reply tx_message, *prev_tx_message;
@@ -1766,7 +1737,8 @@ read_from_cmd_socket(void *anything)
   socklen_t from_length;
   IPAddr remote_ip;
   unsigned short remote_port;
-  int md5_ok;
+  int auth_length;
+  int auth_ok;
   int utoken_ok, token_ok;
   int issue_token;
   int valid_ts;
@@ -1867,7 +1839,10 @@ read_from_cmd_socket(void *anything)
 
     if (rx_message.version >= PROTO_VERSION_MISMATCH_COMPAT) {
       tx_message.status = htons(STT_BADPKTVERSION);
-      transmit_reply(&tx_message, &where_from);
+      /* add empty MD5 auth so older clients will not drop
+         the reply due to bad length */
+      memset(((char *)&tx_message) + PKL_ReplyLength(&tx_message), 0, 16);
+      transmit_reply(&tx_message, &where_from, 16);
     }
     return;
   }
@@ -1880,11 +1855,11 @@ read_from_cmd_socket(void *anything)
       CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
     tx_message.status = htons(STT_INVALID);
-    transmit_reply(&tx_message, &where_from);
+    transmit_reply(&tx_message, &where_from, 0);
     return;
   }
 
-  if (read_length != expected_length) {
+  if (read_length < expected_length) {
     if (!LOG_RateLimited()) {
       LOG(LOGS_WARN, LOGF_CmdMon, "Read incorrectly sized command packet from %s:%hu", UTI_IPToString(&remote_ip), remote_port);
     }
@@ -1892,7 +1867,7 @@ read_from_cmd_socket(void *anything)
       CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
     tx_message.status = htons(STT_BADPKTLENGTH);
-    transmit_reply(&tx_message, &where_from);
+    transmit_reply(&tx_message, &where_from, 0);
     return;
   }
 
@@ -1909,7 +1884,7 @@ read_from_cmd_socket(void *anything)
     }
 
     tx_message.status = htons(STT_NOHOSTACCESS);
-    transmit_reply(&tx_message, &where_from);
+    transmit_reply(&tx_message, &where_from, 0);
 
     return;
   }
@@ -1920,18 +1895,18 @@ read_from_cmd_socket(void *anything)
      clients will set their utokens to 0 to save us wasting our time
      if the packet is unauthenticatable. */
   if (rx_message.utoken != 0) {
-    md5_ok = check_rx_packet_auth(&rx_message);
+    auth_ok = check_rx_packet_auth(&rx_message, read_length);
   } else {
-    md5_ok = 0;
+    auth_ok = 0;
   }
 
   /* All this malarky is to protect the system against various forms
      of attack.
 
      Simple packet forgeries are blocked by requiring the packet to
-     authenticate properly with MD5.  (The assumption is that the
-     command key is in a read-only keys file read by the daemon, and
-     is known only to administrators.)
+     authenticate properly with MD5 or other crypto hash.  (The
+     assumption is that the command key is in a read-only keys file
+     read by the daemon, and is known only to administrators.)
 
      Replay attacks are prevented by 2 fields in the packet.  The
      'token' field is where the client plays back to us a token that
@@ -1973,13 +1948,13 @@ read_from_cmd_socket(void *anything)
   rx_message_seq = ntohl(rx_message.sequence);
   rx_attempt = ntohs(rx_message.attempt);
 
-  if (md5_ok && utoken_ok) {
+  if (auth_ok && utoken_ok) {
     token_ok = check_token(rx_message_token);
   } else {
     token_ok = 0;
   }
 
-  if (md5_ok && utoken_ok && !token_ok) {
+  if (auth_ok && utoken_ok && !token_ok) {
     /* This might be a resent message, due to the client not getting
        our reply to the first attempt.  See if we can find the message. */
     prev_tx_message = lookup_reply(rx_message_token, rx_message_seq, rx_attempt);
@@ -1997,14 +1972,14 @@ read_from_cmd_socket(void *anything)
 
   }
 
-  if (md5_ok && utoken_ok && token_ok) {
+  if (auth_ok && utoken_ok && token_ok) {
     /* See whether we can discard the previous reply from storage */
     token_acknowledged(rx_message_token, &now);
   }
 
   valid_ts = 0;
 
-  if (md5_ok) {
+  if (auth_ok) {
     struct timeval ts;
 
     UTI_TimevalNetworkToHost(&rx_message.data.logon.ts, &ts);
@@ -2019,7 +1994,7 @@ read_from_cmd_socket(void *anything)
     issue_token = 0;
   }
 
-  authenticated = md5_ok & utoken_ok & token_ok;
+  authenticated = auth_ok & utoken_ok & token_ok;
 
   if (authenticated) {
     CLG_LogCommandAccess(&remote_ip, CLG_CMD_AUTH, cooked_now.tv_sec);
@@ -2119,15 +2094,15 @@ read_from_cmd_socket(void *anything)
           /* If the log-on fails, record the reason why */
           if (!issue_token && !LOG_RateLimited()) {
             LOG(LOGS_WARN, LOGF_CmdMon,
-                "Bad command logon from %s port %d (md5_ok=%d valid_ts=%d)\n",
+                "Bad command logon from %s port %d (auth_ok=%d valid_ts=%d)",
                 UTI_IPToString(&remote_ip),
                 remote_port,
-                md5_ok, valid_ts);
+                auth_ok, valid_ts);
           }
 
           if (issue_token == 1) {
             tx_message.status = htons(STT_SUCCESS);
-          } else if (!md5_ok) {
+          } else if (!auth_ok) {
             tx_message.status = htons(STT_UNAUTH);
           } else if (!valid_ts) {
             tx_message.status = htons(STT_INVALIDTS);
@@ -2298,8 +2273,10 @@ read_from_cmd_socket(void *anything)
     }
   }
 
-  if (md5_ok) {
-    generate_tx_packet_auth(&tx_message);
+  if (auth_ok) {
+    auth_length = generate_tx_packet_auth(&tx_message);
+  } else {
+    auth_length = 0;
   }
 
   if (token_ok) {
@@ -2318,7 +2295,7 @@ read_from_cmd_socket(void *anything)
     static int do_it=1;
 
     if (do_it) {
-      transmit_reply(&tx_message, &where_from);
+      transmit_reply(&tx_message, &where_from, auth_length);
     }
 
 #if 0
