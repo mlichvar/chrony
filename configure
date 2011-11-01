@@ -162,6 +162,7 @@ SYSDEFS=""
 feat_readline=1
 try_readline=1
 try_editline=1
+try_nss=1
 feat_rtc=1
 try_rtc=0
 feat_linuxcaps=1
@@ -244,6 +245,9 @@ do
     ;;
     --with-sendmail=* )
       mail_program=`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --without-nss )
+      try_nss=0
     ;;
     --host-system=* )
       OPERATINGSYSTEM=`echo $option | sed -e 's/^.*=//;'`
@@ -475,6 +479,19 @@ fi
 HASH_OBJ="hash_intmd5.o"
 HASH_COMPILE=""
 HASH_LINK=""
+
+if [ $try_nss = "1" ]; then
+  test_cflags="`pkg-config --cflags nss`"
+  test_link="`pkg-config --libs-only-L nss` -lfreebl3"
+  if test_code 'NSS' 'nss.h hasht.h nsslowhash.h' \
+    "$test_cflags" "$test_link" \
+    'NSSLOWHASH_Begin(NSSLOWHASH_NewContext(NSSLOW_Init(), HASH_AlgSHA512));'
+  then
+    HASH_OBJ="hash_nss.o"
+    HASH_COMPILE="$test_cflags"
+    HASH_LINK="$test_link"
+  fi
+fi
 
 SYSCONFDIR=/etc
 if [ "x$SETSYSCONFDIR" != "x" ]; then
