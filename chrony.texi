@@ -1694,18 +1694,17 @@ pairs.  The format of the file is shown below
 @example
 10 tulip
 11 hyacinth
-20 crocus
-25 iris
+20 MD5 crocus
+25 SHA1 iris
  ...
 @end example
 
-Each line consists of an ID and a password.  The ID can be any
-unsigned integer in the range 0 through 2**32-1.  The password can be
-any string of characters not containing a space.
-
-For NTP use, the MD5 authentication scheme is always used.  This must be
-borne in mind if @code{chronyd} is to inter-operate in authenticated
-mode with @code{xntpd} running on other computers.
+Each line consists of an ID, a name of authentication hash function (optional)
+and a password. The ID can be any unsigned integer in the range 0 through
+2**32-1.  The hash function is MD5 by default, depending on how was
+@code{chronyd} compiled other allowed hash functions may be SHA1, SHA256,
+SHA384, SHA512, RMD128, RMD160, RMD256, RMD320, TIGER and WHIRLPOOL.  The
+password can be any string of characters not containing a space.
 
 The ID for the chronyc authentication key is specified with the
 commandkey command (see earlier).
@@ -2694,7 +2693,7 @@ NTP client mode datagram.
 The NTP protocol supports the inclusion of checksums in the packets, to
 prevent computers having their system time upset by rogue packets being
 sent to them.  The checksums are generated as a function of a password,
-using the MD5 algorithm.
+using the cryptographic hash function set in the key file.
 
 The association between key numbers and passwords is contained in the
 keys file, defined by the keyfile command.
@@ -2889,6 +2888,7 @@ password:
 
 @itemize @bullet
 @item @code{activity}
+@item @code{authhash}
 @item @code{dns}
 @item @code{exit}
 @item @code{help}
@@ -2919,6 +2919,7 @@ interface.
 * add server command::          Add a new NTP server
 * allow command::               Allowing NTP client access
 * allow all command::           Allowing NTP client access
+* authhash command::            Set the command authentication hash function
 * burst command::               Initiating a rapid set of measurements
 * clients command::             Show clients that have accessed the server
 * cmdaccheck command::          Verifying command client access
@@ -3064,6 +3065,20 @@ directive in the configuration file.
 @subsubsection allow all
 The effect of the allow command is identical to the @code{allow all}
 directive in the configuration file (@pxref{allow directive}).
+@c }}}
+@c {{{ authhash
+@node authhash command
+@subsubsection authhash
+This command sets the hash function used for authenticating user commands.
+For successful authentication the hash function has to be the same as the one
+set for the command key in the keys file on the server.  It needs to be set
+before the @code{password} command is used.  The default hash function is MD5.
+
+An example is
+
+@example
+authhash SHA1
+@end example
 @c }}}
 @c {{{ burst
 @node burst command
