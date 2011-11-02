@@ -163,6 +163,7 @@ feat_readline=1
 try_readline=1
 try_editline=1
 try_nss=1
+try_tomcrypt=1
 feat_rtc=1
 try_rtc=0
 feat_linuxcaps=1
@@ -248,6 +249,9 @@ do
     ;;
     --without-nss )
       try_nss=0
+    ;;
+    --without-tomcrypt )
+      try_tomcrypt=0
     ;;
     --host-system=* )
       OPERATINGSYSTEM=`echo $option | sed -e 's/^.*=//;'`
@@ -490,6 +494,16 @@ if [ $try_nss = "1" ]; then
     HASH_OBJ="hash_nss.o"
     HASH_COMPILE="$test_cflags"
     HASH_LINK="$test_link"
+  fi
+fi
+
+if [ "x$HASH_LINK" = "x" ] && [ $try_tomcrypt = "1" ]; then
+  if test_code 'tomcrypt' 'tomcrypt.h' '-I/usr/include/tomcrypt' '-ltomcrypt' \
+    'hash_memory_multi(find_hash("md5"), NULL, NULL, NULL, 0, NULL, 0);'
+  then
+    HASH_OBJ="hash_tomcrypt.o"
+    HASH_COMPILE="-I/usr/include/tomcrypt"
+    HASH_LINK="-ltomcrypt"
   fi
 fi
 
