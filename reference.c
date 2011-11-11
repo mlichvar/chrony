@@ -110,6 +110,21 @@ static double last_ref_update_interval;
 
 /* ================================================== */
 
+static void
+handle_slew(struct timeval *raw,
+            struct timeval *cooked,
+            double dfreq,
+            double doffset,
+            int is_step_change,
+            void *anything)
+{
+  if (is_step_change) {
+    UTI_AddDoubleToTimeval(&last_ref_update, -doffset, &last_ref_update);
+  }
+}
+
+/* ================================================== */
+
 void
 REF_Initialise(void)
 {
@@ -141,7 +156,6 @@ REF_Initialise(void)
           our_skew = 1.0e-6 * file_skew_ppm;
           LOG(LOGS_INFO, LOGF_Reference, "Frequency %.3f +- %.3f ppm read from %s", file_freq_ppm, file_skew_ppm, drift_file);
           LCL_SetAbsoluteFrequency(our_frequency_ppm);
-          LCL_ReadCookedTime(&last_ref_update, NULL);
         } else {
           LOG(LOGS_WARN, LOGF_Reference, "Could not parse valid frequency and skew from driftfile %s",
               drift_file);
@@ -180,10 +194,13 @@ REF_Initialise(void)
     memset(fb_drifts, 0, sizeof (struct fb_drift) * (fb_drift_max - fb_drift_min + 1));
     next_fb_drift = 0;
     fb_drift_timeout_id = -1;
-    last_ref_update.tv_sec = 0;
-    last_ref_update.tv_usec = 0;
-    last_ref_update_interval = 0;
   }
+
+  last_ref_update.tv_sec = 0;
+  last_ref_update.tv_usec = 0;
+  last_ref_update_interval = 0.0;
+
+  LCL_AddParameterChangeHandler(handle_slew, NULL);
 
   /* And just to prevent anything wierd ... */
   if (do_log_change) {
@@ -585,6 +602,15 @@ REF_SetReference(int stratum,
 
   update_leap_status(leap);
 
+  if (last_ref_update.tv_sec) {
+    UTI_DiffTimevalsToDouble(&update_interval, &now, &last_ref_update);
+    if (update_interval < 0.0)
+      update_interval = 0.0;
+  } else {
+    update_interval = 0.0;
+  }
+  last_ref_update = now;
+
   /* Eliminate updates that are based on totally unreliable frequency
      information */
 
@@ -643,8 +669,6 @@ REF_SetReference(int stratum,
             1.0e6*our_skew,
             our_offset);
 
-  UTI_DiffTimevalsToDouble(&update_interval, &now, &last_ref_update);
-
   if (drift_file) {
     /* Update drift file at most once per hour */
     drift_file_age += update_interval;
@@ -659,7 +683,6 @@ REF_SetReference(int stratum,
     update_fb_drifts(abs_freq_ppm, update_interval);
   }
 
-  last_ref_update = now;
   last_ref_update_interval = update_interval;
 
   /* And now set the freq and offset to zero */
