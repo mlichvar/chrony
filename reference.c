@@ -56,6 +56,8 @@ static double our_root_dispersion;
 
 static double max_update_skew;
 
+static double correction_time_ratio;
+
 /* Flag indicating that we are initialised */
 static int initialised = 0;
 
@@ -180,6 +182,8 @@ REF_Initialise(void)
     : -1;
 
   max_update_skew = fabs(CNF_GetMaxUpdateSkew()) * 1.0e-6;
+
+  correction_time_ratio = CNF_GetCorrectionTimeRatio();
 
   enable_local_stratum = CNF_AllowLocalReference(&local_stratum);
 
@@ -619,13 +623,14 @@ REF_SetReference(int stratum,
      Define correction rate as the area of the region bounded by the graph of
      offset corrected in time. Set the rate so that the time needed to correct
      an offset equal to the current sourcestats stddev will be equal to the
-     update interval (assuming linear adjustment). The offset and the
-     time needed to make the correction are inversely proportional.
+     update interval multiplied by the correction time ratio (assuming linear
+     adjustment). The offset and the time needed to make the correction are
+     inversely proportional.
 
      This is only a suggestion and it's up to the system driver how the
      adjustment will be executed. */
 
-  correction_rate = 0.5 * offset_sd * update_interval;
+  correction_rate = correction_time_ratio * 0.5 * offset_sd * update_interval;
 
   /* Eliminate updates that are based on totally unreliable frequency
      information */

@@ -1173,6 +1173,7 @@ directives can occur in any order in the file.
 * cmdallow directive::          Give control access to chronyc on other computers
 * cmddeny directive::           Deny control access to chronyc on other computers
 * commandkey directive::        Set runtime command key
+* corrtimeratio directive::     Set correction time ratio
 * cmdport directive::           Set port to use for runtime commanding
 * deny directive::              Deny access to NTP clients
 * driftfile directive::         Specify location of file containing drift data
@@ -1493,6 +1494,35 @@ cmdport 257
 This would make @code{chronyd} use 257/udp as its command port.
 (@code{chronyc} would need to be run with the @code{-p 257} switch to
 inter-operate correctly).
+@c }}}
+@c {{{ corrtimeratio
+@node corrtimeratio directive
+@subsection corrtimeratio
+When @code{chronyd} makes a time correction, it controls how quickly
+the system clock is slewed (so far only on Linux).  This rate
+temporarily affects the frequency error of the system clock.
+
+The @code{corrtimeratio} directive controls the ratio between the
+duration in which the clock is slewed for an average correction
+according to the source history and the interval in which the
+corrections are done (usually the NTP polling interval).  Corrections
+larger than the average take less time and smaller corrections take
+more time, the amount of the correction and the correction time are
+inversely proportional.
+
+Increasing @code{corrtimeratio} makes the overall frequency error of
+the system clock smaller, but increases the overall time error as
+the corrections will take longer.
+
+By default, the ratio is 1, which means the duration of an average
+correction will be close to the update interval.
+
+The syntax is
+
+@example
+corrtimeratio 10
+@end example
+
 @c }}}
 @c {{{ deny
 @node deny directive

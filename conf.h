@@ -74,6 +74,7 @@ extern void CNF_GetLinuxFreqScale(int *set, double *freq_scale);
 /* Value returned in ppm, as read from file */
 extern double CNF_GetMaxUpdateSkew(void);
 extern double CNF_GetMaxClockError(void);
+extern double CNF_GetCorrectionTimeRatio(void);
 
 extern double CNF_GetReselectDistance(void);
 extern double CNF_GetStratumWeight(void);

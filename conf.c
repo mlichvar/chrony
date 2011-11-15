@@ -76,6 +76,7 @@ static void parse_logbanner(const char *);
 static void parse_logdir(const char *);
 static void parse_maxupdateskew(const char *);
 static void parse_maxclockerror(const char *);
+static void parse_corrtimeratio(const char *);
 static void parse_reselectdist(const char *);
 static void parse_stratumweight(const char *);
 static void parse_peer(const char *);
@@ -122,6 +123,7 @@ static char *drift_file = NULL;
 static char *rtc_file = NULL;
 static unsigned long command_key_id;
 static double max_update_skew = 1000.0;
+static double correction_time_ratio = 1.0;
 static double max_clock_error = 1.0; /* in ppm */
 
 static double reselect_distance = 1e-4;
@@ -239,6 +241,7 @@ static const Command commands[] = {
   {"dumpdir", 7, parse_dumpdir},
   {"maxupdateskew", 13, parse_maxupdateskew},
   {"maxclockerror", 13, parse_maxclockerror},
+  {"corrtimeratio", 13, parse_corrtimeratio},
   {"commandkey", 10, parse_commandkey},
   {"initstepslew", 12, parse_initstepslew},
   {"local", 5, parse_local},
@@ -627,6 +630,16 @@ parse_maxclockerror(const char *line)
 {
   if (sscanf(line, "%lf", &max_clock_error) != 1) {
     LOG(LOGS_WARN, LOGF_Configure, "Could not read max clock error at line %d in file", line_number);
+  }
+}
+
+/* ================================================== */
+
+static void
+parse_corrtimeratio(const char *line)
+{
+  if (sscanf(line, "%lf", &correction_time_ratio) != 1) {
+    LOG(LOGS_WARN, LOGF_Configure, "Could not read correction time ratio at line %d", line_number);
   }
 }
 
@@ -1473,6 +1486,14 @@ double
 CNF_GetMaxClockError(void)
 {
   return max_clock_error;
+}
+
+/* ================================================== */
+
+double
+CNF_GetCorrectionTimeRatio(void)
+{
+  return correction_time_ratio;
 }
 
 /* ================================================== */
