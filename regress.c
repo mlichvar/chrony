@@ -300,9 +300,9 @@ RGR_FindBestRegression
     nruns = n_runs_from_residuals(resid, n - resid_start); 
 
     if (nruns > critical_runs[n - resid_start] || n - start <= MIN_SAMPLES_FOR_REGRESS) {
-      if (resid_start < 0) {
+      if (start != resid_start) {
         /* Ignore extra samples in returned nruns */
-        nruns = n_runs_from_residuals(resid - resid_start, n); 
+        nruns = n_runs_from_residuals(resid - resid_start + start, n - start);
       }
       break;
     } else {
