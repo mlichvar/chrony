@@ -355,7 +355,7 @@ read_from_socket(void *anything)
       }
 #endif
 
-#ifdef IPV6_PKTINFO
+#if defined(IPV6_PKTINFO) && defined(HAVE_IN6_PKTINFO)
       if (cmsg->cmsg_level == IPPROTO_IPV6 && cmsg->cmsg_type == IPV6_PKTINFO) {
         struct in6_pktinfo ipi;
 
@@ -462,7 +462,7 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
   }
 #endif
 
-#ifdef IPV6_PKTINFO
+#if defined(IPV6_PKTINFO) && defined(HAVE_IN6_PKTINFO)
   if (remote_addr->local_ip_addr.family == IPADDR_INET6) {
     struct cmsghdr *cmsg;
     struct in6_pktinfo *ipi;

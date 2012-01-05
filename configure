@@ -373,13 +373,16 @@ if [ $feat_ipv6 = "1" ] && \
     return !inet_ntop(AF_INET6, &n.sin6_addr.s6_addr, p, sizeof(p));'
 then
   add_def HAVE_IPV6
-  if ! test_code 'in6_pktinfo' 'sys/socket.h netinet/in.h' '' '' '
+  if test_code 'in6_pktinfo' 'sys/socket.h netinet/in.h' '' '' '
     return sizeof(struct in6_pktinfo);'
   then
+    add_def HAVE_IN6_PKTINFO
+  else
     if test_code 'in6_pktinfo with _GNU_SOURCE' 'sys/socket.h netinet/in.h' \
       '-D_GNU_SOURCE' '' 'return sizeof(struct in6_pktinfo);'
     then
       add_def _GNU_SOURCE
+      add_def HAVE_IN6_PKTINFO
     fi
   fi
 fi
