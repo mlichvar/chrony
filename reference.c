@@ -155,7 +155,7 @@ REF_Initialise(void)
           /* We have read valid data */
           our_frequency_ppm = file_freq_ppm;
           our_skew = 1.0e-6 * file_skew_ppm;
-          LOG(LOGS_INFO, LOGF_Reference, "Frequency %.3f +- %.3f ppm read from %s", file_freq_ppm, file_skew_ppm, drift_file);
+          LOG(LOGS_INFO, LOGF_Reference, "Frequency %.3f +/- %.3f ppm read from %s", file_freq_ppm, file_skew_ppm, drift_file);
           LCL_SetAbsoluteFrequency(our_frequency_ppm);
         } else {
           LOG(LOGS_WARN, LOGF_Reference, "Could not parse valid frequency and skew from driftfile %s",
