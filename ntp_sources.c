@@ -665,9 +665,10 @@ NSR_GetActivityReport(RPT_ActivityReport *report)
     }
   }
 
-  /* Add unresolved sources to offline count */
+  report->unresolved = 0;
+
   for (us = unresolved_sources; us; us = us->next) {
-    report->offline++;
+    report->unresolved++;
   }
 
   return;

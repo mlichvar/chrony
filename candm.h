@@ -369,7 +369,8 @@ typedef struct {
    and used also instead of integer microseconds, new commands: modify stratum,
    modify polltarget, modify maxdelaydevratio, reselect, reselectdistance
 
-   Version 5 : auth data moved to the end of the packet to allow different hashes
+   Version 5 : auth data moved to the end of the packet to allow hashes with
+   different sizes, extended sources, tracking and activity reports
  */
 
 #define PROTO_VERSION_NUMBER 5
@@ -508,12 +509,17 @@ typedef struct {
 #define RPY_SD_ST_CANDIDATE 4
 #define RPY_SD_ST_OUTLYER 5
 
+#define RPY_SD_FLAG_NOSELECT 0x1
+#define RPY_SD_FLAG_PREFER 0x2
+
 typedef struct {
   IPAddr ip_addr;
   uint16_t poll;
   uint16_t stratum;
   uint16_t state;
   uint16_t mode;
+  uint16_t flags;
+  uint16_t reachability;
   uint32_t  since_sample;
   Float orig_latest_meas;
   Float latest_meas;
@@ -527,11 +533,14 @@ typedef struct {
   uint32_t stratum;
   Timeval ref_time;
   Float current_correction;
+  Float last_offset;
+  Float rms_offset;
   Float freq_ppm;
   Float resid_freq_ppm;
   Float skew_ppm;
   Float root_delay;
   Float root_dispersion;
+  Float last_update_interval;
   int32_t EOR;
 } RPY_Tracking;
 
@@ -619,6 +628,7 @@ typedef struct {
   int32_t offline;
   int32_t burst_online;
   int32_t burst_offline;
+  int32_t unresolved;
   int32_t EOR;
 } RPY_Activity;
 

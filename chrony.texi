@@ -1523,6 +1523,9 @@ The syntax is
 corrtimeratio 10
 @end example
 
+The current remaining correction is shown in the @code{tracking} report
+(@pxref{tracking command}) as the @code{System time} value.
+
 @c }}}
 @c {{{ deny
 @node deny directive
@@ -3021,7 +3024,7 @@ If the auto_offline option is used in specifying some of the servers/peers, the
 @code{activity} command may be useful for detecting when all of them have
 entered the offline state after the PPP link has been disconnected.
 
-The report shows the number of servers/peers in 4 states:
+The report shows the number of servers/peers in 5 states:
 @itemize
 @item @code{online} : the server/peer is currently online (i.e. assumed by
 chronyd to be reachable)
@@ -3033,6 +3036,9 @@ server/peer will be returned to the online state.
 @item @code{burst_offline} : a burst command has been initiated for the
 server/peer and is being performed; after the burst is complete, the
 server/peer will be returned to the offline state.
+@item @code{unresolved} : the name of the server/peer wasn't resolved to an
+address yet; this server is not visible in the @code{sources} and
+@code{sourcestats} reports.
 @end itemize
 @c }}}
 @c {{{ add peer
@@ -3942,11 +3948,11 @@ columns.
 @example
 @group
 210 Number of sources = 3
-MS Name/IP address      Stratum Poll LastRx Last sample
-=======================================================================
-^+ a.b.c                    3     6    47m  -9491us[-6983us] +/-  159ms
-^+ d.e.f                    3     6    47m    +32ms[  +35ms] +/-  274ms
-^* g.h.i                    2     6    47m  +8839us[  +11ms] +/-  214ms
+MS Name/IP address         Stratum Poll Reach LastRx Last sample
+===============================================================================
+#* GPS0                          0   4   377    11   -479ns[ -621ns] +/-  134ns
+^? a.b.c                         2   6   377    23   -923us[ -924us] +/-   43ms
+^+ d.e.f                         1   6   377    21  -2629us[-2619us] +/-   86ms
 @end group
 @end example
 
@@ -3987,10 +3993,18 @@ that a measurement is being made every 64 seconds.
 @code{chronyd} automatically varies the polling rate in response to prevailing
 conditions.
 
+@item Reach
+This shows the source's reachability register printed as octal number.  The
+register has 8 bits and is updated on every received or missed packet from
+the source.  A value of 377 indicates that a valid reply was received for all
+from the last eight transmissions.
+
 @item LastRx
 This column shows how long ago the last sample was received from the
 source.  This is normally in seconds.  The letters @code{m}, @code{h},
-@code{d} or @code{y} indicate minutes, hours, days or years.
+@code{d} or @code{y} indicate minutes, hours, days or years.  A value
+of 10 years indicates there were no samples received from this source
+yet.
 
 @item Last sample
 This column shows the offset between the local clock and the source at
@@ -4091,8 +4105,10 @@ performance.  An example of the output is shown below.
 @example
 Reference ID    : 1.2.3.4 (a.b.c)
 Stratum         : 3
-Ref time (UTC)  : Sun May 17 06:13:11 1998
-System time     : 0.000000000 seconds fast of NTP time
+Ref time (UTC)  : Fri Feb  3 15:00:29 2012
+System time     : 0.000001501 seconds slow of NTP time
+Last offset     : -0.000001632 seconds
+RMS offset      : 0.000002360 seconds
 Frequency       : 331.898 ppm fast
 Residual freq   : 0.004 ppm
 Skew            : 0.154 ppm
@@ -4118,7 +4134,7 @@ computer, so the computer in the example is two hops away
 (i.e. @code{a.b.c} is a stratum-2 and is synchronised from a stratum-1).
 
 @item Ref time
-This is the time (GMT) at which the last measurement from the reference
+This is the time (UTC) at which the last measurement from the reference
 source was processed.
 
 @item System time
@@ -4139,9 +4155,13 @@ On systems such as Solaris and SunOS, @code{chronyd} has no means to
 adjust the fundamental rate of the system clock, so keeps the system
 time correct by periodically making offsets to it as though an error had
 been measured.  The build up of these offsets will be observed in this
-report.  On systems such as Linux where @code{chronyd} can adjust the
-fundamental rate of the system clock, this value will show zero unless a
-very recent measurement has shown the system to be error.
+report.
+
+@item Last offset
+This is the estimated local offset on the last clock update.
+
+@item RMS offset
+This is a long-term average of the offset value.
 
 @item Frequency
 The `frequency' is the rate by which the system's clock would be would
@@ -4194,6 +4214,9 @@ stratum-1 computer is correct) is given by
 @example
 clock_error <= root_dispersion + (0.5 * |root_delay|)
 @end example
+
+@item Update interval
+This is the interval between the last two clock updates.
 
 @end table
 @c }}}

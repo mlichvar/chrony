@@ -1110,6 +1110,23 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
         assert(0);
         break;
     }
+
+    switch (src->sel_option) {
+      case SRC_SelectNormal:
+        report->sel_option = RPT_NOSELECT;
+        break;
+      case SRC_SelectPrefer:
+        report->sel_option = RPT_PREFER;
+        break;
+      case SRC_SelectNoselect:
+        report->sel_option = RPT_NOSELECT;
+        break;
+      default:
+        assert(0);
+    }
+
+    report->reachability = src->reachability;
+
     /* Call stats module to fill out estimates */
     SST_DoSourceReport(src->stats, report, now);
 

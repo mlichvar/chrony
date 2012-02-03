@@ -1062,6 +1062,18 @@ handle_source_data(CMD_Request *rx_message, CMD_Reply *tx_message)
         tx_message->data.source_data.mode    = htons(RPY_SD_MD_REF);
         break;
     }
+    switch (report.sel_option) {
+      case RPT_NORMAL:
+        tx_message->data.source_data.flags = htons(0);
+        break;
+      case RPT_PREFER:
+        tx_message->data.source_data.flags = htons(RPY_SD_FLAG_PREFER);
+        break;
+      case RPT_NOSELECT:
+        tx_message->data.source_data.flags = htons(RPY_SD_FLAG_PREFER);
+        break;
+    }
+    tx_message->data.source_data.reachability = htons(report.reachability);
     tx_message->data.source_data.since_sample = htonl(report.latest_meas_ago);
     tx_message->data.source_data.orig_latest_meas = UTI_FloatHostToNetwork(report.orig_latest_meas);
     tx_message->data.source_data.latest_meas = UTI_FloatHostToNetwork(report.latest_meas);
@@ -1373,11 +1385,14 @@ handle_tracking(CMD_Request *rx_message, CMD_Reply *tx_message)
   tx_message->data.tracking.stratum = htonl(rpt.stratum);
   UTI_TimevalHostToNetwork(&rpt.ref_time, &tx_message->data.tracking.ref_time);
   tx_message->data.tracking.current_correction = UTI_FloatHostToNetwork(rpt.current_correction);
+  tx_message->data.tracking.last_offset = UTI_FloatHostToNetwork(rpt.last_offset);
+  tx_message->data.tracking.rms_offset = UTI_FloatHostToNetwork(rpt.rms_offset);
   tx_message->data.tracking.freq_ppm = UTI_FloatHostToNetwork(rpt.freq_ppm);
   tx_message->data.tracking.resid_freq_ppm = UTI_FloatHostToNetwork(rpt.resid_freq_ppm);
   tx_message->data.tracking.skew_ppm = UTI_FloatHostToNetwork(rpt.skew_ppm);
   tx_message->data.tracking.root_delay = UTI_FloatHostToNetwork(rpt.root_delay);
   tx_message->data.tracking.root_dispersion = UTI_FloatHostToNetwork(rpt.root_dispersion);
+  tx_message->data.tracking.last_update_interval = UTI_FloatHostToNetwork(rpt.last_update_interval);
 }
 
 /* ================================================== */
@@ -1679,6 +1694,7 @@ handle_activity(CMD_Request *rx_message, CMD_Reply *tx_message)
   tx_message->data.activity.offline = htonl(report.offline);
   tx_message->data.activity.burst_online = htonl(report.burst_online);
   tx_message->data.activity.burst_offline = htonl(report.burst_offline);
+  tx_message->data.activity.unresolved = htonl(report.unresolved);
   tx_message->status = htons(STT_SUCCESS);
   tx_message->reply = htons(RPY_ACTIVITY);
 }

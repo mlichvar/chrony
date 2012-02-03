@@ -1670,7 +1670,7 @@ process_cmd_sources(char *line)
   IPAddr ip_addr;
   uint32_t latest_meas_ago;
   uint16_t poll, stratum;
-  uint16_t state, mode;
+  uint16_t state, mode, flags, reachability;
   char hostname_buf[50];
 
   /* Check whether to output verbose headers */
@@ -1692,10 +1692,10 @@ process_cmd_sources(char *line)
       printf("||                                   |           |                         \n");
     }
 
-    printf("MS Name/IP address           Stratum Poll LastRx Last sample\n");
-    printf("============================================================================\n");
+    printf("MS Name/IP address         Stratum Poll Reach LastRx Last sample\n");
+    printf("===============================================================================\n");
 
-    /*     "MS NNNNNNNNNNNNNNNNNNNNNNNNN    SS   PP   RRRR  SSSSSSS[SSSSSSS] +/- SSSSSS" */
+    /*     "MS NNNNNNNNNNNNNNNNNNNNNNNNNNN  SS  PP   RRR  RRRR  SSSSSSS[SSSSSSS] +/- SSSSSS" */
 
     for (i=0; i<n_sources; i++) {
       request.command = htons(REQ_SOURCE_DATA);
@@ -1706,6 +1706,8 @@ process_cmd_sources(char *line)
           stratum = ntohs(reply.data.source_data.stratum);
           state = ntohs(reply.data.source_data.state);
           mode = ntohs(reply.data.source_data.mode);
+          flags = ntohs(reply.data.source_data.flags);
+          reachability = ntohs(reply.data.source_data.reachability);
           latest_meas_ago = ntohl(reply.data.source_data.since_sample);
           orig_latest_meas = UTI_FloatNetworkToHost(reply.data.source_data.orig_latest_meas);
           latest_meas = UTI_FloatNetworkToHost(reply.data.source_data.latest_meas);
@@ -1746,8 +1748,12 @@ process_cmd_sources(char *line)
             default:
               printf(" ");
           }
+          switch (flags) {
+            default:
+              break;
+          }
 
-          printf(" %-25s    %2d   %2d   ", hostname_buf, stratum, poll);
+          printf(" %-27s  %2d  %2d   %3o  ", hostname_buf, stratum, poll, reachability);
           print_seconds(latest_meas_ago);
           printf("  ");
           print_signed_nanoseconds(latest_meas);
@@ -1866,11 +1872,14 @@ process_cmd_tracking(char *line)
   struct tm ref_time_tm;
   unsigned long a, b, c, d;
   double correction;
+  double last_offset;
+  double rms_offset;
   double freq_ppm;
   double resid_freq_ppm;
   double skew_ppm;
   double root_delay;
   double root_dispersion;
+  double last_update_interval;
   
   request.command = htons(REQ_TRACKING);
   if (request_reply(&request, &reply, RPY_TRACKING, 0)) {
@@ -1896,18 +1905,24 @@ process_cmd_tracking(char *line)
     ref_time_tm = *gmtime((time_t *)&ref_time.tv_sec);
     printf("Ref time (UTC)  : %s", asctime(&ref_time_tm));
     correction = UTI_FloatNetworkToHost(reply.data.tracking.current_correction);
+    last_offset = UTI_FloatNetworkToHost(reply.data.tracking.last_offset);
+    rms_offset = UTI_FloatNetworkToHost(reply.data.tracking.rms_offset);
     printf("System time     : %.9f seconds %s of NTP time\n", fabs(correction),
            (correction > 0.0) ? "slow" : "fast");
+    printf("Last offset     : %.9f seconds\n", last_offset);
+    printf("RMS offset      : %.9f seconds\n", rms_offset);
     freq_ppm = UTI_FloatNetworkToHost(reply.data.tracking.freq_ppm);
     resid_freq_ppm = UTI_FloatNetworkToHost(reply.data.tracking.resid_freq_ppm);
     skew_ppm = UTI_FloatNetworkToHost(reply.data.tracking.skew_ppm);
     root_delay = UTI_FloatNetworkToHost(reply.data.tracking.root_delay);
     root_dispersion = UTI_FloatNetworkToHost(reply.data.tracking.root_dispersion);
+    last_update_interval = UTI_FloatNetworkToHost(reply.data.tracking.last_update_interval);
     printf("Frequency       : %.3f ppm %s\n", fabs(freq_ppm), (freq_ppm < 0.0) ? "slow" : "fast"); 
     printf("Residual freq   : %.3f ppm\n", resid_freq_ppm);
     printf("Skew            : %.3f ppm\n", skew_ppm);
     printf("Root delay      : %.6f seconds\n", root_delay);
     printf("Root dispersion : %.6f seconds\n", root_dispersion);
+    printf("Update interval : %.1f seconds\n", last_update_interval);
     return 1;
   }
   return 0;
@@ -2357,11 +2372,13 @@ process_cmd_activity(const char *line)
                "%ld sources online\n"
                "%ld sources offline\n"
                "%ld sources doing burst (return to online)\n"
-               "%ld sources doing burst (return to offline)\n",
+               "%ld sources doing burst (return to offline)\n"
+               "%ld sources with unknown address\n",
                 (long) ntohl(reply.data.activity.online),
                 (long) ntohl(reply.data.activity.offline),
                 (long) ntohl(reply.data.activity.burst_online),
-                (long) ntohl(reply.data.activity.burst_offline));
+                (long) ntohl(reply.data.activity.burst_offline),
+                (long) ntohl(reply.data.activity.unresolved));
         return 1;
   }
   return 0;

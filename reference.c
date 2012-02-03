@@ -55,6 +55,9 @@ static double our_root_dispersion;
 
 static double max_update_skew;
 
+static double last_offset;
+static double avg2_offset;
+
 static double correction_time_ratio;
 
 /* Flag indicating that we are initialised */
@@ -705,6 +708,11 @@ REF_SetReference(int stratum,
   }
 
   last_ref_update_interval = update_interval;
+  last_offset = our_offset;
+  if (avg2_offset > 0.0)
+    avg2_offset += 0.1 * (our_offset * our_offset - avg2_offset);
+  else
+    avg2_offset = our_offset * our_offset;
 
   /* And now set the freq and offset to zero */
   our_frequency = 0.0;
@@ -917,6 +925,21 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
   LCL_GetOffsetCorrection(&now_raw, &correction, NULL);
   UTI_AddDoubleToTimeval(&now_raw, correction, &now_cooked);
 
+  rep->ref_id = 0;
+  rep->ip_addr.family = IPADDR_UNSPEC;
+  rep->stratum = 0;
+  rep->ref_time.tv_sec = 0;
+  rep->ref_time.tv_usec = 0;
+  rep->current_correction = correction;
+  rep->freq_ppm = LCL_ReadAbsoluteFrequency();
+  rep->resid_freq_ppm = 0.0;
+  rep->skew_ppm = 0.0;
+  rep->root_delay = 0.0;
+  rep->root_dispersion = 0.0;
+  rep->last_update_interval = last_ref_update_interval;
+  rep->last_offset = last_offset;
+  rep->rms_offset = sqrt(avg2_offset);
+
   if (are_we_synchronised) {
     
     UTI_DiffTimevalsToDouble(&elapsed, &now_cooked, &our_ref_time);
@@ -926,8 +949,6 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
     rep->ip_addr = our_ref_ip;
     rep->stratum = our_stratum;
     rep->ref_time = our_ref_time;
-    rep->current_correction = correction;
-    rep->freq_ppm = LCL_ReadAbsoluteFrequency();
     rep->resid_freq_ppm = 1.0e6 * our_residual_freq;
     rep->skew_ppm = 1.0e6 * our_skew;
     rep->root_delay = our_root_delay;
@@ -939,26 +960,7 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
     rep->ip_addr.family = IPADDR_UNSPEC;
     rep->stratum = local_stratum;
     rep->ref_time = now_cooked;
-    rep->current_correction = correction;
-    rep->freq_ppm = LCL_ReadAbsoluteFrequency();
-    rep->resid_freq_ppm = 0.0;
-    rep->skew_ppm = 0.0;
-    rep->root_delay = 0.0;
     rep->root_dispersion = LCL_GetSysPrecisionAsQuantum();
-
-  } else {
-
-    rep->ref_id = 0;
-    rep->ip_addr.family = IPADDR_UNSPEC;
-    rep->stratum = 0;
-    rep->ref_time.tv_sec = 0;
-    rep->ref_time.tv_usec = 0;
-    rep->current_correction = correction;
-    rep->freq_ppm = LCL_ReadAbsoluteFrequency();
-    rep->resid_freq_ppm = 0.0;
-    rep->skew_ppm = 0.0;
-    rep->root_delay = 0.0;
-    rep->root_dispersion = 0.0;
   }
 
 }
