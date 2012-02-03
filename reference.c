@@ -48,7 +48,6 @@ static int our_stratum;
 static uint32_t our_ref_id;
 static IPAddr our_ref_ip;
 struct timeval our_ref_time; /* Stored relative to reference, NOT local time */
-static double our_offset;
 static double our_skew;
 static double our_residual_freq;
 static double our_root_delay;
@@ -557,6 +556,7 @@ REF_SetReference(int stratum,
   double old_weight, new_weight, sum_weight;
   double delta_freq1, delta_freq2;
   double skew1, skew2;
+  double our_offset;
   double our_frequency;
   double abs_freq_ppm;
   double update_interval;
@@ -745,7 +745,7 @@ REF_SetManualReference
             our_stratum,
             abs_freq_ppm,
             1.0e6*our_skew,
-            our_offset);
+            offset);
 
   if (drift_file) {
     update_drift_file(abs_freq_ppm, our_skew);
