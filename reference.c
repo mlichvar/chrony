@@ -57,6 +57,7 @@ static double max_update_skew;
 
 static double last_offset;
 static double avg2_offset;
+static int avg2_moving;
 
 static double correction_time_ratio;
 
@@ -709,10 +710,15 @@ REF_SetReference(int stratum,
 
   last_ref_update_interval = update_interval;
   last_offset = our_offset;
-  if (avg2_offset > 0.0)
+
+  /* Update the moving average of squares of offset, quickly on start */
+  if (avg2_moving) {
     avg2_offset += 0.1 * (our_offset * our_offset - avg2_offset);
-  else
+  } else {
+    if (avg2_offset > 0.0 && avg2_offset < our_offset * our_offset)
+      avg2_moving = 1;
     avg2_offset = our_offset * our_offset;
+  }
 
   /* And now set the freq and offset to zero */
   our_frequency = 0.0;
