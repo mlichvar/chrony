@@ -639,3 +639,33 @@ UTI_CheckNTPAuth(int hash_id, const unsigned char *key, int key_len,
   return UTI_GenerateNTPAuth(hash_id, key, key_len, data, data_len,
         buf, sizeof (buf)) == auth_len && !memcmp(buf, auth, auth_len);
 }
+
+/* ================================================== */
+
+int
+UTI_DecodePasswordFromText(char *key)
+{
+  int i, j, len = strlen(key);
+  char buf[3], *p;
+
+  if (!strncmp(key, "ASCII:", 6)) {
+    memmove(key, key + 6, len - 6);
+    return len - 6;
+  } else if (!strncmp(key, "HEX:", 4)) {
+    if ((len - 4) % 2)
+      return 0;
+
+    for (i = 0, j = 4; j + 1 < len; i++, j += 2) {
+      buf[0] = key[j], buf[1] = key[j + 1], buf[2] = '\0';
+      key[i] = strtol(buf, &p, 16);
+
+      if (p != buf + 2)
+        return 0;
+    }
+
+    return i;
+  } else {
+    /* assume ASCII */
+    return len;
+  }
+}

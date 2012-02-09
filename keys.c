@@ -179,10 +179,15 @@ KEY_Reload(void)
             continue;
           }
 
+          keys[n_keys].len = UTI_DecodePasswordFromText(keyval);
+          if (!keys[n_keys].len) {
+            LOG(LOGS_WARN, LOGF_Keys, "Could not decode password in key %d", key_id);
+            continue;
+          }
+
           keys[n_keys].id = key_id;
-          keys[n_keys].len = strlen(keyval);
-          keys[n_keys].val = MallocArray(char, 1 + keys[n_keys].len);
-          strcpy(keys[n_keys].val, keyval);
+          keys[n_keys].val = MallocArray(char, keys[n_keys].len);
+          memcpy(keys[n_keys].val, keyval, keys[n_keys].len);
           n_keys++;
         }
       }
@@ -193,6 +198,10 @@ KEY_Reload(void)
          more careful! */
       qsort((void *) keys, n_keys, sizeof(Key), compare_keys_by_id);
 
+      /* Erase the passwords from stack */
+      memset(line, 0, sizeof (line));
+      memset(buf1, 0, sizeof (buf1));
+      memset(buf2, 0, sizeof (buf2));
     }
   }
 

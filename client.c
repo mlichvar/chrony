@@ -1096,6 +1096,7 @@ process_cmd_delete(CMD_Request *msg, char *line)
 
 static char *password;
 static int password_seen = 0;
+static int password_length;
 static int auth_hash_id;
 
 /* ================================================== */
@@ -1125,7 +1126,13 @@ process_cmd_password(CMD_Request *msg, char *line)
   if (!*password) {
     password_seen = 0;
   } else {
-    password_seen = 1;
+    password_length = UTI_DecodePasswordFromText(password);
+    if (password_length > 0) {
+      password_seen = 1;
+    } else {
+      password_seen = 0;
+      fprintf(stderr, "Could not decode password\n");
+    }
   }
 
   if (gettimeofday(&now, NULL) < 0) {
@@ -1149,7 +1156,7 @@ generate_auth(CMD_Request *msg)
 
   assert(auth_hash_id >= 0);
 
-  return UTI_GenerateNTPAuth(auth_hash_id, (unsigned char *)password, strlen(password),
+  return UTI_GenerateNTPAuth(auth_hash_id, (unsigned char *)password, password_length,
       (unsigned char *)msg, data_len, ((unsigned char *)msg) + data_len, sizeof (msg->auth));
 }
 
@@ -1164,7 +1171,7 @@ check_reply_auth(CMD_Reply *msg, int len)
 
   assert(auth_hash_id >= 0);
 
-  return UTI_CheckNTPAuth(auth_hash_id, (unsigned char *)password, strlen(password),
+  return UTI_CheckNTPAuth(auth_hash_id, (unsigned char *)password, password_length,
       (unsigned char *)msg, data_len,
       ((unsigned char *)msg) + data_len, len - data_len);
 }

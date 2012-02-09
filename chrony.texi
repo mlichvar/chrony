@@ -1727,8 +1727,8 @@ pairs.  The format of the file is shown below
 @example
 10 tulip
 11 hyacinth
-20 MD5 crocus
-25 SHA1 iris
+20 MD5 ASCII:crocus
+25 SHA1 HEX:1dc764e0791b11fa67efc7ecbc4b0d73f68a070c 
  ...
 @end example
 
@@ -1737,7 +1737,9 @@ and a password. The ID can be any unsigned integer in the range 0 through
 2**32-1.  The hash function is MD5 by default, depending on how was
 @code{chronyd} compiled other allowed hash functions may be SHA1, SHA256,
 SHA384, SHA512, RMD128, RMD160, RMD256, RMD320, TIGER and WHIRLPOOL.  The
-password can be any string of characters not containing a space.
+password can be encoded as a string of characters not containing a space with
+optional @code{ASCII:} prefix or as a hexadecimal number with @code{HEX:}
+prefix.
 
 The ID for the chronyc authentication key is specified with the
 commandkey command (see earlier).
@@ -3766,6 +3768,8 @@ password on the command line is as follows
 
 @example
 password xyzzy
+password ASCII:xyzzy
+password HEX:78797a7a79
 @end example
 
 To enter the password without it being echoed, enter
@@ -3779,9 +3783,10 @@ should enter the password and press return.  (Note that the no-echo mode
 is limited to 8 characters on SunOS 4.1 due to limitations in the system
 library.  Other systems do not have this restriction.)
 
-The password is any string of characters not containing whitespace.  It
-has to match @code{chronyd's} currently defined command key (@pxref{commandkey
-directive}).
+The password can be encoded as a string of characters not containing a space
+with optional @code{ASCII:} prefix or as a hexadecimal number with @code{HEX:}
+prefix.  It has to match @code{chronyd's} currently defined command key
+(@pxref{commandkey directive}).
 @c }}}
 @c {{{ polltarget
 @node polltarget command

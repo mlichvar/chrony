@@ -107,6 +107,9 @@ extern int UTI_GenerateNTPAuth(int hash_id, const unsigned char *key, int key_le
 extern int UTI_CheckNTPAuth(int hash_id, const unsigned char *key, int key_len,
     const unsigned char *data, int data_len, const unsigned char *auth, int auth_len);
 
+/* Decode password encoded in ASCII or HEX */
+extern int UTI_DecodePasswordFromText(char *key);
+
 #if defined (INLINE_UTILITIES)
 #define INLINE_STATIC inline static
 #include "util.c"
