@@ -2568,7 +2568,7 @@ process_line(char *line, int *quit)
   if (!*p) {
     fflush(stderr);
     fflush(stdout);
-    return ret;
+    return 1;
   };
 
   if (!strncmp(p, "offline", 7)) {
