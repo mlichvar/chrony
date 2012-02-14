@@ -1048,7 +1048,7 @@ RTC_Linux_Trim(void)
     /* Estimate the offset in case writertc is called or chronyd
        is terminated during rapid sampling */
     coef_seconds_fast = -now.tv_usec / 1e6 + 0.5;
-    coef_ref_time = now;
+    coef_ref_time = now.tv_sec;
 
     /* And start rapid sampling, interrupts on now */
     if (timeout_running) {
