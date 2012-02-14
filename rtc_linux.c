@@ -935,7 +935,7 @@ RTC_Linux_TimePreInit(void)
   time_t rtc_t, estimated_correct_rtc_t;
   long interval;
   double accumulated_error = 0.0;
-  struct timeval new_sys_time;
+  struct timeval new_sys_time, old_sys_time;
 
   coefs_file_name = CNF_GetRtcFile();
 
@@ -970,8 +970,6 @@ RTC_Linux_TimePreInit(void)
         accumulated_error = file_ref_offset + (double)(interval) * 1.0e-6 * file_rate_ppm;
 
         /* Correct time */
-        LOG(LOGS_INFO, LOGF_RtcLinux, "Set system time, error in RTC = %f",
-            accumulated_error);
         estimated_correct_rtc_t = rtc_t - (long)(0.5 + accumulated_error);
       } else {
         estimated_correct_rtc_t = rtc_t - (long)(0.5 + accumulated_error);
@@ -980,9 +978,18 @@ RTC_Linux_TimePreInit(void)
       new_sys_time.tv_sec = estimated_correct_rtc_t;
       new_sys_time.tv_usec = 0;
 
-      /* Tough luck if this fails */
-      if (settimeofday(&new_sys_time, NULL) < 0) {
-        LOG(LOGS_WARN, LOGF_RtcLinux, "Could not settimeofday");
+      /* Set system time only if the step is larger than 1 second */
+      if (!(gettimeofday(&old_sys_time, NULL) < 0) &&
+          (old_sys_time.tv_sec - new_sys_time.tv_sec > 1 ||
+           old_sys_time.tv_sec - new_sys_time.tv_sec < -1)) {
+
+        LOG(LOGS_INFO, LOGF_RtcLinux, "Set system time, error in RTC = %f",
+            accumulated_error);
+
+        /* Tough luck if this fails */
+        if (settimeofday(&new_sys_time, NULL) < 0) {
+          LOG(LOGS_WARN, LOGF_RtcLinux, "Could not settimeofday");
+        }
       }
     } else {
       LOG(LOGS_WARN, LOGF_RtcLinux, "Could not convert RTC reading to seconds since 1/1/1970");
