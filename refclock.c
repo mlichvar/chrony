@@ -114,6 +114,11 @@ RCL_Initialise(void)
 {
   CNF_AddRefclocks();
 
+  if (n_sources > 0) {
+    LCL_AddParameterChangeHandler(slew_samples, NULL);
+    LCL_AddDispersionNotifyHandler(add_dispersion, NULL);
+  }
+
   logfileid = CNF_GetLogRefclocks() ? LOG_FileOpen("refclocks",
       "   Date (UTC) Time         Refid  DP L P  Raw offset   Cooked offset      Disp.")
     : -1;
@@ -267,11 +272,6 @@ RCL_StartRefclocks(void)
       inst->lock_ref = (j < n_sources) ? j : -1;
     } else
       inst->lock_ref = -1;
-  }
-
-  if (n_sources > 0) {
-    LCL_AddParameterChangeHandler(slew_samples, NULL);
-    LCL_AddDispersionNotifyHandler(add_dispersion, NULL);
   }
 }
 
