@@ -1192,6 +1192,7 @@ directives can occur in any order in the file.
 * logdir directive::            Specify directory for logging
 * mailonchange directive::      Send email if a clock correction above a threshold occurs
 * makestep directive::          Step system clock if large correction is needed
+* maxchange directive::         Set maximum allowed offset
 * manual directive::            Allow manual entry using chronyc's settime cmd.
 * maxclockerror directive::     Set maximum frequency error of local clock
 * maxupdateskew directive::     Stop bad estimates upsetting machine clock
@@ -2243,6 +2244,27 @@ makestep 1000 10
 
 This would step system clock if the adjustment is larger than 1000
 seconds, but only in the first ten clock updates.
+@c }}}
+@c {{{ maxchange
+@node maxchange directive
+@subsection maxchange
+This directive sets the maximum allowed offset corrected on a clock
+update.  The check is performed only after the specified number of
+updates to allow a large initial adjustment of the system clock.  When
+an offset larger than the specified maximum occurs, it will be ignored
+for the specified number of times and then @code{chronyd} will give up
+and exit (a negative value can be used to never exit).  In both cases
+a message is sent to syslog.
+
+An example of the use of this directive is
+
+@example
+maxchange 1000 1 2
+@end example
+
+After the first clock update, @code{chronyd} will check the offset on
+every clock update, it will ignore two adjustments larger than 1000
+seconds and exit on another one.
 @c }}}
 @c {{{ manual
 @node manual directive

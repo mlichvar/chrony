@@ -68,6 +68,12 @@ static int initialised = 0;
 static int make_step_limit;
 static double make_step_threshold;
 
+/* Number of updates before offset checking, number of ignored updates
+   before exiting and the maximum allowed offset */
+static int max_offset_delay;
+static int max_offset_ignore;
+static double max_offset;
+
 /* Flag and threshold for logging clock changes to syslog */
 static int do_log_change;
 static double log_change_threshold;
@@ -191,6 +197,7 @@ REF_Initialise(void)
   enable_local_stratum = CNF_AllowLocalReference(&local_stratum);
 
   CNF_GetMakeStep(&make_step_limit, &make_step_threshold);
+  CNF_GetMaxChange(&max_offset_delay, &max_offset_ignore, &max_offset);
   CNF_GetLogChange(&do_log_change, &log_change_threshold);
   CNF_GetMailOnChange(&do_mail_change, &mail_change_threshold, &mail_change_user);
 
@@ -492,6 +499,33 @@ maybe_make_step()
 
 /* ================================================== */
 
+static int
+is_offset_ok(double offset)
+{
+  if (max_offset_delay < 0)
+    return 1;
+
+  if (max_offset_delay > 0) {
+    max_offset_delay--;
+    return 1;
+  }
+
+  offset = fabs(offset);
+  if (offset > max_offset) {
+    LOG(LOGS_WARN, LOGF_Reference,
+        "Adjustment of %.3f seconds exceeds the allowed maximum of %.3f seconds (%s) ",
+        offset, max_offset, !max_offset_ignore ? "exiting" : "ignored");
+    if (!max_offset_ignore)
+      SCH_QuitProgram();
+    else if (max_offset_ignore > 0)
+      max_offset_ignore--;
+    return 0;
+  }
+  return 1;
+}
+
+/* ================================================== */
+
 static void
 update_leap_status(NTP_Leap leap)
 {
@@ -594,6 +628,12 @@ REF_SetReference(int stratum,
     }
   }
     
+  LCL_ReadCookedTime(&now, NULL);
+  UTI_DiffTimevalsToDouble(&elapsed, &now, ref_time);
+  our_offset = offset + elapsed * frequency;
+
+  if (!is_offset_ok(offset))
+    return;
 
   are_we_synchronised = 1;
   our_stratum = stratum + 1;
@@ -605,10 +645,6 @@ REF_SetReference(int stratum,
   our_ref_time = *ref_time;
   our_root_delay = root_delay;
   our_root_dispersion = root_dispersion;
-
-  LCL_ReadCookedTime(&now, NULL);
-  UTI_DiffTimevalsToDouble(&elapsed, &now, ref_time);
-  our_offset = offset + elapsed * frequency;
 
   update_leap_status(leap);
 

@@ -98,6 +98,7 @@ static void parse_noclientlog(const char *);
 static void parse_clientloglimit(const char *);
 static void parse_fallbackdrift(const char *);
 static void parse_makestep(const char *);
+static void parse_maxchange(const char *);
 static void parse_logchange(const char *);
 static void parse_mailonchange(const char *);
 static void parse_bindaddress(const char *);
@@ -167,6 +168,12 @@ static int rtc_sync = 0;
 /* Limit and threshold for clock stepping */
 static int make_step_limit = 0;
 static double make_step_threshold = 0.0;
+
+/* Number of updates before offset checking, number of ignored updates
+   before exiting and the maximum allowed offset */
+static int max_offset_delay = -1;
+static int max_offset_ignore;
+static double max_offset;
 
 /* Flag set if we should log to syslog when a time adjustment
    exceeding the threshold is initiated */
@@ -257,6 +264,7 @@ static const Command commands[] = {
   {"clientloglimit", 14, parse_clientloglimit},
   {"fallbackdrift", 13, parse_fallbackdrift},
   {"makestep", 8, parse_makestep},
+  {"maxchange", 9, parse_maxchange},
   {"logchange", 9, parse_logchange},
   {"mailonchange", 12, parse_mailonchange},
   {"bindaddress", 11, parse_bindaddress},
@@ -944,6 +952,19 @@ parse_makestep(const char *line)
 /* ================================================== */
 
 static void
+parse_maxchange(const char *line)
+{
+  if (sscanf(line, "%lf %d %d", &max_offset, &max_offset_delay, &max_offset_ignore) != 3) {
+    max_offset_delay = -1;
+    LOG(LOGS_WARN, LOGF_Configure,
+        "Could not read offset, check delay or ignore limit for maximum change at line %d\n",
+        line_number);
+  }
+}
+
+/* ================================================== */
+
+static void
 parse_logchange(const char *line)
 {
   if (sscanf(line, "%lf", &log_change_threshold) == 1) {
@@ -1563,6 +1584,16 @@ CNF_GetMakeStep(int *limit, double *threshold)
 {
   *limit = make_step_limit;
   *threshold = make_step_threshold;
+}
+
+/* ================================================== */
+
+void
+CNF_GetMaxChange(int *delay, int *ignore, double *offset)
+{
+  *delay = max_offset_delay;
+  *ignore = max_offset_ignore;
+  *offset = max_offset;
 }
 
 /* ================================================== */
