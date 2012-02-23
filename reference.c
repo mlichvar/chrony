@@ -89,6 +89,11 @@ static double drift_file_age;
 
 static void update_drift_file(double, double);
 
+/* Name of a system timezone containing leap seconds occuring at midnight */
+static char *leap_tzname;
+static time_t last_tz_leap_check;
+static NTP_Leap tz_leap;
+
 /* ================================================== */
 
 static LOG_FileID logfileid;
@@ -195,6 +200,8 @@ REF_Initialise(void)
   correction_time_ratio = CNF_GetCorrectionTimeRatio();
 
   enable_local_stratum = CNF_AllowLocalReference(&local_stratum);
+
+  leap_tzname = CNF_GetLeapSecTimezone();
 
   CNF_GetMakeStep(&make_step_limit, &make_step_threshold);
   CNF_GetMaxChange(&max_offset_delay, &max_offset_ignore, &max_offset);
@@ -526,20 +533,82 @@ is_offset_ok(double offset)
 
 /* ================================================== */
 
-static void
-update_leap_status(NTP_Leap leap)
+static NTP_Leap
+get_tz_leap(time_t when)
 {
-  time_t now;
+  struct tm stm;
+  time_t t;
+  char *tz_env, tz_orig[128];
+
+  /* Do this check at most twice a day */
+  when = when / (12 * 3600) * (12 * 3600);
+  if (last_tz_leap_check == when)
+      return tz_leap;
+
+  last_tz_leap_check = when;
+  tz_leap = LEAP_Normal;
+
+  stm = *gmtime(&when);
+
+  /* Check for leap second only in the latter half of June and December */
+  if (stm.tm_mon == 5 && stm.tm_mday > 14)
+    stm.tm_mday = 30;
+  else if (stm.tm_mon == 11 && stm.tm_mday > 14)
+    stm.tm_mday = 31;
+  else
+    return tz_leap;
+
+  /* Temporarily switch to the timezone containing leap seconds */
+  tz_env = getenv("TZ");
+  if (tz_env) {
+    if (strlen(tz_env) >= sizeof (tz_orig))
+      return tz_leap;
+    strcpy(tz_orig, tz_env);
+  }
+  setenv("TZ", leap_tzname, 1);
+  tzset();
+
+  /* Set the time to 23:59:60 and see how it overflows in mktime() */
+  stm.tm_sec = 60;
+  stm.tm_min = 59;
+  stm.tm_hour = 23;
+
+  t = mktime(&stm);
+
+  if (tz_env)
+    setenv("TZ", tz_orig, 1);
+  else
+    unsetenv("TZ");
+  tzset();
+
+  if (t == -1)
+    return tz_leap;
+
+  if (stm.tm_sec == 60)
+    tz_leap = LEAP_InsertSecond;
+  else if (stm.tm_sec == 1)
+    tz_leap = LEAP_DeleteSecond;
+
+  return tz_leap;
+}
+
+/* ================================================== */
+
+static void
+update_leap_status(NTP_Leap leap, time_t now)
+{
   struct tm stm;
   int leap_sec;
 
   leap_sec = 0;
 
+  if (leap_tzname && now && leap == LEAP_Normal)
+    leap = get_tz_leap(now);
+
   if (leap == LEAP_InsertSecond || leap == LEAP_DeleteSecond) {
     /* Insert/delete leap second only on June 30 or December 31
        and in other months ignore the leap status completely */
 
-    now = time(NULL);
     stm = *gmtime(&now);
 
     if (stm.tm_mon != 5 && stm.tm_mon != 11) {
@@ -600,7 +669,7 @@ REF_SetReference(int stratum,
   double update_interval;
   double elapsed;
   double correction_rate;
-  struct timeval now;
+  struct timeval now, raw_now;
 
   assert(initialised);
 
@@ -628,7 +697,9 @@ REF_SetReference(int stratum,
     }
   }
     
-  LCL_ReadCookedTime(&now, NULL);
+  LCL_ReadRawTime(&raw_now);
+  LCL_CookTime(&raw_now, &now, NULL);
+
   UTI_DiffTimevalsToDouble(&elapsed, &now, ref_time);
   our_offset = offset + elapsed * frequency;
 
@@ -646,7 +717,7 @@ REF_SetReference(int stratum,
   our_root_delay = root_delay;
   our_root_dispersion = root_dispersion;
 
-  update_leap_status(leap);
+  update_leap_status(leap, raw_now.tv_sec);
 
   if (last_ref_update.tv_sec) {
     UTI_DiffTimevalsToDouble(&update_interval, &now, &last_ref_update);
@@ -827,7 +898,7 @@ REF_SetUnsynchronised(void)
 
   are_we_synchronised = 0;
 
-  update_leap_status(LEAP_Unsynchronised);
+  update_leap_status(LEAP_Unsynchronised, 0);
 }
 
 /* ================================================== */

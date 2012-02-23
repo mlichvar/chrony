@@ -1183,6 +1183,7 @@ directives can occur in any order in the file.
 * include directive::           Include a configuration file
 * initstepslew directive::      Trim the system clock on boot-up.
 * keyfile directive::           Specify location of file containing keys
+* leapsectz directive::         Read leap second data from tz database
 * linux_hz directive::          Define a non-standard value of the kernel HZ constant
 * linux_freq_scale directive::  Define a non-standard value to compensate the kernel frequency bias
 * local directive::             Allow unsynchronised machine to act as server
@@ -1745,6 +1746,25 @@ prefix.
 The ID for the chronyc authentication key is specified with the
 commandkey command (see earlier).
 @c }}}
+@c {{{ leapsectz
+@node leapsectz directive
+@subsection leapsectz
+This directive is used to set the name of the timezone in the system
+tz database which @code{chronyd} can use to find out when will the
+next leap second occur.  It will periodically check if the times
+23:59:59 and 23:59:60 are valid on Jun 30 and Dec 31 in the timezone.
+This is mainly useful with reference clocks which don't provide the
+leap second information.  It is not necessary to restart
+@code{chronyd} if the tz database is updated with a new leap second at
+least 12 hours before the event.
+
+An example of the command is
+
+@example
+leapsectz right/UTC
+@end example
+
+@c }}}
 @c {{{ local
 @node local directive
 @subsection local
@@ -1894,9 +1914,9 @@ expressed in UTC, not the local time zone.
 IP address of server/peer from which measurement comes [158.152.1.76]
 @item
 Leap status (@code{N} means normal, @code{+} means that the last minute
-of today has 61 seconds, @code{-} means that the last minute of the day
-has 59 seconds, @code{?} means the remote computer is not currently
-synchronised.) [N]
+of the current month has 61 seconds, @code{-} means that the last minute
+of the month has 59 seconds, @code{?} means the remote computer is not
+currently synchronised.) [N]
 @item
 Stratum of remote computer. [2]
 @item
@@ -2110,8 +2130,8 @@ Sequence number of driver poll within one polling interval for raw
 samples, or @code{-} for filtered samples. [7]
 @item
 Leap status (@code{N} means normal, @code{+} means that the last minute
-of today has 61 seconds, @code{-} means that the last minute of the day
-has 59 seconds). [N]
+of the current month has 61 seconds, @code{-} means that the last minute
+of the month has 59 seconds). [N]
 @item
 Flag indicating whether the sample comes from PPS source. (1 for yes,
 0 for no, or @code{-} for filtered sample). [1]

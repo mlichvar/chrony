@@ -112,6 +112,7 @@ static void parse_sched_priority(const char *);
 static void parse_lockall(const char *);
 static void parse_tempcomp(const char *);
 static void parse_include(const char *);
+static void parse_leapsectz(const char *);
 
 /* ================================================== */
 /* Configuration variables */
@@ -224,6 +225,9 @@ static double linux_freq_scale;
 static int sched_priority = 0;
 static int lock_memory = 0;
 
+/* Name of a system timezone containing leap seconds occuring at midnight */
+static char *leapsec_tz = NULL;
+
 /* ================================================== */
 
 typedef struct {
@@ -276,6 +280,7 @@ static const Command commands[] = {
   {"reselectdist", 12, parse_reselectdist},
   {"stratumweight", 13, parse_stratumweight},
   {"include", 7, parse_include},
+  {"leapsectz", 9, parse_leapsectz},
   {"linux_hz", 8, parse_linux_hz},
   {"linux_freq_scale", 16, parse_linux_freq_scale},
   {"sched_priority", 14, parse_sched_priority},
@@ -1283,6 +1288,16 @@ parse_include(const char *line)
 /* ================================================== */
 
 static void
+parse_leapsectz(const char *line)
+{
+  /* This must allocate enough space! */
+  leapsec_tz = MallocArray(char, 1 + strlen(line));
+  sscanf(line, "%s", leapsec_tz);
+}
+
+/* ================================================== */
+
+static void
 parse_linux_hz(const char *line)
 {
   if (1 == sscanf(line, "%d", &linux_hz)) {
@@ -1703,6 +1718,14 @@ char *
 CNF_GetPidFile(void)
 {
   return pidfile;
+}
+
+/* ================================================== */
+
+char *
+CNF_GetLeapSecTimezone(void)
+{
+  return leapsec_tz;
 }
 
 /* ================================================== */

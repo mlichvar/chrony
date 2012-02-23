@@ -69,6 +69,7 @@ extern void CNF_GetFallbackDrifts(int *min, int *max);
 extern void CNF_GetBindAddress(int family, IPAddr *addr);
 extern void CNF_GetBindCommandAddress(int family, IPAddr *addr);
 extern char *CNF_GetPidFile(void);
+extern char *CNF_GetLeapSecTimezone(void);
 extern void CNF_GetLinuxHz(int *set, int *hz);
 extern void CNF_GetLinuxFreqScale(int *set, double *freq_scale);
 
