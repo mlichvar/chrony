@@ -1887,6 +1887,7 @@ process_cmd_tracking(char *line)
   double root_delay;
   double root_dispersion;
   double last_update_interval;
+  const char *leap_status;
   
   request.command = htons(REQ_TRACKING);
   if (request_reply(&request, &reply, RPY_TRACKING, 0)) {
@@ -1906,8 +1907,26 @@ process_cmd_tracking(char *line)
       ref_ip = host;
     }
     
+    switch (ntohs(reply.data.tracking.leap_status)) {
+      case LEAP_Normal:
+        leap_status = "Normal";
+        break;
+      case LEAP_InsertSecond:
+        leap_status = "Insert second";
+        break;
+      case LEAP_DeleteSecond:
+        leap_status = "Delete second";
+        break;
+      case LEAP_Unsynchronised:
+        leap_status = "Not synchronised";
+        break;
+      default:
+        leap_status = "Unknown";
+        break;
+    }
+
     printf("Reference ID    : %lu.%lu.%lu.%lu (%s)\n", a, b, c, d, ref_ip);
-    printf("Stratum         : %lu\n", (unsigned long) ntohl(reply.data.tracking.stratum));
+    printf("Stratum         : %lu\n", (unsigned long) ntohs(reply.data.tracking.stratum));
     UTI_TimevalNetworkToHost(&reply.data.tracking.ref_time, &ref_time);
     ref_time_tm = *gmtime((time_t *)&ref_time.tv_sec);
     printf("Ref time (UTC)  : %s", asctime(&ref_time_tm));
@@ -1930,6 +1949,7 @@ process_cmd_tracking(char *line)
     printf("Root delay      : %.6f seconds\n", root_delay);
     printf("Root dispersion : %.6f seconds\n", root_dispersion);
     printf("Update interval : %.1f seconds\n", last_update_interval);
+    printf("Leap status     : %s\n", leap_status);
     return 1;
   }
   return 0;

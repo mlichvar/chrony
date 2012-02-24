@@ -192,7 +192,7 @@ REF_Initialise(void)
   }
 
   logfileid = CNF_GetLogTracking() ? LOG_FileOpen("tracking",
-      "   Date (UTC) Time     IP Address   St   Freq ppm   Skew ppm     Offset")
+      "   Date (UTC) Time     IP Address   St   Freq ppm   Skew ppm     Offset L")
     : -1;
 
   max_update_skew = fabs(CNF_GetMaxUpdateSkew()) * 1.0e-6;
@@ -634,11 +634,12 @@ update_leap_status(NTP_Leap leap, time_t now)
 /* ================================================== */
 
 static void
-write_log(struct timeval *ref_time, char *ref, int stratum, double freq, double skew, double offset)
+write_log(struct timeval *ref_time, char *ref, int stratum, NTP_Leap leap, double freq, double skew, double offset)
 {
+  const char leap_codes[4] = {'N', '+', '-', '?'};
   if (logfileid != -1) {
-    LOG_FileWrite(logfileid, "%s %-15s %2d %10.3f %10.3f %10.3e",
-            UTI_TimeToLogForm(ref_time->tv_sec), ref, stratum, freq, skew, offset);
+    LOG_FileWrite(logfileid, "%s %-15s %2d %10.3f %10.3f %10.3e %1c",
+            UTI_TimeToLogForm(ref_time->tv_sec), ref, stratum, freq, skew, offset, leap_codes[leap]);
   }
 }
 
@@ -797,6 +798,7 @@ REF_SetReference(int stratum,
   write_log(&now,
             our_ref_ip.family != IPADDR_UNSPEC ? UTI_IPToString(&our_ref_ip) : UTI_RefidToString(our_ref_id),
             our_stratum,
+            our_leap_status,
             abs_freq_ppm,
             1.0e6*our_skew,
             our_offset);
@@ -864,6 +866,7 @@ REF_SetManualReference
   write_log(ref_time,
             "127.127.1.1",
             our_stratum,
+            our_leap_status,
             abs_freq_ppm,
             1.0e6*our_skew,
             offset);
@@ -889,16 +892,16 @@ REF_SetUnsynchronised(void)
     schedule_fb_drift(&now);
   }
 
+  update_leap_status(LEAP_Unsynchronised, 0);
+  are_we_synchronised = 0;
+
   write_log(&now,
             "0.0.0.0",
             0,
+            our_leap_status,
             LCL_ReadAbsoluteFrequency(),
             1.0e6*our_skew,
             0.0);
-
-  are_we_synchronised = 0;
-
-  update_leap_status(LEAP_Unsynchronised, 0);
 }
 
 /* ================================================== */
@@ -1041,6 +1044,7 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
   rep->ref_id = 0;
   rep->ip_addr.family = IPADDR_UNSPEC;
   rep->stratum = 0;
+  rep->leap_status = our_leap_status;
   rep->ref_time.tv_sec = 0;
   rep->ref_time.tv_usec = 0;
   rep->current_correction = correction;

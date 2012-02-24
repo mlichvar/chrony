@@ -51,6 +51,7 @@ typedef struct {
   uint32_t ref_id;
   IPAddr ip_addr;
   unsigned long stratum;
+  unsigned long leap_status;
   struct timeval ref_time;
   double current_correction;
   double last_offset;

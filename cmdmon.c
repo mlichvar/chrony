@@ -1382,7 +1382,8 @@ handle_tracking(CMD_Request *rx_message, CMD_Reply *tx_message)
   tx_message->reply  = htons(RPY_TRACKING);
   tx_message->data.tracking.ref_id = htonl(rpt.ref_id);
   UTI_IPHostToNetwork(&rpt.ip_addr, &tx_message->data.tracking.ip_addr);
-  tx_message->data.tracking.stratum = htonl(rpt.stratum);
+  tx_message->data.tracking.stratum = htons(rpt.stratum);
+  tx_message->data.tracking.leap_status = htons(rpt.leap_status);
   UTI_TimevalHostToNetwork(&rpt.ref_time, &tx_message->data.tracking.ref_time);
   tx_message->data.tracking.current_correction = UTI_FloatHostToNetwork(rpt.current_correction);
   tx_message->data.tracking.last_offset = UTI_FloatHostToNetwork(rpt.last_offset);

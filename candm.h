@@ -530,7 +530,8 @@ typedef struct {
 typedef struct {
   uint32_t ref_id;
   IPAddr ip_addr;
-  uint32_t stratum;
+  uint16_t stratum;
+  uint16_t leap_status;
   Timeval ref_time;
   Float current_correction;
   Float last_offset;

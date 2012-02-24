@@ -2021,7 +2021,7 @@ An example line (which actually appears as a single line in the file)
 from the tracking log file is shown below.
 
 @example
-1998-07-22 05:40:50 158.152.1.76     3    340.529      1.606  1.046e-03
+2012-02-23 05:40:50 158.152.1.76     3    340.529      1.606  1.046e-03 N
 @end example
 
 The columns are as follows (the quantities in square brackets are the
@@ -2029,7 +2029,7 @@ values from the example line above) :
 
 @enumerate 1
 @item
-Date [1998-07-22]
+Date [2012-02-03]
 @item
 Hour:Minute:Second [05:40:50].  Note that the date/time pair is
 expressed in UTC, not the local time zone.
@@ -2047,6 +2047,10 @@ The error bounds on the frequency (in ppm) [1.606]
 The estimated local offset at the epoch (which is rapidly corrected by
 slewing the local clock.  (In seconds, positive indicates the local
 system is fast of UTC). [1.046e-3]
+@item
+Leap status (@code{N} means normal, @code{+} means that the last minute
+of this month has 61 seconds, @code{-} means that the last minute of the month
+has 59 seconds, @code{?} means the clock is not currently synchronised.) [N]
 @end enumerate
 
 A banner is periodically written to the log file to indicate the
@@ -4264,6 +4268,10 @@ clock_error <= root_dispersion + (0.5 * |root_delay|)
 
 @item Update interval
 This is the interval between the last two clock updates.
+
+@item Leap status
+This is the leap status, which can be @code{Normal}, @code{Insert second},
+@code{Delete second} or @code{Not synchronised}.
 
 @end table
 @c }}}
