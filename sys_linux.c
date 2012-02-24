@@ -419,7 +419,8 @@ stop_fast_slew(void)
 }
 
 /* ================================================== */
-/* This routine reschedules fast slew timeout after frequency was changed */
+/* This routine reschedules fast slew timeout according
+   to the current frequency and offset */
 
 static void
 adjust_fast_slew(double old_tick, double old_delta_tick)
@@ -646,9 +647,9 @@ accrue_offset(double offset, double corr_rate)
 
   if (!fast_slewing) {
     initiate_slew();
-  } /* Otherwise, when the fast slew completes, any other stuff
-       in the offset register will be applied */
-
+  } else {
+    adjust_fast_slew(current_total_tick, delta_total_tick);
+  }
 }
 
 /* ================================================== */
