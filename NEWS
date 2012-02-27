@@ -1,3 +1,19 @@
+New in version 1.27
+===================
+
+* Support for stronger keys via NSS or libtomcrypt library
+* Support reading leap second data from tz database
+* Support for precise clock stepping on Linux
+* Make offset corrections smoother on Linux
+* Add corrtimeratio and maxchange directives
+* Extend tracking, sources and activity reports
+* Wait in foreground process until daemon is fully initialized
+* Fix crash with slow name resolving
+* Fix iburst with jittery sources
+* Fix offset stored in rtc data right after trimrtc
+* Don't use readonly adjtime on Linux kernels before 2.6.28 
+* Changed chronyc protocol, incompatible with older versions
+
 New in version 1.26
 ===================
 
