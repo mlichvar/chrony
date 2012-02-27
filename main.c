@@ -259,15 +259,17 @@ go_daemon(void)
     } else {
       /* In the child we want to leave running as the daemon */
 
+      /* Change current directory to / */
+      if (chdir("/") < 0) {
+        LOG(LOGS_ERR, LOGF_Logging, "Could not chdir to / : %s", strerror(errno));
+      }
+
       /* Don't keep stdin/out/err from before. But don't close
          the parent pipe yet. */
       for (fd=0; fd<1024; fd++) {
         if (fd != pipefd[1])
           close(fd);
       }
-
-      /* Change current directory to / */
-      chdir("/");
 
       LOG_SetParentFd(pipefd[1]);
     }

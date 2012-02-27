@@ -157,7 +157,8 @@ LOG_Fatal_Function(LOG_Facility facility, const char *format, ...)
     fprintf(stderr, "Fatal error : %s\n", buf);
   }
   if (parent_fd) {
-    write(parent_fd, buf, strlen(buf) + 1);
+    if (write(parent_fd, buf, strlen(buf) + 1) < 0)
+      ; /* Not much we can do here */
   }
 #endif
 
