@@ -98,6 +98,8 @@ For better control, use the options below.
   --readline-inc-dir=DIR Specify where readline include directory is
   --readline-lib-dir=DIR Specify where readline lib directory is
   --with-ncurses-library=DIR Specify where ncurses lib directory is
+  --without-nss          Don't use NSS even if it is available
+  --without-tomcrypt     Don't use libtomcrypt even if it is available
   --disable-ipv6         Disable IPv6 support
   --disable-pps          Disable PPS API support
   --disable-rtc          Don't include RTC even on Linux
