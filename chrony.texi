@@ -1753,6 +1753,7 @@ This directive is used to set the name of the timezone in the system
 tz database which @code{chronyd} can use to find out when will the
 next leap second occur.  It will periodically check if the times
 23:59:59 and 23:59:60 are valid on Jun 30 and Dec 31 in the timezone.
+A useful timezone is @code{right/UTC}.
 This is mainly useful with reference clocks which don't provide the
 leap second information.  It is not necessary to restart
 @code{chronyd} if the tz database is updated with a new leap second at
@@ -1762,6 +1763,14 @@ An example of the command is
 
 @example
 leapsectz right/UTC
+@end example
+
+The following shell command verifies that the timezone contains leap
+seconds and can be used with this directive
+
+@example
+$ TZ=right/UTC date -d 'Dec 31 2008 23:59:60'
+Wed Dec 31 23:59:60 UTC 2008
 @end example
 
 @c }}}
@@ -4165,6 +4174,9 @@ Residual freq   : 0.004 ppm
 Skew            : 0.154 ppm
 Root delay      : 0.373169 seconds
 Root dispersion : 0.024780 seconds
+Update interval : 64.2 seconds
+Leap status     : Normal
+
 @end example
 
 The fields are explained as follows.
