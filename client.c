@@ -1094,8 +1094,7 @@ process_cmd_delete(CMD_Request *msg, char *line)
 
 /* ================================================== */
 
-static char *password;
-static int password_seen = 0;
+static char *password = NULL;
 static int password_length;
 static int auth_hash_id;
 
@@ -1106,6 +1105,15 @@ process_cmd_password(CMD_Request *msg, char *line)
 {
   char *p, *q;
   struct timeval now;
+  int i, len;
+
+  /* Blank and free the old password */
+  if (password) {
+    for (i = 0; i < password_length; i++)
+      password[i] = 0;
+    free(password);
+    password = NULL;
+  }
 
   p = line;
   while (*p && isspace((unsigned char)*p))
@@ -1116,23 +1124,29 @@ process_cmd_password(CMD_Request *msg, char *line)
     if (isspace((unsigned char)*q)) *q = 0;
   }
 
-  if (*p) {
-    password = p;
-  } else {
+  if (!*p) {
     /* blank line, prompt for password */
-    password = getpass("Password: ");
+    p = getpass("Password: ");
   }
 
-  if (!*password) {
-    password_seen = 0;
-  } else {
-    password_length = UTI_DecodePasswordFromText(password);
-    if (password_length > 0) {
-      password_seen = 1;
-    } else {
-      password_seen = 0;
+  if (!*p)
+    return 0;
+
+  len = strlen(p);
+  password_length = UTI_DecodePasswordFromText(p);
+
+  if (password_length > 0) {
+    password = malloc(password_length);
+    memcpy(password, p, password_length);
+  }
+
+  /* Erase the password from the input or getpass buffer */
+  for (i = 0; i < len; i++)
+    p[i] = 0;
+
+  if (password_length <= 0) {
       fprintf(stderr, "Could not decode password\n");
-    }
+      return 0;
   }
 
   if (gettimeofday(&now, NULL) < 0) {
@@ -1285,7 +1299,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
   do {
 
     /* Decide whether to authenticate */
-    if (password_seen) {
+    if (password) {
       if (!utoken || (request->command == htons(REQ_LOGON))) {
         /* Otherwise, the daemon won't bother authenticating our
            packet and we won't get a token back */
@@ -1427,7 +1441,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
                ntohl(reply->token));
 #endif
 
-        if (password_seen) {
+        if (password) {
           *reply_auth_ok = check_reply_auth(reply, read_length);
         } else {
           /* Assume in this case that the reply is always considered
@@ -2854,6 +2868,8 @@ main(int argc, char **argv)
   }
 
   close_io();
+
+  free(password);
 
   return !ret;
 }
