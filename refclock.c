@@ -452,7 +452,7 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
   filter_add_sample(&instance->filter, &cooked_time, offset, dispersion);
   instance->leap_status = LEAP_Normal;
 
-  log_sample(instance, &cooked_time, 0, 1, second, offset, dispersion);
+  log_sample(instance, &cooked_time, 0, 1, offset + correction - instance->offset, offset, dispersion);
 
   /* for logging purposes */
   if (!instance->driver->poll)
