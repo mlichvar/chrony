@@ -147,7 +147,7 @@ SCH_Initialise(void)
   LCL_AddParameterChangeHandler(handle_slew, NULL);
 
   LCL_ReadRawTime(&tv);
-  srandom(tv.tv_sec * tv.tv_usec);
+  srandom(tv.tv_sec << 16 ^ tv.tv_usec);
 
   initialised = 1;
 

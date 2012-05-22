@@ -73,7 +73,7 @@ timeout_handler(void *arbitrary)
   int leap;
   int are_we_synchronised, our_stratum;
   NTP_Leap leap_status;
-  uint32_t our_ref_id;
+  uint32_t our_ref_id, ts_fuzz;
   struct timeval our_ref_time;
   double our_root_delay, our_root_dispersion;
   struct timeval local_transmit;
@@ -107,14 +107,15 @@ timeout_handler(void *arbitrary)
   message.reference_id = htonl((NTP_int32) our_ref_id);
 
   /* Now fill in timestamps */
-  UTI_TimevalToInt64(&our_ref_time, &message.reference_ts);
+  UTI_TimevalToInt64(&our_ref_time, &message.reference_ts, 0);
   message.originate_ts.hi = 0UL;
   message.originate_ts.lo = 0UL;
   message.receive_ts.hi = 0UL;
   message.receive_ts.lo = 0UL;
 
+  ts_fuzz = UTI_GetNTPTsFuzz(message.precision);
   LCL_ReadCookedTime(&local_transmit, NULL);
-  UTI_TimevalToInt64(&local_transmit, &message.transmit_ts);
+  UTI_TimevalToInt64(&local_transmit, &message.transmit_ts, ts_fuzz);
   NIO_SendNormalPacket(&message, &d->addr);
 
   /* Requeue timeout.  Don't care if interval drifts gradually, so just do it

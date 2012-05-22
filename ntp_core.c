@@ -419,7 +419,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   /* Parameters read from reference module */
   int are_we_synchronised, our_stratum;
   NTP_Leap leap_status;
-  uint32_t our_ref_id;
+  uint32_t our_ref_id, ts_fuzz;
   struct timeval our_ref_time;
   double our_root_delay, our_root_dispersion;
 
@@ -458,7 +458,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   message.reference_id = htonl((NTP_int32) our_ref_id);
 
   /* Now fill in timestamps */
-  UTI_TimevalToInt64(&our_ref_time, &message.reference_ts);
+  UTI_TimevalToInt64(&our_ref_time, &message.reference_ts, 0);
 
   /* Originate - this comes from the last packet the source sent us */
   message.originate_ts = *orig_ts;
@@ -467,7 +467,10 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
      This timestamp will have been adjusted so that it will now look to
      the source like we have been running on our latest estimate of
      frequency all along */
-  UTI_TimevalToInt64(local_rx, &message.receive_ts);
+  UTI_TimevalToInt64(local_rx, &message.receive_ts, 0);
+
+  /* Prepare random bits which will be added to the transmit timestamp. */
+  ts_fuzz = UTI_GetNTPTsFuzz(message.precision);
 
   /* Transmit - this our local time right now!  Also, we might need to
      store this for our own use later, next time we receive a message
@@ -481,7 +484,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
        take to generate the authentication data. */
     local_transmit.tv_usec += KEY_GetAuthDelay(key_id);
     UTI_NormaliseTimeval(&local_transmit);
-    UTI_TimevalToInt64(&local_transmit, &message.transmit_ts);
+    UTI_TimevalToInt64(&local_transmit, &message.transmit_ts, ts_fuzz);
 
     auth_len = KEY_GenerateAuth(key_id, (unsigned char *) &message,
         offsetof(NTP_Packet, auth_keyid),
@@ -492,7 +495,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
           sizeof (message.auth_keyid) + auth_len);
     }
   } else {
-    UTI_TimevalToInt64(&local_transmit, &message.transmit_ts);
+    UTI_TimevalToInt64(&local_transmit, &message.transmit_ts, ts_fuzz);
     NIO_SendNormalPacket(&message, where_to);
   }
 

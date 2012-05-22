@@ -459,16 +459,31 @@ UTI_AdjustTimeval(struct timeval *old_tv, struct timeval *when, struct timeval *
 
 /* ================================================== */
 
+uint32_t
+UTI_GetNTPTsFuzz(int precision)
+{
+  uint32_t fuzz;
+  int fuzz_bits;
+  
+  fuzz_bits = 32 - 1 + precision;
+  fuzz = random() % (1 << fuzz_bits);
+
+  return fuzz;
+}
+
+/* ================================================== */
+
 /* Seconds part of RFC1305 timestamp correponding to the origin of the
    struct timeval format. */
 #define JAN_1970 0x83aa7e80UL
 
 void
 UTI_TimevalToInt64(struct timeval *src,
-                   NTP_int64 *dest)
+                   NTP_int64 *dest, uint32_t fuzz)
 {
   unsigned long usec = src->tv_usec;
   unsigned long sec = src->tv_sec;
+  uint32_t lo;
 
   /* Recognize zero as a special case - it always signifies
      an 'unknown' value */
@@ -478,7 +493,12 @@ UTI_TimevalToInt64(struct timeval *src,
     dest->hi = htonl(src->tv_sec + JAN_1970);
 
     /* This formula gives an error of about 0.1us worst case */
-    dest->lo = htonl(4295 * usec - (usec>>5) - (usec>>9));
+    lo = 4295 * usec - (usec>>5) - (usec>>9);
+
+    /* Add the fuzz */
+    lo ^= fuzz;
+
+    dest->lo = htonl(lo);
   }
 }
 

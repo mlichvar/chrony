@@ -88,8 +88,10 @@ extern char *UTI_TimeToLogForm(time_t t);
 /* Adjust time following a frequency/offset change */
 extern void UTI_AdjustTimeval(struct timeval *old_tv, struct timeval *when, struct timeval *new_tv, double *delta, double dfreq, double doffset);
 
+/* Get a random value to fuzz an NTP timestamp in the given precision */
+extern uint32_t UTI_GetNTPTsFuzz(int precision);
 
-extern void UTI_TimevalToInt64(struct timeval *src, NTP_int64 *dest);
+extern void UTI_TimevalToInt64(struct timeval *src, NTP_int64 *dest, uint32_t fuzz);
 
 extern void UTI_Int64ToTimeval(NTP_int64 *src, struct timeval *dest);
 
