@@ -2468,7 +2468,7 @@ Some examples of applications that can be used as SHM sources are @code{gpsd},
 @item SOCK
 Unix domain socket driver.  It is similar to the SHM driver, but uses a
 different format and uses a socket instead of shared memory.  It does not
-require polling, the offset resolution is not limited to microseconds and it
+require polling and it
 supports transmitting of PPS data.  The parameter is a path to the socket which
 will be created by @code{chronyd} and used to receive the messages.  The format
 of messages sent over the socket is described in the

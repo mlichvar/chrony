@@ -45,7 +45,7 @@ struct shmTime {
                 *         use values 
                 *       clear valid
                 */
-  int    count;
+  volatile int count;
   time_t clockTimeStampSec;
   int    clockTimeStampUSec;
   time_t receiveTimeStampSec;
@@ -53,8 +53,10 @@ struct shmTime {
   int    leap;
   int    precision;
   int    nsamples;
-  int    valid;
-  int    dummy[10]; 
+  volatile int valid;
+  int    clockTimeStampNSec;
+  int    receiveTimeStampNSec;
+  int    dummy[8]; 
 };
 
 static int shm_initialise(RCL_Instance instance) {
@@ -89,7 +91,7 @@ static void shm_finalise(RCL_Instance instance)
 
 static int shm_poll(RCL_Instance instance)
 {
-  struct timeval tv1, tv2;
+  struct timeval tv;
   struct shmTime t, *shm;
   double offset;
 
@@ -107,13 +109,17 @@ static int shm_poll(RCL_Instance instance)
 
   shm->valid = 0;
 
-  tv1.tv_sec = t.receiveTimeStampSec;
-  tv1.tv_usec = t.receiveTimeStampUSec;
-  tv2.tv_sec = t.clockTimeStampSec;
-  tv2.tv_usec = t.clockTimeStampUSec;
+  tv.tv_sec = t.receiveTimeStampSec;
+  tv.tv_usec = t.receiveTimeStampUSec;
 
-  UTI_DiffTimevalsToDouble(&offset, &tv2, &tv1);
-  return RCL_AddSample(instance, &tv1, offset, t.leap);
+  offset = t.clockTimeStampSec - t.receiveTimeStampSec;
+  if (t.clockTimeStampNSec / 1000 == t.clockTimeStampUSec &&
+      t.receiveTimeStampNSec / 1000 == t.receiveTimeStampUSec)
+    offset += (t.clockTimeStampNSec - t.receiveTimeStampNSec) * 1e-9;
+  else
+    offset += (t.clockTimeStampUSec - t.receiveTimeStampUSec) * 1e-6;
+
+  return RCL_AddSample(instance, &tv, offset, t.leap);
 }
 
 RefclockDriver RCL_SHM_driver = {
