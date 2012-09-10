@@ -127,7 +127,7 @@ read_line(void)
     }
     return( line );
 #else
-    printf(prompt);
+    printf("%s", prompt);
 #endif
   }
   if (fgets(line, sizeof(line), stdin)) {
