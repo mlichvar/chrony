@@ -314,9 +314,12 @@ update_drift_file(double freq_ppm, double skew)
   }
 
   /* Write the frequency and skew parameters in ppm */
-  fprintf(out, "%20.4f %20.4f\n", freq_ppm, 1.0e6 * skew);
-
-  fclose(out);
+  if ((fprintf(out, "%20.4f %20.4f\n", freq_ppm, 1.0e6 * skew) < 0) |
+      fclose(out)) {
+    LOG(LOGS_WARN, LOGF_Reference, "Could not write to temporary driftfile %s.tmp",
+        drift_file);
+    return;
+  }
 
   /* Clone the file attributes from the existing file if there is one. */
 

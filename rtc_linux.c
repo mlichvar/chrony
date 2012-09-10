@@ -470,10 +470,13 @@ write_coefs_to_file(int valid,time_t ref_time,double offset,double rate)
   }
 
   /* Gain rate is written out in ppm */
-  fprintf(out, "%1d %ld %.6f %.3f\n",
-          valid,ref_time, offset, 1.0e6 * rate);
-
-  fclose(out);
+  if ((fprintf(out, "%1d %ld %.6f %.3f\n",
+          valid,ref_time, offset, 1.0e6 * rate) < 0) |
+      fclose(out)) {
+    LOG(LOGS_WARN, LOGF_RtcLinux, "Could not write to temporary RTC file %s.tmp",
+        coefs_file_name);
+    return RTC_ST_BADFILE;
+  }
 
   /* Clone the file attributes from the existing file if there is one. */
 
