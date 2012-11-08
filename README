@@ -10,7 +10,7 @@ time.  This does most of the work.
 
 chronyc is a command-line interface program which can be used to
 monitor chronyd's performance and to change various operating
-parateters whilst it is running.
+parameters whilst it is running.
 
 chronyd's main function is to obtain measurements of the true (UTC)
 time from one of several sources, and correct the system clock
