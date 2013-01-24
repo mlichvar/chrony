@@ -43,7 +43,7 @@ test_code () {
   ldflags=$4
   code=$5
 
-  printf "Checking for $name : "
+  echo -n "Checking for $name : "
 
   (
     for h in $headers; do
@@ -63,10 +63,10 @@ test_code () {
 
   if [ $? -eq 0 ]
   then
-    printf "Yes\n"
+    echo "Yes"
     result=0
   else
-    printf "No\n"
+    echo "No"
     result=1
   fi
   rm -f docheck.c docheck
@@ -361,7 +361,7 @@ else
   if test_code 'math in -lm' 'math.h' '' '-lm' "$MATHCODE"; then
     LIBS="-lm"
   else
-    printf "Can't compile/link a program which uses sqrt(), log(), pow(), bailing out\n"
+    echo "Can't compile/link a program which uses sqrt(), log(), pow(), bailing out"
     exit 1
   fi
 fi
