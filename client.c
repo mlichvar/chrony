@@ -2849,7 +2849,10 @@ main(int argc, char **argv)
 
   /* MD5 is the default authentication hash */
   auth_hash_id = HSH_GetHashId("MD5");
-  assert(auth_hash_id >= 0);
+  if (auth_hash_id < 0) {
+    fprintf(stderr, "Could not initialize MD5\n");
+    return 1;
+  }
   
   open_io(hostname, port);
 
