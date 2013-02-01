@@ -79,7 +79,7 @@ distclean : clean
 	-rm -f Makefile
 
 clean :
-	-rm -f *.o *.s chronyc chronyd core *~
+	-rm -f *.o *.s chronyc chronyd core *~ chrony.info chrony.html chrony.txt
 	-rm -rf .deps
 
 getdate.c : ;
@@ -124,9 +124,6 @@ install: chronyd chronyc
 %.s : %.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -S $<
 
-# makeinfo v4 required to generate plain text and html
-MAKEINFO:=makeinfo
-
 install-docs : docs
 	[ -d $(DESTDIR)$(DOCDIR) ] || mkdir -p $(DESTDIR)$(DOCDIR)
 	cp chrony.txt $(DESTDIR)$(DOCDIR)/chrony.txt
@@ -140,13 +137,13 @@ install-docs : docs
 docs : chrony.txt chrony.html chrony.info
 
 chrony.txt : chrony.texi
-	$(MAKEINFO) --no-headers --number-sections -o chrony.txt chrony.texi
+	makeinfo --no-headers --number-sections -o chrony.txt chrony.texi
 
 chrony.html : chrony.texi
-	$(MAKEINFO) --no-split --html --number-sections -o chrony.html chrony.texi
+	texi2html chrony.texi
 
 chrony.info : chrony.texi
-	$(MAKEINFO) chrony.texi
+	makeinfo chrony.texi
 
 # This is only relevant if you're maintaining the website!
 faq.php : faq.txt faqgen.pl
