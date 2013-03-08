@@ -793,7 +793,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
        assuming worst case frequency error between us and the other
        source */
     
-    delta = local_interval - remote_interval / (1.0 - source_freq_lo);
+    delta = local_interval - remote_interval * (1.0 + source_freq_lo);
     
     /* Calculate theta.  Following the NTP definition, this is negative
        if we are fast of the remote source. */
