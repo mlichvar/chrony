@@ -40,8 +40,8 @@
 # more 'NTP servers'.  You will probably find that your Internet Service
 # Provider or company have one or more NTP servers that you can specify.
 # Failing that, there are a lot of public NTP servers.  There is a list
-# you can access at
-# http://www.eecis.udel.edu/~mills/ntp/servers.htm.
+# you can access at:
+# http://support.ntp.org/bin/view/Servers/WebHome
 
 ! server ntp0.your-isp.com
 ! server ntp1.your-isp.com
