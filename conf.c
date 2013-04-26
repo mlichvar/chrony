@@ -395,6 +395,9 @@ parse_source(const char *line, NTP_Source_Type type)
 {
   CPS_Status status;
 
+  if (n_ntp_sources >= MAX_NTP_SOURCES)
+    return;
+
   ntp_sources[n_ntp_sources].type = type;
   status = CPS_ParseNTPSourceAdd(line, &ntp_sources[n_ntp_sources].params);
 
