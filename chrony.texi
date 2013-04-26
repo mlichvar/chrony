@@ -1219,6 +1219,7 @@ directives can occur in any order in the file.
 * stratumweight directive::     Specify how important is stratum when selecting source
 * lock_all directive::          Require that chronyd be locked into RAM. 
 * tempcomp directive::          Specify temperature sensor and compensation coefficients
+* user directive::              Specify user for dropping root privileges
 
 @end menu
 @c }}}
@@ -2882,6 +2883,15 @@ every 30 seconds.  When the temperature is 26 degress (26000), the system clock
 frequency will not be adjusted.  When it is 27 degrees (27000), the clock will
 be set to run 0.183ppm faster than it would be without the compensation, etc.
 
+@c }}}
+@c {{{ user
+@node user directive
+@subsection user
+The @code{user} directive sets the name of the user to which will
+@code{chronyd} drop root privileges after the initialisation. So far, it works
+only on Linux when compiled with capabilities support.
+
+By default, root privileges are not dropped.
 @c }}}
 @c }}}
 @c {{{ S:Running chronyc

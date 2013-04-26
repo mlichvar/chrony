@@ -113,6 +113,7 @@ static void parse_lockall(const char *);
 static void parse_tempcomp(const char *);
 static void parse_include(const char *);
 static void parse_leapsectz(const char *);
+static void parse_user(const char *);
 
 /* ================================================== */
 /* Configuration variables */
@@ -229,6 +230,9 @@ static int lock_memory = 0;
 /* Name of a system timezone containing leap seconds occuring at midnight */
 static char *leapsec_tz = NULL;
 
+/* Name of the user to which will be dropped root privileges. */
+static char *user = NULL;
+
 /* ================================================== */
 
 typedef struct {
@@ -284,6 +288,7 @@ static const Command commands[] = {
   {"leapsectz", 9, parse_leapsectz},
   {"linux_hz", 8, parse_linux_hz},
   {"linux_freq_scale", 16, parse_linux_freq_scale},
+  {"user", 4, parse_user},
   {"sched_priority", 14, parse_sched_priority},
   {"lock_all", 8, parse_lockall}
 };
@@ -1343,6 +1348,16 @@ parse_linux_freq_scale(const char *line)
 
 /* ================================================== */
 
+static void
+parse_user(const char *line)
+{
+  /* This must allocate enough space! */
+  user = MallocArray(char, 1 + strlen(line));
+  sscanf(line, "%s", user);
+}
+
+/* ================================================== */
+
 void
 CNF_ProcessInitStepSlew(void (*after_hook)(void *), void *anything)
 {
@@ -1797,3 +1812,10 @@ CNF_GetTempComp(char **file, double *interval, double *T0, double *k0, double *k
   *k2 = tempcomp_k2;
 }
 
+/* ================================================== */
+
+char *
+CNF_GetUser(void)
+{
+  return user;
+}

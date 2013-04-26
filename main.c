@@ -394,6 +394,9 @@ int main
     SYS_LockMemory();
   }
 
+  if (!user) {
+    user = CNF_GetUser();
+  }
   if (user) {
     SYS_DropRoot(user);
   }

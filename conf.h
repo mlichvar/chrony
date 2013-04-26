@@ -92,4 +92,6 @@ extern int CNF_GetLockMemory(void);
 
 extern void CNF_GetTempComp(char **file, double *interval, double *T0, double *k0, double *k1, double *k2);
 
+extern char *CNF_GetUser(void);
+
 #endif /* GOT_CONF_H */
