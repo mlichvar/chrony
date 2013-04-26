@@ -757,6 +757,7 @@ ACQ_StartAcquisition(int n, IPAddr *ip_addrs, int threshold, void (*after_hook)(
 {
 
   int i, ip4, ip6;
+  int k, duplicate_ip;
 
   saved_after_hook = after_hook;
   saved_after_hook_anything = anything;
@@ -765,18 +766,31 @@ ACQ_StartAcquisition(int n, IPAddr *ip_addrs, int threshold, void (*after_hook)(
 
   n_started_sources = 0;
   n_completed_sources = 0;
-  n_sources = n;
+  n_sources = 0;
   sources = MallocArray(SourceRecord, n);
 
   for (i = ip4 = ip6 = 0; i < n; i++) {
-    sources[i].ip_addr = ip_addrs[i];
-    sources[i].n_samples = 0;
-    sources[i].n_total_samples = 0;
-    sources[i].n_dead_probes = 0;
-    if (ip_addrs[i].family == IPADDR_INET4)
-      ip4++;
-    else if (ip_addrs[i].family == IPADDR_INET6)
-      ip6++;
+    /* check for duplicate IP addresses and ignore them */
+    duplicate_ip = 0;
+    for (k = 0; k < i; k++) {
+      duplicate_ip |= UTI_CompareIPs(&(sources[k].ip_addr),
+                                     &ip_addrs[i],
+                                     NULL) == 0;
+    }
+    if (!duplicate_ip) {
+      sources[n_sources].ip_addr = ip_addrs[i];
+      sources[n_sources].n_samples = 0;
+      sources[n_sources].n_total_samples = 0;
+      sources[n_sources].n_dead_probes = 0;
+      if (ip_addrs[i].family == IPADDR_INET4)
+        ip4++;
+      else if (ip_addrs[i].family == IPADDR_INET6)
+        ip6++;
+      n_sources++;
+    } else {
+      LOG(LOGS_WARN, LOGF_Acquire, "Ignoring duplicate source: %s",
+          UTI_IPToString(&ip_addrs[i]));
+    }
   }
 
   initialise_io((ip4 && ip6) ? IPADDR_UNSPEC : (ip4 ? IPADDR_INET4 : IPADDR_INET6));
