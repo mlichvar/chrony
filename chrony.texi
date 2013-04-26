@@ -1067,6 +1067,12 @@ maintain clock compensation whilst not under @code{chronyd's} control.
 The only version where this happens so far is Linux.  On systems where
 this is not the case, e.g. Solaris and SunOS the option should not be
 used.
+@item -R
+When this option is used, the @code{initstepslew} directive and the
+@code{makestep} directive used with a positive limit will be ignored.
+This option is useful when restarting @code{chronyd} and can be used
+in conjuction with the `-r' option.
+
 @item -s
 This option will set the system clock from the computer's real-time
 clock.  This is analogous to supplying the `-s' flag to the

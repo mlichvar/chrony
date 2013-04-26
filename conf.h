@@ -29,6 +29,8 @@
 
 #include "addressing.h"
 
+extern void CNF_SetRestarted(int);
+
 extern char *CNF_GetRtcDevice(void);
 
 extern void CNF_ReadFile(const char *filename);

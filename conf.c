@@ -117,6 +117,7 @@ static void parse_leapsectz(const char *);
 /* ================================================== */
 /* Configuration variables */
 
+static int restarted = 0;
 static char *rtc_device = "/dev/rtc";
 static int acquisition_port = 0; /* 0 means let kernel choose port */
 static int ntp_port = 123;
@@ -322,6 +323,14 @@ typedef struct _AllowDeny {
 
 static AllowDeny ntp_auth_list = {&ntp_auth_list, &ntp_auth_list};
 static AllowDeny cmd_auth_list = {&cmd_auth_list, &cmd_auth_list};
+
+/* ================================================== */
+
+void
+CNF_SetRestarted(int r)
+{
+  restarted = r;
+}
 
 /* ================================================== */
 
@@ -853,6 +862,11 @@ parse_initstepslew(const char *line)
   int threshold;
   IPAddr ip_addr;
 
+  /* Ignore the line if chronyd was started with -R. */
+  if (restarted) {
+    return;
+  }
+
   n_init_srcs = 0;
   p = line;
 
@@ -954,6 +968,11 @@ parse_makestep(const char *line)
     LOG(LOGS_WARN, LOGF_Configure,
         "Could not read threshold or update limit for stepping clock at line %d\n",
         line_number);
+  }
+
+  /* Disable limited makestep if chronyd was started with -R. */
+  if (restarted && make_step_limit > 0) {
+    make_step_limit = 0;
   }
 }
 

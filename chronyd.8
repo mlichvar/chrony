@@ -69,6 +69,12 @@ systems where the kernel can maintain clock compensation whilst not under
 On systems where this is not the case, e.g. Solaris and SunOS the option
 should not be used.
 .TP
+.B \-R
+When this option is used, the \fIinitstepslew\fR directive and the
+\fImakestep\fR directive used with a positive limit will be ignored. This
+option is useful when restarting \fBchronyd\fR and can be used in conjuction
+with the \fB-r\fR option.
+.TP
 .B \-s
 This option will set the system clock from the computer's real-time
 clock.  This is analogous to supplying the \fI-s\fR flag to the

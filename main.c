@@ -287,7 +287,7 @@ int main
   char *conf_file = NULL;
   char *user = NULL;
   int debug = 0, nofork = 0;
-  int do_init_rtc = 0;
+  int do_init_rtc = 0, restarted = 0;
   int other_pid;
   int lock_memory = 0, sched_priority = 0;
 
@@ -308,6 +308,8 @@ int main
       lock_memory = 1;
     } else if (!strcmp("-r", *argv)) {
       reload = 1;
+    } else if (!strcmp("-R", *argv)) {
+      restarted = 1;
     } else if (!strcmp("-u", *argv)) {
       ++argv, --argc;
       if (argc == 0) {
@@ -352,6 +354,7 @@ int main
   
   LOG(LOGS_INFO, LOGF_Main, "chronyd version %s starting", CHRONY_VERSION);
 
+  CNF_SetRestarted(restarted);
   CNF_ReadFile(conf_file);
 
   /* Check whether another chronyd may already be running.  Do this after
