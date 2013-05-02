@@ -395,6 +395,7 @@ adjust_poll(NCR_Instance inst, double adj)
 static void
 transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 int my_poll, /* The log2 of the local poll interval */
+                int version, /* The NTP version to be set in the packet */
                 int do_auth, /* Boolean indicating whether to authenticate the packet or not */
                 unsigned long key_id, /* The authentication key ID */
                 NTP_int64 *orig_ts, /* Originate timestamp (from received packet) */
@@ -412,7 +413,6 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 )
 {
   NTP_Packet message;
-  int version;
   int leap;
   struct timeval local_transmit;
 
@@ -423,7 +423,10 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   struct timeval our_ref_time;
   double our_root_delay, our_root_dispersion;
 
-  version = NTP_VERSION;
+  /* Don't reply with version higher than ours */
+  if (version > NTP_VERSION) {
+    version = NTP_VERSION;
+  }
 
   LCL_ReadCookedTime(&local_transmit, NULL);
   REF_GetReferenceParams(&local_transmit,
@@ -577,6 +580,7 @@ transmit_timeout(void *arg)
 
   if (inst->opmode != MD_OFFLINE) {
     transmit_packet(inst->mode, inst->local_poll,
+                    NTP_VERSION,
                     do_auth, inst->auth_key_id,
                     &inst->remote_orig,
                     &inst->local_rx, &inst->local_tx, &inst->local_ntp_tx,
@@ -1309,6 +1313,7 @@ NCR_ProcessKnown
         }
         
         transmit_packet(MODE_SERVER, inst->local_poll,
+                        version,
                         authenticate_reply, reply_auth_key_id,
                         &message->transmit_ts,
                         now,
@@ -1492,6 +1497,7 @@ NCR_ProcessUnknown
         my_poll = message->poll; /* What should this be set to?  Does the client actually care? */
 
         transmit_packet(my_mode, my_poll,
+                        version,
                         do_auth, do_auth ? key_id : 0,
                         &message->transmit_ts, /* Originate (for us) is the transmit time for the client */
                         now, /* Time we received the packet */
