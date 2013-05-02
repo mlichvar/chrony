@@ -193,7 +193,7 @@ struct NCR_Instance_Record {
 
 /* Compatible NTP protocol versions */
 #define NTP_MAX_COMPAT_VERSION 4
-#define NTP_MIN_COMPAT_VERSION 2
+#define NTP_MIN_COMPAT_VERSION 1
 
 /* Maximum allowed dispersion - as defined in RFC1305 (16 seconds) */
 #define NTP_MAX_DISPERSION 16.0
