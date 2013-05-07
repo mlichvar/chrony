@@ -55,14 +55,6 @@
 #include "util.h"
 
 /* ================================================== */
-
-#ifndef DEFAULT_CONF_DIR
-#define DEFAULT_CONF_DIR "/etc"
-#endif
-
-#define DEFAULT_CONF_FILE DEFAULT_CONF_DIR"/chrony.conf"
-
-/* ================================================== */
 /* Forward prototypes */
 
 static void parse_commandkey(const char *);

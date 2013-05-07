@@ -564,7 +564,7 @@ if [ "x$SETDOCDIR" != "x" ]; then
   DOCDIR=$SETDOCDIR
 fi
 
-add_def DEFAULT_CONF_DIR "\"$SYSCONFDIR\""
+add_def DEFAULT_CONF_FILE "\"$SYSCONFDIR/chrony.conf\""
 add_def MAIL_PROGRAM "\"$mail_program\""
 
 if [ -f version.txt ]; then
