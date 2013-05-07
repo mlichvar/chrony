@@ -2773,7 +2773,7 @@ process_args(int argc, char **argv, int multi)
     }
 
     ret = process_line(line, &quit);
-    if (!ret)
+    if (!ret || quit)
       break;
   }
 
