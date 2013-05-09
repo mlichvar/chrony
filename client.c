@@ -239,7 +239,6 @@ read_mask_address(char *line, IPAddr *mask, IPAddr *address)
   char *p, *q;
 
   p = line;
-  while (*p && isspace((unsigned char)*p)) p++;
   if (!*p) {
     mask->family = address->family = IPADDR_UNSPEC;
     return 1;
@@ -249,8 +248,6 @@ read_mask_address(char *line, IPAddr *mask, IPAddr *address)
       *q++ = 0;
       if (UTI_StringToIP(p, mask)) {
         p = q;
-        while (*q && !isspace((unsigned char)*q)) q++;
-        *q = 0;
         if (UTI_StringToIP(p, address)) {
           if (address->family == mask->family)
             return 1;
@@ -320,10 +317,13 @@ process_cmd_online(CMD_Request *msg, char *line)
 static int
 read_address_integer(char *line, IPAddr *address, int *value)
 {
-  char hostname[2048];
+  char *hostname;
   int ok = 0;
 
-  if (sscanf(line, "%2047s %d", hostname, value) != 2) {
+  hostname = line;
+  line = CPS_SplitWord(line);
+
+  if (sscanf(line, "%d", value) != 1) {
     fprintf(stderr, "Invalid syntax for address value\n");
     ok = 0;
   } else {
@@ -345,10 +345,13 @@ read_address_integer(char *line, IPAddr *address, int *value)
 static int
 read_address_double(char *line, IPAddr *address, double *value)
 {
-  char hostname[2048];
+  char *hostname;
   int ok = 0;
 
-  if (sscanf(line, "%2047s %lf", hostname, value) != 2) {
+  hostname = line;
+  line = CPS_SplitWord(line);
+
+  if (sscanf(line, "%lf", value) != 1) {
     fprintf(stderr, "Invalid syntax for address value\n");
     ok = 0;
   } else {
@@ -578,22 +581,24 @@ static int
 process_cmd_burst(CMD_Request *msg, char *line)
 {
   int n_good_samples, n_total_samples;
-  int n_parsed;
-  char s[101];
+  char *s1, *s2;
   IPAddr address, mask;
 
-  n_parsed = sscanf(line, "%d/%d %100s", &n_good_samples, &n_total_samples, s);
+  s1 = line;
+  s2 = CPS_SplitWord(s1);
+  CPS_SplitWord(s2);
+
+  if (sscanf(s1, "%d/%d", &n_good_samples, &n_total_samples) != 2 ||
+      (*s2 && !read_mask_address(s2, &mask, &address))) {
+    fprintf(stderr, "Invalid syntax for burst command\n");
+    return 0;
+  }
 
   msg->command = htons(REQ_BURST);
   msg->data.burst.n_good_samples = ntohl(n_good_samples);
   msg->data.burst.n_total_samples = ntohl(n_total_samples);
 
   mask.family = address.family = IPADDR_UNSPEC;
-
-  if (n_parsed < 2 || (n_parsed == 3 && !read_mask_address(s, &mask, &address))) {
-    fprintf(stderr, "Invalid syntax for burst command\n");
-    return 0;
-  }
 
   UTI_IPHostToNetwork(&mask, &msg->data.burst.mask);
   UTI_IPHostToNetwork(&address, &msg->data.burst.address);
@@ -610,11 +615,10 @@ process_cmd_local(CMD_Request *msg, const char *line)
   int stratum;
 
   p = line;
-  while (*p && isspace((unsigned char)*p)) p++;
   
   if (!*p) {
     return 0;
-  } else if (!strncmp(p, "off", 3)) {
+  } else if (!strcmp(p, "off")) {
     msg->data.local.on_off = htonl(0);
     msg->data.local.stratum = htonl(0);
   } else if (sscanf(p, "stratum%d", &stratum) == 1) {
@@ -637,15 +641,14 @@ process_cmd_manual(CMD_Request *msg, const char *line)
   const char *p;
 
   p = line;
-  while (*p && isspace((unsigned char)*p)) p++;
 
   if (!*p) {
     return 0;
-  } else if (!strncmp(p, "off", 3)) {
+  } else if (!strcmp(p, "off")) {
     msg->data.manual.option = htonl(0);
-  } else if (!strncmp(p, "on", 2)) {
+  } else if (!strcmp(p, "on")) {
     msg->data.manual.option = htonl(1);
-  } else if (!strncmp(p, "reset", 5)) {
+  } else if (!strcmp(p, "reset")) {
     msg->data.manual.option = htonl(2);
   } else {
     return 0;
@@ -662,10 +665,9 @@ parse_allow_deny(CMD_Request *msg, char *line)
 {
   unsigned long a, b, c, d, n;
   IPAddr ip;
-  char *p, *q;
+  char *p;
   
   p = line;
-  while (*p && isspace((unsigned char)*p)) p++;
   if (!*p) {
     /* blank line - applies to all addresses */
     ip.family = IPADDR_UNSPEC;
@@ -681,11 +683,6 @@ parse_allow_deny(CMD_Request *msg, char *line)
         (n = sscanf(p, "%lu.%lu.%lu.%lu", &a, &b, &c, &d)) == 0) {
 
       /* Try to parse as the name of a machine */
-      q = p;
-      while (*q) {
-        if (*q == '\n') *q = 0;
-        q++;
-      }
       if (DNS_Name2IPAddress(p, &ip) != DNS_Success) {
         fprintf(stderr, "Could not read address\n");
         return 0;
@@ -844,9 +841,8 @@ accheck_getaddr(char *line, IPAddr *addr)
 {
   unsigned long a, b, c, d;
   IPAddr ip;
-  char *p, *q;
+  char *p;
   p = line;
-  while (*p && isspace(*p)) p++;
   if (!*p) {
     return 0;
   } else {
@@ -855,11 +851,6 @@ accheck_getaddr(char *line, IPAddr *addr)
       addr->addr.in4 = (a<<24) | (b<<16) | (c<<8) | d;
       return 1;
     } else {
-      q = p;
-      while (*q) {
-        if (*q == '\n') *q = 0;
-        q++;
-      }
       if (DNS_Name2IPAddress(p, &ip) != DNS_Success) {
         return 0;
       } else {
@@ -1071,13 +1062,15 @@ process_cmd_add_peer(CMD_Request *msg, char *line)
 static int
 process_cmd_delete(CMD_Request *msg, char *line)
 {
-  char hostname[2048];
+  char *hostname;
   int ok = 0;
   IPAddr address;
 
   msg->command = htons(REQ_DEL_SOURCE);
+  hostname = line;
+  CPS_SplitWord(line);
 
-  if (sscanf(line, "%2047s", hostname) != 1) {
+  if (!*hostname) {
     fprintf(stderr, "Invalid syntax for address\n");
     ok = 0;
   } else {
@@ -1105,7 +1098,7 @@ static int auth_hash_id;
 static int
 process_cmd_password(CMD_Request *msg, char *line)
 {
-  char *p, *q;
+  char *p;
   struct timeval now;
   int i, len;
 
@@ -1118,13 +1111,6 @@ process_cmd_password(CMD_Request *msg, char *line)
   }
 
   p = line;
-  while (*p && isspace((unsigned char)*p))
-    p++;
-
-  /* Get rid of trailing newline */
-  for (q=p; *q; q++) {
-    if (isspace((unsigned char)*q)) *q = 0;
-  }
 
   if (!*p) {
     /* blank line, prompt for password */
@@ -1671,8 +1657,7 @@ static int
 check_for_verbose_flag(char *line)
 {
   char *p = line;
-  while (*p && isspace((unsigned char)*p)) p++;
-  if (!strncmp(p, "-v", 2)) {
+  if (!strcmp(p, "-v")) {
     return 1;
   } else {
     return 0;
@@ -2507,15 +2492,15 @@ process_cmd_waitsync(char *line)
 static int
 process_cmd_dns(const char *line)
 {
-  if (!strncmp(line, "-46", 3)) {
+  if (!strcmp(line, "-46")) {
     DNS_SetAddressFamily(IPADDR_UNSPEC);
-  } else if (!strncmp(line, "-4", 2)) {
+  } else if (!strcmp(line, "-4")) {
     DNS_SetAddressFamily(IPADDR_INET4);
-  } else if (!strncmp(line, "-6", 2)) {
+  } else if (!strcmp(line, "-6")) {
     DNS_SetAddressFamily(IPADDR_INET6);
-  } else if (!strncmp(line, "-n", 2)) {
+  } else if (!strcmp(line, "-n")) {
     no_dns = 1;
-  } else if (!strncmp(line, "+n", 2)) {
+  } else if (!strcmp(line, "+n")) {
     no_dns = 0;
   } else {
     fprintf(stderr, "Unrecognized dns command\n");
@@ -2527,14 +2512,15 @@ process_cmd_dns(const char *line)
 /* ================================================== */
 
 static int
-process_cmd_authhash(const char *line)
+process_cmd_authhash(char *line)
 {
-  char hash_name[50];
+  char *hash_name;
   int new_hash_id;
 
   assert(auth_hash_id >= 0);
+  hash_name = line;
 
-  if (sscanf(line, "%49s", hash_name) != 1) {
+  if (!*hash_name) {
     fprintf(stderr, "Could not parse hash name\n");
     return 0;
   }
@@ -2587,7 +2573,7 @@ process_cmd_retries(const char *line)
 static int
 process_line(char *line, int *quit)
 {
-  char *p;
+  char *command;
   int do_normal_submit;
   int ret;
   CMD_Request tx_message;
@@ -2598,142 +2584,155 @@ process_line(char *line, int *quit)
 
   do_normal_submit = 1;
 
-  /* Check for line being blank */
-  p = line;
-  while (*p && isspace((unsigned char)*p)) p++;
-  if (!*p) {
+  CPS_NormalizeLine(line);
+
+  if (!*line) {
     fflush(stderr);
     fflush(stdout);
     return 1;
   };
 
-  if (!strncmp(p, "offline", 7)) {
-    do_normal_submit = process_cmd_offline(&tx_message, p+7);
-  } else if (!strncmp(p, "online", 6)) {
-    do_normal_submit = process_cmd_online(&tx_message, p+6);
-  } else if (!strncmp(p, "burst", 5)) {
-    do_normal_submit = process_cmd_burst(&tx_message, p+5);
-  } else if (!strncmp(p, "password", 8)) {
-    do_normal_submit = process_cmd_password(&tx_message, p+8);
-  } else if (!strncmp(p, "minpoll", 7)) {
-    do_normal_submit = process_cmd_minpoll(&tx_message, p+7);
-  } else if (!strncmp(p, "maxpoll", 7)) {
-    do_normal_submit = process_cmd_maxpoll(&tx_message, p+7);
-  } else if (!strncmp(p, "dump", 4)) {
-    process_cmd_dump(&tx_message, p+4);
-  } else if (!strncmp(p, "maxdelaydevratio", 16)) {
-    do_normal_submit = process_cmd_maxdelaydevratio(&tx_message, p+16);
-  } else if (!strncmp(p, "maxdelayratio", 13)) {
-    do_normal_submit = process_cmd_maxdelayratio(&tx_message, p+13);
-  } else if (!strncmp(p, "maxdelay", 8)) {
-    do_normal_submit = process_cmd_maxdelay(&tx_message, p+8);
-  } else if (!strncmp(p, "maxupdateskew", 13)) {
-    do_normal_submit = process_cmd_maxupdateskew(&tx_message, p+13);
-  } else if (!strncmp(p, "minstratum", 10)) {
-    do_normal_submit = process_cmd_minstratum(&tx_message, p+10);
-  } else if (!strncmp(p, "polltarget", 10)) {
-    do_normal_submit = process_cmd_polltarget(&tx_message, p+10);
-  } else if (!strncmp(p, "settime", 7)) {
+  command = line;
+  line = CPS_SplitWord(line);
+
+  if (!strcmp(command, "accheck")) {
+    do_normal_submit = process_cmd_accheck(&tx_message, line);
+  } else if (!strcmp(command, "activity")) {
     do_normal_submit = 0;
-    ret = process_cmd_settime(p+7);
-  } else if (!strncmp(p, "local", 5)) {
-    do_normal_submit = process_cmd_local(&tx_message, p+5);
-  } else if (!strncmp(p, "manual list", 11)) {
+    ret = process_cmd_activity(line);
+  } else if (!strcmp(command, "add") && !strncmp(line, "peer", 4)) {
+    do_normal_submit = process_cmd_add_peer(&tx_message, CPS_SplitWord(line));
+  } else if (!strcmp(command, "add") && !strncmp(line, "server", 6)) {
+    do_normal_submit = process_cmd_add_server(&tx_message, CPS_SplitWord(line));
+  } else if (!strcmp(command, "allow")) {
+    if (!strncmp(line, "all", 3)) {
+      do_normal_submit = process_cmd_allowall(&tx_message, CPS_SplitWord(line));
+    } else {
+      do_normal_submit = process_cmd_allow(&tx_message, line);
+    }
+  } else if (!strcmp(command, "authhash")) {
+    ret = process_cmd_authhash(line);
     do_normal_submit = 0;
-    ret = process_cmd_manual_list(p+11);
-  } else if (!strncmp(p, "manual delete", 13)) {
-    do_normal_submit = process_cmd_manual_delete(&tx_message, p+13);
-  } else if (!strncmp(p, "manual", 6)) {
-    do_normal_submit = process_cmd_manual(&tx_message, p+6);
-  } else if (!strncmp(p, "sourcestats", 11)) {
+  } else if (!strcmp(command, "burst")) {
+    do_normal_submit = process_cmd_burst(&tx_message, line);
+  } else if (!strcmp(command, "clients")) {
+    ret = process_cmd_clients(line);
     do_normal_submit = 0;
-    ret = process_cmd_sourcestats(p+11);
-  } else if (!strncmp(p, "sources", 7)) {
+  } else if (!strcmp(command, "cmdaccheck")) {
+    do_normal_submit = process_cmd_cmdaccheck(&tx_message, line);
+  } else if (!strcmp(command, "cmdallow")) {
+    if (!strncmp(line, "all", 3)) {
+      do_normal_submit = process_cmd_cmdallowall(&tx_message, CPS_SplitWord(line));
+    } else {
+      do_normal_submit = process_cmd_cmdallow(&tx_message, line);
+    }
+  } else if (!strcmp(command, "cmddeny")) {
+    if (!strncmp(line, "all", 3)) {
+      line = CPS_SplitWord(line);
+      do_normal_submit = process_cmd_cmddenyall(&tx_message, line);
+    } else {
+      do_normal_submit = process_cmd_cmddeny(&tx_message, line);
+    }
+  } else if (!strcmp(command, "cyclelogs")) {
+    process_cmd_cyclelogs(&tx_message, line);
+  } else if (!strcmp(command, "delete")) {
+    do_normal_submit = process_cmd_delete(&tx_message, line);
+  } else if (!strcmp(command, "deny")) {
+    if (!strncmp(line, "all", 3)) {
+      do_normal_submit = process_cmd_denyall(&tx_message, CPS_SplitWord(line));
+    } else {
+      do_normal_submit = process_cmd_deny(&tx_message, line);
+    }
+  } else if (!strcmp(command, "dfreq")) {
+    process_cmd_dfreq(&tx_message, line);
+  } else if (!strcmp(command, "dns")) {
+    ret = process_cmd_dns(line);
     do_normal_submit = 0;
-    ret = process_cmd_sources(p+7);
-  } else if (!strncmp(p, "rekey", 5)) {
-    process_cmd_rekey(&tx_message, p+5);
-  } else if (!strncmp(p, "allow all", 9)) {
-    do_normal_submit = process_cmd_allowall(&tx_message, p+9);
-  } else if (!strncmp(p, "allow", 5)) {
-    do_normal_submit = process_cmd_allow(&tx_message, p+5);
-  } else if (!strncmp(p, "deny all", 8)) {
-    do_normal_submit = process_cmd_denyall(&tx_message, p+8);
-  } else if (!strncmp(p, "deny", 4)) {
-    do_normal_submit = process_cmd_deny(&tx_message, p+4);
-  } else if (!strncmp(p, "cmdallow all", 12)) {
-    do_normal_submit = process_cmd_cmdallowall(&tx_message, p+12);
-  } else if (!strncmp(p, "cmdallow", 8)) {
-    do_normal_submit = process_cmd_cmdallow(&tx_message, p+8);
-  } else if (!strncmp(p, "cmddeny all", 11)) {
-    do_normal_submit = process_cmd_cmddenyall(&tx_message, p+11);
-  } else if (!strncmp(p, "cmddeny", 7)) {
-    do_normal_submit = process_cmd_cmddeny(&tx_message, p+7);
-  } else if (!strncmp(p, "accheck", 7)) {
-    do_normal_submit = process_cmd_accheck(&tx_message, p+7);
-  } else if (!strncmp(p, "cmdaccheck", 10)) {
-    do_normal_submit = process_cmd_cmdaccheck(&tx_message, p+10);
-  } else if (!strncmp(p, "add server", 10)) {
-    do_normal_submit = process_cmd_add_server(&tx_message, p+10);
-  } else if (!strncmp(p, "add peer", 8)) {
-    do_normal_submit = process_cmd_add_peer(&tx_message, p+8);
-  } else if (!strncmp(p, "delete", 6)) {
-    do_normal_submit = process_cmd_delete(&tx_message, p+6);
-  } else if (!strncmp(p, "writertc", 7)) {
-    process_cmd_writertc(&tx_message, p+7);
-  } else if (!strncmp(p, "rtcdata", 7)) {
+  } else if (!strcmp(command, "doffset")) {
+    process_cmd_doffset(&tx_message, line);
+  } else if (!strcmp(command, "dump")) {
+    process_cmd_dump(&tx_message, line);
+  } else if (!strcmp(command, "exit")) {
     do_normal_submit = 0;
-    ret = process_cmd_rtcreport(p);
-  } else if (!strncmp(p, "trimrtc", 7)) {
-    process_cmd_trimrtc(&tx_message, p);
-  } else if (!strncmp(p, "cyclelogs", 9)) {
-    process_cmd_cyclelogs(&tx_message, p);
-  } else if (!strncmp(p, "dfreq", 5)) {
-    process_cmd_dfreq(&tx_message, p+5);
-  } else if (!strncmp(p, "doffset", 7)) {
-    process_cmd_doffset(&tx_message, p+7);
-  } else if (!strncmp(p, "tracking", 8)) {
-    ret = process_cmd_tracking(p+8);
-    do_normal_submit = 0;
-  } else if (!strncmp(p, "clients", 7)) {
-    ret = process_cmd_clients(p+7);
-    do_normal_submit = 0;
-  } else if (!strncmp(p, "makestep", 8)) {
-    process_cmd_makestep(&tx_message, p+8);
-  } else if (!strncmp(p, "activity", 8)) {
-    ret = process_cmd_activity(p+8);
-    do_normal_submit = 0;
-  } else if (!strncmp(p, "reselectdist", 12)) {
-    do_normal_submit = process_cmd_reselectdist(&tx_message, p+12);
-  } else if (!strncmp(p, "reselect", 8)) {
-    process_cmd_reselect(&tx_message, p+8);
-  } else if (!strncmp(p, "waitsync", 8)) {
-    ret = process_cmd_waitsync(p+8);
-    do_normal_submit = 0;
-  } else if (!strncmp(p, "authhash", 8)) {
-    ret = process_cmd_authhash(p+8);
-    do_normal_submit = 0;
-  } else if (!strncmp(p, "dns ", 4)) {
-    ret = process_cmd_dns(p+4);
-    do_normal_submit = 0;
-  } else if (!strncmp(p, "timeout", 7)) {
-    ret = process_cmd_timeout(p+7);
-    do_normal_submit = 0;
-  } else if (!strncmp(p, "retries", 7)) {
-    ret = process_cmd_retries(p+7);
-    do_normal_submit = 0;
-  } else if (!strncmp(p, "help", 4)) {
+    *quit = 1;
+    ret = 1;
+  } else if (!strcmp(command, "help")) {
     do_normal_submit = 0;
     give_help();
     ret = 1;
-  } else if (!strncmp(p, "quit", 4)) {
+  } else if (!strcmp(command, "local")) {
+    do_normal_submit = process_cmd_local(&tx_message, line);
+  } else if (!strcmp(command, "makestep")) {
+    process_cmd_makestep(&tx_message, line);
+  } else if (!strcmp(command, "manual")) {
+    if (!strncmp(line, "list", 4)) {
+      do_normal_submit = 0;
+      ret = process_cmd_manual_list(CPS_SplitWord(line));
+    } else if (!strncmp(line, "delete", 6)) {
+      do_normal_submit = process_cmd_manual_delete(&tx_message, CPS_SplitWord(line));
+    } else {
+      do_normal_submit = process_cmd_manual(&tx_message, line);
+    }
+  } else if (!strcmp(command, "maxdelay")) {
+    do_normal_submit = process_cmd_maxdelay(&tx_message, line);
+  } else if (!strcmp(command, "maxdelaydevratio")) {
+    do_normal_submit = process_cmd_maxdelaydevratio(&tx_message, line);
+  } else if (!strcmp(command, "maxdelayratio")) {
+    do_normal_submit = process_cmd_maxdelayratio(&tx_message, line);
+  } else if (!strcmp(command, "maxpoll")) {
+    do_normal_submit = process_cmd_maxpoll(&tx_message, line);
+  } else if (!strcmp(command, "maxupdateskew")) {
+    do_normal_submit = process_cmd_maxupdateskew(&tx_message, line);
+  } else if (!strcmp(command, "minpoll")) {
+    do_normal_submit = process_cmd_minpoll(&tx_message, line);
+  } else if (!strcmp(command, "minstratum")) {
+    do_normal_submit = process_cmd_minstratum(&tx_message, line);
+  } else if (!strcmp(command, "offline")) {
+    do_normal_submit = process_cmd_offline(&tx_message, line);
+  } else if (!strcmp(command, "online")) {
+    do_normal_submit = process_cmd_online(&tx_message, line);
+  } else if (!strcmp(command, "password")) {
+    do_normal_submit = process_cmd_password(&tx_message, line);
+  } else if (!strcmp(command, "polltarget")) {
+    do_normal_submit = process_cmd_polltarget(&tx_message, line);
+  } else if (!strcmp(command, "quit")) {
     do_normal_submit = 0;
     *quit = 1;
     ret = 1;
-  } else if (!strncmp(p, "exit", 4)) {
+  } else if (!strcmp(command, "rekey")) {
+    process_cmd_rekey(&tx_message, line);
+  } else if (!strcmp(command, "reselect")) {
+    process_cmd_reselect(&tx_message, line);
+  } else if (!strcmp(command, "reselectdist")) {
+    do_normal_submit = process_cmd_reselectdist(&tx_message, line);
+  } else if (!strcmp(command, "retries")) {
+    ret = process_cmd_retries(line);
     do_normal_submit = 0;
-    *quit = 1;
-    ret = 1;
+  } else if (!strcmp(command, "rtcdata")) {
+    do_normal_submit = 0;
+    ret = process_cmd_rtcreport(line);
+  } else if (!strcmp(command, "settime")) {
+    do_normal_submit = 0;
+    ret = process_cmd_settime(line);
+  } else if (!strcmp(command, "sources")) {
+    do_normal_submit = 0;
+    ret = process_cmd_sources(line);
+  } else if (!strcmp(command, "sourcestats")) {
+    do_normal_submit = 0;
+    ret = process_cmd_sourcestats(line);
+  } else if (!strcmp(command, "timeout")) {
+    ret = process_cmd_timeout(line);
+    do_normal_submit = 0;
+  } else if (!strcmp(command, "tracking")) {
+    ret = process_cmd_tracking(line);
+    do_normal_submit = 0;
+  } else if (!strcmp(command, "trimrtc")) {
+    process_cmd_trimrtc(&tx_message, line);
+  } else if (!strcmp(command, "waitsync")) {
+    ret = process_cmd_waitsync(line);
+    do_normal_submit = 0;
+  } else if (!strcmp(command, "writertc")) {
+    process_cmd_writertc(&tx_message, line);
   } else {
     fprintf(stderr, "Unrecognized command\n");
     do_normal_submit = 0;

@@ -284,7 +284,7 @@ go_daemon(void)
 int main
 (int argc, char **argv)
 {
-  char *conf_file = NULL;
+  const char *conf_file = DEFAULT_CONF_FILE;
   char *user = NULL;
   int debug = 0, nofork = 0;
   int do_init_rtc = 0, restarted = 0;

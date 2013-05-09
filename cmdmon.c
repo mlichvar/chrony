@@ -187,9 +187,6 @@ prepare_socket(int family)
   int on_off = 1;
 
   port_number = CNF_GetCommandPort();
-  if (port_number < 0) {
-    port_number = DEFAULT_CANDM_PORT;
-  }
 
   sock_fd = socket(family, SOCK_DGRAM, 0);
   if (sock_fd < 0) {

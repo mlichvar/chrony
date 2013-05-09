@@ -57,55 +57,55 @@
 /* ================================================== */
 /* Forward prototypes */
 
-static void parse_commandkey(const char *);
-static void parse_driftfile(const char *);
-static void parse_dumpdir(const char *);
-static void parse_dumponexit(const char *);
-static void parse_keyfile(const char *);
-static void parse_rtcfile(const char *);
-static void parse_log(const char *);
-static void parse_logbanner(const char *);
-static void parse_logdir(const char *);
-static void parse_maxupdateskew(const char *);
-static void parse_maxclockerror(const char *);
-static void parse_corrtimeratio(const char *);
-static void parse_reselectdist(const char *);
-static void parse_stratumweight(const char *);
-static void parse_peer(const char *);
-static void parse_acquisitionport(const char *);
-static void parse_port(const char *);
-static void parse_server(const char *);
-static void parse_refclock(const char *);
-static void parse_local(const char *);
-static void parse_manual(const char *);
-static void parse_initstepslew(const char *);
-static void parse_allow(const char *);
-static void parse_deny(const char *);
-static void parse_cmdallow(const char *);
-static void parse_cmddeny(const char *);
-static void parse_cmdport(const char *);
-static void parse_rtconutc(const char *);
-static void parse_rtcsync(const char *);
-static void parse_noclientlog(const char *);
-static void parse_clientloglimit(const char *);
-static void parse_fallbackdrift(const char *);
-static void parse_makestep(const char *);
-static void parse_maxchange(const char *);
-static void parse_logchange(const char *);
-static void parse_mailonchange(const char *);
-static void parse_bindaddress(const char *);
-static void parse_bindcmdaddress(const char *);
-static void parse_rtcdevice(const char *);
-static void parse_pidfile(const char *);
-static void parse_broadcast(const char *);
-static void parse_linux_hz(const char *);
-static void parse_linux_freq_scale(const char *);
-static void parse_sched_priority(const char *);
-static void parse_lockall(const char *);
-static void parse_tempcomp(const char *);
-static void parse_include(const char *);
-static void parse_leapsectz(const char *);
-static void parse_user(const char *);
+static void parse_acquisitionport(char *);
+static void parse_allow(char *);
+static void parse_bindaddress(char *);
+static void parse_bindcmdaddress(char *);
+static void parse_broadcast(char *);
+static void parse_clientloglimit(char *);
+static void parse_cmdallow(char *);
+static void parse_cmddeny(char *);
+static void parse_cmdport(char *);
+static void parse_commandkey(char *);
+static void parse_corrtimeratio(char *);
+static void parse_deny(char *);
+static void parse_driftfile(char *);
+static void parse_dumpdir(char *);
+static void parse_dumponexit(char *);
+static void parse_fallbackdrift(char *);
+static void parse_include(char *);
+static void parse_initstepslew(char *);
+static void parse_keyfile(char *);
+static void parse_leapsectz(char *);
+static void parse_linux_freq_scale(char *);
+static void parse_linux_hz(char *);
+static void parse_local(char *);
+static void parse_lockall(char *);
+static void parse_log(char *);
+static void parse_logbanner(char *);
+static void parse_logchange(char *);
+static void parse_logdir(char *);
+static void parse_mailonchange(char *);
+static void parse_makestep(char *);
+static void parse_manual(char *);
+static void parse_maxchange(char *);
+static void parse_maxclockerror(char *);
+static void parse_maxupdateskew(char *);
+static void parse_noclientlog(char *);
+static void parse_peer(char *);
+static void parse_pidfile(char *);
+static void parse_port(char *);
+static void parse_refclock(char *);
+static void parse_reselectdist(char *);
+static void parse_rtcdevice(char *);
+static void parse_rtcfile(char *);
+static void parse_rtconutc(char *);
+static void parse_rtcsync(char *);
+static void parse_sched_priority(char *);
+static void parse_server(char *);
+static void parse_stratumweight(char *);
+static void parse_tempcomp(char *);
+static void parse_user(char *);
 
 /* ================================================== */
 /* Configuration variables */
@@ -125,7 +125,7 @@ static double max_clock_error = 1.0; /* in ppm */
 static double reselect_distance = 1e-4;
 static double stratum_weight = 1.0;
 
-static int cmd_port = -1;
+static int cmd_port = DEFAULT_CANDM_PORT;
 
 static int do_log_measurements = 0;
 static int do_log_statistics = 0;
@@ -139,7 +139,6 @@ static char *logdir = ".";
 static char *dumpdir = ".";
 
 static int enable_local=0;
-#define DEFAULT_LOCAL_STRATUM 8
 static int local_stratum;
 
 static int do_init_stepslew = 0;
@@ -225,73 +224,6 @@ static char *leapsec_tz = NULL;
 /* Name of the user to which will be dropped root privileges. */
 static char *user = NULL;
 
-/* ================================================== */
-
-typedef struct {
-  const char *keyword;
-  int len;
-  void (*handler)(const char *);
-} Command;
-
-static const Command commands[] = {
-  {"server", 6, parse_server},
-  {"peer", 4, parse_peer},
-  {"refclock", 8, parse_refclock},
-  {"acquisitionport", 15, parse_acquisitionport},
-  {"port", 4, parse_port},
-  {"driftfile", 9, parse_driftfile},
-  {"keyfile", 7, parse_keyfile},
-  {"rtcfile", 7, parse_rtcfile},
-  {"logbanner", 9, parse_logbanner},
-  {"logdir", 6, parse_logdir},
-  {"log", 3, parse_log},
-  {"dumponexit", 10, parse_dumponexit},
-  {"dumpdir", 7, parse_dumpdir},
-  {"maxupdateskew", 13, parse_maxupdateskew},
-  {"maxclockerror", 13, parse_maxclockerror},
-  {"corrtimeratio", 13, parse_corrtimeratio},
-  {"commandkey", 10, parse_commandkey},
-  {"initstepslew", 12, parse_initstepslew},
-  {"local", 5, parse_local},
-  {"manual", 6, parse_manual},
-  {"allow", 5, parse_allow},
-  {"deny", 4, parse_deny},
-  {"cmdallow", 8, parse_cmdallow},
-  {"cmddeny", 7, parse_cmddeny},
-  {"cmdport", 7, parse_cmdport},
-  {"rtconutc", 8, parse_rtconutc},
-  {"rtcsync", 7, parse_rtcsync},
-  {"noclientlog", 11, parse_noclientlog},
-  {"clientloglimit", 14, parse_clientloglimit},
-  {"fallbackdrift", 13, parse_fallbackdrift},
-  {"makestep", 8, parse_makestep},
-  {"maxchange", 9, parse_maxchange},
-  {"logchange", 9, parse_logchange},
-  {"mailonchange", 12, parse_mailonchange},
-  {"bindaddress", 11, parse_bindaddress},
-  {"bindcmdaddress", 14, parse_bindcmdaddress},
-  {"rtcdevice", 9, parse_rtcdevice},
-  {"pidfile", 7, parse_pidfile},
-  {"broadcast", 9, parse_broadcast},
-  {"tempcomp", 8, parse_tempcomp},
-  {"reselectdist", 12, parse_reselectdist},
-  {"stratumweight", 13, parse_stratumweight},
-  {"include", 7, parse_include},
-  {"leapsectz", 9, parse_leapsectz},
-  {"linux_hz", 8, parse_linux_hz},
-  {"linux_freq_scale", 16, parse_linux_freq_scale},
-  {"user", 4, parse_user},
-  {"sched_priority", 14, parse_sched_priority},
-  {"lock_all", 8, parse_lockall}
-};
-
-static int n_commands = (sizeof(commands) / sizeof(commands[0]));
-
-/* The line number in the configuration file being processed */
-static int line_number;
-
-/* ================================================== */
-
 typedef struct {
   NTP_Source_Type type;
   CPS_NTP_Source params;
@@ -307,8 +239,6 @@ static int n_ntp_sources = 0;
 static RefclockParameters refclock_sources[MAX_RCL_SOURCES];
 static int n_refclock_sources = 0;
 
-/* ================================================== */
-
 typedef struct _AllowDeny {
   struct _AllowDeny *next;
   struct _AllowDeny *prev;
@@ -320,6 +250,63 @@ typedef struct _AllowDeny {
 
 static AllowDeny ntp_auth_list = {&ntp_auth_list, &ntp_auth_list};
 static AllowDeny cmd_auth_list = {&cmd_auth_list, &cmd_auth_list};
+
+typedef struct {
+  /* Both in host (not necessarily network) order */
+  IPAddr addr;
+  unsigned short port;
+  int interval;
+} NTP_Broadcast_Destination;
+
+static NTP_Broadcast_Destination *broadcasts = NULL;
+static int max_broadcasts = 0;
+static int n_broadcasts = 0;
+
+/* ================================================== */
+
+/* The line number in the configuration file being processed */
+static int line_number;
+static const char *processed_file;
+static const char *processed_command;
+
+/* ================================================== */
+
+static void
+command_parse_error(void)
+{
+    LOG_FATAL(LOGF_Configure, "Could not parse %s directive at line %d in file %s",
+        processed_command, line_number, processed_file);
+}
+
+/* ================================================== */
+
+static void
+other_parse_error(const char *message)
+{
+    LOG_FATAL(LOGF_Configure, "%s at line %d in file %s",
+        message, line_number, processed_file);
+}
+
+/* ================================================== */
+
+static void
+check_number_of_args(char *line, int num)
+{
+  /* The line is normalized, between arguments is just one space */
+  if (*line == ' ')
+    line++;
+  if (*line)
+    num--;
+  for (; *line; line++) {
+    if (*line == ' ')
+      num--;
+  }
+  if (num) {
+    LOG_FATAL(LOGF_Configure, "%s arguments for %s directive at line %d in file %s",
+        num > 0 ? "Missing" : "Too many",
+        processed_command, line_number, processed_file);
+  }
+}
 
 /* ================================================== */
 
@@ -337,67 +324,149 @@ CNF_ReadFile(const char *filename)
 {
   FILE *in;
   char line[2048];
-  char *p;
-  int i, ok;
+  char *p, *command;
+  const char *prev_processed_file;
   int prev_line_number;
-
-  if (filename == NULL) {
-    filename = DEFAULT_CONF_FILE;
-  }
 
   in = fopen(filename, "r");
   if (!in) {
-    LOG(LOGS_ERR, LOGF_Configure, "Could not open configuration file [%s]", filename);
+    LOG_FATAL(LOGF_Configure, "Could not open configuration file %s", filename);
   } else {
-
     /* Save current line number in case this is an included file */
     prev_line_number = line_number;
+    prev_processed_file = processed_file;
 
     line_number = 0;
+    processed_file = filename;
 
     /* Success */
     while (fgets(line, sizeof(line), in)) {
-
       line_number++;
 
-      /* Strip trailing newline */
-      line[strlen(line) - 1] = 0;
+      /* Remove extra white-space and comments */
+      CPS_NormalizeLine(line);
 
-      /* Discard comment lines, blank lines etc */
-      p = line;
-      while(*p && (isspace((unsigned char)*p)))
-        p++;
-
-      if (!*p || (strchr("!;#%", *p) != NULL))
+      /* Skip blank lines */
+      if (!*line)
         continue;
 
       /* We have a real line, now try to match commands */
-      ok = 0;
-      for (i=0; i<n_commands; i++) {
-        if (!strncasecmp(commands[i].keyword, p, commands[i].len)) {
-          (*(commands[i].handler))(p + commands[i].len);
-          ok = 1;
-        }
-      }      
+      processed_command = command = line;
+      p = CPS_SplitWord(line);
 
-      if (!ok) {
-        LOG_FATAL(LOGF_Configure, "Line %d in configuration file [%s] contains invalid command",
-            line_number, filename);
+      if (!strcasecmp(command, "acquisitionport")) {
+        parse_acquisitionport(p);
+      } else if (!strcasecmp(command, "allow")) {
+        parse_allow(p);
+      } else if (!strcasecmp(command, "bindaddress")) {
+        parse_bindaddress(p);
+      } else if (!strcasecmp(command, "bindcmdaddress")) {
+        parse_bindcmdaddress(p);
+      } else if (!strcasecmp(command, "broadcast")) {
+        parse_broadcast(p);
+      } else if (!strcasecmp(command, "clientloglimit")) {
+        parse_clientloglimit(p);
+      } else if (!strcasecmp(command, "cmdallow")) {
+        parse_cmdallow(p);
+      } else if (!strcasecmp(command, "cmddeny")) {
+        parse_cmddeny(p);
+      } else if (!strcasecmp(command, "cmdport")) {
+        parse_cmdport(p);
+      } else if (!strcasecmp(command, "commandkey")) {
+        parse_commandkey(p);
+      } else if (!strcasecmp(command, "corrtimeratio")) {
+        parse_corrtimeratio(p);
+      } else if (!strcasecmp(command, "deny")) {
+        parse_deny(p);
+      } else if (!strcasecmp(command, "driftfile")) {
+        parse_driftfile(p);
+      } else if (!strcasecmp(command, "dumpdir")) {
+        parse_dumpdir(p);
+      } else if (!strcasecmp(command, "dumponexit")) {
+        parse_dumponexit(p);
+      } else if (!strcasecmp(command, "fallbackdrift")) {
+        parse_fallbackdrift(p);
+      } else if (!strcasecmp(command, "include")) {
+        parse_include(p);
+      } else if (!strcasecmp(command, "initstepslew")) {
+        parse_initstepslew(p);
+      } else if (!strcasecmp(command, "keyfile")) {
+        parse_keyfile(p);
+      } else if (!strcasecmp(command, "leapsectz")) {
+        parse_leapsectz(p);
+      } else if (!strcasecmp(command, "linux_freq_scale")) {
+        parse_linux_freq_scale(p);
+      } else if (!strcasecmp(command, "linux_hz")) {
+        parse_linux_hz(p);
+      } else if (!strcasecmp(command, "local")) {
+        parse_local(p);
+      } else if (!strcasecmp(command, "lock_all")) {
+        parse_lockall(p);
+      } else if (!strcasecmp(command, "log")) {
+        parse_log(p);
+      } else if (!strcasecmp(command, "logbanner")) {
+        parse_logbanner(p);
+      } else if (!strcasecmp(command, "logchange")) {
+        parse_logchange(p);
+      } else if (!strcasecmp(command, "logdir")) {
+        parse_logdir(p);
+      } else if (!strcasecmp(command, "mailonchange")) {
+        parse_mailonchange(p);
+      } else if (!strcasecmp(command, "makestep")) {
+        parse_makestep(p);
+      } else if (!strcasecmp(command, "manual")) {
+        parse_manual(p);
+      } else if (!strcasecmp(command, "maxchange")) {
+        parse_maxchange(p);
+      } else if (!strcasecmp(command, "maxclockerror")) {
+        parse_maxclockerror(p);
+      } else if (!strcasecmp(command, "maxupdateskew")) {
+        parse_maxupdateskew(p);
+      } else if (!strcasecmp(command, "noclientlog")) {
+        parse_noclientlog(p);
+      } else if (!strcasecmp(command, "peer")) {
+        parse_peer(p);
+      } else if (!strcasecmp(command, "pidfile")) {
+        parse_pidfile(p);
+      } else if (!strcasecmp(command, "port")) {
+        parse_port(p);
+      } else if (!strcasecmp(command, "refclock")) {
+        parse_refclock(p);
+      } else if (!strcasecmp(command, "reselectdist")) {
+        parse_reselectdist(p);
+      } else if (!strcasecmp(command, "rtcdevice")) {
+        parse_rtcdevice(p);
+      } else if (!strcasecmp(command, "rtcfile")) {
+        parse_rtcfile(p);
+      } else if (!strcasecmp(command, "rtconutc")) {
+        parse_rtconutc(p);
+      } else if (!strcasecmp(command, "rtcsync")) {
+        parse_rtcsync(p);
+      } else if (!strcasecmp(command, "sched_priority")) {
+        parse_sched_priority(p);
+      } else if (!strcasecmp(command, "server")) {
+        parse_server(p);
+      } else if (!strcasecmp(command, "stratumweight")) {
+        parse_stratumweight(p);
+      } else if (!strcasecmp(command, "tempcomp")) {
+        parse_tempcomp(p);
+      } else if (!strcasecmp(command, "user")) {
+        parse_user(p);
+      } else {
+        other_parse_error("Invalid command");
       }
-
     }
 
     line_number = prev_line_number;
-
+    processed_file = prev_processed_file;
     fclose(in);
   }
-
 }
 
 /* ================================================== */
 
 static void
-parse_source(const char *line, NTP_Source_Type type)
+parse_source(char *line, NTP_Source_Type type)
 {
   CPS_Status status;
 
@@ -412,40 +481,40 @@ parse_source(const char *line, NTP_Source_Type type)
       n_ntp_sources++;
       break;
     case CPS_BadOption:
-      LOG_FATAL(LOGF_Configure, "Unrecognized subcommand at line %d", line_number);
+      other_parse_error("Invalid server/peer parameter");
       break;
     case CPS_BadHost:
-      LOG_FATAL(LOGF_Configure, "Invalid host/IP address at line %d", line_number);
+      other_parse_error("Invalid host/IP address");
       break;
     case CPS_BadPort:
-      LOG_FATAL(LOGF_Configure, "Unreadable port number at line %d", line_number);
+      other_parse_error("Unreadable port");
       break;
     case CPS_BadMinpoll:
-      LOG_FATAL(LOGF_Configure, "Unreadable minpoll value at line %d", line_number);
+      other_parse_error("Unreadable minpoll");
       break;
     case CPS_BadMaxpoll:
-      LOG_FATAL(LOGF_Configure, "Unreadable maxpoll value at line %d", line_number);
+      other_parse_error("Unreadable maxpoll");
       break;
     case CPS_BadPresend:
-      LOG_FATAL(LOGF_Configure, "Unreadable presend value at line %d", line_number);
+      other_parse_error("Unreadable presend");
       break;
     case CPS_BadMaxdelaydevratio:
-      LOG_FATAL(LOGF_Configure, "Unreadable max delay dev ratio value at line %d", line_number);
+      other_parse_error("Unreadable maxdelaydevratio");
       break;
     case CPS_BadMaxdelayratio:
-      LOG_FATAL(LOGF_Configure, "Unreadable max delay ratio value at line %d", line_number);
+      other_parse_error("Unreadable maxdelayratio");
       break;
     case CPS_BadMaxdelay:
-      LOG_FATAL(LOGF_Configure, "Unreadable max delay value at line %d", line_number);
+      other_parse_error("Unreadable maxdelay");
       break;
     case CPS_BadKey:
-      LOG_FATAL(LOGF_Configure, "Unreadable key value at line %d", line_number);
+      other_parse_error("Unreadable key");
       break;
     case CPS_BadMinstratum:
-      LOG_FATAL(LOGF_Configure, "Unreadable minstratum value at line %d", line_number);
+      other_parse_error("Unreadable minstratum");
       break;
     case CPS_BadPolltarget:
-      LOG_FATAL(LOGF_Configure, "Unreadable polltarget value at line %d", line_number);
+      other_parse_error("Unreadable polltarget");
       break;
   }
 
@@ -456,25 +525,27 @@ parse_source(const char *line, NTP_Source_Type type)
 /* ================================================== */
 
 static void
-parse_sched_priority(const char *line)
+parse_sched_priority(char *line)
 {
+  check_number_of_args(line, 1);
   if (sscanf(line, "%d", &sched_priority) != 1) {
-    LOG_FATAL(LOGF_Configure, "Could not read scheduling priority at line %d", line_number);
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
 static void
-parse_lockall(const char *line)
+parse_lockall(char *line)
 {
+  check_number_of_args(line, 0);
   lock_memory = 1;
 }
 
 /* ================================================== */
 
 static void
-parse_server(const char *line)
+parse_server(char *line)
 {
   parse_source(line, NTP_SERVER);
 }
@@ -482,7 +553,7 @@ parse_server(const char *line)
 /* ================================================== */
 
 static void
-parse_peer(const char *line)
+parse_peer(char *line)
 {
   parse_source(line, NTP_PEER);
 }
@@ -490,13 +561,12 @@ parse_peer(const char *line)
 /* ================================================== */
 
 static void
-parse_refclock(const char *line)
+parse_refclock(char *line)
 {
   int i, n, poll, dpoll, filter_length, pps_rate;
   uint32_t ref_id, lock_ref_id;
   double offset, delay, precision;
-  const char *tmp;
-  char cmd[10 + 1], *name, *param;
+  char *p, *cmd, *name, *param;
   unsigned char ref[5];
   SRC_SelectOption sel_option;
 
@@ -515,79 +585,68 @@ parse_refclock(const char *line)
   lock_ref_id = 0;
   sel_option = SRC_SelectNormal;
 
-  while (isspace(line[0]))
-    line++;
-  tmp = line;
-  while (line[0] != '\0' && !isspace(line[0]))
-    line++;
-
-  if (line == tmp) {
-    LOG_FATAL(LOGF_Configure, "Could not read refclock driver name at line %d", line_number);
+  if (!*line) {
+    command_parse_error();
     return;
   }
 
-  name = MallocArray(char, 1 + line - tmp);
-  strncpy(name, tmp, line - tmp);
-  name[line - tmp] = '\0';
+  p = line;
+  line = CPS_SplitWord(line);
 
-  while (isspace(line[0]))
-    line++;
-  tmp = line;
-  while (line[0] != '\0' && !isspace(line[0]))
-    line++;
-
-  if (line == tmp) {
-    LOG_FATAL(LOGF_Configure, "Could not read refclock parameter at line %d", line_number);
-    Free(name);
+  if (!*line) {
+    command_parse_error();
     return;
   }
 
-  param = MallocArray(char, 1 + line - tmp);
-  strncpy(param, tmp, line - tmp);
-  param[line - tmp] = '\0';
+  name = strdup(p);
 
-  while (sscanf(line, "%10s%n", cmd, &n) == 1) {
-    line += n;
-    if (!strncasecmp(cmd, "refid", 5)) {
+  p = line;
+  line = CPS_SplitWord(line);
+  param = strdup(p);
+
+  while (*line) {
+    cmd = line;
+    line = CPS_SplitWord(line);
+    if (!strcasecmp(cmd, "refid")) {
       if (sscanf(line, "%4s%n", (char *)ref, &n) != 1)
         break;
       ref_id = ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
-    } else if (!strncasecmp(cmd, "lock", 4)) {
+    } else if (!strcasecmp(cmd, "lock")) {
       if (sscanf(line, "%4s%n", (char *)ref, &n) != 1)
         break;
       lock_ref_id = ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
-    } else if (!strncasecmp(cmd, "poll", 4)) {
+    } else if (!strcasecmp(cmd, "poll")) {
       if (sscanf(line, "%d%n", &poll, &n) != 1) {
         break;
       }
-    } else if (!strncasecmp(cmd, "dpoll", 5)) {
+    } else if (!strcasecmp(cmd, "dpoll")) {
       if (sscanf(line, "%d%n", &dpoll, &n) != 1) {
         break;
       }
-    } else if (!strncasecmp(cmd, "filter", 6)) {
+    } else if (!strcasecmp(cmd, "filter")) {
       if (sscanf(line, "%d%n", &filter_length, &n) != 1) {
         break;
       }
-    } else if (!strncasecmp(cmd, "rate", 4)) {
+    } else if (!strcasecmp(cmd, "rate")) {
       if (sscanf(line, "%d%n", &pps_rate, &n) != 1)
         break;
-    } else if (!strncasecmp(cmd, "offset", 6)) {
+    } else if (!strcasecmp(cmd, "offset")) {
       if (sscanf(line, "%lf%n", &offset, &n) != 1)
         break;
-    } else if (!strncasecmp(cmd, "delay", 5)) {
+    } else if (!strcasecmp(cmd, "delay")) {
       if (sscanf(line, "%lf%n", &delay, &n) != 1)
         break;
-    } else if (!strncasecmp(cmd, "precision", 9)) {
+    } else if (!strcasecmp(cmd, "precision")) {
       if (sscanf(line, "%lf%n", &precision, &n) != 1)
         break;
-    } else if (!strncasecmp(cmd, "noselect", 8)) {
+    } else if (!strcasecmp(cmd, "noselect")) {
       n = 0;
       sel_option = SRC_SelectNoselect;
-    } else if (!strncasecmp(cmd, "prefer", 6)) {
+    } else if (!strcasecmp(cmd, "prefer")) {
       n = 0;
       sel_option = SRC_SelectPrefer;
     } else {
-      LOG_FATAL(LOGF_Configure, "Unknown refclock parameter %s at line %d", cmd, line_number);
+      other_parse_error("Invalid refclock parameter");
       break;
     }
     line += n;
@@ -612,17 +671,18 @@ parse_refclock(const char *line)
 /* ================================================== */
 
 static void
-parse_some_port(const char *line, int *portvar)
+parse_some_port(char *line, int *portvar)
 {
+  check_number_of_args(line, 1);
   if (sscanf(line, "%d", portvar) != 1) {
-    LOG_FATAL(LOGF_Configure, "Could not read port number at line %d in file", line_number);
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
 static void
-parse_acquisitionport(const char *line)
+parse_acquisitionport(char *line)
 {
   parse_some_port(line, &acquisition_port);
 }
@@ -630,7 +690,7 @@ parse_acquisitionport(const char *line)
 /* ================================================== */
 
 static void
-parse_port(const char *line)
+parse_port(char *line)
 {
   parse_some_port(line, &ntp_port);
 }
@@ -638,171 +698,156 @@ parse_port(const char *line)
 /* ================================================== */
 
 static void
-parse_maxupdateskew(const char *line)
+parse_maxupdateskew(char *line)
 {
+  check_number_of_args(line, 1);
   if (sscanf(line, "%lf", &max_update_skew) != 1) {
-    LOG_FATAL(LOGF_Configure, "Could not read max update skew at line %d in file", line_number);
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
 static void
-parse_maxclockerror(const char *line)
+parse_maxclockerror(char *line)
 {
+  check_number_of_args(line, 1);
   if (sscanf(line, "%lf", &max_clock_error) != 1) {
-    LOG_FATAL(LOGF_Configure, "Could not read max clock error at line %d in file", line_number);
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
 static void
-parse_corrtimeratio(const char *line)
+parse_corrtimeratio(char *line)
 {
+  check_number_of_args(line, 1);
   if (sscanf(line, "%lf", &correction_time_ratio) != 1) {
-    LOG_FATAL(LOGF_Configure, "Could not read correction time ratio at line %d", line_number);
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
 static void
-parse_reselectdist(const char *line)
+parse_reselectdist(char *line)
 {
+  check_number_of_args(line, 1);
   if (sscanf(line, "%lf", &reselect_distance) != 1) {
-    LOG_FATAL(LOGF_Configure, "Could not read reselect distance at line %d in file", line_number);
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
 static void
-parse_stratumweight(const char *line)
+parse_stratumweight(char *line)
 {
+  check_number_of_args(line, 1);
   if (sscanf(line, "%lf", &stratum_weight) != 1) {
-    LOG_FATAL(LOGF_Configure, "Could not read stratum weight at line %d in file", line_number);
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
 static void
-parse_driftfile(const char *line)
+parse_driftfile(char *line)
 {
-  /* This must allocate enough space! */
-  drift_file = MallocArray(char, 1 + strlen(line));
-  sscanf(line, "%s", drift_file);
+  check_number_of_args(line, 1);
+  drift_file = strdup(line);
 }
 
 /* ================================================== */
 
 static void
-strip_trailing_spaces(char *p)
+parse_keyfile(char *line)
 {
-  char *q;
-  for (q=p; *q; q++)
-    ;
-  
-  for (q--; isspace((unsigned char)*q); q--)
-    ;
-
-  *++q = 0;
+  check_number_of_args(line, 1);
+  keys_file = strdup(line);
 }
 
 /* ================================================== */
 
 static void
-parse_keyfile(const char *line)
+parse_rtcfile(char *line)
 {
-  /* This must allocate enough space! */
-  keys_file = MallocArray(char, 1 + strlen(line));
-  sscanf(line, "%s", keys_file);
-  strip_trailing_spaces(keys_file);
-}
-
-/* ================================================== */
-
-static void
-parse_rtcfile(const char *line)
-{
-  rtc_file = MallocArray(char, 1 + strlen(line));
-  sscanf(line, "%s", rtc_file);
-  strip_trailing_spaces(rtc_file);
+  check_number_of_args(line, 1);
+  rtc_file = strdup(line);
 }  
 
 /* ================================================== */
 
 static void
-parse_rtcdevice(const char *line)
+parse_rtcdevice(char *line)
 {
-  rtc_device = MallocArray(char, 1 + strlen(line));
-  sscanf(line, "%s", rtc_device);
+  check_number_of_args(line, 1);
+  rtc_device = strdup(line);
 }
 
 /* ================================================== */
 
 static void
-parse_logbanner(const char *line)
+parse_logbanner(char *line)
 {
+  check_number_of_args(line, 1);
   if (sscanf(line, "%d", &log_banner) != 1) {
-    LOG_FATAL(LOGF_Configure, "Could not read logbanner number at line %d in file", line_number);
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
 static void
-parse_logdir(const char *line)
+parse_logdir(char *line)
 {
-  logdir = MallocArray(char, 1 + strlen(line));
-  sscanf(line, "%s", logdir);
+  check_number_of_args(line, 1);
+  logdir = strdup(line);
 }
 
 /* ================================================== */
 
 static void
-parse_dumpdir(const char *line)
+parse_dumpdir(char *line)
 {
-  dumpdir = MallocArray(char, 1 + strlen(line));
-  sscanf(line, "%s", dumpdir);
+  check_number_of_args(line, 1);
+  dumpdir = strdup(line);
 }
 
 /* ================================================== */
 
 static void
-parse_dumponexit(const char *line)
+parse_dumponexit(char *line)
 {
+  check_number_of_args(line, 0);
   do_dump_on_exit = 1;
 }
 
 /* ================================================== */
 
 static void
-parse_log(const char *line)
+parse_log(char *line)
 {
+  char *log_name;
   do {
-    while (*line && isspace((unsigned char)*line)) line++;
-    if (*line) {
-      if (!strncmp(line, "measurements", 12)) {
+    log_name = line;
+    line = CPS_SplitWord(line);
+    if (*log_name) {
+      if (!strcmp(log_name, "measurements")) {
         do_log_measurements = 1;
-        line += 12;
-      } else if (!strncmp(line, "statistics", 10)) {
+      } else if (!strcmp(log_name, "statistics")) {
         do_log_statistics = 1;
-        line += 10;
-      } else if (!strncmp(line, "tracking", 8)) {
+      } else if (!strcmp(log_name, "tracking")) {
         do_log_tracking = 1;
-        line += 8;
-      } else if (!strncmp(line, "rtc", 3)) {
+      } else if (!strcmp(log_name, "rtc")) {
         do_log_rtc = 1;
-        line += 3;
-      } else if (!strncmp(line, "refclocks", 9)) {
+      } else if (!strcmp(log_name, "refclocks")) {
         do_log_refclocks = 1;
-        line += 9;
-      } else if (!strncmp(line, "tempcomp", 8)) {
+      } else if (!strcmp(log_name, "tempcomp")) {
         do_log_tempcomp = 1;
-        line += 8;
       } else {
+        other_parse_error("Invalid log parameter");
         break;
       }
     } else {
@@ -814,48 +859,45 @@ parse_log(const char *line)
 /* ================================================== */
 
 static void
-parse_commandkey(const char *line)
+parse_commandkey(char *line)
 {
+  check_number_of_args(line, 1);
   if (sscanf(line, "%lu", &command_key_id) != 1) {
-    LOG_FATAL(LOGF_Configure, "Could not read command key ID at line %d", line_number);
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
 static void
-parse_local(const char *line)
+parse_local(char *line)
 {
   int stratum;
-  enable_local = 1;
-  if (sscanf(line, "%*[ \t]stratum%d", &stratum) == 1) {
+  if (sscanf(line, "stratum%d", &stratum) == 1) {
     local_stratum = stratum;
+    enable_local = 1;
   } else {
-    local_stratum = DEFAULT_LOCAL_STRATUM;
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
 static void
-parse_cmdport(const char *line)
+parse_cmdport(char *line)
 {
+  check_number_of_args(line, 1);
   if (sscanf(line, "%d", &cmd_port) != 1) {
-    LOG_FATAL(LOGF_Configure, "Could not read command port number at line %d", line_number);
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
-#define HOSTNAME_LEN 2047
-#define SHOSTNAME_LEN "2047"
-
 static void
-parse_initstepslew(const char *line)
+parse_initstepslew(char *line)
 {
-  const char *p;
-  char hostname[HOSTNAME_LEN+1];
-  int n;
+  char *p, *hostname;
   IPAddr ip_addr;
 
   /* Ignore the line if chronyd was started with -R. */
@@ -864,77 +906,78 @@ parse_initstepslew(const char *line)
   }
 
   n_init_srcs = 0;
-  p = line;
+  p = CPS_SplitWord(line);
 
-  if (sscanf(p, "%lf%n", &init_slew_threshold, &n) == 1) {
-    p += n;
-  } else {
-    LOG_FATAL(LOGF_Configure, "Could not parse initstepslew threshold at line %d", line_number);
+  if (sscanf(line, "%lf", &init_slew_threshold) != 1) {
+    command_parse_error();
     return;
   }
+
   while (*p) {
-    if (sscanf(p, "%" SHOSTNAME_LEN "s%n", hostname, &n) == 1) {
+    hostname = p;
+    p = CPS_SplitWord(p);
+    if (*hostname) {
       if (DNS_Name2IPAddress(hostname, &ip_addr) == DNS_Success) {
         init_srcs_ip[n_init_srcs] = ip_addr;
         ++n_init_srcs;
+      } else {
+        LOG(LOGS_WARN, LOGF_Configure, "Could not resolve address of initstepslew server %s", hostname);
       }
       
       if (n_init_srcs >= MAX_INIT_SRCS) {
-        break;
+        other_parse_error("Too many initstepslew servers");
       }
-
-    } else {
-      /* If we get invalid trailing syntax, forget it ... */
-      break;
     }
-    p += n;
   }
   if (n_init_srcs > 0) {
     do_init_stepslew = 1;
-  } else {
-    LOG(LOGS_WARN, LOGF_Configure, "No usable initstepslew servers at line %d\n", line_number);
   }
 }
 
 /* ================================================== */
 
 static void
-parse_manual(const char *line)
+parse_manual(char *line)
 {
+  check_number_of_args(line, 0);
   enable_manual = 1;
 }
 
 /* ================================================== */
 
 static void
-parse_rtconutc(const char *line)
+parse_rtconutc(char *line)
 {
+  check_number_of_args(line, 0);
   rtc_on_utc = 1;
 }
 
 /* ================================================== */
 
 static void
-parse_rtcsync(const char *line)
+parse_rtcsync(char *line)
 {
+  check_number_of_args(line, 0);
   rtc_sync = 1;
 }
 
 /* ================================================== */
 
 static void
-parse_noclientlog(const char *line)
+parse_noclientlog(char *line)
 {
+  check_number_of_args(line, 0);
   no_client_log = 1;
 }
 
 /* ================================================== */
 
 static void
-parse_clientloglimit(const char *line)
+parse_clientloglimit(char *line)
 {
+  check_number_of_args(line, 1);
   if (sscanf(line, "%lu", &client_log_limit) != 1) {
-    LOG_FATAL(LOGF_Configure, "Could not read clientlog memory limit at line %d", line_number);
+    command_parse_error();
   }
 
   if (client_log_limit == 0) {
@@ -946,23 +989,23 @@ parse_clientloglimit(const char *line)
 /* ================================================== */
 
 static void
-parse_fallbackdrift(const char *line)
+parse_fallbackdrift(char *line)
 {
+  check_number_of_args(line, 2);
   if (sscanf(line, "%d %d", &fb_drift_min, &fb_drift_max) != 2) {
-    LOG_FATAL(LOGF_Configure, "Could not read fallback drift intervals at line %d", line_number);
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
 static void
-parse_makestep(const char *line)
+parse_makestep(char *line)
 {
+  check_number_of_args(line, 2);
   if (sscanf(line, "%lf %d", &make_step_threshold, &make_step_limit) != 2) {
     make_step_limit = 0;
-    LOG_FATAL(LOGF_Configure,
-        "Could not read threshold or update limit for stepping clock at line %d\n",
-        line_number);
+    command_parse_error();
   }
 
   /* Disable limited makestep if chronyd was started with -R. */
@@ -974,58 +1017,53 @@ parse_makestep(const char *line)
 /* ================================================== */
 
 static void
-parse_maxchange(const char *line)
+parse_maxchange(char *line)
 {
+  check_number_of_args(line, 3);
   if (sscanf(line, "%lf %d %d", &max_offset, &max_offset_delay, &max_offset_ignore) != 3) {
     max_offset_delay = -1;
-    LOG_FATAL(LOGF_Configure,
-        "Could not read offset, check delay or ignore limit for maximum change at line %d\n",
-        line_number);
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
 static void
-parse_logchange(const char *line)
+parse_logchange(char *line)
 {
+  check_number_of_args(line, 1);
   if (sscanf(line, "%lf", &log_change_threshold) == 1) {
     do_log_change = 1;
   } else {
     do_log_change = 0;
-    LOG_FATAL(LOGF_Configure,
-        "Could not read threshold for logging clock changes at line %d\n",
-        line_number);
+    command_parse_error();
   }
 }
 
 
 /* ================================================== */
 
-#define BUFLEN 2047
-#define SBUFLEN "2047"
-
 static void
-parse_mailonchange(const char *line)
+parse_mailonchange(char *line)
 {
-  char buffer[BUFLEN+1];
-  if (sscanf(line, "%" SBUFLEN "s%lf", buffer, &mail_change_threshold) == 2) {
-    mail_user_on_change = MallocArray(char, strlen(buffer)+1);
-    strcpy(mail_user_on_change, buffer);
+  char *address;
+  check_number_of_args(line, 2);
+  address = line;
+  line = CPS_SplitWord(line);
+  if (sscanf(line, "%lf", &mail_change_threshold) == 1) {
+    mail_user_on_change = strdup(address);
   } else {
     mail_user_on_change = NULL;
-    LOG_FATAL(LOGF_Configure,
-        "Could not read user or threshold for clock change mail notify at line %d\n",
-        line_number);
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
 static void
-parse_allow_deny(const char *line, AllowDeny *list, int allow)
+parse_allow_deny(char *line, AllowDeny *list, int allow)
 {
-  const char *p;
+  char *p;
   unsigned long a, b, c, d, n;
   int all = 0;
   AllowDeny *new_node = NULL;
@@ -1033,14 +1071,11 @@ parse_allow_deny(const char *line, AllowDeny *list, int allow)
 
   p = line;
 
-  while (*p && isspace((unsigned char)*p)) p++;
-
   if (!strncmp(p, "all", 3)) {
     all = 1;
-    p += 3;
+    p = CPS_SplitWord(line);
   }
 
-  while (*p && isspace((unsigned char)*p)) p++;
   if (!*p) {
     /* Empty line applies to all addresses */
     new_node = MallocNew(AllowDeny);
@@ -1053,6 +1088,7 @@ parse_allow_deny(const char *line, AllowDeny *list, int allow)
     slashpos = strchr(p, '/');
     if (slashpos) *slashpos = 0;
 
+    check_number_of_args(p, 1);
     n = 0;
     if (UTI_StringToIP(p, &ip_addr) ||
         (n = sscanf(p, "%lu.%lu.%lu.%lu", &a, &b, &c, &d)) >= 1) {
@@ -1102,7 +1138,7 @@ parse_allow_deny(const char *line, AllowDeny *list, int allow)
         if (n == 1) {
           new_node->subnet_bits = specified_subnet_bits;
         } else {
-          LOG_FATAL(LOGF_Configure, "Could not read subnet size at line %d", line_number);
+          command_parse_error();
         }
       }
 
@@ -1117,7 +1153,7 @@ parse_allow_deny(const char *line, AllowDeny *list, int allow)
         else
           new_node->subnet_bits = 32;
       } else {
-        LOG_FATAL(LOGF_Configure, "Could not read address at line %d", line_number);
+        command_parse_error();
       }      
     }
   }
@@ -1135,7 +1171,7 @@ parse_allow_deny(const char *line, AllowDeny *list, int allow)
 /* ================================================== */
 
 static void
-parse_allow(const char *line)
+parse_allow(char *line)
 {
   parse_allow_deny(line, &ntp_auth_list, 1);
 }
@@ -1144,7 +1180,7 @@ parse_allow(const char *line)
 /* ================================================== */
 
 static void
-parse_deny(const char *line)
+parse_deny(char *line)
 {
   parse_allow_deny(line, &ntp_auth_list, 0);
 }
@@ -1152,7 +1188,7 @@ parse_deny(const char *line)
 /* ================================================== */
 
 static void
-parse_cmdallow(const char *line)
+parse_cmdallow(char *line)
 {
   parse_allow_deny(line, &cmd_auth_list, 1);
 }
@@ -1161,7 +1197,7 @@ parse_cmdallow(const char *line)
 /* ================================================== */
 
 static void
-parse_cmddeny(const char *line)
+parse_cmddeny(char *line)
 {
   parse_allow_deny(line, &cmd_auth_list, 0);
 }
@@ -1169,83 +1205,86 @@ parse_cmddeny(const char *line)
 /* ================================================== */
 
 static void
-parse_bindaddress(const char *line)
+parse_bindaddress(char *line)
 {
   IPAddr ip;
-  char addr[51];
 
-  if (sscanf(line, "%50s", addr) == 1 && UTI_StringToIP(addr, &ip)) {
+  check_number_of_args(line, 1);
+  if (UTI_StringToIP(line, &ip)) {
     if (ip.family == IPADDR_INET4)
       bind_address4 = ip;
     else if (ip.family == IPADDR_INET6)
       bind_address6 = ip;
   } else {
-    LOG_FATAL(LOGF_Configure, "Could not read bind address at line %d\n", line_number);
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
 static void
-parse_bindcmdaddress(const char *line)
+parse_bindcmdaddress(char *line)
 {
   IPAddr ip;
-  char addr[51];
 
-  if (sscanf(line, "%50s", addr) == 1 && UTI_StringToIP(addr, &ip)) {
+  check_number_of_args(line, 1);
+  if (UTI_StringToIP(line, &ip)) {
     if (ip.family == IPADDR_INET4)
       bind_cmd_address4 = ip;
     else if (ip.family == IPADDR_INET6)
       bind_cmd_address6 = ip;
   } else {
-    LOG_FATAL(LOGF_Configure, "Could not read bind command address at line %d\n", line_number);
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
 static void
-parse_pidfile(const char *line)
+parse_pidfile(char *line)
 {
-  pidfile = MallocArray(char, 1 + strlen(line));
-  sscanf(line, "%s", pidfile);
-  strip_trailing_spaces(pidfile);
+  check_number_of_args(line, 1);
+  pidfile = strdup(line);
 }  
 
 /* ================================================== */
 
-typedef struct {
-  /* Both in host (not necessarily network) order */
-  IPAddr addr;
-  unsigned short port;
-  int interval;
-} NTP_Broadcast_Destination;
-
-static NTP_Broadcast_Destination *broadcasts = NULL;
-static int max_broadcasts = 0;
-static int n_broadcasts = 0;
-
-/* ================================================== */
-
 static void
-parse_broadcast(const char *line)
+parse_broadcast(char *line)
 {
   /* Syntax : broadcast <interval> <broadcast-IP-addr> [<port>] */
   int port;
-  int n;
   int interval;
-  char addr[51];
+  char *p;
   IPAddr ip;
   
-  n = sscanf(line, "%d %50s %d", &interval, addr, &port);
-  if (n < 2 || !UTI_StringToIP(addr, &ip)) {
-    LOG_FATAL(LOGF_Configure, "Could not parse broadcast directive at line %d", line_number);
+  p = line;
+  line = CPS_SplitWord(line);
+
+  if (sscanf(p, "%d", &interval) != 1) {
+    command_parse_error();
     return;
-  } else if (n == 2) {
+  }
+
+  p = line;
+  line = CPS_SplitWord(line);
+
+  if (!UTI_StringToIP(p, &ip)) {
+    command_parse_error();
+    return;
+  }
+
+  p = line;
+  line = CPS_SplitWord(line);
+
+  if (*p) {
+    if (sscanf(p, "%d", &port) != 1 || *line) {
+      command_parse_error();
+      return;
+    }
+  } else {
     /* default port */
     port = 123;
-  } else if (n > 3) {
-    LOG_FATAL(LOGF_Configure, "Too many fields in broadcast directive at line %d", line_number);
   }
 
   if (max_broadcasts == n_broadcasts) {
@@ -1267,83 +1306,78 @@ parse_broadcast(const char *line)
 /* ================================================== */
 
 static void
-parse_tempcomp(const char *line)
+parse_tempcomp(char *line)
 {
-  const char *tmp;
+  char *p;
 
-  while (isspace(line[0]))
-    line++;
-  tmp = line;
-  while (line[0] != '\0' && !isspace(line[0]))
-    line++;
+  check_number_of_args(line, 6);
+  p = line;
+  line = CPS_SplitWord(line);
 
-  if (line == tmp) {
-    LOG_FATAL(LOGF_Configure, "Could not read tempcomp filename at line %d", line_number);
+  if (!*p) {
+    command_parse_error();
     return;
   }
 
   if (sscanf(line, "%lf %lf %lf %lf %lf", &tempcomp_interval, &tempcomp_T0, &tempcomp_k0, &tempcomp_k1, &tempcomp_k2) != 5) {
-    LOG_FATAL(LOGF_Configure, "Could not read tempcomp interval or coefficients at line %d", line_number);
+    command_parse_error();
     return;
   }
 
-  tempcomp_file = MallocArray(char, 1 + line - tmp);
-  strncpy(tempcomp_file, tmp, line - tmp);
-  tempcomp_file[line - tmp] = '\0';
+  tempcomp_file = strdup(p);
 }
 
 /* ================================================== */
 
 static void
-parse_include(const char *line)
+parse_include(char *line)
 {
-  while (isspace(line[0]))
-    line++;
+  check_number_of_args(line, 1);
   CNF_ReadFile(line);
 }
 
 /* ================================================== */
 
 static void
-parse_leapsectz(const char *line)
+parse_leapsectz(char *line)
 {
-  /* This must allocate enough space! */
-  leapsec_tz = MallocArray(char, 1 + strlen(line));
-  sscanf(line, "%s", leapsec_tz);
+  check_number_of_args(line, 1);
+  leapsec_tz = strdup(line);
 }
 
 /* ================================================== */
 
 static void
-parse_linux_hz(const char *line)
+parse_linux_hz(char *line)
 {
+  check_number_of_args(line, 1);
   if (1 == sscanf(line, "%d", &linux_hz)) {
     set_linux_hz = 1;
   } else {
-    LOG_FATAL(LOGF_Configure, "Could not parse linux_hz directive at line %d", line_number);
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
 static void
-parse_linux_freq_scale(const char *line)
+parse_linux_freq_scale(char *line)
 {
+  check_number_of_args(line, 1);
   if (1 == sscanf(line, "%lf", &linux_freq_scale)) {
     set_linux_freq_scale = 1;
   } else {
-    LOG_FATAL(LOGF_Configure, "Could not parse linux_freq_scale directive at line %d", line_number);
+    command_parse_error();
   }
 }
 
 /* ================================================== */
 
 static void
-parse_user(const char *line)
+parse_user(char *line)
 {
-  /* This must allocate enough space! */
-  user = MallocArray(char, 1 + strlen(line));
-  sscanf(line, "%s", user);
+  check_number_of_args(line, 1);
+  user = strdup(line);
 }
 
 /* ================================================== */

@@ -53,8 +53,12 @@ typedef struct {
 } CPS_NTP_Source;
 
 /* Parse a command to add an NTP server or peer */
-extern CPS_Status CPS_ParseNTPSourceAdd(const char *line, CPS_NTP_Source *src);
+extern CPS_Status CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src);
   
+/* Remove extra white-space and comments */
+extern void CPS_NormalizeLine(char *line);
 
+/* Terminate first word and return pointer to the next word */
+extern char *CPS_SplitWord(char *line);
 
 #endif /* GOT_CMDPARSE_H */
