@@ -147,7 +147,7 @@ static int n_init_srcs;
 
 /* Threshold (in seconds) - if absolute value of initial error is less
    than this, slew instead of stepping */
-static int init_slew_threshold = -1;
+static double init_slew_threshold;
 #define MAX_INIT_SRCS 8
 static IPAddr init_srcs_ip[MAX_INIT_SRCS];
 
@@ -856,7 +856,6 @@ parse_initstepslew(const char *line)
   const char *p;
   char hostname[HOSTNAME_LEN+1];
   int n;
-  int threshold;
   IPAddr ip_addr;
 
   /* Ignore the line if chronyd was started with -R. */
@@ -867,7 +866,7 @@ parse_initstepslew(const char *line)
   n_init_srcs = 0;
   p = line;
 
-  if (sscanf(p, "%d%n", &threshold, &n) == 1) {
+  if (sscanf(p, "%lf%n", &init_slew_threshold, &n) == 1) {
     p += n;
   } else {
     LOG(LOGS_WARN, LOGF_Configure, "Could not parse initstepslew threshold at line %d", line_number);
@@ -892,7 +891,6 @@ parse_initstepslew(const char *line)
   }
   if (n_init_srcs > 0) {
     do_init_stepslew = 1;
-    init_slew_threshold = threshold;
   } else {
     LOG(LOGS_WARN, LOGF_Configure, "No usable initstepslew servers at line %d\n", line_number);
   }

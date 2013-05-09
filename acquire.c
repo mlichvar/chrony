@@ -94,7 +94,7 @@ static int n_sources;
 static int n_started_sources;
 static int n_completed_sources;
 
-static int init_slew_threshold = -1;
+static double init_slew_threshold;
 
 union sockaddr_in46 {
   struct sockaddr_in in4;
@@ -701,7 +701,7 @@ process_measurements(void)
        the system clock is fast of the reference, i.e. it needs to be
        stepped backwards. */
 
-    if (fabs(estimated_offset) > (double) init_slew_threshold) {
+    if (fabs(estimated_offset) > init_slew_threshold) {
       LOG(LOGS_INFO, LOGF_Acquire, "System's initial offset : %.6f seconds %s of true (step)",
           fabs(estimated_offset),
           (estimated_offset >= 0) ? "fast" : "slow");
@@ -753,7 +753,7 @@ start_source_timeout_handler(void *not_used)
 /* ================================================== */
 
 void
-ACQ_StartAcquisition(int n, IPAddr *ip_addrs, int threshold, void (*after_hook)(void *), void *anything)
+ACQ_StartAcquisition(int n, IPAddr *ip_addrs, double threshold, void (*after_hook)(void *), void *anything)
 {
 
   int i, ip4, ip6;
