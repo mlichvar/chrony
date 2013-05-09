@@ -381,7 +381,7 @@ CNF_ReadFile(const char *filename)
       }      
 
       if (!ok) {
-        LOG(LOGS_WARN, LOGF_Configure, "Line %d in configuration file [%s] contains invalid command",
+        LOG_FATAL(LOGF_Configure, "Line %d in configuration file [%s] contains invalid command",
             line_number, filename);
       }
 
@@ -412,40 +412,40 @@ parse_source(const char *line, NTP_Source_Type type)
       n_ntp_sources++;
       break;
     case CPS_BadOption:
-      LOG(LOGS_WARN, LOGF_Configure, "Unrecognized subcommand at line %d", line_number);
+      LOG_FATAL(LOGF_Configure, "Unrecognized subcommand at line %d", line_number);
       break;
     case CPS_BadHost:
-      LOG(LOGS_WARN, LOGF_Configure, "Invalid host/IP address at line %d", line_number);
+      LOG_FATAL(LOGF_Configure, "Invalid host/IP address at line %d", line_number);
       break;
     case CPS_BadPort:
-      LOG(LOGS_WARN, LOGF_Configure, "Unreadable port number at line %d", line_number);
+      LOG_FATAL(LOGF_Configure, "Unreadable port number at line %d", line_number);
       break;
     case CPS_BadMinpoll:
-      LOG(LOGS_WARN, LOGF_Configure, "Unreadable minpoll value at line %d", line_number);
+      LOG_FATAL(LOGF_Configure, "Unreadable minpoll value at line %d", line_number);
       break;
     case CPS_BadMaxpoll:
-      LOG(LOGS_WARN, LOGF_Configure, "Unreadable maxpoll value at line %d", line_number);
+      LOG_FATAL(LOGF_Configure, "Unreadable maxpoll value at line %d", line_number);
       break;
     case CPS_BadPresend:
-      LOG(LOGS_WARN, LOGF_Configure, "Unreadable presend value at line %d", line_number);
+      LOG_FATAL(LOGF_Configure, "Unreadable presend value at line %d", line_number);
       break;
     case CPS_BadMaxdelaydevratio:
-      LOG(LOGS_WARN, LOGF_Configure, "Unreadable max delay dev ratio value at line %d", line_number);
+      LOG_FATAL(LOGF_Configure, "Unreadable max delay dev ratio value at line %d", line_number);
       break;
     case CPS_BadMaxdelayratio:
-      LOG(LOGS_WARN, LOGF_Configure, "Unreadable max delay ratio value at line %d", line_number);
+      LOG_FATAL(LOGF_Configure, "Unreadable max delay ratio value at line %d", line_number);
       break;
     case CPS_BadMaxdelay:
-      LOG(LOGS_WARN, LOGF_Configure, "Unreadable max delay value at line %d", line_number);
+      LOG_FATAL(LOGF_Configure, "Unreadable max delay value at line %d", line_number);
       break;
     case CPS_BadKey:
-      LOG(LOGS_WARN, LOGF_Configure, "Unreadable key value at line %d", line_number);
+      LOG_FATAL(LOGF_Configure, "Unreadable key value at line %d", line_number);
       break;
     case CPS_BadMinstratum:
-      LOG(LOGS_WARN, LOGF_Configure, "Unreadable minstratum value at line %d", line_number);
+      LOG_FATAL(LOGF_Configure, "Unreadable minstratum value at line %d", line_number);
       break;
     case CPS_BadPolltarget:
-      LOG(LOGS_WARN, LOGF_Configure, "Unreadable polltarget value at line %d", line_number);
+      LOG_FATAL(LOGF_Configure, "Unreadable polltarget value at line %d", line_number);
       break;
   }
 
@@ -459,7 +459,7 @@ static void
 parse_sched_priority(const char *line)
 {
   if (sscanf(line, "%d", &sched_priority) != 1) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read scheduling priority at line %d", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read scheduling priority at line %d", line_number);
   }
 }
 
@@ -522,7 +522,7 @@ parse_refclock(const char *line)
     line++;
 
   if (line == tmp) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read refclock driver name at line %d", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read refclock driver name at line %d", line_number);
     return;
   }
 
@@ -537,7 +537,7 @@ parse_refclock(const char *line)
     line++;
 
   if (line == tmp) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read refclock parameter at line %d", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read refclock parameter at line %d", line_number);
     Free(name);
     return;
   }
@@ -587,7 +587,7 @@ parse_refclock(const char *line)
       n = 0;
       sel_option = SRC_SelectPrefer;
     } else {
-      LOG(LOGS_WARN, LOGF_Configure, "Unknown refclock parameter %s at line %d", cmd, line_number);
+      LOG_FATAL(LOGF_Configure, "Unknown refclock parameter %s at line %d", cmd, line_number);
       break;
     }
     line += n;
@@ -615,7 +615,7 @@ static void
 parse_some_port(const char *line, int *portvar)
 {
   if (sscanf(line, "%d", portvar) != 1) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read port number at line %d in file", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read port number at line %d in file", line_number);
   }
 }
 
@@ -641,7 +641,7 @@ static void
 parse_maxupdateskew(const char *line)
 {
   if (sscanf(line, "%lf", &max_update_skew) != 1) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read max update skew at line %d in file", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read max update skew at line %d in file", line_number);
   }
 }
 
@@ -651,7 +651,7 @@ static void
 parse_maxclockerror(const char *line)
 {
   if (sscanf(line, "%lf", &max_clock_error) != 1) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read max clock error at line %d in file", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read max clock error at line %d in file", line_number);
   }
 }
 
@@ -661,7 +661,7 @@ static void
 parse_corrtimeratio(const char *line)
 {
   if (sscanf(line, "%lf", &correction_time_ratio) != 1) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read correction time ratio at line %d", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read correction time ratio at line %d", line_number);
   }
 }
 
@@ -671,7 +671,7 @@ static void
 parse_reselectdist(const char *line)
 {
   if (sscanf(line, "%lf", &reselect_distance) != 1) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read reselect distance at line %d in file", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read reselect distance at line %d in file", line_number);
   }
 }
 
@@ -681,7 +681,7 @@ static void
 parse_stratumweight(const char *line)
 {
   if (sscanf(line, "%lf", &stratum_weight) != 1) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read stratum weight at line %d in file", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read stratum weight at line %d in file", line_number);
   }
 }
 
@@ -746,7 +746,7 @@ static void
 parse_logbanner(const char *line)
 {
   if (sscanf(line, "%d", &log_banner) != 1) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read logbanner number at line %d in file", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read logbanner number at line %d in file", line_number);
   }
 }
 
@@ -817,7 +817,7 @@ static void
 parse_commandkey(const char *line)
 {
   if (sscanf(line, "%lu", &command_key_id) != 1) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read command key ID at line %d", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read command key ID at line %d", line_number);
   }
 }
 
@@ -841,7 +841,7 @@ static void
 parse_cmdport(const char *line)
 {
   if (sscanf(line, "%d", &cmd_port) != 1) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read command port number at line %d", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read command port number at line %d", line_number);
   }
 }
 
@@ -869,7 +869,7 @@ parse_initstepslew(const char *line)
   if (sscanf(p, "%lf%n", &init_slew_threshold, &n) == 1) {
     p += n;
   } else {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not parse initstepslew threshold at line %d", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not parse initstepslew threshold at line %d", line_number);
     return;
   }
   while (*p) {
@@ -934,7 +934,7 @@ static void
 parse_clientloglimit(const char *line)
 {
   if (sscanf(line, "%lu", &client_log_limit) != 1) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read clientlog memory limit at line %d", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read clientlog memory limit at line %d", line_number);
   }
 
   if (client_log_limit == 0) {
@@ -949,7 +949,7 @@ static void
 parse_fallbackdrift(const char *line)
 {
   if (sscanf(line, "%d %d", &fb_drift_min, &fb_drift_max) != 2) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read fallback drift intervals at line %d", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read fallback drift intervals at line %d", line_number);
   }
 }
 
@@ -960,7 +960,7 @@ parse_makestep(const char *line)
 {
   if (sscanf(line, "%lf %d", &make_step_threshold, &make_step_limit) != 2) {
     make_step_limit = 0;
-    LOG(LOGS_WARN, LOGF_Configure,
+    LOG_FATAL(LOGF_Configure,
         "Could not read threshold or update limit for stepping clock at line %d\n",
         line_number);
   }
@@ -978,7 +978,7 @@ parse_maxchange(const char *line)
 {
   if (sscanf(line, "%lf %d %d", &max_offset, &max_offset_delay, &max_offset_ignore) != 3) {
     max_offset_delay = -1;
-    LOG(LOGS_WARN, LOGF_Configure,
+    LOG_FATAL(LOGF_Configure,
         "Could not read offset, check delay or ignore limit for maximum change at line %d\n",
         line_number);
   }
@@ -993,7 +993,7 @@ parse_logchange(const char *line)
     do_log_change = 1;
   } else {
     do_log_change = 0;
-    LOG(LOGS_WARN, LOGF_Configure,
+    LOG_FATAL(LOGF_Configure,
         "Could not read threshold for logging clock changes at line %d\n",
         line_number);
   }
@@ -1014,7 +1014,7 @@ parse_mailonchange(const char *line)
     strcpy(mail_user_on_change, buffer);
   } else {
     mail_user_on_change = NULL;
-    LOG(LOGS_WARN, LOGF_Configure,
+    LOG_FATAL(LOGF_Configure,
         "Could not read user or threshold for clock change mail notify at line %d\n",
         line_number);
   }
@@ -1102,7 +1102,7 @@ parse_allow_deny(const char *line, AllowDeny *list, int allow)
         if (n == 1) {
           new_node->subnet_bits = specified_subnet_bits;
         } else {
-          LOG(LOGS_WARN, LOGF_Configure, "Could not read subnet size at line %d", line_number);
+          LOG_FATAL(LOGF_Configure, "Could not read subnet size at line %d", line_number);
         }
       }
 
@@ -1117,7 +1117,7 @@ parse_allow_deny(const char *line, AllowDeny *list, int allow)
         else
           new_node->subnet_bits = 32;
       } else {
-        LOG(LOGS_WARN, LOGF_Configure, "Could not read address at line %d", line_number);
+        LOG_FATAL(LOGF_Configure, "Could not read address at line %d", line_number);
       }      
     }
   }
@@ -1180,7 +1180,7 @@ parse_bindaddress(const char *line)
     else if (ip.family == IPADDR_INET6)
       bind_address6 = ip;
   } else {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read bind address at line %d\n", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read bind address at line %d\n", line_number);
   }
 }
 
@@ -1198,7 +1198,7 @@ parse_bindcmdaddress(const char *line)
     else if (ip.family == IPADDR_INET6)
       bind_cmd_address6 = ip;
   } else {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read bind command address at line %d\n", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read bind command address at line %d\n", line_number);
   }
 }
 
@@ -1239,13 +1239,13 @@ parse_broadcast(const char *line)
   
   n = sscanf(line, "%d %50s %d", &interval, addr, &port);
   if (n < 2 || !UTI_StringToIP(addr, &ip)) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not parse broadcast directive at line %d", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not parse broadcast directive at line %d", line_number);
     return;
   } else if (n == 2) {
     /* default port */
     port = 123;
   } else if (n > 3) {
-    LOG(LOGS_WARN, LOGF_Configure, "Too many fields in broadcast directive at line %d", line_number);
+    LOG_FATAL(LOGF_Configure, "Too many fields in broadcast directive at line %d", line_number);
   }
 
   if (max_broadcasts == n_broadcasts) {
@@ -1278,12 +1278,12 @@ parse_tempcomp(const char *line)
     line++;
 
   if (line == tmp) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read tempcomp filename at line %d", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read tempcomp filename at line %d", line_number);
     return;
   }
 
   if (sscanf(line, "%lf %lf %lf %lf %lf", &tempcomp_interval, &tempcomp_T0, &tempcomp_k0, &tempcomp_k1, &tempcomp_k2) != 5) {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not read tempcomp interval or coefficients at line %d", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not read tempcomp interval or coefficients at line %d", line_number);
     return;
   }
 
@@ -1320,7 +1320,7 @@ parse_linux_hz(const char *line)
   if (1 == sscanf(line, "%d", &linux_hz)) {
     set_linux_hz = 1;
   } else {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not parse linux_hz directive at line %d", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not parse linux_hz directive at line %d", line_number);
   }
 }
 
@@ -1332,7 +1332,7 @@ parse_linux_freq_scale(const char *line)
   if (1 == sscanf(line, "%lf", &linux_freq_scale)) {
     set_linux_freq_scale = 1;
   } else {
-    LOG(LOGS_WARN, LOGF_Configure, "Could not parse linux_freq_scale directive at line %d", line_number);
+    LOG_FATAL(LOGF_Configure, "Could not parse linux_freq_scale directive at line %d", line_number);
   }
 }
 
@@ -1674,14 +1674,14 @@ CNF_SetupAccessRestrictions(void)
   for (node = ntp_auth_list.next; node != &ntp_auth_list; node = node->next) {
     status = NCR_AddAccessRestriction(&node->ip, node->subnet_bits, node->allow, node->all);
     if (!status) {
-      LOG(LOGS_WARN, LOGF_Configure, "Bad subnet for %08lx", node->ip);
+      LOG_FATAL(LOGF_Configure, "Bad subnet for %08lx", node->ip);
     }
   }
 
   for (node = cmd_auth_list.next; node != &cmd_auth_list; node = node->next) {
     status = CAM_AddAccessRestriction(&node->ip, node->subnet_bits, node->allow, node->all);
     if (!status) {
-      LOG(LOGS_WARN, LOGF_Configure, "Bad subnet for %08lx", node->ip);
+      LOG_FATAL(LOGF_Configure, "Bad subnet for %08lx", node->ip);
     }
   }
 
