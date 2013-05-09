@@ -1,7 +1,15 @@
 .deps
-*.swp
+.vimrc
 *.o
+*.swp
+RELEASES
 Makefile
+chrony.info
+chrony.html
+chrony.txt
 chronyc
-chronyd
+chronyd*
+config.h
+config.log
+tags
 version.h
