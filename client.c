@@ -545,6 +545,7 @@ static void
 process_cmd_dump(CMD_Request *msg, char *line)
 {
   msg->command = htons(REQ_DUMP);
+  msg->data.dump.pad = htonl(0);
 }
 
 /* ================================================== */
@@ -615,6 +616,7 @@ process_cmd_local(CMD_Request *msg, const char *line)
     return 0;
   } else if (!strncmp(p, "off", 3)) {
     msg->data.local.on_off = htonl(0);
+    msg->data.local.stratum = htonl(0);
   } else if (sscanf(p, "stratum%d", &stratum) == 1) {
     msg->data.local.on_off = htonl(1);
     msg->data.local.stratum = htonl(stratum);
