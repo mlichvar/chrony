@@ -1562,6 +1562,7 @@ NCR_TakeSourceOnline(NCR_Instance inst)
       break;
     case MD_BURST_WAS_OFFLINE:
       inst->opmode = MD_BURST_WAS_ONLINE;
+      LOG(LOGS_INFO, LOGF_NtpCore, "Source %s online", UTI_IPToString(&inst->remote_addr.ip_addr));
       break;
   }
 }
@@ -1586,6 +1587,7 @@ NCR_TakeSourceOffline(NCR_Instance inst)
       break;
     case MD_BURST_WAS_ONLINE:
       inst->opmode = MD_BURST_WAS_OFFLINE;
+      LOG(LOGS_INFO, LOGF_NtpCore, "Source %s offline", UTI_IPToString(&inst->remote_addr.ip_addr));
       break;
     case MD_BURST_WAS_OFFLINE:
       break;
