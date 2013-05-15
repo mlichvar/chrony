@@ -482,6 +482,18 @@ if [ $feat_readline = "1" ]; then
 
   if [ "x$READLINE_LINK" = "x" ] && [ $try_readline = "1" ]; then
     if test_code readline 'stdio.h readline/readline.h readline/history.h' \
+      "$readline_inc" "$readline_lib $ncurses_lib -lreadline" \
+      'add_history(readline("prompt"));'
+    then
+      add_def FEAT_READLINE
+      READLINE_COMPILE="$readline_inc"
+      READLINE_LINK="$readline_lib $ncurses_lib -lreadline"
+    fi
+  fi
+
+  if [ "x$READLINE_LINK" = "x" ] && [ $try_readline = "1" ]; then
+    if test_code 'readline with -lncurses' \
+      'stdio.h readline/readline.h readline/history.h' \
       "$readline_inc" "$readline_lib $ncurses_lib -lreadline -lncurses" \
       'add_history(readline("prompt"));'
     then
