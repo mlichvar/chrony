@@ -33,6 +33,7 @@
 #include <string.h>
 
 #include "keys.h"
+#include "cmdparse.h"
 #include "conf.h"
 #include "memory.h"
 #include "util.h"
@@ -104,7 +105,7 @@ determine_hash_delay(int key_id)
   }
 
 #if 0
-  LOG(LOGS_INFO, LOGF_Keys, "authentication delay for key %d: %d useconds", key_id, min_usecs);
+  LOG(LOGS_INFO, LOGF_Keys, "authentication delay for key %lu: %d useconds", key_id, min_usecs);
 #endif
 
   /* Add on a bit extra to allow for copying, conversions etc */
@@ -133,87 +134,84 @@ compare_keys_by_id(const void *a, const void *b)
 
 /* ================================================== */
 
-
-#define KEYLEN 2047
-#define SKEYLEN "2047"
-
 void
 KEY_Reload(void)
 {
-  int i, len1, fields;
-  char *key_file;
+  int i, line_number;
   FILE *in;
   unsigned long key_id;
-  char line[KEYLEN+1], buf1[KEYLEN+1], buf2[KEYLEN+1];
-  char *keyval, *hashname;
+  char line[2048], *keyval, *key_file;
+  const char *hashname;
 
   for (i=0; i<n_keys; i++) {
     Free(keys[i].val);
   }
   n_keys = 0;
+  command_key_valid = 0;
+  cache_valid = 0;
 
   key_file = CNF_GetKeysFile();
+  line_number = 0;
 
-  if (key_file) {
-    in = fopen(key_file, "r");
-    if (in) {
-      while (fgets(line, sizeof(line), in)) {
-        len1 = strlen(line) - 1;
+  if (!key_file)
+    return;
 
-        /* Guard against removing last character of the line
-         * if the last line of the file is missing an end-of-line */
-        if (line[len1] == '\n') {
-          line[len1] = '\0';
-        }
-        fields = sscanf(line, "%lu%" SKEYLEN "s%" SKEYLEN "s", &key_id, buf1, buf2);
-        if (fields >= 2 && fields <= 3) {
-          if (fields == 3) {
-            hashname = buf1;
-            keyval = buf2;
-          } else {
-            hashname = "MD5";
-            keyval = buf1;
-          }
-          keys[n_keys].hash_id = HSH_GetHashId(hashname);
-          if (keys[n_keys].hash_id < 0) {
-            LOG(LOGS_WARN, LOGF_Keys, "Unknown hash function in key %d", key_id);
-            continue;
-          }
+  in = fopen(key_file, "r");
+  if (!in) {
+    LOG(LOGS_WARN, LOGF_Keys, "Could not open keyfile %s", key_file);
+    return;
+  }
 
-          keys[n_keys].len = UTI_DecodePasswordFromText(keyval);
-          if (!keys[n_keys].len) {
-            LOG(LOGS_WARN, LOGF_Keys, "Could not decode password in key %d", key_id);
-            continue;
-          }
+  while (fgets(line, sizeof (line), in)) {
+    line_number++;
 
-          keys[n_keys].id = key_id;
-          keys[n_keys].val = MallocArray(char, keys[n_keys].len);
-          memcpy(keys[n_keys].val, keyval, keys[n_keys].len);
-          n_keys++;
-        }
-      }
-      fclose(in);
-      
-      /* Sort keys into order.  Note, if there's a duplicate, it is
-         arbitrary which one we use later - the user should have been
-         more careful! */
-      qsort((void *) keys, n_keys, sizeof(Key), compare_keys_by_id);
+    CPS_NormalizeLine(line);
+    if (!*line)
+      continue;
 
-      /* Erase the passwords from stack */
-      memset(line, 0, sizeof (line));
-      memset(buf1, 0, sizeof (buf1));
-      memset(buf2, 0, sizeof (buf2));
+    if (!CPS_ParseKey(line, &key_id, &hashname, &keyval)) {
+      LOG(LOGS_WARN, LOGF_Keys, "Could not parse key at line %d in file %s", line_number, key_file);
+      continue;
+    }
+
+    keys[n_keys].hash_id = HSH_GetHashId(hashname);
+    if (keys[n_keys].hash_id < 0) {
+      LOG(LOGS_WARN, LOGF_Keys, "Unknown hash function in key %lu", key_id);
+      continue;
+    }
+
+    keys[n_keys].len = UTI_DecodePasswordFromText(keyval);
+    if (!keys[n_keys].len) {
+      LOG(LOGS_WARN, LOGF_Keys, "Could not decode password in key %lu", key_id);
+      continue;
+    }
+
+    keys[n_keys].id = key_id;
+    keys[n_keys].val = MallocArray(char, keys[n_keys].len);
+    memcpy(keys[n_keys].val, keyval, keys[n_keys].len);
+    n_keys++;
+  }
+
+  fclose(in);
+
+  /* Sort keys into order.  Note, if there's a duplicate, it is
+     arbitrary which one we use later - the user should have been
+     more careful! */
+  qsort((void *) keys, n_keys, sizeof(Key), compare_keys_by_id);
+
+  /* Check for duplicates */
+  for (i = 1; i < n_keys; i++) {
+    if (keys[i - 1].id == keys[i].id) {
+      LOG(LOGS_WARN, LOGF_Keys, "Detected duplicate key %lu", key_id);
     }
   }
 
-  command_key_valid = 0;
-  cache_valid = 0;
+  /* Erase any passwords from stack */
+  memset(line, 0, sizeof (line));
 
   for (i=0; i<n_keys; i++) {
     keys[i].auth_delay = determine_hash_delay(keys[i].id);
   }
-
-  return;
 }
 
 /* ================================================== */

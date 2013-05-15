@@ -248,3 +248,33 @@ CPS_SplitWord(char *line)
   /* Return pointer to the next word or NUL */
   return q;
 }
+
+/* ================================================== */
+
+int
+CPS_ParseKey(char *line, unsigned long *id, const char **hash, char **key)
+{
+  char *s1, *s2, *s3, *s4;
+
+  s1 = line;
+  s2 = CPS_SplitWord(s1);
+  s3 = CPS_SplitWord(s2);
+  s4 = CPS_SplitWord(s3);
+
+  /* Require two or three words */
+  if (!*s2 || *s4)
+    return 0;
+
+  if (sscanf(s1, "%lu", id) != 1)
+    return 0;
+
+  if (*s3) {
+    *hash = s2;
+    *key = s3;
+  } else {
+    *hash = "MD5";
+    *key = s2;
+  }
+
+  return 1;
+}

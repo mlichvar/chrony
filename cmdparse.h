@@ -61,4 +61,7 @@ extern void CPS_NormalizeLine(char *line);
 /* Terminate first word and return pointer to the next word */
 extern char *CPS_SplitWord(char *line);
 
+/* Parse a key from keyfile */
+extern int CPS_ParseKey(char *line, unsigned long *id, const char **hash, char **key);
+
 #endif /* GOT_CMDPARSE_H */
