@@ -42,6 +42,16 @@ resolve hostnames only to IPv6 addresses
 allow multiple commands to be specified on the command line.  Each argument
 will be interpreted as a whole command.
 .TP
+\fB\-f\fR \fIconf-file\fR
+This option can be used to specify an alternate location for the
+configuration file (default \fI/etc/chrony.conf\fR). The configuration file is
+needed for the \fB-a\fR option.
+.TP
+\fB\-a\fR
+With this option chronyc will try to authenticate automatically on
+start. It will read the configuration file, read the command key from the
+keyfile and run the authhash and password commands.
+.TP
 \fIcommand\fR
 specify command.  If no command is given, chronyc will read commands
 interactively.

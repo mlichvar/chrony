@@ -699,19 +699,13 @@ previous section.
 In the file @file{/etc/ppp/ip-up} we add the command sequence
 
 @example
-/usr/local/bin/chronyc <<EOF
-password xyzzy
-online
-EOF
+/usr/local/bin/chronyc -a online
 @end example
 
 and in the file @file{/etc/ppp/ip-down} we add the sequence
 
 @example
-/usr/local/bin/chronyc <<EOF 
-password xyzzy
-offline
-EOF
+/usr/local/bin/chronyc -a offline
 @end example
 
 @code{chronyd's} polling of the servers will now only occur whilst the
@@ -927,21 +921,16 @@ I use @code{pppd} for connecting to my ISP.  This runs two scripts
 @file{/etc/ppp/ip-up} and @file{/etc/ppp/ip-down} when the link goes
 online and offline respectively.
 
-The relevant part of the @file{/etc/ppp/ip-up} file is (with a dummy
-password)
+The relevant part of the @file{/etc/ppp/ip-up} file is
 
 @example
-/usr/local/bin/chronyc <<EOF
-password xxxxxxxx
-online
-EOF
+/usr/local/bin/chronyc -a online
 @end example
 
 and the relevant part of the @file{/etc/ppp/ip-down} script is
 
 @example
-/usr/local/bin/chronyc <<EOF
-password xxxxxxxx
+/usr/local/bin/chronyc -a <<EOF
 offline
 dump
 writertc
@@ -1484,7 +1473,8 @@ password foobar
 @end example
 
 must be entered before any commands affecting the operation of the
-daemon can be entered.
+daemon can be entered, or chronyc must be started with the `-a' option to run
+the password command automatically.
 @c }}}
 @c {{{ cmdport
 @node cmdport directive
@@ -2957,6 +2947,14 @@ With this option hostnames will be resolved only to IPv6 addresses.
 @item -m
 With this option multiple commands can be specified on the command line.
 Each argument will be interpreted as a whole command.
+@item -f <conf-file>
+This option can be used to specify an alternate location of the @code{chronyd}
+configuration file (default @file{/etc/chrony.conf}). The configuration file is
+needed for the `-a' option.
+@item -a
+With this option @code{chronyc} will try to authenticate automatically on
+start. It will read the configuration file, read the command key from the
+keyfile and run the authhash and password commands.
 @end table
 @c }}}
 @c {{{ SS:Security with chronyc
@@ -3188,6 +3186,9 @@ An example is
 @example
 authhash SHA1
 @end example
+
+The authhash command is run automatically on start if @code{chronyc} was
+started with the `-a' option.
 @c }}}
 @c {{{ burst
 @node burst command
@@ -3858,6 +3859,9 @@ The password can be encoded as a string of characters not containing a space
 with optional @code{ASCII:} prefix or as a hexadecimal number with @code{HEX:}
 prefix.  It has to match @code{chronyd's} currently defined command key
 (@pxref{commandkey directive}).
+
+The password command is run automatically on start if @code{chronyc} was
+started with the `-a' option.
 @c }}}
 @c {{{ polltarget
 @node polltarget command

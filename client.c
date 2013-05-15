@@ -2512,9 +2512,9 @@ process_cmd_dns(const char *line)
 /* ================================================== */
 
 static int
-process_cmd_authhash(char *line)
+process_cmd_authhash(const char *line)
 {
-  char *hash_name;
+  const char *hash_name;
   int new_hash_id;
 
   assert(auth_hash_id >= 0);
@@ -2749,6 +2749,77 @@ process_line(char *line, int *quit)
 /* ================================================== */
 
 static int
+authenticate_from_config(const char *filename)
+{
+  CMD_Request tx_message;
+  CMD_Reply rx_message;
+  char line[2048], keyfile[2048], *command, *arg, *password;
+  const char *hashname;
+  unsigned long key_id = 0, key_id2 = -1;
+  int ret;
+  FILE *in;
+
+  in = fopen(filename, "r");
+  if (!in) {
+    fprintf(stderr, "Could not open file %s\n", filename);
+    return 0;
+  }
+
+  *keyfile = '\0';
+  while (fgets(line, sizeof (line), in)) {
+    CPS_NormalizeLine(line);
+    command = line;
+    arg = CPS_SplitWord(line);
+    if (!strcasecmp(command, "keyfile")) {
+      snprintf(keyfile, sizeof (keyfile), "%s", arg);
+    } else if (!strcasecmp(command, "commandkey")) {
+      if (sscanf(arg, "%lu", &key_id) != 1)
+        key_id = -1;
+    }
+  }
+  fclose(in);
+
+  if (!*keyfile || key_id == -1) {
+    fprintf(stderr, "Could not read keyfile or commandkey in file %s\n", filename);
+    return 0;
+  }
+
+  in = fopen(keyfile, "r");
+  if (!in) {
+    fprintf(stderr, "Could not open keyfile %s\n", filename);
+    return 0;
+  }
+
+  while (fgets(line, sizeof (line), in)) {
+    CPS_NormalizeLine(line);
+    if (!*line || !CPS_ParseKey(line, &key_id2, &hashname, &password))
+      continue;
+    if (key_id == key_id2)
+      break;
+  }
+  fclose(in);
+
+  if (key_id == key_id2) {
+    if (process_cmd_authhash(hashname) &&
+        process_cmd_password(&tx_message, password)) {
+      ret = request_reply(&tx_message, &rx_message, RPY_NULL, 1);
+    } else {
+      ret = 0;
+    }
+  } else {
+    fprintf(stderr, "Could not find key %lu in keyfile %s\n", key_id, keyfile);
+    ret = 0;
+  }
+
+  /* Erase password from stack */
+  memset(line, sizeof (line), 0);
+
+  return ret;
+}
+
+/* ================================================== */
+
+static int
 process_args(int argc, char **argv, int multi)
 {
   int total_length, i, ret, quit;
@@ -2804,7 +2875,8 @@ main(int argc, char **argv)
   char *line;
   const char *progname = argv[0];
   const char *hostname = "localhost";
-  int quit = 0, ret = 1, multi = 0;
+  const char *conf_file = DEFAULT_CONF_FILE;
+  int quit = 0, ret = 1, multi = 0, auto_auth = 0;
   int port = DEFAULT_CANDM_PORT;
 
   /* Parse command line options */
@@ -2819,6 +2891,13 @@ main(int argc, char **argv)
       if (*argv) {
         port = atoi(*argv);
       }
+    } else if (!strcmp(*argv, "-f")) {
+      ++argv, --argc;
+      if (*argv) {
+        conf_file = *argv;
+      }
+    } else if (!strcmp(*argv, "-a")) {
+      auto_auth = 1;
     } else if (!strcmp(*argv, "-m")) {
       multi = 1;
     } else if (!strcmp(*argv, "-n")) {
@@ -2833,7 +2912,7 @@ main(int argc, char **argv)
       printf("chronyc (chrony) version %s\n", CHRONY_VERSION);
       exit(0);
     } else if (!strncmp(*argv, "-", 1)) {
-      fprintf(stderr, "Usage : %s [-h <hostname>] [-p <port-number>] [-n] [-4|-6] [-m] [command]\n", progname);
+      fprintf(stderr, "Usage : %s [-h <hostname>] [-p <port-number>] [-n] [-4|-6] [-m] [-a] [-f <file>]] [command]\n", progname);
       exit(1);
     } else {
       break; /* And process remainder of line as a command */
@@ -2857,7 +2936,13 @@ main(int argc, char **argv)
   
   open_io(hostname, port);
 
-  if (argc > 0) {
+  if (auto_auth) {
+    ret = authenticate_from_config(conf_file);
+  }
+
+  if (!ret) {
+    ;
+  } else if (argc > 0) {
     ret = process_args(argc, argv, multi);
   } else {
     do {
