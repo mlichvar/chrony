@@ -4,11 +4,15 @@
 *.swp
 RELEASES
 Makefile
+chrony.conf.5
 chrony.info
 chrony.html
+chrony.texi
 chrony.txt
 chronyc
-chronyd*
+chronyc.1
+chronyd
+chronyd.8
 config.h
 config.log
 tags

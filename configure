@@ -585,26 +585,30 @@ else
   add_def CHRONY_VERSION "\"DEVELOPMENT\""
 fi
 
-sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
-	s%@CC@%${MYCC}%;\
-	s%@CFLAGS@%${MYCFLAGS}%;\
-	s%@CPPFLAGS@%${CPPFLAGS}%;\
-	s%@LIBS@%${LIBS}%;\
-	s%@LDFLAGS@%${MYLDFLAGS}%;\
-	s%@EXTRA_LIBS@%${EXTRA_LIBS}%;\
-	s%@EXTRA_CLI_LIBS@%${EXTRA_CLI_LIBS}%;\
-	s%@READLINE_COMPILE@%${READLINE_COMPILE}%;\
-	s%@READLINE_LINK@%${READLINE_LINK}%;\
-	s%@HASH_OBJ@%${HASH_OBJ}%;\
-	s%@HASH_LINK@%${HASH_LINK}%;\
-	s%@HASH_COMPILE@%${HASH_COMPILE}%;\
-	s%@SYSCONFDIR@%${SYSCONFDIR}%;\
-	s%@BINDIR@%${BINDIR}%;\
-	s%@SBINDIR@%${SBINDIR}%;\
-	s%@DOCDIR@%${DOCDIR}%;\
-	s%@MANDIR@%${MANDIR}%;\
-	s%@INFODIR@%${INFODIR}%;"\
-	< Makefile.in > Makefile
+for f in Makefile chrony.conf.5 chrony.texi chronyc.1 chronyd.8
+do
+  echo Creating $f
+  sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
+          s%@CC@%${MYCC}%;\
+          s%@CFLAGS@%${MYCFLAGS}%;\
+          s%@CPPFLAGS@%${CPPFLAGS}%;\
+          s%@LIBS@%${LIBS}%;\
+          s%@LDFLAGS@%${MYLDFLAGS}%;\
+          s%@EXTRA_LIBS@%${EXTRA_LIBS}%;\
+          s%@EXTRA_CLI_LIBS@%${EXTRA_CLI_LIBS}%;\
+          s%@READLINE_COMPILE@%${READLINE_COMPILE}%;\
+          s%@READLINE_LINK@%${READLINE_LINK}%;\
+          s%@HASH_OBJ@%${HASH_OBJ}%;\
+          s%@HASH_LINK@%${HASH_LINK}%;\
+          s%@HASH_COMPILE@%${HASH_COMPILE}%;\
+          s%@SYSCONFDIR@%${SYSCONFDIR}%;\
+          s%@BINDIR@%${BINDIR}%;\
+          s%@SBINDIR@%${SBINDIR}%;\
+          s%@DOCDIR@%${DOCDIR}%;\
+          s%@MANDIR@%${MANDIR}%;\
+          s%@INFODIR@%${INFODIR}%;"\
+          < ${f}.in > $f
+done
 
 # =======================================================================
 # vim:et:sw=2:ht=2:sts=2:fdm=marker:cms=#%s

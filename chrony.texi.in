@@ -564,7 +564,7 @@ use their facilities.
 
 Assuming that you have found some servers, you need to set up a
 configuration file to run chrony.  The (compiled-in) default location
-for this file is @file{/etc/chrony.conf}.  Assuming that your ntp
+for this file is @file{@SYSCONFDIR@/chrony.conf}.  Assuming that your ntp
 servers are called @code{a.b.c} and @code{d.e.f}, your
 @file{chrony.conf} file could contain as a minimum
 
@@ -583,9 +583,9 @@ useful configuration file would look something like
 server a.b.c
 server d.e.f
 server g.h.i
-keyfile /etc/chrony.keys
+keyfile @SYSCONFDIR@/chrony.keys
 commandkey 1
-driftfile /etc/chrony.drift
+driftfile @SYSCONFDIR@/chrony.drift
 @end example
 @c }}}
 @c {{{ S:Infrequent connection
@@ -595,7 +595,7 @@ In this section we discuss how to configure chrony for computers that
 have occasional connections to the internet.
 
 @menu
-* Configuration for infrequent connections::  How to set up the @code{/etc/chrony} file
+* Configuration for infrequent connections::  How to set up the @code{@SYSCONFDIR@/chrony.conf} file
 * Advising chronyd of internet availability::  How to tell chronyd when the link is available
 @end menu
 
@@ -654,14 +654,14 @@ comes before @samp{dns} in the @samp{hosts} line of the
 In order to notify @code{chronyd} of the presence of the link, you will need to
 be able to log in to it with the program chronyc.  To do this, @code{chronyd}
 needs to be configured with an administrator password.  To set up an
-administrator password, you can create a file @file{/etc/chrony.keys}
+administrator password, you can create a file @file{@SYSCONFDIR@/chrony.keys}
 containing a single line
 
 @example
 1 xyzzy
 @end example
 
-and add the following line to @file{/etc/chrony.conf} (the order of the
+and add the following line to @file{@SYSCONFDIR@/chrony.conf} (the order of the
 lines does not matter)
 
 @example
@@ -674,9 +674,9 @@ The smallest useful configuration file would look something like
 server 1.2.3.4 offline
 server 5.6.7.8 offline
 server 9.10.11.12 offline
-keyfile /etc/chrony.keys
+keyfile @SYSCONFDIR@/chrony.keys
 commandkey 1
-driftfile /etc/chrony.drift
+driftfile @SYSCONFDIR@/chrony.drift
 @end example
 
 The next section describes how to tell @code{chronyd} when the internet link
@@ -685,27 +685,27 @@ goes up and down.
 @node Advising chronyd of internet availability
 @subsection How to tell chronyd when the internet link is available.
 To use this option, you will need to configure a command key in
-@code{chronyd's} configuration file @file{/etc/chrony.conf}, as described in
+@code{chronyd's} configuration file @file{@SYSCONFDIR@/chrony.conf}, as described in
 the previous section.
 
 To tell @code{chronyd} when to start and finish sampling the servers, the
 @code{online} and @code{offline} commands of chronyc need to be used.
 To give an example of their use, we assume that @code{pppd} is the
 program being used to connect to the internet, and that chronyc has been
-installed at its default location @file{/usr/local/bin/chronyc}.  We
+installed at its default location @file{@BINDIR@/chronyc}.  We
 also assume that the command key has been set up as described in the
 previous section.
 
 In the file @file{/etc/ppp/ip-up} we add the command sequence
 
 @example
-/usr/local/bin/chronyc -a online
+@BINDIR@/chronyc -a online
 @end example
 
 and in the file @file{/etc/ppp/ip-down} we add the sequence
 
 @example
-/usr/local/bin/chronyc -a offline
+@BINDIR@/chronyc -a offline
 @end example
 
 @code{chronyd's} polling of the servers will now only occur whilst the
@@ -740,9 +740,9 @@ be (assuming the clients are in the 192.168.165.x subnet and that the
 master's address is 192.168.169.170)
 
 @example
-driftfile /etc/chrony.drift
+driftfile @SYSCONFDIR@/chrony.drift
 commandkey 25
-keyfile /etc/chrony.keys
+keyfile @SYSCONFDIR@/chrony.keys
 initstepslew 10 client1 client3 client6
 local stratum 8
 manual
@@ -754,10 +754,10 @@ the configuration file might be
 
 @example
 server master
-driftfile /etc/chrony.drift
+driftfile @SYSCONFDIR@/chrony.drift
 logdir /var/log/chrony
 log measurements statistics tracking
-keyfile /etc/chrony.keys
+keyfile @SYSCONFDIR@/chrony.keys
 commandkey 24
 local stratum 10
 initstepslew 20 master
@@ -889,7 +889,7 @@ option should not be used if you want your disc to spin down.
 To illustrate how a dial-up home computer might be configured, example
 configuration files are shown in this section.
 
-For the @file{/etc/chrony.conf} file, the following can be used as an
+For the @file{@SYSCONFDIR@/chrony.conf} file, the following can be used as an
 example.  @emph{NOTE : The @code{server} directives are only applicable
 to customers of Demon Internet; users of other ISPs will need to use
 their own ISP's NTP servers or public NTP servers.}
@@ -900,13 +900,13 @@ server 158.152.1.76 minpoll 5 maxpoll 10 maxdelay 0.4 offline
 server 194.159.253.2 minpoll 5 maxpoll 10 maxdelay 0.4 offline
 logdir /var/log/chrony
 log statistics measurements tracking
-driftfile /etc/chrony.drift
-keyfile /etc/chrony.keys
+driftfile @SYSCONFDIR@/chrony.drift
+keyfile @SYSCONFDIR@/chrony.keys
 commandkey 25
 maxupdateskew 100.0
 dumponexit
 dumpdir /var/log/chrony
-rtcfile /etc/chrony.rtc
+rtcfile @SYSCONFDIR@/chrony.rtc
 @end example
 
 With Freeserve as the ISP, I use the following server lines :
@@ -924,13 +924,13 @@ online and offline respectively.
 The relevant part of the @file{/etc/ppp/ip-up} file is
 
 @example
-/usr/local/bin/chronyc -a online
+@BINDIR@/chronyc -a online
 @end example
 
 and the relevant part of the @file{/etc/ppp/ip-down} script is
 
 @example
-/usr/local/bin/chronyc -a <<EOF
+@BINDIR@/chronyc -a <<EOF
 offline
 dump
 writertc
@@ -945,8 +945,8 @@ To start @code{chronyd} during the boot sequence, I have the following
 in @file{/etc/rc.d/rc.local} (this is a Slackware system)
 
 @example
-if [ -f /usr/local/sbin/chronyd -a -f /etc/chrony.conf ]; then
-  /usr/local/sbin/chronyd -r -s
+if [ -f @SBINDIR@/chronyd -a -f @SYSCONFDIR@/chrony.conf ]; then
+  @SBINDIR@/chronyd -r -s
   echo "Start chronyd"
 fi
 @end example
@@ -997,14 +997,14 @@ determination is taking place.
 To avoid this problem, @code{chronyd} allows the gain or loss rate to be
 stored in a file, which can be read back in when the program is
 restarted.  This file is called the drift file, and might typically be
-stored in @file{/etc/chrony.drift}.  By specifying an option like the
+stored in @file{@SYSCONFDIR@/chrony.drift}.  By specifying an option like the
 following
 
 @example
-driftfile /etc/chrony.drift
+driftfile @SYSCONFDIR@/chrony.drift
 @end example
 
-in the configuration file (@file{/etc/chrony.conf}), the drift file
+in the configuration file (@file{@SYSCONFDIR@/chrony.conf}), the drift file
 facility will be activated.
 @c }}}
 @c }}}
@@ -1023,11 +1023,11 @@ facility will be activated.
 @node Starting chronyd
 @section Starting chronyd
 If @code{chronyd} has been installed to its default location
-@file{/usr/local/sbin/chronyd}, starting it is simply a matter of
+@file{@SBINDIR@/chronyd}, starting it is simply a matter of
 entering the command
 
 @example
-/usr/local/sbin/chronyd
+@SBINDIR@/chronyd
 @end example
 
 Information messages and warnings will be logged to syslog.
@@ -1044,7 +1044,7 @@ terminal, and all messages will be sent to the terminal instead of to
 syslog.
 @item -f <conf-file>
 This option can be used to specify an alternate location for the
-configuration file (default @file{/etc/chrony.conf}).
+configuration file (default @file{@SYSCONFDIR@/chrony.conf}).
 @item -r
 This option will reload sample histories for each of the servers being
 used.  These histories are created by using the @code{dump} command in
@@ -1125,7 +1125,7 @@ killproc() @{            # kill the named process(es)
 case "$1" in
 
 'start')
-   if [ -f /opt/free/sbin/chronyd -a -f /etc/chrony.conf ]; then
+   if [ -f /opt/free/sbin/chronyd -a -f @SYSCONFDIR@/chrony.conf ]; then
      /opt/free/sbin/chronyd
    fi
    ;;
@@ -1150,7 +1150,7 @@ service.)
 @node Configuration file
 @section The chronyd configuration file
 @c {{{ section top
-The configuration file is normally called @file{/etc/chrony.conf}; in
+The configuration file is normally called @file{@SYSCONFDIR@/chrony.conf}; in
 fact, this is the compiled-in default. However, other locations can be
 specified with a command line option.
 
@@ -1568,7 +1568,7 @@ which the true rate actually lies.
 An example of the driftfile command is
 
 @example
-driftfile /etc/chrony.drift
+driftfile @SYSCONFDIR@/chrony.drift
 @end example
 @c }}}
 @c {{{ dumpdir
@@ -1644,7 +1644,7 @@ This is useful when maintaining configuration on multiple hosts to
 keep the differences in a separate file.
 
 @example
-include /etc/chrony/local.conf
+include @SYSCONFDIR@/chrony/local.conf
 @end example
 @c }}}
 @c {{{ initstepslew
@@ -1719,7 +1719,7 @@ ID/key pairs for the following 2 uses:
 The format of the command is shown in the example below
 
 @example
-keyfile /etc/chrony.keys
+keyfile @SYSCONFDIR@/chrony.keys
 @end example
 
 The argument is simply the name of the file containing the ID/key
@@ -2580,7 +2580,7 @@ of the system's real-time clock (RTC).
 The syntax is illustrated in the following example
 
 @example
-rtcfile /etc/chrony.rtc
+rtcfile @SYSCONFDIR@/chrony.rtc
 @end example
 
 @code{chronyd} saves information in this file when it exits and when the
@@ -2951,7 +2951,7 @@ With this option multiple commands can be specified on the command line.
 Each argument will be interpreted as a whole command.
 @item -f <conf-file>
 This option can be used to specify an alternate location of the @code{chronyd}
-configuration file (default @file{/etc/chrony.conf}). The configuration file is
+configuration file (default @file{@SYSCONFDIR@/chrony.conf}). The configuration file is
 needed for the `-a' option.
 @item -a
 With this option @code{chronyc} will try to authenticate automatically on
@@ -2967,7 +2967,7 @@ power to reconfigure the run-time behaviour of @code{chronyd}.  Consequently,
 @code{chronyc} is quite dangerous for the integrity of the target
 system's clock performance.  Having access to @code{chronyd} via chronyc is
 more or less equivalent to being able to modify @code{chronyd's} configuration
-file (typically @file{/etc/chrony.conf}) and to restart @code{chronyd}.
+file (typically @file{@SYSCONFDIR@/chrony.conf}) and to restart @code{chronyd}.
 
 Chronyc also provides a number of monitoring (as opposed to commanding)
 commands, which will not affect the behaviour of @code{chronyd}.  However, you
@@ -4210,7 +4210,7 @@ the computer is currently synchronised.  If this is @code{127.127.1.1}
 it means the computer is not synchronised to any external source and
 that you have the `local' mode operating (via the @code{local} command
 in @code{chronyc} (@pxref{local command}), or the @code{local} directive
-in the @file{/etc/chrony.conf} file (@pxref{local directive})).
+in the @file{@SYSCONFDIR@/chrony.conf} file (@pxref{local directive})).
 
 @item Stratum
 The stratum indicates how many hops away from a computer with an

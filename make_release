@@ -34,13 +34,16 @@ echo $version > version.txt
 
 sed -e "s%@@VERSION@@%${version}%" < chrony.spec.sample > chrony.spec
 
-for m in chrony.1 chronyc.1 chrony.conf.5 chronyd.8; do
+for m in chrony.1.in chronyc.1.in chrony.conf.5.in chronyd.8.in; do
   sed -e "s%@VERSION@%${version}%;s%@MAN_DATE@%${mandate}%" \
     < $m > ${m}_
   mv -f ${m}_ $m
 done
 
-makeinfo --no-headers --number-sections -o chrony.txt chrony.texi
+./configure && make chrony.txt || exit 1
+mv chrony.txt chrony.txt_
+make distclean
+mv chrony.txt_ chrony.txt
 
 rm -f make_release chrony.spec.sample .gitignore
 
