@@ -1458,6 +1458,8 @@ An example of the commandkey command is
 commandkey 20
 @end example
 
+By default, the key number is 0.
+
 In the key file (see the keyfile command) there should be a line of
 the form
 
