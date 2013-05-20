@@ -286,7 +286,7 @@ int main
 {
   const char *conf_file = DEFAULT_CONF_FILE;
   char *user = NULL;
-  int debug = 0, nofork = 0;
+  int debug = 0, nofork = 0, address_family = IPADDR_UNSPEC;
   int do_init_rtc = 0, restarted = 0;
   int other_pid;
   int lock_memory = 0, sched_priority = 0;
@@ -329,9 +329,9 @@ int main
       debug = 1;
       nofork = 1;
     } else if (!strcmp("-4", *argv)) {
-      DNS_SetAddressFamily(IPADDR_INET4);
+      address_family = IPADDR_INET4;
     } else if (!strcmp("-6", *argv)) {
-      DNS_SetAddressFamily(IPADDR_INET6);
+      address_family = IPADDR_INET6;
     } else {
       LOG_FATAL(LOGF_Main, "Unrecognized command line option [%s]", *argv);
     }
@@ -353,6 +353,8 @@ int main
   }
   
   LOG(LOGS_INFO, LOGF_Main, "chronyd version %s starting", CHRONY_VERSION);
+
+  DNS_SetAddressFamily(address_family);
 
   CNF_SetRestarted(restarted);
   CNF_ReadFile(conf_file);
@@ -376,8 +378,8 @@ int main
   LCL_Initialise();
   SCH_Initialise();
   SYS_Initialise();
-  NIO_Initialise();
-  CAM_Initialise();
+  NIO_Initialise(address_family);
+  CAM_Initialise(address_family);
   RTC_Initialise();
   SRC_Initialise();
   RCL_Initialise();

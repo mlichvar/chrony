@@ -231,17 +231,25 @@ prepare_socket(int family)
   return sock_fd;
 }
 
+/* ================================================== */
+
 void
-NIO_Initialise(void)
+NIO_Initialise(int family)
 {
   assert(!initialised);
   initialised = 1;
 
   do_size_checks();
 
-  sock_fd4 = prepare_socket(AF_INET);
+  if (family == IPADDR_UNSPEC || family == IPADDR_INET4)
+    sock_fd4 = prepare_socket(AF_INET);
+  else
+    sock_fd4 = -1;
 #ifdef HAVE_IPV6
-  sock_fd6 = prepare_socket(AF_INET6);
+  if (family == IPADDR_UNSPEC || family == IPADDR_INET6)
+    sock_fd6 = prepare_socket(AF_INET6);
+  else
+    sock_fd6 = -1;
 #endif
 
   if (sock_fd4 < 0
