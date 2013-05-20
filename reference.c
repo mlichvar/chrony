@@ -335,7 +335,7 @@ update_drift_file(double freq_ppm, double skew)
   if (rename(temp_drift_file,drift_file)) {
     unlink(temp_drift_file);
     Free(temp_drift_file);
-    LOG(LOGS_WARN, LOGF_Reference, "Could not replace old driftfile %s with new one %s.tmp (%d)",
+    LOG(LOGS_WARN, LOGF_Reference, "Could not replace old driftfile %s with new one %s.tmp",
         drift_file,drift_file);
     return;
   }

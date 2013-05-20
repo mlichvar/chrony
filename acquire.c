@@ -201,7 +201,7 @@ prepare_socket(int family)
     }
 
     if (bind(sock_fd, &my_addr.u, addrlen) < 0) {
-      LOG(LOGS_ERR, LOGF_Acquire, "Could not bind socket : %s\n", strerror(errno));
+      LOG(LOGS_ERR, LOGF_Acquire, "Could not bind socket : %s", strerror(errno));
       /* but keep running */
     }
   }
