@@ -62,6 +62,64 @@ static int cache_key_pos;
 
 /* ================================================== */
 
+static int
+generate_key(unsigned long key_id)
+{
+#ifdef GENERATE_SHA1_KEY
+  unsigned char key[20];
+  const char *hashname = "SHA1";
+#else
+  unsigned char key[16];
+  const char *hashname = "MD5";
+#endif
+  const char *key_file, *rand_dev = "/dev/urandom";
+  FILE *f;
+  struct stat st;
+  int i;
+
+  key_file = CNF_GetKeysFile();
+
+  if (!key_file)
+    return 0;
+
+  f = fopen(rand_dev, "r");
+  if (!f || fread(key, sizeof (key), 1, f) != 1) {
+    if (f)
+      fclose(f);
+    LOG_FATAL(LOGF_Keys, "Could not read %s", rand_dev);
+    return 0;
+  }
+  fclose(f);
+
+  f = fopen(key_file, "a");
+  if (!f) {
+    LOG_FATAL(LOGF_Keys, "Could not open keyfile %s for writing", key_file);
+    return 0;
+  }
+
+  /* Make sure the keyfile is not world-readable */
+  if (stat(key_file, &st) || chmod(key_file, st.st_mode & 0770)) {
+    fclose(f);
+    LOG_FATAL(LOGF_Keys, "Could not change permissions of keyfile %s", key_file);
+    return 0;
+  }
+
+  fprintf(f, "\n%lu %s HEX:", key_id, hashname);
+  for (i = 0; i < sizeof (key); i++)
+    fprintf(f, "%02hhX", key[i]);
+  fprintf(f, "\n");
+  fclose(f);
+
+  /* Erase the key from stack */
+  memset(key, sizeof (key), 0);
+
+  LOG(LOGS_INFO, LOGF_Keys, "Generated key %lu", key_id);
+
+  return 1;
+}
+
+/* ================================================== */
+
 void
 KEY_Initialise(void)
 {
@@ -69,6 +127,12 @@ KEY_Initialise(void)
   command_key_valid = 0;
   cache_valid = 0;
   KEY_Reload();
+
+  if (CNF_GetGenerateCommandKey() && !KEY_KeyKnown(KEY_GetCommandKey())) {
+    if (generate_key(KEY_GetCommandKey()))
+      KEY_Reload();
+  }
+
   return;
 }
 

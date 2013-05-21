@@ -88,13 +88,13 @@ MAI_CleanupAndExit(void)
   TMC_Finalise();
   MNL_Finalise();
   ACQ_Finalise();
-  KEY_Finalise();
   CLG_Finalise();
   NSR_Finalise();
   NCR_Finalise();
   BRD_Finalise();
   SST_Finalise();
   REF_Finalise();
+  KEY_Finalise();
   RCL_Finalise();
   SRC_Finalise();
   RTC_Finalise();
@@ -383,6 +383,7 @@ int main
   RTC_Initialise();
   SRC_Initialise();
   RCL_Initialise();
+  KEY_Initialise();
 
   /* Command-line switch must have priority */
   if (!sched_priority) {
@@ -411,7 +412,6 @@ int main
   NCR_Initialise();
   NSR_Initialise();
   CLG_Initialise();
-  KEY_Initialise();
   ACQ_Initialise();
   MNL_Initialise();
   TMC_Initialise();

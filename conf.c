@@ -73,6 +73,7 @@ static void parse_driftfile(char *);
 static void parse_dumpdir(char *);
 static void parse_dumponexit(char *);
 static void parse_fallbackdrift(char *);
+static void parse_generatecommandkey(char *);
 static void parse_include(char *);
 static void parse_initstepslew(char *);
 static void parse_keyfile(char *);
@@ -111,6 +112,7 @@ static void parse_user(char *);
 /* Configuration variables */
 
 static int restarted = 0;
+static int generate_command_key = 0;
 static char *rtc_device = "/dev/rtc";
 static int acquisition_port = 0; /* 0 means let kernel choose port */
 static int ntp_port = 123;
@@ -386,6 +388,8 @@ CNF_ReadFile(const char *filename)
         parse_dumponexit(p);
       } else if (!strcasecmp(command, "fallbackdrift")) {
         parse_fallbackdrift(p);
+      } else if (!strcasecmp(command, "generatecommandkey")) {
+        parse_generatecommandkey(p);
       } else if (!strcasecmp(command, "include")) {
         parse_include(p);
       } else if (!strcasecmp(command, "initstepslew")) {
@@ -1000,6 +1004,15 @@ parse_fallbackdrift(char *line)
 /* ================================================== */
 
 static void
+parse_generatecommandkey(char *line)
+{
+  check_number_of_args(line, 0);
+  generate_command_key = 1;
+}
+
+/* ================================================== */
+
+static void
 parse_makestep(char *line)
 {
   check_number_of_args(line, 2);
@@ -1559,6 +1572,14 @@ unsigned long
 CNF_GetCommandKey(void)
 {
   return command_key_id;
+}
+
+/* ================================================== */
+
+int
+CNF_GetGenerateCommandKey(void)
+{
+  return generate_command_key;
 }
 
 /* ================================================== */

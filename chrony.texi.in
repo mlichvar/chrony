@@ -1177,6 +1177,7 @@ directives can occur in any order in the file.
 * dumpdir directive::           Specify directory for dumping measurements
 * dumponexit directive::        Dump measurements when daemon exits
 * fallbackdrift directive::     Specify fallback drift intervals
+* generatecommandkey directive:: Generate command key automatically
 * include directive::           Include a configuration file
 * initstepslew directive::      Trim the system clock on boot-up.
 * keyfile directive::           Specify location of file containing keys
@@ -1466,7 +1467,7 @@ In the key file (see the keyfile command) there should be a line of
 the form
 
 @example
-20 foobar
+20 MD5 HEX:B028F91EA5C38D06C2E140B26C7F41EC
 @end example
 
 When running the chronyc program to perform run-time configuration,
@@ -1638,6 +1639,16 @@ By default (or if the specified maximum or minimum is 0), no fallbacks
 will be used and the clock frequency will stay at the last value
 calculated before synchronisation was lost.
 @c }}}
+@c {{{ generatecommandkey
+@node generatecommandkey directive
+@subsection generatecommandkey
+With this directive, if the command key is not found on start in the file
+specified by the @code{keyfile} directive, @code{chronyd} will generate a new
+command key from the /dev/urandom file and write it to the key file.
+
+The generated key will use SHA1 if @code{chronyd} is compiled with the support,
+otherwise MD5 will be used.
+@c }}}
 @c {{{ include
 @node include directive
 @subsection include
@@ -1744,8 +1755,9 @@ password can be encoded as a string of characters not containing a space with
 optional @code{ASCII:} prefix or as a hexadecimal number with @code{HEX:}
 prefix.
 
-The ID for the chronyc authentication key is specified with the
-commandkey command (see earlier).
+The ID for the chronyc authentication key is specified with the commandkey
+command (see earlier). The command key can be generated automatically on
+start with the @code{generatecommandkey} directive.
 @c }}}
 @c {{{ leapsectz
 @node leapsectz directive

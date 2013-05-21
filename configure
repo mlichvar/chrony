@@ -518,6 +518,7 @@ if [ $try_nss = "1" ]; then
     HASH_OBJ="hash_nss.o"
     HASH_COMPILE="$test_cflags"
     HASH_LINK="$test_link"
+    add_def GENERATE_SHA1_KEY
   fi
 fi
 
@@ -528,6 +529,7 @@ if [ "x$HASH_LINK" = "x" ] && [ $try_tomcrypt = "1" ]; then
     HASH_OBJ="hash_tomcrypt.o"
     HASH_COMPILE="-I/usr/include/tomcrypt"
     HASH_LINK="-ltomcrypt"
+    add_def GENERATE_SHA1_KEY
   fi
 fi
 
