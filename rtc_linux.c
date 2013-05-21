@@ -189,7 +189,6 @@ discard_samples(int new_first)
   memmove(system_times, system_times + new_first, n_to_save * sizeof(struct timeval));
 
   n_samples = n_to_save;
-  return;
 }
 
 /* ================================================== */
@@ -217,8 +216,6 @@ accumulate_sample(time_t rtc, struct timeval *sys)
   ++n_samples_since_regression;
   }
   ++n_samples;
-  return;
-  
 }
 
 /* ================================================== */
@@ -678,8 +675,6 @@ handle_initial_trim(void)
   (after_init_hook)(after_init_hook_arg);
   
   operating_mode = OM_NORMAL;
-
-  return;
 }
 
 /* ================================================== */

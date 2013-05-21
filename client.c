@@ -182,8 +182,6 @@ open_io(const char *hostname, int port)
     perror("Can't create socket");
     exit(1);
   }
-
-  return;
 }
 
 /* ================================================== */
@@ -925,7 +923,6 @@ cvt_to_sec_usec(double x, long *sec, long *usec) {
   
   *sec = s;
   *usec = us;
-  return;
 }
 
 /* ================================================== */

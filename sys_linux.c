@@ -598,8 +598,6 @@ initiate_slew(void)
     offset_register = 0.0;
 
   }
-
-  return;
 }
 
 /* ================================================== */
@@ -856,8 +854,6 @@ get_offset_correction(struct timeval *raw,
     update_nano_slew_error(noffset, 0);
     *err = get_slow_slew_error(raw) + get_fast_slew_error(raw) + get_nano_slew_error();;
   }
-
-  return;
 }
 
 /* ================================================== */
@@ -871,8 +867,6 @@ set_leap(int leap)
 
   LOG(LOGS_INFO, LOGF_SysLinux, "System clock status set to %s leap second",
      leap ? (leap > 0 ? "insert" : "delete") : "not insert/delete");
-
-  return;
 }
 
 /* ================================================== */
@@ -910,7 +904,6 @@ guess_hz_and_shift_hz(int tick, int *hz, int *shift_hz)
   /* oh dear.  doomed. */
   *hz = 0;
   *shift_hz = 0;
-  return;
 }
 
 /* ================================================== */

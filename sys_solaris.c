@@ -110,8 +110,6 @@ clock_initialise(void)
   if (adjtime(&newadj, &oldadj) < 0) {
     LOG_FATAL(LOGF_SysSolaris, "adjtime() failed");
   }
-
-  return;
 }
 
 /* ================================================== */
@@ -120,9 +118,6 @@ static void
 clock_finalise(void)
 {
   /* Nothing to do yet */
-
-  return;
-
 }
 
 /* ================================================== */
@@ -217,7 +212,6 @@ accrue_offset(double offset, double corr_rate)
   stop_adjust();
   offset_register += offset;
   start_adjust();
-  return;
 }
 
 /* ================================================== */
@@ -296,7 +290,6 @@ get_offset_correction(struct timeval *raw,
   start_adjust();
   if (err)
     *err = 0.0;
-  return;
 }
 
 /* ================================================== */
@@ -304,7 +297,6 @@ get_offset_correction(struct timeval *raw,
 static void
 immediate_step(void)
 {
-  return;
 }
 
 /* ================================================== */
@@ -468,8 +460,6 @@ SYS_Solaris_Finalise(void)
   if (need_dosynctodr) {
     set_dosynctodr(1);
   }
-
-  return;
 }
 
 /* ================================================== */

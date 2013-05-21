@@ -249,8 +249,6 @@ start_initial_timeout(NCR_Instance inst)
                                            SCH_NtpSamplingClass,
                                            transmit_timeout, (void *)inst);
   inst->timer_running = 1;
-
-  return;
 }
 
 /* ================================================== */
@@ -351,7 +349,6 @@ NCR_DestroyInstance(NCR_Instance instance)
 
   /* Free the data structure */
   Free(instance);
-  return;
 }
 
 /* ================================================== */
@@ -633,9 +630,6 @@ transmit_timeout(void *arg)
   } else {
     inst->timer_running = 0;
   }
-
-  /* And we're done */
-  return;
 }
 
 
@@ -1208,8 +1202,6 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
      poll interval for the source and requeueing the polling timeout.
 
      Left until the source statistics management has been written */
-
-  return;
 }
 
 /* ================================================== */
@@ -1511,7 +1503,6 @@ NCR_ProcessUnknown
         UTI_IPToString(&remote_addr->ip_addr),
         remote_addr->port);
   }
-  return;
 }
 
 /* ================================================== */
@@ -1725,8 +1716,6 @@ NCR_ReportSource(NCR_Instance inst, RPT_SourceReport *report, struct timeval *no
     default:
       assert(0);
   }
-  
-  return;
 }
 
 /* ================================================== */

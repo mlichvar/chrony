@@ -521,9 +521,6 @@ parse_source(char *line, NTP_Source_Type type)
       other_parse_error("Unreadable polltarget");
       break;
   }
-
-  return;
-
 }
 
 /* ================================================== */
@@ -1417,9 +1414,6 @@ CNF_AddSources(void) {
   }
 
   NSR_ResolveSources();
-
-  return;
-
 }
 
 /* ================================================== */
@@ -1739,8 +1733,6 @@ CNF_SetupAccessRestrictions(void)
       LOG_FATAL(LOGF_Configure, "Bad subnet for %08lx", node->ip);
     }
   }
-
-  return;
 }
 
 /* ================================================== */

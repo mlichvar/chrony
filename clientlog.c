@@ -174,7 +174,6 @@ CLG_Initialise(void)
 void
 CLG_Finalise(void)
 {
-  return;
 }
 
 /* ================================================== */

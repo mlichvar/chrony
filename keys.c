@@ -132,8 +132,6 @@ KEY_Initialise(void)
     if (generate_key(KEY_GetCommandKey()))
       KEY_Reload();
   }
-
-  return;
 }
 
 /* ================================================== */
@@ -141,8 +139,6 @@ KEY_Initialise(void)
 void
 KEY_Finalise(void)
 {
-  /* Nothing to do */
-  return;
 }
 
 /* ================================================== */

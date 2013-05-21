@@ -103,8 +103,6 @@ RGR_WeightedRegression
   *sb0 = sqrt(*s2 / W + aa * aa);
 
   *s2 *= (n / W); /* Giving weighted average of variances */
-
-  return;
 }
 
 /* ================================================== */

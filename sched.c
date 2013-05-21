@@ -150,8 +150,6 @@ SCH_Initialise(void)
   srandom(tv.tv_sec << 16 ^ tv.tv_usec);
 
   initialised = 1;
-
-  return;
 }
 
 
@@ -160,7 +158,6 @@ SCH_Initialise(void)
 void
 SCH_Finalise(void) {
   initialised = 0;
-  return; /* Nothing to do for now */
 }
 
 /* ================================================== */
@@ -187,8 +184,6 @@ SCH_AddInputFileHandler
   if ((fd + 1) > one_highest_fd) {
     one_highest_fd = fd + 1;
   }
-
-  return;
 }
 
 
@@ -219,9 +214,6 @@ SCH_RemoveInputFileHandler(int fd)
   }
 
   one_highest_fd = fd_to_check;
-
-  return;
-
 }
 
 /* ================================================== */
@@ -265,7 +257,6 @@ release_tqe(TimerQueueEntry *node)
 {
   node->next = tqe_free_list;
   tqe_free_list = node;
-  return;
 }
 
 /* ================================================== */
@@ -633,9 +624,6 @@ SCH_MainLoop(void)
 
     }
   }         
-
-  return;
-
 }
 
 /* ================================================== */

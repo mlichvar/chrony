@@ -49,7 +49,6 @@ static int max_destinations = 0;
 void
 BRD_Initialise(void)
 {
-  return; /* Nothing to do */
 }
 
 /* ================================================== */
@@ -57,7 +56,6 @@ BRD_Initialise(void)
 void
 BRD_Finalise(void)
 {
-  return; /* Nothing to do */
 }
 
 /* ================================================== */

@@ -108,9 +108,6 @@ RTC_Initialise(void)
   } else {
     driver_initialised = 0;
   }
-
-  return;
-
 }
 
 /* ================================================== */

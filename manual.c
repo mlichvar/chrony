@@ -93,8 +93,6 @@ MNL_Initialise(void)
   error = ERROR_MARGIN;
 
   LCL_AddParameterChangeHandler(slew_samples, NULL);
-
-  return;
 }
 
 /* ================================================== */
@@ -102,7 +100,6 @@ MNL_Initialise(void)
 void
 MNL_Finalise(void)
 {
-  return;
 }
 
 /* ================================================== */
@@ -239,7 +236,6 @@ slew_samples(struct timeval *raw,
         dfreq, doffset);
     samples[i].offset += delta_time;
   }
-  return;
 }
 
 /* ================================================== */

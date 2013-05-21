@@ -74,8 +74,6 @@ LOG_Initialise(void)
 #ifdef WINNT
   logfile = fopen("./chronyd.err", "a");
 #endif
-
-  return;
 }
 
 /* ================================================== */
@@ -97,7 +95,6 @@ LOG_Finalise(void)
   LOG_CycleLogFiles();
 
   initialised = 0;
-  return;
 }
 
 /* ================================================== */
@@ -132,7 +129,6 @@ LOG_Line_Function(LOG_Severity severity, LOG_Facility facility, const char *form
     fprintf(stderr, "%s\n", buf);
   }
 #endif
-  return;
 }
 
 /* ================================================== */
@@ -163,8 +159,6 @@ LOG_Fatal_Function(LOG_Facility facility, const char *format, ...)
 #endif
 
   MAI_CleanupAndExit();
-
-  return;
 }
 
 /* ================================================== */
@@ -185,7 +179,6 @@ LOG_Position(const char *filename, int line_number, const char *function_name)
     fprintf(stderr, "%s:%d:(%s)[%s] ", filename, line_number, function_name, buf);
   }
 #endif
-  return;
 }
 
 /* ================================================== */

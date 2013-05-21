@@ -116,8 +116,6 @@ close_node(TableNode *node)
     Free(node->extended);
     node->extended = NULL;
   }
-
-  return;
 }
 
 
@@ -141,7 +139,6 @@ open_node(TableNode *node)
       child_node->extended = NULL;
     }
   }
-  return;
 }
 
 /* ================================================== */
@@ -408,7 +405,6 @@ static void print_node(TableNode *node, uint32_t *addr, int ip_len, int shift, i
       print_node(sub_node, new_addr, ip_len, shift - 4, subnet_bits + 4);
     }
   }
-  return;
 }
 
 
@@ -423,7 +419,6 @@ static void print_table(ADF_AuthTable table)
   memset(addr, 0, sizeof (addr));
   printf("IPv6 table:\n");
   print_node(&table->base6, addr, 4, 124, 0);
-  return;
 }
 
 /* ================================================== */

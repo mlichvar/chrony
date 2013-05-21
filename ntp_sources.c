@@ -103,8 +103,6 @@ NSR_Initialise(void)
   initialised = 1;
 
   LCL_AddParameterChangeHandler(slew_sources, NULL);
-
-  return;
 }
 
 /* ================================================== */
@@ -113,7 +111,6 @@ void
 NSR_Finalise(void)
 {
   initialised = 0;
-  return; /* Nothing to do yet */
 }
 
 /* ================================================== */
@@ -179,8 +176,6 @@ find_slot(NTP_Remote_Address *remote_addr, int *slot, int *found)
     *found = 0;
     *slot = hash;
   }
-
-  return;
 }
 
 /* ================================================== */
@@ -670,8 +665,6 @@ NSR_GetActivityReport(RPT_ActivityReport *report)
   for (us = unresolved_sources; us; us = us->next) {
     report->unresolved++;
   }
-
-  return;
 }
 
 

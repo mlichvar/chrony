@@ -107,8 +107,6 @@ UTI_DiffTimevals(struct timeval *result,
      (0,1000000) */
 
   UTI_NormaliseTimeval(result); /* JGH */
-
-  return;
 }
 
 /* ================================================== */

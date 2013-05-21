@@ -91,8 +91,6 @@ SYS_Finalise(void)
 #if defined(__NetBSD__)
   SYS_NetBSD_Finalise();
 #endif
-
-  return;
 }
 
 /* ================================================== */
@@ -104,8 +102,6 @@ void SYS_DropRoot(char *user)
 #else
   LOG_FATAL(LOGF_Sys, "dropping root privileges not supported");
 #endif
-
-  return;
 }
 
 /* ================================================== */
@@ -117,8 +113,6 @@ void SYS_SetScheduler(int SchedPriority)
 #else
   LOG_FATAL(LOGF_Sys, "scheduler priority setting not supported");
 #endif
-
-  return;
 }
 
 /* ================================================== */
@@ -130,8 +124,6 @@ void SYS_LockMemory(void)
 #else
   LOG_FATAL(LOGF_Sys, "memory locking not supported");
 #endif
-
-  return;
 }
 
 /* ================================================== */

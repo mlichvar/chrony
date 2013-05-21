@@ -143,7 +143,6 @@ static SCH_TimeoutID source_start_timeout_id;
 void
 ACQ_Initialise(void)
 {
-  return;
 }
 
 
@@ -152,7 +151,6 @@ ACQ_Initialise(void)
 void
 ACQ_Finalise(void)
 {
-  return;
 }
 
 /* ================================================== */
@@ -240,8 +238,6 @@ finalise_io(void)
   }
   sock_fd6 = -1;
 #endif
-
-  return;
 }
 
 /* ================================================== */
@@ -322,8 +318,6 @@ probe_source(SourceRecord *src)
   ++(src->n_dead_probes);
   src->timer_running = 1;
   src->timeout_id = SCH_AddTimeoutByDelay(RETRANSMISSION_TIMEOUT, transmit_timeout, (void *) src);
-
-  return;
 }
 
 /* ================================================== */
@@ -797,8 +791,6 @@ ACQ_StartAcquisition(int n, IPAddr *ip_addrs, double threshold, void (*after_hoo
 
   /* Start sampling first source */
   start_next_source();
-
-  return;
 }
 
 /* ================================================== */

@@ -165,8 +165,6 @@ void SRC_Initialise(void) {
 
   LCL_AddParameterChangeHandler(slew_sources, NULL);
   LCL_AddDispersionNotifyHandler(add_dispersion, NULL);
-
-  return;
 }
 
 /* ================================================== */
@@ -176,7 +174,6 @@ void SRC_Finalise(void)
   LCL_RemoveParameterChangeHandler(slew_sources, NULL);
   LCL_RemoveDispersionNotifyHandler(add_dispersion, NULL);
   initialised = 0;
-  return;
 }
 
 /* ================================================== */
@@ -268,7 +265,6 @@ void SRC_GetFrequencyRange(SRC_Instance instance, double *lo, double *hi)
   assert(initialised);
 
   SST_GetFrequencyRange(instance->stats, lo, hi);
-  return;
 }
 
 /* ================================================== */
@@ -311,8 +307,6 @@ void SRC_AccumulateSample
   SST_DoNewRegression(inst->stats);
   /* And redo clock selection */
   SRC_SelectSource(inst->ref_id);
-
-  return;
 }
 
 /* ================================================== */

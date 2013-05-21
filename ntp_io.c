@@ -259,8 +259,6 @@ NIO_Initialise(int family)
       ) {
     LOG_FATAL(LOGF_NtpIO, "Could not open any NTP socket");
   }
-
-  return;
 }
 
 /* ================================================== */
@@ -281,7 +279,6 @@ NIO_Finalise(void)
   sock_fd6 = -1;
 #endif
   initialised = 0;
-  return;
 }
 
 /* ================================================== */
@@ -394,8 +391,6 @@ read_from_socket(void *anything)
 
     }
   }
-  
-  return;
 }
 
 /* ================================================== */
@@ -510,8 +505,6 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
     LOG(LOGS_WARN, LOGF_NtpIO, "Could not send to %s:%d : %s",
         UTI_IPToString(&remote_addr->ip_addr), remote_addr->port, strerror(errno));
   }
-
-  return;
 }
 
 /* ================================================== */

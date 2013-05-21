@@ -101,8 +101,6 @@ clock_initialise(void)
   if (adjtime(&newadj, &oldadj) < 0) {
     LOG_FATAL(LOGF_SysSunOS, "adjtime() failed");
   }
-
-  return;
 }
 
 /* ================================================== */
@@ -111,9 +109,6 @@ static void
 clock_finalise(void)
 {
   /* Nothing to do yet */
-
-  return;
-
 }
 
 /* ================================================== */
@@ -221,7 +216,6 @@ accrue_offset(double offset, double corr_rate)
   stop_adjust();
   offset_register += offset;
   start_adjust();
-  return;
 }
 
 /* ================================================== */
@@ -283,7 +277,6 @@ get_offset_correction(struct timeval *raw,
   start_adjust();
   if (err)
     *err = 0.0;
-  return;
 }
 
 /* ================================================== */
@@ -291,7 +284,6 @@ get_offset_correction(struct timeval *raw,
 static void
 immediate_step(void)
 {
-  return;
 }
 
 /* ================================================== */
@@ -420,8 +412,6 @@ SYS_SunOS_Finalise(void)
   /* When exiting, we want to return the machine to its 'autonomous'
      tracking mode */
   setup_kernel(1);
-
-  return;
 }
 
 /* ================================================== */

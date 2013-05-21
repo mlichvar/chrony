@@ -132,8 +132,6 @@ calculate_sys_precision(void)
     precision_log--;
     best_dusec *= 2;
   }
-
-  return;
 }
 
 /* ================================================== */
@@ -167,7 +165,6 @@ LCL_Initialise(void)
 void
 LCL_Finalise(void)
 {
-  return;
 }
 
 /* ================================================== */
@@ -220,14 +217,11 @@ LCL_AddParameterChangeHandler(LCL_ParameterChangeHandler handler, void *anything
   new_entry->prev = change_list.prev;
   change_list.prev->next = new_entry;
   change_list.prev = new_entry;
-
-  return;
 }
 
 /* ================================================== */
 
 /* Remove a handler */
-extern 
 void LCL_RemoveParameterChangeHandler(LCL_ParameterChangeHandler handler, void *anything)
 {
 
@@ -251,8 +245,6 @@ void LCL_RemoveParameterChangeHandler(LCL_ParameterChangeHandler handler, void *
   ptr->prev->next = ptr->next;
 
   free(ptr);
-
-  return;
 }
 
 /* ================================================== */
@@ -279,8 +271,6 @@ LCL_AddDispersionNotifyHandler(LCL_DispersionNotifyHandler handler, void *anythi
   new_entry->prev = dispersion_notify_list.prev;
   dispersion_notify_list.prev->next = new_entry;
   dispersion_notify_list.prev = new_entry;
-
-  return;
 }
 
 /* ================================================== */
@@ -310,8 +300,6 @@ void LCL_RemoveDispersionNotifyHandler(LCL_DispersionNotifyHandler handler, void
   ptr->prev->next = ptr->next;
 
   free(ptr);
-
-  return;
 }
 
 /* ================================================== */
@@ -577,8 +565,6 @@ lcl_RegisterSystemDrivers(lcl_ReadFrequencyDriver read_freq,
 #ifdef TRACEON
   LOG(LOGS_INFO, LOGF_Local, "Local freq=%.3fppm", current_freq_ppm);
 #endif
-
-  return;
 }
 
 /* ================================================== */
@@ -614,8 +600,6 @@ LCL_SetLeap(int leap)
   if (drv_set_leap) {
     (drv_set_leap)(leap);
   }
-
-  return;
 }
 
 /* ================================================== */

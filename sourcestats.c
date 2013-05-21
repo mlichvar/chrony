@@ -204,7 +204,6 @@ void
 SST_DeleteInstance(SST_Stats inst)
 {
   Free(inst);
-  return;
 }
 
 /* ================================================== */
@@ -348,8 +347,6 @@ find_best_sample_index(SST_Stats inst, double *times_back)
 #if 0
   LOG(LOGS_INFO, LOGF_SourceStats, "n=%d best_index=%d", n, best_index);
 #endif
-
-  return;
 }
 
 /* ================================================== */
@@ -519,8 +516,6 @@ SST_GetReferenceData(SST_Stats inst, struct timeval *now,
   LOG(LOGS_INFO, LOGF_SourceStats, "n=%d freq=%f skew=%f del=%f disp=%f ofs=%f str=%d",
       inst->n_samples, *frequency, *skew, *root_delay, *root_dispersion, *offset, *stratum);
 #endif
-
-  return;
 }
 
 /* ================================================== */
@@ -596,8 +591,6 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
 #else
   (void)average_ok;
 #endif
-
-  return;
 }
 
 /* ================================================== */
@@ -677,8 +670,6 @@ SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffs
 #else
   (void)prev; (void)prev_freq;
 #endif
-
-  return;
 }
 
 /* ================================================== */

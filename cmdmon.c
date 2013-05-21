@@ -322,7 +322,6 @@ CAM_Finalise(void)
   ADF_DestroyTable(access_auth_table);
 
   initialised = 0;
-  return;
 }
 
 /* ================================================== */
@@ -743,8 +742,6 @@ transmit_reply(CMD_Reply *msg, union sockaddr_in46 *where_to, int auth_len)
 
     LOG(LOGS_WARN, LOGF_CmdMon, "Could not send response to %s:%hu", UTI_IPToString(&ip), port);
   }
-
-  return;
 }
   
 
@@ -1450,7 +1447,6 @@ handle_rtcreport(CMD_Request *rx_message, CMD_Reply *tx_message)
   } else {
     tx_message->status = htons(STT_NORTC);
   }
-  return;
 }
 
 /* ================================================== */
@@ -1465,7 +1461,6 @@ handle_trimrtc(CMD_Request *rx_message, CMD_Reply *tx_message)
   } else {
     tx_message->status = htons(STT_NORTC);
   }
-  return;
 }
 
 /* ================================================== */
@@ -1476,7 +1471,6 @@ handle_cyclelogs(CMD_Request *rx_message, CMD_Reply *tx_message)
   LOG_CycleLogFiles();
   
   tx_message->status = htons(STT_SUCCESS);
-  return;
 }
 
 /* ================================================== */
@@ -1524,8 +1518,6 @@ handle_subnets_accessed(CMD_Request *rx_message, CMD_Reply *tx_message)
         break;
     }
   }
-
-  return;
 }
 
 /* ================================================== */
@@ -1684,7 +1676,6 @@ handle_make_step(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   LCL_MakeStep(0.0);
   tx_message->status = htons(STT_SUCCESS);
-  return;
 }
 
 /* ================================================== */
@@ -1712,7 +1703,6 @@ handle_reselect_distance(CMD_Request *rx_message, CMD_Reply *tx_message)
   dist = UTI_FloatNetworkToHost(rx_message->data.reselect_distance.distance);
   SRC_SetReselectDistance(dist);
   tx_message->status = htons(STT_SUCCESS);
-  return;
 }
 
 /* ================================================== */
@@ -1722,7 +1712,6 @@ handle_reselect(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   SRC_ReselectSource();
   tx_message->status = htons(STT_SUCCESS);
-  return;
 }
 
 /* ================================================== */
@@ -2322,9 +2311,6 @@ read_from_cmd_socket(void *anything)
     do_it = ((do_it + 1) % 3);
 #endif
   }
-
-  return;
-
 }
 
 /* ================================================== */

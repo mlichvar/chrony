@@ -244,8 +244,6 @@ REF_Initialise(void)
 
   /* Make first entry in tracking log */
   REF_SetUnsynchronised();
-
-  return;
 }
 
 /* ================================================== */
@@ -264,7 +262,6 @@ REF_Finalise(void)
   Free(fb_drifts);
 
   initialised = 0;
-  return;
 }
 
 /* ================================================== */
@@ -849,8 +846,6 @@ REF_SetReference(int stratum,
   /* And now set the freq and offset to zero */
   our_frequency = 0.0;
   our_offset = 0.0;
-  
-  return;
 }
 
 /* ================================================== */
