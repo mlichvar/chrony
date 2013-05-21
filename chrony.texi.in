@@ -1755,6 +1755,10 @@ password can be encoded as a string of characters not containing a space with
 optional @code{ASCII:} prefix or as a hexadecimal number with @code{HEX:}
 prefix.
 
+For maximum security, it's recommended to use SHA1 or stronger hash function.
+The passwords should be random and they should be as long as the output size of
+the configured hash function, e.g. 160 bits with SHA1.
+
 The ID for the chronyc authentication key is specified with the commandkey
 command (see earlier). The command key can be generated automatically on
 start with the @code{generatecommandkey} directive.
