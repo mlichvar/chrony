@@ -253,6 +253,21 @@ start_initial_timeout(NCR_Instance inst)
 
 /* ================================================== */
 
+static void
+take_offline(NCR_Instance inst)
+{
+  inst->opmode = MD_OFFLINE;
+  if (inst->timer_running) {
+    SCH_RemoveTimeout(inst->timeout_id);
+    inst->timer_running = 0;
+  }
+
+  /* Mark source unreachable */
+  SRC_ResetReachability(inst->source);
+}
+
+/* ================================================== */
+
 NCR_Instance
 NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParameters *params)
 {
@@ -550,8 +565,26 @@ transmit_timeout(void *arg)
 {
   NCR_Instance inst = (NCR_Instance) arg;
   double timeout_delay=0.0;
-  int do_timer = 0;
   int do_auth;
+
+  inst->timer_running = 0;
+
+  switch (inst->opmode) {
+    case MD_BURST_WAS_ONLINE:
+      /* With online burst switch to online before last packet */
+      if (inst->burst_total_samples_to_go <= 1)
+        inst->opmode = MD_ONLINE;
+    case MD_BURST_WAS_OFFLINE:
+      if (inst->burst_total_samples_to_go <= 0)
+        take_offline(inst);
+      break;
+    default:
+      break;
+  }
+
+  if (inst->opmode == MD_OFFLINE) {
+    return;
+  }
 
 #ifdef TRACEON
   LOG(LOGS_INFO, LOGF_NtpCore, "Transmit timeout for [%s:%d]",
@@ -608,61 +641,33 @@ transmit_timeout(void *arg)
     do_auth = 0;
   }
 
-  if (inst->opmode != MD_OFFLINE) {
-    transmit_packet(inst->mode, inst->local_poll,
-                    NTP_VERSION,
-                    do_auth, inst->auth_key_id,
-                    &inst->remote_orig,
-                    &inst->local_rx, &inst->local_tx, &inst->local_ntp_tx,
-                    &inst->remote_addr);
-  }
-
-
-  switch (inst->opmode) {
-    case MD_BURST_WAS_OFFLINE:
-      --inst->burst_total_samples_to_go;
-      if (inst->burst_total_samples_to_go <= 0) {
-        inst->opmode = MD_OFFLINE;
-      }
-      break;
-    case MD_BURST_WAS_ONLINE:
-      --inst->burst_total_samples_to_go;
-      if (inst->burst_total_samples_to_go <= 0) {
-        inst->opmode = MD_ONLINE;
-      }
-      break;
-    default:
-      break;
-  }
-
+  transmit_packet(inst->mode, inst->local_poll,
+                  NTP_VERSION,
+                  do_auth, inst->auth_key_id,
+                  &inst->remote_orig,
+                  &inst->local_rx, &inst->local_tx, &inst->local_ntp_tx,
+                  &inst->remote_addr);
 
   /* Restart timer for this message */
   switch (inst->opmode) {
     case MD_ONLINE:
       timeout_delay = (double)(1 << inst->local_poll);
-      do_timer = 1;
       break;
     case MD_OFFLINE:
-      do_timer = 0;
-      /* Mark source unreachable */
-      SRC_ResetReachability(inst->source);
-      break;
+      assert(0);
+      return;
     case MD_BURST_WAS_ONLINE:
     case MD_BURST_WAS_OFFLINE:
+      --inst->burst_total_samples_to_go;
       timeout_delay = BURST_TIMEOUT;
-      do_timer = 1;
       break;
   }
 
-  if (do_timer) {
-    inst->timer_running = 1;
-    inst->timeout_id = SCH_AddTimeoutInClass(timeout_delay, SAMPLING_SEPARATION,
-                                             SAMPLING_RANDOMNESS,
-                                             SCH_NtpSamplingClass,
-                                             transmit_timeout, (void *)inst);
-  } else {
-    inst->timer_running = 0;
-  }
+  inst->timer_running = 1;
+  inst->timeout_id = SCH_AddTimeoutInClass(timeout_delay, SAMPLING_SEPARATION,
+                                           SAMPLING_RANDOMNESS,
+                                           SCH_NtpSamplingClass,
+                                           transmit_timeout, (void *)inst);
 }
 
 
@@ -1074,17 +1079,11 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
         case MD_BURST_WAS_ONLINE:
         case MD_BURST_WAS_OFFLINE:
           --inst->burst_good_samples_to_go;
-
           if (inst->burst_good_samples_to_go <= 0) {
-            if (inst->opmode == MD_BURST_WAS_ONLINE) {
+            if (inst->opmode == MD_BURST_WAS_ONLINE)
               inst->opmode = MD_ONLINE;
-            } else {
-              inst->opmode = MD_OFFLINE;
-              if (inst->timer_running) {
-                SCH_RemoveTimeout(inst->timeout_id);
-                inst->timer_running = 0;
-              }
-            }
+            else
+              take_offline(inst);
           }
           break;
         default:
@@ -1112,13 +1111,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   switch (inst->opmode) {
     case MD_OFFLINE:
-      requeue_transmit = 0;
-      /* Mark source unreachable */
-      SRC_ResetReachability(inst->source);
-      break; /* Even if we've received something, we don't want to
-                transmit back.  This might be a symmetric active peer
-                that is trying to talk to us. */
-
+      break;
     case MD_ONLINE:
       /* Normal processing, depending on whether we're in
          client/server or symmetric mode */
@@ -1159,7 +1152,6 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
       requeue_transmit = 1;
       delay_time = BURST_INTERVAL;
       break;
-
     default:
       assert(0);
       break;
@@ -1236,6 +1228,11 @@ NCR_ProcessKnown
   int authenticate_reply, auth_len;
   unsigned long auth_key_id;
   unsigned long reply_auth_key_id;
+
+  /* Ignore packets from offline sources */
+  if (inst->opmode == MD_OFFLINE) {
+    return;
+  }
 
   /* Check version */
   version = (message->lvm >> 3) & 0x7;
@@ -1562,11 +1559,7 @@ NCR_TakeSourceOffline(NCR_Instance inst)
     case MD_ONLINE:
       if (inst->timer_running) {
         LOG(LOGS_INFO, LOGF_NtpCore, "Source %s offline", UTI_IPToString(&inst->remote_addr.ip_addr));
-        SCH_RemoveTimeout(inst->timeout_id);
-        inst->timer_running = 0;
-        inst->opmode = MD_OFFLINE;
-        /* Mark source unreachable */
-        SRC_ResetReachability(inst->source);
+        take_offline(inst);
       }
       break;
     case MD_OFFLINE:
