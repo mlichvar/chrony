@@ -1144,7 +1144,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
           if (poll_to_use < inst->minpoll) poll_to_use = inst->minpoll;
           if (poll_to_use > inst->maxpoll) poll_to_use = inst->maxpoll;
           
-          delay_time = (double) (1UL<<(poll_to_use - 1));
+          delay_time = (double) (1UL<<poll_to_use) / 2.0;
           
           break;
         default:
