@@ -389,6 +389,39 @@ adjust_poll(NCR_Instance inst, double adj)
 
 /* ================================================== */
 
+static double
+get_poll_adj(NCR_Instance inst, double error_in_estimate, double peer_distance)
+{
+  double poll_adj;
+
+  if (error_in_estimate > peer_distance) {
+    int shift = 0;
+    unsigned long temp = (int)(error_in_estimate / peer_distance);
+    do {
+      shift++;
+      temp>>=1;
+    } while (temp);
+
+    poll_adj = -shift - inst->poll_score + 0.5;
+
+  } else {
+    int samples = SRC_Samples(inst->source);
+
+    /* Adjust polling interval so that the number of sourcestats samples
+       remains close to the target value */
+    poll_adj = ((double)samples / inst->poll_target - 1.0) / inst->poll_target;
+
+    /* Make interval shortening quicker */
+    if (samples < inst->poll_target) {
+      poll_adj *= 2.0;
+    }
+  }
+
+  return poll_adj;
+}
+
+/* ================================================== */
+
 static void
 transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 int my_poll, /* The log2 of the local poll interval */
@@ -716,7 +749,6 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   int poll_to_use;
   double delay_time = 0;
   int requeue_transmit = 0;
-  double poll_adj;
 
   /* ==================== */
 
@@ -935,7 +967,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   }
 
   /* Check for Kiss-of-Death */
-  if (message->stratum > NTP_MAX_STRATUM && !source_is_synchronized) {
+  if (!test7i && !source_is_synchronized) {
       if (!memcmp(&message->reference_id, "RATE", 4))
         kod_rate = 1;
   }
@@ -982,6 +1014,26 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   LOG(LOGS_INFO, LOGF_NtpCore, "kod_rate=%d valid_kod=%d", kod_rate, valid_kod);
 #endif
 
+  /* Reduce polling rate if KoD RATE was received */
+  if (kod_rate && valid_kod) {
+    if (inst->remote_poll > inst->minpoll) {
+      inst->minpoll = inst->remote_poll;
+      if (inst->minpoll > inst->maxpoll)
+        inst->maxpoll = inst->minpoll;
+      if (inst->minpoll > inst->local_poll)
+        inst->local_poll = inst->minpoll;
+      LOG(LOGS_WARN, LOGF_NtpCore, "Received KoD RATE from %s, minpoll set to %d",
+          UTI_IPToString(&inst->remote_addr.ip_addr), inst->minpoll);
+    }
+
+    /* Stop ongoing burst */
+    if (inst->opmode == MD_BURST_WAS_OFFLINE || inst->opmode == MD_BURST_WAS_ONLINE) {
+      inst->burst_good_samples_to_go = 0;
+      LOG(LOGS_WARN, LOGF_NtpCore, "Received KoD RATE from %s, burst sampling stopped",
+          UTI_IPToString(&inst->remote_addr.ip_addr), inst->minpoll);
+    }
+  }
+
   if (valid_header && valid_data) {
     inst->tx_count = 0;
     SRC_UpdateReachability(inst->source, 1);
@@ -996,103 +1048,52 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     } else {
       SRC_UnsetSelectable(inst->source);
     }
-  }
 
-  /* Do this before we accumulate a new sample into the stats registers, obviously */
-  estimated_offset = SRC_PredictOffset(inst->source, &sample_time);
+    if (good_data) {
+      /* Do this before we accumulate a new sample into the stats registers, obviously */
+      estimated_offset = SRC_PredictOffset(inst->source, &sample_time);
 
-  if (valid_header && good_data) {
-    SRC_AccumulateSample(inst->source,
-                         &sample_time,
-                         theta, delta, epsilon,
-                         root_delay, root_dispersion,
-                         message->stratum, (NTP_Leap) pkt_leap);
+      SRC_AccumulateSample(inst->source,
+                           &sample_time,
+                           theta, delta, epsilon,
+                           root_delay, root_dispersion,
+                           message->stratum, (NTP_Leap) pkt_leap);
 
-    /* Now examine the registers.  First though, if the prediction is
-       not even within +/- the peer distance of the peer, we are clearly
-       not tracking the peer at all well, so we back off the sampling
-       rate depending on just how bad the situation is. */
-    error_in_estimate = fabs(-theta - estimated_offset);
-    /* Now update the polling interval */
+      /* Now examine the registers.  First though, if the prediction is
+         not even within +/- the peer distance of the peer, we are clearly
+         not tracking the peer at all well, so we back off the sampling
+         rate depending on just how bad the situation is. */
+      error_in_estimate = fabs(-theta - estimated_offset);
 
-    if (error_in_estimate > peer_distance) {
-      int shift = 0;
-      unsigned long temp = (int)(error_in_estimate / peer_distance);
-      do {
-        shift++;
-        temp>>=1;
-      } while (temp);
-      
-      poll_adj = -shift - inst->poll_score + 0.5;
-      
+      /* Now update the polling interval */
+      adjust_poll(inst, get_poll_adj(inst, error_in_estimate, peer_distance));
+
+      /* If we're in burst mode, check whether the burst is completed and
+         revert to the previous mode */
+      switch (inst->opmode) {
+        case MD_BURST_WAS_ONLINE:
+        case MD_BURST_WAS_OFFLINE:
+          --inst->burst_good_samples_to_go;
+
+          if (inst->burst_good_samples_to_go <= 0) {
+            if (inst->opmode == MD_BURST_WAS_ONLINE) {
+              inst->opmode = MD_ONLINE;
+            } else {
+              inst->opmode = MD_OFFLINE;
+              if (inst->timer_running) {
+                SCH_RemoveTimeout(inst->timeout_id);
+                inst->timer_running = 0;
+              }
+            }
+          }
+          break;
+        default:
+          break;
+      }
     } else {
-      int samples = SRC_Samples(inst->source);
-
-      /* Adjust polling interval so that the number of sourcestats samples
-         remains close to the target value */
-      poll_adj = ((double)samples / inst->poll_target - 1.0) / inst->poll_target;
-
-      /* Use higher gain when decreasing the interval */
-      if (samples < inst->poll_target) {
-        poll_adj *= 2.0;
-      }
+      /* Slowly increase the polling interval if we can't get good_data */
+      adjust_poll(inst, 0.1);
     }
-
-    adjust_poll(inst, poll_adj);
-  } else if (valid_header && valid_data) {
-
-    /* Slowly increase the polling interval if we can't get good_data */
-    adjust_poll(inst, 0.1);
-  }
-
-  /* Reduce polling rate if KoD RATE was received */
-  if (kod_rate && valid_kod) {
-    if (inst->remote_poll > inst->minpoll) {
-      inst->minpoll = inst->remote_poll;
-      if (inst->minpoll > inst->maxpoll)
-        inst->maxpoll = inst->minpoll;
-      if (inst->minpoll > inst->local_poll)
-        inst->local_poll = inst->minpoll;
-      LOG(LOGS_WARN, LOGF_NtpCore, "Received KoD RATE from %s, minpoll set to %d", UTI_IPToString(&inst->remote_addr.ip_addr), inst->minpoll);
-    }
-
-    /* Stop ongoing burst */
-    if (inst->opmode == MD_BURST_WAS_OFFLINE || inst->opmode == MD_BURST_WAS_ONLINE) {
-      inst->burst_good_samples_to_go = 0;
-      LOG(LOGS_WARN, LOGF_NtpCore, "Received KoD RATE from %s, burst sampling stopped", UTI_IPToString(&inst->remote_addr.ip_addr), inst->minpoll);
-    }
-  }
-
-  /* If we're in burst mode, check whether the burst is completed and
-     revert to the previous mode */
-
-  switch (inst->opmode) {
-    case MD_BURST_WAS_ONLINE:
-      if (valid_header && good_data) {
-        --inst->burst_good_samples_to_go;
-      }
-
-      if (inst->burst_good_samples_to_go <= 0) {
-        inst->opmode = MD_ONLINE;
-      }
-      break;
-
-    case MD_BURST_WAS_OFFLINE:
-      if (valid_header && good_data) {
-        --inst->burst_good_samples_to_go;
-      }
-
-      if (inst->burst_good_samples_to_go <= 0) {
-        inst->opmode = MD_OFFLINE;
-        if (inst->timer_running) {
-          SCH_RemoveTimeout(inst->timeout_id);
-        }
-        inst->timer_running = 0;
-      }
-      break;
-                     
-    default:
-      break;
   }
 
   /* And now, requeue the timer.
@@ -1151,12 +1152,10 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
           assert(0);
           break;
       }
-      
       break;
 
     case MD_BURST_WAS_ONLINE:
     case MD_BURST_WAS_OFFLINE:
-
       requeue_transmit = 1;
       delay_time = BURST_INTERVAL;
       break;
@@ -1164,7 +1163,6 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     default:
       assert(0);
       break;
-
   }
 
   if (kod_rate && valid_kod) {
@@ -1174,6 +1172,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   if (requeue_transmit) {
     /* Get rid of old timeout and start a new one */
+    assert(inst->timer_running);
     SCH_RemoveTimeout(inst->timeout_id);
     inst->timeout_id = SCH_AddTimeoutInClass(delay_time, SAMPLING_SEPARATION,
                                              SAMPLING_RANDOMNESS,
@@ -1196,12 +1195,6 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
             theta, delta, epsilon,
             pkt_root_delay, pkt_root_dispersion);
   }            
-
-
-  /* At this point we will have to do something about trimming the
-     poll interval for the source and requeueing the polling timeout.
-
-     Left until the source statistics management has been written */
 }
 
 /* ================================================== */
