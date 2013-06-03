@@ -94,15 +94,6 @@ SST_GetTrackingData(SST_Stats inst, struct timeval *ref_time,
                     double *frequency, double *skew,
                     double *root_delay, double *root_dispersion);
 
-/* Get parameters for using this source as the reference */
-extern void
-SST_GetReferenceData(SST_Stats inst, struct timeval *now, 
-                     int *stratum, double *offset,
-                     double *root_delay, double *root_dispersion,
-                     double *frequency, double *skew);
-
-
-
 /* This routine is called when the local machine clock parameters are
    changed.  It adjusts all existing samples that we are holding for
    each peer so that it looks like they were made under the new clock

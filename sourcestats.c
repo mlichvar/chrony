@@ -489,36 +489,6 @@ SST_DoNewRegression(SST_Stats inst)
 }
 
 /* ================================================== */
-
-void
-SST_GetReferenceData(SST_Stats inst, struct timeval *now, 
-                     int *stratum, double *offset,
-                     double *root_delay, double *root_dispersion,
-                     double *frequency, double *skew)
-{
-
-  double elapsed;
-  int i, j;
-
-  *frequency = inst->estimated_frequency;
-  *skew = inst->skew;
-
-  i = get_runsbuf_index(inst, inst->best_single_sample);
-  j = get_buf_index(inst, inst->best_single_sample);
-
-  UTI_DiffTimevalsToDouble(&elapsed, now, &inst->sample_times[i]);
-  *root_delay = inst->root_delays[j];
-  *root_dispersion = inst->root_dispersions[j] + elapsed * inst->skew;
-  *offset = inst->offsets[i] + elapsed * inst->estimated_frequency;
-  *stratum = inst->strata[j];
-
-#ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_SourceStats, "n=%d freq=%f skew=%f del=%f disp=%f ofs=%f str=%d",
-      inst->n_samples, *frequency, *skew, *root_delay, *root_dispersion, *offset, *stratum);
-#endif
-}
-
-/* ================================================== */
 /* Return the assumed worst case range of values that this source's
    frequency lies within.  Frequency is defined as the amount of time
    the local clock gains relative to the source per unit local clock
