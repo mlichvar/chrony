@@ -533,7 +533,7 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
   i = get_runsbuf_index(inst, inst->best_single_sample);
   j = get_buf_index(inst, inst->best_single_sample);
 
-  *stratum = inst->strata[j];
+  *stratum = inst->strata[get_buf_index(inst, inst->n_samples - 1)];
   *variance = inst->variance;
 
   peer_distance = inst->peer_dispersions[j] + 0.5 * inst->peer_delays[j];
