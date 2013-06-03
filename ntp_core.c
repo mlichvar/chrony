@@ -1513,13 +1513,15 @@ NCR_SlewTimes(NCR_Instance inst, struct timeval *when, double dfreq, double doff
   struct timeval prev;
   double delta;
   prev = inst->local_rx;
-  UTI_AdjustTimeval(&inst->local_rx, when, &inst->local_rx, &delta, dfreq, doffset);
+  if (inst->local_rx.tv_sec || inst->local_rx.tv_usec)
+    UTI_AdjustTimeval(&inst->local_rx, when, &inst->local_rx, &delta, dfreq, doffset);
 #ifdef TRACEON
   LOG(LOGS_INFO, LOGF_NtpCore, "rx prev=[%s] new=[%s]",
       UTI_TimevalToString(&prev), UTI_TimevalToString(&inst->local_rx));
 #endif
   prev = inst->local_tx;
-  UTI_AdjustTimeval(&inst->local_tx, when, &inst->local_tx, &delta, dfreq, doffset);
+  if (inst->local_tx.tv_sec || inst->local_tx.tv_usec)
+    UTI_AdjustTimeval(&inst->local_tx, when, &inst->local_tx, &delta, dfreq, doffset);
 #ifdef TRACEON
   LOG(LOGS_INFO, LOGF_NtpCore, "tx prev=[%s] new=[%s]",
       UTI_TimevalToString(&prev), UTI_TimevalToString(&inst->local_tx));
