@@ -1068,7 +1068,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   switch (inst->opmode) {
     case MD_BURST_WAS_ONLINE:
-      if (valid_data) {
+      if (valid_header && good_data) {
         --inst->burst_good_samples_to_go;
       }
 
@@ -1078,7 +1078,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
       break;
 
     case MD_BURST_WAS_OFFLINE:
-      if (valid_data) {
+      if (valid_header && good_data) {
         --inst->burst_good_samples_to_go;
       }
 
