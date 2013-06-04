@@ -84,6 +84,8 @@ struct NCR_Instance_Record {
   int local_poll;               /* Log2 of polling interval at our end */
   int remote_poll;              /* Log2 of server/peer's polling interval (recovered
                                    from received packets) */
+  int remote_stratum;           /* Stratum of the server/peer (recovered from
+                                   received packets) */
 
   int presend_minpoll;           /* If the current polling interval is
                                     at least this, an echo datagram
@@ -177,6 +179,9 @@ struct NCR_Instance_Record {
 
 /* Randomness added to spacing between samples for one server/peer */
 #define SAMPLING_RANDOMNESS 0.02
+
+/* Adjustment of the peer polling interval */
+#define PEER_SAMPLING_ADJ 1.1
 
 /* Spacing between samples in burst mode for one server/peer */
 #define BURST_INTERVAL 2.0
@@ -331,6 +336,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   
   result->local_poll = params->minpoll;
   result->remote_poll = 0;
+  result->remote_stratum = 0;
 
   /* Create a source instance for this NTP source */
   result->source = SRC_CreateNewInstance(UTI_IPToRefid(&remote_addr->ip_addr), SRC_NTP, params->sel_option, &result->remote_addr.ip_addr);
@@ -441,7 +447,7 @@ get_poll_adj(NCR_Instance inst, double error_in_estimate, double peer_distance)
 static double
 get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx)
 {
-  int poll_to_use;
+  int poll_to_use, stratum_diff;
   double delay_time;
 
   /* If we're in burst mode, queue for immediate dispatch.
@@ -488,6 +494,18 @@ get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx)
 
           delay_time = (double) (1UL<<poll_to_use);
 
+          /* If the remote stratum is higher than ours, try to lock on the
+             peer's polling to minimize our response time by slightly extending
+             our delay or waiting for the peer to catch up with us as the
+             random part in the actual interval is reduced. If the remote
+             stratum is equal to ours, try to interleave evenly with the peer. */
+          stratum_diff = inst->remote_stratum - REF_GetOurStratum();
+          if ((stratum_diff > 0 && last_tx * PEER_SAMPLING_ADJ < delay_time) ||
+              (!on_tx && !stratum_diff &&
+               last_tx / delay_time > PEER_SAMPLING_ADJ - 0.5))
+            delay_time *= PEER_SAMPLING_ADJ;
+
+          /* Substract the already spend time */
           if (last_tx > 0.0)
             delay_time -= last_tx;
           if (delay_time < 0.0)
@@ -1116,6 +1134,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   if (valid_header && valid_data) {
     inst->remote_poll = message->poll;
+    inst->remote_stratum = message->stratum;
     inst->tx_count = 0;
     SRC_UpdateReachability(inst->source, 1);
 
