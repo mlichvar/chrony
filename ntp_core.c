@@ -437,6 +437,77 @@ get_poll_adj(NCR_Instance inst, double error_in_estimate, double peer_distance)
 
 /* ================================================== */
 
+static double
+get_transmit_delay(NCR_Instance inst)
+{
+  int poll_to_use;
+  double delay_time;
+
+  /* If we're in burst mode, queue for immediate dispatch.
+
+     If we're operating in client/server mode, queue the timeout for
+     the poll interval hence.  The fact that a timeout has been queued
+     in the transmit handler is immaterial - that is only done so that
+     we at least send something, if no reply is heard.
+
+     If we're in symmetric mode, we have to take account of the peer's
+     wishes, otherwise his sampling regime will fall to pieces.  If
+     we're in client/server mode, we don't care what poll interval the
+     server responded with last time. */
+
+  switch (inst->opmode) {
+    case MD_OFFLINE:
+      assert(0);
+      break;
+    case MD_ONLINE:
+      /* Normal processing, depending on whether we're in
+         client/server or symmetric mode */
+
+      switch(inst->mode) {
+        case MODE_CLIENT:
+          /* Client/server association - aim at some randomised time
+             approx the poll interval away */
+          poll_to_use = inst->local_poll;
+
+          delay_time = (double) (1UL<<poll_to_use);
+
+          break;
+
+        case MODE_ACTIVE:
+          /* Symmetric active association - aim at some randomised time approx
+             half the poll interval away, to interleave 50-50 with the peer */
+
+          /* Use shorter of the local and remote poll interval, but not shorter
+             than the allowed minimum */
+          poll_to_use = inst->local_poll;
+          if (poll_to_use > inst->remote_poll)
+            poll_to_use = inst->remote_poll;
+          if (poll_to_use < inst->minpoll)
+            poll_to_use = inst->minpoll;
+
+          delay_time = (double) (1UL<<poll_to_use) / 2.0;
+
+          break;
+        default:
+          assert(0);
+          break;
+      }
+      break;
+
+    case MD_BURST_WAS_ONLINE:
+    case MD_BURST_WAS_OFFLINE:
+      delay_time = BURST_INTERVAL;
+      break;
+    default:
+      assert(0);
+      break;
+  }
+
+  return delay_time;
+}
+
+/* ================================================== */
+
 static void
 transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 int my_poll, /* The log2 of the local poll interval */
@@ -751,7 +822,6 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   /* The absolute difference between the offset estimate and
      measurement in seconds */
   double error_in_estimate;
-  int poll_to_use;
   double delay_time = 0;
   int requeue_transmit = 0;
 
@@ -1037,6 +1107,8 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
       LOG(LOGS_WARN, LOGF_NtpCore, "Received KoD RATE from %s, burst sampling stopped",
           UTI_IPToString(&inst->remote_addr.ip_addr), inst->minpoll);
     }
+
+    requeue_transmit = 1;
   }
 
   if (valid_header && valid_data) {
@@ -1093,76 +1165,19 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
       /* Slowly increase the polling interval if we can't get good_data */
       adjust_poll(inst, 0.1);
     }
+
+    requeue_transmit = 1;
   }
 
-  /* And now, requeue the timer.
+  /* And now, requeue the timer. */
+  if (requeue_transmit && inst->opmode != MD_OFFLINE) {
+    delay_time = get_transmit_delay(inst);
 
-     If we're in burst mode, queue for immediate dispatch.
+    if (kod_rate) {
+      /* Back off for a while */
+      delay_time += (double) (4 * (1UL << inst->minpoll));
+    }
 
-     If we're operating in client/server mode, queue the timeout for
-     the poll interval hence.  The fact that a timeout has been queued
-     in the transmit handler is immaterial - that is only done so that
-     we at least send something, if no reply is heard.
-
-     If we're in symmetric mode, we have to take account of the peer's
-     wishes, otherwise his sampling regime will fall to pieces.  If
-     we're in client/server mode, we don't care what poll interval the
-     server responded with last time. */
-
-  switch (inst->opmode) {
-    case MD_OFFLINE:
-      break;
-    case MD_ONLINE:
-      /* Normal processing, depending on whether we're in
-         client/server or symmetric mode */
-
-      requeue_transmit = 1;
-
-      switch(inst->mode) {
-        case MODE_CLIENT:
-          /* Client/server association - aim at some randomised time
-             approx the poll interval away */
-          poll_to_use = inst->local_poll;
-          
-          delay_time = (double) (1UL<<poll_to_use);
-          
-          break;
-          
-        case MODE_ACTIVE:
-          /* Symmetric active association - aim at some randomised time approx
-             half the poll interval away, to interleave 50-50 with the peer */
-          
-          poll_to_use = (inst->local_poll < inst->remote_poll) ?  inst->local_poll : inst->remote_poll;
-          
-          /* Limit by min and max poll */
-          if (poll_to_use < inst->minpoll) poll_to_use = inst->minpoll;
-          if (poll_to_use > inst->maxpoll) poll_to_use = inst->maxpoll;
-          
-          delay_time = (double) (1UL<<poll_to_use) / 2.0;
-          
-          break;
-        default:
-          assert(0);
-          break;
-      }
-      break;
-
-    case MD_BURST_WAS_ONLINE:
-    case MD_BURST_WAS_OFFLINE:
-      requeue_transmit = 1;
-      delay_time = BURST_INTERVAL;
-      break;
-    default:
-      assert(0);
-      break;
-  }
-
-  if (kod_rate && valid_kod) {
-    /* Back off for a while */
-    delay_time += (double) (4 * (1UL << inst->minpoll));
-  }
-
-  if (requeue_transmit) {
     /* Get rid of old timeout and start a new one */
     assert(inst->timer_running);
     SCH_RemoveTimeout(inst->timeout_id);
