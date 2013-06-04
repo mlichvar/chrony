@@ -330,6 +330,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->auto_offline = params->auto_offline;
   
   result->local_poll = params->minpoll;
+  result->remote_poll = 0;
 
   /* Create a source instance for this NTP source */
   result->source = SRC_CreateNewInstance(UTI_IPToRefid(&remote_addr->ip_addr), SRC_NTP, params->sel_option, &result->remote_addr.ip_addr);
@@ -438,7 +439,7 @@ get_poll_adj(NCR_Instance inst, double error_in_estimate, double peer_distance)
 /* ================================================== */
 
 static double
-get_transmit_delay(NCR_Instance inst)
+get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx)
 {
   int poll_to_use;
   double delay_time;
@@ -475,7 +476,7 @@ get_transmit_delay(NCR_Instance inst)
 
         case MODE_ACTIVE:
           /* Symmetric active association - aim at some randomised time approx
-             half the poll interval away, to interleave 50-50 with the peer */
+             the poll interval away since the last transmit */
 
           /* Use shorter of the local and remote poll interval, but not shorter
              than the allowed minimum */
@@ -485,7 +486,12 @@ get_transmit_delay(NCR_Instance inst)
           if (poll_to_use < inst->minpoll)
             poll_to_use = inst->minpoll;
 
-          delay_time = (double) (1UL<<poll_to_use) / 2.0;
+          delay_time = (double) (1UL<<poll_to_use);
+
+          if (last_tx > 0.0)
+            delay_time -= last_tx;
+          if (delay_time < 0.0)
+            delay_time = 0.0;
 
           break;
         default:
@@ -496,7 +502,9 @@ get_transmit_delay(NCR_Instance inst)
 
     case MD_BURST_WAS_ONLINE:
     case MD_BURST_WAS_OFFLINE:
-      delay_time = BURST_INTERVAL;
+      /* With burst, the timeout for new transmit after valid reply is shorter
+         than the timeout without reply */
+      delay_time = on_tx ? BURST_TIMEOUT : BURST_INTERVAL;
       break;
     default:
       assert(0);
@@ -635,7 +643,7 @@ static void
 transmit_timeout(void *arg)
 {
   NCR_Instance inst = (NCR_Instance) arg;
-  double timeout_delay=0.0;
+  double timeout_delay;
   int do_auth;
 
   inst->timer_running = 0;
@@ -719,21 +727,17 @@ transmit_timeout(void *arg)
                   &inst->local_rx, &inst->local_tx, &inst->local_ntp_tx,
                   &inst->remote_addr);
 
-  /* Restart timer for this message */
   switch (inst->opmode) {
-    case MD_ONLINE:
-      timeout_delay = (double)(1 << inst->local_poll);
-      break;
-    case MD_OFFLINE:
-      assert(0);
-      return;
     case MD_BURST_WAS_ONLINE:
     case MD_BURST_WAS_OFFLINE:
       --inst->burst_total_samples_to_go;
-      timeout_delay = BURST_TIMEOUT;
+      break;
+    default:
       break;
   }
 
+  /* Restart timer for this message */
+  timeout_delay = get_transmit_delay(inst, 1, 0.0);
   inst->timer_running = 1;
   inst->timeout_id = SCH_AddTimeoutInClass(timeout_delay, SAMPLING_SEPARATION,
                                            SAMPLING_RANDOMNESS,
@@ -1171,7 +1175,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   /* And now, requeue the timer. */
   if (requeue_transmit && inst->opmode != MD_OFFLINE) {
-    delay_time = get_transmit_delay(inst);
+    delay_time = get_transmit_delay(inst, 0, local_interval);
 
     if (kod_rate) {
       /* Back off for a while */
