@@ -866,13 +866,12 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   }
 
   /* Regardless of any validity checks we apply, we are required to
-     save these two fields from the packet into the ntp source
+     save this field from the packet into the ntp source
      instance record.  See RFC1305 section 3.4.4, peer.org <- pkt.xmt
      & peer.peerpoll <- pkt.poll.  Note we can't do this assignment
      before test1 has been carried out!! */
 
   inst->remote_orig = message->transmit_ts;
-  inst->remote_poll = message->poll;
 
   /* Test 3 requires that pkt.org != 0 and pkt.rec != 0.  If
      either of these are true it means the association is not properly
@@ -1095,8 +1094,8 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   /* Reduce polling rate if KoD RATE was received */
   if (kod_rate && valid_kod) {
-    if (inst->remote_poll > inst->minpoll) {
-      inst->minpoll = inst->remote_poll;
+    if (message->poll > inst->minpoll) {
+      inst->minpoll = message->poll;
       if (inst->minpoll > inst->maxpoll)
         inst->maxpoll = inst->minpoll;
       if (inst->minpoll > inst->local_poll)
@@ -1116,6 +1115,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   }
 
   if (valid_header && valid_data) {
+    inst->remote_poll = message->poll;
     inst->tx_count = 0;
     SRC_UpdateReachability(inst->source, 1);
 
