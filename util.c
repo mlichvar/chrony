@@ -211,19 +211,6 @@ UTI_TimevalToString(struct timeval *tv)
 }
 
 /* ================================================== */
-#define JAN_1970 0x83aa7e80UL
-
-inline static void
-int64_to_timeval(NTP_int64 *src,
-                 struct timeval *dest)
-{
-  dest->tv_sec = ntohl(src->hi) - JAN_1970;
-  
-  /* Until I invent a slick way to do this, just do it the obvious way */
-  dest->tv_usec = (int)(0.5 + (double)(ntohl(src->lo)) / 4294.967296);
-}
-
-/* ================================================== */
 /* Convert an NTP timestamp into a temporary string, largely
    for diagnostic display */
 
@@ -231,7 +218,7 @@ char *
 UTI_TimestampToString(NTP_int64 *ts)
 {
   struct timeval tv;
-  int64_to_timeval(ts, &tv);
+  UTI_Int64ToTimeval(ts, &tv);
   return UTI_TimevalToString(&tv);
 }
 
