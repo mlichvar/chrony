@@ -77,7 +77,7 @@ test_code () {
 #{{{ usage
 usage () {
   cat <<EOF
-\`configure' configures tdl to adapt to many kinds of systems.
+\`configure' configures this package to adapt to many kinds of systems.
 
 Usage: ./configure [OPTION]...
 
