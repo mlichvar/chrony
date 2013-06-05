@@ -479,9 +479,15 @@ UTI_Int32ToDouble(NTP_int32 x)
 
 /* ================================================== */
 
+#define MAX_NTP_INT32 (4294967295.0 / 65536.0)
+
 NTP_int32
 UTI_DoubleToInt32(double x)
 {
+  if (x > MAX_NTP_INT32)
+    x = MAX_NTP_INT32;
+  else if (x < 0)
+    x = 0.0;
   return htonl((NTP_int32)(0.5 + 65536.0 * x));
 }
 
