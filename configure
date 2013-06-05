@@ -113,6 +113,7 @@ For better control, use the options below.
   --disable-linuxcaps    Disable Linux capabilities support
   --disable-forcednsretry Don't retry on permanent DNS error
   --with-sendmail=PATH   Path to sendmail binary [/usr/lib/sendmail]
+  --enable-trace         Enable tracing
 
 Fine tuning of the installation directories:
   --sysconfdir=DIR       chrony.conf location [/etc]
@@ -190,7 +191,7 @@ mail_program="/usr/lib/sendmail"
 for option
 do
     case "$option" in
-    --trace )
+    --enable-trace )
       add_def TRACEON
     ;;
     --disable-readline )
