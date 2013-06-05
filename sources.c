@@ -846,7 +846,8 @@ SRC_SelectSource(uint32_t match_refid)
                               &src_frequency, &src_skew,
                               &src_root_delay, &src_root_dispersion);
 
-          REF_SetReference(min_stratum, leap_status,
+          REF_SetReference(sources[selected_source_index]->sel_info.stratum,
+                           leap_status,
                            sources[selected_source_index]->ref_id,
                            sources[selected_source_index]->ip_addr,
                            &ref_time,
