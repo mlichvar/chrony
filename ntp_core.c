@@ -945,7 +945,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
        properly (e.g. for the first sample received in a peering
        connection). */
     theta = delta = epsilon = 0.0;
-
+    sample_time = *now;
   }
   
   peer_distance = epsilon + 0.5 * fabs(delta);
