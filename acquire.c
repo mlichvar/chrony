@@ -449,7 +449,7 @@ read_from_socket(void *anything)
   his_addr_len = sizeof(his_addr);
 
   /* Get timestamp */
-  SCH_GetFileReadyTime(&now, NULL);
+  SCH_GetLastEventTime(&now, NULL, NULL);
 
   sock_fd = (long)anything;
   status = recvfrom (sock_fd, (char *)&msg, message_length, flags,

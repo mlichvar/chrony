@@ -306,7 +306,7 @@ read_from_socket(void *anything)
 
   assert(initialised);
 
-  SCH_GetFileReadyTime(&now, &now_err);
+  SCH_GetLastEventTime(&now, &now_err, NULL);
 
   iov.iov_base = message.arbitrary;
   iov.iov_len = sizeof(message);

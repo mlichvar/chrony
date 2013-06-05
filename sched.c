@@ -219,11 +219,15 @@ SCH_RemoveInputFileHandler(int fd)
 /* ================================================== */
 
 void
-SCH_GetFileReadyTime(struct timeval *tv, double *err)
+SCH_GetLastEventTime(struct timeval *cooked, double *err, struct timeval *raw)
 {
-  *tv = last_select_ts;
-  if (err)
-    *err = last_select_ts_err;
+  if (cooked) {
+    *cooked = last_select_ts;
+    if (err)
+      *err = last_select_ts_err;
+  }
+  if (raw)
+    *raw = last_select_ts_raw;
 }
 
 /* ================================================== */

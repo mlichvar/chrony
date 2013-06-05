@@ -789,7 +789,7 @@ read_from_device(void *any)
     /* Read RTC time, sandwiched between two polls of the system clock
        so we can bound any error. */
 
-    SCH_GetFileReadyTime(&sys_time, NULL);
+    SCH_GetLastEventTime(&sys_time, NULL, NULL);
 
     status = ioctl(fd, RTC_RD_TIME, &rtc_raw);
     if (status < 0) {
