@@ -471,6 +471,22 @@ UTI_GetNTPTsFuzz(int precision)
 
 /* ================================================== */
 
+double
+UTI_Int32ToDouble(NTP_int32 x)
+{
+  return (double) ntohl(x) / 65536.0;
+}
+
+/* ================================================== */
+
+NTP_int32
+UTI_DoubleToInt32(double x)
+{
+  return htonl((NTP_int32)(0.5 + 65536.0 * x));
+}
+
+/* ================================================== */
+
 /* Seconds part of RFC1305 timestamp correponding to the origin of the
    struct timeval format. */
 #define JAN_1970 0x83aa7e80UL

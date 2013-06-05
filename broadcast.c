@@ -99,8 +99,8 @@ timeout_handler(void *arbitrary)
 
   /* If we're sending a client mode packet and we aren't synchronized yet, 
      we might have to set up artificial values for some of these parameters */
-  message.root_delay = double_to_int32(our_root_delay);
-  message.root_dispersion = double_to_int32(our_root_dispersion);
+  message.root_delay = UTI_DoubleToInt32(our_root_delay);
+  message.root_dispersion = UTI_DoubleToInt32(our_root_dispersion);
 
   message.reference_id = htonl((NTP_int32) our_ref_id);
 

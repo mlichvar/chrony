@@ -93,22 +93,4 @@ typedef union {
 
 #define NTP_NORMAL_PACKET_SIZE offsetof(NTP_Packet, auth_keyid)
 
-/* ================================================== */
-
-inline static double
-int32_to_double(NTP_int32 x)
-{
-  return (double) ntohl(x) / 65536.0;
-}
-
-/* ================================================== */
-
-inline static NTP_int32
-double_to_int32(double x)
-{
-  return htonl((NTP_int32)(0.5 + 65536.0 * x));
-}
-
-/* ================================================== */
-
 #endif /* GOT_NTP_H */

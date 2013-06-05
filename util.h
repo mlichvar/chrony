@@ -91,6 +91,9 @@ extern void UTI_AdjustTimeval(struct timeval *old_tv, struct timeval *when, stru
 /* Get a random value to fuzz an NTP timestamp in the given precision */
 extern uint32_t UTI_GetNTPTsFuzz(int precision);
 
+extern double UTI_Int32ToDouble(NTP_int32 x);
+extern NTP_int32 UTI_DoubleToInt32(double x);
+
 extern void UTI_TimevalToInt64(struct timeval *src, NTP_int64 *dest, uint32_t fuzz);
 
 extern void UTI_Int64ToTimeval(NTP_int64 *src, struct timeval *dest);

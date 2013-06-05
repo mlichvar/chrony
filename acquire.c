@@ -265,8 +265,8 @@ probe_source(SourceRecord *src)
   pkt.stratum = 0;
   pkt.poll = 4;
   pkt.precision = -6; /* as ntpdate */
-  pkt.root_delay = double_to_int32(1.0); /* 1 second */
-  pkt.root_dispersion = double_to_int32(1.0); /* likewise */
+  pkt.root_delay = UTI_DoubleToInt32(1.0); /* 1 second */
+  pkt.root_dispersion = UTI_DoubleToInt32(1.0); /* likewise */
   pkt.reference_id = 0;
   pkt.reference_ts.hi = 0; /* Set to 0 */
   pkt.reference_ts.lo = 0; /* Set to 0 */
@@ -393,8 +393,8 @@ process_receive(NTP_Packet *msg, SourceRecord *src, struct timeval *now)
     return;
   }
 
-  root_delay = int32_to_double(msg->root_delay);
-  root_dispersion = int32_to_double(msg->root_dispersion);
+  root_delay = UTI_Int32ToDouble(msg->root_delay);
+  root_dispersion = UTI_Int32ToDouble(msg->root_dispersion);
 
   UTI_Int64ToTimeval(&src->last_tx, &local_orig);
   UTI_Int64ToTimeval(&msg->receive_ts, &remote_rx);

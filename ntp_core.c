@@ -597,8 +597,8 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
 
   /* If we're sending a client mode packet and we aren't synchronized yet, 
      we might have to set up artificial values for some of these parameters */
-  message.root_delay = double_to_int32(our_root_delay);
-  message.root_dispersion = double_to_int32(our_root_dispersion);
+  message.root_delay = UTI_DoubleToInt32(our_root_delay);
+  message.root_dispersion = UTI_DoubleToInt32(our_root_dispersion);
 
   message.reference_id = htonl((NTP_int32) our_ref_id);
 
@@ -859,8 +859,8 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     source_is_synchronized = 1;
   }
 
-  pkt_root_delay = int32_to_double(message->root_delay);
-  pkt_root_dispersion = int32_to_double(message->root_dispersion);
+  pkt_root_delay = UTI_Int32ToDouble(message->root_delay);
+  pkt_root_dispersion = UTI_Int32ToDouble(message->root_dispersion);
 
   /* Perform packet validity tests */
   
