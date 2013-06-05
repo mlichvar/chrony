@@ -647,10 +647,14 @@ parse_refclock(char *line)
       n = 0;
       sel_option = SRC_SelectPrefer;
     } else {
-      other_parse_error("Invalid refclock parameter");
       break;
     }
     line += n;
+  }
+
+  if (*line) {
+    other_parse_error("Invalid/unreadable refclock parameter");
+    return;
   }
 
   refclock_sources[i].driver_name = name;
