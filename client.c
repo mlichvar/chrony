@@ -256,9 +256,12 @@ read_mask_address(char *line, IPAddr *mask, IPAddr *address)
         }
       }
     } else {
-      if (UTI_StringToIP(p, address)) {
+      if (DNS_Name2IPAddress(p, address) == DNS_Success) {
         bits_to_mask(-1, address->family, mask);
         return 1;
+      } else {
+        fprintf(stderr, "Could not get address for hostname\n");
+        return 0;
       }
     }
   }

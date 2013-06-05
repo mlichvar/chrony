@@ -3227,6 +3227,7 @@ The syntax of the burst command is as follows
 @example
 burst <n-good-measurements>/<max-measurements> [<mask>/<masked-address>]
 burst <n-good-measurements>/<max-measurements> [<masked-address>/<masked-bits>]
+burst <n-good-measurements>/<max-measurements> [<address>]
 @end example
 
 The mask and masked-address arguments are optional, in which case
@@ -3259,6 +3260,10 @@ then the burst command is applied to that source.
 This can be used with @code{masked-address} for CIDR notation, which is a
 shorter alternative to the form with mask.
 
+@item address
+This is an IP address or a hostname.  The burst command is applied only to that
+source.
+
 @end table
 
 If no mask or masked address arguments are provided, every source will
@@ -3285,6 +3290,12 @@ In the first case, the two out of ten sampling will only be applied to
 sources whose IPv4 addresses are of the form @code{1.2.x.y}, where x and y
 are arbitrary. In the second case, the sampling will be applied to sources
 whose IPv6 addresses have first 48 bits equal to @code{2001:db8:789a}.
+
+Example of the three-argument form of the command is
+
+@example
+burst 2/10 foo.bar.com
+@end example
 @c }}}
 @c {{{ clients
 @node clients command
@@ -3815,15 +3826,17 @@ the @code{offline} command being used, @code{chronyd} would assume that the
 source had failed and would attempt to pick another synchronisation
 source.
 
-There are three forms of the @code{offline} command.  The first form is a
-wildcard, meaning all sources.  The second form allows a IP address mask
+There are four forms of the @code{offline} command.  The first form is a
+wildcard, meaning all sources.  The second form allows an IP address mask
 and a masked address to be specified.  The third form uses the CIDR
-notation.  These forms are illustrated below.
+notation.  The fourth form uses an IP address or a hostname.  These forms are
+illustrated below.
 
 @example
 offline
 offline 255.255.255.0/1.2.3.0
 offline 2001:db8:789a::/48
+offline foo.bar.com
 @end example
 
 The second form means that the @code{offline} command is to be applied
@@ -3831,7 +3844,8 @@ to any source whose IPv4 address is in the @code{1.2.3} subnet.  (The host's
 address is logically and-ed with the mask, and if the result matches the
 masked-address the host is processed).  The third form means that the
 command is to be applied to all sources whose IPv6 addresses have first
-48 bits equal to @code{2001:db8:789a}.
+48 bits equal to @code{2001:db8:789a}.  The fourth form means that the command
+is to be applied only to that one source.
 
 The wildcard form of the address is actually equivalent to
 
