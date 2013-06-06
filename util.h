@@ -63,6 +63,9 @@ extern void UTI_AddDoubleToTimeval(struct timeval *start, double increment, stru
 /* Calculate the average and difference (as a double) of two timevals */
 extern void UTI_AverageDiffTimevals(struct timeval *earlier, struct timeval *later, struct timeval *average, double *diff);
 
+/* Calculate result = a - b + c */
+extern void UTI_AddDiffToTimeval(struct timeval *a, struct timeval *b, struct timeval *c, struct timeval *result);
+
 /* Convert a timeval into a temporary string, largely for diagnostic
    display */
 extern char *UTI_TimevalToString(struct timeval *tv);

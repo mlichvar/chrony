@@ -684,7 +684,7 @@ REF_SetReference(int stratum,
   double update_interval;
   double elapsed;
   double correction_rate;
-  struct timeval now, raw_now;
+  struct timeval now, raw_now, ev_now, ev_raw_now;
 
   assert(initialised);
 
@@ -713,7 +713,10 @@ REF_SetReference(int stratum,
   }
     
   LCL_ReadRawTime(&raw_now);
-  LCL_CookTime(&raw_now, &now, NULL);
+
+  /* This is cheaper than calling LCL_CookTime */
+  SCH_GetLastEventTime(&ev_now, NULL, &ev_raw_now);
+  UTI_AddDiffToTimeval(&ev_now, &ev_raw_now, &raw_now, &now);
 
   UTI_DiffTimevalsToDouble(&elapsed, &now, ref_time);
   our_offset = offset + elapsed * frequency;

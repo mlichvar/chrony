@@ -570,7 +570,10 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     version = NTP_VERSION;
   }
 
-  LCL_ReadCookedTime(&local_transmit, NULL);
+  /* This is accurate enough and cheaper than calling LCL_ReadCookedTime.
+     A more accurate time stamp will be taken later in this function. */
+  SCH_GetLastEventTime(&local_transmit, NULL, NULL);
+
   REF_GetReferenceParams(&local_transmit,
                          &are_we_synchronised, &leap_status,
                          &our_stratum,

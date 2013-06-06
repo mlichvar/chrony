@@ -188,6 +188,18 @@ UTI_AverageDiffTimevals (struct timeval *earlier,
 
 /* ================================================== */
 
+void
+UTI_AddDiffToTimeval(struct timeval *a, struct timeval *b,
+                     struct timeval *c, struct timeval *result)
+{
+  double diff;
+
+  UTI_DiffTimevalsToDouble(&diff, a, b);
+  UTI_AddDoubleToTimeval(c, diff, result);
+}
+
+/* ================================================== */
+
 #define POOL_ENTRIES 16
 #define BUFFER_LENGTH 64
 static char buffer_pool[POOL_ENTRIES][BUFFER_LENGTH];

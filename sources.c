@@ -44,6 +44,7 @@
 #include "reports.h"
 #include "nameserv.h"
 #include "mkdirpp.h"
+#include "sched.h"
 
 /* ================================================== */
 /* Flag indicating that we are initialised */
@@ -448,7 +449,8 @@ SRC_SelectSource(uint32_t match_refid)
     return;
   }
 
-  LCL_ReadCookedTime(&now, NULL);
+  /* This is accurate enough and cheaper than calling LCL_ReadCookedTime */
+  SCH_GetLastEventTime(&now, NULL, NULL);
 
   /* Step 1 - build intervals about each source */
   n_endpoints = 0;
