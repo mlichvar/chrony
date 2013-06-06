@@ -135,7 +135,8 @@ UTI_AddDoubleToTimeval(struct timeval *start,
      is too marginal here. */
 
   int_part = (long) increment;
-  frac_part = (long) (0.5 + 1.0e6 * (increment - (double)int_part));
+  increment = (increment - int_part) * 1.0e6;
+  frac_part = (long) (increment > 0.0 ? increment + 0.5 : increment - 0.5);
 
   end->tv_sec  = int_part  + start->tv_sec;
   end->tv_usec = frac_part + start->tv_usec;
