@@ -507,12 +507,11 @@ handle_slew(struct timeval *raw,
             void *anything)
 {
   TimerQueueEntry *ptr;
+  double delta;
   int i;
 
   if (is_step_change) {
-    /* We're not interested in anything else - it won't affect the
-       functionality of timer event dispatching.  If a step change
-       occurs, just shift all the timeouts by the offset */
+    /* If a step change occurs, just shift all raw time stamps by the offset */
     
     for (ptr = timer_queue.next; ptr != &timer_queue; ptr = ptr->next) {
       UTI_AddDoubleToTimeval(&ptr->tv, -doffset, &ptr->tv);
@@ -523,8 +522,9 @@ handle_slew(struct timeval *raw,
     }
 
     UTI_AddDoubleToTimeval(&last_select_ts_raw, -doffset, &last_select_ts_raw);
-    UTI_AddDoubleToTimeval(&last_select_ts, -doffset, &last_select_ts);
   }
+
+  UTI_AdjustTimeval(&last_select_ts, cooked, &last_select_ts, &delta, dfreq, doffset);
 }
 
 /* ================================================== */
