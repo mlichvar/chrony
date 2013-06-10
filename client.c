@@ -1693,8 +1693,8 @@ process_cmd_sources(char *line)
     if (verbose) {
       printf("\n");
       printf("  .-- Source mode  '^' = server, '=' = peer, '#' = local clock.\n");
-      printf(" / .- Source state '*' = current synced, '+' = OK for sync, '?' = unreachable,\n");
-      printf("| /                'x' = time may be in error, '~' = time is too variable.\n");
+      printf(" / .- Source state '*' = current synced, '+' = combined , '-' = not combined,\n");
+      printf("| /   '?' = unreachable, 'x' = time may be in error, '~' = time too variable.\n");
       printf("||                                                 .- xxxx [ yyyy ] +/- zzzz\n");
       printf("||                                                /   xxxx = adjusted offset,\n");
       printf("||         Log2(Polling interval) -.             |    yyyy = measured offset,\n");

@@ -66,6 +66,7 @@ static void parse_clientloglimit(char *);
 static void parse_cmdallow(char *);
 static void parse_cmddeny(char *);
 static void parse_cmdport(char *);
+static void parse_combinelimit(char *);
 static void parse_commandkey(char *);
 static void parse_corrtimeratio(char *);
 static void parse_deny(char *);
@@ -126,6 +127,7 @@ static double max_clock_error = 1.0; /* in ppm */
 
 static double reselect_distance = 1e-4;
 static double stratum_weight = 1.0;
+static double combine_limit = 3.0;
 
 static int cmd_port = DEFAULT_CANDM_PORT;
 
@@ -374,6 +376,8 @@ CNF_ReadFile(const char *filename)
         parse_cmddeny(p);
       } else if (!strcasecmp(command, "cmdport")) {
         parse_cmdport(p);
+      } else if (!strcasecmp(command, "combinelimit")) {
+        parse_combinelimit(p);
       } else if (!strcasecmp(command, "commandkey")) {
         parse_commandkey(p);
       } else if (!strcasecmp(command, "corrtimeratio")) {
@@ -751,6 +755,17 @@ parse_stratumweight(char *line)
 {
   check_number_of_args(line, 1);
   if (sscanf(line, "%lf", &stratum_weight) != 1) {
+    command_parse_error();
+  }
+}
+
+/* ================================================== */
+
+static void
+parse_combinelimit(char *line)
+{
+  check_number_of_args(line, 1);
+  if (sscanf(line, "%lf", &combine_limit) != 1) {
     command_parse_error();
   }
 }
@@ -1626,6 +1641,14 @@ double
 CNF_GetStratumWeight(void)
 {
   return stratum_weight;
+}
+
+/* ================================================== */
+
+double
+CNF_GetCombineLimit(void)
+{
+  return combine_limit;
 }
 
 /* ================================================== */

@@ -1169,6 +1169,7 @@ directives can occur in any order in the file.
 * broadcast directive::         Make chronyd act as an NTP broadcast server
 * cmdallow directive::          Give control access to chronyc on other computers
 * cmddeny directive::           Deny control access to chronyc on other computers
+* combinelimit directive::      Limit sources included in combining algorithm
 * commandkey directive::        Set runtime command key
 * corrtimeratio directive::     Set correction time ratio
 * cmdport directive::           Set port to use for runtime commanding
@@ -1446,6 +1447,30 @@ The syntax is identical.
 
 There is also a @code{cmddeny all} directive with similar behaviour to the
 @code{cmdallow all} directive.
+@c }}}
+@c {{{ combinelimit
+@node combinelimit directive
+@subsection combinelimit
+When @code{chronyd} has multiple sources available for synchronization, it has
+to select one source as the synchronization source. The measured offsets and
+frequencies of the system clock relative to the other sources, however, can be
+combined with the selected source to improve the accuracy of the system clock.
+
+The @code{combinelimit} directive limits which sources are included in the
+combining algorithm. Their synchronization distance has to be shorter than the
+distance of the selected source multiplied by the value of the limit. Also,
+their measured frequencies have to be close to the frequency of the selected
+source.
+
+By default, the limit is 3. Setting the limit to 0 effectively disables the
+source combining algorithm and only the selected source will be used to
+control the system clock.
+
+The syntax is
+
+@example
+combinelimit <limit>
+@end example
 @c }}}
 @c {{{ commandkey
 @node commandkey directive
@@ -4080,12 +4105,15 @@ reference clock.
 
 @item S
 This column indicates the state of the sources.  @code{*} indicates the
-source to which @code{chronyd} is current synchronised.  @code{+} indicates
-other acceptable sources.  @code{?} indicates sources to which
-connectivity has been lost.  @code{x} indicates a clock which @code{chronyd}
+source to which @code{chronyd} is currently synchronised.  @code{+}
+indicates acceptable sources which are combined with the selected
+source.  @code{-} indicates acceptable sources which are excluded by
+the combining algorithm.  @code{?} indicates sources to which
+connectivity has been lost or whose packets don't pass all tests.
+@code{x} indicates a clock which @code{chronyd}
 thinks is is a falseticker (i.e. its time is inconsistent with a
 majority of other sources).  @code{~} indicates a source whose time
-appears to have too much variability.  The @code{~} condition is also
+appears to have too much variability.  The @code{?} condition is also
 shown at start-up, until at least 3 samples have been gathered from it.
 
 @item Name/IP address
