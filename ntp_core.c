@@ -927,8 +927,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     /* Calculate theta.  Following the NTP definition, this is negative
        if we are fast of the remote source. */
     
-    theta = (double) (remote_average.tv_sec - local_average.tv_sec) +
-      (double) (remote_average.tv_usec - local_average.tv_usec) * 1.0e-6;
+    UTI_DiffTimevalsToDouble(&theta, &remote_average, &local_average);
     
     /* We treat the time of the sample as being midway through the local
        measurement period.  An analysis assuming constant relative
