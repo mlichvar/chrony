@@ -941,7 +941,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     skew = (source_freq_hi - source_freq_lo) / 2.0;
     
     /* and then calculate peer dispersion */
-    epsilon = LCL_GetSysPrecisionAsQuantum() + now_err + skew * local_interval;
+    epsilon = LCL_GetSysPrecisionAsQuantum() + now_err + skew * fabs(local_interval);
     
   } else {
     /* If test3 failed, we probably can't calculate these quantities
@@ -988,8 +988,8 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
      the standard deviation of the offsets in the register is less than an
      administrator-defined value or the difference between measured offset
      and predicted offset is larger than the increase in delay */
-  if (!SRC_IsGoodSample(inst->source, -theta, delta, inst->max_delay_dev_ratio,
-        LCL_GetMaxClockError(), &sample_time)) {
+  if (!SRC_IsGoodSample(inst->source, -theta, fabs(delta),
+        inst->max_delay_dev_ratio, LCL_GetMaxClockError(), &sample_time)) {
     test4c = 0; /* Failed */
   } else {
     test4c = 1; /* Success */
@@ -1058,7 +1058,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   /* Test 8 checks that the root delay and dispersion quoted in 
      the packet are appropriate */
-  if ((fabs(pkt_root_delay) >= NTP_MAX_DISPERSION) ||
+  if ((pkt_root_delay >= NTP_MAX_DISPERSION) ||
       (pkt_root_dispersion >= NTP_MAX_DISPERSION)) {
     test8 = 0; /* Failed */
   } else {
@@ -1078,7 +1078,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   valid_header = test5 && test6 && test7i && test8;
   good_header = valid_header && test7ii;
 
-  root_delay = pkt_root_delay + delta;
+  root_delay = pkt_root_delay + fabs(delta);
   root_dispersion = pkt_root_dispersion + epsilon;
 
 #ifdef TRACEON
@@ -1158,7 +1158,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
       SRC_AccumulateSample(inst->source,
                            &sample_time,
-                           theta, delta, epsilon,
+                           theta, fabs(delta), epsilon,
                            root_delay, root_dispersion,
                            message->stratum, (NTP_Leap) pkt_leap);
 

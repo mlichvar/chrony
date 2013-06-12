@@ -258,7 +258,7 @@ SST_AccumulateSample(SST_Stats inst, struct timeval *sample_time,
   inst->sample_times[n] = *sample_time;
   inst->offsets[n] = offset;
   inst->orig_offsets[m] = offset;
-  inst->peer_delays[m] = fabs(peer_delay);
+  inst->peer_delays[m] = peer_delay;
   inst->peer_dispersions[m] = peer_dispersion;
   inst->root_delays[m] = root_delay;
   inst->root_dispersions[m] = root_dispersion;
@@ -334,7 +334,7 @@ find_best_sample_index(SST_Stats inst, double *times_back)
     elapsed = -times_back[i];
     assert(elapsed >= 0.0);
 
-    root_distance = inst->root_dispersions[j] + elapsed * inst->skew + 0.5 * fabs(inst->root_delays[j]);
+    root_distance = inst->root_dispersions[j] + elapsed * inst->skew + 0.5 * inst->root_delays[j];
     if (root_distance < best_root_distance) {
       best_root_distance = root_distance;
       best_index = i;

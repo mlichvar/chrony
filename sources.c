@@ -547,7 +547,7 @@ SRC_SelectSource(uint32_t match_refid)
                            &(si->variance),
                            &(si->select_ok));
 
-      si->root_distance = si->root_dispersion + 0.5 * fabs(si->root_delay);
+      si->root_distance = si->root_dispersion + 0.5 * si->root_delay;
       si->lo_limit = si->best_offset - si->root_distance;
       si->hi_limit = si->best_offset + si->root_distance;
 
