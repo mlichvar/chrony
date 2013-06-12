@@ -514,21 +514,16 @@ SST_GetFrequencyRange(SST_Stats inst,
 
 /* ================================================== */
 
-/* ================================================== */
-
 void
 SST_GetSelectionData(SST_Stats inst, struct timeval *now,
                      int *stratum,
-                     double *best_offset, double *best_root_delay,
-                     double *best_root_dispersion,
+                     double *offset_lo_limit,
+                     double *offset_hi_limit,
+                     double *root_distance,
                      double *variance, int *select_ok)
 {
-  double average_offset;
-  double sample_elapsed;
-  double elapsed;
+  double offset, sample_elapsed;
   int i, j;
-  int average_ok;
-  double peer_distance;
   
   i = get_runsbuf_index(inst, inst->best_single_sample);
   j = get_buf_index(inst, inst->best_single_sample);
@@ -536,30 +531,33 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
   *stratum = inst->strata[get_buf_index(inst, inst->n_samples - 1)];
   *variance = inst->variance;
 
-  peer_distance = inst->peer_dispersions[j] + 0.5 * inst->peer_delays[j];
-  UTI_DiffTimevalsToDouble(&elapsed, now, &(inst->offset_time));
-
   UTI_DiffTimevalsToDouble(&sample_elapsed, now, &inst->sample_times[i]);
-  *best_offset = inst->offsets[i] + sample_elapsed * inst->estimated_frequency;
-  *best_root_delay = inst->root_delays[j];
-  *best_root_dispersion = inst->root_dispersions[j] + sample_elapsed * inst->skew;
+  offset = inst->offsets[i] + sample_elapsed * inst->estimated_frequency;
+  *root_distance = 0.5 * inst->root_delays[j] +
+    inst->root_dispersions[j] + sample_elapsed * inst->skew;
 
+  *offset_lo_limit = offset - *root_distance;
+  *offset_hi_limit = offset + *root_distance;
+
+#if 0
+  double average_offset, elapsed;
+  int average_ok;
   /* average_ok ignored for now */
+  UTI_DiffTimevalsToDouble(&elapsed, now, &(inst->offset_time));
   average_offset = inst->estimated_offset + inst->estimated_frequency * elapsed;
-  if (fabs(average_offset - *best_offset) <= peer_distance) {
+  if (fabs(average_offset - offset) <=
+      inst->peer_dispersions[j] + 0.5 * inst->peer_delays[j]) {
     average_ok = 1;
   } else {
     average_ok = 0;
   }
+#endif
 
   *select_ok = inst->regression_ok;
 
 #ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_SourceStats, "n=%d off=%f del=%f dis=%f var=%f pdist=%f avoff=%f avok=%d selok=%d",
-      inst->n_samples, *best_offset, *best_root_delay, *best_root_dispersion, *variance,
-      peer_distance, average_offset, average_ok, *select_ok);
-#else
-  (void)average_ok;
+  LOG(LOGS_INFO, LOGF_SourceStats, "n=%d off=%f dist=%f var=%f selok=%d",
+      inst->n_samples, offset, *root_distance, *variance, *select_ok);
 #endif
 }
 

@@ -82,10 +82,10 @@ extern void SST_GetFrequencyRange(SST_Stats inst, double *lo, double *hi);
 extern void
 SST_GetSelectionData(SST_Stats inst, struct timeval *now,
                      int *stratum,
-                     double *best_offset, double *best_root_delay,
-                     double *best_root_dispersion,
-                     double *variance,
-                     int *select_ok);
+                     double *offset_lo_limit,
+                     double *offset_hi_limit,
+                     double *root_distance,
+                     double *variance, int *select_ok);
 
 /* Get data needed when setting up tracking on this source */
 extern void

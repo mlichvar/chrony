@@ -56,10 +56,7 @@ struct SelectInfo {
   int stratum;
   int select_ok;
   double variance;
-  double root_delay;
-  double root_dispersion; 
   double root_distance;
-  double best_offset;
   double lo_limit;
   double hi_limit;
 };
@@ -541,20 +538,16 @@ SRC_SelectSource(uint32_t match_refid)
       si = &(sources[i]->sel_info);
       SST_GetSelectionData(sources[i]->stats, &now,
                            &(si->stratum),
-                           &(si->best_offset),
-                           &(si->root_delay),
-                           &(si->root_dispersion),
+                           &(si->lo_limit),
+                           &(si->hi_limit),
+                           &(si->root_distance),
                            &(si->variance),
                            &(si->select_ok));
 
-      si->root_distance = si->root_dispersion + 0.5 * si->root_delay;
-      si->lo_limit = si->best_offset - si->root_distance;
-      si->hi_limit = si->best_offset + si->root_distance;
-
 #if 0
-      LOG(LOGS_INFO, LOGF_Sources, "%s off=%f dist=%f lo=%f hi=%f",
+      LOG(LOGS_INFO, LOGF_Sources, "%s dist=%f lo=%f hi=%f",
           source_to_string(sources[i]),
-          si->best_offset, si->root_distance,
+          si->root_distance,
           si->lo_limit, si->hi_limit);
 #endif
       
