@@ -93,6 +93,9 @@ struct SRC_Instance_Record {
   /* Reachability register */
   int reachability;
 
+  /* Flag indicating that only few samples were accumulated so far */
+  int beginning;
+
   /* Updates left before resetting outlyer status */
   int outlyer;
 
@@ -216,6 +219,7 @@ SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, SRC_SelectOpt
   result->ip_addr = addr;
   result->selectable = 0;
   result->reachability = 0;
+  result->beginning = 1;
   result->outlyer = 0;
   result->status = SRC_BAD_STATS;
   result->type = type;
@@ -360,6 +364,10 @@ SRC_UpdateReachability(SRC_Instance inst, int reachable)
   inst->reachability |= !!reachable;
   inst->reachability &= ~(-1 << REACH_BITS);
 
+  /* The beginning is over when the first sample is at the end of the register */
+  if (inst->reachability & (1 << (REACH_BITS - 1)))
+      inst->beginning = 0;
+
   if (!reachable && inst->index == selected_source_index) {
     /* Try to select a better source */
     SRC_SelectSource(0);
@@ -446,7 +454,7 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
            (reselect_distance + sources[selected_source_index]->sel_info.root_distance) ||
          fabs(*frequency - src_frequency) >
            combine_limit * (*skew + src_skew + LCL_GetMaxClockError()))) {
-      sources[index]->outlyer = OUTLYER_PENALTY;
+      sources[index]->outlyer = !sources[index]->beginning ? OUTLYER_PENALTY : 1;
     }
 
     if (sources[index]->outlyer) {
