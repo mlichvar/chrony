@@ -92,7 +92,9 @@ static void parse_makestep(char *);
 static void parse_manual(char *);
 static void parse_maxchange(char *);
 static void parse_maxclockerror(char *);
+static void parse_maxsamples(char *line);
 static void parse_maxupdateskew(char *);
+static void parse_minsamples(char *line);
 static void parse_noclientlog(char *);
 static void parse_peer(char *);
 static void parse_pidfile(char *);
@@ -172,6 +174,10 @@ static double make_step_threshold = 0.0;
 static int max_offset_delay = -1;
 static int max_offset_ignore;
 static double max_offset;
+
+/* Maximum and minimum number of samples per source */
+static int max_samples = 0; /* no limit */
+static int min_samples = 0;
 
 /* Flag set if we should log to syslog when a time adjustment
    exceeding the threshold is initiated */
@@ -428,8 +434,12 @@ CNF_ReadFile(const char *filename)
         parse_maxchange(p);
       } else if (!strcasecmp(command, "maxclockerror")) {
         parse_maxclockerror(p);
+      } else if (!strcasecmp(command, "maxsamples")) {
+        parse_maxsamples(p);
       } else if (!strcasecmp(command, "maxupdateskew")) {
         parse_maxupdateskew(p);
+      } else if (!strcasecmp(command, "minsamples")) {
+        parse_minsamples(p);
       } else if (!strcasecmp(command, "noclientlog")) {
         parse_noclientlog(p);
       } else if (!strcasecmp(command, "peer")) {
@@ -824,6 +834,28 @@ parse_logdir(char *line)
 {
   check_number_of_args(line, 1);
   logdir = strdup(line);
+}
+
+/* ================================================== */
+
+static void
+parse_maxsamples(char *line)
+{
+  check_number_of_args(line, 1);
+  if (sscanf(line, "%d", &max_samples) != 1) {
+    command_parse_error();
+  }
+}
+
+/* ================================================== */
+
+static void
+parse_minsamples(char *line)
+{
+  check_number_of_args(line, 1);
+  if (sscanf(line, "%d", &min_samples) != 1) {
+    command_parse_error();
+  }
 }
 
 /* ================================================== */
@@ -1882,4 +1914,20 @@ char *
 CNF_GetUser(void)
 {
   return user;
+}
+
+/* ================================================== */
+
+int
+CNF_GetMaxSamples(void)
+{
+  return max_samples;
+}
+
+/* ================================================== */
+
+int
+CNF_GetMinSamples(void)
+{
+  return min_samples;
 }

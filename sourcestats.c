@@ -43,6 +43,10 @@
    to store per source */
 #define MAX_SAMPLES 64
 
+/* User defined maximum and minimum number of samples */
+int max_samples;
+int min_samples;
+
 /* This is the assumed worst case bound on an unknown frequency,
    2000ppm, which would be pretty bad */
 #define WORST_CASE_FREQ_BOUND (2000.0/1.0e6)
@@ -160,6 +164,8 @@ SST_Initialise(void)
   logfileid = CNF_GetLogStatistics() ? LOG_FileOpen("statistics",
       "   Date (UTC) Time     IP Address    Std dev'n Est offset  Offset sd  Diff freq   Est skew  Stress  Ns  Bs  Nr")
     : -1;
+  max_samples = CNF_GetMaxSamples();
+  min_samples = CNF_GetMinSamples();
 }
 
 /* ================================================== */
@@ -239,7 +245,8 @@ SST_AccumulateSample(SST_Stats inst, struct timeval *sample_time,
   int n, m;
 
   /* Make room for the new sample */
-  if (inst->n_samples == MAX_SAMPLES) {
+  if (inst->n_samples > 0 &&
+      (inst->n_samples == MAX_SAMPLES || inst->n_samples == max_samples)) {
     prune_register(inst, 1);
   }
 
@@ -428,6 +435,7 @@ SST_DoNewRegression(SST_Stats inst)
   inst->regression_ok = RGR_FindBestRegression(times_back + inst->runs_samples,
                                          offsets + inst->runs_samples, weights,
                                          inst->n_samples, inst->runs_samples,
+                                         min_samples,
                                          &est_intercept, &est_slope, &est_var,
                                          &est_intercept_sd, &est_slope_sd,
                                          &best_start, &nruns, &degrees_of_freedom);

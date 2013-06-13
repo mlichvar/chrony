@@ -96,4 +96,7 @@ extern void CNF_GetTempComp(char **file, double *interval, double *T0, double *k
 
 extern char *CNF_GetUser(void);
 
+extern int CNF_GetMaxSamples(void);
+extern int CNF_GetMinSamples(void);
+
 #endif /* GOT_CONF_H */

@@ -1195,7 +1195,9 @@ directives can occur in any order in the file.
 * maxchange directive::         Set maximum allowed offset
 * manual directive::            Allow manual entry using chronyc's settime cmd.
 * maxclockerror directive::     Set maximum frequency error of local clock
+* maxsamples directive::        Set maximum number of samples per source
 * maxupdateskew directive::     Stop bad estimates upsetting machine clock
+* minsamples directive::        Set minimum number of samples per source
 * noclientlog directive::       Prevent chronyd from gathering data about clients
 * clientloglimit directive::    Set client log memory limit
 * peer directive::              Specify an NTP peer
@@ -2374,6 +2376,19 @@ Typical values for <error-in-ppm> might be 10 for a low quality clock
 to 0.1 for a high quality clock using a temperature compensated
 crystal oscillator.
 @c }}}
+@c {{{ maxsamples
+@node maxsamples directive
+@subsection maxsamples
+The @code{maxsamples} directive sets the maximum number of samples
+@code{chronyd} should keep for each source. The default is 0, which
+disables the configurable limit, and the useful range is 4 to 64.
+
+The syntax is
+
+@example
+maxsamples <samples>
+@end example
+@c }}}
 @c {{{ maxupdateskew
 @node maxupdateskew directive
 @subsection maxupdateskew
@@ -2407,6 +2422,19 @@ used to update the master estimate.  So if @code{chronyd} has an existing
 highly-reliable master estimate and a new estimate is generated which
 has large error bounds, the existing master estimate will dominate in
 the new master estimate.
+@c }}}
+@c {{{ minsamples
+@node minsamples directive
+@subsection minsamples
+The @code{minsamples} directive sets the minimum number of samples
+@code{chronyd} should try to keep for each source. The default is 0 and the
+useful range is 4 to 64.
+
+The syntax is
+
+@example
+minsamples <samples>
+@end example
 @c }}}
 @c {{{ noclientlog
 @node noclientlog directive

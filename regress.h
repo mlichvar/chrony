@@ -80,6 +80,9 @@ RGR_FindBestRegression
  int m,                         /* number of extra samples in x and y arrays
                                    (negative index) which can be used to
                                    extend runs test */
+ int min_samples,               /* minimum number of samples to be kept after
+                                   changing the starting index to pass the runs
+                                   test */
 
  /* And now the results */
 

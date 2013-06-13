@@ -226,6 +226,9 @@ RGR_FindBestRegression
  int m,                         /* number of extra samples in x and y arrays
                                    (negative index) which can be used to
                                    extend runs test */
+ int min_samples,               /* minimum number of samples to be kept after
+                                   changing the starting index to pass the runs
+                                   test */
 
  /* And now the results */
 
@@ -297,7 +300,9 @@ RGR_FindBestRegression
     /* Count number of runs */
     nruns = n_runs_from_residuals(resid, n - resid_start); 
 
-    if (nruns > critical_runs[n - resid_start] || n - start <= MIN_SAMPLES_FOR_REGRESS) {
+    if (nruns > critical_runs[n - resid_start] ||
+        n - start <= MIN_SAMPLES_FOR_REGRESS ||
+        n - start <= min_samples) {
       if (start != resid_start) {
         /* Ignore extra samples in returned nruns */
         nruns = n_runs_from_residuals(resid - resid_start + start, n - start);
