@@ -589,10 +589,7 @@ SCH_MainLoop(void)
 
     /* if there are no file descriptors being waited on and no
        timeout set, this is clearly ridiculous, so stop the run */
-
-    if (!ptv && (n_read_fds == 0)) {
-      LOG_FATAL(LOGF_Scheduler, "No descriptors or timeout to wait for");
-    }
+    assert(ptv || n_read_fds);
 
     status = select(one_highest_fd, &rd, NULL, NULL, ptv);
 
@@ -616,8 +613,6 @@ SCH_MainLoop(void)
       dispatch_filehandlers(status, &rd);
 
     } else {
-      assert(status == 0);
-
       /* No descriptors readable, timeout must have elapsed.
        Therefore, tv must be non-null */
       assert(ptv);
