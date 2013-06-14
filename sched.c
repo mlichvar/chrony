@@ -561,7 +561,7 @@ void
 SCH_MainLoop(void)
 {
   fd_set rd;
-  int status;
+  int status, errsv;
   struct timeval tv, *ptv;
   struct timeval now, cooked;
   double err;
@@ -592,6 +592,7 @@ SCH_MainLoop(void)
     assert(ptv || n_read_fds);
 
     status = select(one_highest_fd, &rd, NULL, NULL, ptv);
+    errsv = errno;
 
     LCL_ReadRawTime(&now);
     LCL_CookTime(&now, &cooked, &err);
@@ -606,7 +607,9 @@ SCH_MainLoop(void)
     last_select_ts_err = err;
 
     if (status < 0) {
-      assert(need_to_exit);
+      if (!need_to_exit && errsv != EINTR) {
+        LOG_FATAL(LOGF_Scheduler, "select() failed : %s", strerror(errsv));
+      }
     } else if (status > 0) {
       /* A file descriptor is ready to read */
 
