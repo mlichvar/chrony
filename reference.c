@@ -857,14 +857,12 @@ REF_SetManualReference
  double skew
 )
 {
-  IPAddr local_ip;
-  
-  UTI_StringToIP("127.127.1.1", &local_ip);
+  uint32_t manual_refid = 0x4D414E55; /* MANU */
 
   /* We are not synchronised to an external source, as such.  This is
    only supposed to be used with the local source option, really
    ... */
-  REF_SetReference(0, LEAP_Unsynchronised, LOCAL_REFERENCE_ID, &local_ip,
+  REF_SetReference(0, LEAP_Unsynchronised, manual_refid, NULL,
                    ref_time, offset, 0.0, frequency, skew, 0.0, 0.0);
 }
 
