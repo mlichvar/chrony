@@ -722,7 +722,7 @@ REF_SetReference(int stratum,
   if (!is_offset_ok(offset))
     return;
 
-  are_we_synchronised = 1;
+  are_we_synchronised = leap != LEAP_Unsynchronised ? 1 : 0;
   our_stratum = stratum + 1;
   our_ref_id = ref_id;
   if (ref_ip)
@@ -760,9 +760,9 @@ REF_SetReference(int stratum,
   correction_rate = correction_time_ratio * 0.5 * offset_sd * update_interval;
 
   /* Eliminate updates that are based on totally unreliable frequency
-     information */
+     information. Ignore this limit with manual reference. */
 
-  if (fabs(skew) < max_update_skew) { 
+  if (fabs(skew) < max_update_skew || leap == LEAP_Unsynchronised) {
 
     previous_skew = our_skew;
     new_skew = skew;
@@ -774,9 +774,10 @@ REF_SetReference(int stratum,
                           the local module. */
     new_freq = frequency;
 
-    /* Set new frequency based on weighted average of old and new skew. */
+    /* Set new frequency based on weighted average of old and new skew. With
+       manual reference the old frequency has no weight. */
 
-    old_weight = 1.0 / Sqr(previous_skew);
+    old_weight = leap != LEAP_Unsynchronised ? 1.0 / Sqr(previous_skew) : 0.0;
     new_weight = 3.0 / Sqr(new_skew);
 
     sum_weight = old_weight + new_weight;
@@ -843,10 +844,6 @@ REF_SetReference(int stratum,
       avg2_moving = 1;
     avg2_offset = our_offset * our_offset;
   }
-
-  /* And now set the freq and offset to zero */
-  our_frequency = 0.0;
-  our_offset = 0.0;
 }
 
 /* ================================================== */
@@ -860,36 +857,15 @@ REF_SetManualReference
  double skew
 )
 {
-  double abs_freq_ppm;
+  IPAddr local_ip;
+  
+  UTI_StringToIP("127.127.1.1", &local_ip);
 
   /* We are not synchronised to an external source, as such.  This is
    only supposed to be used with the local source option, really
    ... */
-  are_we_synchronised = 0;
-
-  if (skew < MIN_SKEW)
-    skew = MIN_SKEW;
-
-  our_skew = skew;
-  our_residual_freq = 0.0;
-
-  maybe_log_offset(offset);
-  LCL_AccumulateFrequencyAndOffset(frequency, offset, 0.0);
-  maybe_make_step();
-
-  abs_freq_ppm = LCL_ReadAbsoluteFrequency();
-
-  write_log(ref_time,
-            "127.127.1.1",
-            our_stratum,
-            our_leap_status,
-            abs_freq_ppm,
-            1.0e6*our_skew,
-            offset);
-
-  if (drift_file) {
-    update_drift_file(abs_freq_ppm, our_skew);
-  }
+  REF_SetReference(0, LEAP_Unsynchronised, LOCAL_REFERENCE_ID, &local_ip,
+                   ref_time, offset, 0.0, frequency, skew, 0.0, 0.0);
 }
 
 /* ================================================== */
