@@ -39,6 +39,9 @@
 
 /* ================================================== */
 
+/* The minimum allowed skew */
+#define MIN_SKEW 1.0e-12
+
 static int are_we_synchronised;
 static int enable_local_stratum;
 static int local_stratum;
@@ -174,6 +177,8 @@ REF_Initialise(void)
           /* We have read valid data */
           our_frequency_ppm = file_freq_ppm;
           our_skew = 1.0e-6 * file_skew_ppm;
+          if (our_skew < MIN_SKEW)
+            our_skew = MIN_SKEW;
           LOG(LOGS_INFO, LOGF_Reference, "Frequency %.3f +/- %.3f ppm read from %s", file_freq_ppm, file_skew_ppm, drift_file);
           LCL_SetAbsoluteFrequency(our_frequency_ppm);
         } else {
@@ -688,11 +693,9 @@ REF_SetReference(int stratum,
 
   assert(initialised);
 
-  /* Avoid getting NaNs */
-  if (skew < 1e-12)
-    skew = 1e-12;
-  if (our_skew < 1e-12)
-    our_skew = 1e-12;
+  /* Guard against dividing by zero */
+  if (skew < MIN_SKEW)
+    skew = MIN_SKEW;
 
   /* If we get a serious rounding error in the source stats regression
      processing, there is a remote chance that the skew argument is a
@@ -868,6 +871,9 @@ REF_SetManualReference
    only supposed to be used with the local source option, really
    ... */
   are_we_synchronised = 0;
+
+  if (skew < MIN_SKEW)
+    skew = MIN_SKEW;
 
   our_skew = skew;
   our_residual_freq = 0.0;
