@@ -152,7 +152,6 @@ void
 REF_Initialise(void)
 {
   FILE *in;
-  char line[1024];
   double file_freq_ppm, file_skew_ppm;
   double our_frequency_ppm;
 
@@ -172,19 +171,15 @@ REF_Initialise(void)
   if (drift_file) {
     in = fopen(drift_file, "r");
     if (in) {
-      if (fgets(line, sizeof(line), in)) {
-        if (sscanf(line, "%lf%lf", &file_freq_ppm, &file_skew_ppm) == 2) {
-          /* We have read valid data */
-          our_frequency_ppm = file_freq_ppm;
-          our_skew = 1.0e-6 * file_skew_ppm;
-          if (our_skew < MIN_SKEW)
-            our_skew = MIN_SKEW;
-          LOG(LOGS_INFO, LOGF_Reference, "Frequency %.3f +/- %.3f ppm read from %s", file_freq_ppm, file_skew_ppm, drift_file);
-          LCL_SetAbsoluteFrequency(our_frequency_ppm);
-        } else {
-          LOG(LOGS_WARN, LOGF_Reference, "Could not parse valid frequency and skew from driftfile %s",
-              drift_file);
-        }
+      if (fscanf(in, "%lf%lf", &file_freq_ppm, &file_skew_ppm) == 2) {
+        /* We have read valid data */
+        our_frequency_ppm = file_freq_ppm;
+        our_skew = 1.0e-6 * file_skew_ppm;
+        if (our_skew < MIN_SKEW)
+          our_skew = MIN_SKEW;
+        LOG(LOGS_INFO, LOGF_Reference, "Frequency %.3f +/- %.3f ppm read from %s",
+            file_freq_ppm, file_skew_ppm, drift_file);
+        LCL_SetAbsoluteFrequency(our_frequency_ppm);
       } else {
         LOG(LOGS_WARN, LOGF_Reference, "Could not read valid frequency and skew from driftfile %s",
             drift_file);
