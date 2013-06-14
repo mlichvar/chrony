@@ -31,10 +31,6 @@
 
 #include "config.h"
 
-#ifdef LINUX
-
-#define _LOOSE_KERNEL_NAMES
-
 #include "chrony_timex.h"
 #include "wrap_adjtimex.h"
 
@@ -276,6 +272,3 @@ TMX_ApplyStepOffset(double offset)
 
   return adjtimex(&txc);
 }
-
-#endif
-

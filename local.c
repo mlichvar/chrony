@@ -30,8 +30,7 @@
 
 #include "config.h"
 
-#include <assert.h>
-#include <stddef.h>
+#include "sysincl.h"
 
 #include "conf.h"
 #include "local.h"

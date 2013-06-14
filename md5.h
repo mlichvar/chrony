@@ -32,11 +32,7 @@
  ***********************************************************************
  */
 
-#ifdef HAS_STDINT_H
-#include <stdint.h>
-#elif defined(HAS_INTTYPES_H)
-#include <inttypes.h>
-#endif
+#include "sysincl.h"
 
 /* typedef a 32-bit type */
 typedef uint32_t UINT4;

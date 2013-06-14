@@ -29,14 +29,8 @@
 
 #include "config.h"
 
-#ifdef LINUX
+#include "sysincl.h"
 
-#include <sys/time.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <math.h>
-#include <ctype.h>
-#include <assert.h>
 #include <sys/utsname.h>
 
 #if defined(HAVE_SCHED_SETSCHEDULER)
@@ -1250,9 +1244,3 @@ void SYS_Linux_MemLockAll(int LockAll)
   }
 }
 #endif /* HAVE_MLOCKALL */
-
-#endif /* LINUX */
-
-/* vim:ts=8
- * */
-

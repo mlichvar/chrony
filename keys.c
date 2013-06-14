@@ -28,9 +28,7 @@
 
 #include "config.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "sysincl.h"
 
 #include "keys.h"
 #include "cmdparse.h"

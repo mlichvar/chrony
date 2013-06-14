@@ -32,7 +32,7 @@
 
 #include "config.h"
 
-#include <stddef.h>
+#include "sysincl.h"
 
 #include "manual.h"
 #include "logging.h"

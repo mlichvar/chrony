@@ -28,8 +28,6 @@
 
 #include "reports.h"
 
-#if defined LINUX
-
 extern int RTC_Linux_Initialise(void);
 extern void RTC_Linux_Finalise(void);
 extern void RTC_Linux_TimePreInit(void);
@@ -43,7 +41,5 @@ extern int RTC_Linux_GetReport(RPT_RTC_Report *report);
 extern int RTC_Linux_Trim(void);
 
 extern void RTC_Linux_CycleLogFile(void);
-
-#endif /* defined LINUX */
 
 #endif /* _GOT_RTC_LINUX_H */

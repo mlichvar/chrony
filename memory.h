@@ -27,8 +27,6 @@
 #ifndef GOT_MEMORY_H
 #define GOT_MEMORY_H
 
-#include <stdlib.h>
-
 #define Malloc(x) malloc(x)
 #define MallocNew(T) ((T *) malloc(sizeof(T)))
 #define MallocArray(T, n) ((T *) malloc((n) * sizeof(T)))

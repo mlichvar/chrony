@@ -27,12 +27,11 @@
 
 #include "config.h"
 
+#include "sysincl.h"
+
 #include "refclock.h"
 #include "logging.h"
 #include "util.h"
-
-#include <sys/types.h>
-#include <sys/shm.h>
 
 #define SHMKEY 0x4e545030
 

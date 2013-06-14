@@ -34,7 +34,6 @@
 #include "sched.h"
 #include "util.h"
 #include "logging.h"
-#include "md5.h"
 #include "keys.h"
 #include "ntp_sources.h"
 #include "ntp_core.h"

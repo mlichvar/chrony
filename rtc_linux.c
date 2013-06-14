@@ -29,25 +29,8 @@
 
 #include "config.h"
 
-#if defined LINUX
+#include "sysincl.h"
 
-#ifdef sparc
-#define __KERNEL__
-#endif
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <time.h>
-#include <sys/time.h>
-#include <sys/types.h>
-
-#include <sys/ioctl.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <errno.h>
-#include <assert.h>
-#include <string.h>
 #include <linux/rtc.h>
 
 #include "logging.h"
@@ -1067,7 +1050,3 @@ RTC_Linux_Trim(void)
   return 1;
   
 }
-
-/* ================================================== */
-
-#endif /* defined LINUX */

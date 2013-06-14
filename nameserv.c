@@ -32,7 +32,6 @@
 
 #include "nameserv.h"
 #include "util.h"
-#include <resolv.h>
 
 /* ================================================== */
 

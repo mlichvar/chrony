@@ -28,11 +28,7 @@
 
 #include "config.h"
 
-#include <assert.h>
-#include <math.h>
-
-#include <stdio.h>
-#include <string.h>
+#include "sysincl.h"
 
 #include "regress.h"
 #include "logging.h"

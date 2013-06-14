@@ -27,11 +27,7 @@
 #ifndef GOT_NTP_H
 #define GOT_NTP_H
 
-#ifdef HAS_STDINT_H
-#include <stdint.h>
-#elif defined(HAS_INTTYPES_H)
-#include <inttypes.h>
-#endif
+#include "sysincl.h"
 
 #include "hash.h"
 

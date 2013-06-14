@@ -45,6 +45,7 @@
 #include <math.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <resolv.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -56,6 +57,8 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/un.h>
+#include <sys/shm.h>
 #include <syslog.h>
 #include <time.h>
 

@@ -27,15 +27,12 @@
 
 #include "config.h"
 
+#include "sysincl.h"
+
 #include "refclock.h"
 #include "logging.h"
 #include "util.h"
 #include "sched.h"
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
 
 #define SOCK_MAGIC 0x534f434b
 

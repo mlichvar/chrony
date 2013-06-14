@@ -48,12 +48,6 @@
 #endif
 #endif
 
-#ifdef HAS_STDINT_H
-#include <stdint.h>
-#elif defined(HAS_INTTYPES_H)
-#include <inttypes.h>
-#endif
-
 /* ================================================== */
 
 union sockaddr_in46 {

@@ -39,8 +39,6 @@
 #include "conf.h"
 #include "util.h"
 
-#include <fcntl.h>
-
 union sockaddr_in46 {
   struct sockaddr_in in4;
 #ifdef HAVE_IPV6
