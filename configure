@@ -298,10 +298,6 @@ case $SYSTEM in
             EXTRA_CLI_LIBS="-lsocket -lnsl"
             add_def SOLARIS
             echo "Configuring for Solaris (" $SYSTEM "SunOS version" $VERSION ")"
-            if [ $VERSION = "5.3" ]; then
-                add_def HAS_NO_BZERO
-                echo "Using memset() instead of bzero()"
-            fi
         ;;
     esac
     ;;

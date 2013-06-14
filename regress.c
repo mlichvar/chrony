@@ -421,7 +421,7 @@ find_ordered_entry(double *x, int n, int index)
 {
   int flags[MAX_POINTS];
 
-  bzero(flags, n * sizeof(int));
+  memset(flags, 0, n * sizeof(int));
   return find_ordered_entry_with_flags(x, n, index, flags);
 }
 #endif

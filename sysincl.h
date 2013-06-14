@@ -89,10 +89,6 @@
 #include <nlist.h>
 #endif
 
-#if defined (HAS_NO_BZERO)
-#define bzero(ptr,n) memset(ptr,0,n)
-#endif /* HAS_NO_BZERO */
-
 #if defined (WINNT)
 
 /* Designed to work with the GCC from the GNAT-3.10 for Win32
