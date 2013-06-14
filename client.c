@@ -2356,7 +2356,7 @@ process_cmd_settime(char *line)
     request.command = htons(REQ_SETTIME);
     if (request_reply(&request, &reply, RPY_MANUAL_TIMESTAMP, 1)) {
           offset_cs = ntohl(reply.data.manual_timestamp.centiseconds);
-          offset = 0.01 * (double) offset_cs;
+          offset = 0.01 * (double)(int32_t)offset_cs;
           dfreq_ppm = UTI_FloatNetworkToHost(reply.data.manual_timestamp.dfreq_ppm);
           new_afreq_ppm = UTI_FloatNetworkToHost(reply.data.manual_timestamp.new_afreq_ppm);
           printf("Clock was %.2f seconds fast.  Frequency change = %.2fppm, new frequency = %.2fppm\n",
