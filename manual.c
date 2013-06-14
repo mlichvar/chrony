@@ -154,7 +154,7 @@ estimate_and_set_system(struct timeval *now, int offset_provided, double offset,
   
   if (found_freq) {
     LOG(LOGS_INFO, LOGF_Manual,
-        "Making a frequency change of %.3fppm and a slew of %.6f\n",
+        "Making a frequency change of %.3f ppm and a slew of %.6f",
         1.0e6 * freq, slew_by);
     
     REF_SetManualReference(now,
