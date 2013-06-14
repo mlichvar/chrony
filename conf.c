@@ -23,17 +23,6 @@
   =======================================================================
 
   Module that reads and processes the configuration file.
-
-1999-12-19  Kalle Olavi Niemitalo  <tosi@stekt.oulu.fi>
-
-	* conf.c: Added a new configuration setting "acquisitionport" and
-	a function CNF_GetAcquisitionPort to read its value.
-	(acquisition_port): New variable.
-	(parse_port): Delegate most work to new function parse_some_port.
-	(parse_acquisitionport): New function.
-	(commands): Added "acquisitionport".
-	(CNF_GetAcquisitionPort): New function.
-
   */
 
 #include "config.h"
