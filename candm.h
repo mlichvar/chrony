@@ -507,7 +507,7 @@ typedef struct {
 #define RPY_SD_ST_FALSETICKER 2
 #define RPY_SD_ST_JITTERY 3
 #define RPY_SD_ST_CANDIDATE 4
-#define RPY_SD_ST_OUTLYER 5
+#define RPY_SD_ST_OUTLIER 5
 
 #define RPY_SD_FLAG_NOSELECT 0x1
 #define RPY_SD_FLAG_PREFER 0x2

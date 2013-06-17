@@ -1049,8 +1049,8 @@ handle_source_data(CMD_Request *rx_message, CMD_Reply *tx_message)
       case RPT_CANDIDATE:
         tx_message->data.source_data.state   = htons(RPY_SD_ST_CANDIDATE);
         break;
-      case RPT_OUTLYER:
-        tx_message->data.source_data.state   = htons(RPY_SD_ST_OUTLYER);
+      case RPT_OUTLIER:
+        tx_message->data.source_data.state   = htons(RPY_SD_ST_OUTLIER);
         break;
     }
     switch (report.mode) {

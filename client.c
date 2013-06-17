@@ -1747,7 +1747,7 @@ process_cmd_sources(char *line)
               printf("~"); break;
             case RPY_SD_ST_CANDIDATE:
               printf("+"); break;
-            case RPY_SD_ST_OUTLYER:
+            case RPY_SD_ST_OUTLIER:
               printf("-"); break;
             default:
               printf(" ");

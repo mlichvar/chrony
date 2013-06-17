@@ -96,8 +96,8 @@ struct SRC_Instance_Record {
   /* Flag indicating that only few samples were accumulated so far */
   int beginning;
 
-  /* Updates left before resetting outlyer status */
-  int outlyer;
+  /* Updates left before allowing combining */
+  int outlier;
 
   /* Flag indicating the status of the source */
   SRC_Status status;
@@ -141,8 +141,8 @@ static int selected_source_index; /* Which source index is currently
 /* Score needed to replace the currently selected source */
 #define SCORE_LIMIT 10.0
 
-/* Number of updates needed to reset the outlyer status */
-#define OUTLYER_PENALTY 32
+/* Number of updates needed to reset the outlier status */
+#define OUTLIER_PENALTY 32
 
 static double reselect_distance;
 static double stratum_weight;
@@ -220,7 +220,7 @@ SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, SRC_SelectOpt
   result->selectable = 0;
   result->reachability = 0;
   result->beginning = 1;
-  result->outlyer = 0;
+  result->outlier = 0;
   result->status = SRC_BAD_STATS;
   result->type = type;
   result->sel_score = 1.0;
@@ -447,18 +447,18 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
 
     /* Don't include this source if its distance is longer than the distance of
        the selected source multiplied by the limit, their estimated frequencies
-       are not close, or it was recently marked as outlyer */
+       are not close, or it was recently marked as outlier */
 
     if (index != selected_source_index &&
         (sources[index]->sel_info.root_distance > combine_limit *
            (reselect_distance + sources[selected_source_index]->sel_info.root_distance) ||
          fabs(*frequency - src_frequency) >
            combine_limit * (*skew + src_skew + LCL_GetMaxClockError()))) {
-      sources[index]->outlyer = !sources[index]->beginning ? OUTLYER_PENALTY : 1;
+      sources[index]->outlier = !sources[index]->beginning ? OUTLIER_PENALTY : 1;
     }
 
-    if (sources[index]->outlyer) {
-      sources[index]->outlyer--;
+    if (sources[index]->outlier) {
+      sources[index]->outlier--;
       continue;
     }
 
@@ -844,7 +844,7 @@ SRC_SelectSource(uint32_t match_refid)
           /* Reset score for non-selectable sources */
           if (sources[i]->status != SRC_SELECTABLE) {
             sources[i]->sel_score = 1.0;
-            sources[i]->outlyer = OUTLYER_PENALTY;
+            sources[i]->outlier = OUTLIER_PENALTY;
             continue;
           }
             
@@ -908,7 +908,7 @@ SRC_SelectSource(uint32_t match_refid)
           /* New source has been selected, reset all scores */
           for (i=0; i < n_sources; i++) {
             sources[i]->sel_score = 1.0;
-            sources[i]->outlyer = 0;
+            sources[i]->outlier = 0;
           }
         }
 
@@ -1185,7 +1185,7 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
         report->state = RPT_FALSETICKER;
         break;
       case SRC_SELECTABLE:
-        report->state = src->outlyer ? RPT_OUTLYER : RPT_CANDIDATE;
+        report->state = src->outlier ? RPT_OUTLIER : RPT_CANDIDATE;
         break;
       default:
         assert(0);
