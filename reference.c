@@ -196,7 +196,7 @@ REF_Initialise(void)
   }
 
   logfileid = CNF_GetLogTracking() ? LOG_FileOpen("tracking",
-      "   Date (UTC) Time     IP Address   St   Freq ppm   Skew ppm     Offset L")
+      "   Date (UTC) Time     IP Address   St   Freq ppm   Skew ppm     Offset L Co  Offset sd Rem. corr.")
     : -1;
 
   max_update_skew = fabs(CNF_GetMaxUpdateSkew()) * 1.0e-6;
@@ -646,12 +646,16 @@ update_leap_status(NTP_Leap leap, time_t now)
 /* ================================================== */
 
 static void
-write_log(struct timeval *ref_time, char *ref, int stratum, NTP_Leap leap, double freq, double skew, double offset)
+write_log(struct timeval *ref_time, char *ref, int stratum, NTP_Leap leap,
+    double freq, double skew, double offset, int combined_sources,
+    double offset_sd, double uncorrected_offset)
 {
   const char leap_codes[4] = {'N', '+', '-', '?'};
   if (logfileid != -1) {
-    LOG_FileWrite(logfileid, "%s %-15s %2d %10.3f %10.3f %10.3e %1c",
-            UTI_TimeToLogForm(ref_time->tv_sec), ref, stratum, freq, skew, offset, leap_codes[leap]);
+    LOG_FileWrite(logfileid, "%s %-15s %2d %10.3f %10.3f %10.3e %1c %2d %10.3e %10.3e",
+            UTI_TimeToLogForm(ref_time->tv_sec), ref, stratum, freq, skew,
+            offset, leap_codes[leap], combined_sources, offset_sd,
+            uncorrected_offset);
   }
 }
 
@@ -660,6 +664,7 @@ write_log(struct timeval *ref_time, char *ref, int stratum, NTP_Leap leap, doubl
 void
 REF_SetReference(int stratum,
                  NTP_Leap leap,
+                 int combined_sources,
                  uint32_t ref_id,
                  IPAddr *ref_ip,
                  struct timeval *ref_time,
@@ -682,6 +687,7 @@ REF_SetReference(int stratum,
   double update_interval;
   double elapsed;
   double correction_rate;
+  double uncorrected_offset;
   struct timeval now, raw_now, ev_now, ev_raw_now;
 
   assert(initialised);
@@ -712,7 +718,8 @@ REF_SetReference(int stratum,
 
   /* This is cheaper than calling LCL_CookTime */
   SCH_GetLastEventTime(&ev_now, NULL, &ev_raw_now);
-  UTI_AddDiffToTimeval(&ev_now, &ev_raw_now, &raw_now, &now);
+  UTI_DiffTimevalsToDouble(&uncorrected_offset, &ev_now, &ev_raw_now);
+  UTI_AddDoubleToTimeval(&raw_now, uncorrected_offset, &now);
 
   UTI_DiffTimevalsToDouble(&elapsed, &now, ref_time);
   our_offset = offset + elapsed * frequency;
@@ -813,7 +820,10 @@ REF_SetReference(int stratum,
             our_leap_status,
             abs_freq_ppm,
             1.0e6*our_skew,
-            our_offset);
+            our_offset,
+            combined_sources,
+            offset_sd,
+            uncorrected_offset);
 
   if (drift_file) {
     /* Update drift file at most once per hour */
@@ -858,7 +868,7 @@ REF_SetManualReference
   /* We are not synchronised to an external source, as such.  This is
    only supposed to be used with the local source option, really
    ... */
-  REF_SetReference(0, LEAP_Unsynchronised, manual_refid, NULL,
+  REF_SetReference(0, LEAP_Unsynchronised, 1, manual_refid, NULL,
                    ref_time, offset, 0.0, frequency, skew, 0.0, 0.0);
 }
 
@@ -868,11 +878,14 @@ void
 REF_SetUnsynchronised(void)
 {
   /* Variables required for logging to statistics log */
-  struct timeval now;
+  struct timeval now, now_raw;
+  double uncorrected_offset;
 
   assert(initialised);
 
-  LCL_ReadCookedTime(&now, NULL);
+  /* This is cheaper than calling LCL_CookTime */
+  SCH_GetLastEventTime(&now, NULL, &now_raw);
+  UTI_DiffTimevalsToDouble(&uncorrected_offset, &now, &now_raw);
 
   if (fb_drifts) {
     schedule_fb_drift(&now);
@@ -887,7 +900,10 @@ REF_SetUnsynchronised(void)
             our_leap_status,
             LCL_ReadAbsoluteFrequency(),
             1.0e6*our_skew,
-            0.0);
+            0.0,
+            0,
+            0.0,
+            uncorrected_offset);
 }
 
 /* ================================================== */

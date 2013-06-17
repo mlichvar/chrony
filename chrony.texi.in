@@ -2074,7 +2074,8 @@ An example line (which actually appears as a single line in the file)
 from the tracking log file is shown below.
 
 @example
-2012-02-23 05:40:50 158.152.1.76     3    340.529      1.606  1.046e-03 N
+2012-02-23 05:40:50 158.152.1.76     3    340.529      1.606  1.046e-03 N \
+            4  6.849e-03 -4.670e-04
 @end example
 
 The columns are as follows (the quantities in square brackets are the
@@ -2104,6 +2105,14 @@ system is fast of UTC). [1.046e-3]
 Leap status (@code{N} means normal, @code{+} means that the last minute
 of this month has 61 seconds, @code{-} means that the last minute of the month
 has 59 seconds, @code{?} means the clock is not currently synchronised.) [N]
+@item
+The number of combined sources. [4]
+@item
+The estimated standard deviation of the combined offset (in seconds).
+[6.849e-03]
+@item
+The remaining offset correction from the previous update (in seconds, positive
+means the system clock is slow of UTC). [-4.670e-04]
 @end enumerate
 
 A banner is periodically written to the log file to indicate the

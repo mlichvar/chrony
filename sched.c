@@ -131,8 +131,6 @@ handle_slew(struct timeval *raw,
 void
 SCH_Initialise(void)
 {
-  struct timeval tv;
-
   FD_ZERO(&read_fds);
   n_read_fds = 0;
 
@@ -146,8 +144,10 @@ SCH_Initialise(void)
 
   LCL_AddParameterChangeHandler(handle_slew, NULL);
 
-  LCL_ReadRawTime(&tv);
-  srandom(tv.tv_sec << 16 ^ tv.tv_usec);
+  LCL_ReadRawTime(&last_select_ts_raw);
+  last_select_ts = last_select_ts_raw;
+
+  srandom(last_select_ts.tv_sec << 16 ^ last_select_ts.tv_usec);
 
   initialised = 1;
 }

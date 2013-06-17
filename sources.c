@@ -426,7 +426,7 @@ source_to_string(SRC_Instance inst)
 
 /* ================================================== */
 
-static void
+static int
 combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
                 double *offset_sd, double *frequency, double *skew)
 {
@@ -434,11 +434,14 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
   double src_offset, src_offset_sd, src_frequency, src_skew;
   double src_root_delay, src_root_dispersion, elapsed;
   double weight, sum_weight, sum_offset, sum2_offset_sd, sum_frequency, sum_skew;
-  int i, index;
+  int i, index, combined;
+
+  if (n_sel_sources == 1)
+    return 1;
 
   sum_weight = sum_offset = sum2_offset_sd = sum_frequency = sum_skew = 0.0;
 
-  for (i = 0; i < n_sel_sources; i++) {
+  for (i = combined = 0; i < n_sel_sources; i++) {
     index = sel_sources[i];
     SST_GetTrackingData(sources[index]->stats, &src_ref_time,
                         &src_offset, &src_offset_sd,
@@ -477,6 +480,8 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
         (src_offset - *offset) * (src_offset - *offset));
     sum_frequency += weight * src_frequency;
     sum_skew += weight * src_skew;
+
+    combined++;
   }
 
   assert(sum_weight > 0.0);
@@ -489,6 +494,8 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
   LOG(LOGS_INFO, LOGF_Sources, "combined result offset=%e sd=%e freq=%e skew=%e",
       *offset, *offset_sd, *frequency, *skew);
 #endif
+
+  return combined;
 }
 
 /* ================================================== */
@@ -508,7 +515,7 @@ SRC_SelectSource(uint32_t match_refid)
   int n_endpoints, j1, j2;
   double best_lo, best_hi;
   int depth, best_depth;
-  int n_sel_sources;
+  int n_sel_sources, combined;
   double distance, sel_src_distance;
   int stratum, min_stratum;
   struct SelectInfo *si;
@@ -927,13 +934,12 @@ SRC_SelectSource(uint32_t match_refid)
                               &src_frequency, &src_skew,
                               &src_root_delay, &src_root_dispersion);
 
-          if (n_sel_sources > 1) {
-            combine_sources(n_sel_sources, &ref_time, &src_offset,
-                &src_offset_sd, &src_frequency, &src_skew);
-          }
+          combined = combine_sources(n_sel_sources, &ref_time, &src_offset,
+                                     &src_offset_sd, &src_frequency, &src_skew);
 
           REF_SetReference(sources[selected_source_index]->sel_info.stratum,
                            leap_status,
+                           combined,
                            sources[selected_source_index]->ref_id,
                            sources[selected_source_index]->ip_addr,
                            &ref_time,
