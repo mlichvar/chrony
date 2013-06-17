@@ -457,12 +457,11 @@ schedule_fb_drift(struct timeval *now)
 #define S_MAX_USER_LEN "128"
 
 static void
-maybe_log_offset(double offset)
+maybe_log_offset(double offset, time_t now)
 {
   double abs_offset;
   FILE *p;
   char buffer[BUFLEN], host[BUFLEN];
-  time_t now;
   struct tm stm;
 
   abs_offset = fabs(offset);
@@ -484,7 +483,6 @@ maybe_log_offset(double offset)
       }
       fprintf(p, "Subject: chronyd reports change to system clock on node [%s]\n", host);
       fputs("\n", p);
-      now = time(NULL);
       stm = *localtime(&now);
       strftime(buffer, sizeof(buffer), "On %A, %d %B %Y\n  with the system clock reading %H:%M:%S (%Z)", &stm);
       fputs(buffer, p);
@@ -733,8 +731,6 @@ REF_SetReference(int stratum,
   our_root_delay = root_delay;
   our_root_dispersion = root_dispersion;
 
-  update_leap_status(leap, raw_now.tv_sec);
-
   if (last_ref_update.tv_sec) {
     UTI_DiffTimevalsToDouble(&update_interval, &now, &last_ref_update);
     if (update_interval < 0.0)
@@ -793,7 +789,6 @@ REF_SetReference(int stratum,
 
     our_residual_freq = new_freq - our_frequency;
 
-    maybe_log_offset(our_offset);
     LCL_AccumulateFrequencyAndOffset(our_frequency, our_offset, correction_rate);
     
   } else {
@@ -801,12 +796,13 @@ REF_SetReference(int stratum,
 #if 0    
     LOG(LOGS_INFO, LOGF_Reference, "Skew %f too large to track, offset=%f", skew, our_offset);
 #endif
-    maybe_log_offset(our_offset);
     LCL_AccumulateOffset(our_offset, correction_rate);
 
     our_residual_freq = frequency;
   }
 
+  update_leap_status(leap, raw_now.tv_sec);
+  maybe_log_offset(our_offset, raw_now.tv_sec);
   maybe_make_step();
 
   abs_freq_ppm = LCL_ReadAbsoluteFrequency();
