@@ -717,7 +717,7 @@ REF_SetReference(int stratum,
   UTI_DiffTimevalsToDouble(&elapsed, &now, ref_time);
   our_offset = offset + elapsed * frequency;
 
-  if (!is_offset_ok(offset))
+  if (!is_offset_ok(our_offset))
     return;
 
   are_we_synchronised = leap != LEAP_Unsynchronised ? 1 : 0;
