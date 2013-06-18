@@ -458,12 +458,12 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
          fabs(*frequency - src_frequency) >
            combine_limit * (*skew + src_skew + LCL_GetMaxClockError()))) {
       sources[index]->outlier = !sources[index]->beginning ? OUTLIER_PENALTY : 1;
+    } else if (sources[index]->outlier) {
+      sources[index]->outlier--;
     }
 
-    if (sources[index]->outlier) {
-      sources[index]->outlier--;
+    if (sources[index]->outlier)
       continue;
-    }
 
     UTI_DiffTimevalsToDouble(&elapsed, ref_time, &src_ref_time);
     src_offset += elapsed * src_frequency;
