@@ -29,7 +29,6 @@
 
 #include "sysincl.h"
 
-#include "main.h"
 #include "conf.h"
 #include "logging.h"
 #include "mkdirpp.h"
@@ -158,7 +157,7 @@ LOG_Fatal_Function(LOG_Facility facility, const char *format, ...)
   }
 #endif
 
-  MAI_CleanupAndExit();
+  exit(1);
 }
 
 /* ================================================== */
