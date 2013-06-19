@@ -433,13 +433,15 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
   struct timeval src_ref_time;
   double src_offset, src_offset_sd, src_frequency, src_skew;
   double src_root_delay, src_root_dispersion, elapsed;
-  double weight, sum_weight, sum_offset, sum2_offset_sd, sum_frequency, sum_skew;
+  double offset_weight, sum_offset_weight, sum_offset, sum2_offset_sd;
+  double frequency_weight, sum_frequency_weight, sum_frequency, inv_sum2_skew;
   int i, index, combined;
 
   if (n_sel_sources == 1)
     return 1;
 
-  sum_weight = sum_offset = sum2_offset_sd = sum_frequency = sum_skew = 0.0;
+  sum_offset_weight = sum_offset = sum2_offset_sd = 0.0;
+  sum_frequency_weight = sum_frequency = inv_sum2_skew = 0.0;
 
   for (i = combined = 0; i < n_sel_sources; i++) {
     index = sel_sources[i];
@@ -467,28 +469,31 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
 
     UTI_DiffTimevalsToDouble(&elapsed, ref_time, &src_ref_time);
     src_offset += elapsed * src_frequency;
-    weight = 1.0 / sources[index]->sel_info.root_distance;
+    offset_weight = 1.0 / sources[index]->sel_info.root_distance;
+    frequency_weight = 1.0 / src_skew;
 
 #ifdef TRACEON
-    LOG(LOGS_INFO, LOGF_Sources, "combining index=%d weight=%e offset=%e sd=%e freq=%e skew=%e",
-        index, weight, src_offset, src_offset_sd, src_frequency, src_skew);
+    LOG(LOGS_INFO, LOGF_Sources, "combining index=%d oweight=%e offset=%e sd=%e fweight=%e freq=%e skew=%e",
+        index, offset_weight, src_offset, src_offset_sd, frequency_weight, src_frequency, src_skew);
 #endif
 
-    sum_weight += weight;
-    sum_offset += weight * src_offset;
-    sum2_offset_sd += weight * (src_offset_sd * src_offset_sd +
+    sum_offset_weight += offset_weight;
+    sum_offset += offset_weight * src_offset;
+    sum2_offset_sd += offset_weight * (src_offset_sd * src_offset_sd +
         (src_offset - *offset) * (src_offset - *offset));
-    sum_frequency += weight * src_frequency;
-    sum_skew += weight * src_skew;
+
+    sum_frequency_weight += frequency_weight;
+    sum_frequency += frequency_weight * src_frequency;
+    inv_sum2_skew += 1.0 / (src_skew * src_skew);
 
     combined++;
   }
 
-  assert(sum_weight > 0.0);
-  *offset = sum_offset / sum_weight;
-  *offset_sd = sqrt(sum2_offset_sd / sum_weight);
-  *frequency = sum_frequency / sum_weight;
-  *skew = sum_skew / sum_weight;
+  assert(combined);
+  *offset = sum_offset / sum_offset_weight;
+  *offset_sd = sqrt(sum2_offset_sd / sum_offset_weight);
+  *frequency = sum_frequency / sum_frequency_weight;
+  *skew = 1.0 / sqrt(inv_sum2_skew);
 
 #ifdef TRACEON
   LOG(LOGS_INFO, LOGF_Sources, "combined result offset=%e sd=%e freq=%e skew=%e",
