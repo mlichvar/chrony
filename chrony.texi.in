@@ -94,9 +94,9 @@ messages between different machines on the network.
 
 In writing the @code{chronyd} program, extensive use has been made of
 RFC1305, written by David Mills.  I have occasionally referred to the
-@code{xntp} suite's source code to check details of the protocol that
+@code{ntp} suite's source code to check details of the protocol that
 the RFC did not make absolutely clear.  The core algorithms in
-@code{chronyd} are all completely distinct from @code{xntp}, however.
+@code{chronyd} are all completely distinct from @code{ntp}, however.
 @c }}}
 @c {{{ S:Availability
 @node Availability
@@ -148,34 +148,50 @@ requires access to such systems to test out the driver.
 @node Other time synchronisation packages
 @section Relationship to other software packages
 @menu
-* Comparison with xntpd::       
+* Comparison with ntpd::
 * Comparison with timed::       
 @end menu
 
-@node Comparison with xntpd
-@subsection xntpd
+@node Comparison with ntpd
+@subsection ntpd
 The `reference' implementation of the Network Time Protocol is the
-program @code{xntpd}, available via
-@uref{http://www.eecis.udel.edu/~ntp, The NTP home page}.
+program @code{ntpd}, available via
+@uref{http://www.ntp.org/, The NTP home page}.
 
-@code{xntpd} is designed to support all the operating modes defined by
-RFC1305, and has driver support for a large number of reference clocks
-(such as GPS receivers) that can be connected directly to a computer,
-thereby providing a so-called 'stratum 1' server.
-
-Things @code{chronyd} can do that @code{xntpd} can't:
+One of the main differences between @code{ntpd} and @code{chronyd} is in
+the algorithms used to control the computer's clock. Things
+@code{chronyd} can do better than @code{ntpd}:
 
 @itemize @bullet
 @item
 @code{chronyd} can perform usefully in an environment where access to
-the time reference is intermittent.  @code{chronyd} estimates
-@emph{both} the current time offset @emph{and} the rate at which the
-computer's clock gains or loses time, and can use that rate estimate to
-trim the clock after the reference disappears.  @code{xntpd} corrects
-any time offset by speeding up and slowing down the computer clock, and
-so could be left with a significant rate error if the reference
-disappears whilst it is trying to correct a big offset.
+the time reference is intermittent.  @code{ntpd} needs regular polling
+of the reference to work well.
+@item
+@code{chronyd} can usually synchronise the clock faster and with better
+time accuracy.
+@item
+@code{chronyd} quickly adapts to sudden changes in the rate of the clock
+(e.g. due to changes in the temperature of the crystal oscillator).
+@code{ntpd} may need a long time to settle down again.
+@item
+@code{chronyd} can perform well even when the network is congested for
+longer periods of time.
+@item
+@code{chronyd} in the default configuration never steps the time to not
+upset other running programs.  @code{ntpd} can be configured to never
+step the time too, but it has to use a different means of adjusting the
+clock, which has some
+disadvantages.
+@item
+@code{chronyd} can adjust the rate of the clock on Linux in a larger
+range, which allows it to operate even on machines with broken or
+unstable clock (e.g. in some virtual machines).
+@end itemize
 
+Things @code{chronyd} can do that @code{ntpd} can't:
+
+@itemize @bullet
 @item
 @code{chronyd} provides support for isolated networks whether the only
 method of time correction is manual entry (e.g. by the administrator
@@ -189,33 +205,27 @@ subsequently.
 `real-time clock', i.e. the clock that maintains the time when the
 computer is turned off.  It can use this data when the system boots to
 set the system time from a corrected version of the real-time clock.
-These real-time clock facilities are only available on certain releases
-of Linux, so far.
-
-@item
-The @code{xntpd} program is supported by other programs to carry out
-certain functions.  @code{ntpdate} is used to provide an initial
-correction to the system clock based on a `one-shot' sampling of other
-NTP servers.  @code{tickadj} is used to adjust certain operating system
-parameters to make @code{xntpd} work better.  All this functionality is
-integrated into @code{chronyd}.
+These real-time clock facilities are only available on Linux, so far.
 @end itemize
 
-Things @code{xntpd} can do that @code{chronyd} can't:
+Things @code{ntpd} can do that @code{chronyd} can't:
 
 @itemize @bullet
 @item
-@code{xntpd} supports effectively all of RFC1305, including broadcast /
-multicast clients and extra encryption schemes for authenticating
-data packets.
+@code{ntpd} fully supports NTP version 4 (RFC5905), including broadcast,
+multicast, manycast clients / servers and the orphan mode.  It also
+supports extra authentication schemes based on public-key cryptography
+(RFC5906). @code{chronyd} uses NTP version 3 (RFC1305), which is
+compatible with version 4.
 
 @item
-@code{xntpd} has been ported to more types of computer / operating
-system (so far).
+@code{ntpd} has been ported to more types of computer / operating
+system.
 
 @item
-xntpd is designed to work solely with integer arithmetic (i.e. does not
-require floating point support from its host).
+@code{ntpd} includes drivers for many reference clocks. @code{chronyd}
+relies on other programs (e.g. gpsd) to access the data from the
+reference clocks.
 @end itemize
 
 @node Comparison with timed
@@ -1417,7 +1427,7 @@ configured as a point-to-point client by defining specific NTP servers and
 peers.  This broadcast server feature is intended for providing a time source
 to other NTP software (e.g. various MS Windows clients).
 
-If xntpd is used as the broadcast client, it will try to use a point-to-point
+If ntpd is used as the broadcast client, it will try to use a point-to-point
 client/server NTP access to measure the round-trip delay.  Thus, the broadcast
 subnet should also be the subject of an @code{allow} directive (@pxref{allow
 directive}).
@@ -2492,7 +2502,7 @@ on your machine.
 The compiled in default is udp/123, the standard NTP port.  It is
 unlikely that you would ever need to change this value.  A possible
 exception would be if you wanted to operate strictly in client-only
-mode and never be available as a server to xntpd clients.
+mode and never be available as a server to ntpd clients.
 
 An example of the port command is
 
