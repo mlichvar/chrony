@@ -96,56 +96,6 @@ at all, I found xntpd gave me no help with managing the local clock's
 gain/loss rate on the NTP master node (which I set from my watch).  I
 added some automated support in chrony to deal with this.
 
-S: Compilation issues
-Q:How do I apply source patches?
-Sometimes we release source patches rather than a full version when we need to
-provide a fix for small problems.  Supposing you have chrony-1.X.tar.gz and a
-source patch chrony-1.X-1.X.1.gz.  The steps required are:
-
-    tar xzvf ../chrony-1.X.tar.gz
-    cd chrony-1.X
-    gunzip < ../../chrony-1.X-1.X.1.gz  | patch -p1
-    ./configure
-    make
-    make install
-
-Q:Can I compile chrony with an ANSI-C compiler that is not GCC v2.x?
-I have had reports that chrony can be compiled with GCC v1.42, by using the
-following trick when running make
-
-   make CC='gcc -D__FUNCTION__=\"function_not_available\"'
-
-(this gets around the lack of a __FUNCTION__ macro in GCC v1.)
-
-The same trick may be enough to allow other compilers to be used.
-
-Q: I get errors like 'client.c:44: readline/readline.h: file not found'
-Read the section about 'readline' in the INSTALL file or in chrony.txt.  You
-may need to disable readline support (e.g. if you haven't got readline
-installed at all, or just don't want it), or specify the location of the
-readline files (e.g. if you've installed them in a non-standard place).
-
-Q: I have RedHat 7.3 and can't compile rtc_linux.c (error in spinlock.h)
-The following solution has been found for this.  Enter the following 3 commands
-(as root):
-
-  cd  /usr/include/                                                                                                               
-  mv linux linux.rh                                                                                                               
-  ln -s /usr/src/linux/include/linux ./linux                                                                                    
-
-The problem seems to be that RedHat provide their own kernel header files in
-/usr/include/linux.  Besides differing from those used by your current kernel,
-if you compiled it yourself, they also seem to have been changed in a way that
-causes a problem compiling chrony.  Chrony compiles fine with standard kernel
-header files.
-
-There have also been reports that just replacing the file
-/usr/src/linux/spinlock.h by the equivalent file from a vanilla kernel source
-tree is sufficient to fix the problem.
-
-Note : from version 1.21 onwards, this problem no longer exists.  The kernel
-header files are no longer included.
-
 S: Selection of NTP servers
 Q: I have several computers on a LAN.  Should I make one the master, or make them all clients of an external server?
 I think the best configuration is to make one computer the master, with the
@@ -200,15 +150,6 @@ Q: In measurements.log, do the '7' and '8' flag columns always show zero?
 Do you have a 'local stratum X' directive in the chrony.conf file?  If X is
 lower than the stratum of the server you're trying to use, this situation will
 arise.  You should always make X quite high (e.g. 10) in this directive.
-
-S: Issues with chronyd
-
-Q: chronyd crashes after a syslog message "adjtimex failed for set frequency"
-The usual cause is that the kernel is running with a different value of 'HZ'
-(the timer interrupt rate) than the value that was found in the kernel header
-files when chrony was compiled.  The chrony.conf file can include options to
-modify the HZ value (see the discussion of linux_hz and linux_freq_scale in the
-documentation), however the problem is to find the value of HZ being used.
 
 S: Issues with chronyc
 
@@ -267,14 +208,6 @@ For the real time clock support to work, you need the following three things:
 * a kernel that is supported (e.g. 2.2 onwards)                                                                                     
 * enhanced RTC support compiled into the kernel                                                                                     
 * an 'rtcfile' directive in your chrony.conf file.                                                                                  
-
-S: Problems with isolated networks.
-
-Q: When I use the 'settime' command, chronyd crashes.
-If you enter times that are too far away from the real time, chronyd will
-think the system clock runs fast or slow by an excessive amount.  The required
-compensation factor will be outside the bounds for the adjtimex() system call.
-chronyd will crash when it tries to apply such an excessive adjustment.
 
 S: Microsoft Windows
 
