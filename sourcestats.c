@@ -51,6 +51,9 @@ int min_samples;
    2000ppm, which would be pretty bad */
 #define WORST_CASE_FREQ_BOUND (2000.0/1.0e6)
 
+/* The minimum allowed skew */
+#define MIN_SKEW 1.0e-12
+
 /* ================================================== */
 
 static LOG_FileID logfileid;
@@ -452,6 +455,9 @@ SST_DoNewRegression(SST_Stats inst)
     inst->estimated_offset_sd = est_intercept_sd;
     inst->variance = est_var;
     inst->nruns = nruns;
+
+    if (inst->skew < MIN_SKEW)
+      inst->skew = MIN_SKEW;
 
     stress = fabs(old_freq - inst->estimated_frequency) / old_skew;
 
