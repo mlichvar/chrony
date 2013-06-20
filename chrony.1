@@ -32,16 +32,16 @@ between measurements from the reference.
 The reference time can be derived from either Network Time Protocol
 (NTP) servers, reference clocks, or wristwatch-and-keyboard (via \fIchronyc\fR).
 The main source of information about the Network Time Protocol is
-\fIhttp://www.eecis.udel.edu/~ntp\fR.
+\fIhttp://www.ntp.org\fR.
 
 It is designed so that it can work on computers which only have
 intermittent access to reference sources, for example computers which
-use a dial-up account to access the Internet.  Of course, it will work
-on computers with permanent connections too.
+use a dial-up account to access the Internet or laptops.  Of course, it
+will work well on computers with permanent connections too.
 
-In addition, for Linux 2.0.x (for x >= 32) or 2.2 onwards, chronyd can monitor
-the system's real time clock performance, so the system can maintain accurate
-time even across reboots.
+In addition, on Linux it can monitor the system's real time clock
+performance, so the system can maintain accurate time even across
+reboots.
 
 Typical accuracies available between 2 machines are
 

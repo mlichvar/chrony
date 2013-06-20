@@ -125,8 +125,7 @@ from \fIhttp://go.to/chrony\fR
 .BR chrony(1),
 .BR chronyc(1),
 .BR chrony.conf(5),
-.BR clock(8),
-.BR xntpd(8),
+.BR hwclock(8),
 .BR ntpd(8)
 
 .SH AUTHOR

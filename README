@@ -21,12 +21,12 @@ between measurements from the reference.
 The reference time can be derived from Network Time Protocol (NTP)
 servers, reference clocks, or wristwatch-and-keyboard (via chronyc).
 The main source of information about the Network Time Protocol is
-http://www.eecis.udel.edu/~ntp.
+http://www.ntp.org.
 
 It is designed so that it can work on computers which only have
 intermittent access to reference sources, for example computers which
-use a dial-up account to access the Internet.  Of course, it will work
-on computers with permanent connections too.
+use a dial-up account to access the Internet or laptops.  Of course, it
+will work well on computers with permanent connections too.
 
 In addition, on Linux it can monitor the system's real time clock
 performance, so the system can maintain accurate time even across
@@ -48,10 +48,7 @@ What will chrony run on?
 
 Chrony can be successfully built and run on
 
-1. Linux v1.2.13, v2.0.x, 2.1.x (partially), 2.2.x, 2.3.x, 2.4.x, 2.6.x.
-Real time clock support is limited to 2.0.32 onwards and to 2.2, 2.3,
-2.4 and 2.6 series only.  i386, x86_64, PowerPC are known to be
-supported.
+1. Linux 2.2.x, 2.3.x, 2.4.x, 2.6.x, 3.x
 
 2. Solaris 2.5/2.5.1/2.6/2.7/2.8 (various platforms) 
 
@@ -87,12 +84,6 @@ There is also information available on the chrony web pages, accessible
 through the URL 
 
     http://chrony.tuxfamily.org/
-
-What can chrony not do?
-=======================
-
-Compared to the `reference' RFC1305 implementation xntpd, chronyd does
-not support broadcast modes.
 
 Where are new versions announced?
 =================================
@@ -252,5 +243,3 @@ Doug Woodward <dougw@whistler.com>
 
 Many other people have contributed bug reports and suggestions.  I'm
 sorry I can't identify all of you individually.
-
-vim:tw=72

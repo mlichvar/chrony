@@ -570,6 +570,9 @@ customers.
 stratum 1 and stratum 2 servers.  You should find one or more servers
 that are near to you --- check that their access policy allows you to
 use their facilities.
+
+@item Use public servers from
+@uref{http://www.pool.ntp.org/, the pool.ntp.org project}.
 @end itemize
 
 Assuming that you have found some servers, you need to set up a
@@ -595,7 +598,7 @@ server d.e.f
 server g.h.i
 keyfile @SYSCONFDIR@/chrony.keys
 commandkey 1
-driftfile @SYSCONFDIR@/chrony.drift
+driftfile @CHRONYVARDIR@/drift
 @end example
 @c }}}
 @c {{{ S:Infrequent connection
@@ -629,37 +632,23 @@ server d.e.f
 server g.h.i
 @end example
 
-However, the following issues need to be addressed:
-
-@enumerate 1
-@item
-Your computer probably doesn't have DNS access whilst offline to turn
-the machine names into IP addresses.
-@item
-Your computer will keep trying to contact the servers to obtain
+However, your computer will keep trying to contact the servers to obtain
 timestamps, even whilst offline.  If you operate a dial-on-demand
 system, things are even worse, because the link to the internet will
 keep getting established.
-@end enumerate
 
 For this reason, it would be better to specify this part of your
 configuration file in the following way:
 
 @example
-server 1.2.3.4 offline
-server 5.6.7.8 offline
-server 9.10.11.12 offline
+server a.b.c offline
+server d.e.f offline
+server g.h.i offline
 @end example
 
-Because numeric IP addresses have been used, the first problem is
-overcome.  The @code{offline} keyword indicates that the servers start
+The @code{offline} keyword indicates that the servers start
 in an offline state, and that they should not be contacted until @code{chronyd}
 receives notification that the link to the internet is present.
-
-An alternative is to use the names of the NTP servers, and put entries for them
-into your @file{/etc/hosts} file.  This will be OK as long as @samp{files}
-comes before @samp{dns} in the @samp{hosts} line of the
-@file{/etc/nsswitch.conf} file.
 
 In order to notify @code{chronyd} of the presence of the link, you will need to
 be able to log in to it with the program chronyc.  To do this, @code{chronyd}
@@ -668,7 +657,7 @@ administrator password, you can create a file @file{@SYSCONFDIR@/chrony.keys}
 containing a single line
 
 @example
-1 xyzzy
+1 ALongAndRandomPassword
 @end example
 
 and add the following line to @file{@SYSCONFDIR@/chrony.conf} (the order of the
@@ -681,12 +670,12 @@ commandkey 1
 The smallest useful configuration file would look something like
 
 @example
-server 1.2.3.4 offline
-server 5.6.7.8 offline
-server 9.10.11.12 offline
+server a.b.c offline
+server d.e.f offline
+server g.h.i offline
 keyfile @SYSCONFDIR@/chrony.keys
 commandkey 1
-driftfile @SYSCONFDIR@/chrony.drift
+driftfile @CHRONYVARDIR@/drift
 @end example
 
 The next section describes how to tell @code{chronyd} when the internet link
@@ -750,7 +739,7 @@ be (assuming the clients are in the 192.168.165.x subnet and that the
 master's address is 192.168.169.170)
 
 @example
-driftfile @SYSCONFDIR@/chrony.drift
+driftfile @CHRONYVARDIR@/drift
 commandkey 25
 keyfile @SYSCONFDIR@/chrony.keys
 initstepslew 10 client1 client3 client6
@@ -764,7 +753,7 @@ the configuration file might be
 
 @example
 server master
-driftfile @SYSCONFDIR@/chrony.drift
+driftfile @CHRONYVARDIR@/drift
 logdir /var/log/chrony
 log measurements statistics tracking
 keyfile @SYSCONFDIR@/chrony.keys
@@ -900,34 +889,24 @@ To illustrate how a dial-up home computer might be configured, example
 configuration files are shown in this section.
 
 For the @file{@SYSCONFDIR@/chrony.conf} file, the following can be used as an
-example.  @emph{NOTE : The @code{server} directives are only applicable
-to customers of Demon Internet; users of other ISPs will need to use
-their own ISP's NTP servers or public NTP servers.}
+example.
 
 @example
-server 158.152.1.65 minpoll 5 maxpoll 10 maxdelay 0.4 offline
-server 158.152.1.76 minpoll 5 maxpoll 10 maxdelay 0.4 offline
-server 194.159.253.2 minpoll 5 maxpoll 10 maxdelay 0.4 offline
+server 0.pool.ntp.org minpoll 5 maxpoll 10 maxdelay 0.4 offline
+server 1.pool.ntp.org minpoll 5 maxpoll 10 maxdelay 0.4 offline
+server 2.pool.ntp.org minpoll 5 maxpoll 10 maxdelay 0.4 offline
 logdir /var/log/chrony
 log statistics measurements tracking
-driftfile @SYSCONFDIR@/chrony.drift
+driftfile @CHRONYVARDIR@/drift
 keyfile @SYSCONFDIR@/chrony.keys
 commandkey 25
 maxupdateskew 100.0
 dumponexit
-dumpdir /var/log/chrony
-rtcfile @SYSCONFDIR@/chrony.rtc
+dumpdir @CHRONYVARDIR@
+rtcfile @CHRONYVARDIR@/rtc
 @end example
 
-With Freeserve as the ISP, the following server lines can be used:
-
-@example
-server 194.152.64.68 minpoll 5 maxpoll 10 maxdelay 0.4 offline
-server 194.152.64.35 minpoll 5 maxpoll 10 maxdelay 0.4 offline
-server 194.152.64.34 minpoll 5 maxpoll 10 maxdelay 0.4 offline
-@end example
-
-@code{pppd} is used for connecting to my ISP.  This runs two scripts
+@code{pppd} is used for connecting to the internet.  This runs two scripts
 @file{/etc/ppp/ip-up} and @file{/etc/ppp/ip-down} when the link goes
 online and offline respectively.
 
@@ -940,16 +919,8 @@ The relevant part of the @file{/etc/ppp/ip-up} file is
 and the relevant part of the @file{/etc/ppp/ip-down} script is
 
 @example
-@BINDIR@/chronyc -a <<EOF
-offline
-dump
-writertc
-EOF
+@BINDIR@/chronyc -a -m offline dump writertc
 @end example
-
-(Because they have to contain the administrator password, it would be
-desirable to make the files readable only by root on a multiuser
-machine).
 
 To start @code{chronyd} during the boot sequence, the following
 is in @file{/etc/rc.d/rc.local} (this is a Slackware system)
@@ -962,34 +933,13 @@ fi
 @end example
 
 The placement of this command may be important on some systems.  In
-particular, @code{chronyd} may need to be started several seconds (about
-10 as a minimum) before any software that depends on the system clock
-not jumping or moving backwards, depending on the directives in
-@code{chronyd's} configuration file.
+particular, @code{chronyd} may need to be started before any software
+that depends on the system clock not jumping or moving backwards,
+depending on the directives in @code{chronyd's} configuration file.
 
 For the system shutdown, @code{chronyd} should receive a SIGTERM several
 seconds before the final SIGKILL; the SIGTERM causes the measurement
-histories and RTC information to be saved out.  There should be no need
-to add anything to the shutdown sequence, unless (as my system had)
-there is no pause between the SIGTERM and SIGKILL being delivered to the
-remaining processes.  So if you find something like
-
-@example
-killall5 -15 
-killall5 -9
-@end example
-
-in your @code{/etc/rc.d/rc.0} script, you will need to insert a sleep, e.g.
-
-@example
-killall5 -15 
-sleep 5
-killall5 -9
-@end example
-
-Otherwise, @code{chronyd} will not always save information on shutdown,
-which could be a problem if you don't use @code{dump} and
-@code{writertc} when you go offline.
+histories and RTC information to be saved out.
 @c }}}
 @c {{{ S:Other config options
 @node Configuration options overview
@@ -1007,11 +957,11 @@ determination is taking place.
 To avoid this problem, @code{chronyd} allows the gain or loss rate to be
 stored in a file, which can be read back in when the program is
 restarted.  This file is called the drift file, and might typically be
-stored in @file{@SYSCONFDIR@/chrony.drift}.  By specifying an option like the
+stored in @file{@CHRONYVARDIR@/drift}.  By specifying an option like the
 following
 
 @example
-driftfile @SYSCONFDIR@/chrony.drift
+driftfile @CHRONYVARDIR@/drift
 @end example
 
 in the configuration file (@file{@SYSCONFDIR@/chrony.conf}), the drift file
@@ -1117,7 +1067,7 @@ IPv6 sockets will be created.
 On systems that support an @file{/etc/rc.local} file for starting
 programs at boot time, @code{chronyd} can be started from there.
 
-On systems with a System V style initialisation (e.g. Solaris), a
+On systems with a System V style initialisation, a
 suitable start/stop script might be as shown below.  This might be
 placed in the file @file{/etc/rc2.d/S83chrony}.
 
@@ -1422,7 +1372,7 @@ chronyd is running.
 You can have more than 1 @code{broadcast} directive if you have more than 1
 network interface onto which you wish to send NTP broadcast packets.
 
-Chronyd itself cannot currently act as a broadcast client; it must always be
+@code{chronyd} itself cannot currently act as a broadcast client; it must always be
 configured as a point-to-point client by defining specific NTP servers and
 peers.  This broadcast server feature is intended for providing a time source
 to other NTP software (e.g. various MS Windows clients).
@@ -1608,7 +1558,7 @@ which the true rate actually lies.
 An example of the driftfile command is
 
 @example
-driftfile @SYSCONFDIR@/chrony.drift
+driftfile @CHRONYVARDIR@/drift
 @end example
 @c }}}
 @c {{{ dumpdir
@@ -1634,12 +1584,12 @@ directory where the measurement histories are saved.
 An example of the command is
 
 @example
-dumpdir /var/log/chrony
+dumpdir @CHRONYVARDIR@
 @end example
 
 A source whose reference id (the IP address for IPv4 sources) is
 1.2.3.4 would have its measurement history saved in the file
-@file{/var/log/chrony/1.2.3.4.dat}.
+@file{/var/lib/chrony/1.2.3.4.dat}.
 @c }}}
 @c {{{ dumponexit
 @node dumponexit directive
@@ -2670,7 +2620,7 @@ of the system's real-time clock (RTC).
 The syntax is illustrated in the following example
 
 @example
-rtcfile @SYSCONFDIR@/chrony.rtc
+rtcfile @CHRONYVARDIR@/rtc
 @end example
 
 @code{chronyd} saves information in this file when it exits and when the
@@ -2741,12 +2691,12 @@ This mode is supported only on Linux.
 
 This directive uses the Linux sched_setscheduler() system call to
 instruct the kernel to use the SCHED_FIFO first-in, first-out
-real-time scheduling policy for Chronyd with the specified priority.
-This means that whenever Chronyd is ready to run it will run,
+real-time scheduling policy for @code{chronyd} with the specified priority.
+This means that whenever @code{chronyd} is ready to run it will run,
 interrupting whatever else is running unless it is a higher priority
-real-time process.  This should not impact performance as Chronyd's
+real-time process.  This should not impact performance as @code{chronyd's}
 resource requirements are modest, but it should result in lower and
-more consistent latency since Chronyd will not need to wait for the
+more consistent latency since @code{chronyd} will not need to wait for the
 scheduler to get around to running it.  You should not use this unless
 you really need it.  The sched_setscheduler man page has more details.
 @c }}}
@@ -2776,10 +2726,10 @@ ignore stratum when selecting the source.
 
 The @code{lock_all} directive will lock chronyd into RAM so that it
 will never be paged out.  This mode is only supported on Linux.  This
-directive uses the Linux mlockall() system call to prevent Chronyd
+directive uses the Linux mlockall() system call to prevent @code{chronyd}
 from ever being swapped out.  This should result in lower and more
 consistent latency.  It should not have significant impact on
-performance as Chronyd's memory usage is modest.  The mlockall man
+performance as @code{chronyd's} memory usage is modest.  The mlockall man
 page has more details.
 @c }}}
 @c {{{ server
@@ -3472,12 +3422,7 @@ periodically purged.  An example of how to do this is shown below.
 
 @example
 % mv /var/log/chrony/measurements.log /var/log/chrony/measurements1.log
-% chronyc
-chronyc> password aardvark
-200 OK
-chronyc> cyclelogs
-200 OK
-chronyc> exit
+% chronyc -a cyclelogs
 % ls -l /var/log/chrony
 -rw-r--r--   1 root     root            0 Jun  8 18:17 measurements.log
 -rw-r--r--   1 root     root        12345 Jun  8 18:17 measurements1.log

@@ -31,7 +31,7 @@ useful configuration file would look something like
      server g.h.i
      keyfile @SYSCONFDIR@/chrony.keys
      commandkey 1
-     driftfile @SYSCONFDIR@/chrony.drift
+     driftfile @CHRONYVARDIR@/drift
 
 
 .SH "SEE ALSO"

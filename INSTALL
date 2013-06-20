@@ -81,12 +81,14 @@ Now that the software is successfully installed, the next step is to
 set up a configuration file.  The contents of this depend on the
 network environment in which the computer operates.  Typical scenarios
 are described in the manual.  The simplest case is for a computer with
-a permanent Internet connection - suppose you want to use the NTP
-server ntp1.foobar.com as your time reference.  You would create an
-/etc/chrony.conf file containing
+a permanent Internet connection - suppose you want to use public NTP
+servers from the pool.ntp.org project as your time reference.  You would
+create an /etc/chrony.conf file containing
 
-    server ntp1.foobar.com
-    driftfile /etc/chrony.drift
+    server 0.pool.ntp.org
+    server 1.pool.ntp.org
+    server 2.pool.ntp.org
+    driftfile /var/lib/chrony/drift
 
 and then run /usr/local/sbin/chronyd.
 
