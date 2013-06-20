@@ -93,10 +93,10 @@ Data Security, Inc. MD5 Message-Digest Algorithm} for authenticating
 messages between different machines on the network.
 
 In writing the @code{chronyd} program, extensive use has been made of
-RFC1305, written by David Mills.  I have occasionally referred to the
-@code{ntp} suite's source code to check details of the protocol that
-the RFC did not make absolutely clear.  The core algorithms in
-@code{chronyd} are all completely distinct from @code{ntp}, however.
+RFC1305, written by David Mills.  The @code{ntp} suite's source code has
+been occasionally used to check details of the protocol that the RFC did
+not make absolutely clear.  The core algorithms in @code{chronyd} are
+all completely distinct from @code{ntp}, however.
 @c }}}
 @c {{{ S:Availability
 @node Availability
@@ -313,9 +313,9 @@ different architectures (Alpha, Sparc, MIPS as well as x86 of course).
 
 @item Porting to Windows NT
 
-I did a small amount of work on this under Cygwin.  Only the sorting out of the
-include files has really been achieved so far.  The two main areas still to
-address are
+A small amount of work on this was done under Cygwin.  Only the sorting
+out of the include files has really been achieved so far.  The two main
+areas still to address are
 
 @enumerate
 @item The system clock driver.
@@ -919,7 +919,7 @@ dumpdir /var/log/chrony
 rtcfile @SYSCONFDIR@/chrony.rtc
 @end example
 
-With Freeserve as the ISP, I use the following server lines :
+With Freeserve as the ISP, the following server lines can be used:
 
 @example
 server 194.152.64.68 minpoll 5 maxpoll 10 maxdelay 0.4 offline
@@ -927,7 +927,7 @@ server 194.152.64.35 minpoll 5 maxpoll 10 maxdelay 0.4 offline
 server 194.152.64.34 minpoll 5 maxpoll 10 maxdelay 0.4 offline
 @end example
 
-I use @code{pppd} for connecting to my ISP.  This runs two scripts
+@code{pppd} is used for connecting to my ISP.  This runs two scripts
 @file{/etc/ppp/ip-up} and @file{/etc/ppp/ip-down} when the link goes
 online and offline respectively.
 
@@ -951,8 +951,8 @@ EOF
 desirable to make the files readable only by root on a multiuser
 machine).
 
-To start @code{chronyd} during the boot sequence, I have the following
-in @file{/etc/rc.d/rc.local} (this is a Slackware system)
+To start @code{chronyd} during the boot sequence, the following
+is in @file{/etc/rc.d/rc.local} (this is a Slackware system)
 
 @example
 if [ -f @SBINDIR@/chronyd -a -f @SYSCONFDIR@/chrony.conf ]; then
@@ -4088,8 +4088,6 @@ chronyc (@pxref{manual command}).
 It should be noted that the computer's sense of time will only be as
 accurate as the reference you use for providing this input (e.g. your
 watch), as well as how well you can time the press of the return key.
-When inputting time to an isolated network, I have a battery operated
-alarm clock that is synchronised to the Rugby MSF time signal in the UK.
 
 Providing your computer's time zone is set up properly, you will be able
 to enter a local time (rather than UTC).
@@ -4362,10 +4360,8 @@ ppm (parts per million).  For example, a value of 1ppm would mean that
 when the system's clock thinks it has advanced 1 second, it has actually
 advanced by 1.000001 seconds relative to true time.
 
-As you can see in the example, the clock in the computer I developed
-@code{chrony} on is not a very good one - it gains about 30 seconds per
-day!  This was the reason I started to write @code{chrony} in the first
-place.
+As you can see in the example, the clock in the computer is not a very
+good one - it gains about 30 seconds per day!
  
 @item Residual freq
 This shows the `residual frequency' for the currently selected reference
