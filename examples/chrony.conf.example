@@ -40,21 +40,21 @@
 # more 'NTP servers'.  You will probably find that your Internet Service
 # Provider or company have one or more NTP servers that you can specify.
 # Failing that, there are a lot of public NTP servers.  There is a list
-# you can access at:
-# http://support.ntp.org/bin/view/Servers/WebHome
+# you can access at http://support.ntp.org/bin/view/Servers/WebHome or
+# you can use servers from the pool.ntp.org project.
 
-! server ntp0.your-isp.com
-! server ntp1.your-isp.com
-! server ntp.public-server.org
+! server 0.pool.ntp.org iburst
+! server 1.pool.ntp.org iburst
+! server 2.pool.ntp.org iburst
  
 # However, for dial-up use you probably want these instead.  The word
 # 'offline' means that the server is not visible at boot time.  Use
 # chronyc's 'online' command to tell chronyd that these servers have
 # become visible after you go on-line.
 
-! server ntp0.your-isp.com offline
-! server ntp1.your-isp.com offline
-! server ntp.public-server.org offline
+! server 0.pool.ntp.org offline
+! server 1.pool.ntp.org offline
+! server 2.pool.ntp.org offline
 
 # You may want to specify NTP 'peers' instead.  If you run a network
 # with a lot of computers and want several computers running chrony to
@@ -89,7 +89,7 @@
 # immediately so that it doesn't gain or lose any more time.  You
 # generally want this, so it is uncommented.
 
-driftfile /etc/chrony.drift
+driftfile /var/lib/chrony/drift
 
 # If you want to use the program called chronyc to configure aspects of
 # chronyd's operation once it is running (e.g. tell it the Internet link
@@ -122,7 +122,7 @@ commandkey 1
 # Enable these two options to use this.
 
 ! dumponexit
-! dumpdir /var/log/chrony
+! dumpdir /var/lib/chrony
 
 # chronyd writes its process ID to a file.  If you try to start a second
 # copy of chronyd, it will detect that the process named in the file is
@@ -133,17 +133,16 @@ commandkey 1
 
 #######################################################################
 ### INITIAL CLOCK CORRECTION
-# This option is only useful if your NTP servers are visible at boot
-# time.  This probably means you are on a LAN.  If so, the following
-# option will choose the best-looking of the servers and correct the
-# system time to that.  The value '10' means that if the error is less
+# This option is useful to quickly correct the clock on start if it's
+# off by a large amount.  The value '10' means that if the error is less
 # than 10 seconds, it will be gradually removed by speeding up or
 # slowing down your computer's clock until it is correct.  If the error
 # is above 10 seconds, an immediate time jump will be applied to correct
-# it.  Some software can get upset if the system clock jumps (especially
-# backwards), so be careful!
+# it.  The value '1' means the step is allowed only on the first update
+# of the clock.  Some software can get upset if the system clock jumps
+# (especially backwards), so be careful!
 
-! initstepslew 10 ntp0.your-company.com ntp1.your-company.com ntp2.your-company.com
+! makestep 10 1
 
 #######################################################################
 ### LOGGING
@@ -255,13 +254,6 @@ commandkey 1
 # put into chronyc to allow you to modify chronyd's parameters.  By
 # default all you can do is view information about chronyd's operation.
 
-# Some people have reported that the need the following line to allow
-# chronyc to work even on the same machine.  This should not be
-# necessary, and the problem is being investigated.  You can leave this
-# line enabled, as it's benign otherwise.
-
-cmdallow 127.0.0.1
-
 #######################################################################
 ### REAL TIME CLOCK
 # chronyd can characterise the system's real-time clock.  This is the
@@ -273,7 +265,7 @@ cmdallow 127.0.0.1
 # You need to have 'enhanced RTC support' compiled into your Linux
 # kernel.  (Note, these options apply only to Linux.)
 
-! rtcfile /etc/chrony.rtc
+! rtcfile /var/lib/chrony/rtc
 
 # Your RTC can be set to keep Universal Coordinated Time (UTC) or local
 # time.  (Local time means UTC +/- the effect of your timezone.)  If you
