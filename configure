@@ -123,6 +123,8 @@ Fine tuning of the installation directories:
   --infodir=DIR          info documentation [DATAROOTDIR/info]
   --mandir=DIR           man documentation [DATAROOTDIR/man]
   --docdir=DIR           documentation root [DATAROOTDIR/doc/chrony]
+  --localstatedir=DIR    modifiable single-machine data [/var]
+  --chronyvardir=DIR     location for chrony data [LOCALSTATEDIR/lib/chrony]
 
 Overriding system detection when cross-compiling:
   --host-system=OS       Specify system name (uname -s)
@@ -238,6 +240,12 @@ do
     ;;
     --docdir=* )
       SETDOCDIR=`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --localstatedir=* )
+      SETLOCALSTATEDIR=`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --chronyvardir=* )
+      SETCHRONYVARDIR=`echo $option | sed -e 's/^.*=//;'`
     ;;
     --disable-rtc)
       feat_rtc=0
@@ -575,6 +583,16 @@ if [ "x$SETDOCDIR" != "x" ]; then
   DOCDIR=$SETDOCDIR
 fi
 
+LOCALSTATEDIR=/var
+if [ "x$SETLOCALSTATEDIR" != "x" ]; then
+  LOCALSTATEDIR=$SETLOCALSTATEDIR
+fi
+
+CHRONYVARDIR=${LOCALSTATEDIR}/lib/chrony
+if [ "x$SETCHRONYVARDIR" != "x" ]; then
+  CHRONYVARDIR=$SETCHRONYVARDIR
+fi
+
 add_def DEFAULT_CONF_FILE "\"$SYSCONFDIR/chrony.conf\""
 add_def MAIL_PROGRAM "\"$mail_program\""
 
@@ -605,7 +623,9 @@ do
           s%@SBINDIR@%${SBINDIR}%;\
           s%@DOCDIR@%${DOCDIR}%;\
           s%@MANDIR@%${MANDIR}%;\
-          s%@INFODIR@%${INFODIR}%;"\
+          s%@INFODIR@%${INFODIR}%;\
+          s%@LOCALSTATEDIR@%${LOCALSTATEDIR}%;\
+          s%@CHRONYVARDIR@%${CHRONYVARDIR}%;"\
           < ${f}.in > $f
 done
 
