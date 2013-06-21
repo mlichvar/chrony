@@ -453,6 +453,7 @@ write_coefs_to_file(int valid,time_t ref_time,double offset,double rate)
   if ((fprintf(out, "%1d %ld %.6f %.3f\n",
           valid,ref_time, offset, 1.0e6 * rate) < 0) |
       fclose(out)) {
+    Free(temp_coefs_file_name);
     LOG(LOGS_WARN, LOGF_RtcLinux, "Could not write to temporary RTC file %s.tmp",
         coefs_file_name);
     return RTC_ST_BADFILE;
