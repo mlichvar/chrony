@@ -1,3 +1,24 @@
+New in version 1.28
+===================
+
+* Combine sources to improve accuracy
+* Make config and command parser strict
+* Add -a option to chronyc to authenticate automatically
+* Add -R option to ignore initstepslew and makestep directives
+* Add generatecommandkey, minsamples, maxsamples and user directives
+* Improve compatibility with NTPv1 and NTPv2 clients
+* Create sockets only in selected family with -4/-6 option
+* Extend tracking log
+* Accept float values as initstepslew threshold
+* Allow hostnames in offline, online and burst commands
+* Fix and improve peer polling
+* Fix crash in config parsing with too many servers
+* Fix crash with duplicated initstepslew address
+* Fix delta calculation with extreme frequency offsets
+* Set local stratum correctly
+* Remove unnecessary adjtimex calls
+* Set paths in documentation by configure
+
 New in version 1.27
 ===================
 
