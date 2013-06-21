@@ -145,7 +145,8 @@ chrony.txt : chrony.texi
 	makeinfo --no-headers --number-sections -o chrony.txt chrony.texi
 
 chrony.html : chrony.texi
-	texi2html chrony.texi
+	command -v texi2html > /dev/null 2>&1 && texi2html chrony.texi || \
+	  makeinfo --no-split --html --number-sections -o chrony.html chrony.texi
 
 chrony.info : chrony.texi
 	makeinfo chrony.texi
