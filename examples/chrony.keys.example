@@ -9,21 +9,20 @@
 #
 # Copyright 2002 Richard P. Curnow
 #
-#######################################################################
-# A valid key line looks like this
+######################################################################
 
-#1 MD5 HEX:B028F91EA5C38D06C2E140B26C7F41EC
+# Examples of valid keys:
 
-# The key should be random for maximum security.  If you wanted to use the
-# above line as your commandkey (i.e. chronyc password) you would put the
-# following line into chrony.conf (remove the # from the start):
+#1 ALongAndRandomPassword
+#2 MD5 HEX:B028F91EA5C38D06C2E140B26C7F41EC
+#3 SHA1 HEX:1DC764E0791B11FA67EFC7ECBC4B0D73F68A070C
 
-# commandkey 1
-
-# A secure command key can be generated and added to the keyfile automatically
-# by adding the following directive to chrony.conf:
-
-# generatecommandkey
+# The keys should be random for maximum security.  If you wanted to use a key
+# with ID 1 as your commandkey (i.e. chronyc password) you would put
+# "commandkey 1" into chrony.conf.  If no commandkey is present in the keys
+# file and the generatecommandkey directive is specified in chrony.conf,
+# a random commandkey will be generated and added to the keys file
+# automatically on chronyd start.
 
 # You might want to define more keys if you use the authentication facility
 # in the network time protocol to authenticate request/response packets between

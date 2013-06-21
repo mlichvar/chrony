@@ -18,8 +18,12 @@ rtcsync
 # if the adjustment is larger than 100 seconds.
 makestep 100 3
 
-# Allow client access from local network.
+# Allow NTP client access from local network.
 #allow 192.168/16
+
+# Listen for commands only on localhost.
+bindcmdaddress 127.0.0.1
+bindcmdaddress ::1
 
 # Serve time even if not synchronized to any NTP server.
 #local stratum 10
@@ -28,6 +32,9 @@ keyfile /etc/chrony.keys
 
 # Specify the key used as password for chronyc.
 commandkey 1
+
+# Generate command key if missing.
+generatecommandkey
 
 # Disable logging of client accesses.
 noclientlog
