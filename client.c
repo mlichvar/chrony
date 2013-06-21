@@ -2808,7 +2808,7 @@ authenticate_from_config(const char *filename)
   }
 
   /* Erase password from stack */
-  memset(line, sizeof (line), 0);
+  memset(line, 0, sizeof (line));
 
   return ret;
 }

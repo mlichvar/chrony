@@ -109,7 +109,7 @@ generate_key(unsigned long key_id)
   fclose(f);
 
   /* Erase the key from stack */
-  memset(key, sizeof (key), 0);
+  memset(key, 0, sizeof (key));
 
   LOG(LOGS_INFO, LOGF_Keys, "Generated key %lu", key_id);
 
