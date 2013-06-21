@@ -2452,7 +2452,8 @@ on your machine.
 The compiled in default is udp/123, the standard NTP port.  It is
 unlikely that you would ever need to change this value.  A possible
 exception would be if you wanted to operate strictly in client-only
-mode and never be available as a server to ntpd clients.
+mode and never be available as a server to ntpd clients.  If set to 0,
+the kernel will assign a random port.
 
 An example of the port command is
 
