@@ -210,8 +210,10 @@ prepare_socket(int family)
 #endif
 
   if (bind(sock_fd, &my_addr.u, my_addr_len) < 0) {
-    LOG_FATAL(LOGF_NtpIO, "Could not bind %s NTP socket : %s",
+    LOG(LOGS_ERR, LOGF_NtpIO, "Could not bind %s NTP socket : %s",
         family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
+    close(sock_fd);
+    return -1;
   }
 
   /* Register handler for read events on the socket */
