@@ -8,6 +8,7 @@ New in version 1.28
 * Add generatecommandkey, minsamples, maxsamples and user directives
 * Improve compatibility with NTPv1 and NTPv2 clients
 * Create sockets only in selected family with -4/-6 option
+* Treat address bind errors as non-fatal
 * Extend tracking log
 * Accept float values as initstepslew threshold
 * Allow hostnames in offline, online and burst commands
@@ -18,6 +19,7 @@ New in version 1.28
 * Set local stratum correctly
 * Remove unnecessary adjtimex calls
 * Set paths in documentation by configure
+* Update chrony.spec
 
 New in version 1.27
 ===================
