@@ -1371,7 +1371,8 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
         read_length = recvfrom_status;
         expected_length = PKL_ReplyLength(reply);
 
-        bad_length = (read_length < expected_length);
+        bad_length = (read_length < expected_length ||
+                      expected_length < offsetof(CMD_Reply, data));
         bad_sender = (where_from.u.sa_family != his_addr.u.sa_family ||
                       (where_from.u.sa_family == AF_INET &&
                        (where_from.in4.sin_addr.s_addr != his_addr.in4.sin_addr.s_addr ||

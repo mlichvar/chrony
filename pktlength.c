@@ -127,6 +127,8 @@ PKL_CommandLength(CMD_Request *r)
         {
           unsigned long ns;
           ns = ntohl(r->data.subnets_accessed.n_subnets);
+          if (ns > MAX_SUBNETS_ACCESSED)
+            return 0;
           return (offsetof(CMD_Request, data.subnets_accessed.subnets) +
                   ns * sizeof(REQ_SubnetsAccessed_Subnet));
         }
@@ -134,6 +136,8 @@ PKL_CommandLength(CMD_Request *r)
         {
           unsigned long nc;
           nc = ntohl(r->data.client_accesses.n_clients);
+          if (nc > MAX_CLIENT_ACCESSES)
+            return 0;
           return (offsetof(CMD_Request, data.client_accesses.client_ips) +
                   nc * sizeof(unsigned long));
         }
@@ -197,6 +201,8 @@ PKL_ReplyLength(CMD_Reply *r)
         {
           unsigned long ns = ntohl(r->data.subnets_accessed.n_subnets);
           if (r->status == htons(STT_SUCCESS)) {
+            if (ns > MAX_SUBNETS_ACCESSED)
+              return 0;
             return (offsetof(CMD_Reply, data.subnets_accessed.subnets) +
                     ns * sizeof(RPY_SubnetsAccessed_Subnet));
           } else {
@@ -207,6 +213,8 @@ PKL_ReplyLength(CMD_Reply *r)
         {
           unsigned long nc = ntohl(r->data.client_accesses.n_clients);
           if (r->status == htons(STT_SUCCESS)) {
+            if (nc > MAX_CLIENT_ACCESSES)
+              return 0;
             return (offsetof(CMD_Reply, data.client_accesses.clients) +
                     nc * sizeof(RPY_ClientAccesses_Client));
           } else {
@@ -217,6 +225,8 @@ PKL_ReplyLength(CMD_Reply *r)
         {
           unsigned long nc = ntohl(r->data.client_accesses_by_index.n_clients);
           if (r->status == htons(STT_SUCCESS)) {
+            if (nc > MAX_CLIENT_ACCESSES)
+              return 0;
             return (offsetof(CMD_Reply, data.client_accesses_by_index.clients) +
                     nc * sizeof(RPY_ClientAccesses_Client));
           } else {
@@ -226,6 +236,8 @@ PKL_ReplyLength(CMD_Reply *r)
       case RPY_MANUAL_LIST:
         {
           unsigned long ns = ntohl(r->data.manual_list.n_samples);
+          if (ns > MAX_MANUAL_LIST_SAMPLES)
+            return 0;
           if (r->status == htons(STT_SUCCESS)) {
             return (offsetof(CMD_Reply, data.manual_list.samples) +
                     ns * sizeof(RPY_ManualListSample));

@@ -1781,28 +1781,9 @@ read_from_cmd_socket(void *anything)
   }
 
   read_length = status;
-  expected_length = PKL_CommandLength(&rx_message);
-  rx_command = ntohs(rx_message.command);
 
   LCL_ReadRawTime(&now);
   LCL_CookTime(&now, &cooked_now, NULL);
-
-  tx_message.version = PROTO_VERSION_NUMBER;
-  tx_message.pkt_type = PKT_TYPE_CMD_REPLY;
-  tx_message.res1 = 0;
-  tx_message.res2 = 0;
-  tx_message.command = rx_message.command;
-  tx_message.sequence = rx_message.sequence;
-  tx_message.reply = htons(RPY_NULL);
-  tx_message.number = htons(1);
-  tx_message.total = htons(1);
-  tx_message.pad1 = 0;
-  tx_message.utoken = htonl(utoken);
-  /* Set this to a default (invalid) value.  This protects against the
-     token field being set to an arbitrary value if we reject the
-     message, e.g. due to the host failing the access check. */
-  tx_message.token = htonl(0xffffffffUL);
-  memset(&tx_message.auth, 0, sizeof(tx_message.auth));
 
   switch (where_from.u.sa_family) {
     case AF_INET:
@@ -1830,7 +1811,14 @@ read_from_cmd_socket(void *anything)
 
   allowed = ADF_IsAllowed(access_auth_table, &remote_ip) || localhost;
 
-  if (read_length < offsetof(CMD_Request, data) ||
+  /* Message size sanity check */
+  if (read_length >= offsetof(CMD_Request, data)) {
+    expected_length = PKL_CommandLength(&rx_message);
+  } else {
+    expected_length = 0;
+  }
+
+  if (expected_length < offsetof(CMD_Request, data) ||
       rx_message.pkt_type != PKT_TYPE_CMD_REQUEST ||
       rx_message.res1 != 0 ||
       rx_message.res2 != 0) {
@@ -1841,6 +1829,25 @@ read_from_cmd_socket(void *anything)
     
     return;
   }
+
+  rx_command = ntohs(rx_message.command);
+
+  tx_message.version = PROTO_VERSION_NUMBER;
+  tx_message.pkt_type = PKT_TYPE_CMD_REPLY;
+  tx_message.res1 = 0;
+  tx_message.res2 = 0;
+  tx_message.command = rx_message.command;
+  tx_message.sequence = rx_message.sequence;
+  tx_message.reply = htons(RPY_NULL);
+  tx_message.number = htons(1);
+  tx_message.total = htons(1);
+  tx_message.pad1 = 0;
+  tx_message.utoken = htonl(utoken);
+  /* Set this to a default (invalid) value.  This protects against the
+     token field being set to an arbitrary value if we reject the
+     message, e.g. due to the host failing the access check. */
+  tx_message.token = htonl(0xffffffffUL);
+  memset(&tx_message.auth, 0, sizeof(tx_message.auth));
 
   if (rx_message.version != PROTO_VERSION_NUMBER) {
     tx_message.status = htons(STT_NOHOSTACCESS);
