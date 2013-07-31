@@ -298,21 +298,9 @@ typedef struct {
   uint32_t bits_specd;
 } REQ_SubnetsAccessed_Subnet;
 
-#define MAX_SUBNETS_ACCESSED 8
-
-typedef struct {
-  uint32_t n_subnets;
-  REQ_SubnetsAccessed_Subnet subnets[MAX_SUBNETS_ACCESSED];
-} REQ_SubnetsAccessed;
-
 /* This is based on the response size rather than the
    request size */
 #define MAX_CLIENT_ACCESSES 8
-
-typedef struct {
-  uint32_t n_clients;
-  IPAddr client_ips[MAX_CLIENT_ACCESSES];
-} REQ_ClientAccesses;  
 
 typedef struct {
   uint32_t first_index;
@@ -370,7 +358,8 @@ typedef struct {
    modify polltarget, modify maxdelaydevratio, reselect, reselectdistance
 
    Version 5 : auth data moved to the end of the packet to allow hashes with
-   different sizes, extended sources, tracking and activity reports
+   different sizes, extended sources, tracking and activity reports, dropped
+   subnets accessed and client accesses
  */
 
 #define PROTO_VERSION_NUMBER 5
@@ -426,8 +415,6 @@ typedef struct {
     REQ_RTCReport rtcreport;
     REQ_TrimRTC trimrtc;
     REQ_CycleLogs cyclelogs;
-    REQ_SubnetsAccessed subnets_accessed;
-    REQ_ClientAccesses client_accesses;
     REQ_ClientAccessesByIndex client_accesses_by_index;
     REQ_ManualList manual_list;
     REQ_ManualDelete manual_delete;
@@ -583,11 +570,6 @@ typedef struct {
 } RPY_SubnetsAccessed_Subnet;
 
 typedef struct {
-  uint32_t n_subnets;
-  RPY_SubnetsAccessed_Subnet subnets[MAX_SUBNETS_ACCESSED];
-} RPY_SubnetsAccessed;
-
-typedef struct {
   IPAddr ip;
   uint32_t client_hits;
   uint32_t peer_hits;
@@ -597,11 +579,6 @@ typedef struct {
   uint32_t last_ntp_hit_ago;
   uint32_t last_cmd_hit_ago;
 } RPY_ClientAccesses_Client;
-
-typedef struct {
-  uint32_t n_clients;
-  RPY_ClientAccesses_Client clients[MAX_CLIENT_ACCESSES];
-} RPY_ClientAccesses;
 
 typedef struct {
   uint32_t n_indices;      /* how many indices there are in the server's table */
@@ -656,8 +633,6 @@ typedef struct {
     RPY_Tracking tracking;
     RPY_Sourcestats sourcestats;
     RPY_Rtc rtc;
-    RPY_SubnetsAccessed subnets_accessed;
-    RPY_ClientAccesses client_accesses;
     RPY_ClientAccessesByIndex client_accesses_by_index;
     RPY_ManualList manual_list;
     RPY_Activity activity;

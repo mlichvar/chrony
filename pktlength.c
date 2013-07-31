@@ -124,23 +124,9 @@ PKL_CommandLength(CMD_Request *r)
       case REQ_CYCLELOGS :
         return offsetof(CMD_Request, data.cyclelogs.EOR);
       case REQ_SUBNETS_ACCESSED :
-        {
-          unsigned long ns;
-          ns = ntohl(r->data.subnets_accessed.n_subnets);
-          if (ns > MAX_SUBNETS_ACCESSED)
-            return 0;
-          return (offsetof(CMD_Request, data.subnets_accessed.subnets) +
-                  ns * sizeof(REQ_SubnetsAccessed_Subnet));
-        }
       case REQ_CLIENT_ACCESSES:
-        {
-          unsigned long nc;
-          nc = ntohl(r->data.client_accesses.n_clients);
-          if (nc > MAX_CLIENT_ACCESSES)
-            return 0;
-          return (offsetof(CMD_Request, data.client_accesses.client_ips) +
-                  nc * sizeof(unsigned long));
-        }
+        /* No longer supported */
+        return 0;
       case REQ_CLIENT_ACCESSES_BY_INDEX:
         return offsetof(CMD_Request, data.client_accesses_by_index.EOR);
       case REQ_MANUAL_LIST:
@@ -198,29 +184,9 @@ PKL_ReplyLength(CMD_Reply *r)
       case RPY_RTC:
         return offsetof(CMD_Reply, data.rtc.EOR);
       case RPY_SUBNETS_ACCESSED :
-        {
-          unsigned long ns = ntohl(r->data.subnets_accessed.n_subnets);
-          if (r->status == htons(STT_SUCCESS)) {
-            if (ns > MAX_SUBNETS_ACCESSED)
-              return 0;
-            return (offsetof(CMD_Reply, data.subnets_accessed.subnets) +
-                    ns * sizeof(RPY_SubnetsAccessed_Subnet));
-          } else {
-            return offsetof(CMD_Reply, data);
-          }
-        }
       case RPY_CLIENT_ACCESSES:
-        {
-          unsigned long nc = ntohl(r->data.client_accesses.n_clients);
-          if (r->status == htons(STT_SUCCESS)) {
-            if (nc > MAX_CLIENT_ACCESSES)
-              return 0;
-            return (offsetof(CMD_Reply, data.client_accesses.clients) +
-                    nc * sizeof(RPY_ClientAccesses_Client));
-          } else {
-            return offsetof(CMD_Reply, data);
-          }
-        }
+        /* No longer supported */
+        return 0;
       case RPY_CLIENT_ACCESSES_BY_INDEX:
         {
           unsigned long nc = ntohl(r->data.client_accesses_by_index.n_clients);
