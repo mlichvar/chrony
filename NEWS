@@ -1,3 +1,17 @@
+New in version 1.29
+===================
+
+Security fixes
+--------------
+* Fix crash when processing crafted commands (CVE-2012-4502)
+  (possible with IP addresses allowed by cmdallow and localhost)
+* Don't send uninitialized data in SUBNETS_ACCESSED and CLIENT_ACCESSES
+  replies (CVE-2012-4503) (not used by chronyc)
+
+Other changes
+-------------
+* Drop support for SUBNETS_ACCESSED and CLIENT_ACCESSES commands
+
 New in version 1.28
 ===================
 
