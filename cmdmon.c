@@ -1513,9 +1513,11 @@ handle_subnets_accessed(CMD_Request *rx_message, CMD_Reply *tx_message)
         break;
       case CLG_BADSUBNET:
         tx_message->status = htons(STT_BADSUBNET);
+        tx_message->data.subnets_accessed.n_subnets = htonl(0);
         return;
       case CLG_INACTIVE:
         tx_message->status = htons(STT_INACTIVE);
+        tx_message->data.subnets_accessed.n_subnets = htonl(0);
         return;
       default:
         assert(0);
@@ -1569,6 +1571,7 @@ handle_client_accesses(CMD_Request *rx_message, CMD_Reply *tx_message)
         break;
       case CLG_INACTIVE:
         tx_message->status = htons(STT_INACTIVE);
+        tx_message->data.client_accesses.n_clients = htonl(0);
         return;
       default:
         assert(0);
