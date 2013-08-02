@@ -15,8 +15,8 @@ driftfile /var/lib/chrony/drift
 rtcsync
 
 # In first three updates step the system clock instead of slew
-# if the adjustment is larger than 100 seconds.
-makestep 100 3
+# if the adjustment is larger than 10 seconds.
+makestep 10 3
 
 # Allow NTP client access from local network.
 #allow 192.168/16
