@@ -68,7 +68,7 @@ support hardware reference clocks to your computer, then xntpd will work fine.
 Apart from not supporting hardware clocks, chrony will work fine too.
 
 If your computer connects to the 'net for 5 minutes once a day (or something
-like that), or you turn your (Linux v2.0) computer off when you're not using
+like that), or you turn your Linux computer off when you're not using
 it, or you want to use NTP on an isolated network with no hardware clocks in
 sight, chrony will work much better for you.
 
@@ -271,7 +271,7 @@ The program needs to see the definitions of structures used to interact with
 the real time clock (via /dev/rtc) and with the adjtimex() system call.  Sadly
 this has led to a number of compilation problems with newer kernels which have
 been increasingly hard to fix in a way that makes the code compilable on all
-Linux kernel versions (from 2.0 up anyway, I doubt 1.x still works.)  Hopefully
+Linux kernel versions.  Hopefully
 the situation will not deteriorate further with future kernel versions.
 
 Q: I get "Could not open /dev/rtc, Device or resource busy" in my syslog file.

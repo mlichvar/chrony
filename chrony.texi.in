@@ -125,9 +125,7 @@ different quirks in its behaviour.
 
 The software is known to work in the following environments:
 @itemize @bullet
-@item Linux on i386, x86_64 and PowerPC architectures.  The software is known
-to work on Linux 2.0.x and newer.  Prior to 2.0.31, the real time clock can't
-be used.
+@item Linux 2.2 and newer
 
 @item NetBSD
 @item BSD/386
@@ -826,17 +824,9 @@ compiled into the kernel).  An estimate is made of the RTC error at a
 particular RTC second, and the rate at which the RTC gains or loses time
 relative to true time.
 
-The RTC is fully supported in 2.2, 2.4 and 2.6 kernels.
-
-On 2.6 kernels, if your motherboard has a HPET, you need to enable the
+On 2.6 and later kernels, if your motherboard has a HPET, you need to enable the
 @samp{HPET_EMULATE_RTC} option in your kernel configuration.  Otherwise, chrony
 will not be able to interact with the RTC device and will give up using it.
-
-For kernels in the 2.0 series prior to 2.0.32, the kernel was set up to
-trim the RTC every 11 minutes.  This would be disasterous for
-@code{chronyd} -- there is no reliable way of synchronising with this
-trimming. For this reason, @code{chronyd} only supports the RTC in 2.0
-kernels from v2.0.32 onwards.
 
 When the computer is powered down, the measurement histories for all the
 NTP servers are saved to files (if the @code{dumponexit} directive is
@@ -2637,8 +2627,7 @@ conditions apply:
 
 @enumerate 1
 @item
-You are running Linux version 2.2.x or 2.4.x (for any value of x), or v2.0.x
-with x>=32. 
+You are running Linux version 2.2.x or later.
 
 @item
 You have compiled the kernel with extended real-time clock support
