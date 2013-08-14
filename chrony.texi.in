@@ -391,7 +391,8 @@ If editline or readline library is available, chronyc will be built with line
 editing support.  If you don't want this, specify the --disable-readline flag
 to configure.  Please refer to @pxref{line editing support} for more information.
 
-If a @file{timepps.h} header is available, chronyd will be built with PPS API
+If a @file{timepps.h} header is available (e.g. from the
+@uref{http://linuxpps.org/, LinuxPPS project}), chronyd will be built with PPS API
 reference clock driver.  If the header is installed in a location that isn't
 normally searched by the compiler, you can add it to the searched locations by
 setting @code{CPPFLAGS} variable to @code{-I/path/to/timepps}.
@@ -2493,8 +2494,9 @@ A driver option in form @code{:perm=NNN} can be appended to the
 segment number to create the segment with permissions other than the
 default @code{0600}. 
 
-Some examples of applications that can be used as SHM sources are @code{gpsd},
-@code{shmpps} and @code{radioclk}.
+Some examples of applications that can be used as SHM sources are
+@uref{http://catb.org/gpsd/, @code{gpsd}}, @code{shmpps} and
+@uref{http://www.buzzard.me.uk/jonathan/radioclock.html, @code{radioclk}}.
 @item SOCK
 Unix domain socket driver.  It is similar to the SHM driver, but uses a
 different format and uses a socket instead of shared memory.  It does not

@@ -39,10 +39,11 @@ with line editing support.  If you don't want this, specify the
 --disable-readline flag to configure.  Please refer to the chrony.txt
 file for more information.
 
-If a `timepps.h' header is available, chronyd will be built with PPS
-API reference clock driver.  If the header is installed in a location
-that isn't normally searched by the compiler, you can add it to the
-searched locations by setting CPPFLAGS variable to -I/path/to/timepps.
+If a 'timepps.h' header is available (e.g. from the LinuxPPS project
+(http://linuxpps.org/)), chronyd will be built with PPS API reference
+clock driver.  If the header is installed in a location that isn't
+normally searched by the compiler, you can add it to the searched
+locations by setting 'CPPFLAGS' variable to '-I/path/to/timepps'.
 
 Now type
 
