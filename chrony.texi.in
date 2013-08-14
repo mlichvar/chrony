@@ -2462,7 +2462,7 @@ can function as a stratum 1 server.  They are specified by the
 @code{refclock} directive.  It has two mandatory parameters, a refclock driver
 name and a driver specific parameter.
 
-There are currently three drivers included:
+There are currently four drivers included:
 
 @table @code
 @item PPS
@@ -2510,6 +2510,17 @@ protocol.  The path where the socket should be created is described in the
 
 @example
 refclock SOCK /var/run/chrony.ttyS0.sock
+@end example
+
+@item PHC
+PTP hardware clock (PHC) driver.  The parameter is the path to the device of
+the PTP clock, which can be synchronised by a PTP daemon (e.g. @code{ptp4l}
+from the @uref{http://linuxptp.sourceforge.net/, Linux PTP project}.  The PTP
+clocks are typically kept in TAI instead of UTC.  The @code{offset} option can
+be used to compensate for the current UTC/TAI offset.  For example:
+
+@example
+refclock PHC /dev/ptp0 poll 3 dpoll -2 offset -35
 @end example
 
 @end table

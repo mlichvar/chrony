@@ -44,8 +44,8 @@ OBJS = util.o sched.o regress.o local.o \
 	logging.o conf.o cmdmon.o keys.o \
 	nameserv.o acquire.o manual.o addrfilt.o \
 	cmdparse.o mkdirpp.o rtc.o pktlength.o clientlog.o \
-	broadcast.o refclock.o refclock_shm.o refclock_sock.o \
-	refclock_pps.o tempcomp.o $(HASH_OBJ)
+	broadcast.o refclock.o refclock_phc.o refclock_pps.o \
+	refclock_shm.o refclock_sock.o tempcomp.o $(HASH_OBJ)
 
 EXTRA_OBJS=@EXTRA_OBJECTS@
 
