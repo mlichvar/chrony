@@ -92,7 +92,7 @@ getdate :
 # For install, don't use the install command, because its switches
 # seem to vary between systems.
 
-install: chronyd chronyc
+install: chronyd chronyc chrony.txt
 	[ -d $(DESTDIR)$(SYSCONFDIR) ] || mkdir -p $(DESTDIR)$(SYSCONFDIR)
 	[ -d $(DESTDIR)$(SBINDIR) ] || mkdir -p $(DESTDIR)$(SBINDIR)
 	[ -d $(DESTDIR)$(BINDIR) ] || mkdir -p $(DESTDIR)$(BINDIR)
