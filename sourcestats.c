@@ -631,7 +631,7 @@ SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffs
         i, UTI_TimevalToString(&prev), UTI_TimevalToString(sample),
         prev_offset, inst->offsets[i]);
 #else
-    (void)prev_offset;
+    (void)prev; (void)prev_offset;
 #endif
   }
 
@@ -650,7 +650,7 @@ SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffs
       prev_offset, inst->estimated_offset,
       1.0e6*prev_freq, 1.0e6*inst->estimated_frequency);
 #else
-  (void)prev; (void)prev_freq;
+  (void)prev; (void)prev_offset; (void)prev_freq;
 #endif
 }
 

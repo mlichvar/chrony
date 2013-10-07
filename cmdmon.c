@@ -1937,8 +1937,6 @@ read_from_cmd_socket(void *anything)
     /* This should be already handled */
     assert(0);
   } else {
-    allowed = 0;
-
     /* Check level of authority required to issue the command */
     switch(permissions[rx_command]) {
       case PERMIT_AUTH:
@@ -1960,6 +1958,7 @@ read_from_cmd_socket(void *anything)
         break;
       default:
         assert(0);
+        allowed = 0;
     }
 
     if (allowed) {

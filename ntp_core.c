@@ -1548,6 +1548,8 @@ NCR_SlewTimes(NCR_Instance inst, struct timeval *when, double dfreq, double doff
 #ifdef TRACEON
   LOG(LOGS_INFO, LOGF_NtpCore, "rx prev=[%s] new=[%s]",
       UTI_TimevalToString(&prev), UTI_TimevalToString(&inst->local_rx));
+#else
+  (void)prev;
 #endif
   prev = inst->local_tx;
   if (inst->local_tx.tv_sec || inst->local_tx.tv_usec)
