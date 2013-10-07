@@ -670,6 +670,7 @@ handle_relock_after_trim(void)
   time_t ref;
   double fast, slope;
 
+  valid = 0;
   run_regression(1, &valid, &ref, &fast, &slope);
 
   if (valid) {
