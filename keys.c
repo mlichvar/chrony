@@ -260,7 +260,7 @@ KEY_Reload(void)
   /* Check for duplicates */
   for (i = 1; i < n_keys; i++) {
     if (keys[i - 1].id == keys[i].id) {
-      LOG(LOGS_WARN, LOGF_Keys, "Detected duplicate key %lu", key_id);
+      LOG(LOGS_WARN, LOGF_Keys, "Detected duplicate key %lu", keys[i].id);
     }
   }
 
