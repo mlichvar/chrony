@@ -255,7 +255,7 @@ RGR_FindBestRegression
   int start, resid_start, nruns, npoints;
   int i;
 
-  assert(n <= MAX_POINTS);
+  assert(n <= MAX_POINTS && m >= 0);
   assert(n * REGRESS_RUNS_RATIO < sizeof (critical_runs) / sizeof (critical_runs[0]));
 
   if (n < MIN_SAMPLES_FOR_REGRESS) {
