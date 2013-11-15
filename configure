@@ -454,7 +454,16 @@ if [ $feat_phc = "1" ] && [ $try_phc = "1" ] && \
   test_code '<linux/ptp_clock.h>' 'sys/ioctl.h linux/ptp_clock.h' '' '' \
     'ioctl(1, PTP_CLOCK_GETCAPS, 0);'
 then
+  if test_code 'clock_gettime()' 'time.h' '' '' 'clock_gettime(0, NULL);'; then
     add_def FEAT_PHC
+  else
+    if test_code 'clock_gettime() in -lrt' 'time.h' '' '-lrt' \
+      'clock_gettime(0, NULL);'
+    then
+      EXTRA_LIBS="$EXTRA_LIBS -lrt"
+      add_def FEAT_PHC
+    fi
+  fi
 fi
 
 if [ $try_setsched = "1" ] && \
