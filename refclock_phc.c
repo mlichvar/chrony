@@ -63,7 +63,7 @@ static double diff_ts(struct timespec *ts1, struct timespec *ts2)
 
 static int read_phc_ioctl(struct phc_reading *readings, int phc_fd, int n)
 {
-#ifdef PTP_SYS_OFFSET
+#if defined(PTP_SYS_OFFSET) && NUM_READINGS <= PTP_MAX_SAMPLES
   struct ptp_sys_offset sys_off;
   int i;
 
@@ -151,7 +151,7 @@ static int phc_poll(RCL_Instance instance)
  
   phc_fd = (long)RCL_GetDriverData(instance);
 
-  if (!no_sys_offset_ioctl && NUM_READINGS <= PTP_MAX_SAMPLES) {
+  if (!no_sys_offset_ioctl) {
     if (!read_phc_ioctl(readings, phc_fd, NUM_READINGS)) {
       no_sys_offset_ioctl = 1;
       return 0;
