@@ -439,7 +439,7 @@ if [ $feat_linuxcaps = "1" ] && [ $try_linuxcaps = "1" ] && \
     'prctl(PR_SET_KEEPCAPS, 1);cap_set_proc(cap_from_text("cap_sys_time=ep"));'
 then
     add_def FEAT_LINUXCAPS
-    EXTRA_LIBS="-lcap"
+    EXTRA_LIBS="$EXTRA_LIBS -lcap"
 fi
 
 if [ $feat_rtc = "1" ] && [ $try_rtc = "1" ] && \
