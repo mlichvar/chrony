@@ -74,6 +74,7 @@ struct RCL_Instance_Record {
   int poll;
   int leap_status;
   int pps_rate;
+  int pps_active;
   struct MedianFilter filter;
   uint32_t ref_id;
   uint32_t lock_ref;
@@ -188,6 +189,7 @@ RCL_AddRefclock(RefclockParameters *params)
   inst->driver_polled = 0;
   inst->leap_status = LEAP_Normal;
   inst->pps_rate = params->pps_rate;
+  inst->pps_active = 0;
   inst->lock_ref = params->lock_ref_id;
   inst->offset = params->offset;
   inst->delay = params->delay;
@@ -367,6 +369,8 @@ RCL_AddSample(RCL_Instance instance, struct timeval *sample_time, double offset,
       break;
   }
 
+  instance->pps_active = 0;
+
   log_sample(instance, &cooked_time, 0, 0, offset, offset - correction + instance->offset, dispersion);
 
   /* for logging purposes */
@@ -455,6 +459,7 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
 
   filter_add_sample(&instance->filter, &cooked_time, offset, dispersion);
   instance->leap_status = LEAP_Normal;
+  instance->pps_active = 1;
 
   log_sample(instance, &cooked_time, 0, 1, offset + correction - instance->offset, offset, dispersion);
 
@@ -498,7 +503,7 @@ pps_stratum(RCL_Instance instance, struct timeval *tv)
   /* Or the current source is another PPS refclock */ 
   for (i = 0; i < n_sources; i++) {
     if (refclocks[i].ref_id == ref_id &&
-        refclocks[i].pps_rate && refclocks[i].lock_ref == -1)
+        refclocks[i].pps_active && refclocks[i].lock_ref == -1)
       return stratum - 1;
   }
 
@@ -530,7 +535,7 @@ poll_timeout(void *arg)
     inst->driver_polled = 0;
 
     if (sample_ok) {
-      if (inst->pps_rate && inst->lock_ref == -1)
+      if (inst->pps_active && inst->lock_ref == -1)
         /* Handle special case when PPS is used with local stratum */
         stratum = pps_stratum(inst, &sample_time);
       else
