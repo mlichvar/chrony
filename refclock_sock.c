@@ -57,23 +57,20 @@ static void read_sample(void *anything)
   s = recv(sockfd, &sample, sizeof (sample), 0);
 
   if (s < 0) {
-#if 0
-    LOG(LOGS_INFO, LOGF_Refclock, "Error reading from SOCK socket : %s", strerror(errno));
-#endif
+    LOG(LOGS_ERR, LOGF_Refclock, "Could not read SOCK sample : %s",
+        strerror(errno));
     return;
   }
 
   if (s != sizeof (sample)) {
-#if 0
-    LOG(LOGS_INFO, LOGF_Refclock, "Unexpected length of SOCK sample : %d != %d", s, sizeof (sample));
-#endif
+    LOG(LOGS_WARN, LOGF_Refclock, "Unexpected length of SOCK sample : %d != %d",
+        s, sizeof (sample));
     return;
   }
 
   if (sample.magic != SOCK_MAGIC) {
-#if 0
-    LOG(LOGS_INFO, LOGF_Refclock, "Unexpected magic number in SOCK sample : %x != %x", sample.magic, SOCK_MAGIC);
-#endif
+    LOG(LOGS_WARN, LOGF_Refclock, "Unexpected magic number in SOCK sample : %x != %x",
+        sample.magic, SOCK_MAGIC);
     return;
   }
 

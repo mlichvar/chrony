@@ -134,9 +134,7 @@ static int pps_poll(RCL_Instance instance)
   ts.tv_nsec = 0;
 
   if (time_pps_fetch(pps->handle, PPS_TSFMT_TSPEC, &pps_info, &ts) < 0) {
-#if 0
-    LOG(LOGS_INFO, LOGF_Refclock, "time_pps_fetch error");
-#endif
+    LOG(LOGS_ERR, LOGF_Refclock, "time_pps_fetch() failed : %s", strerror(errno));
     return 0;
   }
 
