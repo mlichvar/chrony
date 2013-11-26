@@ -98,78 +98,51 @@ LOG_Finalise(void)
 
 /* ================================================== */
 
-void
-LOG_Line_Function(LOG_Severity severity, LOG_Facility facility, const char *format, ...)
+static void log_message(int fatal, LOG_Severity severity, const char *message)
 {
-  char buf[2048];
-  va_list other_args;
-  va_start(other_args, format);
-  vsnprintf(buf, sizeof(buf), format, other_args);
-  va_end(other_args);
 #ifdef WINNT
   if (logfile) {
-    fprintf(logfile, "%s\n", buf);
+    fprintf(logfile, fatal ? "Fatal error : %s\n" : "%s\n", message);
   }
 #else
   if (system_log) {
+    int priority;
     switch (severity) {
       case LOGS_INFO:
-        syslog(LOG_INFO, "%s", buf);
+        priority = LOG_INFO;
         break;
       case LOGS_WARN:
-        syslog(LOG_WARNING, "%s", buf);
+        priority = LOG_WARNING;
         break;
       case LOGS_ERR:
-      default:
-        syslog(LOG_ERR, "%s", buf);
+        priority = LOG_ERR;
         break;
+      case LOGS_FATAL:
+        priority = LOG_CRIT;
+        break;
+      default:
+        assert(0);
     }
+    syslog(priority, fatal ? "Fatal error : %s" : "%s", message);
   } else {
-    fprintf(stderr, "%s\n", buf);
+    fprintf(stderr, fatal ? "Fatal error : %s\n" : "%s\n", message);
   }
 #endif
 }
 
 /* ================================================== */
 
-void
-LOG_Fatal_Function(LOG_Facility facility, const char *format, ...)
+void LOG_Message(LOG_Severity severity, LOG_Facility facility,
+                 int line_number, const char *filename,
+                 const char *function_name, const char *format, ...)
 {
   char buf[2048];
   va_list other_args;
-  va_start(other_args, format);
-  vsnprintf(buf, sizeof(buf), format, other_args);
-  va_end(other_args);
-
-#ifdef WINNT
-  if (logfile) {
-    fprintf(logfile, "Fatal error : %s\n", buf);
-  }
-#else
-  if (system_log) {
-    syslog(LOG_CRIT, "Fatal error : %s", buf);
-  } else {
-    fprintf(stderr, "Fatal error : %s\n", buf);
-  }
-  if (parent_fd) {
-    if (write(parent_fd, buf, strlen(buf) + 1) < 0)
-      ; /* Not much we can do here */
-  }
-#endif
-
-  exit(1);
-}
-
-/* ================================================== */
-
-void
-LOG_Position(const char *filename, int line_number, const char *function_name)
-{
-#ifdef WINNT
-#else
   time_t t;
   struct tm stm;
-  char buf[64];
+
+#ifdef WINNT
+#else
   if (!system_log) {
     /* Don't clutter up syslog with internal debugging info */
     time(&t);
@@ -178,6 +151,31 @@ LOG_Position(const char *filename, int line_number, const char *function_name)
     fprintf(stderr, "%s:%d:(%s)[%s] ", filename, line_number, function_name, buf);
   }
 #endif
+
+  va_start(other_args, format);
+  vsnprintf(buf, sizeof(buf), format, other_args);
+  va_end(other_args);
+
+  switch (severity) {
+    case LOGS_INFO:
+    case LOGS_WARN:
+    case LOGS_ERR:
+      log_message(0, severity, buf);
+      break;
+    case LOGS_FATAL:
+      log_message(1, severity, buf);
+
+      if (parent_fd) {
+        if (write(parent_fd, buf, strlen(buf) + 1) < 0)
+          ; /* Not much we can do here */
+      }
+
+      exit(1);
+
+      break;
+    default:
+      assert(0);
+  }
 }
 
 /* ================================================== */

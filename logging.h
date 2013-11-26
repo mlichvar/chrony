@@ -28,11 +28,24 @@
 #ifndef GOT_LOGGING_H
 #define GOT_LOGGING_H
 
+/* Line logging macros.  If the compiler is GNU C, we take advantage of
+   being able to get the function name also. */
+
+#ifdef __GNUC__
+#define FUNCTION_NAME __FUNCTION__
+#else
+#define FUNCTION_NAME ""
+#endif
+
+#define LOG(severity, facility, ...) LOG_Message(severity, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__)
+#define LOG_FATAL(facility, ...) LOG_Message(LOGS_FATAL, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__)
+
 /* Definition of severity */
 typedef enum {
   LOGS_INFO,
   LOGS_WARN,
-  LOGS_ERR
+  LOGS_ERR,
+  LOGS_FATAL
 } LOG_Severity;
 
 /* Definition of facility.  Each message is tagged with who generated
@@ -75,13 +88,9 @@ extern void LOG_Initialise(void);
 extern void LOG_Finalise(void);
 
 /* Line logging function */
-extern void LOG_Line_Function(LOG_Severity severity, LOG_Facility facility, const char *format, ...);
-
-/* Logging function for fatal errors */
-extern void LOG_Fatal_Function(LOG_Facility facility, const char *format, ...);
-
-/* Position in code reporting function */
-extern void LOG_Position(const char *filename, int line_number, const char *function_name);
+extern void LOG_Message(LOG_Severity severity, LOG_Facility facility,
+                        int line_number, const char *filename,
+                        const char *function_name, const char *format, ...);
 
 /* Log messages to syslog instead of stderr */
 extern void LOG_OpenSystemLog(void);
@@ -94,16 +103,6 @@ extern void LOG_CloseParentFd(void);
 
 /* Return zero once per 10 seconds */
 extern int LOG_RateLimited(void);
-
-/* Line logging macro.  If the compiler is GNU C, we take advantage of
-   being able to get the function name also. */
-#if defined(__GNUC__)
-#define LOG LOG_Position(__FILE__, __LINE__, __FUNCTION__); LOG_Line_Function
-#define LOG_FATAL LOG_Position(__FILE__, __LINE__, __FUNCTION__); LOG_Fatal_Function
-#else
-#define LOG LOG_Position(__FILE__, __LINE__, ""); LOG_Line_Function
-#define LOG_FATAL LOG_Position(__FILE__, __LINE__, ""); LOG_Fatal_Function
-#endif /* defined (__GNUC__) */
 
 /* File logging functions */
 
