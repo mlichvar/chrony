@@ -33,8 +33,10 @@
 
 #ifdef __GNUC__
 #define FUNCTION_NAME __FUNCTION__
+#define FORMAT_ATTRIBUTE_PRINTF(str, first) __attribute__ ((format (printf, str, first)))
 #else
 #define FUNCTION_NAME ""
+#define FORMAT_ATTRIBUTE_PRINTF(str, first)
 #endif
 
 #define LOG(severity, facility, ...) LOG_Message(severity, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__)
@@ -88,6 +90,7 @@ extern void LOG_Initialise(void);
 extern void LOG_Finalise(void);
 
 /* Line logging function */
+FORMAT_ATTRIBUTE_PRINTF(6, 7)
 extern void LOG_Message(LOG_Severity severity, LOG_Facility facility,
                         int line_number, const char *filename,
                         const char *function_name, const char *format, ...);
@@ -109,6 +112,8 @@ extern int LOG_RateLimited(void);
 typedef int LOG_FileID;
 
 extern LOG_FileID LOG_FileOpen(const char *name, const char *banner);
+
+FORMAT_ATTRIBUTE_PRINTF(2, 3)
 extern void LOG_FileWrite(LOG_FileID id, const char *format, ...);
 
 extern void LOG_CreateLogFileDir(void);
