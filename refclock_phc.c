@@ -175,9 +175,7 @@ static int phc_poll(RCL_Instance instance)
   tv.tv_sec = readings[best].sys_ts2.tv_sec;
   tv.tv_usec = readings[best].sys_ts2.tv_nsec / 1000;
 
-#ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_Refclock, "PHC offset: %+.9f delay: %.9f", offset, best_delay);
-#endif
+  DEBUG_LOG(LOGF_Refclock, "PHC offset: %+.9f delay: %.9f", offset, best_delay);
 
   return RCL_AddSample(instance, &tv, offset, LEAP_Normal);
 }

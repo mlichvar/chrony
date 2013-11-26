@@ -114,7 +114,6 @@ For better control, use the options below.
   --disable-linuxcaps    Disable Linux capabilities support
   --disable-forcednsretry Don't retry on permanent DNS error
   --with-sendmail=PATH   Path to sendmail binary [/usr/lib/sendmail]
-  --enable-trace         Enable tracing
   --enable-debug         Enable debugging support
 
 Fine tuning of the installation directories:
@@ -197,9 +196,6 @@ mail_program="/usr/lib/sendmail"
 for option
 do
     case "$option" in
-    --enable-trace )
-      add_def TRACEON
-    ;;
     --enable-debug )
       debug=1
     ;;

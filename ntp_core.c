@@ -686,10 +686,8 @@ transmit_timeout(void *arg)
     return;
   }
 
-#ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_NtpCore, "Transmit timeout for [%s:%d]",
+  DEBUG_LOG(LOGF_NtpCore, "Transmit timeout for [%s:%d]",
       UTI_IPToString(&inst->remote_addr.ip_addr), inst->remote_addr.port);
-#endif
 
   /* Check whether we need to 'warm up' the link to the other end by
      sending an echo exchange to ensure both ends' ARP caches are
@@ -1080,37 +1078,35 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   root_delay = pkt_root_delay + fabs(delta);
   root_dispersion = pkt_root_dispersion + epsilon;
 
-#ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_NtpCore, "lvm=%o stratum=%d poll=%d prec=%d",
+  DEBUG_LOG(LOGF_NtpCore, "lvm=%o stratum=%d poll=%d prec=%d",
       message->lvm, message->stratum, message->poll, message->precision);
-  LOG(LOGS_INFO, LOGF_NtpCore, "Root delay=%08x (%f), dispersion=%08x (%f)",
+  DEBUG_LOG(LOGF_NtpCore, "Root delay=%08x (%f), dispersion=%08x (%f)",
       message->root_delay, pkt_root_delay, message->root_dispersion, pkt_root_dispersion);
-  LOG(LOGS_INFO, LOGF_NtpCore, "Ref id=[%x], ref_time=%08x.%08x [%s]",
+  DEBUG_LOG(LOGF_NtpCore, "Ref id=[%x], ref_time=%08x.%08x [%s]",
       ntohl(message->reference_id),
       message->reference_ts.hi, message->reference_ts.lo,
       UTI_TimestampToString(&message->reference_ts));
-  LOG(LOGS_INFO, LOGF_NtpCore, "Originate=%08x.%08x [%s]",
+  DEBUG_LOG(LOGF_NtpCore, "Originate=%08x.%08x [%s]",
       message->originate_ts.hi, message->originate_ts.lo,
       UTI_TimestampToString(&message->originate_ts));
-  LOG(LOGS_INFO, LOGF_NtpCore, "Message receive=%08x.%08x [%s]",
+  DEBUG_LOG(LOGF_NtpCore, "Message receive=%08x.%08x [%s]",
       message->receive_ts.hi, message->receive_ts.lo,
       UTI_TimestampToString(&message->receive_ts));
 
-  LOG(LOGS_INFO, LOGF_NtpCore, "Transmit=%08x.%08x [%s]",
+  DEBUG_LOG(LOGF_NtpCore, "Transmit=%08x.%08x [%s]",
       message->transmit_ts.hi, message->transmit_ts.lo,
       UTI_TimestampToString(&message->transmit_ts));
 
-  LOG(LOGS_INFO, LOGF_NtpCore, "theta=%f delta=%f epsilon=%f root_delay=%f root_dispersion=%f",
+  DEBUG_LOG(LOGF_NtpCore, "theta=%f delta=%f epsilon=%f root_delay=%f root_dispersion=%f",
       theta, delta, epsilon, root_delay, root_dispersion);
 
-  LOG(LOGS_INFO, LOGF_NtpCore, "test1=%d test2=%d test3=%d test4=%d valid_data=%d good_data=%d",
+  DEBUG_LOG(LOGF_NtpCore, "test1=%d test2=%d test3=%d test4=%d valid_data=%d good_data=%d",
       test1, test2, test3, test4, valid_data, good_data);
 
-  LOG(LOGS_INFO, LOGF_NtpCore, "test5=%d test6=%d test7=%d test8=%d valid_header=%d good_header=%d",
+  DEBUG_LOG(LOGF_NtpCore, "test5=%d test6=%d test7=%d test8=%d valid_header=%d good_header=%d",
       test5, test6, test7, test8, valid_header, good_header);
 
-  LOG(LOGS_INFO, LOGF_NtpCore, "kod_rate=%d valid_kod=%d", kod_rate, valid_kod);
-#endif
+  DEBUG_LOG(LOGF_NtpCore, "kod_rate=%d valid_kod=%d", kod_rate, valid_kod);
 
   /* Reduce polling rate if KoD RATE was received */
   if (kod_rate && valid_kod) {
@@ -1545,21 +1541,13 @@ NCR_SlewTimes(NCR_Instance inst, struct timeval *when, double dfreq, double doff
   prev = inst->local_rx;
   if (inst->local_rx.tv_sec || inst->local_rx.tv_usec)
     UTI_AdjustTimeval(&inst->local_rx, when, &inst->local_rx, &delta, dfreq, doffset);
-#ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_NtpCore, "rx prev=[%s] new=[%s]",
+  DEBUG_LOG(LOGF_NtpCore, "rx prev=[%s] new=[%s]",
       UTI_TimevalToString(&prev), UTI_TimevalToString(&inst->local_rx));
-#else
-  (void)prev;
-#endif
   prev = inst->local_tx;
   if (inst->local_tx.tv_sec || inst->local_tx.tv_usec)
     UTI_AdjustTimeval(&inst->local_tx, when, &inst->local_tx, &delta, dfreq, doffset);
-#ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_NtpCore, "tx prev=[%s] new=[%s]",
+  DEBUG_LOG(LOGF_NtpCore, "tx prev=[%s] new=[%s]",
       UTI_TimevalToString(&prev), UTI_TimevalToString(&inst->local_tx));
-#else
-  (void)prev;
-#endif
 }
 
 /* ================================================== */

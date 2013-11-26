@@ -510,10 +510,8 @@ LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate)
    terms of the gradient of the (offset) v (local time) function. */
   current_freq_ppm = (1.0 + dfreq) * old_freq_ppm + 1.0e6 * dfreq;
 
-#ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_Local, "old_freq=%.3fppm new_freq=%.3fppm offset=%.6fsec",
+  DEBUG_LOG(LOGF_Local, "old_freq=%.3fppm new_freq=%.3fppm offset=%.6fsec",
       old_freq_ppm, current_freq_ppm, doffset);
-#endif
 
   /* Call the system-specific driver for setting the frequency */
   current_freq_ppm = (*drv_set_freq)(current_freq_ppm);
@@ -561,9 +559,7 @@ lcl_RegisterSystemDrivers(lcl_ReadFrequencyDriver read_freq,
 
   current_freq_ppm = (*drv_read_freq)();
 
-#ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_Local, "Local freq=%.3fppm", current_freq_ppm);
-#endif
+  DEBUG_LOG(LOGF_Local, "Local freq=%.3fppm", current_freq_ppm);
 }
 
 /* ================================================== */

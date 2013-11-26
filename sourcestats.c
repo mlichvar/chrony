@@ -569,10 +569,8 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
 
   *select_ok = inst->regression_ok;
 
-#ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_SourceStats, "n=%d off=%f dist=%f var=%f selok=%d",
+  DEBUG_LOG(LOGF_SourceStats, "n=%d off=%f dist=%f var=%f selok=%d",
       inst->n_samples, offset, *root_distance, *variance, *select_ok);
-#endif
 }
 
 /* ================================================== */
@@ -599,10 +597,8 @@ SST_GetTrackingData(SST_Stats inst, struct timeval *ref_time,
   UTI_DiffTimevalsToDouble(&elapsed_sample, &inst->offset_time, &inst->sample_times[i]);
   *root_dispersion = inst->root_dispersions[j] + inst->skew * elapsed_sample;
 
-#ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_SourceStats, "n=%d freq=%f (%.3fppm) skew=%f (%.3fppm) avoff=%f offsd=%f disp=%f",
+  DEBUG_LOG(LOGF_SourceStats, "n=%d freq=%f (%.3fppm) skew=%f (%.3fppm) avoff=%f offsd=%f disp=%f",
       inst->n_samples, *frequency, 1.0e6* *frequency, *skew, 1.0e6* *skew, *average_offset, *offset_sd, *root_dispersion);
-#endif
 
 }
 
@@ -626,13 +622,10 @@ SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffs
     UTI_AdjustTimeval(sample, when, sample, &delta_time, dfreq, doffset);
     prev_offset = inst->offsets[i];
     inst->offsets[i] += delta_time;
-#ifdef TRACEON
-    LOG(LOGS_INFO, LOGF_SourceStats, "i=%d old_st=[%s] new_st=[%s] old_off=%f new_off=%f",
+
+    DEBUG_LOG(LOGF_SourceStats, "i=%d old_st=[%s] new_st=[%s] old_off=%f new_off=%f",
         i, UTI_TimevalToString(&prev), UTI_TimevalToString(sample),
         prev_offset, inst->offsets[i]);
-#else
-    (void)prev; (void)prev_offset;
-#endif
   }
 
   /* Do a half-baked update to the regression estimates */
@@ -644,14 +637,10 @@ SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffs
   inst->estimated_offset += delta_time;
   inst->estimated_frequency -= dfreq;
 
-#ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_SourceStats, "old_off_time=[%s] new=[%s] old_off=%f new_off=%f old_freq=%.3fppm new_freq=%.3fppm",
+  DEBUG_LOG(LOGF_SourceStats, "old_off_time=[%s] new=[%s] old_off=%f new_off=%f old_freq=%.3fppm new_freq=%.3fppm",
       UTI_TimevalToString(&prev), UTI_TimevalToString(&(inst->offset_time)),
       prev_offset, inst->estimated_offset,
       1.0e6*prev_freq, 1.0e6*inst->estimated_frequency);
-#else
-  (void)prev; (void)prev_offset; (void)prev_freq;
-#endif
 }
 
 /* ================================================== */

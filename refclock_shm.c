@@ -100,10 +100,8 @@ static int shm_poll(RCL_Instance instance)
   
   if ((t.mode == 1 && t.count != shm->count) ||
     !(t.mode == 0 || t.mode == 1) || !t.valid) {
-#ifdef TRACEON
-    LOG(LOGS_INFO, LOGF_Refclock, "SHM sample ignored mode=%d count=%d valid=%d",
+    DEBUG_LOG(LOGF_Refclock, "SHM sample ignored mode=%d count=%d valid=%d",
         t.mode, t.count, t.valid);
-#endif
     return 0;
   }
 

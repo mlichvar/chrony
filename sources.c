@@ -307,10 +307,8 @@ void SRC_AccumulateSample
 
   inst->leap_status = leap_status;
 
-#ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_Sources, "ip=[%s] t=%s ofs=%f del=%f disp=%f str=%d",
+  DEBUG_LOG(LOGF_Sources, "ip=[%s] t=%s ofs=%f del=%f disp=%f str=%d",
       source_to_string(inst), UTI_TimevalToString(sample_time), -offset, root_delay, root_dispersion, stratum);
-#endif
 
   /* WE HAVE TO NEGATE OFFSET IN THIS CALL, IT IS HERE THAT THE SENSE OF OFFSET
      IS FLIPPED */
@@ -327,9 +325,7 @@ SRC_SetSelectable(SRC_Instance inst)
 {
   inst->selectable = 1;
 
-#ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_Sources, "%s", source_to_string(inst));
-#endif
+  DEBUG_LOG(LOGF_Sources, "%s", source_to_string(inst));
 
   /* Don't do selection at this point, though - that will come about
      in due course when we get some useful data from the source */
@@ -342,10 +338,8 @@ SRC_UnsetSelectable(SRC_Instance inst)
 {
   inst->selectable = 0;
 
-#ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_Sources, "%s%s", source_to_string(inst),
+  DEBUG_LOG(LOGF_Sources, "%s%s", source_to_string(inst),
       (inst->index == selected_source_index) ? "(REF)":"");
-#endif
 
   /* If this was the previous reference source, we have to reselect!  */
 
@@ -472,10 +466,8 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
     offset_weight = 1.0 / sources[index]->sel_info.root_distance;
     frequency_weight = 1.0 / src_skew;
 
-#ifdef TRACEON
-    LOG(LOGS_INFO, LOGF_Sources, "combining index=%d oweight=%e offset=%e sd=%e fweight=%e freq=%e skew=%e",
+    DEBUG_LOG(LOGF_Sources, "combining index=%d oweight=%e offset=%e sd=%e fweight=%e freq=%e skew=%e",
         index, offset_weight, src_offset, src_offset_sd, frequency_weight, src_frequency, src_skew);
-#endif
 
     sum_offset_weight += offset_weight;
     sum_offset += offset_weight * src_offset;
@@ -495,10 +487,8 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
   *frequency = sum_frequency / sum_frequency_weight;
   *skew = 1.0 / sqrt(inv_sum2_skew);
 
-#ifdef TRACEON
-  LOG(LOGS_INFO, LOGF_Sources, "combined result offset=%e sd=%e freq=%e skew=%e",
+  DEBUG_LOG(LOGF_Sources, "combined result offset=%e sd=%e freq=%e skew=%e",
       *offset, *offset_sd, *frequency, *skew);
-#endif
 
   return combined;
 }
