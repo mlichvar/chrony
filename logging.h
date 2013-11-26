@@ -39,6 +39,11 @@
 #define FORMAT_ATTRIBUTE_PRINTF(str, first)
 #endif
 
+#define DEBUG_LOG(facility, ...) \
+  do { \
+    if (DEBUG) \
+      LOG_Message(LOGS_DEBUG, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__); \
+  } while (0)
 #define LOG(severity, facility, ...) LOG_Message(severity, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__)
 #define LOG_FATAL(facility, ...) LOG_Message(LOGS_FATAL, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__)
 
@@ -47,7 +52,8 @@ typedef enum {
   LOGS_INFO,
   LOGS_WARN,
   LOGS_ERR,
-  LOGS_FATAL
+  LOGS_FATAL,
+  LOGS_DEBUG
 } LOG_Severity;
 
 /* Definition of facility.  Each message is tagged with who generated
@@ -94,6 +100,9 @@ FORMAT_ATTRIBUTE_PRINTF(6, 7)
 extern void LOG_Message(LOG_Severity severity, LOG_Facility facility,
                         int line_number, const char *filename,
                         const char *function_name, const char *format, ...);
+
+/* Enable logging of debug messages */
+extern void LOG_EnableDebug(void);
 
 /* Log messages to syslog instead of stderr */
 extern void LOG_OpenSystemLog(void);

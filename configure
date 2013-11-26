@@ -115,6 +115,7 @@ For better control, use the options below.
   --disable-forcednsretry Don't retry on permanent DNS error
   --with-sendmail=PATH   Path to sendmail binary [/usr/lib/sendmail]
   --enable-trace         Enable tracing
+  --enable-debug         Enable debugging support
 
 Fine tuning of the installation directories:
   --sysconfdir=DIR       chrony.conf location [/etc]
@@ -171,7 +172,7 @@ EXTRA_OBJECTS=""
 EXTRA_DEFS=""
 SYSDEFS=""
 
-# Support for readline (on by default)
+debug=0
 feat_readline=1
 try_readline=1
 try_editline=1
@@ -198,6 +199,9 @@ do
     case "$option" in
     --enable-trace )
       add_def TRACEON
+    ;;
+    --enable-debug )
+      debug=1
     ;;
     --disable-readline )
       feat_readline=0
@@ -616,6 +620,7 @@ if [ "x$SETCHRONYVARDIR" != "x" ]; then
   CHRONYVARDIR=$SETCHRONYVARDIR
 fi
 
+add_def DEBUG $debug
 add_def DEFAULT_CONF_FILE "\"$SYSCONFDIR/chrony.conf\""
 add_def MAIL_PROGRAM "\"$mail_program\""
 

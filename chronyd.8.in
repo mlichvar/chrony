@@ -52,7 +52,8 @@ terminal.
 .B \-d
 When run in this mode, the program will not detach itself from the
 terminal, and all messages will be sent to the terminal instead of
-to syslog.
+to syslog.  When \fBchronyd\fR was compiled with debugging support,
+this option can be used twice to print also debugging messages.
 .TP
 \fB\-f\fR \fIconf-file\fR
 This option can be used to specify an alternate location for the

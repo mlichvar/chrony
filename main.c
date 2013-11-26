@@ -326,7 +326,7 @@ int main
     } else if (!strcmp("-n", *argv)) {
       nofork = 1;
     } else if (!strcmp("-d", *argv)) {
-      debug = 1;
+      debug++;
       nofork = 1;
     } else if (!strcmp("-4", *argv)) {
       address_family = IPADDR_INET4;
@@ -350,6 +350,10 @@ int main
 
   if (!debug) {
     LOG_OpenSystemLog();
+  }
+  
+  if (debug > 1) {
+    LOG_EnableDebug();
   }
   
   LOG(LOGS_INFO, LOGF_Main, "chronyd version %s starting", CHRONY_VERSION);

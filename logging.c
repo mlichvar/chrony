@@ -42,6 +42,8 @@ static int system_log = 0;
 
 static int parent_fd = 0;
 
+static int log_debug = 0;
+
 static time_t last_limited = 0;
 
 #ifdef WINNT
@@ -108,6 +110,9 @@ static void log_message(int fatal, LOG_Severity severity, const char *message)
   if (system_log) {
     int priority;
     switch (severity) {
+      case LOGS_DEBUG:
+        priority = LOG_DEBUG;
+        break;
       case LOGS_INFO:
         priority = LOG_INFO;
         break;
@@ -141,6 +146,10 @@ void LOG_Message(LOG_Severity severity, LOG_Facility facility,
   time_t t;
   struct tm stm;
 
+  /* Don't write debug messages if not enabled */
+  if (!log_debug && severity == LOGS_DEBUG)
+    return;
+
 #ifdef WINNT
 #else
   if (!system_log) {
@@ -157,6 +166,7 @@ void LOG_Message(LOG_Severity severity, LOG_Facility facility,
   va_end(other_args);
 
   switch (severity) {
+    case LOGS_DEBUG:
     case LOGS_INFO:
     case LOGS_WARN:
     case LOGS_ERR:
@@ -188,6 +198,13 @@ LOG_OpenSystemLog(void)
   system_log = 1;
   openlog("chronyd", LOG_PID, LOG_DAEMON);
 #endif
+}
+
+/* ================================================== */
+
+void LOG_EnableDebug(void)
+{
+  log_debug = 1;
 }
 
 /* ================================================== */
