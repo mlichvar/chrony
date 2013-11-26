@@ -63,7 +63,7 @@ static void read_sample(void *anything)
   }
 
   if (s != sizeof (sample)) {
-    LOG(LOGS_WARN, LOGF_Refclock, "Unexpected length of SOCK sample : %d != %d",
+    LOG(LOGS_WARN, LOGF_Refclock, "Unexpected length of SOCK sample : %d != %ld",
         s, sizeof (sample));
     return;
   }

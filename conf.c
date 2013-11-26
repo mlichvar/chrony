@@ -1771,14 +1771,14 @@ CNF_SetupAccessRestrictions(void)
   for (node = ntp_auth_list.next; node != &ntp_auth_list; node = node->next) {
     status = NCR_AddAccessRestriction(&node->ip, node->subnet_bits, node->allow, node->all);
     if (!status) {
-      LOG_FATAL(LOGF_Configure, "Bad subnet for %08lx", node->ip);
+      LOG_FATAL(LOGF_Configure, "Bad subnet in %s/%d", UTI_IPToString(&node->ip), node->subnet_bits);
     }
   }
 
   for (node = cmd_auth_list.next; node != &cmd_auth_list; node = node->next) {
     status = CAM_AddAccessRestriction(&node->ip, node->subnet_bits, node->allow, node->all);
     if (!status) {
-      LOG_FATAL(LOGF_Configure, "Bad subnet for %08lx", node->ip);
+      LOG_FATAL(LOGF_Configure, "Bad subnet in %s/%d", UTI_IPToString(&node->ip), node->subnet_bits);
     }
   }
 }

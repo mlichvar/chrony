@@ -1083,20 +1083,20 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 #ifdef TRACEON
   LOG(LOGS_INFO, LOGF_NtpCore, "lvm=%o stratum=%d poll=%d prec=%d",
       message->lvm, message->stratum, message->poll, message->precision);
-  LOG(LOGS_INFO, LOGF_NtpCore, "Root delay=%08lx (%f), dispersion=%08lx (%f)",
+  LOG(LOGS_INFO, LOGF_NtpCore, "Root delay=%08x (%f), dispersion=%08x (%f)",
       message->root_delay, pkt_root_delay, message->root_dispersion, pkt_root_dispersion);
-  LOG(LOGS_INFO, LOGF_NtpCore, "Ref id=[%lx], ref_time=%08lx.%08lx [%s]",
+  LOG(LOGS_INFO, LOGF_NtpCore, "Ref id=[%x], ref_time=%08x.%08x [%s]",
       ntohl(message->reference_id),
       message->reference_ts.hi, message->reference_ts.lo,
       UTI_TimestampToString(&message->reference_ts));
-  LOG(LOGS_INFO, LOGF_NtpCore, "Originate=%08lx.%08lx [%s]",
+  LOG(LOGS_INFO, LOGF_NtpCore, "Originate=%08x.%08x [%s]",
       message->originate_ts.hi, message->originate_ts.lo,
       UTI_TimestampToString(&message->originate_ts));
-  LOG(LOGS_INFO, LOGF_NtpCore, "Message receive=%08lx.%08lx [%s]",
+  LOG(LOGS_INFO, LOGF_NtpCore, "Message receive=%08x.%08x [%s]",
       message->receive_ts.hi, message->receive_ts.lo,
       UTI_TimestampToString(&message->receive_ts));
 
-  LOG(LOGS_INFO, LOGF_NtpCore, "Transmit=%08lx.%08lx [%s]",
+  LOG(LOGS_INFO, LOGF_NtpCore, "Transmit=%08x.%08x [%s]",
       message->transmit_ts.hi, message->transmit_ts.lo,
       UTI_TimestampToString(&message->transmit_ts));
 
@@ -1128,7 +1128,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     if (inst->opmode == MD_BURST_WAS_OFFLINE || inst->opmode == MD_BURST_WAS_ONLINE) {
       inst->burst_good_samples_to_go = 0;
       LOG(LOGS_WARN, LOGF_NtpCore, "Received KoD RATE from %s, burst sampling stopped",
-          UTI_IPToString(&inst->remote_addr.ip_addr), inst->minpoll);
+          UTI_IPToString(&inst->remote_addr.ip_addr));
     }
 
     requeue_transmit = 1;
