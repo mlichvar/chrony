@@ -249,9 +249,9 @@ RCL_AddRefclock(RefclockParameters *params)
 
   inst->source = SRC_CreateNewInstance(inst->ref_id, SRC_REFCLOCK, params->sel_option, NULL);
 
-#if 0
-  LOG(LOGS_INFO, LOGF_Refclock, "refclock added poll=%d dpoll=%d filter=%d",
-		  inst->poll, inst->driver_poll, params->filter_length);
+#ifdef TRACEON
+  LOG(LOGS_INFO, LOGF_Refclock, "refclock %s added poll=%d dpoll=%d filter=%d",
+      params->driver_name, inst->poll, inst->driver_poll, params->filter_length);
 #endif
   n_sources++;
 
@@ -411,12 +411,21 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
     double sample_diff, ref_offset, ref_dispersion, shift;
 
     if (!filter_get_last_sample(&refclocks[instance->lock_ref].filter,
-          &ref_sample_time, &ref_offset, &ref_dispersion))
+          &ref_sample_time, &ref_offset, &ref_dispersion)) {
+#ifdef TRACEON
+      LOG(LOGS_INFO, LOGF_Refclock, "refclock pulse ignored no ref sample");
+#endif
       return 0;
+    }
 
     UTI_DiffTimevalsToDouble(&sample_diff, &cooked_time, &ref_sample_time);
-    if (fabs(sample_diff) >= 2.0 / rate)
+    if (fabs(sample_diff) >= 2.0 / rate) {
+#ifdef TRACEON
+      LOG(LOGS_INFO, LOGF_Refclock, "refclock pulse ignored samplediff=%.9f",
+          sample_diff);
+#endif
       return 0;
+    }
 
     /* Align the offset to the reference sample */
     if ((ref_offset - offset) >= 0.0)
@@ -426,10 +435,15 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
 
     offset += shift;
 
-    if (fabs(ref_offset - offset) + ref_dispersion + dispersion >= 0.2 / rate)
+    if (fabs(ref_offset - offset) + ref_dispersion + dispersion >= 0.2 / rate) {
+#ifdef TRACEON
+      LOG(LOGS_INFO, LOGF_Refclock, "refclock pulse ignored offdiff=%.9f refdisp=%.9f disp=%.9f",
+          ref_offset - offset, ref_dispersion, dispersion);
+#endif
       return 0;
+    }
 
-#if 0
+#ifdef TRACEON
     LOG(LOGS_INFO, LOGF_Refclock, "refclock pulse second=%.9f offset=%.9f offdiff=%.9f samplediff=%.9f",
         second, offset, ref_offset - offset, sample_diff);
 #endif
@@ -447,8 +461,8 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
     distance = fabs(root_delay) / 2 + root_dispersion;
 
     if (!is_synchronised || distance >= 0.5 / rate) {
-#if 0
-      LOG(LOGS_INFO, LOGF_Refclock, "refclock pulse dropped second=%.9f sync=%d dist=%.9f",
+#ifdef TRACEON
+      LOG(LOGS_INFO, LOGF_Refclock, "refclock pulse ignored second=%.9f sync=%d dist=%.9f",
           second, is_synchronised, distance);
 #endif
       /* Drop also all stored samples */
@@ -478,8 +492,13 @@ valid_sample_time(RCL_Instance instance, struct timeval *tv)
 
   LCL_ReadRawTime(&raw_time);
   UTI_DiffTimevalsToDouble(&diff, &raw_time, tv);
-  if (diff < 0.0 || diff > 1 << (instance->poll + 1))
+  if (diff < 0.0 || diff > 1 << (instance->poll + 1)) {
+#ifdef TRACEON
+    LOG(LOGS_INFO, LOGF_Refclock, "refclock sample not valid age=%.f tv=%s",
+        diff, UTI_TimevalToString(tv));
+#endif
     return 0;
+  }
   return 1;
 }
 
@@ -663,6 +682,11 @@ filter_add_sample(struct MedianFilter *filter, struct timeval *sample_time, doub
   filter->samples[filter->index].sample_time = *sample_time;
   filter->samples[filter->index].offset = offset;
   filter->samples[filter->index].dispersion = dispersion;
+
+#ifdef TRACEON
+  LOG(LOGS_INFO, LOGF_Refclock, "filter sample %d t=%s offset=%.9f dispersion=%.9f",
+      filter->index, UTI_TimevalToString(sample_time), offset, dispersion);
+#endif
 }
 
 static int

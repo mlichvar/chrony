@@ -147,6 +147,10 @@ static int pps_poll(RCL_Instance instance)
   }
 
   if (seq == pps->last_seq || (ts.tv_sec == 0 && ts.tv_nsec == 0)) { 
+#ifdef TRACEON
+    LOG(LOGS_INFO, LOGF_Refclock, "PPS sample ignored seq=%lu ts=%lu.%09lu",
+        seq, ts.tv_sec, ts.tv_nsec);
+#endif
     return 0;
   }
 
