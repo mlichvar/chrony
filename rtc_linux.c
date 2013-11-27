@@ -67,9 +67,7 @@ static int fd = -1;
 
 #define LOWEST_MEASUREMENT_PERIOD 15
 #define HIGHEST_MEASUREMENT_PERIOD 480
-
-/* Try to avoid doing regression after _every_ sample we accumulate */
-#define N_SAMPLES_PER_REGRESSION 4
+#define N_SAMPLES_PER_REGRESSION 1
 
 static int measurement_period = LOWEST_MEASUREMENT_PERIOD;
 
@@ -701,7 +699,7 @@ process_reading(time_t rtc_time, struct timeval *system_time)
   switch (operating_mode) {
     case OM_NORMAL:
 
-      if (n_samples_since_regression >= /* 4 */ 1 ) {
+      if (n_samples_since_regression >= N_SAMPLES_PER_REGRESSION) {
         run_regression(1, &coefs_valid, &coef_ref_time, &coef_seconds_fast, &coef_gain_rate);
         n_samples_since_regression = 0;
       }
