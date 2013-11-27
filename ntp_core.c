@@ -48,11 +48,6 @@
 static LOG_FileID logfileid;
 
 /* ================================================== */
-
-/* Day number of 1 Jan 1970 */
-#define MJD_1970 40587
-
-/* ================================================== */
 /* Enumeration used for remembering the operating mode of one of the
    sources */
 

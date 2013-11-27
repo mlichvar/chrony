@@ -686,9 +686,6 @@ handle_relock_after_trim(void)
 
 /* ================================================== */
 
-/* Day number of 1 Jan 1970 */
-#define MJD_1970 40587
-
 static void
 process_reading(time_t rtc_time, struct timeval *system_time)
 {
