@@ -129,7 +129,7 @@ extern void REF_SetManualReference
 extern void
 REF_SetUnsynchronised(void);
 
-/* Return the current stratum of this host or zero if the host is not
+/* Return the current stratum of this host or 16 if the host is not
    synchronised */
 extern int REF_GetOurStratum(void);
 
