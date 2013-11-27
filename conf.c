@@ -90,6 +90,7 @@ static void parse_pidfile(char *);
 static void parse_port(char *);
 static void parse_refclock(char *);
 static void parse_reselectdist(char *);
+static void parse_rtcautotrim(char *);
 static void parse_rtcdevice(char *);
 static void parse_rtcfile(char *);
 static void parse_rtconutc(char *);
@@ -157,6 +158,9 @@ static int rtc_sync = 0;
 /* Limit and threshold for clock stepping */
 static int make_step_limit = 0;
 static double make_step_threshold = 0.0;
+
+/* Threshold for automatic RTC trimming */
+static double rtc_autotrim_threshold = 0.0;
 
 /* Number of updates before offset checking, number of ignored updates
    before exiting and the maximum allowed offset */
@@ -441,6 +445,8 @@ CNF_ReadFile(const char *filename)
         parse_refclock(p);
       } else if (!strcasecmp(command, "reselectdist")) {
         parse_reselectdist(p);
+      } else if (!strcasecmp(command, "rtcautotrim")) {
+        parse_rtcautotrim(p);
       } else if (!strcasecmp(command, "rtcdevice")) {
         parse_rtcdevice(p);
       } else if (!strcasecmp(command, "rtcfile")) {
@@ -785,6 +791,17 @@ parse_keyfile(char *line)
 {
   check_number_of_args(line, 1);
   keys_file = strdup(line);
+}
+
+/* ================================================== */
+
+static void
+parse_rtcautotrim(char *line)
+{
+  check_number_of_args(line, 1);
+  if (sscanf(line, "%lf", &rtc_autotrim_threshold) != 1) {
+    command_parse_error();
+  }
 }
 
 /* ================================================== */
@@ -1582,6 +1599,14 @@ char *
 CNF_GetKeysFile(void)
 {
   return keys_file;
+}
+
+/* ================================================== */
+
+double
+CNF_GetRtcAutotrim(void)
+{
+  return rtc_autotrim_threshold;
 }
 
 /* ================================================== */

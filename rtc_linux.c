@@ -38,6 +38,7 @@
 #include "local.h"
 #include "util.h"
 #include "sys_linux.h"
+#include "reference.h"
 #include "regress.h"
 #include "rtc.h"
 #include "rtc_linux.h"
@@ -122,6 +123,9 @@ static double coef_gain_rate;
    nearest second, so that we can write a useful set of coefs to the
    RTC data file once we have reacquired its offset after the step */
 static double saved_coef_gain_rate;
+
+/* Threshold for automatic RTC trimming in seconds, zero when disabled */
+static double autotrim_threshold;
 
 /* Filename supplied by config file where RTC coefficients are
    stored. */
@@ -375,6 +379,8 @@ setup_config(void)
   } else {
     rtc_on_utc = 0;
   }
+
+  autotrim_threshold = CNF_GetRtcAutotrim();
 }
 
 /* ================================================== */
@@ -687,6 +693,26 @@ handle_relock_after_trim(void)
 /* ================================================== */
 
 static void
+maybe_autotrim(void)
+{
+  /* Trim only when in normal mode, the coefficients are fresh, the current
+     offset is above the threshold and the system clock is synchronized */
+
+  if (operating_mode != OM_NORMAL || !coefs_valid || n_samples_since_regression)
+    return;
+  
+  if (autotrim_threshold <= 0.0 || fabs(coef_seconds_fast) < autotrim_threshold)
+    return;
+
+  if (REF_GetOurStratum() >= 16)
+    return;
+
+  RTC_Linux_Trim();
+}
+
+/* ================================================== */
+
+static void
 process_reading(time_t rtc_time, struct timeval *system_time)
 {
   double rtc_fast;
@@ -699,6 +725,7 @@ process_reading(time_t rtc_time, struct timeval *system_time)
       if (n_samples_since_regression >= N_SAMPLES_PER_REGRESSION) {
         run_regression(1, &coefs_valid, &coef_ref_time, &coef_seconds_fast, &coef_gain_rate);
         n_samples_since_regression = 0;
+        maybe_autotrim();
       }
       
       break;

@@ -99,4 +99,6 @@ extern char *CNF_GetUser(void);
 extern int CNF_GetMaxSamples(void);
 extern int CNF_GetMinSamples(void);
 
+extern double CNF_GetRtcAutotrim(void);
+
 #endif /* GOT_CONF_H */

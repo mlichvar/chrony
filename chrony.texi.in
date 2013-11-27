@@ -1157,6 +1157,7 @@ directives can occur in any order in the file.
 * port directive::              Set port to use for NTP packets
 * refclock directive::          Specify a reference clock
 * reselectdist directive::      Set improvement in distance needed to reselect a source
+* rtcautotrim directive::       Specify threshold at which RTC is trimmed automatically
 * rtcdevice directive::         Specify name of enhanced RTC device (if not /dev/rtc)
 * rtcfile directive::           Specify the file where real-time clock data is stored
 * rtconutc directive::          Specify that the real time clock keeps UTC not local time
@@ -2602,6 +2603,25 @@ The syntax is
 @example
 reselectdist <dist-in-seconds>
 @end example
+@c }}}
+@c {{{ rtcautotrim
+@node rtcautotrim directive
+@subsection rtcautotrim
+The @code{rtcautotrim} directive is used to keep the real time clock (RTC)
+close to the system clock automatically.  When the system clock is synchronized
+and the estimated error between the two clocks is larger than the specified
+threshold, @code{chronyd} will trim the RTC as if the @code{trimrtc}
+(@pxref{trimrtc command}) command was issued.
+
+This directive is effective only with the @code{rtcfile} directive.
+
+An example of the use of this directive is
+
+@example
+rtcautotrim 30
+@end example
+
+This would set the threshold error to 30 seconds.
 @c }}}
 @c {{{ rtcdevice
 @node rtcdevice directive
