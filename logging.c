@@ -175,9 +175,16 @@ void LOG_Message(LOG_Severity severity, LOG_Facility facility,
     case LOGS_FATAL:
       log_message(1, severity, buf);
 
-      if (parent_fd) {
-        if (write(parent_fd, buf, strlen(buf) + 1) < 0)
-          ; /* Not much we can do here */
+      /* With syslog, send the message also to the grandparent
+         process or write it to stderr if not detached */
+      if (system_log) {
+        if (parent_fd > 0) {
+          if (write(parent_fd, buf, strlen(buf) + 1) < 0)
+            ; /* Not much we can do here */
+        } else if (parent_fd == 0) {
+          system_log = 0;
+          log_message(1, severity, buf);
+        }
       }
 
       exit(1);
@@ -222,7 +229,7 @@ LOG_CloseParentFd()
 {
   if (parent_fd > 0)
     close(parent_fd);
-  parent_fd = 0;
+  parent_fd = -1;
 }
 
 /* ================================================== */
