@@ -222,6 +222,7 @@ LOG_CloseParentFd()
 {
   if (parent_fd > 0)
     close(parent_fd);
+  parent_fd = 0;
 }
 
 /* ================================================== */
