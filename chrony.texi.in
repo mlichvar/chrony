@@ -1119,12 +1119,13 @@ directives can occur in any order in the file.
 * bindaddress directive::       Limit the network interface that is used for NTP
 * bindcmdaddress directive::    Limit the network interface that is used for commands
 * broadcast directive::         Make chronyd act as an NTP broadcast server
+* clientloglimit directive::    Set client log memory limit
 * cmdallow directive::          Give control access to chronyc on other computers
 * cmddeny directive::           Deny control access to chronyc on other computers
+* cmdport directive::           Set port to use for runtime commanding
 * combinelimit directive::      Limit sources included in combining algorithm
 * commandkey directive::        Set runtime command key
 * corrtimeratio directive::     Set correction time ratio
-* cmdport directive::           Set port to use for runtime commanding
 * deny directive::              Deny access to NTP clients
 * driftfile directive::         Specify location of file containing drift data
 * dumpdir directive::           Specify directory for dumping measurements
@@ -1135,23 +1136,23 @@ directives can occur in any order in the file.
 * initstepslew directive::      Trim the system clock on boot-up
 * keyfile directive::           Specify location of file containing keys
 * leapsectz directive::         Read leap second data from tz database
-* linux_hz directive::          Define a non-standard value of the kernel HZ constant
 * linux_freq_scale directive::  Define a non-standard value to compensate the kernel frequency bias
+* linux_hz directive::          Define a non-standard value of the kernel HZ constant
 * local directive::             Allow unsynchronised machine to act as server
+* lock_all directive::          Require that chronyd be locked into RAM
 * log directive::               Make daemon log certain sets of information
 * logbanner directive::         Specify how often is banner written to log files
 * logchange directive::         Generate syslog messages if large offsets occur
 * logdir directive::            Specify directory for logging
 * mailonchange directive::      Send email if a clock correction above a threshold occurs
 * makestep directive::          Step system clock if large correction is needed
-* maxchange directive::         Set maximum allowed offset
 * manual directive::            Allow manual entry using chronyc's settime cmd
+* maxchange directive::         Set maximum allowed offset
 * maxclockerror directive::     Set maximum frequency error of local clock
 * maxsamples directive::        Set maximum number of samples per source
 * maxupdateskew directive::     Stop bad estimates upsetting machine clock
 * minsamples directive::        Set minimum number of samples per source
 * noclientlog directive::       Prevent chronyd from gathering data about clients
-* clientloglimit directive::    Set client log memory limit
 * peer directive::              Specify an NTP peer
 * pidfile directive::           Specify the file where chronyd's pid is written
 * port directive::              Set port to use for NTP packets
@@ -1162,10 +1163,9 @@ directives can occur in any order in the file.
 * rtcfile directive::           Specify the file where real-time clock data is stored
 * rtconutc directive::          Specify that the real time clock keeps UTC not local time
 * rtcsync directive::           Specify that RTC should be automatically synchronised by kernel
-* server directive::            Specify an NTP server
 * sched_priority directive::    Require real-time scheduling and specify a priority for it
+* server directive::            Specify an NTP server
 * stratumweight directive::     Specify how important is stratum when selecting source
-* lock_all directive::          Require that chronyd be locked into RAM
 * tempcomp directive::          Specify temperature sensor and compensation coefficients
 * user directive::              Specify user for dropping root privileges
 
@@ -1375,6 +1375,21 @@ client/server NTP access to measure the round-trip delay.  Thus, the broadcast
 subnet should also be the subject of an @code{allow} directive (@pxref{allow
 directive}).
 @c }}}
+@c {{{ clientloglimit
+@node clientloglimit directive
+@subsection clientloglimit
+This directive specifies the maximum size of the memory allocated to
+log client accesses.  When the limit is reached, only information for
+clients that have already been logged will be updated.  If 0 is
+specified, the memory size will be unlimited.  The default is 524288
+bytes.
+
+An example of the use of this directive is
+
+@example
+clientloglimit 1048576
+@end example
+@c }}}
 @c {{{ cmdallow
 @node cmdallow directive
 @subsection cmdallow
@@ -1402,6 +1417,24 @@ The syntax is identical.
 
 There is also a @code{cmddeny all} directive with similar behaviour to the
 @code{cmdallow all} directive.
+@c }}}
+@c {{{ cmdport
+@node cmdport directive
+@subsection cmdport
+
+The @code{cmdport} directive allows the port that is used for run-time
+command and monitoring (via the program @code{chronyc}) to be altered
+from its default (323/udp).
+
+An example shows the syntax
+
+@example
+cmdport 257
+@end example
+
+This would make @code{chronyd} use 257/udp as its command port.
+(@code{chronyc} would need to be run with the @code{-p 257} switch to
+inter-operate correctly).
 @c }}}
 @c {{{ combinelimit
 @node combinelimit directive
@@ -1460,24 +1493,6 @@ password foobar
 must be entered before any commands affecting the operation of the
 daemon can be entered, or chronyc must be started with the `-a' option to run
 the password command automatically.
-@c }}}
-@c {{{ cmdport
-@node cmdport directive
-@subsection cmdport
-
-The @code{cmdport} directive allows the port that is used for run-time
-command and monitoring (via the program @code{chronyc}) to be altered
-from its default (323/udp).
-
-An example shows the syntax
-
-@example
-cmdport 257
-@end example
-
-This would make @code{chronyd} use 257/udp as its command port.
-(@code{chronyc} would need to be run with the @code{-p 257} switch to
-inter-operate correctly).
 @c }}}
 @c {{{ corrtimeratio
 @node corrtimeratio directive
@@ -1771,6 +1786,48 @@ Wed Dec 31 23:59:60 UTC 2008
 @end example
 
 @c }}}
+@c {{{ linux_freq_scale
+@node linux_freq_scale directive
+@subsection linux_freq_scale
+(This option only applies to Linux).
+
+By default, chronyd will find the value of @code{HZ} and @code{SHIFT_HZ} from
+kernel header files at compile time.  An internal value called
+@code{freq_scale} is calculated from this.  By default it is (1<<SHIFT_HZ)/HZ,
+except for the case HZ=100, when special case code is used which leads to the
+value 128/128.125.  If you're running chronyd on the system where it was built,
+the value it has should be right, and you don't need to worry about this
+option.
+
+This option is provided for people who move a pre-built chronyd onto a system
+where the method by which the kernel computes the reciprocal of this value has been changed or where the HZ and SHIFT_HZ constants differ from those on the system where chronyd was built.
+
+An example of the command is
+
+@example
+linux_freq_scale 0.99902439
+@end example
+@c }}}
+@c {{{ linux_hz
+@node linux_hz directive
+@subsection linux_hz
+(This option only applies to Linux).
+
+By default, chronyd will find the value of @code{HZ} from a kernel header file
+at compile time.  @code{HZ} is the nominal number of timer interrupts per
+second.  If you're running chronyd on the system where it was built, the value
+it has should be right, and you don't need to worry about this option.
+
+This option is provided for people who move a pre-built chronyd onto a system
+where the value of HZ in the kernel headers has been changed from the default
+value.
+
+An example of the command is
+
+@example
+linux_hz 100
+@end example
+@c }}}
 @c {{{ local
 @node local directive
 @subsection local
@@ -1805,47 +1862,17 @@ like 10 for the local command prevents the machine's own time from
 ever being confused with real time, were it ever to leak out to
 clients that have visibility of real servers.
 @c }}}
-@c {{{ linux_hz
-@node linux_hz directive
-@subsection linux_hz
-(This option only applies to Linux).
+@c {{{ lock_all
+@node lock_all directive
+@subsection lock_all
 
-By default, chronyd will find the value of @code{HZ} from a kernel header file
-at compile time.  @code{HZ} is the nominal number of timer interrupts per
-second.  If you're running chronyd on the system where it was built, the value
-it has should be right, and you don't need to worry about this option.
-
-This option is provided for people who move a pre-built chronyd onto a system
-where the value of HZ in the kernel headers has been changed from the default
-value.
-
-An example of the command is
-
-@example
-linux_hz 100
-@end example
-@c }}}
-@c {{{ linux_freq_scale
-@node linux_freq_scale directive
-@subsection linux_freq_scale
-(This option only applies to Linux).
-
-By default, chronyd will find the value of @code{HZ} and @code{SHIFT_HZ} from
-kernel header files at compile time.  An internal value called
-@code{freq_scale} is calculated from this.  By default it is (1<<SHIFT_HZ)/HZ,
-except for the case HZ=100, when special case code is used which leads to the
-value 128/128.125.  If you're running chronyd on the system where it was built,
-the value it has should be right, and you don't need to worry about this
-option.
-
-This option is provided for people who move a pre-built chronyd onto a system
-where the method by which the kernel computes the reciprocal of this value has been changed or where the HZ and SHIFT_HZ constants differ from those on the system where chronyd was built.
-
-An example of the command is
-
-@example
-linux_freq_scale 0.99902439
-@end example
+The @code{lock_all} directive will lock chronyd into RAM so that it
+will never be paged out.  This mode is only supported on Linux.  This
+directive uses the Linux mlockall() system call to prevent @code{chronyd}
+from ever being swapped out.  This should result in lower and more
+consistent latency.  It should not have significant impact on
+performance as @code{chronyd's} memory usage is modest.  The mlockall man
+page has more details.
 @c }}}
 @c {{{ log
 @node log directive
@@ -2284,6 +2311,20 @@ makestep 1000 10
 This would step system clock if the adjustment is larger than 1000
 seconds, but only in the first ten clock updates.
 @c }}}
+@c {{{ manual
+@node manual directive
+@subsection manual
+The @code{manual} directive enables support at run-time for the
+@code{settime} command in chronyc (@pxref{settime command}).  If no
+@code{manual} directive is included, any attempt to use the
+@code{settime} command in chronyc will be met with an error message.
+
+Note that the @code{settime} command can be enabled at run-time using
+the @code{manual} command in chronyc (@pxref{manual command}).  (The
+idea of the two commands is that the @code{manual} command controls the
+manual clock driver's behaviour, whereas the @code{settime} command
+allows samples of manually entered time to be provided).
+@c }}}
 @c {{{ maxchange
 @node maxchange directive
 @subsection maxchange
@@ -2304,20 +2345,6 @@ maxchange 1000 1 2
 After the first clock update, @code{chronyd} will check the offset on
 every clock update, it will ignore two adjustments larger than 1000
 seconds and exit on another one.
-@c }}}
-@c {{{ manual
-@node manual directive
-@subsection manual
-The @code{manual} directive enables support at run-time for the
-@code{settime} command in chronyc (@pxref{settime command}).  If no
-@code{manual} directive is included, any attempt to use the
-@code{settime} command in chronyc will be met with an error message.
-
-Note that the @code{settime} command can be enabled at run-time using
-the @code{manual} command in chronyc (@pxref{manual command}).  (The
-idea of the two commands is that the @code{manual} command controls the
-manual clock driver's behaviour, whereas the @code{settime} command
-allows samples of manually entered time to be provided).
 @c }}}
 @c {{{ maxclockerror
 @node maxclockerror directive
@@ -2404,21 +2431,6 @@ minsamples <samples>
 This directive, which takes no arguments, specifies that client accesses
 are not to be logged.  Normally they are logged, allowing statistics to
 be reported using the @code{clients} command in @code{chronyc}.
-@c }}}
-@c {{{ clientloglimit
-@node clientloglimit directive
-@subsection clientloglimit
-This directive specifies the maximum size of the memory allocated to
-log client accesses.  When the limit is reached, only information for
-clients that have already been logged will be updated.  If 0 is
-specified, the memory size will be unlimited.  The default is 524288
-bytes.
-
-An example of the use of this directive is
-
-@example
-clientloglimit 1048576
-@end example
 @c }}}
 @c {{{ peer
 @node peer directive
@@ -2724,38 +2736,6 @@ more consistent latency since @code{chronyd} will not need to wait for the
 scheduler to get around to running it.  You should not use this unless
 you really need it.  The sched_setscheduler man page has more details.
 @c }}}
-@c {{{ stratumweight
-@node stratumweight directive
-@subsection stratumweight
-
-The @code{stratumweight} directive sets how much distance should be added
-per stratum to the synchronisation distance when @code{chronyd} selects
-the synchronisation source from available sources.
-
-The syntax is
-
-@example
-stratumweight <dist-in-seconds>
-@end example
-
-By default, it is 1 second.  This usually means that sources with lower stratum
-will be preferred to sources with higher stratum even when their distance is
-significantly worse.  Setting @code{stratumweight} to 0 makes @code{chronyd}
-ignore stratum when selecting the source.
-
-@c }}}
-@c {{{ lock_all
-@node lock_all directive
-@subsection lock_all
-
-The @code{lock_all} directive will lock chronyd into RAM so that it
-will never be paged out.  This mode is only supported on Linux.  This
-directive uses the Linux mlockall() system call to prevent @code{chronyd}
-from ever being swapped out.  This should result in lower and more
-consistent latency.  It should not have significant impact on
-performance as @code{chronyd's} memory usage is modest.  The mlockall man
-page has more details.
-@c }}}
 @c {{{ server
 @node server directive
 @subsection server
@@ -2896,6 +2876,26 @@ Prefer this source over sources without prefer option.
 Never select this source.  This is particularly useful for monitoring.
 
 @end table
+@c }}}
+@c {{{ stratumweight
+@node stratumweight directive
+@subsection stratumweight
+
+The @code{stratumweight} directive sets how much distance should be added
+per stratum to the synchronisation distance when @code{chronyd} selects
+the synchronisation source from available sources.
+
+The syntax is
+
+@example
+stratumweight <dist-in-seconds>
+@end example
+
+By default, it is 1 second.  This usually means that sources with lower stratum
+will be preferred to sources with higher stratum even when their distance is
+significantly worse.  Setting @code{stratumweight} to 0 makes @code{chronyd}
+ignore stratum when selecting the source.
+
 @c }}}
 @c {{{ tempcomp
 @node tempcomp directive
@@ -3087,20 +3087,20 @@ interface.
 * activity command::            Check how many NTP servers/peers are online/offline
 * add peer command::            Add a new NTP peer
 * add server command::          Add a new NTP server
-* allow command::               Allowing NTP client access
 * allow all command::           Allowing NTP client access
+* allow command::               Allowing NTP client access
 * authhash command::            Set the command authentication hash function
 * burst command::               Initiating a rapid set of measurements
 * clients command::             Show clients that have accessed the server
 * cmdaccheck command::          Verifying command client access
-* cmdallow command::            Allowing command client access
 * cmdallow all command::        Allowing command client access
-* cmddeny command::             Denying command client access
+* cmdallow command::            Allowing command client access
 * cmddeny all command::         Denying command client access
+* cmddeny command::             Denying command client access
 * cyclelogs command::           Close and re-open open log files
 * delete command::              Remove an NTP server or peer
-* deny command ::               Denying NTP client access
 * deny all command::            Denying NTP client access
+* deny command ::               Denying NTP client access
 * dns command::                 Configure how are hostnames and IP addresses resolved
 * dump command::                Dump measurement histories to files
 * exit command::                Exit from chronyc
@@ -3109,8 +3109,8 @@ interface.
 * makestep command::            Immediately correct the system clock instead of slewing
 * manual command::              Enable/disable/configure options for settime
 * maxdelay command::            Set max measurement delay for a source
-* maxdelayratio command::       Set max measurement delay for a source as ratio
 * maxdelaydevratio command::    Set max measurement delay for a source as ratio to deviation
+* maxdelayratio command::       Set max measurement delay for a source as ratio
 * maxpoll command::             Set maximum polling interval for a source
 * maxupdateskew command::       Set safety threshold for clock gain/loss rate
 * minpoll command::             Set minimum polling interval for a source
@@ -3210,6 +3210,12 @@ An example of using this command is shown below.
 add server foo.bar.com minpoll 6 maxpoll 10 authkey 25
 @end example
 @c }}}
+@c {{{ allow all
+@node allow all command
+@subsubsection allow all
+The effect of the allow command is identical to the @code{allow all}
+directive in the configuration file (@pxref{allow directive}).
+@c }}}
 @c {{{ allow
 @node allow command
 @subsubsection allow
@@ -3232,12 +3238,6 @@ allow
 
 The effect of each of these examples is the same as that of the @code{allow}
 directive in the configuration file.
-@c }}}
-@c {{{ allow all
-@node allow all command
-@subsubsection allow all
-The effect of the allow command is identical to the @code{allow all}
-directive in the configuration file (@pxref{allow directive}).
 @c }}}
 @c {{{ authhash
 @node authhash command
@@ -3409,13 +3409,6 @@ cmdaccheck 1.2.3.4
 cmdaccheck 2001:db8::1
 @end example
 @c }}}
-@c {{{ cmdallow
-@node cmdallow command
-@subsubsection cmdallow
-This is similar to the @code{allow} command, except that it is used to
-allow particular hosts or subnets to use the chronyc program to interact
-with @code{chronyd} on the current host.
-@c }}}
 @c {{{ cmdallow all
 @node cmdallow all command
 @subsubsection cmdallow all
@@ -3423,10 +3416,10 @@ This is similar to the @code{allow all} command, except that it is used to@c {{{
 allow particular hosts or subnets to use the chronyc program to interact@c }}}
 with @code{chronyd} on the current host.
 @c }}}
-@c {{{ cmddeny
-@node cmddeny command
-@subsubsection cmddeny
-This is similar to the @code{deny} command, except that it is used to
+@c {{{ cmdallow
+@node cmdallow command
+@subsubsection cmdallow
+This is similar to the @code{allow} command, except that it is used to
 allow particular hosts or subnets to use the chronyc program to interact
 with @code{chronyd} on the current host.
 @c }}}
@@ -3436,6 +3429,13 @@ with @code{chronyd} on the current host.
 This is similar to the @code{deny all} command, except that it is used
 to allow particular hosts or subnets to use the chronyc program to
 interact with @code{chronyd} on the current host.
+@c }}}
+@c {{{ cmddeny
+@node cmddeny command
+@subsubsection cmddeny
+This is similar to the @code{deny} command, except that it is used to
+allow particular hosts or subnets to use the chronyc program to interact
+with @code{chronyd} on the current host.
 @c }}}
 @c {{{ cyclelogs
 @node cyclelogs command
@@ -3470,6 +3470,12 @@ delete 2001:db8::1
 There is one parameter, the name or IP address of the server or peer to
 be deleted.
 @c }}}
+@c {{{ deny all
+@node deny all command
+@subsubsection deny all
+The effect of the allow command is identical to the @code{deny all}
+directive in the configuration file (@pxref{deny directive}).
+@c }}}
 @c {{{ deny
 @node deny command 
 @subsubsection deny
@@ -3489,12 +3495,6 @@ deny 0/0
 deny ::/0
 deny
 @end example
-@c }}}
-@c {{{ deny all
-@node deny all command
-@subsubsection deny all
-The effect of the allow command is identical to the @code{deny all}
-directive in the configuration file (@pxref{deny directive}).
 @c }}}
 @c {{{ dns
 @node dns command
@@ -3678,6 +3678,22 @@ the host with IPv4 address @code{1.2.3.4} and the host with IPv6 address
 (Any measurement whose network delay exceeds the specified value is
 discarded.)
 @c }}}
+@c {{{ maxdelaydevratio
+@node maxdelaydevratio command
+@subsubsection maxdelaydevratio
+This allows the @code{maxdelaydevratio} option for one of the sources to be
+modified, in the same way as specifying the @code{maxdelaydevratio} option
+for the @code{server} directive in the configuration file (@pxref{server
+directive}).
+
+The following examples illustrate the syntax
+
+@example
+maxdelaydevratio foo.bar.com 0.1
+maxdelaydevratio 1.2.3.4 1.0
+maxdelaydevratio 2001:db8::1 100.0
+@end example
+@c }}}
 @c {{{ maxdelayratio
 @node maxdelayratio command
 @subsubsection maxdelayratio
@@ -3703,22 +3719,6 @@ address @code{2001:db8::1} to be double the retained minimum.
 
 As for @code{maxdelay}, any measurement whose network delay is too large
 will be discarded.
-@c }}}
-@c {{{ maxdelaydevratio
-@node maxdelaydevratio command
-@subsubsection maxdelaydevratio
-This allows the @code{maxdelaydevratio} option for one of the sources to be
-modified, in the same way as specifying the @code{maxdelaydevratio} option
-for the @code{server} directive in the configuration file (@pxref{server
-directive}).
-
-The following examples illustrate the syntax
-
-@example
-maxdelaydevratio foo.bar.com 0.1
-maxdelaydevratio 1.2.3.4 1.0
-maxdelaydevratio 2001:db8::1 100.0
-@end example
 @c }}}
 @c {{{ maxpoll
 @node maxpoll command
