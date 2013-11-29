@@ -542,8 +542,8 @@ the files to the intended final locations.
 * Infrequent connection::       You connect to the Internet sometimes (e.g. via a modem)
 * Isolated networks::           You have an isolated network with no reference clocks
 * Dial-up home PCs::            Additional considerations if you turn your computer off
-                                when it's not in use.
-* Configuration options overview::  Overview of some configuration options.
+                                when it's not in use
+* Configuration options overview::  Overview of some configuration options
 @end menu
 @c }}}
 @c {{{ S:Permanent connection
@@ -1132,7 +1132,7 @@ directives can occur in any order in the file.
 * fallbackdrift directive::     Specify fallback drift intervals
 * generatecommandkey directive:: Generate command key automatically
 * include directive::           Include a configuration file
-* initstepslew directive::      Trim the system clock on boot-up.
+* initstepslew directive::      Trim the system clock on boot-up
 * keyfile directive::           Specify location of file containing keys
 * leapsectz directive::         Read leap second data from tz database
 * linux_hz directive::          Define a non-standard value of the kernel HZ constant
@@ -1145,7 +1145,7 @@ directives can occur in any order in the file.
 * mailonchange directive::      Send email if a clock correction above a threshold occurs
 * makestep directive::          Step system clock if large correction is needed
 * maxchange directive::         Set maximum allowed offset
-* manual directive::            Allow manual entry using chronyc's settime cmd.
+* manual directive::            Allow manual entry using chronyc's settime cmd
 * maxclockerror directive::     Set maximum frequency error of local clock
 * maxsamples directive::        Set maximum number of samples per source
 * maxupdateskew directive::     Stop bad estimates upsetting machine clock
@@ -1163,9 +1163,9 @@ directives can occur in any order in the file.
 * rtconutc directive::          Specify that the real time clock keeps UTC not local time
 * rtcsync directive::           Specify that RTC should be automatically synchronised by kernel
 * server directive::            Specify an NTP server
-* sched_priority directive::    Require real-time scheduling and specify a priority for it.
+* sched_priority directive::    Require real-time scheduling and specify a priority for it
 * stratumweight directive::     Specify how important is stratum when selecting source
-* lock_all directive::          Require that chronyd be locked into RAM. 
+* lock_all directive::          Require that chronyd be locked into RAM
 * tempcomp directive::          Specify temperature sensor and compensation coefficients
 * user directive::              Specify user for dropping root privileges
 
@@ -3131,7 +3131,7 @@ interface.
 * tracking command::            Display system clock performance
 * trimrtc command::             Correct the RTC time to the current system time
 * waitsync command::            Wait until synchronised
-* writertc command::            Write the RTC parameters to file.
+* writertc command::            Write the RTC parameters to file
 @end menu
 @c }}}
 @c {{{ accheck
