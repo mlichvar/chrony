@@ -1115,7 +1115,7 @@ SYS_Linux_Initialise(void)
     have_setoffset = 0;
   }
 
-  TMX_SetSync(CNF_GetRTCSync());
+  TMX_SetSync(CNF_GetRtcSync());
 
   /* Read current kernel frequency */
   TMX_GetFrequency(&freq, &current_tick);

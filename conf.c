@@ -1403,7 +1403,7 @@ CNF_AllowLocalReference(int *stratum)
 /* ================================================== */
 
 int
-CNF_GetRTCOnUTC(void)
+CNF_GetRtcOnUtc(void)
 {
   return rtc_on_utc;
 }
@@ -1411,7 +1411,7 @@ CNF_GetRTCOnUTC(void)
 /* ================================================== */
 
 int
-CNF_GetRTCSync(void)
+CNF_GetRtcSync(void)
 {
   return rtc_sync;
 }

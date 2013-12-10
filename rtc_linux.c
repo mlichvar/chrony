@@ -374,7 +374,7 @@ t_from_rtc(struct tm *stm) {
 static void
 setup_config(void)
 {
-  if (CNF_GetRTCOnUTC()) {
+  if (CNF_GetRtcOnUtc()) {
     rtc_on_utc = 1;
   } else {
     rtc_on_utc = 0;

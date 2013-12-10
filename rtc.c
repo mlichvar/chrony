@@ -84,7 +84,7 @@ RTC_Initialise(void)
   file_name = CNF_GetRtcFile();
 
   if (file_name) {
-    if (CNF_GetRTCSync()) {
+    if (CNF_GetRtcSync()) {
       LOG_FATAL(LOGF_Rtc, "rtcfile directive cannot be used with rtcsync");
     }
 
