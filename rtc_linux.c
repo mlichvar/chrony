@@ -927,7 +927,7 @@ RTC_Linux_WriteParameters(void)
 
 /* ================================================== */
 /* Try to set the system clock from the RTC, in the same manner as
-   /sbin/clock -s -u would do.  We're not as picky about OS version
+   /sbin/hwclock -s would do.  We're not as picky about OS version
    etc in this case, since we have fewer requirements regarding the
    RTC behaviour than we do for the rest of the module. */
 

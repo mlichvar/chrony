@@ -1017,7 +1017,7 @@ in conjuction with the `-r' option.
 @item -s
 This option will set the system clock from the computer's real-time
 clock.  This is analogous to supplying the `-s' flag to the
-@file{/sbin/clock} program during the Linux boot sequence.
+@file{/sbin/hwclock} program during the Linux boot sequence.
 
 Support for real-time clocks is limited at present - the criteria are
 described in the section on the @code{rtcfile} directive (@pxref{rtcfile
@@ -2704,7 +2704,7 @@ or ends.
 
 If the @code{rtconutc} directive appears, it means the RTC is required
 to keep UTC.  The directive takes no arguments.  It is equivalent to
-specifying the @code{-u} switch to the Linux @file{/sbin/clock} program.
+specifying the @code{-u} switch to the Linux @file{/sbin/hwclock} program.
 @c }}}
 @c {{{ rtcsync
 @node rtcsync directive

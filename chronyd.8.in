@@ -79,7 +79,7 @@ with the \fB-r\fR option.
 .B \-s
 This option will set the system clock from the computer's real-time
 clock.  This is analogous to supplying the \fI-s\fR flag to the
-\fI/sbin/clock\fR program during the Linux boot sequence.
+\fI/sbin/hwclock\fR program during the Linux boot sequence.
 
 Support for real-time clocks is limited at present - the criteria
 are described in the section on the \fIrtcfile\fR directive in the

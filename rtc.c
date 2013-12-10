@@ -144,7 +144,7 @@ RTC_TimeInit(void (*after_hook)(void *), void *anything)
 
 /* ================================================== */
 /* Do an initial read of the RTC and set the system time to it.  This
-   is analogous to what /sbin/clock -s -u would do on Linux. */
+   is analogous to what /sbin/hwclock -s would do on Linux. */
 
 void
 RTC_TimePreInit(void)
