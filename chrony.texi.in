@@ -2654,7 +2654,7 @@ This would set the threshold error to 30 seconds.
 @node rtcdevice directive
 @subsection rtcdevice
 The @code{rtcdevice} directive defines the name of the device file for
-accessing the real time clock.  By default this is @code{/dev/rtc/}, unless the
+accessing the real time clock.  By default this is @code{/dev/rtc}, unless the
 directive is used to set a different value.  This applies to Linux systems with
 devfs.  An example of use is
 
