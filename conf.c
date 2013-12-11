@@ -124,6 +124,9 @@ static int enable_manual=0;
    incl. daylight saving). */
 static int rtc_on_utc = 0;
 
+/* Filename used to read the hwclock(8) LOCAL/UTC setting */
+static char *hwclock_file = NULL;
+
 /* Flag set if the RTC should be automatically synchronised by kernel */
 static int rtc_sync = 0;
 
@@ -365,6 +368,8 @@ CNF_ReadFile(const char *filename)
         parse_fallbackdrift(p);
       } else if (!strcasecmp(command, "generatecommandkey")) {
         generate_command_key = parse_null(p);
+      } else if (!strcasecmp(command, "hwclockfile")) {
+        parse_string(p, &hwclock_file);
       } else if (!strcasecmp(command, "include")) {
         parse_include(p);
       } else if (!strcasecmp(command, "initstepslew")) {
@@ -1619,4 +1624,12 @@ int
 CNF_GetMinSamples(void)
 {
   return min_samples;
+}
+
+/* ================================================== */
+
+char *
+CNF_GetHwclockFile(void)
+{
+  return hwclock_file;
 }

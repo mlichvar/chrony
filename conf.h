@@ -100,5 +100,6 @@ extern int CNF_GetMaxSamples(void);
 extern int CNF_GetMinSamples(void);
 
 extern double CNF_GetRtcAutotrim(void);
+extern char *CNF_GetHwclockFile(void);
 
 #endif /* GOT_CONF_H */

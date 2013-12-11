@@ -1132,6 +1132,7 @@ directives can occur in any order in the file.
 * dumponexit directive::        Dump measurements when daemon exits
 * fallbackdrift directive::     Specify fallback drift intervals
 * generatecommandkey directive:: Generate command key automatically
+* hwclockfile directive::       Specify location of hwclock's adjtime file
 * include directive::           Include a configuration file
 * initstepslew directive::      Trim the system clock on boot-up
 * keyfile directive::           Specify location of file containing keys
@@ -1643,6 +1644,20 @@ command key from the /dev/urandom file and write it to the key file.
 
 The generated key will use SHA1 if @code{chronyd} is compiled with the support,
 otherwise MD5 will be used.
+@c }}}
+@c {{{ hwclockfile
+@node hwclockfile directive
+@subsection hwclockfile
+The @code{hwclockfile} directive sets the location of the adjtime file which is
+used by the @file{/sbin/hwclock} program.  With this directive, @code{chronyd}
+will parse the file to find out if the RTC keeps local time or UTC.  It
+overrides the @code{rtconutc} directive (@pxref{rtconutc directive}).
+
+An example of the command is
+
+@example
+hwclockfile /etc/adjtime
+@end example
 @c }}}
 @c {{{ include
 @node include directive
@@ -2705,6 +2720,9 @@ or ends.
 If the @code{rtconutc} directive appears, it means the RTC is required
 to keep UTC.  The directive takes no arguments.  It is equivalent to
 specifying the @code{-u} switch to the Linux @file{/sbin/hwclock} program.
+
+Note that this setting is overriden when the @code{hwclockfile} directive
+(@pxref{hwclockfile directive}) is used.
 @c }}}
 @c {{{ rtcsync
 @node rtcsync directive

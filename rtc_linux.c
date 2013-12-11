@@ -372,6 +372,43 @@ t_from_rtc(struct tm *stm) {
 /* ================================================== */
 
 static void
+read_hwclock_file(const char *hwclock_file)
+{
+  FILE *in;
+  char line[256];
+  int i;
+
+  if (!hwclock_file)
+    return;
+
+  in = fopen(hwclock_file, "r");
+  if (!in) {
+    LOG(LOGS_WARN, LOGF_RtcLinux, "Could not open hwclockfile %s",
+        hwclock_file);
+    return;
+  }
+
+  /* Read third line from the file. */
+  for (i = 0; i < 3; i++) {
+    if (!fgets(line, sizeof(line), in))
+      break;
+  }
+
+  fclose(in);
+
+  if (i == 3 && !strncmp(line, "LOCAL", 5)) {
+    rtc_on_utc = 0;
+  } else if (i == 3 && !strncmp(line, "UTC", 3)) {
+    rtc_on_utc = 1;
+  } else {
+    LOG(LOGS_WARN, LOGF_RtcLinux, "Could not read LOCAL/UTC setting from hwclockfile %s",
+        hwclock_file);
+  }
+}
+
+/* ================================================== */
+
+static void
 setup_config(void)
 {
   if (CNF_GetRtcOnUtc()) {
@@ -379,6 +416,8 @@ setup_config(void)
   } else {
     rtc_on_utc = 0;
   }
+
+  read_hwclock_file(CNF_GetHwclockFile());
 
   autotrim_threshold = CNF_GetRtcAutotrim();
 }
