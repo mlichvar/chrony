@@ -2506,7 +2506,7 @@ directive}) enabled to work.  For example:
 
 @example
 refclock PPS /dev/pps0 lock NMEA
-refclock SHM 0 offset 0.5 delay 0.1 refid NMEA noselect
+refclock SHM 0 offset 0.5 delay 0.2 refid NMEA noselect
 @end example
 
 @item SHM
@@ -2599,11 +2599,11 @@ This option can be used to compensate a constant error.  The specified
 offset (in seconds) is applied to all samples produced by the
 refclock.  The default is 0.0.
 @item delay
-This option is used to specify how the refclock is assumed
-to be inaccurate (in seconds).  Increasing the value is useful to
-avoid having no majority in the source selection algorithm or to make
-the algorithm prefer other refclocks.  The default is 1e-9 (1
-nanosecond).
+This option sets the NTP delay of the source (in seconds).  Half of
+this value is included in the maximum assumed error which is used in the
+source selection algorithm.  Increasing the delay is useful to avoid
+having no majority in the algorithm or to make it prefer other
+sources.  The default is 1e-9 (1 nanosecond).
 @item precision
 Refclock precision (in seconds).  The default is 1e-6 (1 microsecond)
 for SHM refclock, and 1e-9 (1 nanosecond) for SOCK and PPS refclocks.
