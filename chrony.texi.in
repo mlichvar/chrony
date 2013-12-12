@@ -324,18 +324,6 @@ bootstrap.
 
 @item More drivers for reference clock support
 
-@item Automation of the trimrtc and writertc mechanisms
-
-Currently, the RTC trimming mechanism is a manual operation, because there has
-to be a reasonable guarantee that the system will stay up for a reasonable
-length of time afterwards.  (If it is shut down too soon, a poor
-characterisation of the RTC drift rate will be stored on disc, giving a bad
-system clock error when the system is next booted.)
-
-To make chrony more automated for the non-expert user, it would be useful if
-this problem could be avoided so that trimrtc could be done automatically (e.g.
-in a crontab, or as part of the ip-up or ip-down scripts.)
-
 @end enumerate
 @c }}}
 @c }}}
@@ -4436,6 +4424,9 @@ across machine reboots even if the @code{trimrtc} command is never used
 @code{trimrtc} command is provided as a method by which it can be
 corrected, in a manner compatible with @code{chronyd} using it to
 maintain accurate time across machine reboots.
+
+The @code{trimrtc} command can be executed automatically by @code{chronyd}
+with the @code{rtcautotrim} directive (@pxref{rtcautotrim directive}).
 @c }}}
 @c {{{ waitsync
 @node waitsync command
@@ -4469,7 +4460,8 @@ The @code{writertc} command writes the currently estimated error and
 gain/loss rate parameters for the RTC to the RTC file (specified with
 the @code{rtcfile} directive (@pxref{rtcfile directive})).  This
 information is also written automatically when @code{chronyd} is killed
-(with SIGHUP, SIGINT, SIGQUIT or SIGTERM).
+(with SIGHUP, SIGINT, SIGQUIT or SIGTERM) or when the @code{trimrtc}
+command is issued.
 @c }}}
 @c }}}
 @c }}}
