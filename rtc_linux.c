@@ -282,7 +282,7 @@ slew_samples
 
   if (coefs_valid) {
     coef_seconds_fast += doffset;
-    coef_gain_rate = (1.0 + dfreq) * (1.0 + coef_gain_rate) - 1.0;
+    coef_gain_rate = (1.0 - dfreq) * coef_gain_rate + dfreq;
   }
 
   DEBUG_LOG(LOGF_RtcLinux, "dfreq=%.8f doffset=%.6f old_fast=%.6f old_rate=%.3f new_fast=%.6f new_rate=%.3f",
