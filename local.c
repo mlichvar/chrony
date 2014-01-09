@@ -411,7 +411,7 @@ LCL_AccumulateDeltaFrequency(double dfreq)
    are handled in units of ppm, whereas the 'dfreq' argument is in
    terms of the gradient of the (offset) v (local time) function. */
 
-  current_freq_ppm = (1.0 - dfreq) * current_freq_ppm + 1.0e6 * dfreq;
+  current_freq_ppm += dfreq * (1.0e6 - current_freq_ppm);
 
   /* Call the system-specific driver for setting the frequency */
   current_freq_ppm = (*drv_set_freq)(current_freq_ppm);
@@ -508,7 +508,7 @@ LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate)
   /* Work out new absolute frequency.  Note that absolute frequencies
    are handled in units of ppm, whereas the 'dfreq' argument is in
    terms of the gradient of the (offset) v (local time) function. */
-  current_freq_ppm = (1.0 - dfreq) * old_freq_ppm + 1.0e6 * dfreq;
+  current_freq_ppm += dfreq * (1.0e6 - current_freq_ppm);
 
   DEBUG_LOG(LOGF_Local, "old_freq=%.3fppm new_freq=%.3fppm offset=%.6fsec",
       old_freq_ppm, current_freq_ppm, doffset);
