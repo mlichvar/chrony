@@ -613,9 +613,7 @@ process_cmd_local(CMD_Request *msg, const char *line)
 
   p = line;
   
-  if (!*p) {
-    return 0;
-  } else if (!strcmp(p, "off")) {
+  if (!strcmp(p, "off")) {
     msg->data.local.on_off = htonl(0);
     msg->data.local.stratum = htonl(0);
   } else if (sscanf(p, "stratum%d", &stratum) == 1) {
@@ -639,15 +637,14 @@ process_cmd_manual(CMD_Request *msg, const char *line)
 
   p = line;
 
-  if (!*p) {
-    return 0;
-  } else if (!strcmp(p, "off")) {
+  if (!strcmp(p, "off")) {
     msg->data.manual.option = htonl(0);
   } else if (!strcmp(p, "on")) {
     msg->data.manual.option = htonl(1);
   } else if (!strcmp(p, "reset")) {
     msg->data.manual.option = htonl(2);
   } else {
+    fprintf(stderr, "Invalid syntax for manual command\n");
     return 0;
   }
   msg->command = htons(REQ_MANUAL);
