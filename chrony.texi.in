@@ -1126,7 +1126,7 @@ directives can occur in any order in the file.
 * keyfile directive::           Specify location of file containing keys
 * leapsectz directive::         Read leap second data from tz database
 * linux_freq_scale directive::  Define a non-standard value to compensate the kernel frequency bias
-* linux_hz directive::          Define a non-standard value of the kernel HZ constant
+* linux_hz directive::          Define a non-standard value of the kernel USER_HZ constant
 * local directive::             Allow unsynchronised machine to act as server
 * lock_all directive::          Require that chronyd be locked into RAM
 * log directive::               Make daemon log certain sets of information
@@ -1794,16 +1794,10 @@ Wed Dec 31 23:59:60 UTC 2008
 @subsection linux_freq_scale
 (This option only applies to Linux).
 
-By default, chronyd will find the value of @code{HZ} and @code{SHIFT_HZ} from
-kernel header files at compile time.  An internal value called
-@code{freq_scale} is calculated from this.  By default it is (1<<SHIFT_HZ)/HZ,
-except for the case HZ=100, when special case code is used which leads to the
-value 128/128.125.  If you're running chronyd on the system where it was built,
-the value it has should be right, and you don't need to worry about this
-option.
-
-This option is provided for people who move a pre-built chronyd onto a system
-where the method by which the kernel computes the reciprocal of this value has been changed or where the HZ and SHIFT_HZ constants differ from those on the system where chronyd was built.
+This option sets a scale factor needed to control the frequency of the clock by
+the @code{adjtimex()} system call exactly.  By default, the value is determined
+by the version of the running kernel.  In recent kernels it is always 1.0 (i.e.
+no scaling is needed).
 
 An example of the command is
 
@@ -1816,14 +1810,10 @@ linux_freq_scale 0.99902439
 @subsection linux_hz
 (This option only applies to Linux).
 
-By default, chronyd will find the value of @code{HZ} from a kernel header file
-at compile time.  @code{HZ} is the nominal number of timer interrupts per
-second.  If you're running chronyd on the system where it was built, the value
-it has should be right, and you don't need to worry about this option.
-
-This option is provided for people who move a pre-built chronyd onto a system
-where the value of HZ in the kernel headers has been changed from the default
-value.
+This option defines the value of the kernel @code{USER_HZ} constant, which is
+needed to use the @code{adjtimex()} system call correctly.  By default, its
+value is determined from the running kernel automatically and there should
+rarely be a need to use this option.
 
 An example of the command is
 

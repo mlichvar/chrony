@@ -83,9 +83,7 @@ static int nominal_tick;
    per day). */
 static double freq_scale;
 
-/* The HZ value from the kernel header file (may be over-ridden from config
-   file, e.g. if chronyd binary is moved to a box whose kernel was built with a
-   different HZ value). */
+/* The kernel HZ constant (USER_HZ in recent kernels). */
 static int hz;
 static double dhz; /* And dbl prec version of same for arithmetic */
 
