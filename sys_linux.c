@@ -1017,7 +1017,7 @@ get_version_specific_details(void)
     LOG_FATAL(LOGF_SysLinux, "Cannot read information from uname, sorry");
   }
 
-  LOG(LOGS_INFO, LOGF_SysLinux, "Linux kernel major=%d minor=%d patch=%d", major, minor, patch);
+  DEBUG_LOG(LOGF_SysLinux, "Linux kernel major=%d minor=%d patch=%d", major, minor, patch);
 
   version_major = major;
   version_minor = minor;
@@ -1075,7 +1075,7 @@ get_version_specific_details(void)
     freq_scale = config_freq_scale;
   }
 
-  LOG(LOGS_INFO, LOGF_SysLinux, "hz=%d shift_hz=%d freq_scale=%.8f nominal_tick=%d slew_delta_tick=%d max_tick_bias=%d shift_pll=%d",
+  DEBUG_LOG(LOGF_SysLinux, "hz=%d shift_hz=%d freq_scale=%.8f nominal_tick=%d slew_delta_tick=%d max_tick_bias=%d shift_pll=%d",
       hz, shift_hz, freq_scale, nominal_tick, slew_delta_tick, max_tick_bias, shift_pll);
 }
 
