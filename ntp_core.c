@@ -1509,7 +1509,8 @@ NCR_ProcessUnknown
       }
 
       if (!do_auth || (valid_key && valid_auth)) {
-        my_poll = message->poll; /* What should this be set to?  Does the client actually care? */
+        /* Reply with the same poll, the client may use it to control its poll */
+        my_poll = message->poll;
 
         transmit_packet(my_mode, my_poll,
                         version,
