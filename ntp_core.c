@@ -289,6 +289,8 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
 
   result->minpoll = params->minpoll;
   result->maxpoll = params->maxpoll;
+  if (result->maxpoll < result->minpoll)
+    result->maxpoll = result->minpoll;
   result->min_stratum = params->min_stratum;
 
   result->presend_minpoll = params->presend_minpoll;
@@ -1606,6 +1608,8 @@ NCR_ModifyMinpoll(NCR_Instance inst, int new_minpoll)
 {
   inst->minpoll = new_minpoll;
   LOG(LOGS_INFO, LOGF_NtpCore, "Source %s new minpoll %d", UTI_IPToString(&inst->remote_addr.ip_addr), new_minpoll);
+  if (inst->maxpoll < inst->minpoll)
+    NCR_ModifyMaxpoll(inst, inst->minpoll);
 }
 
 /* ================================================== */
@@ -1615,6 +1619,8 @@ NCR_ModifyMaxpoll(NCR_Instance inst, int new_maxpoll)
 {
   inst->maxpoll = new_maxpoll;
   LOG(LOGS_INFO, LOGF_NtpCore, "Source %s new maxpoll %d", UTI_IPToString(&inst->remote_addr.ip_addr), new_maxpoll);
+  if (inst->minpoll > inst->maxpoll)
+    NCR_ModifyMinpoll(inst, inst->maxpoll);
 }
 
 /* ================================================== */
