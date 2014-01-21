@@ -2579,7 +2579,7 @@ authenticate_from_config(const char *filename)
 
   in = fopen(keyfile, "r");
   if (!in) {
-    fprintf(stderr, "Could not open keyfile %s\n", filename);
+    fprintf(stderr, "Could not open keyfile %s\n", keyfile);
     return 0;
   }
 
