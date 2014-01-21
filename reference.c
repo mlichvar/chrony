@@ -290,6 +290,7 @@ update_drift_file(double freq_ppm, double skew)
   struct stat buf;
   char *temp_drift_file;
   FILE *out;
+  int r1, r2;
 
   /* Create a temporary file with a '.tmp' extension. */
 
@@ -311,8 +312,9 @@ update_drift_file(double freq_ppm, double skew)
   }
 
   /* Write the frequency and skew parameters in ppm */
-  if ((fprintf(out, "%20.6f %20.6f\n", freq_ppm, 1.0e6 * skew) < 0) |
-      fclose(out)) {
+  r1 = fprintf(out, "%20.6f %20.6f\n", freq_ppm, 1.0e6 * skew);
+  r2 = fclose(out);
+  if (r1 < 0 || r2) {
     Free(temp_drift_file);
     LOG(LOGS_WARN, LOGF_Reference, "Could not write to temporary driftfile %s.tmp",
         drift_file);
