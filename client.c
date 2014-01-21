@@ -1366,7 +1366,11 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
       } else {
         
         read_length = recvfrom_status;
-        expected_length = PKL_ReplyLength(reply);
+        if (read_length >= offsetof(CMD_Reply, data)) {
+          expected_length = PKL_ReplyLength(reply);
+        } else {
+          expected_length = 0;
+        }
 
         bad_length = (read_length < expected_length ||
                       expected_length < offsetof(CMD_Reply, data));
