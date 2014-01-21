@@ -503,7 +503,7 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
 void
 SRC_SelectSource(uint32_t match_refid)
 {
-  int i, j, index, old_selected_index;
+  int i, j, index, old_selected_index, sel_prefer;
   struct timeval now, ref_time;
   double src_offset, src_offset_sd, src_frequency, src_skew;
   double src_root_delay, src_root_dispersion;
@@ -811,6 +811,9 @@ SRC_SelectSource(uint32_t match_refid)
         }
         if (j > 0) {
           n_sel_sources = j;
+          sel_prefer = 1;
+        } else {
+          sel_prefer = 0;
         }
 
         /* Now find minimum stratum.  If none are left now,
@@ -843,7 +846,8 @@ SRC_SelectSource(uint32_t match_refid)
         for (i = 0; i < n_sources; i++) {
 
           /* Reset score for non-selectable sources */
-          if (sources[i]->status != SRC_SELECTABLE) {
+          if (sources[i]->status != SRC_SELECTABLE ||
+              (sel_prefer && sources[i]->sel_option != SRC_SelectPrefer)) {
             sources[i]->sel_score = 1.0;
             sources[i]->outlier = OUTLIER_PENALTY;
             continue;
