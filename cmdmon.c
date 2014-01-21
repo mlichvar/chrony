@@ -1738,9 +1738,9 @@ read_from_cmd_socket(void *anything)
   tx_message.command = rx_message.command;
   tx_message.sequence = rx_message.sequence;
   tx_message.reply = htons(RPY_NULL);
-  tx_message.number = htons(1);
-  tx_message.total = htons(1);
   tx_message.pad1 = 0;
+  tx_message.pad2 = 0;
+  tx_message.pad3 = 0;
   tx_message.utoken = htonl(utoken);
   /* Set this to a default (invalid) value.  This protects against the
      token field being set to an arbitrary value if we reject the

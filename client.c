@@ -1418,10 +1418,9 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
         
         /* Good packet received, print out results */
 #if 0
-        printf("Reply cmd=%d reply=%d stat=%d num=%d tot=%d seq=%d utok=%08lx tok=%d\n",
+        printf("Reply cmd=%d reply=%d stat=%d seq=%d utok=%08lx tok=%d\n",
                ntohs(reply->command), ntohs(reply->reply),
-               ntohs(reply->status), ntohs(reply->number),
-               ntohs(reply->total),
+               ntohs(reply->status),
                ntohl(reply->sequence),
                ntohl(reply->utoken),
                ntohl(reply->token));

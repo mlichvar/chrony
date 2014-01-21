@@ -618,9 +618,9 @@ typedef struct {
   uint16_t command; /* Which command is being replied to */
   uint16_t reply; /* Which format of reply this is */
   uint16_t status; /* Status of command processing */
-  uint16_t number; /* Which packet this is in reply sequence */
-  uint16_t total; /* Number of replies to expect in this sequence */
-  uint16_t pad1; /* Get up to 4 byte alignment */
+  uint16_t pad1; /* Padding for compatibility and 4 byte alignment */
+  uint16_t pad2;
+  uint16_t pad3;
   uint32_t sequence; /* Echo of client's sequence number */
   uint32_t utoken; /* Unique token per incarnation of daemon */
   uint32_t token; /* New command token (only if command was successfully
