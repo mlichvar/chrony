@@ -780,7 +780,6 @@ SRC_SelectSource(uint32_t match_refid)
         if (index != INVALID_SOURCE) {
           sources[index]->status = SRC_SELECTABLE;
           sel_sources[j++] = sel_sources[i];
-          index++;
         }
       }
       n_sel_sources = j;
