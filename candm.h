@@ -587,7 +587,7 @@ typedef struct {
   RPY_ClientAccesses_Client clients[MAX_CLIENT_ACCESSES];
 } RPY_ClientAccessesByIndex;
 
-#define MAX_MANUAL_LIST_SAMPLES 32
+#define MAX_MANUAL_LIST_SAMPLES 16
 
 typedef struct {
   Timeval when;
