@@ -1722,7 +1722,13 @@ read_from_cmd_socket(void *anything)
       assert(0);
   }
 
-  allowed = ADF_IsAllowed(access_auth_table, &remote_ip) || localhost;
+  if (!(localhost || ADF_IsAllowed(access_auth_table, &remote_ip))) {
+    /* The client is not allowed access, so don't waste any more time
+       on him.  Note that localhost is always allowed access
+       regardless of the defined access rules - otherwise, we could
+       shut ourselves out completely! */
+    return;
+  }
 
   /* Message size sanity check */
   if (read_length >= offsetof(CMD_Request, data)) {
@@ -1738,8 +1744,7 @@ read_from_cmd_socket(void *anything)
       rx_message.res2 != 0) {
 
     /* We don't know how to process anything like this */
-    if (allowed)
-      CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
+    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
     
     return;
   }
@@ -1768,8 +1773,8 @@ read_from_cmd_socket(void *anything)
     if (!LOG_RateLimited()) {
       LOG(LOGS_WARN, LOGF_CmdMon, "Read command packet with protocol version %d (expected %d) from %s:%hu", rx_message.version, PROTO_VERSION_NUMBER, UTI_IPToString(&remote_ip), remote_port);
     }
-    if (allowed)
-      CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
+
+    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
     if (rx_message.version >= PROTO_VERSION_MISMATCH_COMPAT_SERVER) {
       tx_message.status = htons(STT_BADPKTVERSION);
@@ -1782,8 +1787,8 @@ read_from_cmd_socket(void *anything)
     if (!LOG_RateLimited()) {
       LOG(LOGS_WARN, LOGF_CmdMon, "Read command packet with invalid command %d from %s:%hu", rx_command, UTI_IPToString(&remote_ip), remote_port);
     }
-    if (allowed)
-      CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
+
+    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
     tx_message.status = htons(STT_INVALID);
     transmit_reply(&tx_message, &where_from, 0);
@@ -1794,29 +1799,11 @@ read_from_cmd_socket(void *anything)
     if (!LOG_RateLimited()) {
       LOG(LOGS_WARN, LOGF_CmdMon, "Read incorrectly sized command packet from %s:%hu", UTI_IPToString(&remote_ip), remote_port);
     }
-    if (allowed)
-      CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
+
+    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
     tx_message.status = htons(STT_BADPKTLENGTH);
     transmit_reply(&tx_message, &where_from, 0);
-    return;
-  }
-
-  if (!allowed) {
-    /* The client is not allowed access, so don't waste any more time
-       on him.  Note that localhost is always allowed access
-       regardless of the defined access rules - otherwise, we could
-       shut ourselves out completely! */
-
-    if (!LOG_RateLimited()) {
-      LOG(LOGS_WARN, LOGF_CmdMon, "Command packet received from unauthorised host %s port %d",
-          UTI_IPToString(&remote_ip),
-          remote_port);
-    }
-
-    tx_message.status = htons(STT_NOHOSTACCESS);
-    transmit_reply(&tx_message, &where_from, 0);
-
     return;
   }
 
