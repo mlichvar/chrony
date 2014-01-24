@@ -1242,6 +1242,7 @@ static unsigned long token = 0;
 
 static int max_retries = 2;
 static int initial_timeout = 1000;
+static int proto_version = PROTO_VERSION_NUMBER;
 
 /* This is the core protocol module.  Complete particular fields in
    the outgoing packet, send it, wait for a response, handle retries,
@@ -1267,7 +1268,6 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
   int n_attempts;
   fd_set rdfd, wrfd, exfd;
 
-  request->version = PROTO_VERSION_NUMBER;
   request->pkt_type = PKT_TYPE_CMD_REQUEST;
   request->res1 = 0;
   request->res2 = 0;
@@ -1282,6 +1282,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
   n_attempts = 0;
 
   do {
+    request->version = proto_version;
     command_length = PKL_CommandLength(request);
     padding_length = PKL_CommandPaddingLength(request);
     assert(command_length > 0 && command_length > padding_length);
@@ -1404,7 +1405,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
           continue;
         }
         
-        bad_header = ((reply->version != PROTO_VERSION_NUMBER &&
+        bad_header = ((reply->version != proto_version &&
                        !(reply->version >= PROTO_VERSION_MISMATCH_COMPAT_CLIENT &&
                          ntohs(reply->status) == STT_BADPKTVERSION)) ||
                       (reply->pkt_type != PKT_TYPE_CMD_REPLY) ||
@@ -1420,6 +1421,19 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
           continue;
         }
         
+#if PROTO_VERSION_NUMBER == 6
+        /* Protocol version 5 is similar to 6 except there is no padding.
+           If a version 5 reply with STT_BADPKTVERSION is received,
+           switch our version and try again. */
+        if (proto_version == PROTO_VERSION_NUMBER &&
+            reply->version == PROTO_VERSION_NUMBER - 1) {
+          proto_version = PROTO_VERSION_NUMBER - 1;
+          continue;
+        }
+#else
+#error unknown compatibility with PROTO_VERSION - 1
+#endif
+
         /* Good packet received, print out results */
 #if 0
         printf("Reply cmd=%d reply=%d stat=%d num=%d tot=%d seq=%d utok=%08lx tok=%d\n",
