@@ -265,10 +265,24 @@ prepare_socket(int family)
 void
 CAM_Initialise(int family)
 {
+  int i;
+
   assert(!initialised);
   initialised = 1;
 
   assert(sizeof (permissions) / sizeof (permissions[0]) == N_REQUEST_TYPES);
+
+  for (i = 0; i < N_REQUEST_TYPES; i++) {
+    CMD_Request r;
+    int command_length, padding_length;
+
+    r.version = PROTO_VERSION_NUMBER;
+    r.command = htons(i);
+    command_length = PKL_CommandLength(&r);
+    padding_length = PKL_CommandPaddingLength(&r);
+    assert(padding_length <= MAX_PADDING_LENGTH && padding_length <= command_length);
+    assert(command_length == 0 || command_length >= offsetof(CMD_Reply, data));
+  }
 
   utoken = (unsigned long) time(NULL);
 
@@ -1718,6 +1732,7 @@ read_from_cmd_socket(void *anything)
   }
 
   if (expected_length < offsetof(CMD_Request, data) ||
+      read_length < offsetof(CMD_Reply, data) ||
       rx_message.pkt_type != PKT_TYPE_CMD_REQUEST ||
       rx_message.res1 != 0 ||
       rx_message.res2 != 0) {
@@ -1756,12 +1771,9 @@ read_from_cmd_socket(void *anything)
     if (allowed)
       CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
-    if (rx_message.version >= PROTO_VERSION_MISMATCH_COMPAT) {
+    if (rx_message.version >= PROTO_VERSION_MISMATCH_COMPAT_SERVER) {
       tx_message.status = htons(STT_BADPKTVERSION);
-      /* add empty MD5 auth so older clients will not drop
-         the reply due to bad length */
-      memset(((char *)&tx_message) + PKL_ReplyLength(&tx_message), 0, 16);
-      transmit_reply(&tx_message, &where_from, 16);
+      transmit_reply(&tx_message, &where_from, 0);
     }
     return;
   }

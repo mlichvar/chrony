@@ -360,13 +360,24 @@ typedef struct {
    Version 5 : auth data moved to the end of the packet to allow hashes with
    different sizes, extended sources, tracking and activity reports, dropped
    subnets accessed and client accesses
+
+   Version 6 : added padding to requests to prevent amplification attack,
+   changed maximum number of samples in manual list to 16
  */
 
-#define PROTO_VERSION_NUMBER 5
+#define PROTO_VERSION_NUMBER 6
 
-/* The oldest protocol version that is compatible enough with
-   the current version to report a version mismatch */
-#define PROTO_VERSION_MISMATCH_COMPAT 4
+/* The oldest protocol versions that are compatible enough with the current
+   version to report a version mismatch for the server and the client */
+#define PROTO_VERSION_MISMATCH_COMPAT_SERVER 5
+#define PROTO_VERSION_MISMATCH_COMPAT_CLIENT 4
+
+/* The first protocol version using padding in requests */
+#define PROTO_VERSION_PADDING 6
+
+/* The maximum length of padding in request packet, currently
+   defined by CLIENT_ACCESSES_BY_INDEX and MANUAL_LIST */
+#define MAX_PADDING_LENGTH 396
 
 /* ================================================== */
 
@@ -424,8 +435,13 @@ typedef struct {
     REQ_ReselectDistance reselect_distance;
   } data; /* Command specific parameters */
 
-  /* authentication of the packet, there is no hole after the actual data
-     from the data union, this field only sets the maximum auth size */
+  /* The following fields only set the maximum size of the packet.
+     There are no holes between them and the actual data. */
+
+  /* Padding used to prevent traffic amplification */
+  uint8_t padding[MAX_PADDING_LENGTH];
+
+  /* Authentication data */
   uint8_t auth[MAX_HASH_LENGTH];
 
 } CMD_Request;
@@ -585,6 +601,7 @@ typedef struct {
   uint32_t next_index;     /* the index 1 beyond those processed on this call */
   uint32_t n_clients;      /* the number of valid entries in the following array */
   RPY_ClientAccesses_Client clients[MAX_CLIENT_ACCESSES];
+  int32_t EOR;
 } RPY_ClientAccessesByIndex;
 
 #define MAX_MANUAL_LIST_SAMPLES 16
@@ -599,6 +616,7 @@ typedef struct {
 typedef struct {
   uint32_t n_samples;
   RPY_ManualListSample samples[MAX_MANUAL_LIST_SAMPLES];
+  int32_t EOR;
 } RPY_ManualList;
 
 typedef struct {

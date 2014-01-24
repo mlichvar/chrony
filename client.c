@@ -1260,6 +1260,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
   int read_length;
   int expected_length;
   int command_length;
+  int padding_length;
   int auth_length;
   struct timeval tv;
   int timeout;
@@ -1281,6 +1282,13 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
   n_attempts = 0;
 
   do {
+    command_length = PKL_CommandLength(request);
+    padding_length = PKL_CommandPaddingLength(request);
+    assert(command_length > 0 && command_length > padding_length);
+
+    /* Zero the padding to avoid sending uninitialized data. This needs to be
+       done before generating auth data as it includes the padding. */
+    memset(((char *)request) + command_length - padding_length, 0, padding_length);
 
     /* Decide whether to authenticate */
     if (password) {
@@ -1293,9 +1301,6 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
     } else {
       auth_length = 0;
     }
-
-    command_length = PKL_CommandLength(request);
-    assert(command_length > 0);
 
     /* add empty MD5 auth so older servers will not drop the request
        due to bad length */
@@ -1400,7 +1405,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
         }
         
         bad_header = ((reply->version != PROTO_VERSION_NUMBER &&
-                       !(reply->version >= PROTO_VERSION_MISMATCH_COMPAT &&
+                       !(reply->version >= PROTO_VERSION_MISMATCH_COMPAT_CLIENT &&
                          ntohs(reply->status) == STT_BADPKTVERSION)) ||
                       (reply->pkt_type != PKT_TYPE_CMD_REPLY) ||
                       (reply->res1 != 0) ||
