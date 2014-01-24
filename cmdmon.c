@@ -1749,7 +1749,6 @@ read_from_cmd_socket(void *anything)
   memset(&tx_message.auth, 0, sizeof(tx_message.auth));
 
   if (rx_message.version != PROTO_VERSION_NUMBER) {
-    tx_message.status = htons(STT_NOHOSTACCESS);
     if (!LOG_RateLimited()) {
       LOG(LOGS_WARN, LOGF_CmdMon, "Read command packet with protocol version %d (expected %d) from %s:%hu", rx_message.version, PROTO_VERSION_NUMBER, UTI_IPToString(&remote_ip), remote_port);
     }
