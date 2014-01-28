@@ -153,23 +153,10 @@ arise.  You should always make X quite high (e.g. 10) in this directive.
 
 S: Issues with chronyc
 
-Q: I keep getting the error '510 No command access from this host --- Reply not authenticated'.
+Q: I keep getting the error '506 Cannot talk to daemon'.
 Make sure that the chrony.conf file (on the computer where chronyd is running)
 has a 'cmdallow' entry for the computer you are running chronyc on.  This
-shouldn't be necessary for localhost, but some people still seem to need an
-entry like 'cmdallow 127.0.0.1'.  (It would be good to understand why problem
-only affects some people).
-
-Q: I cannot log in from chronyc to carry out privileged tasks.
-This is the second most common problem.
-
-Perhaps your /etc/chrony.keys file is badly formatted.  Make sure that the
-final line has a line feed at the end, otherwise the key on that line will work
-as though the last character is missing.  (Note, this bug was fixed in version
-1.16.)
-
-Q: When I enter a command and hit &lt;Return&gt;, chronyc hangs
-This probably means that chronyc cannot communicate with chronyd.
+isn't necessary for localhost.
 
 Perhaps chronyd is not running.  Try using the ps command (e.g. on Linux, 'ps
 -auxw') to see if it's running.  Or try 'netstat -a' and see if the ports
