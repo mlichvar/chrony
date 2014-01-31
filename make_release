@@ -45,7 +45,7 @@ mv chrony.txt chrony.txt_
 make distclean
 mv chrony.txt_ chrony.txt
 
-rm -f faqgen.pl make_release chrony.spec.sample .gitignore
+rm -f config.h config.log faqgen.pl make_release chrony.spec.sample .gitignore
 
 cd ..
 tar cvf - $subdir | gzip -9 > ${subdir}.tar.gz
