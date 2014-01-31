@@ -48,7 +48,7 @@ mv chrony.txt_ chrony.txt
 rm -f config.h config.log faqgen.pl make_release chrony.spec.sample .gitignore
 
 cd ..
-tar cvf - $subdir | gzip -9 > ${subdir}.tar.gz
+tar cv --owner root --group root $subdir | gzip -9 > ${subdir}.tar.gz
 gpg -b -a -o ${subdir}-tar-gz-asc.txt ${subdir}.tar.gz
 
 
