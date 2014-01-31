@@ -265,10 +265,24 @@ prepare_socket(int family)
 void
 CAM_Initialise(int family)
 {
+  int i;
+
   assert(!initialised);
   initialised = 1;
 
   assert(sizeof (permissions) / sizeof (permissions[0]) == N_REQUEST_TYPES);
+
+  for (i = 0; i < N_REQUEST_TYPES; i++) {
+    CMD_Request r;
+    int command_length, padding_length;
+
+    r.version = PROTO_VERSION_NUMBER;
+    r.command = htons(i);
+    command_length = PKL_CommandLength(&r);
+    padding_length = PKL_CommandPaddingLength(&r);
+    assert(padding_length <= MAX_PADDING_LENGTH && padding_length <= command_length);
+    assert(command_length == 0 || command_length >= offsetof(CMD_Reply, data));
+  }
 
   utoken = (unsigned long) time(NULL);
 
@@ -1708,7 +1722,13 @@ read_from_cmd_socket(void *anything)
       assert(0);
   }
 
-  allowed = ADF_IsAllowed(access_auth_table, &remote_ip) || localhost;
+  if (!(localhost || ADF_IsAllowed(access_auth_table, &remote_ip))) {
+    /* The client is not allowed access, so don't waste any more time
+       on him.  Note that localhost is always allowed access
+       regardless of the defined access rules - otherwise, we could
+       shut ourselves out completely! */
+    return;
+  }
 
   /* Message size sanity check */
   if (read_length >= offsetof(CMD_Request, data)) {
@@ -1718,13 +1738,13 @@ read_from_cmd_socket(void *anything)
   }
 
   if (expected_length < offsetof(CMD_Request, data) ||
+      read_length < offsetof(CMD_Reply, data) ||
       rx_message.pkt_type != PKT_TYPE_CMD_REQUEST ||
       rx_message.res1 != 0 ||
       rx_message.res2 != 0) {
 
     /* We don't know how to process anything like this */
-    if (allowed)
-      CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
+    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
     
     return;
   }
@@ -1752,15 +1772,12 @@ read_from_cmd_socket(void *anything)
     if (!LOG_RateLimited()) {
       LOG(LOGS_WARN, LOGF_CmdMon, "Read command packet with protocol version %d (expected %d) from %s:%hu", rx_message.version, PROTO_VERSION_NUMBER, UTI_IPToString(&remote_ip), remote_port);
     }
-    if (allowed)
-      CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
-    if (rx_message.version >= PROTO_VERSION_MISMATCH_COMPAT) {
+    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
+
+    if (rx_message.version >= PROTO_VERSION_MISMATCH_COMPAT_SERVER) {
       tx_message.status = htons(STT_BADPKTVERSION);
-      /* add empty MD5 auth so older clients will not drop
-         the reply due to bad length */
-      memset(((char *)&tx_message) + PKL_ReplyLength(&tx_message), 0, 16);
-      transmit_reply(&tx_message, &where_from, 16);
+      transmit_reply(&tx_message, &where_from, 0);
     }
     return;
   }
@@ -1769,8 +1786,8 @@ read_from_cmd_socket(void *anything)
     if (!LOG_RateLimited()) {
       LOG(LOGS_WARN, LOGF_CmdMon, "Read command packet with invalid command %d from %s:%hu", rx_command, UTI_IPToString(&remote_ip), remote_port);
     }
-    if (allowed)
-      CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
+
+    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
     tx_message.status = htons(STT_INVALID);
     transmit_reply(&tx_message, &where_from, 0);
@@ -1781,29 +1798,11 @@ read_from_cmd_socket(void *anything)
     if (!LOG_RateLimited()) {
       LOG(LOGS_WARN, LOGF_CmdMon, "Read incorrectly sized command packet from %s:%hu", UTI_IPToString(&remote_ip), remote_port);
     }
-    if (allowed)
-      CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
+
+    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
     tx_message.status = htons(STT_BADPKTLENGTH);
     transmit_reply(&tx_message, &where_from, 0);
-    return;
-  }
-
-  if (!allowed) {
-    /* The client is not allowed access, so don't waste any more time
-       on him.  Note that localhost is always allowed access
-       regardless of the defined access rules - otherwise, we could
-       shut ourselves out completely! */
-
-    if (!LOG_RateLimited()) {
-      LOG(LOGS_WARN, LOGF_CmdMon, "Command packet received from unauthorised host %s port %d",
-          UTI_IPToString(&remote_ip),
-          remote_port);
-    }
-
-    tx_message.status = htons(STT_NOHOSTACCESS);
-    transmit_reply(&tx_message, &where_from, 0);
-
     return;
   }
 

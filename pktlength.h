@@ -33,6 +33,8 @@
 
 extern int PKL_CommandLength(CMD_Request *r);
 
+extern int PKL_CommandPaddingLength(CMD_Request *r);
+
 extern int PKL_ReplyLength(CMD_Reply *r);
 
 #endif /* GOT_PKTLENGTH_H */

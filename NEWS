@@ -1,3 +1,11 @@
+New in version 1.29.1
+=====================
+
+Security fixes
+--------------
+* Modify chronyc protocol to prevent amplification attacks (CVE-2014-0021)
+  (incompatible with previous protocol version, chronyc supports both)
+
 New in version 1.29
 ===================
 
