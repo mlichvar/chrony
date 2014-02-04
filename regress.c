@@ -392,7 +392,7 @@ find_ordered_entry_with_flags(double *x, int n, int index, int *flags)
       l = u + 1;
       r = v;
       do {
-        while (x[l] < piv && l < v) l++;
+        while (l < v && x[l] < piv) l++;
         while (x[r] > piv) r--;
         if (r <= l) break;
         EXCH(x[l], x[r]);
