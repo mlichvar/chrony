@@ -1,0 +1,33 @@
+#!/bin/bash
+
+. test.common
+
+test_start "NTP authentication"
+
+server_conf="keyfile tmp/keys"
+client_conf="keyfile tmp/keys"
+
+cat > tmp/keys <<-EOF
+1 $(tr -c -d 'a-zA-Z0-9' < /dev/urandom 2> /dev/null | head -c 24)
+2 ASCII:$(tr -c -d 'a-zA-Z0-9' < /dev/urandom 2> /dev/null | head -c 24)
+3 MD5 ASCII:$(tr -c -d 'a-zA-Z' < /dev/urandom 2> /dev/null | head -c 24)
+4 MD5 HEX:$(tr -c -d '0-9A-F' < /dev/urandom 2> /dev/null | head -c 32)
+EOF
+
+for key in 1 2 3 4; do
+	client_server_options="key $key"
+	run_test || test_fail
+	check_chronyd_exit || test_fail
+	check_source_selection || test_fail
+	check_packet_interval || test_fail
+	check_sync || test_fail
+done
+
+server_conf=""
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+# This check must fail as server doesn't know the key
+check_sync && test_fail
+
+test_pass

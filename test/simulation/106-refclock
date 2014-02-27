@@ -1,0 +1,18 @@
+#!/bin/bash
+
+. test.common
+test_start "SHM refclock"
+
+servers=0
+limit=1000
+refclock_jitter=$jitter
+min_sync_time=60
+max_sync_time=80
+client_conf="refclock SHM 0"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_source_selection || test_fail
+check_sync || test_fail
+
+test_pass

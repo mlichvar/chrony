@@ -129,6 +129,9 @@ install: chronyd chronyc chrony.txt
 %.s : %.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -S $<
 
+check :
+	cd test/simulation; ./run
+
 install-docs : docs
 	[ -d $(DESTDIR)$(DOCDIR) ] || mkdir -p $(DESTDIR)$(DOCDIR)
 	cp chrony.txt $(DESTDIR)$(DOCDIR)/chrony.txt
