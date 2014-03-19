@@ -35,6 +35,9 @@
 #include "sched.h"
 #include "tempcomp.h"
 
+/* Sanity limit (in ppm) */
+#define MAX_COMP 10.0
+
 static SCH_TimeoutID timeout_id;
 
 static LOG_FileID logfileid;
@@ -54,8 +57,7 @@ read_timeout(void *arg)
   if (f && fscanf(f, "%lf", &temp) == 1) {
     comp = k0 + (temp - T0) * k1 + (temp - T0) * (temp - T0) * k2;
 
-    /* Don't allow corrections above 10 ppm */
-    if (fabs(comp) < 10.0) {
+    if (fabs(comp) <= MAX_COMP) {
       comp = LCL_SetTempComp(comp);
 
       if (logfileid != -1) {
