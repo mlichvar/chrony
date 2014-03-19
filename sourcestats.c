@@ -771,7 +771,8 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
   double weight;
 
   if (fgets(line, sizeof(line), in) &&
-      (sscanf(line, "%u", &inst->n_samples) == 1) && inst->n_samples <= MAX_SAMPLES) {
+      sscanf(line, "%d", &inst->n_samples) == 1 &&
+      inst->n_samples > 0 && inst->n_samples <= MAX_SAMPLES) {
 
     line_number = 2;
 
