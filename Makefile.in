@@ -130,7 +130,7 @@ install: chronyd chronyc chrony.txt
 	$(CC) $(CFLAGS) $(CPPFLAGS) -S $<
 
 check :
-	cd test/simulation; ./run
+	cd test/simulation && ./run
 
 install-docs : docs
 	[ -d $(DESTDIR)$(DOCDIR) ] || mkdir -p $(DESTDIR)$(DOCDIR)
