@@ -993,11 +993,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   if (inst->do_auth) {
     if (auth_len > 0) {
       auth_key_id = ntohl(message->auth_keyid);
-      if (!KEY_KeyKnown(auth_key_id)) {
-        test5 = 0;
-      } else {
-        test5 = check_packet_auth(message, auth_key_id, auth_len);
-      }
+      test5 = check_packet_auth(message, auth_key_id, auth_len);
     } else {
       /* If we expect authenticated info from this peer/server and the packet
          doesn't have it, it's got to fail */
@@ -1257,7 +1253,7 @@ NCR_ProcessKnown
 {
   int pkt_mode;
   int version;
-  int valid_auth, valid_key;
+  int valid_auth;
   int authenticate_reply, auth_len;
   unsigned long auth_key_id;
   unsigned long reply_auth_key_id;
@@ -1308,14 +1304,9 @@ NCR_ProcessKnown
 
         if (auth_len > 0) {
           auth_key_id = ntohl(message->auth_keyid);
-          valid_key = KEY_KeyKnown(auth_key_id);
-          if (valid_key) {
-            valid_auth = check_packet_auth(message, auth_key_id, auth_len);
-          } else {
-            valid_auth = 0;
-          }
+          valid_auth = check_packet_auth(message, auth_key_id, auth_len);
           
-          if (valid_key && valid_auth) {
+          if (valid_auth) {
             authenticate_reply = 1;
             reply_auth_key_id = auth_key_id;
           } else {
@@ -1459,7 +1450,7 @@ NCR_ProcessUnknown
   NTP_Mode his_mode;
   NTP_Mode my_mode;
   int my_poll, version;
-  int valid_key, valid_auth, auth_len;
+  int valid_auth, auth_len;
   unsigned long key_id;
 
   /* Check version */
@@ -1498,17 +1489,11 @@ NCR_ProcessUnknown
         /* Only reply if we know the key and the packet authenticates
            properly. */
         key_id = ntohl(message->auth_keyid);
-        valid_key = KEY_KeyKnown(key_id);
         do_auth = 1;
-
-        if (valid_key) {
-          valid_auth = check_packet_auth(message, key_id, auth_len);
-        } else {
-          valid_auth = 0;
-        }
+        valid_auth = check_packet_auth(message, key_id, auth_len);
       }
 
-      if (!do_auth || (valid_key && valid_auth)) {
+      if (!do_auth || valid_auth) {
         /* Reply with the same poll, the client may use it to control its poll */
         my_poll = message->poll;
 
