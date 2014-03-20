@@ -18,11 +18,11 @@ System time     : 0\.0000..... seconds (slow|fast) of NTP time
 Last offset     : -?0\.0000..... seconds
 RMS offset      : 0\.000...... seconds
 Frequency       : (99|100)\.... ppm fast
-Residual freq   : -?0.00. ppm
-Skew            : 0\.... ppm
+Residual freq   : -?[0-9]\.... ppm
+Skew            : [0-9]\.... ppm
 Root delay      : 0\.000... seconds
-Root dispersion : 0.000... seconds
-Update interval : 6.\.. seconds
+Root dispersion : 0\.000... seconds
+Update interval : [0-9]+\.. seconds
 Leap status     : Normal
 210 Number of sources = 1
 MS Name/IP address         Stratum Poll Reach LastRx Last sample
@@ -31,7 +31,7 @@ MS Name/IP address         Stratum Poll Reach LastRx Last sample
 210 Number of sources = 1
 Name/IP Address            NP  NR  Span  Frequency  Freq Skew  Offset  Std Dev
 ==============================================================================
-192\.168\.123\.1              [0-9 ]+ [0-9 ]+ [0-9 ]+ [ +-]0\.0..      0\....  [0-9 +-]+[un]s [0-9 ]+[un]s$" \
+192\.168\.123\.1              [0-9 ]+ [0-9 ]+ [0-9 ]+ [ +-]0\....      [0-9]\....  [0-9 +-]+[un]s [0-9 ]+[un]s$" \
 || test_fail
 
 test_pass
