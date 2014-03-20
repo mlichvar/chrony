@@ -67,7 +67,14 @@ read_timeout(void *arg)
         LOG_FileWrite(logfileid, "%s %11.4e %11.4e",
             UTI_TimeToLogForm(now.tv_sec), temp, comp);
       }
+    } else {
+      LOG(LOGS_WARN, LOGF_TempComp,
+          "Temperature compensation of %.3f ppm exceeds sanity limit of %.1f",
+          comp, MAX_COMP);
     }
+  } else {
+    LOG(LOGS_WARN, LOGF_TempComp, "Could not read temperature from %s",
+        filename);
   }
 
   if (f)
