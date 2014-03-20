@@ -1297,10 +1297,12 @@ NCR_ProcessKnown
          is required in the secondaries to make this possible. */
 
       if (ADF_IsAllowed(access_auth_table, &inst->remote_addr.ip_addr)) {
+        int do_auth;
 
         CLG_LogNTPClientAccess(&inst->remote_addr.ip_addr, (time_t) now->tv_sec);
 
         if (auth_len > 0) {
+          do_auth = 1;
           auth_key_id = ntohl(message->auth_keyid);
           valid_auth = check_packet_auth(message, auth_key_id, auth_len);
           
@@ -1312,18 +1314,21 @@ NCR_ProcessKnown
             reply_auth_key_id = 0UL;
           }
         } else {
+          do_auth = 0;
           authenticate_reply = 0;
           reply_auth_key_id = 0UL;
         }
         
-        transmit_packet(MODE_SERVER, inst->local_poll,
-                        version,
-                        authenticate_reply, reply_auth_key_id,
-                        &message->transmit_ts,
-                        now,
-                        &inst->local_tx,
-                        &inst->local_ntp_tx,
-                        &inst->remote_addr);
+        if (!do_auth || valid_auth) {
+          transmit_packet(MODE_SERVER, inst->local_poll,
+                          version,
+                          authenticate_reply, reply_auth_key_id,
+                          &message->transmit_ts,
+                          now,
+                          &inst->local_tx,
+                          &inst->local_ntp_tx,
+                          &inst->remote_addr);
+        }
 
       } else if (!LOG_RateLimited()) {
         LOG(LOGS_WARN, LOGF_NtpCore, "NTP packet received from unauthorised host %s port %d",
