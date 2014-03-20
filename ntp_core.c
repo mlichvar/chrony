@@ -1325,8 +1325,8 @@ NCR_ProcessKnown
                           authenticate_reply, reply_auth_key_id,
                           &message->transmit_ts,
                           now,
-                          &inst->local_tx,
-                          &inst->local_ntp_tx,
+                          NULL,
+                          NULL,
                           &inst->remote_addr);
         }
 
