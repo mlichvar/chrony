@@ -295,13 +295,20 @@ lookup_key(unsigned long id)
 static int
 get_key_pos(unsigned long key_id)
 {
-  if (!cache_valid || key_id != cache_key_id) {
+  int position;
+
+  if (cache_valid && key_id == cache_key_id)
+    return cache_key_pos;
+
+  position = lookup_key(key_id);
+
+  if (position >= 0) {
     cache_valid = 1;
-    cache_key_pos = lookup_key(key_id);
+    cache_key_pos = position;
     cache_key_id = key_id;
   }
 
-  return cache_key_pos;
+  return position;
 }
 
 /* ================================================== */
@@ -321,25 +328,7 @@ KEY_GetCommandKey(void)
 int
 KEY_KeyKnown(unsigned long key_id)
 {
-  int position;
-
-  if (cache_valid && (key_id == cache_key_id)) {
-    return 1;
-  } else {
-
-    position = lookup_key(key_id);
-
-    if (position >= 0) {
-      /* Store key in cache, we will probably be using it in a
-         minute... */
-      cache_valid = 1;
-      cache_key_pos = position;
-      cache_key_id = key_id;
-      return 1;
-    } else {
-      return 0;
-    }
-  }
+  return get_key_pos(key_id) >= 0;
 }
 
 /* ================================================== */
