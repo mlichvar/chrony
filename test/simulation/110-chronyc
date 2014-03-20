@@ -15,10 +15,10 @@ check_chronyc_output "^Reference ID    : 192\.168\.123\.1 \(192\.168\.123\.1\)
 Stratum         : 2
 Ref time \(UTC\)  : Fri Jan  1 00:1.:.. 2010
 System time     : 0\.0000..... seconds (slow|fast) of NTP time
-Last offset     : -?0\.0000..... seconds
+Last offset     : [+-]0\.0000..... seconds
 RMS offset      : 0\.000...... seconds
 Frequency       : (99|100)\.... ppm fast
-Residual freq   : -?[0-9]\.... ppm
+Residual freq   : [+-][0-9]\.... ppm
 Skew            : [0-9]\.... ppm
 Root delay      : 0\.000... seconds
 Root dispersion : 0\.000... seconds

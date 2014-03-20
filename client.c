@@ -1669,6 +1669,18 @@ print_freq_ppm(double f)
 
 /* ================================================== */
 
+static void
+print_signed_freq_ppm(double f)
+{
+  if (fabs(f) < 99999.5) {
+    printf("%+10.3f", f);
+  } else {
+    printf("%+10.0f", f);
+  }
+}
+
+/* ================================================== */
+
 static int
 check_for_verbose_flag(char *line)
 {
@@ -1863,7 +1875,7 @@ process_cmd_sourcestats(char *line)
           printf("%-25s %3lu %3lu  ", hostname_buf, n_samples, n_runs);
           print_seconds(span_seconds);
           printf(" ");
-          print_freq_ppm(resid_freq_ppm);
+          print_signed_freq_ppm(resid_freq_ppm);
           printf(" ");
           print_freq_ppm(skew_ppm);
           printf("  ");
@@ -1952,7 +1964,7 @@ process_cmd_tracking(char *line)
     rms_offset = UTI_FloatNetworkToHost(reply.data.tracking.rms_offset);
     printf("System time     : %.9f seconds %s of NTP time\n", fabs(correction),
            (correction > 0.0) ? "slow" : "fast");
-    printf("Last offset     : %.9f seconds\n", last_offset);
+    printf("Last offset     : %+.9f seconds\n", last_offset);
     printf("RMS offset      : %.9f seconds\n", rms_offset);
     freq_ppm = UTI_FloatNetworkToHost(reply.data.tracking.freq_ppm);
     resid_freq_ppm = UTI_FloatNetworkToHost(reply.data.tracking.resid_freq_ppm);
@@ -1961,7 +1973,7 @@ process_cmd_tracking(char *line)
     root_dispersion = UTI_FloatNetworkToHost(reply.data.tracking.root_dispersion);
     last_update_interval = UTI_FloatNetworkToHost(reply.data.tracking.last_update_interval);
     printf("Frequency       : %.3f ppm %s\n", fabs(freq_ppm), (freq_ppm < 0.0) ? "slow" : "fast"); 
-    printf("Residual freq   : %.3f ppm\n", resid_freq_ppm);
+    printf("Residual freq   : %+.3f ppm\n", resid_freq_ppm);
     printf("Skew            : %.3f ppm\n", skew_ppm);
     printf("Root delay      : %.6f seconds\n", root_delay);
     printf("Root dispersion : %.6f seconds\n", root_dispersion);
