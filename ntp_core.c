@@ -638,6 +638,11 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
       message.auth_keyid = htonl(key_id);
       NIO_SendAuthenticatedPacket(&message, where_to,
           sizeof (message.auth_keyid) + auth_len);
+    } else {
+      DEBUG_LOG(LOGF_NtpCore,
+                "Could not generate auth data with key %lu to send packet",
+                key_id);
+      return;
     }
   } else {
     UTI_TimevalToInt64(&local_transmit, &message.transmit_ts, ts_fuzz);
@@ -662,7 +667,6 @@ transmit_timeout(void *arg)
 {
   NCR_Instance inst = (NCR_Instance) arg;
   double timeout_delay;
-  int do_auth;
 
   inst->timer_running = 0;
 
@@ -730,15 +734,9 @@ transmit_timeout(void *arg)
     }
   }
 
-  if (inst->do_auth && KEY_KeyKnown(inst->auth_key_id)) {
-    do_auth = 1;
-  } else {
-    do_auth = 0;
-  }
-
   transmit_packet(inst->mode, inst->local_poll,
                   NTP_VERSION,
-                  do_auth, inst->auth_key_id,
+                  inst->do_auth, inst->auth_key_id,
                   &inst->remote_orig,
                   &inst->local_rx, &inst->local_tx, &inst->local_ntp_tx,
                   &inst->remote_addr);
