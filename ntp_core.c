@@ -210,6 +210,9 @@ struct NCR_Instance_Record {
 /* Minimum allowed poll interval */
 #define MIN_POLL 0
 
+/* Maximum poll interval set by KoD RATE */
+#define MAX_KOD_RATE_POLL SRC_DEFAULT_MAXPOLL
+
 /* ================================================== */
 
 static ADF_AuthTable access_auth_table;
@@ -1113,13 +1116,21 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   /* Reduce polling rate if KoD RATE was received */
   if (kod_rate && valid_kod) {
     if (message->poll > inst->minpoll) {
-      inst->minpoll = message->poll;
+      /* Set our minpoll to message poll, but use a reasonable maximum */
+      if (message->poll <= MAX_KOD_RATE_POLL)
+        inst->minpoll = message->poll;
+      else if (inst->minpoll < MAX_KOD_RATE_POLL)
+        inst->minpoll = MAX_KOD_RATE_POLL;
+
       if (inst->minpoll > inst->maxpoll)
         inst->maxpoll = inst->minpoll;
       if (inst->minpoll > inst->local_poll)
         inst->local_poll = inst->minpoll;
-      LOG(LOGS_WARN, LOGF_NtpCore, "Received KoD RATE from %s, minpoll set to %d",
-          UTI_IPToString(&inst->remote_addr.ip_addr), inst->minpoll);
+
+      LOG(LOGS_WARN, LOGF_NtpCore,
+          "Received KoD RATE with poll %d from %s, minpoll set to %d",
+          message->poll, UTI_IPToString(&inst->remote_addr.ip_addr),
+          inst->minpoll);
     }
 
     /* Stop ongoing burst */
