@@ -313,6 +313,25 @@ check_chronyc_output() {
 	return $ret
 }
 
+# Check if only NTP port (123) was used
+check_packet_port() {
+	local i ret=0 port=123
+
+	test_message 2 1 "checking port numbers in packet log:"
+
+	for i in $(seq 1 $(get_chronyd_nodes)); do
+		test_message 3 0 "node $i:"
+
+		grep -E -q "	$port	[0-9]+\$" tmp/log.packets && \
+			! grep -E "^[0-9e.+-]+	$i	" tmp/log.packets | \
+			grep -E -q -v "	$port	[0-9]+\$" && \
+			test_ok || test_bad
+		[ $? -eq 0 ] || ret=1
+	done
+
+	return $ret
+}
+
 # Print test settings which differ from default value
 print_nondefaults() {
 	local defopt defoptname optname
