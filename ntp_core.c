@@ -207,6 +207,9 @@ struct NCR_Instance_Record {
 /* INVALID or Unkown  stratum from external server  as per the NTP 4 docs */
 #define NTP_INVALID_STRATUM 0
 
+/* Minimum allowed poll interval */
+#define MIN_POLL 0
+
 /* ================================================== */
 
 static ADF_AuthTable access_auth_table;
@@ -288,7 +291,11 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   }
 
   result->minpoll = params->minpoll;
+  if (result->minpoll < MIN_POLL)
+    result->minpoll = SRC_DEFAULT_MINPOLL;
   result->maxpoll = params->maxpoll;
+  if (result->maxpoll < MIN_POLL)
+    result->maxpoll = SRC_DEFAULT_MAXPOLL;
   if (result->maxpoll < result->minpoll)
     result->maxpoll = result->minpoll;
   result->min_stratum = params->min_stratum;
@@ -331,7 +338,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
 
   result->auto_offline = params->auto_offline;
   
-  result->local_poll = params->minpoll;
+  result->local_poll = result->minpoll;
   result->remote_poll = 0;
   result->remote_stratum = 0;
 
@@ -1554,6 +1561,8 @@ NCR_TakeSourceOffline(NCR_Instance inst)
 void
 NCR_ModifyMinpoll(NCR_Instance inst, int new_minpoll)
 {
+  if (new_minpoll < MIN_POLL)
+    return;
   inst->minpoll = new_minpoll;
   LOG(LOGS_INFO, LOGF_NtpCore, "Source %s new minpoll %d", UTI_IPToString(&inst->remote_addr.ip_addr), new_minpoll);
   if (inst->maxpoll < inst->minpoll)
@@ -1565,6 +1574,8 @@ NCR_ModifyMinpoll(NCR_Instance inst, int new_minpoll)
 void
 NCR_ModifyMaxpoll(NCR_Instance inst, int new_maxpoll)
 {
+  if (new_maxpoll < MIN_POLL)
+    return;
   inst->maxpoll = new_maxpoll;
   LOG(LOGS_INFO, LOGF_NtpCore, "Source %s new maxpoll %d", UTI_IPToString(&inst->remote_addr.ip_addr), new_maxpoll);
   if (inst->minpoll > inst->maxpoll)
