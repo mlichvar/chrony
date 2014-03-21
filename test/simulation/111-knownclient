@@ -1,0 +1,17 @@
+#!/bin/bash
+
+. test.common
+
+test_start "reply to client configured as server"
+
+server_conf="server 192.168.123.2"
+log_packets=1
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_source_selection || test_fail
+check_packet_interval || test_fail
+check_packet_port || test_fail
+check_sync || test_fail
+
+test_pass
