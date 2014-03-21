@@ -1746,7 +1746,8 @@ pairs.  The format of the file is shown below
 
 Each line consists of an ID, a name of authentication hash function (optional)
 and a password. The ID can be any unsigned integer in the range 0 through
-2**32-1.  The hash function is MD5 by default, depending on how was
+2**32-1, but ID of 0 can be used only for the command key and not for the NTP
+authentication. The hash function is MD5 by default, depending on how was
 @code{chronyd} compiled other allowed hash functions may be SHA1, SHA256,
 SHA384, SHA512, RMD128, RMD160, RMD256, RMD320, TIGER and WHIRLPOOL.  The
 password can be encoded as a string of characters not containing a space with
@@ -2829,7 +2830,8 @@ keys file, defined by the keyfile command.
 
 If the key option is present, @code{chronyd} will attempt to use
 authenticated packets when communicating with this server.  The key
-number used will be the single argument to the key option.  The server
+number used will be the single argument to the key option (an
+unsigned integer in the range 1 through 2**32-1). The server
 must have the same password for this key number configured, otherwise no
 relationship between the computers will be possible.
 

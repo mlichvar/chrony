@@ -134,7 +134,8 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
             line += n;
           }
         } else if (!strcasecmp(cmd, "key")) {
-          if (sscanf(line, "%lu%n", &src->params.authkey, &n) != 1) {
+          if (sscanf(line, "%lu%n", &src->params.authkey, &n) != 1 ||
+              src->params.authkey == INACTIVE_AUTHKEY) {
             result = CPS_BadKey;
             ok = 0;
             done = 1;
