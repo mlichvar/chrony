@@ -1476,7 +1476,7 @@ When running the chronyc program to perform run-time configuration,
 the command
 
 @example
-password foobar
+password HEX:B028F91EA5C38D06C2E140B26C7F41EC
 @end example
 
 must be entered before any commands affecting the operation of the
@@ -1754,6 +1754,8 @@ password can be encoded as a string of characters not containing a space with
 optional @code{ASCII:} prefix or as a hexadecimal number with @code{HEX:}
 prefix.
 
+The password is used with the hash function to generate and verify a message
+authentication code (MAC) in NTP and command packets.
 For maximum security, it's recommended to use SHA1 or stronger hash function.
 The passwords should be random and they should be as long as the output size of
 the configured hash function, e.g. 160 bits with SHA1.
