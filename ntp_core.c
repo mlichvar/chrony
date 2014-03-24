@@ -64,6 +64,7 @@ typedef enum {
 
 struct NCR_Instance_Record {
   NTP_Remote_Address remote_addr; /* Needed for routing transmit packets */
+  NTP_Local_Address local_addr; /* Local address used when sending packets */
   NTP_Mode mode;                /* The source's NTP mode
                                    (client/server or symmetric active peer) */
   OperatingMode opmode;         /* Whether we are sampling this source
@@ -282,6 +283,8 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result = MallocNew(struct NCR_Instance_Record);
 
   result->remote_addr = *remote_addr;
+  result->local_addr.ip_addr.family = IPADDR_UNSPEC;
+
   switch (type) {
     case NTP_SERVER:
       result->mode = MODE_CLIENT;
@@ -562,7 +565,8 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                                             (including adjustment to
                                             reference), ignored if
                                             NULL */
-                NTP_Remote_Address *where_to /* Where to address the reponse to */
+                NTP_Remote_Address *where_to, /* Where to address the reponse to */
+                NTP_Local_Address *from /* From what address to send it */
                 )
 {
   NTP_Packet message;
@@ -650,7 +654,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
         (unsigned char *)&message.auth_data, sizeof (message.auth_data));
     if (auth_len > 0) {
       message.auth_keyid = htonl(key_id);
-      NIO_SendAuthenticatedPacket(&message, where_to,
+      NIO_SendAuthenticatedPacket(&message, where_to, from,
           sizeof (message.auth_keyid) + auth_len);
     } else {
       DEBUG_LOG(LOGF_NtpCore,
@@ -660,7 +664,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     }
   } else {
     UTI_TimevalToInt64(&local_transmit, &message.transmit_ts, ts_fuzz);
-    NIO_SendNormalPacket(&message, where_to);
+    NIO_SendNormalPacket(&message, where_to, from);
   }
 
   if (local_tx) {
@@ -714,7 +718,7 @@ transmit_timeout(void *arg)
       !inst->presend_done) {
     
     /* Send */
-    NIO_SendEcho(&inst->remote_addr);
+    NIO_SendEcho(&inst->remote_addr, &inst->local_addr);
 
     inst->presend_done = 1;
 
@@ -753,7 +757,8 @@ transmit_timeout(void *arg)
                   inst->do_auth, inst->auth_key_id,
                   &inst->remote_orig,
                   &inst->local_rx, &inst->local_tx, &inst->local_ntp_tx,
-                  &inst->remote_addr);
+                  &inst->remote_addr,
+                  &inst->local_addr);
 
   switch (inst->opmode) {
     case MD_BURST_WAS_ONLINE:
@@ -1315,7 +1320,8 @@ NCR_ProcessKnown
          one of the secondaries to flywheel it. The behaviour coded here
          is required in the secondaries to make this possible. */
 
-      NCR_ProcessUnknown(message, now, now_err, &inst->remote_addr, length);
+      NCR_ProcessUnknown(message, now, now_err,
+                         &inst->remote_addr, &inst->local_addr, length);
 
       break;
 
@@ -1428,6 +1434,7 @@ NCR_ProcessUnknown
  struct timeval *now,           /* timestamp at time of receipt */
  double now_err,                /* assumed error in the timestamp */
  NTP_Remote_Address *remote_addr,
+ NTP_Local_Address *local_addr,
  int length                     /* the length of the received packet */
  )
 {
@@ -1488,7 +1495,8 @@ NCR_ProcessUnknown
                         now, /* Time we received the packet */
                         NULL, /* Don't care when we send reply, we aren't maintaining state about this client */
                         NULL, /* Ditto */
-                        remote_addr);
+                        remote_addr,
+                        local_addr);
       }
     }
   } else if (!LOG_RateLimited()) {

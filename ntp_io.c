@@ -301,6 +301,7 @@ read_from_socket(void *anything)
   struct timeval now, now_raw;
   double now_err;
   NTP_Remote_Address remote_addr;
+  NTP_Local_Address local_addr;
   char cmsgbuf[256];
   struct msghdr msg;
   struct iovec iov;
@@ -331,8 +332,6 @@ read_from_socket(void *anything)
      reponse on a subsequent recvfrom). */
 
   if (status > 0) {
-    memset(&remote_addr, 0, sizeof (remote_addr));
-
     switch (where_from.u.sa_family) {
       case AF_INET:
         remote_addr.ip_addr.family = IPADDR_INET4;
@@ -351,14 +350,16 @@ read_from_socket(void *anything)
         assert(0);
     }
 
+    local_addr.ip_addr.family = IPADDR_UNSPEC;
+
     for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
 #ifdef IP_PKTINFO
       if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_PKTINFO) {
         struct in_pktinfo ipi;
 
         memcpy(&ipi, CMSG_DATA(cmsg), sizeof(ipi));
-        remote_addr.local_ip_addr.addr.in4 = ntohl(ipi.ipi_spec_dst.s_addr);
-        remote_addr.local_ip_addr.family = IPADDR_INET4;
+        local_addr.ip_addr.addr.in4 = ntohl(ipi.ipi_spec_dst.s_addr);
+        local_addr.ip_addr.family = IPADDR_INET4;
       }
 #endif
 
@@ -367,9 +368,9 @@ read_from_socket(void *anything)
         struct in6_pktinfo ipi;
 
         memcpy(&ipi, CMSG_DATA(cmsg), sizeof(ipi));
-        memcpy(&remote_addr.local_ip_addr.addr.in6, &ipi.ipi6_addr.s6_addr,
-            sizeof (remote_addr.local_ip_addr.addr.in6));
-        remote_addr.local_ip_addr.family = IPADDR_INET6;
+        memcpy(&local_addr.ip_addr.addr.in6, &ipi.ipi6_addr.s6_addr,
+            sizeof (local_addr.ip_addr.addr.in6));
+        local_addr.ip_addr.family = IPADDR_INET6;
       }
 #endif
 
@@ -387,7 +388,8 @@ read_from_socket(void *anything)
 
     if (status >= NTP_NORMAL_PACKET_SIZE && status <= sizeof(NTP_Packet)) {
 
-      NSR_ProcessReceive((NTP_Packet *) &message.ntp_pkt, &now, now_err, &remote_addr, status);
+      NSR_ProcessReceive((NTP_Packet *) &message.ntp_pkt, &now, now_err,
+                         &remote_addr, &local_addr, status);
 
     } else {
 
@@ -401,7 +403,7 @@ read_from_socket(void *anything)
 /* Send a packet to given address */
 
 static void
-send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
+send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr)
 {
   union sockaddr_in46 remote;
   struct msghdr msg;
@@ -452,7 +454,7 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
   cmsglen = 0;
 
 #ifdef IP_PKTINFO
-  if (remote_addr->local_ip_addr.family == IPADDR_INET4) {
+  if (local_addr->ip_addr.family == IPADDR_INET4) {
     struct cmsghdr *cmsg;
     struct in_pktinfo *ipi;
 
@@ -465,12 +467,12 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
     cmsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
 
     ipi = (struct in_pktinfo *) CMSG_DATA(cmsg);
-    ipi->ipi_spec_dst.s_addr = htonl(remote_addr->local_ip_addr.addr.in4);
+    ipi->ipi_spec_dst.s_addr = htonl(local_addr->ip_addr.addr.in4);
   }
 #endif
 
 #if defined(IPV6_PKTINFO) && defined(HAVE_IN6_PKTINFO)
-  if (remote_addr->local_ip_addr.family == IPADDR_INET6) {
+  if (local_addr->ip_addr.family == IPADDR_INET6) {
     struct cmsghdr *cmsg;
     struct in6_pktinfo *ipi;
 
@@ -483,7 +485,7 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
     cmsg->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
 
     ipi = (struct in6_pktinfo *) CMSG_DATA(cmsg);
-    memcpy(&ipi->ipi6_addr.s6_addr, &remote_addr->local_ip_addr.addr.in6,
+    memcpy(&ipi->ipi6_addr.s6_addr, &local_addr->ip_addr.addr.in6,
         sizeof(ipi->ipi6_addr.s6_addr));
   }
 #endif
@@ -515,18 +517,18 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
 /* Send an unauthenticated packet to a given address */
 
 void
-NIO_SendNormalPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr)
+NIO_SendNormalPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr)
 {
-  send_packet((void *) packet, NTP_NORMAL_PACKET_SIZE, remote_addr);
+  send_packet((void *) packet, NTP_NORMAL_PACKET_SIZE, remote_addr, local_addr);
 }
 
 /* ================================================== */
 /* Send an authenticated packet to a given address */
 
 void
-NIO_SendAuthenticatedPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, int auth_len)
+NIO_SendAuthenticatedPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int auth_len)
 {
-  send_packet((void *) packet, NTP_NORMAL_PACKET_SIZE + auth_len, remote_addr);
+  send_packet((void *) packet, NTP_NORMAL_PACKET_SIZE + auth_len, remote_addr, local_addr);
 }
 
 /* ================================================== */
@@ -535,7 +537,7 @@ NIO_SendAuthenticatedPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,
 #define ECHO_PORT 7
 
 void
-NIO_SendEcho(NTP_Remote_Address *remote_addr)
+NIO_SendEcho(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr)
 {
   unsigned long magic_message = 0xbe7ab1e7UL;
   NTP_Remote_Address addr;
@@ -543,5 +545,5 @@ NIO_SendEcho(NTP_Remote_Address *remote_addr)
   addr = *remote_addr;
   addr.port = ECHO_PORT;
 
-  send_packet((void *) &magic_message, sizeof(unsigned long), &addr);
+  send_packet((void *) &magic_message, sizeof(unsigned long), &addr, local_addr);
 }

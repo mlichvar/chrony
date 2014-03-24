@@ -58,7 +58,7 @@ extern void NCR_ProcessKnown(NTP_Packet *message, struct timeval *now, double no
 
 /* This routine is called when a new packet arrives off the network,
    and we do not recognize its source */
-extern void NCR_ProcessUnknown(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr, int length);
+extern void NCR_ProcessUnknown(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length);
 
 /* Slew receive and transmit times in instance records */
 extern void NCR_SlewTimes(NCR_Instance inst, struct timeval *when, double dfreq, double doffset);

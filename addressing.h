@@ -46,9 +46,12 @@ typedef struct {
 
 typedef struct {
   IPAddr ip_addr;
-  IPAddr local_ip_addr;
   unsigned short port;
 } NTP_Remote_Address;
+
+typedef struct {
+  IPAddr ip_addr;
+} NTP_Local_Address;
 
 #endif /* GOT_ADDRESSING_H */
 

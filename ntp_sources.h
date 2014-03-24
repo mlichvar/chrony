@@ -61,7 +61,7 @@ extern void NSR_ResolveSources(void);
 extern NSR_Status NSR_RemoveSource(NTP_Remote_Address *remote_addr);
 
 /* This routine is called by ntp_io when a new packet arrives off the network */
-extern void NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr, int length);
+extern void NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length);
 
 /* Initialisation function */
 extern void NSR_Initialise(void);

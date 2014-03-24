@@ -220,8 +220,6 @@ resolve_sources(void *arg)
   struct UnresolvedSource *us, **i;
   DNS_Status s;
 
-  memset(&address.local_ip_addr, 0, sizeof (address.local_ip_addr));
-
   DNS_Reload();
 
   for (i = &unresolved_sources; *i; ) {
@@ -344,7 +342,7 @@ NSR_RemoveSource(NTP_Remote_Address *remote_addr)
 /* This routine is called by ntp_io when a new packet arrives off the network,
    possibly with an authentication tail */
 void
-NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr, int length)
+NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length)
 {
   int slot, found;
 
@@ -360,7 +358,7 @@ NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP
   if (found == 2) { /* Must match IP address AND port number */
     NCR_ProcessKnown(message, now, now_err, records[slot].data, length);
   } else {
-    NCR_ProcessUnknown(message, now, now_err, remote_addr, length);
+    NCR_ProcessUnknown(message, now, now_err, remote_addr, local_addr, length);
   }
 }
 

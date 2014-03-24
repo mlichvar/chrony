@@ -1276,7 +1276,6 @@ handle_add_source(NTP_Source_Type type, CMD_Request *rx_message, CMD_Reply *tx_m
   NSR_Status status;
   
   UTI_IPNetworkToHost(&rx_message->data.ntp_source.ip_addr, &rem_addr.ip_addr);
-  rem_addr.local_ip_addr.family = IPADDR_UNSPEC;
   rem_addr.port = (unsigned short)(ntohl(rx_message->data.ntp_source.port));
   params.minpoll = ntohl(rx_message->data.ntp_source.minpoll);
   params.maxpoll = ntohl(rx_message->data.ntp_source.maxpoll);
@@ -1324,7 +1323,6 @@ handle_del_source(CMD_Request *rx_message, CMD_Reply *tx_message)
   NSR_Status status;
   
   UTI_IPNetworkToHost(&rx_message->data.del_source.ip_addr, &rem_addr.ip_addr);
-  rem_addr.local_ip_addr.family = IPADDR_UNSPEC;
   rem_addr.port = 0;
   
   status = NSR_RemoveSource(&rem_addr);

@@ -38,12 +38,12 @@ extern void NIO_Initialise(int family);
 extern void NIO_Finalise(void);
 
 /* Function to transmit a packet */
-extern void NIO_SendNormalPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr);
+extern void NIO_SendNormalPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr);
 
 /* Function to transmit an authenticated packet */
-extern void NIO_SendAuthenticatedPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, int auth_len);
+extern void NIO_SendAuthenticatedPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int auth_len);
 
 /* Function to send a datagram to a remote machine's UDP echo port. */
-extern void NIO_SendEcho(NTP_Remote_Address *remote_addr);
+extern void NIO_SendEcho(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr);
 
 #endif /* GOT_NTP_IO_H */

@@ -40,6 +40,7 @@
 
 typedef struct {
   NTP_Remote_Address addr;
+  NTP_Local_Address local_addr;
   int interval;
 } Destination;
 static Destination *destinations = 0;
@@ -114,7 +115,7 @@ timeout_handler(void *arbitrary)
   ts_fuzz = UTI_GetNTPTsFuzz(message.precision);
   LCL_ReadCookedTime(&local_transmit, NULL);
   UTI_TimevalToInt64(&local_transmit, &message.transmit_ts, ts_fuzz);
-  NIO_SendNormalPacket(&message, &d->addr);
+  NIO_SendNormalPacket(&message, &d->addr, &d->local_addr);
 
   /* Requeue timeout.  Don't care if interval drifts gradually, so just do it
    * at the end. */
@@ -141,8 +142,8 @@ BRD_AddDestination(IPAddr *addr, unsigned short port, int interval)
   }
 
   destinations[n_destinations].addr.ip_addr = *addr;
-  destinations[n_destinations].addr.local_ip_addr.family = IPADDR_UNSPEC;
   destinations[n_destinations].addr.port = port;
+  destinations[n_destinations].local_addr.ip_addr.family = IPADDR_UNSPEC;
   destinations[n_destinations].interval = interval;
 
   SCH_AddTimeoutInClass((double) interval, 1.0, 0.0,
