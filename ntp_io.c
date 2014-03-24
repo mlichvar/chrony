@@ -39,6 +39,8 @@
 #include "conf.h"
 #include "util.h"
 
+#define INVALID_SOCK_FD -1
+
 union sockaddr_in46 {
   struct sockaddr_in in4;
 #ifdef HAVE_IPV6
@@ -114,7 +116,7 @@ prepare_socket(int family)
   if (sock_fd < 0) {
     LOG(LOGS_ERR, LOGF_NtpIO, "Could not open %s NTP socket : %s",
         family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
-    return -1;
+    return INVALID_SOCK_FD;
   }
 
   /* Close on exec */
@@ -213,7 +215,7 @@ prepare_socket(int family)
     LOG(LOGS_ERR, LOGF_NtpIO, "Could not bind %s NTP socket : %s",
         family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
     close(sock_fd);
-    return -1;
+    return INVALID_SOCK_FD;
   }
 
   /* Register handler for read events on the socket */
@@ -244,17 +246,17 @@ NIO_Initialise(int family)
   if (family == IPADDR_UNSPEC || family == IPADDR_INET4)
     sock_fd4 = prepare_socket(AF_INET);
   else
-    sock_fd4 = -1;
+    sock_fd4 = INVALID_SOCK_FD;
 #ifdef HAVE_IPV6
   if (family == IPADDR_UNSPEC || family == IPADDR_INET6)
     sock_fd6 = prepare_socket(AF_INET6);
   else
-    sock_fd6 = -1;
+    sock_fd6 = INVALID_SOCK_FD;
 #endif
 
-  if (sock_fd4 < 0
+  if (sock_fd4 == INVALID_SOCK_FD
 #ifdef HAVE_IPV6
-      && sock_fd6 < 0
+      && sock_fd6 == INVALID_SOCK_FD
 #endif
       ) {
     LOG_FATAL(LOGF_NtpIO, "Could not open any NTP socket");
@@ -266,17 +268,17 @@ NIO_Initialise(int family)
 void
 NIO_Finalise(void)
 {
-  if (sock_fd4 >= 0) {
+  if (sock_fd4 != INVALID_SOCK_FD) {
     SCH_RemoveInputFileHandler(sock_fd4);
     close(sock_fd4);
   }
-  sock_fd4 = -1;
+  sock_fd4 = INVALID_SOCK_FD;
 #ifdef HAVE_IPV6
-  if (sock_fd6 >= 0) {
+  if (sock_fd6 != INVALID_SOCK_FD) {
     SCH_RemoveInputFileHandler(sock_fd6);
     close(sock_fd6);
   }
-  sock_fd6 = -1;
+  sock_fd6 = INVALID_SOCK_FD;
 #endif
   initialised = 0;
 }
@@ -435,7 +437,7 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr)
       return;
   }
 
-  if (sock_fd < 0)
+  if (sock_fd == INVALID_SOCK_FD)
     return;
 
   iov.iov_base = packet;
