@@ -144,6 +144,8 @@ BRD_AddDestination(IPAddr *addr, unsigned short port, int interval)
   destinations[n_destinations].addr.ip_addr = *addr;
   destinations[n_destinations].addr.port = port;
   destinations[n_destinations].local_addr.ip_addr.family = IPADDR_UNSPEC;
+  destinations[n_destinations].local_addr.sock_fd =
+    NIO_GetServerSocket(&destinations[n_destinations].addr);
   destinations[n_destinations].interval = interval;
 
   SCH_AddTimeoutInClass((double) interval, 1.0, 0.0,

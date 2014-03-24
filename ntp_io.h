@@ -37,6 +37,12 @@ extern void NIO_Initialise(int family);
 /* Function to finalise the module */
 extern void NIO_Finalise(void);
 
+/* Function to obtain a socket for sending client packets */
+extern int NIO_GetClientSocket(NTP_Remote_Address *remote_addr);
+
+/* Function to obtain a socket for sending server/peer packets */
+extern int NIO_GetServerSocket(NTP_Remote_Address *remote_addr);
+
 /* Function to transmit a packet */
 extern void NIO_SendNormalPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr);
 

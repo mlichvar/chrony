@@ -285,6 +285,28 @@ NIO_Finalise(void)
 
 /* ================================================== */
 
+int
+NIO_GetClientSocket(NTP_Remote_Address *remote_addr)
+{
+  return NIO_GetServerSocket(remote_addr);
+}
+
+/* ================================================== */
+
+int
+NIO_GetServerSocket(NTP_Remote_Address *remote_addr)
+{
+  switch (remote_addr->ip_addr.family) {
+    case IPADDR_INET4:
+      return sock_fd4;
+#ifdef HAVE_IPV6
+    case IPADDR_INET6:
+      return sock_fd6;
+#endif
+    default:
+      return INVALID_SOCK_FD;
+  }
+}
 
 /* ================================================== */
 
@@ -351,6 +373,7 @@ read_from_socket(void *anything)
     }
 
     local_addr.ip_addr.family = IPADDR_UNSPEC;
+    local_addr.sock_fd = sock_fd;
 
     for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
 #ifdef IP_PKTINFO
@@ -410,7 +433,6 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
   struct iovec iov;
   char cmsgbuf[256];
   int cmsglen;
-  int sock_fd;
   socklen_t addrlen;
 
   assert(initialised);
@@ -422,7 +444,6 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
       remote.in4.sin_family = AF_INET;
       remote.in4.sin_port = htons(remote_addr->port);
       remote.in4.sin_addr.s_addr = htonl(remote_addr->ip_addr.addr.in4);
-      sock_fd = sock_fd4;
       break;
 #ifdef HAVE_IPV6
     case IPADDR_INET6:
@@ -432,15 +453,17 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
       remote.in6.sin6_port = htons(remote_addr->port);
       memcpy(&remote.in6.sin6_addr.s6_addr, &remote_addr->ip_addr.addr.in6,
           sizeof (remote.in6.sin6_addr.s6_addr));
-      sock_fd = sock_fd6;
       break;
 #endif
     default:
       return;
   }
 
-  if (sock_fd == INVALID_SOCK_FD)
+  if (local_addr->sock_fd == INVALID_SOCK_FD) {
+    DEBUG_LOG(LOGF_NtpIO, "No socket to send to %s:%d",
+              UTI_IPToString(&remote_addr->ip_addr), remote_addr->port);
     return;
+  }
 
   iov.iov_base = packet;
   iov.iov_len = packetlen;
@@ -500,7 +523,7 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
   if (!cmsglen)
     msg.msg_control = NULL;
 
-  if (sendmsg(sock_fd, &msg, 0) < 0 &&
+  if (sendmsg(local_addr->sock_fd, &msg, 0) < 0 &&
 #ifdef ENETUNREACH
       errno != ENETUNREACH &&
 #endif

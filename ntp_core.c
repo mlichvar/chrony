@@ -64,7 +64,7 @@ typedef enum {
 
 struct NCR_Instance_Record {
   NTP_Remote_Address remote_addr; /* Needed for routing transmit packets */
-  NTP_Local_Address local_addr; /* Local address used when sending packets */
+  NTP_Local_Address local_addr; /* Local address/socket used to send packets */
   NTP_Mode mode;                /* The source's NTP mode
                                    (client/server or symmetric active peer) */
   OperatingMode opmode;         /* Whether we are sampling this source
@@ -287,9 +287,11 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
 
   switch (type) {
     case NTP_SERVER:
+      result->local_addr.sock_fd = NIO_GetClientSocket(remote_addr);
       result->mode = MODE_CLIENT;
       break;
     case NTP_PEER:
+      result->local_addr.sock_fd = NIO_GetServerSocket(remote_addr);
       result->mode = MODE_ACTIVE;
       break;
     default:
