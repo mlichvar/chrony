@@ -54,7 +54,7 @@ extern void NCR_DestroyInstance(NCR_Instance instance);
 
 /* This routine is called when a new packet arrives off the network,
    and it relates to a source we have an ongoing protocol exchange with */
-extern void NCR_ProcessKnown(NTP_Packet *message, struct timeval *now, double now_err, NCR_Instance data, int length);
+extern void NCR_ProcessKnown(NTP_Packet *message, struct timeval *now, double now_err, NCR_Instance data, int sock_fd, int length);
 
 /* This routine is called when a new packet arrives off the network,
    and we do not recognize its source */

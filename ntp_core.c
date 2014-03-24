@@ -1275,12 +1275,21 @@ NCR_ProcessKnown
  struct timeval *now,           /* timestamp at time of receipt */
  double now_err,
  NCR_Instance inst,             /* the instance record for this peer/server */
+ int sock_fd,                   /* the receiving socket */
  int length                     /* the length of the received packet */
  )
 {
   int pkt_mode;
   int version;
   int auth_len;
+
+  /* Make sure the packet was received by the sending socket */
+  if (sock_fd != inst->local_addr.sock_fd) {
+    DEBUG_LOG(LOGF_NtpCore,
+              "Packet received by wrong socket %d (expected %d)",
+              sock_fd, inst->local_addr.sock_fd);
+    return;
+  }
 
   /* Ignore packets from offline sources */
   if (inst->opmode == MD_OFFLINE) {

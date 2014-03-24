@@ -356,7 +356,8 @@ NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP
   
   find_slot(remote_addr, &slot, &found);
   if (found == 2) { /* Must match IP address AND port number */
-    NCR_ProcessKnown(message, now, now_err, records[slot].data, length);
+    NCR_ProcessKnown(message, now, now_err, records[slot].data,
+                     local_addr->sock_fd, length);
   } else {
     NCR_ProcessUnknown(message, now, now_err, remote_addr, local_addr, length);
   }
