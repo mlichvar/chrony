@@ -313,7 +313,8 @@ NIO_Initialise(int family)
 #endif
 
   if (family == IPADDR_UNSPEC || family == IPADDR_INET4) {
-    server_sock_fd4 = prepare_socket(AF_INET, server_port);
+    if (server_port)
+      server_sock_fd4 = prepare_socket(AF_INET, server_port);
     if (!separate_client_sockets) {
       if (client_port != server_port || !server_port)
         client_sock_fd4 = prepare_socket(AF_INET, client_port);
@@ -323,7 +324,8 @@ NIO_Initialise(int family)
   }
 #ifdef HAVE_IPV6
   if (family == IPADDR_UNSPEC || family == IPADDR_INET6) {
-    server_sock_fd6 = prepare_socket(AF_INET6, server_port);
+    if (server_port)
+      server_sock_fd6 = prepare_socket(AF_INET6, server_port);
     if (!separate_client_sockets) {
       if (client_port != server_port || !server_port)
         client_sock_fd6 = prepare_socket(AF_INET6, client_port);
@@ -333,7 +335,7 @@ NIO_Initialise(int family)
   }
 #endif
 
-  if ((server_sock_fd4 == INVALID_SOCK_FD
+  if ((server_port && server_sock_fd4 == INVALID_SOCK_FD
 #ifdef HAVE_IPV6
        && server_sock_fd6 == INVALID_SOCK_FD
 #endif
