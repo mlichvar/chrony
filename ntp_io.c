@@ -49,10 +49,12 @@ union sockaddr_in46 {
   struct sockaddr u;
 };
 
-/* The file descriptors for the IPv4 and IPv6 sockets */
-static int sock_fd4;
+/* The server/peer and client sockets for IPv4 and IPv6 */
+static int server_sock_fd4;
+static int client_sock_fd4;
 #ifdef HAVE_IPV6
-static int sock_fd6;
+static int server_sock_fd6;
+static int client_sock_fd6;
 #endif
 
 /* Flag indicating that we have been initialised */
@@ -61,7 +63,6 @@ static int initialised=0;
 /* ================================================== */
 
 /* Forward prototypes */
-static int prepare_socket(int family);
 static void read_from_socket(void *anything);
 
 /* ================================================== */
@@ -94,17 +95,14 @@ do_size_checks(void)
 /* ================================================== */
 
 static int
-prepare_socket(int family)
+prepare_socket(int family, int port_number)
 {
   union sockaddr_in46 my_addr;
   socklen_t my_addr_len;
   int sock_fd;
-  unsigned short port_number;
   IPAddr bind_address;
   int on_off = 1;
   
-  port_number = CNF_GetNTPPort();
-
   /* Open Internet domain UDP socket for NTP message transmissions */
 
 #if 0
@@ -235,31 +233,65 @@ prepare_socket(int family)
 
 /* ================================================== */
 
+static void
+close_socket(int sock_fd)
+{
+  if (sock_fd == INVALID_SOCK_FD)
+    return;
+
+  SCH_RemoveInputFileHandler(sock_fd);
+  close(sock_fd);
+}
+
+/* ================================================== */
+
 void
 NIO_Initialise(int family)
 {
+  int server_port, client_port;
+
   assert(!initialised);
   initialised = 1;
 
   do_size_checks();
 
-  if (family == IPADDR_UNSPEC || family == IPADDR_INET4)
-    sock_fd4 = prepare_socket(AF_INET);
-  else
-    sock_fd4 = INVALID_SOCK_FD;
+  server_port = CNF_GetNTPPort();
+  client_port = CNF_GetAcquisitionPort();
+
+  server_sock_fd4 = INVALID_SOCK_FD;
+  client_sock_fd4 = INVALID_SOCK_FD;
 #ifdef HAVE_IPV6
-  if (family == IPADDR_UNSPEC || family == IPADDR_INET6)
-    sock_fd6 = prepare_socket(AF_INET6);
-  else
-    sock_fd6 = INVALID_SOCK_FD;
+  server_sock_fd6 = INVALID_SOCK_FD;
+  client_sock_fd6 = INVALID_SOCK_FD;
 #endif
 
-  if (sock_fd4 == INVALID_SOCK_FD
+  if (family == IPADDR_UNSPEC || family == IPADDR_INET4) {
+    server_sock_fd4 = prepare_socket(AF_INET, server_port);
+    if (client_port != server_port || !server_port)
+      client_sock_fd4 = prepare_socket(AF_INET, client_port);
+    else
+      client_sock_fd4 = server_sock_fd4;
+  }
 #ifdef HAVE_IPV6
-      && sock_fd6 == INVALID_SOCK_FD
+  if (family == IPADDR_UNSPEC || family == IPADDR_INET6) {
+    server_sock_fd6 = prepare_socket(AF_INET6, server_port);
+    if (client_port != server_port || !server_port)
+      client_sock_fd6 = prepare_socket(AF_INET6, client_port);
+    else
+      client_sock_fd6 = server_sock_fd6;
+  }
 #endif
-      ) {
-    LOG_FATAL(LOGF_NtpIO, "Could not open any NTP socket");
+
+  if ((server_sock_fd4 == INVALID_SOCK_FD
+#ifdef HAVE_IPV6
+       && server_sock_fd6 == INVALID_SOCK_FD
+#endif
+      ) || (client_sock_fd4 == INVALID_SOCK_FD
+#ifdef HAVE_IPV6
+       && client_sock_fd6 == INVALID_SOCK_FD
+#endif
+      )) {
+    LOG_FATAL(LOGF_NtpIO, "Could not open NTP sockets");
   }
 }
 
@@ -268,17 +300,15 @@ NIO_Initialise(int family)
 void
 NIO_Finalise(void)
 {
-  if (sock_fd4 != INVALID_SOCK_FD) {
-    SCH_RemoveInputFileHandler(sock_fd4);
-    close(sock_fd4);
-  }
-  sock_fd4 = INVALID_SOCK_FD;
+  if (server_sock_fd4 != client_sock_fd4)
+    close_socket(client_sock_fd4);
+  close_socket(server_sock_fd4);
+  server_sock_fd4 = client_sock_fd4 = INVALID_SOCK_FD;
 #ifdef HAVE_IPV6
-  if (sock_fd6 != INVALID_SOCK_FD) {
-    SCH_RemoveInputFileHandler(sock_fd6);
-    close(sock_fd6);
-  }
-  sock_fd6 = INVALID_SOCK_FD;
+  if (server_sock_fd6 != client_sock_fd6)
+    close_socket(client_sock_fd6);
+  close_socket(server_sock_fd6);
+  server_sock_fd6 = client_sock_fd6 = INVALID_SOCK_FD;
 #endif
   initialised = 0;
 }
@@ -288,7 +318,16 @@ NIO_Finalise(void)
 int
 NIO_GetClientSocket(NTP_Remote_Address *remote_addr)
 {
-  return NIO_GetServerSocket(remote_addr);
+  switch (remote_addr->ip_addr.family) {
+    case IPADDR_INET4:
+      return client_sock_fd4;
+#ifdef HAVE_IPV6
+    case IPADDR_INET6:
+      return client_sock_fd6;
+#endif
+    default:
+      return INVALID_SOCK_FD;
+  }
 }
 
 /* ================================================== */
@@ -298,10 +337,10 @@ NIO_GetServerSocket(NTP_Remote_Address *remote_addr)
 {
   switch (remote_addr->ip_addr.family) {
     case IPADDR_INET4:
-      return sock_fd4;
+      return server_sock_fd4;
 #ifdef HAVE_IPV6
     case IPADDR_INET6:
-      return sock_fd6;
+      return server_sock_fd6;
 #endif
     default:
       return INVALID_SOCK_FD;
