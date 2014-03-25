@@ -385,6 +385,8 @@ NCR_DestroyInstance(NCR_Instance instance)
     instance->timer_running = 0;
   }
 
+  NIO_CloseClientSocket(instance->local_addr.sock_fd);
+
   /* Free the data structure */
   Free(instance);
 }

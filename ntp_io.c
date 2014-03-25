@@ -57,6 +57,10 @@ static int server_sock_fd6;
 static int client_sock_fd6;
 #endif
 
+/* Flag indicating we create a new connected client socket for each
+   server instead of sharing client_sock_fd4 and client_sock_fd6 */
+static int separate_client_sockets;
+
 /* Flag indicating that we have been initialised */
 static int initialised=0;
 
@@ -233,6 +237,46 @@ prepare_socket(int family, int port_number)
 
 /* ================================================== */
 
+static int
+connect_socket(int sock_fd, NTP_Remote_Address *remote_addr)
+{
+  union sockaddr_in46 addr;
+  socklen_t addr_len;
+
+  memset(&addr, 0, sizeof (addr));
+
+  switch (remote_addr->ip_addr.family) {
+    case IPADDR_INET4:
+      addr_len = sizeof (addr.in4);
+      addr.in4.sin_family = AF_INET;
+      addr.in4.sin_addr.s_addr = htonl(remote_addr->ip_addr.addr.in4);
+      addr.in4.sin_port = htons(remote_addr->port);
+      break;
+#ifdef HAVE_IPV6
+    case IPADDR_INET6:
+      addr_len = sizeof (addr.in6);
+      addr.in6.sin6_family = AF_INET6;
+      memcpy(addr.in6.sin6_addr.s6_addr, remote_addr->ip_addr.addr.in6,
+             sizeof (addr.in6.sin6_addr.s6_addr));
+      addr.in6.sin6_port = htons(remote_addr->port);
+      break;
+#endif
+    default:
+      assert(0);
+  }
+
+  if (connect(sock_fd, &addr.u, addr_len) < 0) {
+    LOG(LOGS_ERR, LOGF_NtpIO, "Could not connect NTP socket to %s:%d : %s",
+        UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
+        strerror(errno));
+    return 0;
+  }
+
+  return 1;
+}
+
+/* ================================================== */
+
 static void
 close_socket(int sock_fd)
 {
@@ -258,6 +302,9 @@ NIO_Initialise(int family)
   server_port = CNF_GetNTPPort();
   client_port = CNF_GetAcquisitionPort();
 
+  /* Use separate connected sockets if client port is not set */
+  separate_client_sockets = client_port == 0;
+
   server_sock_fd4 = INVALID_SOCK_FD;
   client_sock_fd4 = INVALID_SOCK_FD;
 #ifdef HAVE_IPV6
@@ -267,18 +314,22 @@ NIO_Initialise(int family)
 
   if (family == IPADDR_UNSPEC || family == IPADDR_INET4) {
     server_sock_fd4 = prepare_socket(AF_INET, server_port);
-    if (client_port != server_port || !server_port)
-      client_sock_fd4 = prepare_socket(AF_INET, client_port);
-    else
-      client_sock_fd4 = server_sock_fd4;
+    if (!separate_client_sockets) {
+      if (client_port != server_port || !server_port)
+        client_sock_fd4 = prepare_socket(AF_INET, client_port);
+      else
+        client_sock_fd4 = server_sock_fd4;
+    }
   }
 #ifdef HAVE_IPV6
   if (family == IPADDR_UNSPEC || family == IPADDR_INET6) {
     server_sock_fd6 = prepare_socket(AF_INET6, server_port);
-    if (client_port != server_port || !server_port)
-      client_sock_fd6 = prepare_socket(AF_INET6, client_port);
-    else
-      client_sock_fd6 = server_sock_fd6;
+    if (!separate_client_sockets) {
+      if (client_port != server_port || !server_port)
+        client_sock_fd6 = prepare_socket(AF_INET6, client_port);
+      else
+        client_sock_fd6 = server_sock_fd6;
+    }
   }
 #endif
 
@@ -286,7 +337,7 @@ NIO_Initialise(int family)
 #ifdef HAVE_IPV6
        && server_sock_fd6 == INVALID_SOCK_FD
 #endif
-      ) || (client_sock_fd4 == INVALID_SOCK_FD
+      ) || (!separate_client_sockets && client_sock_fd4 == INVALID_SOCK_FD
 #ifdef HAVE_IPV6
        && client_sock_fd6 == INVALID_SOCK_FD
 #endif
@@ -318,15 +369,42 @@ NIO_Finalise(void)
 int
 NIO_GetClientSocket(NTP_Remote_Address *remote_addr)
 {
-  switch (remote_addr->ip_addr.family) {
-    case IPADDR_INET4:
-      return client_sock_fd4;
+  if (separate_client_sockets) {
+    int sock_fd;
+
+    switch (remote_addr->ip_addr.family) {
+      case IPADDR_INET4:
+        sock_fd = prepare_socket(AF_INET, 0);
+        break;
 #ifdef HAVE_IPV6
-    case IPADDR_INET6:
-      return client_sock_fd6;
+      case IPADDR_INET6:
+        sock_fd = prepare_socket(AF_INET6, 0);
+        break;
 #endif
-    default:
+      default:
+        sock_fd = INVALID_SOCK_FD;
+    }
+
+    if (sock_fd == INVALID_SOCK_FD)
       return INVALID_SOCK_FD;
+
+    if (!connect_socket(sock_fd, remote_addr)) {
+      close_socket(sock_fd);
+      return INVALID_SOCK_FD;
+    }
+
+    return sock_fd;
+  } else {
+    switch (remote_addr->ip_addr.family) {
+      case IPADDR_INET4:
+        return client_sock_fd4;
+#ifdef HAVE_IPV6
+      case IPADDR_INET6:
+        return client_sock_fd6;
+#endif
+      default:
+        return INVALID_SOCK_FD;
+    }
   }
 }
 
@@ -345,6 +423,15 @@ NIO_GetServerSocket(NTP_Remote_Address *remote_addr)
     default:
       return INVALID_SOCK_FD;
   }
+}
+
+/* ================================================== */
+
+void
+NIO_CloseClientSocket(int sock_fd)
+{
+  if (separate_client_sockets)
+    close_socket(sock_fd);
 }
 
 /* ================================================== */
