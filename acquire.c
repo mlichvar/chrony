@@ -171,7 +171,7 @@ prepare_socket(int family)
   /* Close on exec */
   UTI_FdSetCloexec(sock_fd);
 
-  if (port_number == 0) {
+  if (port_number == 0 || port_number == CNF_GetNTPPort()) {
     /* Don't bother binding this socket - we're not fussed what port
        number it gets */
   } else {
