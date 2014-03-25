@@ -7,10 +7,7 @@ freq_offset=0.0
 wander=0.0
 limit=100
 
-# clknetsim requires source port (if bound) to match dest port
-client_server_options="port 124"
-client_conf="initstepslew 5 192.168.123.1
-port 124"
+client_conf="initstepslew 5 192.168.123.1"
 
 min_sync_time=15
 max_sync_time=30
