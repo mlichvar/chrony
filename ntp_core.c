@@ -1457,6 +1457,13 @@ NCR_ProcessUnknown
   int valid_auth, auth_len;
   unsigned long key_id;
 
+  /* Ignore the packet if it wasn't received by server socket */
+  if (!NIO_IsServerSocket(local_addr->sock_fd)) {
+    DEBUG_LOG(LOGF_NtpCore, "NTP request packet received by client socket %d",
+              local_addr->sock_fd);
+    return;
+  }
+
   /* Check version */
   version = (message->lvm >> 3) & 0x7;
   if (version < NTP_MIN_COMPAT_VERSION || version > NTP_MAX_COMPAT_VERSION) {

@@ -438,6 +438,19 @@ NIO_CloseClientSocket(int sock_fd)
 
 /* ================================================== */
 
+int
+NIO_IsServerSocket(int sock_fd)
+{
+  return sock_fd != INVALID_SOCK_FD &&
+    (sock_fd == server_sock_fd4
+#ifdef HAVE_IPV6
+     || sock_fd == server_sock_fd6
+#endif
+    );
+}
+
+/* ================================================== */
+
 static void
 read_from_socket(void *anything)
 {
