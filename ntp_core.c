@@ -1439,7 +1439,7 @@ NCR_ProcessKnown
 
 /* ================================================== */
 /* This routine is called when a new packet arrives off the network,
-   and it relates to a source we have an ongoing protocol exchange with */
+   and it relates to a source we don't know (not our server or peer) */
 
 void
 NCR_ProcessUnknown
