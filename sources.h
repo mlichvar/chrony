@@ -131,11 +131,11 @@ extern void SRC_ResetReachability(SRC_Instance inst);
 /* This routine is used to select the best source from amongst those
    we currently have valid data on, and use it as the tracking base
    for the local time.  Updates are only made to the local reference
-   if a new source is selected or match_addr is equal to the selected
-   reference source address. (This avoids updating the frequency
+   if a new source is selected or updated_inst is the selected
+   reference source. (This avoids updating the frequency
    tracking for every sample from other sources - only the ones from
    the selected reference make a difference) */
-extern void SRC_SelectSource(uint32_t match_refid);
+extern void SRC_SelectSource(SRC_Instance updated_inst);
 
 /* Force reselecting the best source */
 extern void SRC_ReselectSource(void);

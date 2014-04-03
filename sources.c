@@ -314,8 +314,6 @@ void SRC_AccumulateSample
      IS FLIPPED */
   SST_AccumulateSample(inst->stats, sample_time, -offset, peer_delay, peer_dispersion, root_delay, root_dispersion, stratum);
   SST_DoNewRegression(inst->stats);
-  /* And redo clock selection */
-  SRC_SelectSource(inst->ref_id);
 }
 
 /* ================================================== */
@@ -344,7 +342,7 @@ SRC_UnsetSelectable(SRC_Instance inst)
   /* If this was the previous reference source, we have to reselect!  */
 
   if (inst->index == selected_source_index) {
-    SRC_SelectSource(0);
+    SRC_SelectSource(NULL);
   }
 
 }
@@ -364,7 +362,7 @@ SRC_UpdateReachability(SRC_Instance inst, int reachable)
 
   if (!reachable && inst->index == selected_source_index) {
     /* Try to select a better source */
-    SRC_SelectSource(0);
+    SRC_SelectSource(NULL);
   }
 }
 
@@ -501,7 +499,7 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
    or match_refid is equal to the selected reference source refid */
 
 void
-SRC_SelectSource(uint32_t match_refid)
+SRC_SelectSource(SRC_Instance updated_inst)
 {
   int i, j, index, old_selected_index, sel_prefer;
   struct timeval now, ref_time;
@@ -862,8 +860,8 @@ SRC_SelectSource(uint32_t match_refid)
 
             /* Update score, but only for source pairs where one source
                has a new sample */
-            if (sources[i]->ref_id == match_refid ||
-                sources[selected_source_index]->ref_id == match_refid) {
+            if (sources[i] == updated_inst ||
+                sources[selected_source_index] == updated_inst) {
 
               sources[i]->sel_score *= sel_src_distance / distance;
 
@@ -881,8 +879,9 @@ SRC_SelectSource(uint32_t match_refid)
           }
 
 #if 0
-          LOG(LOGS_INFO, LOGF_Sources, "select score=%f refid=%lx match_refid=%lx status=%d dist=%f",
-              sources[i]->sel_score, sources[i]->ref_id, match_refid, sources[i]->status, distance);
+          LOG(LOGS_INFO, LOGF_Sources, "select score=%f refid=%x match_refid=%x status=%d dist=%f",
+              sources[i]->sel_score, sources[i]->ref_id, updated_inst ? updated_inst->ref_id : 0,
+              sources[i]->status, distance);
 #endif
         
           if (max_score < sources[i]->sel_score) {
@@ -919,10 +918,10 @@ SRC_SelectSource(uint32_t match_refid)
 
         sources[selected_source_index]->status = SRC_SYNC;
 
-        /* Update local reference only when a new source was selected or a new
-           sample was received (i.e. match_refid is equal to selected refid) */
+        /* Update local reference only when a new source was selected
+           or the selected source has a new sample */
         if (selected_source_index != old_selected_index ||
-            match_refid == sources[selected_source_index]->ref_id) {
+            updated_inst == sources[selected_source_index]) {
 
           /* Now just use the statistics of the selected source combined with
              the other selectable sources for trimming the local clock */
@@ -978,7 +977,7 @@ void
 SRC_ReselectSource(void)
 {
   selected_source_index = INVALID_SOURCE;
-  SRC_SelectSource(0);
+  SRC_SelectSource(NULL);
 }
 
 /* ================================================== */

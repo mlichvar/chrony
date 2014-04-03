@@ -1179,6 +1179,8 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
                            root_delay, root_dispersion,
                            message->stratum, (NTP_Leap) pkt_leap);
 
+      SRC_SelectSource(inst->source);
+
       /* Now examine the registers.  First though, if the prediction is
          not even within +/- the peer distance of the peer, we are clearly
          not tracking the peer at all well, so we back off the sampling

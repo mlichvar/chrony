@@ -549,6 +549,7 @@ poll_timeout(void *arg)
       SRC_UpdateReachability(inst->source, 1);
       SRC_AccumulateSample(inst->source, &sample_time, offset,
           inst->delay, dispersion, inst->delay, dispersion, stratum, inst->leap_status);
+      SRC_SelectSource(inst->source);
 
       log_sample(inst, &sample_time, 1, 0, 0.0, offset, dispersion);
     } else {
