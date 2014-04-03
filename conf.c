@@ -53,6 +53,7 @@ static int parse_double(char *line, double *result);
 static int parse_null(char *line);
 
 static void parse_allow(char *);
+static void parse_bindacqaddress(char *);
 static void parse_bindaddress(char *);
 static void parse_bindcmdaddress(char *);
 static void parse_broadcast(char *);
@@ -166,9 +167,13 @@ static unsigned long client_log_limit = 524288;
 static int fb_drift_min = 0;
 static int fb_drift_max = 0;
 
-/* IP addresses for binding the NTP socket to.  UNSPEC family means INADDR_ANY
-   will be used */
+/* IP addresses for binding the NTP server sockets to.  UNSPEC family means
+   INADDR_ANY will be used */
 static IPAddr bind_address4, bind_address6;
+
+/* IP addresses for binding the NTP client sockets to.  UNSPEC family means
+   INADDR_ANY will be used */
+static IPAddr bind_acq_address4, bind_acq_address6;
 
 /* IP addresses for binding the command socket to.  UNSPEC family means
    use the value of bind_address */
@@ -336,6 +341,8 @@ CNF_ReadFile(const char *filename)
         parse_int(p, &acquisition_port);
       } else if (!strcasecmp(command, "allow")) {
         parse_allow(p);
+      } else if (!strcasecmp(command, "bindacqaddress")) {
+        parse_bindacqaddress(p);
       } else if (!strcasecmp(command, "bindaddress")) {
         parse_bindaddress(p);
       } else if (!strcasecmp(command, "bindcmdaddress")) {
@@ -1005,6 +1012,24 @@ parse_cmddeny(char *line)
 /* ================================================== */
 
 static void
+parse_bindacqaddress(char *line)
+{
+  IPAddr ip;
+
+  check_number_of_args(line, 1);
+  if (UTI_StringToIP(line, &ip)) {
+    if (ip.family == IPADDR_INET4)
+      bind_acq_address4 = ip;
+    else if (ip.family == IPADDR_INET6)
+      bind_acq_address6 = ip;
+  } else {
+    command_parse_error();
+  }
+}
+
+/* ================================================== */
+
+static void
 parse_bindaddress(char *line)
 {
   IPAddr ip;
@@ -1522,6 +1547,19 @@ CNF_GetBindAddress(int family, IPAddr *addr)
     *addr = bind_address4;
   else if (family == IPADDR_INET6)
     *addr = bind_address6;
+  else
+    addr->family = IPADDR_UNSPEC;
+}
+
+/* ================================================== */
+
+void
+CNF_GetBindAcquisitionAddress(int family, IPAddr *addr)
+{
+  if (family == IPADDR_INET4)
+    *addr = bind_acq_address4;
+  else if (family == IPADDR_INET6)
+    *addr = bind_acq_address6;
   else
     addr->family = IPADDR_UNSPEC;
 }

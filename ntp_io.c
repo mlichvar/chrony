@@ -188,7 +188,10 @@ prepare_socket(int family, int port_number, int client_only)
       my_addr.in4.sin_family = family;
       my_addr.in4.sin_port = htons(port_number);
 
-      CNF_GetBindAddress(IPADDR_INET4, &bind_address);
+      if (!client_only)
+        CNF_GetBindAddress(IPADDR_INET4, &bind_address);
+      else
+        CNF_GetBindAcquisitionAddress(IPADDR_INET4, &bind_address);
 
       if (bind_address.family == IPADDR_INET4)
         my_addr.in4.sin_addr.s_addr = htonl(bind_address.addr.in4);
@@ -201,7 +204,10 @@ prepare_socket(int family, int port_number, int client_only)
       my_addr.in6.sin6_family = family;
       my_addr.in6.sin6_port = htons(port_number);
 
-      CNF_GetBindAddress(IPADDR_INET6, &bind_address);
+      if (!client_only)
+        CNF_GetBindAddress(IPADDR_INET6, &bind_address);
+      else
+        CNF_GetBindAcquisitionAddress(IPADDR_INET6, &bind_address);
 
       if (bind_address.family == IPADDR_INET6)
         memcpy(my_addr.in6.sin6_addr.s6_addr, bind_address.addr.in6,
