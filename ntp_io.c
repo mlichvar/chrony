@@ -99,7 +99,7 @@ do_size_checks(void)
 /* ================================================== */
 
 static int
-prepare_socket(int family, int port_number)
+prepare_socket(int family, int port_number, int client_only)
 {
   union sockaddr_in46 my_addr;
   socklen_t my_addr_len;
@@ -124,14 +124,16 @@ prepare_socket(int family, int port_number)
   /* Close on exec */
   UTI_FdSetCloexec(sock_fd);
 
-  /* Make the socket capable of re-using an old address */
-  if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&on_off, sizeof(on_off)) < 0) {
+  /* Make the socket capable of re-using an old address if binding to a specific port */
+  if (port_number &&
+      setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&on_off, sizeof(on_off)) < 0) {
     LOG(LOGS_ERR, LOGF_NtpIO, "Could not set reuseaddr socket options");
     /* Don't quit - we might survive anyway */
   }
   
   /* Make the socket capable of sending broadcast pkts - needed for NTP broadcast mode */
-  if (setsockopt(sock_fd, SOL_SOCKET, SO_BROADCAST, (char *)&on_off, sizeof(on_off)) < 0) {
+  if (!client_only &&
+      setsockopt(sock_fd, SOL_SOCKET, SO_BROADCAST, (char *)&on_off, sizeof(on_off)) < 0) {
     LOG(LOGS_ERR, LOGF_NtpIO, "Could not set broadcast socket options");
     /* Don't quit - we might survive anyway */
   }
@@ -146,8 +148,9 @@ prepare_socket(int family, int port_number)
 
   if (family == AF_INET) {
 #ifdef IP_PKTINFO
-    /* We want the local IP info too */
-    if (setsockopt(sock_fd, IPPROTO_IP, IP_PKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
+    /* We want the local IP info on server sockets */
+    if (!client_only &&
+        setsockopt(sock_fd, IPPROTO_IP, IP_PKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
       LOG(LOGS_ERR, LOGF_NtpIO, "Could not request packet info using socket option");
       /* Don't quit - we might survive anyway */
     }
@@ -162,15 +165,17 @@ prepare_socket(int family, int port_number)
     }
 #endif
 
+    if (!client_only) {
 #ifdef IPV6_RECVPKTINFO
-    if (setsockopt(sock_fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
-      LOG(LOGS_ERR, LOGF_NtpIO, "Could not request IPv6 packet info socket option");
-    }
+      if (setsockopt(sock_fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
+        LOG(LOGS_ERR, LOGF_NtpIO, "Could not request IPv6 packet info socket option");
+      }
 #elif defined(IPV6_PKTINFO)
-    if (setsockopt(sock_fd, IPPROTO_IPV6, IPV6_PKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
-      LOG(LOGS_ERR, LOGF_NtpIO, "Could not request IPv6 packet info socket option");
-    }
+      if (setsockopt(sock_fd, IPPROTO_IPV6, IPV6_PKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
+        LOG(LOGS_ERR, LOGF_NtpIO, "Could not request IPv6 packet info socket option");
+      }
 #endif
+    }
   }
 #endif
 
@@ -314,10 +319,10 @@ NIO_Initialise(int family)
 
   if (family == IPADDR_UNSPEC || family == IPADDR_INET4) {
     if (server_port)
-      server_sock_fd4 = prepare_socket(AF_INET, server_port);
+      server_sock_fd4 = prepare_socket(AF_INET, server_port, 0);
     if (!separate_client_sockets) {
       if (client_port != server_port || !server_port)
-        client_sock_fd4 = prepare_socket(AF_INET, client_port);
+        client_sock_fd4 = prepare_socket(AF_INET, client_port, 1);
       else
         client_sock_fd4 = server_sock_fd4;
     }
@@ -325,10 +330,10 @@ NIO_Initialise(int family)
 #ifdef HAVE_IPV6
   if (family == IPADDR_UNSPEC || family == IPADDR_INET6) {
     if (server_port)
-      server_sock_fd6 = prepare_socket(AF_INET6, server_port);
+      server_sock_fd6 = prepare_socket(AF_INET6, server_port, 0);
     if (!separate_client_sockets) {
       if (client_port != server_port || !server_port)
-        client_sock_fd6 = prepare_socket(AF_INET6, client_port);
+        client_sock_fd6 = prepare_socket(AF_INET6, client_port, 1);
       else
         client_sock_fd6 = server_sock_fd6;
     }
@@ -376,11 +381,11 @@ NIO_GetClientSocket(NTP_Remote_Address *remote_addr)
 
     switch (remote_addr->ip_addr.family) {
       case IPADDR_INET4:
-        sock_fd = prepare_socket(AF_INET, 0);
+        sock_fd = prepare_socket(AF_INET, 0, 1);
         break;
 #ifdef HAVE_IPV6
       case IPADDR_INET6:
-        sock_fd = prepare_socket(AF_INET6, 0);
+        sock_fd = prepare_socket(AF_INET6, 0, 1);
         break;
 #endif
       default:
