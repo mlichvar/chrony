@@ -93,8 +93,8 @@ struct SRC_Instance_Record {
   /* Reachability register */
   int reachability;
 
-  /* Flag indicating that only few samples were accumulated so far */
-  int beginning;
+  /* Number of set bits in the reachability register */
+  int reachability_size;
 
   /* Updates left before allowing combining */
   int outlier;
@@ -219,7 +219,7 @@ SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, SRC_SelectOpt
   result->ip_addr = addr;
   result->selectable = 0;
   result->reachability = 0;
-  result->beginning = 1;
+  result->reachability_size = 0;
   result->outlier = 0;
   result->status = SRC_BAD_STATS;
   result->type = type;
@@ -356,9 +356,8 @@ SRC_UpdateReachability(SRC_Instance inst, int reachable)
   inst->reachability |= !!reachable;
   inst->reachability &= ~(-1 << REACH_BITS);
 
-  /* The beginning is over when the first sample is at the end of the register */
-  if (inst->reachability & (1 << (REACH_BITS - 1)))
-      inst->beginning = 0;
+  if (inst->reachability_size < REACH_BITS)
+      inst->reachability_size++;
 
   if (!reachable && inst->index == selected_source_index) {
     /* Try to select a better source */
@@ -375,6 +374,7 @@ SRC_ResetReachability(SRC_Instance inst)
      a peer selected even when not reachable */
 #if 0
   inst->reachability = 0;
+  inst->reachability_size = 0;
   SRC_UpdateReachability(inst, 0);
 #endif
 }
@@ -451,7 +451,9 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
            (reselect_distance + sources[selected_source_index]->sel_info.root_distance) ||
          fabs(*frequency - src_frequency) >
            combine_limit * (*skew + src_skew + LCL_GetMaxClockError()))) {
-      sources[index]->outlier = !sources[index]->beginning ? OUTLIER_PENALTY : 1;
+      /* Use a smaller penalty in first few updates */
+      sources[index]->outlier = sources[index]->reachability_size >= REACH_BITS ?
+                                OUTLIER_PENALTY : 1;
     } else if (sources[index]->outlier) {
       sources[index]->outlier--;
     }
