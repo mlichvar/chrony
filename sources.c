@@ -363,6 +363,12 @@ SRC_UpdateReachability(SRC_Instance inst, int reachable)
     /* Try to select a better source */
     SRC_SelectSource(NULL);
   }
+
+  /* End special reference mode on last reachability update from iburst */
+  if (REF_GetMode() != REF_ModeNormal &&
+      inst->reachability_size >= REACH_BITS - 1) {
+    REF_SetUnsynchronised();
+  }
 }
 
 /* ================================================== */

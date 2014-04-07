@@ -339,6 +339,21 @@ NSR_RemoveSource(NTP_Remote_Address *remote_addr)
 
 /* ================================================== */
 
+void
+NSR_RemoveAllSources(void)
+{
+  int i;
+
+  for (i = 0; i < N_RECORDS; i++) {
+    if (!records[i].remote_addr)
+      continue;
+    NCR_DestroyInstance(records[i].data);
+    records[i].remote_addr = NULL;
+  }
+}
+
+/* ================================================== */
+
 /* This routine is called by ntp_io when a new packet arrives off the network,
    possibly with an authentication tail */
 void

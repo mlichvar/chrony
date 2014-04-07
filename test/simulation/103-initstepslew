@@ -5,12 +5,13 @@ test_start "initstepslew directive"
 
 freq_offset=0.0
 wander=0.0
+time_rms_limit=1e-3
 limit=100
 
 client_conf="initstepslew 5 192.168.123.1"
 
-min_sync_time=15
-max_sync_time=30
+min_sync_time=20
+max_sync_time=35
 
 for time_offset in -2.0 -0.2 0.2 2.0; do
 	run_test || test_fail
@@ -18,8 +19,8 @@ for time_offset in -2.0 -0.2 0.2 2.0; do
 	check_sync || test_fail
 done
 
-min_sync_time=1
-max_sync_time=1
+min_sync_time=5
+max_sync_time=5
 
 for time_offset in -1e8 -1e2 1e2 1e8; do
 	run_test || test_fail

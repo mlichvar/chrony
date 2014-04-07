@@ -60,6 +60,9 @@ extern void NSR_ResolveSources(void);
 /* Procedure to remove a source */
 extern NSR_Status NSR_RemoveSource(NTP_Remote_Address *remote_addr);
 
+/* Procedure to remove all sources */
+extern void NSR_RemoveAllSources(void);
+
 /* This routine is called by ntp_io when a new packet arrives off the network */
 extern void NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length);
 

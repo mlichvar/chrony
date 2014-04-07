@@ -40,6 +40,24 @@ extern void REF_Initialise(void);
 /* Fini function */
 extern void REF_Finalise(void);
 
+typedef enum {
+  REF_ModeNormal,
+  REF_ModeInitStepSlew,
+  REF_ModeIgnore,
+} REF_Mode;
+
+/* Set reference update mode */
+extern void REF_SetMode(REF_Mode mode);
+
+/* Get reference update mode */
+extern REF_Mode REF_GetMode(void);
+
+/* Function type for handlers to be called back when mode ends */
+typedef void (*REF_ModeEndHandler)(int result);
+
+/* Set the handler for being notified of mode ending */
+extern void REF_SetModeEndHandler(REF_ModeEndHandler handler);
+
 /* Function which takes a local cooked time and returns the estimated
    time of the reference.  It also returns the other parameters
    required for forming the outgoing NTP packet.

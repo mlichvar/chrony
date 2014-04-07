@@ -38,7 +38,6 @@
 #include "logging.h"
 #include "nameserv.h"
 #include "memory.h"
-#include "acquire.h"
 #include "cmdparse.h"
 #include "broadcast.h"
 #include "util.h"
@@ -110,7 +109,6 @@ static char *dumpdir = ".";
 static int enable_local=0;
 static int local_stratum;
 
-static int do_init_stepslew = 0;
 static int n_init_srcs;
 
 /* Threshold (in seconds) - if absolute value of initial error is less
@@ -787,9 +785,6 @@ parse_initstepslew(char *line)
       }
     }
   }
-  if (n_init_srcs > 0) {
-    do_init_stepslew = 1;
-  }
 }
 
 /* ================================================== */
@@ -1155,12 +1150,24 @@ parse_include(char *line)
 /* ================================================== */
 
 void
-CNF_ProcessInitStepSlew(void (*after_hook)(void *), void *anything)
+CNF_AddInitSources(void)
 {
-  if (do_init_stepslew) {
-    ACQ_StartAcquisition(n_init_srcs, init_srcs_ip, init_slew_threshold, after_hook, anything);
-  } else {
-    (after_hook)(anything);
+  CPS_NTP_Source cps_source;
+  NTP_Remote_Address ntp_addr;
+  char dummy_hostname[2] = "H";
+  int i;
+
+  for (i = 0; i < n_init_srcs; i++) {
+    /* Get the default NTP params */
+    CPS_ParseNTPSourceAdd(dummy_hostname, &cps_source);
+
+    /* Add the address as an offline iburst server */
+    ntp_addr.ip_addr = init_srcs_ip[i];
+    ntp_addr.port = cps_source.port;
+    cps_source.params.iburst = 1;
+    cps_source.params.online = 0;
+
+    NSR_AddSource(&ntp_addr, NTP_SERVER, &cps_source.params);
   }
 }
 
@@ -1670,4 +1677,20 @@ char *
 CNF_GetHwclockFile(void)
 {
   return hwclock_file;
+}
+
+/* ================================================== */
+
+int
+CNF_GetInitSources(void)
+{
+  return n_init_srcs;
+}
+
+/* ================================================== */
+
+double
+CNF_GetInitStepThreshold(void)
+{
+  return init_slew_threshold;
 }

@@ -44,7 +44,6 @@
 #include "conf.h"
 #include "cmdmon.h"
 #include "keys.h"
-#include "acquire.h"
 #include "manual.h"
 #include "rtc.h"
 #include "refclock.h"
@@ -63,6 +62,8 @@ static int initialised = 0;
 /* ================================================== */
 
 static int reload = 0;
+
+static REF_Mode ref_mode;
 
 /* ================================================== */
 
@@ -87,7 +88,6 @@ MAI_CleanupAndExit(void)
 
   TMC_Finalise();
   MNL_Finalise();
-  ACQ_Finalise();
   CLG_Finalise();
   NSR_Finalise();
   NCR_Finalise();
@@ -123,8 +123,15 @@ signal_cleanup(int x)
 /* ================================================== */
 
 static void
-post_acquire_hook(void *anything)
+post_init_ntp_hook(void *anything)
 {
+  if (ref_mode == REF_ModeInitStepSlew) {
+    /* Remove the initstepslew sources and set normal mode */
+    NSR_RemoveAllSources();
+    ref_mode = REF_ModeNormal;
+    REF_SetMode(ref_mode);
+  }
+
   /* Close the pipe to the foreground process so it can exit */
   LOG_CloseParentFd();
 
@@ -146,9 +153,33 @@ post_acquire_hook(void *anything)
 /* ================================================== */
 
 static void
+reference_mode_end(int result)
+{
+  switch (ref_mode) {
+    case REF_ModeNormal:
+      break;
+    case REF_ModeInitStepSlew:
+      /* post_init_ntp_hook removes sources and a source call is
+         on the stack here, so it can't be called directly */
+      SCH_AddTimeoutByDelay(0.0, post_init_ntp_hook, NULL);
+      break;
+    default:
+      assert(0);
+  }
+}
+
+/* ================================================== */
+
+static void
 post_init_rtc_hook(void *anything)
 {
-  CNF_ProcessInitStepSlew(post_acquire_hook, NULL);
+  if (CNF_GetInitSources() > 0) {
+    CNF_AddInitSources();
+    assert(REF_GetMode() != REF_ModeNormal);
+    /* Wait for mode end notification */
+  } else {
+    (post_init_ntp_hook)(NULL);
+  }
 }
 
 /* ================================================== */
@@ -416,12 +447,18 @@ int main
   NCR_Initialise();
   NSR_Initialise();
   CLG_Initialise();
-  ACQ_Initialise();
   MNL_Initialise();
   TMC_Initialise();
 
   /* From now on, it is safe to do finalisation on exit */
   initialised = 1;
+
+  if (CNF_GetInitSources() > 0) {
+    ref_mode = REF_ModeInitStepSlew;
+  }
+
+  REF_SetModeEndHandler(reference_mode_end);
+  REF_SetMode(ref_mode);
 
   if (do_init_rtc) {
     RTC_TimeInit(post_init_rtc_hook, NULL);

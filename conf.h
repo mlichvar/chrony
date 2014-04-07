@@ -35,11 +35,10 @@ extern char *CNF_GetRtcDevice(void);
 
 extern void CNF_ReadFile(const char *filename);
 
+extern void CNF_AddInitSources(void);
 extern void CNF_AddSources(void);
 extern void CNF_AddBroadcasts(void);
 extern void CNF_AddRefclocks(void);
-
-extern void CNF_ProcessInitStepSlew(void (*after_hook)(void *), void *anything);
 
 extern unsigned short CNF_GetAcquisitionPort(void);
 extern unsigned short CNF_GetNTPPort(void);
@@ -102,5 +101,8 @@ extern int CNF_GetMinSamples(void);
 
 extern double CNF_GetRtcAutotrim(void);
 extern char *CNF_GetHwclockFile(void);
+
+extern int CNF_GetInitSources(void);
+extern double CNF_GetInitStepThreshold(void);
 
 #endif /* GOT_CONF_H */

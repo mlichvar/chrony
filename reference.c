@@ -67,6 +67,9 @@ static double correction_time_ratio;
 /* Flag indicating that we are initialised */
 static int initialised = 0;
 
+/* Current operating mode */
+static REF_Mode mode;
+
 /* Threshold and update limit for stepping clock */
 static int make_step_limit;
 static double make_step_threshold;
@@ -85,6 +88,9 @@ static double log_change_threshold;
 static int do_mail_change;
 static double mail_change_threshold;
 static char *mail_change_user;
+
+/* Handler for mode ending */
+static REF_ModeEndHandler mode_end_handler = NULL;
 
 /* Filename of the drift file. */
 static char *drift_file=NULL;
@@ -155,6 +161,7 @@ REF_Initialise(void)
   double file_freq_ppm, file_skew_ppm;
   double our_frequency_ppm;
 
+  mode = REF_ModeIgnore;
   are_we_synchronised = 0;
   our_leap_status = LEAP_Unsynchronised;
   our_leap_sec = 0;
@@ -262,6 +269,29 @@ REF_Finalise(void)
   Free(fb_drifts);
 
   initialised = 0;
+}
+
+/* ================================================== */
+
+void REF_SetMode(REF_Mode new_mode)
+{
+  mode = new_mode;
+}
+
+/* ================================================== */
+
+REF_Mode
+REF_GetMode(void)
+{
+  return mode;
+}
+
+/* ================================================== */
+
+void
+REF_SetModeEndHandler(REF_ModeEndHandler handler)
+{
+  mode_end_handler = handler;
 }
 
 /* ================================================== */
@@ -452,6 +482,18 @@ schedule_fb_drift(struct timeval *now)
     LOG(LOGS_INFO, LOGF_Reference, "Fallback drift %d scheduled", i);
 #endif
   }
+}
+
+/* ================================================== */
+
+static void
+end_ref_mode(int result)
+{
+  mode = REF_ModeIgnore;
+
+  /* Dispatch the handler */
+  if (mode_end_handler)
+    (mode_end_handler)(result);
 }
 
 /* ================================================== */
@@ -664,6 +706,43 @@ write_log(struct timeval *ref_time, char *ref, int stratum, NTP_Leap leap,
 
 /* ================================================== */
 
+static void
+special_mode_sync(int valid, double offset)
+{
+  int step;
+
+  switch (mode) {
+    case REF_ModeInitStepSlew:
+      if (!valid) {
+        LOG(LOGS_WARN, LOGF_Reference, "No suitable source for initstepslew");
+        end_ref_mode(0);
+        break;
+      }
+
+      step = fabs(offset) >= CNF_GetInitStepThreshold();
+
+      LOG(LOGS_INFO, LOGF_Reference,
+          "System's initial offset : %.6f seconds %s of true (%s)",
+          fabs(offset), offset >= 0 ? "fast" : "slow", step ? "step" : "slew");
+
+      if (step)
+        LCL_ApplyStepOffset(offset);
+      else
+        LCL_AccumulateOffset(offset, 0.0);
+
+      end_ref_mode(1);
+
+      break;
+    case REF_ModeIgnore:
+      /* Do nothing until the mode is changed */
+      break;
+    default:
+      assert(0);
+  }
+}
+
+/* ================================================== */
+
 void
 REF_SetReference(int stratum,
                  NTP_Leap leap,
@@ -694,6 +773,12 @@ REF_SetReference(int stratum,
   struct timeval now, raw_now, ev_now, ev_raw_now;
 
   assert(initialised);
+
+  /* Special modes are implemented elsewhere */
+  if (mode != REF_ModeNormal) {
+    special_mode_sync(1, offset);
+    return;
+  }
 
   /* Guard against dividing by zero */
   if (skew < MIN_SKEW)
@@ -885,6 +970,12 @@ REF_SetUnsynchronised(void)
   double uncorrected_offset;
 
   assert(initialised);
+
+  /* Special modes are implemented elsewhere */
+  if (mode != REF_ModeNormal) {
+    special_mode_sync(0, 0.0);
+    return;
+  }
 
   /* This is cheaper than calling LCL_CookTime */
   SCH_GetLastEventTime(&now, NULL, &now_raw);
@@ -1086,5 +1177,3 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
   }
 
 }
-
-/* ================================================== */
