@@ -59,7 +59,7 @@
 
 static int initialised = 0;
 
-/* ================================================== */
+static int exit_status = 0;
 
 static int reload = 0;
 
@@ -80,7 +80,7 @@ delete_pidfile(void)
 void
 MAI_CleanupAndExit(void)
 {
-  if (!initialised) exit(0);
+  if (!initialised) exit(exit_status);
   
   if (CNF_GetDumpOnExit()) {
     SRC_DumpSources();
@@ -108,7 +108,7 @@ MAI_CleanupAndExit(void)
   
   LOG_Finalise();
 
-  exit(0);
+  exit(exit_status);
 }
 
 /* ================================================== */
@@ -157,6 +157,8 @@ reference_mode_end(int result)
 {
   switch (ref_mode) {
     case REF_ModeNormal:
+      exit_status = !result;
+      SCH_QuitProgram();
       break;
     case REF_ModeInitStepSlew:
       /* post_init_ntp_hook removes sources and a source call is

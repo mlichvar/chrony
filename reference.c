@@ -580,7 +580,7 @@ is_offset_ok(double offset)
         "Adjustment of %.3f seconds exceeds the allowed maximum of %.3f seconds (%s) ",
         offset, max_offset, !max_offset_ignore ? "exiting" : "ignored");
     if (!max_offset_ignore)
-      SCH_QuitProgram();
+      end_ref_mode(0);
     else if (max_offset_ignore > 0)
       max_offset_ignore--;
     return 0;
