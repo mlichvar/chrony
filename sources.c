@@ -384,6 +384,16 @@ SRC_ResetReachability(SRC_Instance inst)
 
 /* ================================================== */
 
+static void
+log_selection_message(char *format, char *arg)
+{
+  if (REF_GetMode() != REF_ModeNormal)
+    return;
+  LOG(LOGS_INFO, LOGF_Sources, format, arg);
+}
+
+/* ================================================== */
+
 static int
 compare_sort_elements(const void *a, const void *b)
 {
@@ -528,7 +538,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   if (n_sources == 0) {
     /* In this case, we clearly cannot synchronise to anything */
     if (selected_source_index != INVALID_SOURCE) {
-      LOG(LOGS_INFO, LOGF_Sources, "Can't synchronise: no sources");
+      log_selection_message("Can't synchronise: no sources", NULL);
       selected_source_index = INVALID_SOURCE;
       REF_SetUnsynchronised();
     }
@@ -701,7 +711,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
            */
 
       if (selected_source_index != INVALID_SOURCE) {
-        LOG(LOGS_INFO, LOGF_Sources, "Can't synchronise: no majority");
+        log_selection_message("Can't synchronise: no majority", NULL);
       }
       selected_source_index = INVALID_SOURCE;
 
@@ -907,7 +917,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
           /* We have to elect a new synchronisation source */
 
           selected_source_index = max_score_index;
-          LOG(LOGS_INFO, LOGF_Sources, "Selected source %s",
+          log_selection_message("Selected source %s",
                 source_to_string(sources[selected_source_index]));
                                  
 #if 0
@@ -955,7 +965,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
       } else {
         if (selected_source_index != INVALID_SOURCE) {
-          LOG(LOGS_INFO, LOGF_Sources, "Can't synchronise: no selectable sources");
+          log_selection_message("Can't synchronise: no selectable sources", NULL);
         }
         selected_source_index = INVALID_SOURCE;
       }
@@ -964,7 +974,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   } else {
     /* No sources provided valid endpoints */
     if (selected_source_index != INVALID_SOURCE) {
-      LOG(LOGS_INFO, LOGF_Sources, "Can't synchronise: no reachable sources");
+      log_selection_message("Can't synchronise: no reachable sources", NULL);
     }
     selected_source_index = INVALID_SOURCE;
   }
