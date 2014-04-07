@@ -186,6 +186,10 @@ struct NCR_Instance_Record {
    a reply to the previous probe */
 #define BURST_TIMEOUT 8.0
 
+/* Number of samples in initial burst */
+#define IBURST_GOOD_SAMPLES 4
+#define IBURST_TOTAL_SAMPLES SOURCE_REACH_BITS
+
 /* Time to wait after sending echo to 'warm up' link */
 #define WARM_UP_DELAY 4.0
 
@@ -345,7 +349,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   }
   
   if (params->iburst) {
-    NCR_InitiateSampleBurst(result, 4, 8);
+    NCR_InitiateSampleBurst(result, IBURST_GOOD_SAMPLES, IBURST_TOTAL_SAMPLES);
   }
 
   result->auto_offline = params->auto_offline;

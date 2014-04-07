@@ -34,6 +34,9 @@
 #include "ntp.h"
 #include "reports.h"
 
+/* Size of the source reachability register */
+#define SOURCE_REACH_BITS 8
+
 /* This datatype is used to hold information about sources.  The
    instance must be passed when calling many of the interface
    functions */

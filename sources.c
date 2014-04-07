@@ -135,9 +135,6 @@ static int selected_source_index; /* Which source index is currently
                                      selected (set to INVALID_SOURCE
                                      if no current valid reference) */
 
-/* Keep reachability status for last 8 samples */
-#define REACH_BITS 8
-
 /* Score needed to replace the currently selected source */
 #define SCORE_LIMIT 10.0
 
@@ -354,9 +351,9 @@ SRC_UpdateReachability(SRC_Instance inst, int reachable)
 {
   inst->reachability <<= 1;
   inst->reachability |= !!reachable;
-  inst->reachability &= ~(-1 << REACH_BITS);
+  inst->reachability &= ~(-1 << SOURCE_REACH_BITS);
 
-  if (inst->reachability_size < REACH_BITS)
+  if (inst->reachability_size < SOURCE_REACH_BITS)
       inst->reachability_size++;
 
   if (!reachable && inst->index == selected_source_index) {
@@ -366,7 +363,7 @@ SRC_UpdateReachability(SRC_Instance inst, int reachable)
 
   /* End special reference mode on last reachability update from iburst */
   if (REF_GetMode() != REF_ModeNormal &&
-      inst->reachability_size >= REACH_BITS - 1) {
+      inst->reachability_size >= SOURCE_REACH_BITS - 1) {
     REF_SetUnsynchronised();
   }
 }
@@ -458,7 +455,7 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
          fabs(*frequency - src_frequency) >
            combine_limit * (*skew + src_skew + LCL_GetMaxClockError()))) {
       /* Use a smaller penalty in first few updates */
-      sources[index]->outlier = sources[index]->reachability_size >= REACH_BITS ?
+      sources[index]->outlier = sources[index]->reachability_size >= SOURCE_REACH_BITS ?
                                 OUTLIER_PENALTY : 1;
     } else if (sources[index]->outlier) {
       sources[index]->outlier--;
