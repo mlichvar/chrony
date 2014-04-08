@@ -17,3 +17,5 @@ config.h
 config.log
 tags
 version.h
+/test/simulation/clknetsim
+/test/simulation/tmp
