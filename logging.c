@@ -42,7 +42,9 @@ static int system_log = 0;
 
 static int parent_fd = 0;
 
-static int log_debug = 0;
+#define DEBUG_LEVEL_PRINT_FUNCTION 2
+#define DEBUG_LEVEL_PRINT_DEBUG 2
+static int debug_level = 0;
 
 static time_t last_limited = 0;
 
@@ -146,18 +148,20 @@ void LOG_Message(LOG_Severity severity, LOG_Facility facility,
   time_t t;
   struct tm stm;
 
-  /* Don't write debug messages if not enabled */
-  if (!log_debug && severity == LOGS_DEBUG)
+  /* Don't write debug messages if debug level is too low */
+  if (debug_level < DEBUG_LEVEL_PRINT_DEBUG && severity == LOGS_DEBUG)
     return;
 
 #ifdef WINNT
 #else
   if (!system_log) {
-    /* Don't clutter up syslog with internal debugging info */
+    /* Don't clutter up syslog with timestamps and internal debugging info */
     time(&t);
     stm = *gmtime(&t);
     strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &stm);
-    fprintf(stderr, "%s %s:%d:(%s) ", buf, filename, line_number, function_name);
+    fprintf(stderr, "%s ", buf);
+    if (debug_level >= DEBUG_LEVEL_PRINT_FUNCTION)
+      fprintf(stderr, "%s:%d:(%s) ", filename, line_number, function_name);
   }
 #endif
 
@@ -209,9 +213,9 @@ LOG_OpenSystemLog(void)
 
 /* ================================================== */
 
-void LOG_EnableDebug(void)
+void LOG_SetDebugLevel(int level)
 {
-  log_debug = 1;
+  debug_level = level;
 }
 
 /* ================================================== */

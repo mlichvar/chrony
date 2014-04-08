@@ -102,8 +102,12 @@ extern void LOG_Message(LOG_Severity severity, LOG_Facility facility,
                         int line_number, const char *filename,
                         const char *function_name, const char *format, ...);
 
-/* Enable logging of debug messages */
-extern void LOG_EnableDebug(void);
+/* Set debug level:
+   0, 1 - only non-debug messages are logged
+   2    - debug messages are logged too, all messages are prefixed with
+          filename, line, and function name
+   */
+extern void LOG_SetDebugLevel(int level);
 
 /* Log messages to syslog instead of stderr */
 extern void LOG_OpenSystemLog(void);

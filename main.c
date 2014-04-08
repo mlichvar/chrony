@@ -323,6 +323,7 @@ int main
   int do_init_rtc = 0, restarted = 0;
   int other_pid;
   int lock_memory = 0, sched_priority = 0;
+  int system_log = 1;
 
   LOG_Initialise();
 
@@ -361,6 +362,7 @@ int main
     } else if (!strcmp("-d", *argv)) {
       debug++;
       nofork = 1;
+      system_log = 0;
     } else if (!strcmp("-4", *argv)) {
       address_family = IPADDR_INET4;
     } else if (!strcmp("-6", *argv)) {
@@ -381,13 +383,11 @@ int main
     go_daemon();
   }
 
-  if (!debug) {
+  if (system_log) {
     LOG_OpenSystemLog();
   }
   
-  if (debug > 1) {
-    LOG_EnableDebug();
-  }
+  LOG_SetDebugLevel(debug);
   
   LOG(LOGS_INFO, LOGF_Main, "chronyd version %s starting", CHRONY_VERSION);
 
