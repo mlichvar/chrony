@@ -1,0 +1,20 @@
+#!/bin/bash
+
+. test.common
+
+passed=() failed=()
+
+[ $# -gt 0 ] && tests=($@) || tests=([0-9]*-*[^_])
+
+for test in "${tests[@]}"; do
+	echo "$test ($[${#passed[@]} + ${#failed[@]} + 1]/${#tests[@]})"
+	./$test && passed=(${passed[@]} $test) || failed=(${failed[@]} $test)
+	echo
+done
+
+echo "SUMMARY:"
+echo "  TOTAL  $[${#passed[@]} + ${#failed[@]}]"
+echo "  PASSED ${#passed[@]}"
+echo "  FAILED ${#failed[@]}    (${failed[@]})"
+
+[ ${#failed} -eq 0 ]
