@@ -255,8 +255,9 @@ static const char *processed_command;
 static void
 command_parse_error(void)
 {
-    LOG_FATAL(LOGF_Configure, "Could not parse %s directive at line %d in file %s",
-        processed_command, line_number, processed_file);
+    LOG_FATAL(LOGF_Configure, "Could not parse %s directive at line %d%s%s",
+        processed_command, line_number, processed_file ? " in file " : "",
+        processed_file ? processed_file : "");
 }
 
 /* ================================================== */
@@ -264,8 +265,9 @@ command_parse_error(void)
 static void
 other_parse_error(const char *message)
 {
-    LOG_FATAL(LOGF_Configure, "%s at line %d in file %s",
-        message, line_number, processed_file);
+    LOG_FATAL(LOGF_Configure, "%s at line %d%s%s",
+        message, line_number, processed_file ? " in file " : "",
+        processed_file ? processed_file : "");
 }
 
 /* ================================================== */
@@ -283,9 +285,10 @@ check_number_of_args(char *line, int num)
       num--;
   }
   if (num) {
-    LOG_FATAL(LOGF_Configure, "%s arguments for %s directive at line %d in file %s",
+    LOG_FATAL(LOGF_Configure, "%s arguments for %s directive at line %d%s%s",
         num > 0 ? "Missing" : "Too many",
-        processed_command, line_number, processed_file);
+        processed_command, line_number, processed_file ? " in file " : "",
+        processed_file ? processed_file : "");
   }
 }
 
