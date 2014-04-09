@@ -332,6 +332,7 @@ int main
   int other_pid;
   int lock_memory = 0, sched_priority = 0;
   int system_log = 1;
+  int config_args = 0;
 
   LOG_Initialise();
 
@@ -383,8 +384,12 @@ int main
       address_family = IPADDR_INET4;
     } else if (!strcmp("-6", *argv)) {
       address_family = IPADDR_INET6;
-    } else {
+    } else if (*argv[0] == '-') {
       LOG_FATAL(LOGF_Main, "Unrecognized command line option [%s]", *argv);
+    } else {
+      /* Process remaining arguments and configuration lines */
+      config_args = argc;
+      break;
     }
   }
 
@@ -410,7 +415,15 @@ int main
   DNS_SetAddressFamily(address_family);
 
   CNF_SetRestarted(restarted);
-  CNF_ReadFile(conf_file);
+
+  /* Parse the config file or the remaining command line arguments */
+  if (!config_args) {
+    CNF_ReadFile(conf_file);
+  } else {
+    do {
+      CNF_ParseLine(NULL, config_args - argc + 1, *argv);
+    } while (++argv, --argc);
+  }
 
   /* Check whether another chronyd may already be running.  Do this after
    * forking, so that message logging goes to the right place (i.e. syslog), in

@@ -4,7 +4,7 @@ chronyd \- chrony background daemon
 
 .SH SYNOPSIS
 .B chronyd
-[\fIOPTIONS\fR]
+[\fIOPTIONS\fR] [\fIconfiguration commands\fR]
 
 .SH DESCRIPTION
 \fIchrony\fR is a pair of programs for maintaining the accuracy of computer
@@ -31,6 +31,9 @@ command:
 
 Information messages and warnings will be logged to syslog.
 
+If no configuration commands are specified on the command line,
+\fBchronyd\fR will read the commands from the configuration file
+(default \fI@SYSCONFDIR@/chrony.conf\fR).
 
 .SH OPTIONS
 A summary of the options supported by \fBchronyd\fR is included below.

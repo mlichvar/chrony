@@ -971,6 +971,10 @@ entering the command
 
 Information messages and warnings will be logged to syslog.
 
+If no configuration commands are specified on the command line,
+@code{chronyd} will read the commands from the configuration file
+(default @file{@SYSCONFDIR@/chrony.conf}).
+
 The command line options supported are as follows:
 
 @table @code
@@ -1105,6 +1109,10 @@ specified with a command line option.
 Each command in the configuration file is placed on a separate line.
 The following sections describe each of the commands in turn.  The
 directives can occur in any order in the file.
+
+The configuration commands can also be specified directly on the
+@code{chronyd} command line, each argument is parsed as a line and
+the configuration file is ignored.
 
 @menu
 * comments in config file::     How to write a comment
