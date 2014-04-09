@@ -305,156 +305,158 @@ CNF_ReadFile(const char *filename)
 {
   FILE *in;
   char line[2048];
-  char *p, *command;
-  const char *prev_processed_file;
-  int prev_line_number;
+  int i;
 
   in = fopen(filename, "r");
   if (!in) {
     LOG_FATAL(LOGF_Configure, "Could not open configuration file %s", filename);
+    return;
+  }
+
+  for (i = 1; fgets(line, sizeof(line), in); i++) {
+    CNF_ParseLine(filename, i, line);
+  }
+
+  fclose(in);
+}
+
+/* ================================================== */
+
+/* Parse one configuration line */
+void
+CNF_ParseLine(const char *filename, int number, char *line)
+{
+  char *p, *command;
+
+  /* Set global variables used in error messages */
+  processed_file = filename;
+  line_number = number;
+
+  /* Remove extra white-space and comments */
+  CPS_NormalizeLine(line);
+
+  /* Skip blank lines */
+  if (!*line)
+    return;
+
+  /* We have a real line, now try to match commands */
+  processed_command = command = line;
+  p = CPS_SplitWord(line);
+
+  if (!strcasecmp(command, "acquisitionport")) {
+    parse_int(p, &acquisition_port);
+  } else if (!strcasecmp(command, "allow")) {
+    parse_allow(p);
+  } else if (!strcasecmp(command, "bindacqaddress")) {
+    parse_bindacqaddress(p);
+  } else if (!strcasecmp(command, "bindaddress")) {
+    parse_bindaddress(p);
+  } else if (!strcasecmp(command, "bindcmdaddress")) {
+    parse_bindcmdaddress(p);
+  } else if (!strcasecmp(command, "broadcast")) {
+    parse_broadcast(p);
+  } else if (!strcasecmp(command, "clientloglimit")) {
+    parse_clientloglimit(p);
+  } else if (!strcasecmp(command, "cmdallow")) {
+    parse_cmdallow(p);
+  } else if (!strcasecmp(command, "cmddeny")) {
+    parse_cmddeny(p);
+  } else if (!strcasecmp(command, "cmdport")) {
+    parse_int(p, &cmd_port);
+  } else if (!strcasecmp(command, "combinelimit")) {
+    parse_double(p, &combine_limit);
+  } else if (!strcasecmp(command, "commandkey")) {
+    parse_unsignedlong(p, &command_key_id);
+  } else if (!strcasecmp(command, "corrtimeratio")) {
+    parse_double(p, &correction_time_ratio);
+  } else if (!strcasecmp(command, "deny")) {
+    parse_deny(p);
+  } else if (!strcasecmp(command, "driftfile")) {
+    parse_string(p, &drift_file);
+  } else if (!strcasecmp(command, "dumpdir")) {
+    parse_string(p, &dumpdir);
+  } else if (!strcasecmp(command, "dumponexit")) {
+    do_dump_on_exit = parse_null(p);
+  } else if (!strcasecmp(command, "fallbackdrift")) {
+    parse_fallbackdrift(p);
+  } else if (!strcasecmp(command, "generatecommandkey")) {
+    generate_command_key = parse_null(p);
+  } else if (!strcasecmp(command, "hwclockfile")) {
+    parse_string(p, &hwclock_file);
+  } else if (!strcasecmp(command, "include")) {
+    parse_include(p);
+  } else if (!strcasecmp(command, "initstepslew")) {
+    parse_initstepslew(p);
+  } else if (!strcasecmp(command, "keyfile")) {
+    parse_string(p, &keys_file);
+  } else if (!strcasecmp(command, "leapsectz")) {
+    parse_string(p, &leapsec_tz);
+  } else if (!strcasecmp(command, "linux_freq_scale")) {
+    set_linux_freq_scale = parse_double(p, &linux_freq_scale);
+  } else if (!strcasecmp(command, "linux_hz")) {
+    set_linux_hz = parse_int(p, &linux_hz);
+  } else if (!strcasecmp(command, "local")) {
+    parse_local(p);
+  } else if (!strcasecmp(command, "lock_all")) {
+    lock_memory = parse_null(p);
+  } else if (!strcasecmp(command, "log")) {
+    parse_log(p);
+  } else if (!strcasecmp(command, "logbanner")) {
+    parse_int(p, &log_banner);
+  } else if (!strcasecmp(command, "logchange")) {
+    do_log_change = parse_double(p, &log_change_threshold);
+  } else if (!strcasecmp(command, "logdir")) {
+    parse_string(p, &logdir);
+  } else if (!strcasecmp(command, "mailonchange")) {
+    parse_mailonchange(p);
+  } else if (!strcasecmp(command, "makestep")) {
+    parse_makestep(p);
+  } else if (!strcasecmp(command, "manual")) {
+    enable_manual = parse_null(p);
+  } else if (!strcasecmp(command, "maxchange")) {
+    parse_maxchange(p);
+  } else if (!strcasecmp(command, "maxclockerror")) {
+    parse_double(p, &max_clock_error);
+  } else if (!strcasecmp(command, "maxsamples")) {
+    parse_int(p, &max_samples);
+  } else if (!strcasecmp(command, "maxupdateskew")) {
+    parse_double(p, &max_update_skew);
+  } else if (!strcasecmp(command, "minsamples")) {
+    parse_int(p, &min_samples);
+  } else if (!strcasecmp(command, "noclientlog")) {
+    no_client_log = parse_null(p);
+  } else if (!strcasecmp(command, "peer")) {
+    parse_peer(p);
+  } else if (!strcasecmp(command, "pidfile")) {
+    parse_string(p, &pidfile);
+  } else if (!strcasecmp(command, "port")) {
+    parse_int(p, &ntp_port);
+  } else if (!strcasecmp(command, "refclock")) {
+    parse_refclock(p);
+  } else if (!strcasecmp(command, "reselectdist")) {
+    parse_double(p, &reselect_distance);
+  } else if (!strcasecmp(command, "rtcautotrim")) {
+    parse_double(p, &rtc_autotrim_threshold);
+  } else if (!strcasecmp(command, "rtcdevice")) {
+    parse_string(p, &rtc_device);
+  } else if (!strcasecmp(command, "rtcfile")) {
+    parse_string(p, &rtc_file);
+  } else if (!strcasecmp(command, "rtconutc")) {
+    rtc_on_utc = parse_null(p);
+  } else if (!strcasecmp(command, "rtcsync")) {
+    rtc_sync = parse_null(p);
+  } else if (!strcasecmp(command, "sched_priority")) {
+    parse_int(p, &sched_priority);
+  } else if (!strcasecmp(command, "server")) {
+    parse_server(p);
+  } else if (!strcasecmp(command, "stratumweight")) {
+    parse_double(p, &stratum_weight);
+  } else if (!strcasecmp(command, "tempcomp")) {
+    parse_tempcomp(p);
+  } else if (!strcasecmp(command, "user")) {
+    parse_string(p, &user);
   } else {
-    /* Save current line number in case this is an included file */
-    prev_line_number = line_number;
-    prev_processed_file = processed_file;
-
-    line_number = 0;
-    processed_file = filename;
-
-    /* Success */
-    while (fgets(line, sizeof(line), in)) {
-      line_number++;
-
-      /* Remove extra white-space and comments */
-      CPS_NormalizeLine(line);
-
-      /* Skip blank lines */
-      if (!*line)
-        continue;
-
-      /* We have a real line, now try to match commands */
-      processed_command = command = line;
-      p = CPS_SplitWord(line);
-
-      if (!strcasecmp(command, "acquisitionport")) {
-        parse_int(p, &acquisition_port);
-      } else if (!strcasecmp(command, "allow")) {
-        parse_allow(p);
-      } else if (!strcasecmp(command, "bindacqaddress")) {
-        parse_bindacqaddress(p);
-      } else if (!strcasecmp(command, "bindaddress")) {
-        parse_bindaddress(p);
-      } else if (!strcasecmp(command, "bindcmdaddress")) {
-        parse_bindcmdaddress(p);
-      } else if (!strcasecmp(command, "broadcast")) {
-        parse_broadcast(p);
-      } else if (!strcasecmp(command, "clientloglimit")) {
-        parse_clientloglimit(p);
-      } else if (!strcasecmp(command, "cmdallow")) {
-        parse_cmdallow(p);
-      } else if (!strcasecmp(command, "cmddeny")) {
-        parse_cmddeny(p);
-      } else if (!strcasecmp(command, "cmdport")) {
-        parse_int(p, &cmd_port);
-      } else if (!strcasecmp(command, "combinelimit")) {
-        parse_double(p, &combine_limit);
-      } else if (!strcasecmp(command, "commandkey")) {
-        parse_unsignedlong(p, &command_key_id);
-      } else if (!strcasecmp(command, "corrtimeratio")) {
-        parse_double(p, &correction_time_ratio);
-      } else if (!strcasecmp(command, "deny")) {
-        parse_deny(p);
-      } else if (!strcasecmp(command, "driftfile")) {
-        parse_string(p, &drift_file);
-      } else if (!strcasecmp(command, "dumpdir")) {
-        parse_string(p, &dumpdir);
-      } else if (!strcasecmp(command, "dumponexit")) {
-        do_dump_on_exit = parse_null(p);
-      } else if (!strcasecmp(command, "fallbackdrift")) {
-        parse_fallbackdrift(p);
-      } else if (!strcasecmp(command, "generatecommandkey")) {
-        generate_command_key = parse_null(p);
-      } else if (!strcasecmp(command, "hwclockfile")) {
-        parse_string(p, &hwclock_file);
-      } else if (!strcasecmp(command, "include")) {
-        parse_include(p);
-      } else if (!strcasecmp(command, "initstepslew")) {
-        parse_initstepslew(p);
-      } else if (!strcasecmp(command, "keyfile")) {
-        parse_string(p, &keys_file);
-      } else if (!strcasecmp(command, "leapsectz")) {
-        parse_string(p, &leapsec_tz);
-      } else if (!strcasecmp(command, "linux_freq_scale")) {
-        set_linux_freq_scale = parse_double(p, &linux_freq_scale);
-      } else if (!strcasecmp(command, "linux_hz")) {
-        set_linux_hz = parse_int(p, &linux_hz);
-      } else if (!strcasecmp(command, "local")) {
-        parse_local(p);
-      } else if (!strcasecmp(command, "lock_all")) {
-        lock_memory = parse_null(p);
-      } else if (!strcasecmp(command, "log")) {
-        parse_log(p);
-      } else if (!strcasecmp(command, "logbanner")) {
-        parse_int(p, &log_banner);
-      } else if (!strcasecmp(command, "logchange")) {
-        do_log_change = parse_double(p, &log_change_threshold);
-      } else if (!strcasecmp(command, "logdir")) {
-        parse_string(p, &logdir);
-      } else if (!strcasecmp(command, "mailonchange")) {
-        parse_mailonchange(p);
-      } else if (!strcasecmp(command, "makestep")) {
-        parse_makestep(p);
-      } else if (!strcasecmp(command, "manual")) {
-        enable_manual = parse_null(p);
-      } else if (!strcasecmp(command, "maxchange")) {
-        parse_maxchange(p);
-      } else if (!strcasecmp(command, "maxclockerror")) {
-        parse_double(p, &max_clock_error);
-      } else if (!strcasecmp(command, "maxsamples")) {
-        parse_int(p, &max_samples);
-      } else if (!strcasecmp(command, "maxupdateskew")) {
-        parse_double(p, &max_update_skew);
-      } else if (!strcasecmp(command, "minsamples")) {
-        parse_int(p, &min_samples);
-      } else if (!strcasecmp(command, "noclientlog")) {
-        no_client_log = parse_null(p);
-      } else if (!strcasecmp(command, "peer")) {
-        parse_peer(p);
-      } else if (!strcasecmp(command, "pidfile")) {
-        parse_string(p, &pidfile);
-      } else if (!strcasecmp(command, "port")) {
-        parse_int(p, &ntp_port);
-      } else if (!strcasecmp(command, "refclock")) {
-        parse_refclock(p);
-      } else if (!strcasecmp(command, "reselectdist")) {
-        parse_double(p, &reselect_distance);
-      } else if (!strcasecmp(command, "rtcautotrim")) {
-        parse_double(p, &rtc_autotrim_threshold);
-      } else if (!strcasecmp(command, "rtcdevice")) {
-        parse_string(p, &rtc_device);
-      } else if (!strcasecmp(command, "rtcfile")) {
-        parse_string(p, &rtc_file);
-      } else if (!strcasecmp(command, "rtconutc")) {
-        rtc_on_utc = parse_null(p);
-      } else if (!strcasecmp(command, "rtcsync")) {
-        rtc_sync = parse_null(p);
-      } else if (!strcasecmp(command, "sched_priority")) {
-        parse_int(p, &sched_priority);
-      } else if (!strcasecmp(command, "server")) {
-        parse_server(p);
-      } else if (!strcasecmp(command, "stratumweight")) {
-        parse_double(p, &stratum_weight);
-      } else if (!strcasecmp(command, "tempcomp")) {
-        parse_tempcomp(p);
-      } else if (!strcasecmp(command, "user")) {
-        parse_string(p, &user);
-      } else {
-        other_parse_error("Invalid command");
-      }
-    }
-
-    line_number = prev_line_number;
-    processed_file = prev_processed_file;
-    fclose(in);
+    other_parse_error("Invalid command");
   }
 }
 

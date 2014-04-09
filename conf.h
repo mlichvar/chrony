@@ -34,6 +34,7 @@ extern void CNF_SetRestarted(int);
 extern char *CNF_GetRtcDevice(void);
 
 extern void CNF_ReadFile(const char *filename);
+extern void CNF_ParseLine(const char *filename, int number, char *line);
 
 extern void CNF_AddInitSources(void);
 extern void CNF_AddSources(void);
