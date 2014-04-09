@@ -113,6 +113,7 @@ For better control, use the options below.
   --disable-rtc          Don't include RTC even on Linux
   --disable-linuxcaps    Disable Linux capabilities support
   --disable-forcednsretry Don't retry on permanent DNS error
+  --with-user=USER       Specify default chronyd user [root]
   --with-sendmail=PATH   Path to sendmail binary [/usr/lib/sendmail]
   --enable-debug         Enable debugging support
 
@@ -191,6 +192,7 @@ feat_pps=1
 try_setsched=0
 try_lockmem=0
 feat_forcednsretry=1
+default_user="root"
 mail_program="/usr/lib/sendmail"
 
 for option
@@ -267,6 +269,9 @@ do
     ;;
     --disable-forcednsretry)
       feat_forcednsretry=0
+    ;;
+    --with-user=* )
+      default_user=`echo $option | sed -e 's/^.*=//;'`
     ;;
     --with-sendmail=* )
       mail_program=`echo $option | sed -e 's/^.*=//;'`
@@ -618,6 +623,7 @@ fi
 
 add_def DEBUG $debug
 add_def DEFAULT_CONF_FILE "\"$SYSCONFDIR/chrony.conf\""
+add_def DEFAULT_USER "\"$default_user\""
 add_def MAIL_PROGRAM "\"$mail_program\""
 
 if [ -f version.txt ]; then
@@ -649,7 +655,8 @@ do
           s%@MANDIR@%${MANDIR}%;\
           s%@INFODIR@%${INFODIR}%;\
           s%@LOCALSTATEDIR@%${LOCALSTATEDIR}%;\
-          s%@CHRONYVARDIR@%${CHRONYVARDIR}%;"\
+          s%@CHRONYVARDIR@%${CHRONYVARDIR}%;\
+          s%@DEFAULT_USER@%${default_user}%;"\
           < ${f}.in > $f
 done
 

@@ -103,8 +103,9 @@ between the real time clock and system clock last time the
 computer was on.
 .TP
 \fB\-u\fR \fIuser\fR
-When this option is used, chronyd will drop root privileges to the specified
-user.  So far, it works only on Linux when compiled with capabilities support.
+This option sets the name of the user to which will \fBchronyd\fR switch to
+drop root privileges if compiled with Linux capabilities support (default
+\fB@DEFAULT_USER@\fR).
 .TP
 .B \-q
 When run in this mode, chronyd will set the system clock once

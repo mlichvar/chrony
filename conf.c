@@ -203,7 +203,7 @@ static int lock_memory = 0;
 static char *leapsec_tz = NULL;
 
 /* Name of the user to which will be dropped root privileges. */
-static char *user = NULL;
+static char *user = DEFAULT_USER;
 
 typedef struct {
   NTP_Source_Type type;

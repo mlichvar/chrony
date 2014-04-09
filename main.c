@@ -466,7 +466,7 @@ int main
   if (!user) {
     user = CNF_GetUser();
   }
-  if (user) {
+  if (user && strcmp(user, "root")) {
     SYS_DropRoot(user);
   }
 
