@@ -103,6 +103,14 @@ computer was on.
 When this option is used, chronyd will drop root privileges to the specified
 user.  So far, it works only on Linux when compiled with capabilities support.
 .TP
+.B \-q
+When run in this mode, chronyd will set the system clock once
+and exit.  It will not detach from the terminal.
+.TP
+.B \-Q
+This option is similar to \fB\-q\fR, but it will only print the offset and
+not correct the clock.
+.TP
 .B \-v
 This option displays \fBchronyd\fR's version number to the terminal and exits
 .TP

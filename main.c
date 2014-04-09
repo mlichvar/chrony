@@ -148,6 +148,12 @@ post_init_ntp_hook(void *anything)
 
   RTC_StartMeasurements();
   RCL_StartRefclocks();
+
+  /* Special modes can end only when sources update their reachability.
+     Give up immediatelly if there are no sources. */
+  if (ref_mode != REF_ModeNormal && !SRC_ReadNumberOfSources()) {
+    REF_SetUnsynchronised();
+  }
 }
 
 /* ================================================== */
@@ -157,6 +163,8 @@ reference_mode_end(int result)
 {
   switch (ref_mode) {
     case REF_ModeNormal:
+    case REF_ModeUpdateOnce:
+    case REF_ModePrintOnce:
       exit_status = !result;
       SCH_QuitProgram();
       break;
@@ -363,6 +371,14 @@ int main
       debug++;
       nofork = 1;
       system_log = 0;
+    } else if (!strcmp("-q", *argv)) {
+      ref_mode = REF_ModeUpdateOnce;
+      nofork = 1;
+      system_log = 0;
+    } else if (!strcmp("-Q", *argv)) {
+      ref_mode = REF_ModePrintOnce;
+      nofork = 1;
+      system_log = 0;
     } else if (!strcmp("-4", *argv)) {
       address_family = IPADDR_INET4;
     } else if (!strcmp("-6", *argv)) {
@@ -455,7 +471,7 @@ int main
   /* From now on, it is safe to do finalisation on exit */
   initialised = 1;
 
-  if (CNF_GetInitSources() > 0) {
+  if (ref_mode == REF_ModeNormal && CNF_GetInitSources() > 0) {
     ref_mode = REF_ModeInitStepSlew;
   }
 
