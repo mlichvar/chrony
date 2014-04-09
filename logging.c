@@ -156,8 +156,8 @@ void LOG_Message(LOG_Severity severity, LOG_Facility facility,
     /* Don't clutter up syslog with internal debugging info */
     time(&t);
     stm = *gmtime(&t);
-    strftime(buf, sizeof(buf), "%d-%H:%M:%S", &stm);
-    fprintf(stderr, "%s:%d:(%s)[%s] ", filename, line_number, function_name, buf);
+    strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &stm);
+    fprintf(stderr, "%s %s:%d:(%s) ", buf, filename, line_number, function_name);
   }
 #endif
 
