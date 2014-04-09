@@ -216,6 +216,8 @@ LOG_OpenSystemLog(void)
 void LOG_SetDebugLevel(int level)
 {
   debug_level = level;
+  if (!DEBUG && level >= DEBUG_LEVEL_PRINT_DEBUG)
+    LOG(LOGS_WARN, LOGF_Logging, "Not compiled with full debugging support");
 }
 
 /* ================================================== */
