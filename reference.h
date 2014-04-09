@@ -43,6 +43,8 @@ extern void REF_Finalise(void);
 typedef enum {
   REF_ModeNormal,
   REF_ModeInitStepSlew,
+  REF_ModeUpdateOnce,
+  REF_ModePrintOnce,
   REF_ModeIgnore,
 } REF_Mode;
 

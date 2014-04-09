@@ -733,6 +733,25 @@ special_mode_sync(int valid, double offset)
       end_ref_mode(1);
 
       break;
+    case REF_ModeUpdateOnce:
+    case REF_ModePrintOnce:
+      if (!valid) {
+        LOG(LOGS_WARN, LOGF_Reference, "No suitable source for synchronisation");
+        end_ref_mode(0);
+        break;
+      }
+
+      step = mode == REF_ModeUpdateOnce;
+
+      LOG(LOGS_INFO, LOGF_Reference, "System clock wrong by %.6f seconds (%s)",
+          -offset, step ? "step" : "ignored");
+
+      if (step)
+        LCL_ApplyStepOffset(offset);
+
+      end_ref_mode(1);
+
+      break;
     case REF_ModeIgnore:
       /* Do nothing until the mode is changed */
       break;
