@@ -373,6 +373,10 @@ special_mode_end(void)
     int i;
 
     for (i = 0; i < n_sources; i++) {
+      /* No updates from inactive sources */
+      if (!sources[i]->active)
+        continue;
+
       /* Don't expect more updates than from an offline iburst NTP source */
       if (sources[i]->reachability_size >= SOURCE_REACH_BITS - 1)
         continue;

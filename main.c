@@ -150,8 +150,8 @@ post_init_ntp_hook(void *anything)
   RCL_StartRefclocks();
 
   /* Special modes can end only when sources update their reachability.
-     Give up immediatelly if there are no sources. */
-  if (ref_mode != REF_ModeNormal && !SRC_ReadNumberOfSources()) {
+     Give up immediatelly if there are no active sources. */
+  if (ref_mode != REF_ModeNormal && !SRC_ActiveSources()) {
     REF_SetUnsynchronised();
   }
 }
