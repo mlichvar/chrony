@@ -184,7 +184,7 @@ struct NCR_Instance_Record {
 
 /* Time to wait before retransmitting in burst mode, if we did not get
    a reply to the previous probe */
-#define BURST_TIMEOUT 2.5
+#define BURST_TIMEOUT 2.0
 
 /* Number of samples in initial burst */
 #define IBURST_GOOD_SAMPLES 4
