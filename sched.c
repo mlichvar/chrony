@@ -569,13 +569,13 @@ SCH_MainLoop(void)
   assert(initialised);
 
   while (!need_to_exit) {
-
-    /* Copy current set of read file descriptors */
-    memcpy((void *) &rd, (void *) &read_fds, sizeof(fd_set));
-    
     /* Dispatch timeouts and fill now with current raw time */
     dispatch_timeouts(&now);
     
+    /* The timeout handlers may request quit */
+    if (need_to_exit)
+      break;
+
     /* Check whether there is a timeout and set it up */
     if (n_timer_queue_entries > 0) {
 
@@ -590,6 +590,9 @@ SCH_MainLoop(void)
     /* if there are no file descriptors being waited on and no
        timeout set, this is clearly ridiculous, so stop the run */
     assert(ptv || n_read_fds);
+
+    /* Copy current set of read file descriptors */
+    memcpy((void *) &rd, (void *) &read_fds, sizeof(fd_set));
 
     status = select(one_highest_fd, &rd, NULL, NULL, ptv);
     errsv = errno;
