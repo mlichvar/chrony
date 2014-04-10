@@ -263,6 +263,10 @@ start_initial_timeout(NCR_Instance inst)
 
   /* Mark source active */
   SRC_SetActive(inst->source);
+
+  /* Open client socket */
+  if (inst->mode == MODE_CLIENT)
+    inst->local_addr.sock_fd = NIO_GetClientSocket(&inst->remote_addr);
 }
 
 /* ================================================== */
@@ -281,6 +285,10 @@ take_offline(NCR_Instance inst)
 
   /* And inactive */
   SRC_UnsetActive(inst->source);
+
+  /* Close client socket */
+  if (inst->mode == MODE_CLIENT)
+    NIO_CloseClientSocket(inst->local_addr.sock_fd);
 }
 
 /* ================================================== */
@@ -297,7 +305,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
 
   switch (type) {
     case NTP_SERVER:
-      result->local_addr.sock_fd = NIO_GetClientSocket(remote_addr);
+      /* Client socket will be obtained when timer is started */
       result->mode = MODE_CLIENT;
       break;
     case NTP_PEER:
@@ -384,19 +392,13 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
 void
 NCR_DestroyInstance(NCR_Instance instance)
 {
+  if (instance->opmode != MD_OFFLINE)
+    take_offline(instance);
+
   /* This will destroy the source instance inside the
      structure, which will cause reselection if this was the
      synchronising source etc. */
   SRC_DestroyInstance(instance->source);
-
-  /* Cancel any pending timeouts */
-  if (instance->timer_running) {
-    SCH_RemoveTimeout(instance->timeout_id);
-    instance->timer_running = 0;
-  }
-
-  if (instance->mode == MODE_CLIENT)
-    NIO_CloseClientSocket(instance->local_addr.sock_fd);
 
   /* Free the data structure */
   Free(instance);
