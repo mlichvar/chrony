@@ -66,6 +66,9 @@ extern double RGR_GetChi2Coef(int dof);
    points */
 #define REGRESS_RUNS_RATIO 2
 
+/* Minimum number of samples for regression */
+#define MIN_SAMPLES_FOR_REGRESS 3
+
 /* Return a status indicating whether there were enough points to
    carry out the regression */
 

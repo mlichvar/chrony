@@ -209,8 +209,6 @@ n_runs_from_residuals(double *resid, int n)
 /* Return a boolean indicating whether we had enough points for
    regression */
 
-#define MIN_SAMPLES_FOR_REGRESS 3
-
 int
 RGR_FindBestRegression 
 (double *x,                     /* independent variable */
