@@ -117,6 +117,12 @@ extern void SRC_GetFrequencyRange(SRC_Instance instance, double *lo, double *hi)
 
 extern void SRC_AccumulateSample(SRC_Instance instance, struct timeval *sample_time, double offset, double peer_delay, double peer_dispersion, double root_delay, double root_dispersion, int stratum, NTP_Leap leap_status);
 
+/* This routine sets the source as receiving reachability updates */
+extern void SRC_SetActive(SRC_Instance inst);
+
+/* This routine sets the source as not receiving reachability updates */
+extern void SRC_UnsetActive(SRC_Instance inst);
+
 /* This routine indicates that packets with valid headers are being
    received from the designated source */
 extern void SRC_SetSelectable(SRC_Instance instance);
@@ -165,6 +171,7 @@ extern void SRC_ReloadSources(void);
 
 extern int SRC_IsSyncPeer(SRC_Instance inst);
 extern int SRC_ReadNumberOfSources(void);
+extern int SRC_ActiveSources(void);
 extern int SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now);
 
 extern int SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report, struct timeval *now);

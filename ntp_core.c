@@ -260,6 +260,9 @@ start_initial_timeout(NCR_Instance inst)
                                            SCH_NtpSamplingClass,
                                            transmit_timeout, (void *)inst);
   inst->timer_running = 1;
+
+  /* Mark source active */
+  SRC_SetActive(inst->source);
 }
 
 /* ================================================== */
@@ -275,6 +278,9 @@ take_offline(NCR_Instance inst)
 
   /* Mark source unreachable */
   SRC_ResetReachability(inst->source);
+
+  /* And inactive */
+  SRC_UnsetActive(inst->source);
 }
 
 /* ================================================== */
@@ -339,6 +345,9 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->poll_target = params->poll_target;
   result->poll_score = 0.0;
 
+  /* Create a source instance for this NTP source */
+  result->source = SRC_CreateNewInstance(UTI_IPToRefid(&remote_addr->ip_addr), SRC_NTP, params->sel_option, &result->remote_addr.ip_addr);
+
   if (params->online) {
     start_initial_timeout(result);
     result->opmode = MD_ONLINE;
@@ -357,9 +366,6 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->local_poll = result->minpoll;
   result->remote_poll = 0;
   result->remote_stratum = 0;
-
-  /* Create a source instance for this NTP source */
-  result->source = SRC_CreateNewInstance(UTI_IPToRefid(&remote_addr->ip_addr), SRC_NTP, params->sel_option, &result->remote_addr.ip_addr);
 
   result->local_rx.tv_sec = 0;
   result->local_rx.tv_usec = 0;
@@ -1702,21 +1708,21 @@ NCR_InitiateSampleBurst(NCR_Instance inst, int n_good_samples, int n_total_sampl
         break;
 
       case MD_ONLINE:
-      case MD_OFFLINE:
-        if (inst->opmode == MD_ONLINE)
-          inst->opmode = MD_BURST_WAS_ONLINE;
-        else
-          inst->opmode = MD_BURST_WAS_OFFLINE;
+        inst->opmode = MD_BURST_WAS_ONLINE;
         inst->burst_good_samples_to_go = n_good_samples;
         inst->burst_total_samples_to_go = n_total_samples;
-        if (inst->timer_running) {
-          SCH_RemoveTimeout(inst->timeout_id);
-        }
-        inst->timer_running = 1;
+        assert(inst->timer_running);
+        SCH_RemoveTimeout(inst->timeout_id);
         inst->timeout_id = SCH_AddTimeoutInClass(INITIAL_DELAY, SAMPLING_SEPARATION,
                                                  SAMPLING_RANDOMNESS,
                                                  SCH_NtpSamplingClass,
                                                  transmit_timeout, (void *) inst);
+        break;
+      case MD_OFFLINE:
+        inst->opmode = MD_BURST_WAS_OFFLINE;
+        inst->burst_good_samples_to_go = n_good_samples;
+        inst->burst_total_samples_to_go = n_total_samples;
+        start_initial_timeout(inst);
         break;
       default:
         assert(0);

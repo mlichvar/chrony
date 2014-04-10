@@ -91,6 +91,9 @@ struct SRC_Instance_Record {
   /* Flag indicating that we can use this source as a reference */
   int selectable;
 
+  /* Flag indicating that the source is updating reachability */
+  int active;
+
   /* Reachability register */
   int reachability;
 
@@ -215,6 +218,7 @@ SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, SRC_SelectOpt
   result->leap_status = LEAP_Normal;
   result->ref_id = ref_id;
   result->ip_addr = addr;
+  result->active = 0;
   result->selectable = 0;
   result->reachability = 0;
   result->reachability_size = 0;
@@ -312,6 +316,22 @@ void SRC_AccumulateSample
      IS FLIPPED */
   SST_AccumulateSample(inst->stats, sample_time, -offset, peer_delay, peer_dispersion, root_delay, root_dispersion, stratum);
   SST_DoNewRegression(inst->stats);
+}
+
+/* ================================================== */
+
+void
+SRC_SetActive(SRC_Instance inst)
+{
+  inst->active = 1;
+}
+
+/* ================================================== */
+
+void
+SRC_UnsetActive(SRC_Instance inst)
+{
+  inst->active = 0;
 }
 
 /* ================================================== */
@@ -1184,6 +1204,20 @@ int
 SRC_ReadNumberOfSources(void)
 {
   return n_sources;
+}
+
+/* ================================================== */
+
+int
+SRC_ActiveSources(void)
+{
+  int i, r;
+
+  for (i = r = 0; i < n_sources; i++)
+    if (sources[i]->active)
+      r++;
+
+  return r;
 }
 
 /* ================================================== */
