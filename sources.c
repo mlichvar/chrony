@@ -45,6 +45,7 @@
 #include "nameserv.h"
 #include "mkdirpp.h"
 #include "sched.h"
+#include "regress.h"
 
 /* ================================================== */
 /* Flag indicating that we are initialised */
@@ -346,6 +347,25 @@ SRC_UnsetSelectable(SRC_Instance inst)
 
 /* ================================================== */
 
+static int
+special_mode_end(void)
+{
+    int i;
+
+    for (i = 0; i < n_sources; i++) {
+      /* Don't expect more updates than from an offline iburst NTP source */
+      if (sources[i]->reachability_size >= SOURCE_REACH_BITS - 1)
+        continue;
+
+      /* Check if the source could still have enough samples to be selectable */
+      if (SOURCE_REACH_BITS - 1 - sources[i]->reachability_size +
+            SRC_Samples(sources[i]) >= MIN_SAMPLES_FOR_REGRESS)
+        return 0;
+    }
+
+    return 1;
+}
+
 void
 SRC_UpdateReachability(SRC_Instance inst, int reachable)
 {
@@ -361,9 +381,8 @@ SRC_UpdateReachability(SRC_Instance inst, int reachable)
     SRC_SelectSource(NULL);
   }
 
-  /* End special reference mode on last reachability update from iburst */
-  if (REF_GetMode() != REF_ModeNormal &&
-      inst->reachability_size >= SOURCE_REACH_BITS - 1) {
+  /* Check if special reference update mode failed */
+  if (REF_GetMode() != REF_ModeNormal && special_mode_end()) {
     REF_SetUnsynchronised();
   }
 }
