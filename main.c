@@ -144,7 +144,6 @@ post_init_ntp_hook(void *anything)
        semblence of validity about it. */
     SRC_ReloadSources();
   }
-  CNF_SetupAccessRestrictions();
 
   RTC_StartMeasurements();
   RCL_StartRefclocks();
@@ -483,6 +482,8 @@ int main
 
   /* From now on, it is safe to do finalisation on exit */
   initialised = 1;
+
+  CNF_SetupAccessRestrictions();
 
   if (ref_mode == REF_ModeNormal && CNF_GetInitSources() > 0) {
     ref_mode = REF_ModeInitStepSlew;
