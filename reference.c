@@ -578,7 +578,7 @@ is_offset_ok(double offset)
   if (offset > max_offset) {
     LOG(LOGS_WARN, LOGF_Reference,
         "Adjustment of %.3f seconds exceeds the allowed maximum of %.3f seconds (%s) ",
-        offset, max_offset, !max_offset_ignore ? "exiting" : "ignored");
+        -offset, max_offset, !max_offset_ignore ? "exiting" : "ignored");
     if (!max_offset_ignore)
       end_ref_mode(0);
     else if (max_offset_ignore > 0)
