@@ -46,7 +46,7 @@ DNS_SetAddressFamily(int family)
 DNS_Status 
 DNS_Name2IPAddress(const char *name, IPAddr *addr)
 {
-#ifdef HAVE_IPV6
+#ifdef HAVE_GETADDRINFO
   struct addrinfo hints, *res, *ai;
   int result;
   

@@ -413,6 +413,12 @@ then
   fi
 fi
 
+if test_code 'getaddrinfo()' 'sys/types.h sys/socket.h netdb.h' '' '' \
+  'return getaddrinfo(0, 0, 0, 0);'
+then
+  add_def HAVE_GETADDRINFO
+fi
+
 timepps_h=""
 if [ $feat_pps = "1" ]; then
   if test_code '<sys/timepps.h>' 'sys/timepps.h' '' '' ''; then
