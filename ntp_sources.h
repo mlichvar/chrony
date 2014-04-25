@@ -54,7 +54,14 @@ extern NSR_Status NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type
    until it succeeds or fails with a non-temporary error. */
 extern void NSR_AddUnresolvedSource(char *name, int port, NTP_Source_Type type, SourceParameters *params);
 
-/* Procedure to try resolve unresolved sources immediately. */
+/* Function type for handlers to be called back when an attempt
+ * (possibly unsuccessful) to resolve unresolved sources ends */
+typedef void (*NSR_SourceResolvingEndHandler)(void);
+
+/* Set the handler, or NULL to disable the notification */
+extern void NSR_SetSourceResolvingEndHandler(NSR_SourceResolvingEndHandler handler);
+
+/* Procedure to start resolving unresolved sources immediately */
 extern void NSR_ResolveSources(void);
 
 /* Procedure to start all sources */

@@ -1186,8 +1186,6 @@ CNF_AddSources(void) {
     NSR_AddUnresolvedSource(ntp_sources[i].params.name, ntp_sources[i].params.port,
         ntp_sources[i].type, &ntp_sources[i].params.params);
   }
-
-  NSR_ResolveSources();
 }
 
 /* ================================================== */

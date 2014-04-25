@@ -123,20 +123,10 @@ signal_cleanup(int x)
 /* ================================================== */
 
 static void
-post_init_ntp_hook(void *anything)
+ntp_source_resolving_end(void)
 {
-  if (ref_mode == REF_ModeInitStepSlew) {
-    /* Remove the initstepslew sources and set normal mode */
-    NSR_RemoveAllSources();
-    ref_mode = REF_ModeNormal;
-    REF_SetMode(ref_mode);
-  }
+  NSR_SetSourceResolvingEndHandler(NULL);
 
-  /* Close the pipe to the foreground process so it can exit */
-  LOG_CloseParentFd();
-
-  CNF_AddSources();
-  CNF_AddBroadcasts();
   if (reload) {
     /* Note, we want reload to come well after the initialisation from
        the real time clock - this gives us a fighting chance that the
@@ -155,6 +145,28 @@ post_init_ntp_hook(void *anything)
   if (ref_mode != REF_ModeNormal && !SRC_ActiveSources()) {
     REF_SetUnsynchronised();
   }
+}
+
+/* ================================================== */
+
+static void
+post_init_ntp_hook(void *anything)
+{
+  if (ref_mode == REF_ModeInitStepSlew) {
+    /* Remove the initstepslew sources and set normal mode */
+    NSR_RemoveAllSources();
+    ref_mode = REF_ModeNormal;
+    REF_SetMode(ref_mode);
+  }
+
+  /* Close the pipe to the foreground process so it can exit */
+  LOG_CloseParentFd();
+
+  CNF_AddSources();
+  CNF_AddBroadcasts();
+
+  NSR_SetSourceResolvingEndHandler(ntp_source_resolving_end);
+  NSR_ResolveSources();
 }
 
 /* ================================================== */

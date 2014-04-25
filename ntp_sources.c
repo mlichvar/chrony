@@ -37,7 +37,7 @@
 #include "logging.h"
 #include "local.h"
 #include "memory.h"
-#include "nameserv.h"
+#include "nameserv_async.h"
 #include "sched.h"
 
 /* ================================================== */
@@ -77,9 +77,14 @@ struct UnresolvedSource {
 static struct UnresolvedSource *unresolved_sources = NULL;
 static int resolving_interval = 0;
 static SCH_TimeoutID resolving_id;
+static struct UnresolvedSource *resolving_source = NULL;
+static NSR_SourceResolvingEndHandler resolving_end_handler = NULL;
 
 /* ================================================== */
 /* Forward prototypes */
+
+static void resolve_sources(void *arg);
+
 static void
 slew_sources(struct timeval *raw,
              struct timeval *cooked,
@@ -219,41 +224,86 @@ NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParam
 /* ================================================== */
 
 static void
+name_resolve_handler(DNS_Status status, IPAddr *ip_addr, void *anything)
+{
+  struct UnresolvedSource *us, **i, *next;
+  NTP_Remote_Address address;
+
+  us = (struct UnresolvedSource *)anything;
+
+  assert(us == resolving_source);
+
+  switch (status) {
+    case DNS_TryAgain:
+      break;
+    case DNS_Success:
+      DEBUG_LOG(LOGF_NtpSources, "%s resolved to %s", us->name, UTI_IPToString(ip_addr));
+      address.ip_addr = *ip_addr;
+      address.port = us->port;
+      NSR_AddSource(&address, us->type, &us->params);
+      break;
+    case DNS_Failure:
+      LOG(LOGS_WARN, LOGF_NtpSources, "Invalid host %s", us->name);
+      break;
+    default:
+      assert(0);
+  }
+
+  next = us->next;
+
+  if (status != DNS_TryAgain) {
+    /* Remove the source from the list */
+    for (i = &unresolved_sources; *i; i = &(*i)->next) {
+      if (*i == us) {
+        *i = us->next;
+        Free(us->name);
+        Free(us);
+        break;
+      }
+    }
+  }
+
+  resolving_source = next;
+
+  if (next) {
+    /* Continue with the next source in the list */
+    DEBUG_LOG(LOGF_NtpSources, "resolving %s", next->name);
+    DNS_Name2IPAddressAsync(next->name, name_resolve_handler, next);
+  } else {
+    /* This was the last source in the list. If some sources couldn't
+       be resolved, try again in exponentially increasing interval. */
+    if (unresolved_sources) {
+      if (resolving_interval < 9)
+        resolving_interval++;
+      resolving_id = SCH_AddTimeoutByDelay(7 * (1 << resolving_interval), resolve_sources, NULL);
+    } else {
+      resolving_interval = 0;
+    }
+
+    /* This round of resolving is done */
+    if (resolving_end_handler)
+      (resolving_end_handler)();
+  }
+}
+
+/* ================================================== */
+
+static void
 resolve_sources(void *arg)
 {
-  NTP_Remote_Address address;
-  struct UnresolvedSource *us, **i;
-  DNS_Status s;
+  struct UnresolvedSource *us;
+
+  assert(!resolving_source);
 
   DNS_Reload();
 
-  for (i = &unresolved_sources; *i; ) {
-    us = *i;
-    s = DNS_Name2IPAddress(us->name, &address.ip_addr);
-    if (s == DNS_TryAgain) {
-      i = &(*i)->next;
-      continue;
-    } else if (s == DNS_Success) {
-      address.port = us->port;
-      NSR_AddSource(&address, us->type, &us->params);
-    } else {
-      LOG(LOGS_WARN, LOGF_NtpSources, "Invalid host %s", us->name);
-    }
-    
-    *i = us->next;
+  /* Start with the first source in the list, name_resolve_handler
+     will iterate over the rest */
+  us = unresolved_sources;
 
-    Free(us->name);
-    Free(us);
-  }
-
-  if (unresolved_sources) {
-    /* Try again later */
-    if (resolving_interval < 9)
-      resolving_interval++;
-    resolving_id = SCH_AddTimeoutByDelay(7 * (1 << resolving_interval), resolve_sources, NULL);
-  } else {
-    resolving_interval = 0;
-  }
+  resolving_source = us;
+  DEBUG_LOG(LOGF_NtpSources, "resolving %s", us->name);
+  DNS_Name2IPAddressAsync(us->name, name_resolve_handler, us);
 }
 
 /* ================================================== */
@@ -286,13 +336,30 @@ NSR_AddUnresolvedSource(char *name, int port, NTP_Source_Type type, SourceParame
 /* ================================================== */
 
 void
+NSR_SetSourceResolvingEndHandler(NSR_SourceResolvingEndHandler handler)
+{
+  resolving_end_handler = handler;
+}
+
+/* ================================================== */
+
+void
 NSR_ResolveSources(void)
 {
   /* Try to resolve unresolved sources now */
-  if (resolving_interval) {
-    SCH_RemoveTimeout(resolving_id);
-    resolving_interval--;
-    resolve_sources(NULL);
+  if (unresolved_sources) {
+    /* Make sure no resolving is currently running */
+    if (!resolving_source) {
+      if (resolving_interval) {
+        SCH_RemoveTimeout(resolving_id);
+        resolving_interval--;
+      }
+      resolve_sources(NULL);
+    }
+  } else {
+    /* No unresolved sources, we are done */
+    if (resolving_end_handler)
+      (resolving_end_handler)();
   }
 }
 
