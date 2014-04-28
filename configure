@@ -535,6 +535,8 @@ if [ $feat_readline = "1" ]; then
       READLINE_LINK="$readline_lib $ncurses_lib -lreadline -lncurses"
     fi
   fi
+
+  EXTRA_CLI_LIBS="$EXTRA_CLI_LIBS $READLINE_LINK"
 fi
 
 HASH_OBJ="hash_intmd5.o"
@@ -551,6 +553,7 @@ if [ $try_nss = "1" ]; then
     HASH_OBJ="hash_nss.o"
     HASH_COMPILE="$test_cflags"
     HASH_LINK="$test_link"
+    LIBS="$LIBS $HASH_LINK"
     add_def GENERATE_SHA1_KEY
   fi
 fi
@@ -562,6 +565,7 @@ if [ "x$HASH_LINK" = "x" ] && [ $try_tomcrypt = "1" ]; then
     HASH_OBJ="hash_tomcrypt.o"
     HASH_COMPILE="-I/usr/include/tomcrypt"
     HASH_LINK="-ltomcrypt"
+    LIBS="$LIBS $HASH_LINK"
     add_def GENERATE_SHA1_KEY
   fi
 fi
@@ -644,9 +648,7 @@ do
           s%@EXTRA_LIBS@%${EXTRA_LIBS}%;\
           s%@EXTRA_CLI_LIBS@%${EXTRA_CLI_LIBS}%;\
           s%@READLINE_COMPILE@%${READLINE_COMPILE}%;\
-          s%@READLINE_LINK@%${READLINE_LINK}%;\
           s%@HASH_OBJ@%${HASH_OBJ}%;\
-          s%@HASH_LINK@%${HASH_LINK}%;\
           s%@HASH_COMPILE@%${HASH_COMPILE}%;\
           s%@SYSCONFDIR@%${SYSCONFDIR}%;\
           s%@BINDIR@%${BINDIR}%;\

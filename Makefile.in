@@ -66,10 +66,10 @@ EXTRA_CLI_LIBS=@EXTRA_CLI_LIBS@
 all : chronyd chronyc
 
 chronyd : $(OBJS) $(EXTRA_OBJS)
-	$(CC) $(CFLAGS) -o chronyd $(OBJS) $(EXTRA_OBJS) $(LDFLAGS) @HASH_LINK@ $(LIBS) $(EXTRA_LIBS)
+	$(CC) $(CFLAGS) -o chronyd $(OBJS) $(EXTRA_OBJS) $(LDFLAGS) $(LIBS) $(EXTRA_LIBS)
 
 chronyc : $(CLI_OBJS)
-	$(CC) $(CFLAGS) -o chronyc $(CLI_OBJS) $(LDFLAGS) @READLINE_LINK@ @HASH_LINK@ $(LIBS) $(EXTRA_CLI_LIBS)
+	$(CC) $(CFLAGS) -o chronyc $(CLI_OBJS) $(LDFLAGS) $(LIBS) $(EXTRA_CLI_LIBS)
 
 client.o : client.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) @READLINE_COMPILE@ -c $<
