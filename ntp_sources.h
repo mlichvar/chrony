@@ -61,7 +61,7 @@ typedef void (*NSR_SourceResolvingEndHandler)(void);
 /* Set the handler, or NULL to disable the notification */
 extern void NSR_SetSourceResolvingEndHandler(NSR_SourceResolvingEndHandler handler);
 
-/* Procedure to start resolving unresolved sources immediately */
+/* Procedure to start resolving unresolved sources */
 extern void NSR_ResolveSources(void);
 
 /* Procedure to start all sources */

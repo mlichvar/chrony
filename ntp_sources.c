@@ -74,6 +74,10 @@ struct UnresolvedSource {
   struct UnresolvedSource *next;
 };
 
+#define RESOLVE_INTERVAL_UNIT 7
+#define MIN_RESOLVE_INTERVAL 2
+#define MAX_RESOLVE_INTERVAL 9
+
 static struct UnresolvedSource *unresolved_sources = NULL;
 static int resolving_interval = 0;
 static SCH_TimeoutID resolving_id;
@@ -273,9 +277,12 @@ name_resolve_handler(DNS_Status status, IPAddr *ip_addr, void *anything)
     /* This was the last source in the list. If some sources couldn't
        be resolved, try again in exponentially increasing interval. */
     if (unresolved_sources) {
-      if (resolving_interval < 9)
+      if (resolving_interval < MIN_RESOLVE_INTERVAL)
+        resolving_interval = MIN_RESOLVE_INTERVAL;
+      else if (resolving_interval < MAX_RESOLVE_INTERVAL)
         resolving_interval++;
-      resolving_id = SCH_AddTimeoutByDelay(7 * (1 << resolving_interval), resolve_sources, NULL);
+      resolving_id = SCH_AddTimeoutByDelay(RESOLVE_INTERVAL_UNIT *
+          (1 << resolving_interval), resolve_sources, NULL);
     } else {
       resolving_interval = 0;
     }
@@ -326,11 +333,6 @@ NSR_AddUnresolvedSource(char *name, int port, NTP_Source_Type type, SourceParame
   for (i = &unresolved_sources; *i; i = &(*i)->next)
     ;
   *i = us;
-
-  if (!resolving_interval) {
-    resolving_interval = 2;
-    resolving_id = SCH_AddTimeoutByDelay(7 * (1 << resolving_interval), resolve_sources, NULL);
-  }
 }
 
 /* ================================================== */
