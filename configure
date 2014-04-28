@@ -642,7 +642,7 @@ do
   sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
           s%@CC@%${MYCC}%;\
           s%@CFLAGS@%${MYCFLAGS}%;\
-          s%@CPPFLAGS@%${CPPFLAGS}%;\
+          s%@CPPFLAGS@%${MYCPPFLAGS}%;\
           s%@LIBS@%${LIBS}%;\
           s%@LDFLAGS@%${MYLDFLAGS}%;\
           s%@EXTRA_LIBS@%${EXTRA_LIBS}%;\
