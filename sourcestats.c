@@ -770,6 +770,8 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
   unsigned long sec, usec;
   double weight;
 
+  assert(!inst->n_samples);
+
   if (fgets(line, sizeof(line), in) &&
       sscanf(line, "%d", &inst->n_samples) == 1 &&
       inst->n_samples > 0 && inst->n_samples <= MAX_SAMPLES) {
