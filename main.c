@@ -147,6 +147,8 @@ post_init_ntp_hook(void *anything)
 
   RTC_StartMeasurements();
   RCL_StartRefclocks();
+  NSR_StartSources();
+  NSR_AutoStartSources();
 
   /* Special modes can end only when sources update their reachability.
      Give up immediatelly if there are no active sources. */
@@ -184,6 +186,7 @@ post_init_rtc_hook(void *anything)
 {
   if (CNF_GetInitSources() > 0) {
     CNF_AddInitSources();
+    NSR_StartSources();
     assert(REF_GetMode() != REF_ModeNormal);
     /* Wait for mode end notification */
   } else {

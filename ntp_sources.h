@@ -57,6 +57,12 @@ extern void NSR_AddUnresolvedSource(char *name, int port, NTP_Source_Type type, 
 /* Procedure to try resolve unresolved sources immediately. */
 extern void NSR_ResolveSources(void);
 
+/* Procedure to start all sources */
+extern void NSR_StartSources(void);
+
+/* Start new sources automatically */
+extern void NSR_AutoStartSources(void);
+
 /* Procedure to remove a source */
 extern NSR_Status NSR_RemoveSource(NTP_Remote_Address *remote_addr);
 

@@ -62,6 +62,9 @@ static int n_sources;
 /* The largest number of sources we want to have stored in the hash table */
 #define MAX_SOURCES 64
 
+/* Flag indicating new sources will be started automatically when added */
+static int auto_start_sources = 0;
+
 /* Source with unknown address (which may be resolved later) */
 struct UnresolvedSource {
   char *name;
@@ -206,6 +209,8 @@ NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParam
       n_sources++;
       records[slot].data = NCR_GetInstance(remote_addr, type, params); /* Will need params passing through */
       records[slot].remote_addr = NCR_GetRemoteAddress(records[slot].data);
+      if (auto_start_sources)
+        NCR_StartInstance(records[slot].data);
       return NSR_Success;
     }
   }
@@ -289,6 +294,26 @@ NSR_ResolveSources(void)
     resolving_interval--;
     resolve_sources(NULL);
   }
+}
+
+/* ================================================== */
+
+void NSR_StartSources(void)
+{
+  int i;
+
+  for (i = 0; i < N_RECORDS; i++) {
+    if (!records[i].remote_addr)
+      continue;
+    NCR_StartInstance(records[i].data);
+  }
+}
+
+/* ================================================== */
+
+void NSR_AutoStartSources(void)
+{
+  auto_start_sources = 1;
 }
 
 /* ================================================== */

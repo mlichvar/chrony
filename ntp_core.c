@@ -73,6 +73,7 @@ struct NCR_Instance_Record {
                                    pending to transmit to the source */
   SCH_TimeoutID timeout_id;     /* Scheduler's timeout ID, if we are
                                    running on a timer. */
+  int tx_suspended;             /* Boolean indicating we can't transmit yet */
 
   int auto_offline;             /* If 1, automatically go offline if server/peer
                                    isn't responding */
@@ -218,6 +219,8 @@ struct NCR_Instance_Record {
 /* Maximum poll interval set by KoD RATE */
 #define MAX_KOD_RATE_POLL SRC_DEFAULT_MAXPOLL
 
+#define INVALID_SOCK_FD -1
+
 /* ================================================== */
 
 static ADF_AuthTable access_auth_table;
@@ -253,20 +256,36 @@ NCR_Finalise(void)
 static void
 start_initial_timeout(NCR_Instance inst)
 {
+  /* Check if we can transmit */
+  if (inst->tx_suspended) {
+    assert(!inst->timer_running);
+    return;
+  }
 
-  /* Start timer for first transmission */
+  /* Stop old timer if running */
+  if (inst->timer_running)
+    SCH_RemoveTimeout(inst->timeout_id);
+
+  /* Start new timer for transmission */
   inst->timeout_id = SCH_AddTimeoutInClass(INITIAL_DELAY, SAMPLING_SEPARATION,
                                            SAMPLING_RANDOMNESS,
                                            SCH_NtpSamplingClass,
                                            transmit_timeout, (void *)inst);
-  inst->timer_running = 1;
 
-  /* Mark source active */
-  SRC_SetActive(inst->source);
+  if (!inst->timer_running) {
+    /* This will be the first transmission after mode change */
 
-  /* Open client socket */
-  if (inst->mode == MODE_CLIENT)
-    inst->local_addr.sock_fd = NIO_GetClientSocket(&inst->remote_addr);
+    inst->timer_running = 1;
+
+    /* Mark source active */
+    SRC_SetActive(inst->source);
+
+    /* Open client socket */
+    if (inst->mode == MODE_CLIENT) {
+      assert(inst->local_addr.sock_fd == INVALID_SOCK_FD);
+      inst->local_addr.sock_fd = NIO_GetClientSocket(&inst->remote_addr);
+    }
+  }
 }
 
 /* ================================================== */
@@ -287,8 +306,10 @@ take_offline(NCR_Instance inst)
   SRC_UnsetActive(inst->source);
 
   /* Close client socket */
-  if (inst->mode == MODE_CLIENT)
+  if (inst->mode == MODE_CLIENT && inst->local_addr.sock_fd != INVALID_SOCK_FD) {
     NIO_CloseClientSocket(inst->local_addr.sock_fd);
+    inst->local_addr.sock_fd = INVALID_SOCK_FD;
+  }
 }
 
 /* ================================================== */
@@ -306,6 +327,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   switch (type) {
     case NTP_SERVER:
       /* Client socket will be obtained when timer is started */
+      result->local_addr.sock_fd = INVALID_SOCK_FD;
       result->mode = MODE_CLIENT;
       break;
     case NTP_PEER:
@@ -356,14 +378,10 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   /* Create a source instance for this NTP source */
   result->source = SRC_CreateNewInstance(UTI_IPToRefid(&remote_addr->ip_addr), SRC_NTP, params->sel_option, &result->remote_addr.ip_addr);
 
-  if (params->online) {
-    start_initial_timeout(result);
-    result->opmode = MD_ONLINE;
-  } else {
-    result->timer_running = 0;
-    result->timeout_id = 0;
-    result->opmode = MD_OFFLINE;
-  }
+  result->timer_running = 0;
+  result->timeout_id = 0;
+  result->tx_suspended = 1;
+  result->opmode = params->online ? MD_ONLINE : MD_OFFLINE;
   
   if (params->iburst) {
     NCR_InitiateSampleBurst(result, IBURST_GOOD_SAMPLES, IBURST_TOTAL_SAMPLES);
@@ -402,6 +420,16 @@ NCR_DestroyInstance(NCR_Instance instance)
 
   /* Free the data structure */
   Free(instance);
+}
+
+/* ================================================== */
+
+void
+NCR_StartInstance(NCR_Instance instance)
+{
+  instance->tx_suspended = 0;
+  if (instance->opmode != MD_OFFLINE)
+    start_initial_timeout(instance);
 }
 
 /* ================================================== */
@@ -1309,7 +1337,7 @@ NCR_ProcessKnown
   }
 
   /* Ignore packets from offline sources */
-  if (inst->opmode == MD_OFFLINE) {
+  if (inst->opmode == MD_OFFLINE || inst->tx_suspended) {
     return;
   }
 
@@ -1570,15 +1598,12 @@ NCR_TakeSourceOnline(NCR_Instance inst)
       /* Nothing to do */
       break;
     case MD_OFFLINE:
-      if (!inst->timer_running) {
-        /* We are not already actively polling it */
-        LOG(LOGS_INFO, LOGF_NtpCore, "Source %s online", UTI_IPToString(&inst->remote_addr.ip_addr));
-        inst->tx_count = 0;
-        inst->local_poll = inst->minpoll;
-        inst->poll_score = 0.5;
-        inst->opmode = MD_ONLINE;
-        start_initial_timeout(inst);
-      }
+      LOG(LOGS_INFO, LOGF_NtpCore, "Source %s online", UTI_IPToString(&inst->remote_addr.ip_addr));
+      inst->tx_count = 0;
+      inst->local_poll = inst->minpoll;
+      inst->poll_score = 0.5;
+      inst->opmode = MD_ONLINE;
+      start_initial_timeout(inst);
       break;
     case MD_BURST_WAS_ONLINE:
       /* Will revert */
@@ -1597,10 +1622,8 @@ NCR_TakeSourceOffline(NCR_Instance inst)
 {
   switch (inst->opmode) {
     case MD_ONLINE:
-      if (inst->timer_running) {
-        LOG(LOGS_INFO, LOGF_NtpCore, "Source %s offline", UTI_IPToString(&inst->remote_addr.ip_addr));
-        take_offline(inst);
-      }
+      LOG(LOGS_INFO, LOGF_NtpCore, "Source %s offline", UTI_IPToString(&inst->remote_addr.ip_addr));
+      take_offline(inst);
       break;
     case MD_OFFLINE:
       break;
@@ -1711,18 +1734,9 @@ NCR_InitiateSampleBurst(NCR_Instance inst, int n_good_samples, int n_total_sampl
         break;
 
       case MD_ONLINE:
-        inst->opmode = MD_BURST_WAS_ONLINE;
-        inst->burst_good_samples_to_go = n_good_samples;
-        inst->burst_total_samples_to_go = n_total_samples;
-        assert(inst->timer_running);
-        SCH_RemoveTimeout(inst->timeout_id);
-        inst->timeout_id = SCH_AddTimeoutInClass(INITIAL_DELAY, SAMPLING_SEPARATION,
-                                                 SAMPLING_RANDOMNESS,
-                                                 SCH_NtpSamplingClass,
-                                                 transmit_timeout, (void *) inst);
-        break;
       case MD_OFFLINE:
-        inst->opmode = MD_BURST_WAS_OFFLINE;
+        inst->opmode = inst->opmode == MD_ONLINE ?
+          MD_BURST_WAS_ONLINE : MD_BURST_WAS_OFFLINE;
         inst->burst_good_samples_to_go = n_good_samples;
         inst->burst_total_samples_to_go = n_total_samples;
         start_initial_timeout(inst);
