@@ -2703,7 +2703,7 @@ main(int argc, char **argv)
   const char *progname = argv[0];
   const char *hostname = "localhost";
   const char *conf_file = DEFAULT_CONF_FILE;
-  int quit = 0, ret = 1, multi = 0, auto_auth = 0;
+  int quit = 0, ret = 1, multi = 0, auto_auth = 0, short_timeout = 1;
   int port = DEFAULT_CANDM_PORT;
 
   /* Parse command line options */
@@ -2713,6 +2713,7 @@ main(int argc, char **argv)
       if (*argv) {
         hostname = *argv;
       }
+      short_timeout = 0;
     } else if (!strcmp(*argv, "-p")) {
       ++argv, --argc;
       if (*argv) {
@@ -2744,6 +2745,12 @@ main(int argc, char **argv)
     } else {
       break; /* And process remainder of line as a command */
     }
+  }
+
+  if (short_timeout) {
+#ifdef FEAT_ASYNCDNS
+    initial_timeout /= 10;
+#endif
   }
 
   if (isatty(0) && isatty(1) && isatty(2)) {

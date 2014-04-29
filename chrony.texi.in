@@ -4266,7 +4266,9 @@ in milliseconds.  If no response is received from @code{chronyd}, the timeout is
 doubled and the request is resent.  The maximum number of retries is configured
 with the @code{retries} command (@pxref{retries command}).
 
-The default is 1000 milliseconds.
+By default, the timeout is 1000 milliseconds or 100 milliseconds if
+@code{chronyc} is contacting localhost (i.e. the `-h' option wasn't specified)
+and @code{chronyd} was compiled with asynchronous name resolving.
 @c }}}
 @c {{{ tracking
 @node tracking command
