@@ -58,7 +58,6 @@ extern void RCL_Initialise(void);
 extern void RCL_Finalise(void);
 extern int RCL_AddRefclock(RefclockParameters *params);
 extern void RCL_StartRefclocks(void);
-extern void RCL_StartRefclocks(void);
 extern void RCL_ReportSource(RPT_SourceReport *report, struct timeval *now);
 
 /* functions used by drivers */
