@@ -255,7 +255,7 @@ write_lockfile(void)
 
   out = fopen(pidfile, "w");
   if (!out) {
-    LOG(LOGS_ERR, LOGF_Main, "could not open lockfile %s for writing", pidfile);
+    LOG_FATAL(LOGF_Main, "could not open lockfile %s for writing", pidfile);
   } else {
     fprintf(out, "%d\n", getpid());
     fclose(out);
@@ -277,14 +277,14 @@ go_daemon(void)
   /* Create pipe which will the daemon use to notify the grandparent
      when it's initialised or send an error message */
   if (pipe(pipefd)) {
-    LOG(LOGS_ERR, LOGF_Logging, "Could not detach, pipe failed : %s", strerror(errno));
+    LOG_FATAL(LOGF_Logging, "Could not detach, pipe failed : %s", strerror(errno));
   }
 
   /* Does this preserve existing signal handlers? */
   pid = fork();
 
   if (pid < 0) {
-    LOG(LOGS_ERR, LOGF_Logging, "Could not detach, fork failed : %s", strerror(errno));
+    LOG_FATAL(LOGF_Logging, "Could not detach, fork failed : %s", strerror(errno));
   } else if (pid > 0) {
     /* In the 'grandparent' */
     char message[1024];
@@ -309,7 +309,7 @@ go_daemon(void)
     pid = fork();
 
     if (pid < 0) {
-      LOG(LOGS_ERR, LOGF_Logging, "Could not detach, fork failed : %s", strerror(errno));
+      LOG_FATAL(LOGF_Logging, "Could not detach, fork failed : %s", strerror(errno));
     } else if (pid > 0) {
       exit(0); /* In the 'parent' */
     } else {
@@ -317,7 +317,7 @@ go_daemon(void)
 
       /* Change current directory to / */
       if (chdir("/") < 0) {
-        LOG(LOGS_ERR, LOGF_Logging, "Could not chdir to / : %s", strerror(errno));
+        LOG_FATAL(LOGF_Logging, "Could not chdir to / : %s", strerror(errno));
       }
 
       /* Don't keep stdin/out/err from before. But don't close
