@@ -990,7 +990,7 @@ this option can be used twice to print also debugging messages.
 This option can be used to specify an alternate location for the
 configuration file (default @file{@SYSCONFDIR@/chrony.conf}).
 @item -r
-This option will reload sample histories for each of the servers being
+This option will reload sample histories for each of the servers and refclocks being
 used.  These histories are created by using the @code{dump} command in
 @code{chronyc}, or by setting the @code{dumponexit} directive in the
 configuration file.  This option is useful if you want to stop and
@@ -3010,8 +3010,7 @@ Displays the version number of chronyc on the terminal, and exists.
 @item -h <host>
 This option allows the user to specify which host running the
 @code{chronyd} program is to be contacted.  This allows for remote
-configuration, without having to telnet or rlogin to the other host
-first.
+configuration, without having to ssh to the other host first.
 
 The default is to contact @code{chronyd} running on the same host as
 that where chronyc is being run.
