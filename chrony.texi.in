@@ -1117,10 +1117,11 @@ the configuration file is ignored.
 
 @menu
 * comments in config file::     How to write a comment
-* acquisitionport directive::   Set port to use for initial time probes
+* acquisitionport directive::   Set NTP client port
 * allow directive::             Give access to NTP clients
-* bindaddress directive::       Limit the network interface that is used for NTP
-* bindcmdaddress directive::    Limit the network interface that is used for commands
+* bindacqaddress directive::    Limit network interface used by NTP client
+* bindaddress directive::       Limit network interface used by NTP server
+* bindcmdaddress directive::    Limit network interface used for commands
 * broadcast directive::         Make chronyd act as an NTP broadcast server
 * clientloglimit directive::    Set client log memory limit
 * cmdallow directive::          Give control access to chronyc on other computers
@@ -1159,7 +1160,7 @@ the configuration file is ignored.
 * noclientlog directive::       Prevent chronyd from gathering data about clients
 * peer directive::              Specify an NTP peer
 * pidfile directive::           Specify the file where chronyd's pid is written
-* port directive::              Set port to use for NTP packets
+* port directive::              Set NTP server port
 * refclock directive::          Specify a reference clock
 * reselectdist directive::      Set improvement in distance needed to reselect a source
 * rtcautotrim directive::       Specify threshold at which RTC is trimmed automatically
@@ -1192,15 +1193,14 @@ Any line with this format will be ignored.
 @c {{{ acquisitionport directive
 @node acquisitionport directive
 @subsection acquisitionport
-@code{chronyd} uses a separate client-side port for the rapid-fire
-measurements requested with the @code{initstepslew} directive
-(@pxref{initstepslew directive}).  Normally, that port is chosen
-arbitrarily by the operating system.  However, you can use
-@code{acquisitionport} to explicitly specify a port.  This may be useful
-for getting through firewalls.
+By default, @code{chronyd} uses a separate client socket for each configured
+server and their source port is chosen arbitrarily by the operating system.
+However, you can use the @code{acquisitionport} directive to explicitly specify
+a port and use only one socket (per IPv4/IPv6 address family) for all
+configured servers.  This may be useful for getting through firewalls.
 
-Do not make acquisition and regular NTP service (@pxref{port directive})
-use the same port.
+It may be set to the same port as used by the NTP server (@pxref{port
+directive}) to use only one socket for all NTP packets.
 
 An example of the @code{acquisitionport} command is
 
@@ -1208,7 +1208,7 @@ An example of the @code{acquisitionport} command is
 acquisitionport 1123
 @end example
 
-This would change the port used for rapid queries to udp/1123.  You
+This would change the source port used for client requests to udp/1123.  You
 could then persuade the firewall administrator to let that port through.
 @c }}}
 @c {{{ allow
@@ -1281,19 +1281,28 @@ directive}) is used in the configuration file, each of the computers
 listed in that directive must allow client access by this computer for
 it to work.
 @c }}}
+@c {{{ bindacqaddress
+@node bindacqaddress directive
+@subsection bindacqaddress
+The @code{bindacqaddress} directive sets the network interface to which will
+@code{chronyd} bind its NTP client sockets. The syntax is similar to the
+@code{bindaddress} and @code{bindcmdaddress} directives.
+
+For each of IPv4 and IPv6 protocols, only one @code{bindacqaddress}
+directive can be specified.
+@c }}}
 @c {{{ bindaddress
 @node bindaddress directive
 @subsection bindaddress
-The bindaddress allows you to restrict the network interface to which
-chronyd will listen for NTP packets.  This provides an additional level of
-access restriction above that available through the 'deny' mechanism.
+The @code{bindaddress} directive allows you to restrict the network interface
+to which @code{chronyd} will listen for NTP requests.  This provides an
+additional level of access restriction above that available through the
+@code{deny} mechanism.
 
 Suppose you have a local ethernet with addresses in the 192.168.1.0
-subnet together with a dial-up connection.  The ethernet interface's IP
-address is 192.168.1.1.  Suppose (for some reason) you want to block all
-access through the dialup connection (note, this will even block replies
-from servers on the dialup side, so you will not be able to synchronise
-to an external source).  You could add the line
+subnet together with an internet connection.  The ethernet interface's IP
+address is 192.168.1.1.  Suppose you want to block all access through the
+internet connection.  You could add the line
 
 @example
 bindaddress 192.168.1.1
@@ -1301,9 +1310,10 @@ bindaddress 192.168.1.1
 
 to the configuration file.
 
-This directive affects NTP (UDP port 123) packets.  If no @code{bindcmdaddress}
-directive is present, the address supplied by @code{bindaddress} will be used
-to control binding of the command socket (UDP port 323) as well.
+This directive affects NTP (UDP port 123 by default) packets.  If no
+@code{bindcmdaddress} directive is present, the address supplied by
+@code{bindaddress} will be used to control binding of the command socket (UDP
+port 323 by default) as well.
 
 The @code{bindaddress} directive has been found to cause problems when used on
 computers that need to pass NTP traffic over multiple network interfaces (e.g.
@@ -1313,34 +1323,34 @@ more likely to be successful.
 
 For each of IPv4 and IPv6 protocols, only one @code{bindaddress}
 directive can be specified. 
-
 @c }}}
 @c {{{ bindcmdaddress
 @node bindcmdaddress directive
 @subsection bindcmdaddress
-The bindcmdaddress allows you to restrict the network interface to which
-chronyd will listen for command packets (issued by chronyc).
+The @code{bindcmdaddress} directive allows you to restrict the network
+interface to which @code{chronyd} will listen for command packets (issued by
+@code{chronyc}).  This provides an additional level of access restriction above
+that available through @code{cmddeny} mechanism.
 
-Suppose you have a local ethernet with addresses in the 192.168.1.0 subnet
-together with a dial-up connection.  The ethernet interface's IP address is
-192.168.1.1.  Suppose you want to block all access through the dialup
-connection.  You could add the line
+Suppose you want to block all access except from localhost.  You
+could add the lines
 
 @example
-bindcmdaddress 192.168.1.1
+bindcmdaddress 127.0.0.1
+bindcmdaddress ::1
 @end example
 
 to the configuration file.
 
+For each of IPv4 and IPv6 protocols, only one @code{bindcmdaddress}
+directive can be specified.
+
+The default values are set by the @code{bindaddress} directive.
+
 The @code{bindcmdaddress} directive has been found to cause problems when used
 on computers that need to pass command traffic over multiple network
-interfaces.  It is, therefore, not particularly useful.  Use of the
-@code{cmdallow} and @code{cmddeny} directives together with a network firewall
-is more likely to be successful.
-
-For each of IPv4 and IPv6 protocols, only one @code{bindcmdaddress}
-directive can be specified. 
-
+interfaces.  Use of the @code{cmdallow} and @code{cmddeny} directives together
+with a network firewall is more likely to be successful.
 @c }}}
 @c {{{ broadcast directive
 @node broadcast directive
@@ -2462,14 +2472,13 @@ pidfile /var/tmp/chronyd.pid
 @c {{{ port
 @node port directive
 @subsection port
-This option allows you to configure the port used for the NTP service
-on your machine.
+This option allows you to configure the port on which @code{chronyd}
+will listen for NTP requests.
 
-The compiled in default is udp/123, the standard NTP port.  It is
-unlikely that you would ever need to change this value.  A possible
-exception would be if you wanted to operate strictly in client-only
-mode and never be available as a server to ntpd clients.  If set to 0,
-the kernel will assign a random port.
+The compiled in default is udp/123, the standard NTP port.  If set to 0,
+@code{chronyd} will not open the server socket and will operate strictly in a
+client-only mode.  The source port used in NTP client requests can be set by
+the @code{acquisitionport} directive.
 
 An example of the port command is
 
@@ -2477,7 +2486,7 @@ An example of the port command is
 port 11123
 @end example
 
-This would change the NTP port served by chronyd on the computer to
+This would change the NTP port served by @code{chronyd} on the computer to
 udp/11123.
 @c }}}
 @c {{{ refclock
