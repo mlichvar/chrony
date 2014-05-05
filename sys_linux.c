@@ -90,11 +90,6 @@ static double dhz; /* And dbl prec version of same for arithmetic */
 
 /* ================================================== */
 
-/* The operating system kernel version */
-static int version_major;
-static int version_minor;
-static int version_patchlevel;
-
 /* Flag indicating whether adjtimex() returns the remaining time adjustment
 or not.  If not we have to read the outstanding adjustment by setting it to
 zero, examining the return value and setting the outstanding adjustment back
@@ -1018,10 +1013,6 @@ get_version_specific_details(void)
   }
 
   DEBUG_LOG(LOGF_SysLinux, "Linux kernel major=%d minor=%d patch=%d", major, minor, patch);
-
-  version_major = major;
-  version_minor = minor;
-  version_patchlevel = patch;
 
   if (kernelvercmp(major, minor, patch, 2, 2, 0) < 0) {
     LOG_FATAL(LOGF_SysLinux, "Kernel version not supported, sorry.");
