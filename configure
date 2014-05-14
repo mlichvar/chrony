@@ -326,7 +326,7 @@ case $SYSTEM in
     esac
     ;;
     Linux* )
-        EXTRA_OBJECTS="sys_linux.o wrap_adjtimex.o"
+        EXTRA_OBJECTS="sys_generic.o sys_linux.o wrap_adjtimex.o"
         try_linuxcaps=1
         try_rtc=1
         try_setsched=1

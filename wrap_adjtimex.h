@@ -64,17 +64,12 @@ struct tmx_params {
   long stbcnt;
 };
 
-int TMX_SetTick(long tick);
-int TMX_ApplyOffset(long *offset);
+int TMX_ResetOffset(void);
 int TMX_SetFrequency(double *freq, long tick);
 int TMX_GetFrequency(double *freq, long *tick);
-int TMX_GetOffsetLeft(long *offset);
 int TMX_ReadCurrentParams(struct tmx_params *params);
 int TMX_SetLeap(int leap);
 int TMX_SetSync(int sync);
-int TMX_EnableNanoPLL(void);
-int TMX_ApplyPLLOffset(long offset, long constant);
-int TMX_GetPLLOffsetLeft(long *offset);
 int TMX_TestStepOffset(void);
 int TMX_ApplyStepOffset(double offset);
 

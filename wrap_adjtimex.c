@@ -37,26 +37,30 @@
 static int status = 0;
 
 int
-TMX_SetTick(long tick)
+TMX_ResetOffset(void)
 {
   struct timex txc;
-  txc.modes = ADJ_TICK;
-  txc.tick = tick;
-  
-  return adjtimex(&txc);
-}
 
-int
-TMX_ApplyOffset(long *offset)
-{
-  struct timex txc;
-  int result;
-
+  /* Reset adjtime() offset */
   txc.modes = ADJ_OFFSET_SINGLESHOT;
-  txc.offset = *offset;
-  result = adjtimex(&txc);
-  *offset = txc.offset;
-  return result;
+  txc.offset = 0;
+  if (adjtimex(&txc) < 0)
+    return -1;
+
+  /* Reset PLL offset */
+  txc.modes = ADJ_OFFSET | ADJ_STATUS;
+  txc.status = STA_PLL;
+  txc.offset = 0;
+  if (adjtimex(&txc) < 0)
+    return -1;
+
+  /* Set status back */
+  txc.modes = ADJ_STATUS;
+  txc.modes = status;
+  if (adjtimex(&txc) < 0)
+    return -1;
+
+  return 0;
 }
 
 int
@@ -90,17 +94,6 @@ TMX_GetFrequency(double *freq, long *tick)
   result = adjtimex(&txc);
   *freq = txc.freq / (double)(1 << SHIFT_USEC);
   *tick = txc.tick;
-  return result;
-}
-
-int
-TMX_GetOffsetLeft(long *offset)
-{
-  struct timex txc;
-  int result;
-  txc.modes = ADJ_OFFSET_SS_READ;
-  result = adjtimex(&txc);
-  *offset = txc.offset;
   return result;
 }
 
@@ -185,47 +178,6 @@ int TMX_SetSync(int sync)
 }
 
 int
-TMX_EnableNanoPLL(void)
-{
-  struct timex txc;
-  int result;
-
-  txc.modes = ADJ_STATUS | ADJ_OFFSET | ADJ_TIMECONST | ADJ_NANO;
-  txc.status = STA_PLL | STA_FREQHOLD;
-  txc.offset = 0;
-  txc.constant = 0;
-  result = adjtimex(&txc);
-  if (result < 0 || !(txc.status & STA_NANO) || txc.offset || txc.constant)
-    return -1;
-
-  status |= STA_PLL | STA_FREQHOLD;
-  return result;
-}
-
-int
-TMX_ApplyPLLOffset(long offset, long constant)
-{
-  struct timex txc;
-
-  txc.modes = ADJ_OFFSET | ADJ_TIMECONST | ADJ_NANO;
-  txc.offset = offset;
-  txc.constant = constant;
-  return adjtimex(&txc);
-}
-
-int
-TMX_GetPLLOffsetLeft(long *offset)
-{
-  struct timex txc;
-  int result;
-
-  txc.modes = 0;
-  result = adjtimex(&txc);
-  *offset = txc.offset;
-  return result;
-}
-
-int
 TMX_TestStepOffset(void)
 {
   struct timex txc;
@@ -240,7 +192,7 @@ TMX_TestStepOffset(void)
   if (adjtimex(&txc) < 0 || txc.maxerror != 0)
     return -1;
 
-  txc.modes = ADJ_SETOFFSET;
+  txc.modes = ADJ_SETOFFSET | ADJ_NANO;
   txc.time.tv_sec = 0;
   txc.time.tv_usec = 0;
   if (adjtimex(&txc) < 0 || txc.maxerror < 100000)
@@ -254,21 +206,13 @@ TMX_ApplyStepOffset(double offset)
 {
   struct timex txc;
 
-  txc.modes = ADJ_SETOFFSET;
+  txc.modes = ADJ_SETOFFSET | ADJ_NANO;
   if (offset >= 0) {
     txc.time.tv_sec = offset;
   } else {
     txc.time.tv_sec = offset - 1;
   }
-
-  /* ADJ_NANO changes the status even with ADJ_SETOFFSET, use it only when
-     STA_NANO is already enabled */
-  if (status & STA_PLL) {
-    txc.modes |= ADJ_NANO;
-    txc.time.tv_usec = 1e9 * (offset - txc.time.tv_sec);
-  } else {
-    txc.time.tv_usec = 1e6 * (offset - txc.time.tv_sec);
-  }
+  txc.time.tv_usec = 1.0e9 * (offset - txc.time.tv_sec);
 
   return adjtimex(&txc);
 }
