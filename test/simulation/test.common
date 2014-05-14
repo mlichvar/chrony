@@ -18,7 +18,7 @@ export PATH=../../:$PATH
 export CLKNETSIM_PATH=clknetsim
 
 # Known working clknetsim revision
-clknetsim_revision=d554f187c4d196bfc10c193143d24ce724051594
+clknetsim_revision=8a7f9e753b0548e78ef3ef750da547a54d405bde
 clknetsim_url=https://github.com/mlichvar/clknetsim/archive/$clknetsim_revision.tar.gz
 
 # Only Linux is supported

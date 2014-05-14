@@ -7,8 +7,8 @@ limit=200
 jitter=1e-5
 client_conf="makestep 2 1"
 
-min_sync_time=140
-max_sync_time=160
+min_sync_time=130
+max_sync_time=150
 
 for time_offset in -1.0 -0.1 0.1 1.0; do
 	run_test || test_fail

@@ -11,7 +11,7 @@ jitter=1e-6
 base_delay=1e-6
 wander=0.0
 
-limit=200
+limit=180
 time_max_limit=1e-5
 freq_max_limit=1e-7
 time_rms_limit=1e-5

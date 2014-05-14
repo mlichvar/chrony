@@ -10,7 +10,7 @@ limit=100
 
 client_conf="initstepslew 5 192.168.123.1"
 
-min_sync_time=20
+min_sync_time=6
 max_sync_time=35
 
 for time_offset in -2.0 -0.2 0.2 2.0; do

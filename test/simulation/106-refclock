@@ -6,8 +6,8 @@ test_start "SHM refclock"
 servers=0
 limit=1000
 refclock_jitter=$jitter
-min_sync_time=60
-max_sync_time=80
+min_sync_time=45
+max_sync_time=70
 client_conf="refclock SHM 0"
 
 run_test || test_fail
