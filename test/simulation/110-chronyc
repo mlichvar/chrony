@@ -15,7 +15,7 @@ check_chronyc_output "^Reference ID    : 192\.168\.123\.1 \(192\.168\.123\.1\)
 Stratum         : 2
 Ref time \(UTC\)  : Fri Jan  1 00:1.:.. 2010
 System time     : 0\.0000..... seconds (slow|fast) of NTP time
-Last offset     : [+-]0\.0000..... seconds
+Last offset     : [+-]0\.000...... seconds
 RMS offset      : 0\.000...... seconds
 Frequency       : (99|100)\.... ppm fast
 Residual freq   : [+-][0-9]\.... ppm
@@ -31,7 +31,7 @@ MS Name/IP address         Stratum Poll Reach LastRx Last sample
 210 Number of sources = 1
 Name/IP Address            NP  NR  Span  Frequency  Freq Skew  Offset  Std Dev
 ==============================================================================
-192\.168\.123\.1              [0-9 ]+ [0-9 ]+ [0-9 ]+ [ +-]0\....      [0-9]\....  [0-9 +-]+[un]s [0-9 ]+[un]s$" \
+192\.168\.123\.1              [0-9 ]+ [0-9 ]+ [0-9 ]+ [ +-][01]\.... [0-9 ]+\....  [0-9 +-]+[un]s [0-9 ]+[un]s$" \
 || test_fail
 
 test_pass
