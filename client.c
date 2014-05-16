@@ -66,6 +66,8 @@ static int on_terminal = 0;
 
 static int no_dns = 0;
 
+static int recv_errqueue = 0;
+
 /* ================================================== */
 /* Ought to extract some code from util.c to make
    a new set of utilities that can be linked into either
@@ -139,6 +141,7 @@ static void
 open_io(const char *hostname, int port)
 {
   IPAddr ip;
+  int on_off = 1;
 
   /* Note, this call could block for a while */
   if (DNS_Name2IPAddress(hostname, &ip) != DNS_Success) {
@@ -176,6 +179,22 @@ open_io(const char *hostname, int port)
     perror("Can't create socket");
     exit(1);
   }
+
+  /* Enable extended error reporting (e.g. ECONNREFUSED on ICMP unreachable) */
+#ifdef IP_RECVERR
+  if (ip.family == IPADDR_INET4 &&
+      !setsockopt(sock_fd, IPPROTO_IP, IP_RECVERR, &on_off, sizeof(on_off))) {
+    recv_errqueue = 1;
+  }
+#endif
+#ifdef HAVE_IPV6
+#ifdef IPV6_RECVERR
+  if (ip.family == IPADDR_INET6 &&
+      !setsockopt(sock_fd, IPPROTO_IPV6, IPV6_RECVERR, &on_off, sizeof(on_off))) {
+    recv_errqueue = 1;
+  }
+#endif
+#endif
 }
 
 /* ================================================== */
@@ -1365,6 +1384,15 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
         /* If we get connrefused here, it suggests the sendto is
            going to a dead port - but only if the daemon machine is
            running Linux (Solaris doesn't return anything) */
+
+#ifdef IP_RECVERR
+        /* Fetch the message from the error queue */
+        if (recv_errqueue &&
+            recvfrom(sock_fd, (void *)reply, sizeof(CMD_Reply), MSG_ERRQUEUE,
+                     &where_from.u, &where_from_len) < 0)
+          ;
+#endif
+
         n_attempts++;
         if (n_attempts > max_retries) {
           return 0;
