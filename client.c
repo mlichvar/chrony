@@ -2729,9 +2729,9 @@ main(int argc, char **argv)
 {
   char *line;
   const char *progname = argv[0];
-  const char *hostname = "127.0.0.1";
+  const char *hostname = NULL;
   const char *conf_file = DEFAULT_CONF_FILE;
-  int quit = 0, ret = 1, multi = 0, auto_auth = 0, short_timeout = 1;
+  int quit = 0, ret = 1, multi = 0, auto_auth = 0, family = IPADDR_UNSPEC;
   int port = DEFAULT_CANDM_PORT;
 
   /* Parse command line options */
@@ -2741,7 +2741,6 @@ main(int argc, char **argv)
       if (*argv) {
         hostname = *argv;
       }
-      short_timeout = 0;
     } else if (!strcmp(*argv, "-p")) {
       ++argv, --argc;
       if (*argv) {
@@ -2759,11 +2758,9 @@ main(int argc, char **argv)
     } else if (!strcmp(*argv, "-n")) {
       no_dns = 1;
     } else if (!strcmp(*argv, "-4")) {
-      DNS_SetAddressFamily(IPADDR_INET4);
-      hostname = "127.0.0.1";
+      family = IPADDR_INET4;
     } else if (!strcmp(*argv, "-6")) {
-      DNS_SetAddressFamily(IPADDR_INET6);
-      hostname = "::1";
+      family = IPADDR_INET6;
     } else if (!strcmp("-v", *argv) || !strcmp("--version",*argv)) {
       printf("chronyc (chrony) version %s\n", CHRONY_VERSION);
       exit(0);
@@ -2773,12 +2770,6 @@ main(int argc, char **argv)
     } else {
       break; /* And process remainder of line as a command */
     }
-  }
-
-  if (short_timeout) {
-#ifdef FEAT_ASYNCDNS
-    initial_timeout /= 10;
-#endif
   }
 
   if (isatty(0) && isatty(1) && isatty(2)) {
@@ -2796,6 +2787,15 @@ main(int argc, char **argv)
     return 1;
   }
   
+  DNS_SetAddressFamily(family);
+
+  if (!hostname) {
+    hostname = family == IPADDR_INET6 ? "::1" : "127.0.0.1";
+#ifdef FEAT_ASYNCDNS
+    initial_timeout /= 10;
+#endif
+  }
+
   open_io(hostname, port);
 
   if (auto_auth) {
