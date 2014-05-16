@@ -24,7 +24,7 @@ A summary of the options supported by \fBchronyc\fR is included below.
 
 .TP
 \fB\-h\fR \fIhostname\fR
-specify hostname
+specify hostname (default 127.0.0.1)
 .TP
 \fB\-p\fR \fIport-number\fR
 specify port-number

@@ -2729,7 +2729,7 @@ main(int argc, char **argv)
 {
   char *line;
   const char *progname = argv[0];
-  const char *hostname = "localhost";
+  const char *hostname = "127.0.0.1";
   const char *conf_file = DEFAULT_CONF_FILE;
   int quit = 0, ret = 1, multi = 0, auto_auth = 0, short_timeout = 1;
   int port = DEFAULT_CANDM_PORT;
