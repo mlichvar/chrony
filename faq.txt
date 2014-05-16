@@ -107,24 +107,6 @@ file.  This configuration will be better because
 * if your external connection goes down, the computers on the LAN will maintain
   a common time with each other.
 
-S: Addressing issues
-Q: I get the following error message : "Could not get IP adress for localhost"
-Add a line like the following to your /etc/hosts file
-    127.0.0.1   localhost
-
-Q: I have problems if I put the names of my NTP servers in the chrony.conf file.
-If you have no connection to the Internet at boot time, chrony won't be able to
-turn the names into IP addresses when it starts.  There seem to be 2 solutions:
-
-1. Put the numeric IP addresses in the chrony.conf file
-or
-2. Put the server->IP address mappings in your /etc/hosts file and ensure that
-   /etc/host.conf reads 'order hosts,bind'.
-
-The problem is that chronyd (currently) isn't designed in a way that allows
-hostname->IP address lookups during normal operation.  I hope to work on this
-problem very soon.
-
 S: My computer is not synchronising.
 This is the most common problem.  There are a number of reasons, see the
 following questions.
