@@ -52,7 +52,6 @@ int LockAll = 0;
 #include <grp.h>
 #endif
 
-#include "localp.h"
 #include "sys_generic.h"
 #include "sys_linux.h"
 #include "conf.h"
@@ -110,30 +109,8 @@ our_round(double x) {
 static void
 apply_step_offset(double offset)
 {
-  struct timeval old_time, new_time;
-  double err;
-
-  if (have_setoffset) {
-    if (TMX_ApplyStepOffset(-offset) < 0) {
-      LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
-    }
-  } else {
-    if (gettimeofday(&old_time, NULL) < 0) {
-      LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
-    }
-
-    UTI_AddDoubleToTimeval(&old_time, -offset, &new_time);
-
-    if (settimeofday(&new_time, NULL) < 0) {
-      LOG_FATAL(LOGF_SysLinux, "settimeofday() failed");
-    }
-
-    if (gettimeofday(&old_time, NULL) < 0) {
-      LOG_FATAL(LOGF_SysLinux, "gettimeofday() failed");
-    }
-
-    UTI_DiffTimevalsToDouble(&err, &old_time, &new_time);
-    lcl_InvokeDispersionNotifyHandlers(fabs(err));
+  if (TMX_ApplyStepOffset(-offset) < 0) {
+    LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
   }
 }
 
@@ -417,7 +394,8 @@ SYS_Linux_Initialise(void)
   SYS_Generic_CompleteFreqDriver(1.0e6 * max_tick_bias / nominal_tick,
                                  1.0 / tick_update_hz,
                                  read_frequency, set_frequency,
-                                 apply_step_offset, set_leap);
+                                 have_setoffset ? apply_step_offset : NULL,
+                                 set_leap);
 }
 
 /* ================================================== */
