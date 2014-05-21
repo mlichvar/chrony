@@ -81,6 +81,7 @@ extern void CNF_GetLinuxFreqScale(int *set, double *freq_scale);
 extern double CNF_GetMaxUpdateSkew(void);
 extern double CNF_GetMaxClockError(void);
 extern double CNF_GetCorrectionTimeRatio(void);
+extern double CNF_GetMaxSlewRate(void);
 
 extern double CNF_GetReselectDistance(void);
 extern double CNF_GetStratumWeight(void);

@@ -30,6 +30,7 @@
 
 #include "sys_generic.h"
 
+#include "conf.h"
 #include "local.h"
 #include "localp.h"
 #include "logging.h"
@@ -52,6 +53,9 @@ static double max_freq;
    in local time */
 static double max_freq_change_delay;
 
+/* Maximum allowed frequency offset relative to the base frequency */
+static double max_corr_freq;
+
 /* Amount of outstanding offset to process */
 static double offset_register;
 
@@ -61,9 +65,6 @@ static double offset_register;
 /* Current frequency offset between base_freq and the real clock frequency
    as set by drv_set_freq (not in ppm) */
 static double slew_freq;
-
-/* Maximum allowed slewing frequency */
-#define MAX_SLEW_FREQ (1 / 12.0)
 
 /* Time (raw) of last update of slewing frequency and offset */
 static struct timeval slew_start;
@@ -129,10 +130,10 @@ update_slew(void)
   /* Get frequency offset needed to slew the offset in the duration
      and clamp it to the allowed maximum */
   corr_freq = offset_register / duration;
-  if (corr_freq < -MAX_SLEW_FREQ)
-    corr_freq = -MAX_SLEW_FREQ;
-  else if (corr_freq > MAX_SLEW_FREQ)
-    corr_freq = MAX_SLEW_FREQ;
+  if (corr_freq < -max_corr_freq)
+    corr_freq = -max_corr_freq;
+  else if (corr_freq > max_corr_freq)
+    corr_freq = max_corr_freq;
 
   /* Get the new real frequency and clamp it */
   total_freq = base_freq + corr_freq * (1.0e6 - base_freq);
@@ -274,6 +275,8 @@ SYS_Generic_CompleteFreqDriver(double max_set_freq_ppm, double max_set_freq_dela
   base_freq = (*drv_read_freq)();
   slew_freq = 0.0;
   offset_register = 0.0;
+
+  max_corr_freq = CNF_GetMaxSlewRate() / 1.0e6;
 
   lcl_RegisterSystemDrivers(read_frequency, set_frequency,
                             accrue_offset, sys_apply_step_offset ?

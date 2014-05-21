@@ -1155,6 +1155,7 @@ the configuration file is ignored.
 * maxchange directive::         Set maximum allowed offset
 * maxclockerror directive::     Set maximum frequency error of local clock
 * maxsamples directive::        Set maximum number of samples per source
+* maxslewrate directive::       Set maximum slew rate
 * maxupdateskew directive::     Stop bad estimates upsetting machine clock
 * minsamples directive::        Set minimum number of samples per source
 * noclientlog directive::       Prevent chronyd from gathering data about clients
@@ -1536,8 +1537,10 @@ The syntax is
 corrtimeratio 100
 @end example
 
-The current remaining correction is shown in the @code{tracking} report
-(@pxref{tracking command}) as the @code{System time} value.
+The maximum allowed slew rate can be set by the @code{maxslewrate}
+directive (@pxref{maxslewrate directive}.  The current remaining
+correction is shown in the @code{tracking} report (@pxref{tracking
+command}) as the @code{System time} value.
 @c }}}
 @c {{{ deny
 @node deny directive
@@ -2396,6 +2399,23 @@ The syntax is
 
 @example
 maxsamples <samples>
+@end example
+@c }}}
+@c {{{ maxslewrate
+@node maxslewrate directive
+@subsection maxslewrate
+The @code{maxslewrate} directive sets the maximum rate at which @code{chronyd}
+is allowed to slew the time.  It limits the slew rate controlled by the
+correction time ratio (@pxref{corrtimeratio directive}) and is effective
+only on systems where @code{chronyd} is able to control the rate (so
+far only Linux).
+
+By default, the maximum slew rate is 83333.333 ppm (one twelfth).
+
+The syntax is
+
+@example
+maxslewrate <rate-in-ppm>
 @end example
 @c }}}
 @c {{{ maxupdateskew
