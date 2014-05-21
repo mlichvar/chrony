@@ -1513,9 +1513,9 @@ the password command automatically.
 @subsection corrtimeratio
 When @code{chronyd} makes a time correction, it controls how quickly
 the system clock is slewed (so far only on Linux).  This rate
-temporarily affects the frequency error of the system clock.
+affects the frequency error of the system clock.
 
-The @code{corrtimeratio} directive controls the ratio between the
+The @code{corrtimeratio} directive sets the ratio between the
 duration in which the clock is slewed for an average correction
 according to the source history and the interval in which the
 corrections are done (usually the NTP polling interval).  Corrections
@@ -1523,22 +1523,21 @@ larger than the average take less time and smaller corrections take
 more time, the amount of the correction and the correction time are
 inversely proportional.
 
-Increasing @code{corrtimeratio} makes the overall frequency error of
-the system clock smaller, but increases the overall time error as
-the corrections will take longer.
+Increasing @code{corrtimeratio} improves the overall frequency error
+of the system clock, but increases the overall time error as the
+corrections take longer.
 
-By default, the ratio is 1, which means the duration of an average
-correction will be close to the update interval.
+By default, the ratio is set to 3, the time accuracy of the clock is
+preferred over its frequency accuracy.
 
 The syntax is
 
 @example
-corrtimeratio 10
+corrtimeratio 100
 @end example
 
 The current remaining correction is shown in the @code{tracking} report
 (@pxref{tracking command}) as the @code{System time} value.
-
 @c }}}
 @c {{{ deny
 @node deny directive

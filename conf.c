@@ -86,7 +86,7 @@ static char *drift_file = NULL;
 static char *rtc_file = NULL;
 static unsigned long command_key_id;
 static double max_update_skew = 1000.0;
-static double correction_time_ratio = 1.0;
+static double correction_time_ratio = 3.0;
 static double max_clock_error = 1.0; /* in ppm */
 
 static double reselect_distance = 1e-4;
