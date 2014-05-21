@@ -160,7 +160,8 @@ update_slew(void)
      is zero or has wrong sign (e.g. due to rounding in the frequency driver or
      when base_freq is larger than max_freq), use maximum timeout and try again
      on the next update. */
-  if (offset_register * slew_freq <= 0.0) {
+  if (fabs(offset_register) < MIN_OFFSET_CORRECTION ||
+      offset_register * slew_freq <= 0.0) {
     duration = MAX_SLEW_TIMEOUT;
   } else {
     duration = offset_register / slew_freq;
