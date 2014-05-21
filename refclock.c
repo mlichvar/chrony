@@ -57,6 +57,7 @@ struct MedianFilter {
   int last;
   int avg_var_n;
   double avg_var;
+  double max_var;
   struct FilterSample *samples;
   int *selected;
   double *x_data;
@@ -100,7 +101,7 @@ static void slew_samples(struct timeval *raw, struct timeval *cooked, double dfr
 static void add_dispersion(double dispersion, void *anything);
 static void log_sample(RCL_Instance instance, struct timeval *sample_time, int filtered, int pulse, double raw_offset, double cooked_offset, double dispersion);
 
-static void filter_init(struct MedianFilter *filter, int length);
+static void filter_init(struct MedianFilter *filter, int length, double max_dispersion);
 static void filter_fini(struct MedianFilter *filter);
 static void filter_reset(struct MedianFilter *filter);
 static double filter_get_avg_sample_dispersion(struct MedianFilter *filter);
@@ -245,7 +246,7 @@ RCL_AddRefclock(RefclockParameters *params)
       return 0;
     }
 
-  filter_init(&inst->filter, params->filter_length);
+  filter_init(&inst->filter, params->filter_length, params->max_dispersion);
 
   inst->source = SRC_CreateNewInstance(inst->ref_id, SRC_REFCLOCK, params->sel_option, NULL);
 
@@ -622,7 +623,7 @@ log_sample(RCL_Instance instance, struct timeval *sample_time, int filtered, int
 }
 
 static void
-filter_init(struct MedianFilter *filter, int length)
+filter_init(struct MedianFilter *filter, int length, double max_dispersion)
 {
   if (length < 1)
     length = 1;
@@ -634,6 +635,7 @@ filter_init(struct MedianFilter *filter, int length)
   /* set first estimate to system precision */
   filter->avg_var_n = 0;
   filter->avg_var = LCL_GetSysPrecisionAsQuantum() * LCL_GetSysPrecisionAsQuantum();
+  filter->max_var = max_dispersion * max_dispersion;
   filter->samples = MallocArray(struct FilterSample, filter->length);
   filter->selected = MallocArray(int, filter->length);
   filter->x_data = MallocArray(double, filter->length);
@@ -859,6 +861,13 @@ filter_get_sample(struct MedianFilter *filter, struct timeval *sample_time, doub
   if (var < 1e-20) {
     var = 1e-20;
     d = sqrt(var);
+  }
+
+  /* drop the sample if variance is larger than allowed maximum */
+  if (filter->max_var > 0.0 && var > filter->max_var) {
+    DEBUG_LOG(LOGF_Refclock, "filter dispersion too large disp=%.9f max=%.9f",
+        sqrt(var), sqrt(filter->max_var));
+    return 0;
   }
 
   prev_avg_var = filter->avg_var;

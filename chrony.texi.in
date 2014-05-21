@@ -2599,6 +2599,10 @@ sources.  The default is 1e-9 (1 nanosecond).
 @item precision
 Refclock precision (in seconds).  The default is 1e-6 (1 microsecond)
 for SHM refclock, and 1e-9 (1 nanosecond) for SOCK, PPS and PHC refclocks.
+@item maxdispersion
+Maximum allowed dispersion for filtered samples (in seconds).  Samples
+with larger estimated dispersion are ignored.  By default, this limit
+is disabled.
 @item prefer
 Prefer this source over sources without prefer option.
 @item noselect

@@ -43,6 +43,7 @@ typedef struct {
   double offset;
   double delay;
   double precision;
+  double max_dispersion;
   SRC_SelectOption sel_option;
 } RefclockParameters;
 

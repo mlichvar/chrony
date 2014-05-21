@@ -593,7 +593,7 @@ parse_refclock(char *line)
 {
   int i, n, poll, dpoll, filter_length, pps_rate;
   uint32_t ref_id, lock_ref_id;
-  double offset, delay, precision;
+  double offset, delay, precision, max_dispersion;
   char *p, *cmd, *name, *param;
   unsigned char ref[5];
   SRC_SelectOption sel_option;
@@ -609,6 +609,7 @@ parse_refclock(char *line)
   offset = 0.0;
   delay = 1e-9;
   precision = 0.0;
+  max_dispersion = 0.0;
   ref_id = 0;
   lock_ref_id = 0;
   sel_option = SRC_SelectNormal;
@@ -667,6 +668,9 @@ parse_refclock(char *line)
     } else if (!strcasecmp(cmd, "precision")) {
       if (sscanf(line, "%lf%n", &precision, &n) != 1)
         break;
+    } else if (!strcasecmp(cmd, "maxdispersion")) {
+      if (sscanf(line, "%lf%n", &max_dispersion, &n) != 1)
+        break;
     } else if (!strcasecmp(cmd, "noselect")) {
       n = 0;
       sel_option = SRC_SelectNoselect;
@@ -693,6 +697,7 @@ parse_refclock(char *line)
   refclock_sources[i].offset = offset;
   refclock_sources[i].delay = delay;
   refclock_sources[i].precision = precision;
+  refclock_sources[i].max_dispersion = max_dispersion;
   refclock_sources[i].sel_option = sel_option;
   refclock_sources[i].ref_id = ref_id;
   refclock_sources[i].lock_ref_id = lock_ref_id;
