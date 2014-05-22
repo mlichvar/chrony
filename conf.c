@@ -187,16 +187,6 @@ static char *tempcomp_file = NULL;
 static double tempcomp_interval;
 static double tempcomp_T0, tempcomp_k0, tempcomp_k1, tempcomp_k2;
 
-/* Boolean for whether the Linux HZ value has been overridden, and the
- * new value. */
-static int set_linux_hz = 0;
-static int linux_hz;
-
-/* Boolean for whether the Linux frequency scaling value (i.e. the one that's
- * approx (1<<SHIFT_HZ)/HZ) has been overridden, and the new value. */
-static int set_linux_freq_scale = 0;
-static double linux_freq_scale;
-
 static int sched_priority = 0;
 static int lock_memory = 0;
 
@@ -396,9 +386,9 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "leapsectz")) {
     parse_string(p, &leapsec_tz);
   } else if (!strcasecmp(command, "linux_freq_scale")) {
-    set_linux_freq_scale = parse_double(p, &linux_freq_scale);
+    LOG(LOGS_WARN, LOGF_Configure, "%s directive is no longer supported", command);
   } else if (!strcasecmp(command, "linux_hz")) {
-    set_linux_hz = parse_int(p, &linux_hz);
+    LOG(LOGS_WARN, LOGF_Configure, "%s directive is no longer supported", command);
   } else if (!strcasecmp(command, "local")) {
     parse_local(p);
   } else if (!strcasecmp(command, "lock_all")) {
@@ -1612,24 +1602,6 @@ char *
 CNF_GetLeapSecTimezone(void)
 {
   return leapsec_tz;
-}
-
-/* ================================================== */
-
-void
-CNF_GetLinuxHz(int *set, int *hz)
-{
-  *set = set_linux_hz;
-  *hz = linux_hz;
-}
-
-/* ================================================== */
-
-void
-CNF_GetLinuxFreqScale(int *set, double *freq_scale)
-{
-  *set = set_linux_freq_scale;
-  *freq_scale = linux_freq_scale ;
 }
 
 /* ================================================== */

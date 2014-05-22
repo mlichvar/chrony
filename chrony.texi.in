@@ -1141,8 +1141,6 @@ the configuration file is ignored.
 * initstepslew directive::      Trim the system clock on boot-up
 * keyfile directive::           Specify location of file containing keys
 * leapsectz directive::         Read leap second data from tz database
-* linux_freq_scale directive::  Define a non-standard value to compensate the kernel frequency bias
-* linux_hz directive::          Define a non-standard value of the kernel USER_HZ constant
 * local directive::             Allow unsynchronised machine to act as server
 * lock_all directive::          Require that chronyd be locked into RAM
 * log directive::               Make daemon log certain sets of information
@@ -1818,38 +1816,6 @@ $ TZ=right/UTC date -d 'Dec 31 2008 23:59:60'
 Wed Dec 31 23:59:60 UTC 2008
 @end example
 
-@c }}}
-@c {{{ linux_freq_scale
-@node linux_freq_scale directive
-@subsection linux_freq_scale
-(This option only applies to Linux).
-
-This option sets a scale factor needed to control the frequency of the clock by
-the @code{adjtimex()} system call exactly.  By default, the value is determined
-by the version of the running kernel.  In recent kernels it is always 1.0 (i.e.
-no scaling is needed).
-
-An example of the command is
-
-@example
-linux_freq_scale 0.99902439
-@end example
-@c }}}
-@c {{{ linux_hz
-@node linux_hz directive
-@subsection linux_hz
-(This option only applies to Linux).
-
-This option defines the value of the kernel @code{USER_HZ} constant, which is
-needed to use the @code{adjtimex()} system call correctly.  By default, its
-value is determined from the running kernel automatically and there should
-rarely be a need to use this option.
-
-An example of the command is
-
-@example
-linux_hz 100
-@end example
 @c }}}
 @c {{{ local
 @node local directive

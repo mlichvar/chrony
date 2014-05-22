@@ -74,8 +74,6 @@ extern void CNF_GetBindAcquisitionAddress(int family, IPAddr *addr);
 extern void CNF_GetBindCommandAddress(int family, IPAddr *addr);
 extern char *CNF_GetPidFile(void);
 extern char *CNF_GetLeapSecTimezone(void);
-extern void CNF_GetLinuxHz(int *set, int *hz);
-extern void CNF_GetLinuxFreqScale(int *set, double *freq_scale);
 
 /* Value returned in ppm, as read from file */
 extern double CNF_GetMaxUpdateSkew(void);
