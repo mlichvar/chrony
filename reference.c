@@ -161,7 +161,7 @@ REF_Initialise(void)
   double file_freq_ppm, file_skew_ppm;
   double our_frequency_ppm;
 
-  mode = REF_ModeIgnore;
+  mode = REF_ModeNormal;
   are_we_synchronised = 0;
   our_leap_status = LEAP_Unsynchronised;
   our_leap_sec = 0;
