@@ -385,7 +385,9 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
   double correction, dispersion, offset;
   struct timeval cooked_time;
   int rate;
+  NTP_Leap leap;
 
+  leap = LEAP_Normal;
   LCL_GetOffsetCorrection(pulse_time, &correction, &dispersion);
   UTI_AddDoubleToTimeval(pulse_time, correction, &cooked_time);
   dispersion += instance->precision + filter_get_avg_sample_dispersion(&instance->filter);
@@ -436,13 +438,14 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
       return 0;
     }
 
+    leap = refclocks[instance->lock_ref].leap_status;
+
     DEBUG_LOG(LOGF_Refclock, "refclock pulse second=%.9f offset=%.9f offdiff=%.9f samplediff=%.9f",
         second, offset, ref_offset - offset, sample_diff);
   } else {
     struct timeval ref_time;
     int is_synchronised, stratum;
     double root_delay, root_dispersion, distance;
-    NTP_Leap leap;
     uint32_t ref_id;
 
     /* Ignore the pulse if we are not well synchronized */
@@ -461,7 +464,7 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
   }
 
   filter_add_sample(&instance->filter, &cooked_time, offset, dispersion);
-  instance->leap_status = LEAP_Normal;
+  instance->leap_status = leap;
   instance->pps_active = 1;
 
   log_sample(instance, &cooked_time, 0, 1, offset + correction - instance->offset, offset, dispersion);
