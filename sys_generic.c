@@ -154,7 +154,8 @@ update_slew(void)
   /* Compute the dispersion introduced by changing frequency and add it
      to all statistics held at higher levels in the system */
   slew_error = fabs((old_slew_freq - slew_freq) * max_freq_change_delay);
-  lcl_InvokeDispersionNotifyHandlers(slew_error);
+  if (slew_error >= MIN_OFFSET_CORRECTION)
+    lcl_InvokeDispersionNotifyHandlers(slew_error);
 
   /* Compute the duration of the slew and clamp it.  If the slewing frequency
      is zero or has wrong sign (e.g. due to rounding in the frequency driver or
@@ -178,8 +179,9 @@ update_slew(void)
   slew_start = now;
   slew_timer_running = 1;
 
-  DEBUG_LOG(LOGF_SysGeneric, "slew offset=%e corr_rate=%e base_freq=%f total_freq=%f slew_freq=%e duration=%f",
-      offset_register, correction_rate, base_freq, total_freq, slew_freq, duration);
+  DEBUG_LOG(LOGF_SysGeneric, "slew offset=%e corr_rate=%e base_freq=%f total_freq=%f slew_freq=%e duration=%f slew_error=%e",
+      offset_register, correction_rate, base_freq, total_freq, slew_freq,
+      duration, slew_error);
 }
 
 /* ================================================== */
