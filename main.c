@@ -63,7 +63,7 @@ static int exit_status = 0;
 
 static int reload = 0;
 
-static REF_Mode ref_mode;
+static REF_Mode ref_mode = REF_ModeNormal;
 
 /* ================================================== */
 
