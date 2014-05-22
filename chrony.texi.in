@@ -2586,15 +2586,17 @@ may be defined in any order):
 @table @code
 @item poll
 Timestamps produced by refclock drivers are not used immediately, but
-they are stored and processed by a median filter in intervals
-specified by this option.  This is defined as a power of 2.  The
+they are stored and processed by a median filter in the polling interval
+specified by this option.  This is defined as a power of 2 and may be
+negative to specify a sub-second interval.  The
 default is 4 (16 seconds).  A shorter interval allows @code{chronyd}
 to react faster to changes in clock frequency, but it may decrease
 the accuracy if the source is too noisy.
 @item dpoll
-Some drivers are not controlled by external events and thus require
-polling.  Again this is defined as a power of 2 and can be negative
-for sub-second intervals.  The default is 0 (1 second).
+Some drivers don't listen for external events and try to produce
+samples in their own polling interval.  This is defined as a power of
+2 and may be negative to specify a sub-second interval.  The default
+is 0 (1 second).
 @item refid
 This option is used to specify a reference id of the refclock, as up
 to four ASCII characters.  By default, first three characters from
@@ -2630,7 +2632,7 @@ having no majority in the algorithm or to make it prefer other
 sources.  The default is 1e-9 (1 nanosecond).
 @item precision
 Refclock precision (in seconds).  The default is 1e-6 (1 microsecond)
-for SHM refclock, and 1e-9 (1 nanosecond) for SOCK and PPS refclocks.
+for SHM refclock, and 1e-9 (1 nanosecond) for SOCK, PPS and PHC refclocks.
 @item prefer
 Prefer this source over sources without prefer option.
 @item noselect
