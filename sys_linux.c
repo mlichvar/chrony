@@ -298,7 +298,10 @@ get_version_specific_details(void)
   basic_freq_scale = dshift_hz / dhz;
   nominal_tick = (1000000L + (hz/2))/hz; /* Mirror declaration in kernel */
   max_tick_bias = nominal_tick / 10;
-  tick_update_hz = hz;
+
+  /* We can't reliably detect the internal kernel HZ, it may not even be fixed
+     (CONFIG_NO_HZ aka tickless), assume the lowest commonly used fixed rate */
+  tick_update_hz = 100;
 
   /* The basic_freq_scale comes from:
      * the kernel increments the usec counter HZ times per second (if the timer
