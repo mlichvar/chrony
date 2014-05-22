@@ -476,6 +476,15 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
   return 1;
 }
 
+static double
+poll_interval(int poll)
+{
+  if (poll >= 0)
+    return 1 << poll;
+  else
+    return 1.0 / (1 << -poll);
+}
+
 static int
 valid_sample_time(RCL_Instance instance, struct timeval *tv)
 {
@@ -484,8 +493,8 @@ valid_sample_time(RCL_Instance instance, struct timeval *tv)
 
   LCL_ReadRawTime(&raw_time);
   UTI_DiffTimevalsToDouble(&diff, &raw_time, tv);
-  if (diff < 0.0 || diff > 1 << (instance->poll + 1)) {
-    DEBUG_LOG(LOGF_Refclock, "refclock sample not valid age=%.f tv=%s",
+  if (diff < 0.0 || diff > poll_interval(instance->poll + 1)) {
+    DEBUG_LOG(LOGF_Refclock, "refclock sample not valid age=%.6f tv=%s",
         diff, UTI_TimevalToString(tv));
     return 0;
   }
@@ -522,7 +531,6 @@ pps_stratum(RCL_Instance instance, struct timeval *tv)
 static void
 poll_timeout(void *arg)
 {
-  double next;
   int poll;
 
   RCL_Instance inst = (RCL_Instance)arg;
@@ -561,12 +569,7 @@ poll_timeout(void *arg)
     }
   }
 
-  if (poll >= 0)
-    next = 1 << poll;
-  else
-    next = 1.0 / (1 << -poll);
-
-  inst->timeout_id = SCH_AddTimeoutByDelay(next, poll_timeout, arg);
+  inst->timeout_id = SCH_AddTimeoutByDelay(poll_interval(poll), poll_timeout, arg);
 }
 
 static void
