@@ -351,7 +351,7 @@ RCL_AddSample(RCL_Instance instance, struct timeval *sample_time, double offset,
 
   LCL_GetOffsetCorrection(sample_time, &correction, &dispersion);
   UTI_AddDoubleToTimeval(sample_time, correction, &cooked_time);
-  dispersion += instance->precision + filter_get_avg_sample_dispersion(&instance->filter);
+  dispersion += instance->precision;
 
   if (!valid_sample_time(instance, sample_time))
     return 0;
@@ -391,7 +391,7 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
   leap = LEAP_Normal;
   LCL_GetOffsetCorrection(pulse_time, &correction, &dispersion);
   UTI_AddDoubleToTimeval(pulse_time, correction, &cooked_time);
-  dispersion += instance->precision + filter_get_avg_sample_dispersion(&instance->filter);
+  dispersion += instance->precision;
 
   if (!valid_sample_time(instance, pulse_time))
     return 0;
@@ -417,6 +417,8 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
       DEBUG_LOG(LOGF_Refclock, "refclock pulse ignored no ref sample");
       return 0;
     }
+
+    ref_dispersion += filter_get_avg_sample_dispersion(&refclocks[instance->lock_ref].filter);
 
     UTI_DiffTimevalsToDouble(&sample_diff, &cooked_time, &ref_sample_time);
     if (fabs(sample_diff) >= 2.0 / rate) {
@@ -828,8 +830,6 @@ filter_get_sample(struct MedianFilter *filter, struct timeval *sample_time, doub
   x /= n;
   y /= n;
   e /= n;
-
-  e -= sqrt(filter->avg_var);
 
   if (n >= 4) {
     double b0, b1, s2, sb0, sb1;
