@@ -971,7 +971,7 @@ void
 RTC_Linux_TimePreInit(void)
 {
   int fd, status;
-  struct rtc_time rtc_raw;
+  struct rtc_time rtc_raw, rtc_raw_retry;
   struct tm rtc_tm;
   time_t rtc_t, estimated_correct_rtc_t;
   long interval;
@@ -989,7 +989,15 @@ RTC_Linux_TimePreInit(void)
     return; /* Can't open it, and won't be able to later */
   }
 
-  status = ioctl(fd, RTC_RD_TIME, &rtc_raw);
+  /* Retry reading the rtc until both read attempts give the same sec value.
+     This way the race condition is prevented that the RTC has updated itself
+     during the first read operation. */
+  do {
+    status = ioctl(fd, RTC_RD_TIME, &rtc_raw);
+    if (status >= 0) {
+      status = ioctl(fd, RTC_RD_TIME, &rtc_raw_retry);
+    }
+  } while (status >= 0 && rtc_raw.tm_sec != rtc_raw_retry.tm_sec);
 
   if (status >= 0) {
     /* Convert to seconds since 1970 */
