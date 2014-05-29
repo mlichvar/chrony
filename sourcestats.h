@@ -67,11 +67,6 @@ extern void SST_AccumulateSample(SST_Stats inst, struct timeval *sample_time, do
    down to that number of samples. */
 extern void SST_DoNewRegression(SST_Stats inst);
 
-/* This function does a simple regression on what is in the register,
-   without trying to optimise the error bounds on the frequency by
-   deleting old samples */
-extern void SST_DoUpdateRegression(SST_Stats inst);
-
 /* Return the assumed worst case range of values that this source's
    frequency lies within.  Frequency is defined as the amount of time
    the local clock gains relative to the source per unit local clock
