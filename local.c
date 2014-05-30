@@ -248,6 +248,20 @@ void LCL_RemoveParameterChangeHandler(LCL_ParameterChangeHandler handler, void *
 
 /* ================================================== */
 
+static void
+invoke_parameter_change_handlers(struct timeval *raw, struct timeval *cooked,
+                                 double dfreq, double doffset,
+                                 int is_step_change)
+{
+  ChangeListEntry *ptr;
+
+  for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
+    (ptr->handler)(raw, cooked, dfreq, doffset, is_step_change, ptr->anything);
+  }
+}
+
+/* ================================================== */
+
 void
 LCL_AddDispersionNotifyHandler(LCL_DispersionNotifyHandler handler, void *anything)
 {
@@ -369,7 +383,6 @@ LCL_ReadAbsoluteFrequency(void)
 void
 LCL_SetAbsoluteFrequency(double afreq_ppm)
 {
-  ChangeListEntry *ptr;
   struct timeval raw, cooked;
   double dfreq;
   
@@ -388,9 +401,7 @@ LCL_SetAbsoluteFrequency(double afreq_ppm)
   LCL_CookTime(&raw, &cooked, NULL);
 
   /* Dispatch to all handlers */
-  for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
-    (ptr->handler)(&raw, &cooked, dfreq, 0.0, 0, ptr->anything);
-  }
+  invoke_parameter_change_handlers(&raw, &cooked, dfreq, 0.0, 0);
 
   current_freq_ppm = afreq_ppm;
 
@@ -401,7 +412,6 @@ LCL_SetAbsoluteFrequency(double afreq_ppm)
 void
 LCL_AccumulateDeltaFrequency(double dfreq)
 {
-  ChangeListEntry *ptr;
   struct timeval raw, cooked;
   double old_freq_ppm;
 
@@ -421,10 +431,7 @@ LCL_AccumulateDeltaFrequency(double dfreq)
   LCL_CookTime(&raw, &cooked, NULL);
 
   /* Dispatch to all handlers */
-  for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
-    (ptr->handler)(&raw, &cooked, dfreq, 0.0, 0, ptr->anything);
-  }
-
+  invoke_parameter_change_handlers(&raw, &cooked, dfreq, 0.0, 0);
 }
 
 /* ================================================== */
@@ -432,7 +439,6 @@ LCL_AccumulateDeltaFrequency(double dfreq)
 void
 LCL_AccumulateOffset(double offset, double corr_rate)
 {
-  ChangeListEntry *ptr;
   struct timeval raw, cooked;
 
   /* In this case, the cooked time to be passed to the notify clients
@@ -444,10 +450,7 @@ LCL_AccumulateOffset(double offset, double corr_rate)
   (*drv_accrue_offset)(offset, corr_rate);
 
   /* Dispatch to all handlers */
-  for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
-    (ptr->handler)(&raw, &cooked, 0.0, offset, 0, ptr->anything);
-  }
-
+  invoke_parameter_change_handlers(&raw, &cooked, 0.0, offset, 0);
 }
 
 /* ================================================== */
@@ -455,7 +458,6 @@ LCL_AccumulateOffset(double offset, double corr_rate)
 void
 LCL_ApplyStepOffset(double offset)
 {
-  ChangeListEntry *ptr;
   struct timeval raw, cooked;
 
   /* In this case, the cooked time to be passed to the notify clients
@@ -467,10 +469,7 @@ LCL_ApplyStepOffset(double offset)
   (*drv_apply_step_offset)(offset);
 
   /* Dispatch to all handlers */
-  for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
-    (ptr->handler)(&raw, &cooked, 0.0, offset, 1, ptr->anything);
-  }
-
+  invoke_parameter_change_handlers(&raw, &cooked, 0.0, offset, 1);
 }
 
 /* ================================================== */
@@ -479,12 +478,8 @@ void
 LCL_NotifyExternalTimeStep(struct timeval *raw, struct timeval *cooked,
     double offset, double dispersion)
 {
-  ChangeListEntry *ptr;
-
   /* Dispatch to all handlers */
-  for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
-    (ptr->handler)(raw, cooked, 0.0, offset, 1, ptr->anything);
-  }
+  invoke_parameter_change_handlers(raw, cooked, 0.0, offset, 1);
 
   lcl_InvokeDispersionNotifyHandlers(dispersion);
 }
