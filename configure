@@ -426,7 +426,7 @@ fi
 
 if [ $feat_asyncdns = "1" ] && \
   test_code 'pthread' 'pthread.h' '-pthread' '' \
-    'return pthread_create(NULL, NULL, NULL, NULL);'
+    'return pthread_create((void *)1, NULL, (void *)1, NULL);'
 then
   add_def FEAT_ASYNCDNS
   add_def USE_PTHREAD_ASYNCDNS
@@ -448,7 +448,7 @@ fi
 
 if [ "x$timepps_h" != "x" ] && \
   test_code 'PPSAPI' "string.h $timepps_h" '' '' '
-    pps_handle_t h;
+    pps_handle_t h = 0;
     pps_info_t i;
     struct timespec ts;
     return time_pps_fetch(h, PPS_TSFMT_TSPEC, &i, &ts);'
