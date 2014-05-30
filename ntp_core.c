@@ -310,6 +310,8 @@ take_offline(NCR_Instance inst)
     NIO_CloseClientSocket(inst->local_addr.sock_fd);
     inst->local_addr.sock_fd = INVALID_SOCK_FD;
   }
+
+  NCR_ResetInstance(inst);
 }
 
 /* ================================================== */
@@ -346,10 +348,15 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
     result->maxpoll = SRC_DEFAULT_MAXPOLL;
   if (result->maxpoll < result->minpoll)
     result->maxpoll = result->minpoll;
-  result->min_stratum = params->min_stratum;
 
+  result->min_stratum = params->min_stratum;
   result->presend_minpoll = params->presend_minpoll;
-  result->presend_done = 0;
+
+  result->max_delay = params->max_delay;
+  result->max_delay_ratio = params->max_delay_ratio;
+  result->max_delay_dev_ratio = params->max_delay_dev_ratio;
+  result->auto_offline = params->auto_offline;
+  result->poll_target = params->poll_target;
 
   if (params->authkey == INACTIVE_AUTHKEY) {
     result->do_auth = 0;
@@ -363,18 +370,6 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
     }
   }
 
-  result->max_delay = params->max_delay;
-  result->max_delay_ratio = params->max_delay_ratio;
-  result->max_delay_dev_ratio = params->max_delay_dev_ratio;
-
-  result->tx_count = 0;
-
-  result->remote_orig.hi = 0;
-  result->remote_orig.lo = 0;
-
-  result->poll_target = params->poll_target;
-  result->poll_score = 0.0;
-
   /* Create a source instance for this NTP source */
   result->source = SRC_CreateNewInstance(UTI_IPToRefid(&remote_addr->ip_addr), SRC_NTP, params->sel_option, &result->remote_addr.ip_addr);
 
@@ -383,25 +378,13 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->tx_suspended = 1;
   result->opmode = params->online ? MD_ONLINE : MD_OFFLINE;
   
+  NCR_ResetInstance(result);
+
   if (params->iburst) {
     NCR_InitiateSampleBurst(result, IBURST_GOOD_SAMPLES, IBURST_TOTAL_SAMPLES);
   }
 
-  result->auto_offline = params->auto_offline;
-  
-  result->local_poll = result->minpoll;
-  result->remote_poll = 0;
-  result->remote_stratum = 0;
-
-  result->local_rx.tv_sec = 0;
-  result->local_rx.tv_usec = 0;
-  result->local_tx.tv_sec = 0;
-  result->local_tx.tv_usec = 0;
-  result->local_ntp_tx.hi = 0;
-  result->local_ntp_tx.lo = 0;
-
   return result;
-
 }
 
 /* ================================================== */
@@ -430,6 +413,29 @@ NCR_StartInstance(NCR_Instance instance)
   instance->tx_suspended = 0;
   if (instance->opmode != MD_OFFLINE)
     start_initial_timeout(instance);
+}
+
+/* ================================================== */
+
+void
+NCR_ResetInstance(NCR_Instance instance)
+{
+  instance->tx_count = 0;
+  instance->presend_done = 0;
+
+  instance->local_poll = instance->minpoll;
+  instance->poll_score = 0.0;
+  instance->remote_poll = 0;
+  instance->remote_stratum = 0;
+
+  instance->remote_orig.hi = 0;
+  instance->remote_orig.lo = 0;
+  instance->local_rx.tv_sec = 0;
+  instance->local_rx.tv_usec = 0;
+  instance->local_tx.tv_sec = 0;
+  instance->local_tx.tv_usec = 0;
+  instance->local_ntp_tx.hi = 0;
+  instance->local_ntp_tx.lo = 0;
 }
 
 /* ================================================== */
@@ -1599,10 +1605,8 @@ NCR_TakeSourceOnline(NCR_Instance inst)
       break;
     case MD_OFFLINE:
       LOG(LOGS_INFO, LOGF_NtpCore, "Source %s online", UTI_IPToString(&inst->remote_addr.ip_addr));
-      inst->tx_count = 0;
-      inst->local_poll = inst->minpoll;
-      inst->poll_score = 0.5;
       inst->opmode = MD_ONLINE;
+      NCR_ResetInstance(inst);
       start_initial_timeout(inst);
       break;
     case MD_BURST_WAS_ONLINE:
