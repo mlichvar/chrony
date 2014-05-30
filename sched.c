@@ -529,30 +529,33 @@ handle_slew(struct timeval *raw,
 
 /* ================================================== */
 
-/* Try to handle unexpected backward time jump */
+#define JUMP_DETECT_THRESHOLD 10
 
-static void
-recover_backjump(struct timeval *raw, struct timeval *cooked, int timeout)
+static int
+check_current_time(struct timeval *raw, int timeout)
 {
-      double diff, err;
+  double diff;
 
-      UTI_DiffTimevalsToDouble(&diff, &last_select_ts_raw, raw);
+  if (last_select_ts_raw.tv_sec > raw->tv_sec + JUMP_DETECT_THRESHOLD) {
+    LOG(LOGS_WARN, LOGF_Scheduler, "Backward time jump detected!");
+  } else if (n_timer_queue_entries > 0 &&
+      timer_queue.next->tv.tv_sec + JUMP_DETECT_THRESHOLD < raw->tv_sec) {
+    LOG(LOGS_WARN, LOGF_Scheduler, "Forward time jump detected!");
+  } else {
+    return 1;
+  }
 
-      if (n_timer_queue_entries > 0) {
-        UTI_DiffTimevalsToDouble(&err, &(timer_queue.next->tv), &last_select_ts_raw);
-      } else {
-        err = 0.0;
-      }
+  if (timeout) {
+    assert(n_timer_queue_entries > 0);
+    UTI_DiffTimevalsToDouble(&diff, &timer_queue.next->tv, raw);
+  } else {
+    UTI_DiffTimevalsToDouble(&diff, &last_select_ts_raw, raw);
+  }
 
-      diff += err;
+  /* Cooked time may no longer be valid after dispatching the handlers */
+  LCL_NotifyExternalTimeStep(raw, raw, diff, fabs(diff));
 
-      if (timeout) {
-        err = 1.0;
-      }
-
-      LOG(LOGS_WARN, LOGF_Scheduler, "Backward time jump detected! (correction %.1f +- %.1f seconds)", diff, err);
-
-      LCL_NotifyExternalTimeStep(raw, cooked, diff, err);
+  return 0;
 }
 
 /* ================================================== */
@@ -600,9 +603,10 @@ SCH_MainLoop(void)
     LCL_ReadRawTime(&now);
     LCL_CookTime(&now, &cooked, &err);
 
-    /* Check if time didn't jump backwards */
-    if (last_select_ts_raw.tv_sec > now.tv_sec + 1) {
-      recover_backjump(&now, &cooked, status == 0);
+    /* Check if the time didn't jump unexpectedly */
+    if (!check_current_time(&now, status == 0)) {
+      /* Cook the time again after handling the step */
+      LCL_CookTime(&now, &cooked, &err);
     }
 
     last_select_ts_raw = now;
