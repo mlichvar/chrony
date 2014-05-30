@@ -123,7 +123,7 @@ handle_slew(struct timeval *raw,
             struct timeval *cooked,
             double dfreq,
             double doffset,
-            int is_step_change,
+            LCL_ChangeType change_type,
             void *anything);
 
 /* ================================================== */
@@ -503,14 +503,14 @@ handle_slew(struct timeval *raw,
             struct timeval *cooked,
             double dfreq,
             double doffset,
-            int is_step_change,
+            LCL_ChangeType change_type,
             void *anything)
 {
   TimerQueueEntry *ptr;
   double delta;
   int i;
 
-  if (is_step_change) {
+  if (change_type != LCL_ChangeAdjust) {
     /* If a step change occurs, just shift all raw time stamps by the offset */
     
     for (ptr = timer_queue.next; ptr != &timer_queue; ptr = ptr->next) {

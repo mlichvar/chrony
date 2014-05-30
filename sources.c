@@ -154,7 +154,7 @@ static double combine_limit;
 
 static void
 slew_sources(struct timeval *raw, struct timeval *cooked, double dfreq,
-             double doffset, int is_step_change, void *anything);
+             double doffset, LCL_ChangeType change_type, void *anything);
 static void
 add_dispersion(double dispersion, void *anything);
 static char *
@@ -1087,7 +1087,7 @@ slew_sources(struct timeval *raw,
              struct timeval *cooked,
              double dfreq,
              double doffset,
-             int is_step_change,
+             LCL_ChangeType change_type,
              void *anything)
 {
   int i;

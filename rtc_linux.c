@@ -265,7 +265,8 @@ static void
 slew_samples
 (struct timeval *raw, struct timeval *cooked,
  double dfreq,
- double doffset, int is_step_change,
+ double doffset,
+ LCL_ChangeType change_type,
  void *anything)
 {
   int i;

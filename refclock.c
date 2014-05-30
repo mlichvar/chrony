@@ -97,7 +97,7 @@ static int valid_sample_time(RCL_Instance instance, struct timeval *tv);
 static int pps_stratum(RCL_Instance instance, struct timeval *tv);
 static void poll_timeout(void *arg);
 static void slew_samples(struct timeval *raw, struct timeval *cooked, double dfreq,
-             double doffset, int is_step_change, void *anything);
+             double doffset, LCL_ChangeType change_type, void *anything);
 static void add_dispersion(double dispersion, void *anything);
 static void log_sample(RCL_Instance instance, struct timeval *sample_time, int filtered, int pulse, double raw_offset, double cooked_offset, double dispersion);
 
@@ -577,7 +577,7 @@ poll_timeout(void *arg)
 
 static void
 slew_samples(struct timeval *raw, struct timeval *cooked, double dfreq,
-             double doffset, int is_step_change, void *anything)
+             double doffset, LCL_ChangeType change_type, void *anything)
 {
   int i;
 

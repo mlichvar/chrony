@@ -66,7 +66,7 @@ slew_samples(struct timeval *raw,
              struct timeval *cooked, 
              double dfreq,
              double doffset,
-             int is_step_change,
+             LCL_ChangeType change_type,
              void *not_used);
 
 /* ================================================== */
@@ -216,7 +216,7 @@ slew_samples(struct timeval *raw,
              struct timeval *cooked, 
              double dfreq,
              double doffset,
-             int is_step_change,
+             LCL_ChangeType change_type,
              void *not_used)
 {
   double delta_time;

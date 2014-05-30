@@ -144,10 +144,10 @@ handle_slew(struct timeval *raw,
             struct timeval *cooked,
             double dfreq,
             double doffset,
-            int is_step_change,
+            LCL_ChangeType change_type,
             void *anything)
 {
-  if (is_step_change) {
+  if (change_type == LCL_ChangeStep) {
     UTI_AddDoubleToTimeval(&last_ref_update, -doffset, &last_ref_update);
   }
 }

@@ -93,9 +93,9 @@ static void handle_end_of_slew(void *anything);
 
 static void
 handle_step(struct timeval *raw, struct timeval *cooked, double dfreq,
-            double doffset, int is_step_change, void *anything)
+            double doffset, LCL_ChangeType change_type, void *anything)
 {
-  if (is_step_change)
+  if (change_type == LCL_ChangeStep)
     UTI_AddDoubleToTimeval(&slew_start, -doffset, &slew_start);
 }
 
