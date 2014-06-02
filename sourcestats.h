@@ -43,6 +43,9 @@ extern SST_Stats SST_CreateInstance(uint32_t refid, IPAddr *addr);
 /* This function deletes an instance of the statistics handler. */
 extern void SST_DeleteInstance(SST_Stats inst);
 
+/* This function resets an instance */
+extern void SST_ResetInstance(SST_Stats inst);
+
 /* This function accumulates a single sample into the statistics handler
 
    sample_time is the epoch at which the sample is to be considered to

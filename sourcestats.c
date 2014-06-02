@@ -188,6 +188,26 @@ SST_CreateInstance(uint32_t refid, IPAddr *addr)
   inst = MallocNew(struct SST_Stats_Record);
   inst->refid = refid;
   inst->ip_addr = addr;
+
+  SST_ResetInstance(inst);
+
+  return inst;
+}
+
+/* ================================================== */
+/* This function deletes an instance of the statistics handler. */
+
+void
+SST_DeleteInstance(SST_Stats inst)
+{
+  Free(inst);
+}
+
+/* ================================================== */
+
+void
+SST_ResetInstance(SST_Stats inst)
+{
   inst->n_samples = 0;
   inst->runs_samples = 0;
   inst->last_sample = 0;
@@ -203,16 +223,6 @@ SST_CreateInstance(uint32_t refid, IPAddr *addr)
   inst->offset_time.tv_usec = 0;
   inst->variance = 16.0;
   inst->nruns = 0;
-  return inst;
-}
-
-/* ================================================== */
-/* This function deletes an instance of the statistics handler. */
-
-void
-SST_DeleteInstance(SST_Stats inst)
-{
-  Free(inst);
 }
 
 /* ================================================== */
@@ -258,7 +268,7 @@ SST_AccumulateSample(SST_Stats inst, struct timeval *sample_time,
       UTI_CompareTimevals(&inst->sample_times[inst->last_sample], sample_time) >= 0) {
     LOG(LOGS_WARN, LOGF_SourceStats, "Out of order sample detected, discarding history for %s",
         inst->ip_addr ? UTI_IPToString(inst->ip_addr) : UTI_RefidToString(inst->refid));
-    prune_register(inst, inst->n_samples);
+    SST_ResetInstance(inst);
   }
 
   n = inst->last_sample = (inst->last_sample + 1) %
@@ -583,6 +593,8 @@ SST_GetTrackingData(SST_Stats inst, struct timeval *ref_time,
 {
   int i, j;
   double elapsed_sample;
+
+  assert(inst->n_samples > 0);
 
   i = get_runsbuf_index(inst, inst->best_single_sample);
   j = get_buf_index(inst, inst->best_single_sample);
