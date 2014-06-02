@@ -74,7 +74,8 @@ extern void LCL_GetOffsetCorrection(struct timeval *raw, double *correction, dou
 
 typedef enum {
   LCL_ChangeAdjust,
-  LCL_ChangeStep
+  LCL_ChangeStep,
+  LCL_ChangeUnknownStep
 } LCL_ChangeType;
 
 typedef void (*LCL_ParameterChangeHandler)

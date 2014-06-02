@@ -491,7 +491,11 @@ slew_sources(struct timeval *raw,
           UTI_IPToString(&records[i].remote_addr->ip_addr), dfreq, doffset);
 #endif
 
-      NCR_SlewTimes(records[i].data, cooked, dfreq, doffset);
+      if (change_type == LCL_ChangeUnknownStep) {
+        NCR_ResetInstance(records[i].data);
+      } else {
+        NCR_SlewTimes(records[i].data, cooked, dfreq, doffset);
+      }
     }
   }
 

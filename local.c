@@ -479,7 +479,7 @@ LCL_NotifyExternalTimeStep(struct timeval *raw, struct timeval *cooked,
     double offset, double dispersion)
 {
   /* Dispatch to all handlers */
-  invoke_parameter_change_handlers(raw, cooked, 0.0, offset, LCL_ChangeStep);
+  invoke_parameter_change_handlers(raw, cooked, 0.0, offset, LCL_ChangeUnknownStep);
 
   lcl_InvokeDispersionNotifyHandlers(dispersion);
 }

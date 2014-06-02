@@ -87,6 +87,7 @@ static double slew_error;
 /* ================================================== */
 
 static void handle_end_of_slew(void *anything);
+static void update_slew(void);
 
 /* ================================================== */
 /* Adjust slew_start on clock step */
@@ -95,8 +96,14 @@ static void
 handle_step(struct timeval *raw, struct timeval *cooked, double dfreq,
             double doffset, LCL_ChangeType change_type, void *anything)
 {
-  if (change_type == LCL_ChangeStep)
+  if (change_type == LCL_ChangeUnknownStep) {
+    /* Reset offset and slewing */
+    slew_start = *raw;
+    offset_register = 0.0;
+    update_slew();
+  } else if (change_type == LCL_ChangeStep) {
     UTI_AddDoubleToTimeval(&slew_start, -doffset, &slew_start);
+  }
 }
 
 /* ================================================== */

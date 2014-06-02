@@ -4,8 +4,8 @@
 
 test_start "external time step"
 
-min_sync_time=1300
-max_sync_time=1500
+min_sync_time=1500
+max_sync_time=1550
 
 for step in -1e2 1e2; do
 	# Make one step in 150th second

@@ -581,8 +581,12 @@ slew_samples(struct timeval *raw, struct timeval *cooked, double dfreq,
 {
   int i;
 
-  for (i = 0; i < n_sources; i++)
-    filter_slew_samples(&refclocks[i].filter, cooked, dfreq, doffset);
+  for (i = 0; i < n_sources; i++) {
+    if (change_type == LCL_ChangeUnknownStep)
+      filter_reset(&refclocks[i].filter);
+    else
+      filter_slew_samples(&refclocks[i].filter, cooked, dfreq, doffset);
+  }
 }
 
 static void

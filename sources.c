@@ -1093,9 +1093,17 @@ slew_sources(struct timeval *raw,
   int i;
 
   for (i=0; i<n_sources; i++) {
-    SST_SlewSamples(sources[i]->stats, cooked, dfreq, doffset);
+    if (change_type == LCL_ChangeUnknownStep) {
+      SST_ResetInstance(sources[i]->stats);
+    } else {
+      SST_SlewSamples(sources[i]->stats, cooked, dfreq, doffset);
+    }
   }
-  
+
+  if (change_type == LCL_ChangeUnknownStep) {
+    /* After resetting no source is selectable, set reference unsynchronised */
+    SRC_SelectSource(NULL);
+  }
 }
 
 /* ================================================== */

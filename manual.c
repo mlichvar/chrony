@@ -221,6 +221,11 @@ slew_samples(struct timeval *raw,
 {
   double delta_time;
   int i;
+
+  if (change_type == LCL_ChangeUnknownStep) {
+    MNL_Reset();
+  }
+
   for (i=0; i<n_samples; i++) {
     UTI_AdjustTimeval(&samples[i].when, cooked, &samples[i].when, &delta_time,
         dfreq, doffset);

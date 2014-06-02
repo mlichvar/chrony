@@ -273,6 +273,11 @@ slew_samples
   double delta_time;
   double old_seconds_fast, old_gain_rate;
 
+  if (change_type == LCL_ChangeUnknownStep) {
+    /* Drop all samples. */
+    n_samples = 0;
+  }
+
   for (i=0; i<n_samples; i++) {
     UTI_AdjustTimeval(system_times + i, cooked, system_times + i, &delta_time,
         dfreq, doffset);
