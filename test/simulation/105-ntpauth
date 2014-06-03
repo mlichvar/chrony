@@ -27,16 +27,16 @@ server_conf=""
 
 run_test || test_fail
 check_chronyd_exit || test_fail
-# These checks must fail as the server doesn't know the key
+# This check must fail as the server doesn't know the key
 check_sync && test_fail
-check_packet_interval && test_fail
+check_packet_interval || test_fail
 
 server_conf="keyfile tmp/keys"
 client_conf=""
 
 run_test || test_fail
 check_chronyd_exit || test_fail
-# These checks must fail as the client doesn't know the key
+# This check must fail as the client doesn't know the key
 check_sync && test_fail
-check_packet_interval && test_fail
+check_packet_interval || test_fail
 test_pass
