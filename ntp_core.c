@@ -585,8 +585,7 @@ get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx)
 
     case MD_BURST_WAS_ONLINE:
     case MD_BURST_WAS_OFFLINE:
-      /* With burst, the timeout for new transmit after valid reply is shorter
-         than the timeout without reply */
+      /* Burst modes */
       delay_time = on_tx ? BURST_TIMEOUT : BURST_INTERVAL;
       break;
     default:
