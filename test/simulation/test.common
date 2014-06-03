@@ -18,7 +18,7 @@ export PATH=../../:$PATH
 export CLKNETSIM_PATH=clknetsim
 
 # Known working clknetsim revision
-clknetsim_revision=6647b1e11cf715676361c0fb449a23ade82947b9
+clknetsim_revision=42ddd9b0529dc4fabe39ceb0049b7eb17562be78
 clknetsim_url=https://github.com/mlichvar/clknetsim/archive/$clknetsim_revision.tar.gz
 
 # Only Linux is supported
@@ -288,9 +288,9 @@ check_packet_interval() {
 		check_stat $mean_in_interval 0.1 inf && \
 			check_stat $mean_out_interval 0.1 inf && \
 			([ $i -gt $servers ] || \
-				check_stat $mean_in_interval 0.0 $mean_out_interval) && \
+				check_stat $mean_in_interval 0.0 $mean_out_interval 10*$jitter) && \
 			([ $i -le $[$servers * $server_strata] ] || \
-				check_stat $mean_out_interval 0.0 $mean_in_interval) && \
+				check_stat $mean_out_interval 0.0 $mean_in_interval 10*$jitter) && \
 			([ $i -le $[$servers * $server_strata] ] || \
 				check_stat $min_out_interval \
 					$([ $servers -gt 1 ] && echo 0.18 || echo 1.8) inf) && \
