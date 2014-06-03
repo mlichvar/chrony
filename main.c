@@ -182,9 +182,10 @@ reference_mode_end(int result)
       SCH_QuitProgram();
       break;
     case REF_ModeInitStepSlew:
-      /* post_init_ntp_hook removes sources and a source call is
-         on the stack here, so it can't be called directly */
-      SCH_AddTimeoutByDelay(0.0, post_init_ntp_hook, NULL);
+      /* Switch to the normal mode, the delay is used to prevent polling
+         interval shorter than the burst interval if some configured servers
+         were used also for initstepslew */
+      SCH_AddTimeoutByDelay(2.0, post_init_ntp_hook, NULL);
       break;
     default:
       assert(0);
