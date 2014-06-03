@@ -16,6 +16,7 @@ max_sync_time=35
 for time_offset in -2.0 -0.2 0.2 2.0; do
 	run_test || test_fail
 	check_chronyd_exit || test_fail
+	check_packet_interval || test_fail
 	check_sync || test_fail
 done
 
@@ -24,6 +25,7 @@ max_sync_time=5
 
 for time_offset in -1e8 -1e2 1e2 1e8; do
 	run_test || test_fail
+	check_packet_interval || test_fail
 	check_sync || test_fail
 done
 

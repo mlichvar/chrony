@@ -266,27 +266,34 @@ check_source_selection() {
 
 # Check if incoming and outgoing packet intervals are sane
 check_packet_interval() {
-	local i ret=0 in_interval out_interval
+	local i ret=0 mean_in_interval mean_out_interval min_in_interval min_out_interval
 
-	test_message 2 1 "checking incoming and outgoing packet interval:"
+	test_message 2 1 "checking mean/min incoming/outgoing packet interval:"
 
 	for i in $(seq 1 $(get_chronyd_nodes)); do
-		in_interval=$(get_stat 'Mean incoming packet interval' $i)
-		out_interval=$(get_stat 'Mean outgoing packet interval' $i)
+		mean_in_interval=$(get_stat 'Mean incoming packet interval' $i)
+		mean_out_interval=$(get_stat 'Mean outgoing packet interval' $i)
+		min_in_interval=$(get_stat 'Minimum incoming packet interval' $i)
+		min_out_interval=$(get_stat 'Minimum outgoing packet interval' $i)
 
-		test_message 3 0 "node $i: $(printf '%.2e %.2e' \
-			$in_interval $out_interval)"
+		test_message 3 0 "node $i: $(printf '%.2e %.2e %.2e %.2e' \
+			$mean_in_interval $mean_out_interval $min_in_interval $min_out_interval)"
 
-		# Check that the intervals are non-zero and shorter than limit,
-		# incoming is not longer than outgoing for stratum 1 servers, and
-		# outgoing is not longer than incoming for clients.
+		# Check that the mean intervals are non-zero and shorter than
+		# limit, incoming is not longer than outgoing for stratum 1
+		# servers, outgoing is not longer than incoming for clients,
+		# and the minimum outgoing interval is not shorter than the NTP
+		# sampling separation or iburst interval for clients
 		nodes=$[$servers * $server_strata + $clients]
-		check_stat $in_interval 0.1 inf && \
-			check_stat $out_interval 0.1 inf && \
+		check_stat $mean_in_interval 0.1 inf && \
+			check_stat $mean_out_interval 0.1 inf && \
 			([ $i -gt $servers ] || \
-				check_stat $in_interval 0.0 $out_interval) && \
+				check_stat $mean_in_interval 0.0 $mean_out_interval) && \
 			([ $i -le $[$servers * $server_strata] ] || \
-				check_stat $out_interval 0.0 $in_interval) && \
+				check_stat $mean_out_interval 0.0 $mean_in_interval) && \
+			([ $i -le $[$servers * $server_strata] ] || \
+				check_stat $min_out_interval \
+					$([ $servers -gt 1 ] && echo 0.18 || echo 1.8) inf) && \
 			test_ok || test_bad
 
 		[ $? -eq 0 ] || ret=1

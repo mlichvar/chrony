@@ -12,6 +12,7 @@ for step in -1e2 1e2; do
 	client_step="(* $step (equal 0.1 (sum 1.0) 150))"
 	run_test || test_fail
 	check_chronyd_exit || test_fail
+	check_packet_interval || test_fail
 	check_sync || test_fail
 done
 
@@ -24,6 +25,7 @@ for step in -1e8 -1e5 1e5 1e8; do
 	client_step="(* $step (equal 0.1 (sum 1.0) 5000))"
 	run_test || test_fail
 	check_chronyd_exit || test_fail
+	check_packet_interval || test_fail
 	check_sync || test_fail
 done
 
@@ -37,6 +39,7 @@ for step in -1e4 1e4; do
 	client_step="(* $step (equal 0.1 (% (sum 1.0) 500) 0))"
 	run_test || test_fail
 	check_chronyd_exit || test_fail
+	check_packet_interval || test_fail
 	check_sync || test_fail
 done
 

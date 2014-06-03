@@ -12,6 +12,7 @@ for freq_offset in -5e-2 -5e-3 5e-3 5e-2; do
 	run_test || test_fail
 	check_chronyd_exit || test_fail
 	check_source_selection || test_fail
+	check_packet_interval || test_fail
 	check_sync || test_fail
 done
 
