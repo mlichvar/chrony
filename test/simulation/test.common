@@ -51,7 +51,6 @@ default_wander=1e-9
 default_refclock_jitter=""
 
 default_update_interval=0
-default_log_packets=0
 default_shift_pll=2
 
 default_server_strata=1
@@ -351,8 +350,7 @@ run_simulation() {
 	test_message 2 0 "running simulation:"
 
 	start_server $nodes \
-		-o tmp/log.offset -f tmp/log.freq \
-		$([ $log_packets -ne 0 ] && echo -p tmp/log.packets) \
+		-o tmp/log.offset -f tmp/log.freq -p tmp/log.packets \
 		-R $(awk "BEGIN {print $update_interval < 0 ? 2^-($update_interval) : 1}") \
 		-r $(awk "BEGIN {print $max_sync_time * 2^$update_interval}") \
 		-l $(awk "BEGIN {print $limit * 2^$update_interval}") && test_ok || test_error

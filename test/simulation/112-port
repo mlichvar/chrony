@@ -4,8 +4,6 @@
 
 test_start "port and acquisitionport directives"
 
-log_packets=1
-
 run_test || test_fail
 check_chronyd_exit || test_fail
 check_source_selection || test_fail

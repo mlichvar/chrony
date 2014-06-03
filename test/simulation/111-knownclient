@@ -7,7 +7,6 @@ test_start "reply to client configured as server"
 server_conf="server 192.168.123.2
 acquisitionport 123"
 client_conf="acquisitionport 123"
-log_packets=1
 
 run_test || test_fail
 check_chronyd_exit || test_fail
