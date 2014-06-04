@@ -791,7 +791,7 @@ REF_SetReference(int stratum,
   double elapsed;
   double correction_rate;
   double uncorrected_offset;
-  struct timeval now, raw_now, ev_now, ev_raw_now;
+  struct timeval now, raw_now;
 
   assert(initialised);
 
@@ -824,10 +824,7 @@ REF_SetReference(int stratum,
   }
     
   LCL_ReadRawTime(&raw_now);
-
-  /* This is cheaper than calling LCL_CookTime */
-  SCH_GetLastEventTime(&ev_now, NULL, &ev_raw_now);
-  UTI_DiffTimevalsToDouble(&uncorrected_offset, &ev_now, &ev_raw_now);
+  LCL_GetOffsetCorrection(&raw_now, &uncorrected_offset, NULL);
   UTI_AddDoubleToTimeval(&raw_now, uncorrected_offset, &now);
 
   UTI_DiffTimevalsToDouble(&elapsed, &now, ref_time);
@@ -998,9 +995,9 @@ REF_SetUnsynchronised(void)
     return;
   }
 
-  /* This is cheaper than calling LCL_CookTime */
-  SCH_GetLastEventTime(&now, NULL, &now_raw);
-  UTI_DiffTimevalsToDouble(&uncorrected_offset, &now, &now_raw);
+  LCL_ReadRawTime(&now_raw);
+  LCL_GetOffsetCorrection(&now_raw, &uncorrected_offset, NULL);
+  UTI_AddDoubleToTimeval(&now_raw, uncorrected_offset, &now);
 
   if (fb_drifts) {
     schedule_fb_drift(&now);
