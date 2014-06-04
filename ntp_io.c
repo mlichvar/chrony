@@ -675,15 +675,8 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
   if (!cmsglen)
     msg.msg_control = NULL;
 
-  if (sendmsg(local_addr->sock_fd, &msg, 0) < 0 &&
-#ifdef ENETUNREACH
-      errno != ENETUNREACH &&
-#endif
-#ifdef ENETDOWN
-      errno != ENETDOWN &&
-#endif
-      !LOG_RateLimited()) {
-    LOG(LOGS_WARN, LOGF_NtpIO, "Could not send to %s:%d : %s",
+  if (sendmsg(local_addr->sock_fd, &msg, 0) < 0) {
+    DEBUG_LOG(LOGF_NtpIO, "Could not send to %s:%d : %s",
         UTI_IPToString(&remote_addr->ip_addr), remote_addr->port, strerror(errno));
   }
 }

@@ -1567,8 +1567,8 @@ NCR_ProcessUnknown
                         local_addr);
       }
     }
-  } else if (!LOG_RateLimited()) {
-    LOG(LOGS_WARN, LOGF_NtpCore, "NTP packet received from unauthorised host %s port %d",
+  } else {
+    DEBUG_LOG(LOGF_NtpCore, "NTP packet received from unauthorised host %s port %d",
         UTI_IPToString(&remote_addr->ip_addr),
         remote_addr->port);
   }

@@ -734,7 +734,7 @@ transmit_reply(CMD_Reply *msg, union sockaddr_in46 *where_to, int auth_len)
   status = sendto(sock_fd, (void *) msg, tx_message_length, 0,
                   &where_to->u, addrlen);
 
-  if (status < 0 && !LOG_RateLimited()) {
+  if (status < 0) {
     unsigned short port;
     IPAddr ip;
 
@@ -755,7 +755,7 @@ transmit_reply(CMD_Reply *msg, union sockaddr_in46 *where_to, int auth_len)
         assert(0);
     }
 
-    LOG(LOGS_WARN, LOGF_CmdMon, "Could not send response to %s:%hu", UTI_IPToString(&ip), port);
+    DEBUG_LOG(LOGF_CmdMon, "Could not send response to %s:%hu", UTI_IPToString(&ip), port);
   }
 }
   
@@ -1767,9 +1767,7 @@ read_from_cmd_socket(void *anything)
   memset(&tx_message.auth, 0, sizeof(tx_message.auth));
 
   if (rx_message.version != PROTO_VERSION_NUMBER) {
-    if (!LOG_RateLimited()) {
-      LOG(LOGS_WARN, LOGF_CmdMon, "Read command packet with protocol version %d (expected %d) from %s:%hu", rx_message.version, PROTO_VERSION_NUMBER, UTI_IPToString(&remote_ip), remote_port);
-    }
+    DEBUG_LOG(LOGF_CmdMon, "Read command packet with protocol version %d (expected %d) from %s:%hu", rx_message.version, PROTO_VERSION_NUMBER, UTI_IPToString(&remote_ip), remote_port);
 
     CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
@@ -1781,9 +1779,7 @@ read_from_cmd_socket(void *anything)
   }
 
   if (rx_command >= N_REQUEST_TYPES) {
-    if (!LOG_RateLimited()) {
-      LOG(LOGS_WARN, LOGF_CmdMon, "Read command packet with invalid command %d from %s:%hu", rx_command, UTI_IPToString(&remote_ip), remote_port);
-    }
+    DEBUG_LOG(LOGF_CmdMon, "Read command packet with invalid command %d from %s:%hu", rx_command, UTI_IPToString(&remote_ip), remote_port);
 
     CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
@@ -1793,9 +1789,7 @@ read_from_cmd_socket(void *anything)
   }
 
   if (read_length < expected_length) {
-    if (!LOG_RateLimited()) {
-      LOG(LOGS_WARN, LOGF_CmdMon, "Read incorrectly sized command packet from %s:%hu", UTI_IPToString(&remote_ip), remote_port);
-    }
+    DEBUG_LOG(LOGF_CmdMon, "Read incorrectly sized command packet from %s:%hu", UTI_IPToString(&remote_ip), remote_port);
 
     CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
@@ -1878,8 +1872,8 @@ read_from_cmd_socket(void *anything)
       tx_message_length = PKL_ReplyLength(prev_tx_message);
       status = sendto(sock_fd, (void *) prev_tx_message, tx_message_length, 0,
                       &where_from.u, from_length);
-      if (status < 0 && !LOG_RateLimited()) {
-        LOG(LOGS_WARN, LOGF_CmdMon, "Could not send response to %s:%hu", UTI_IPToString(&remote_ip), remote_port);
+      if (status < 0) {
+        DEBUG_LOG(LOGF_CmdMon, "Could not send response to %s:%hu", UTI_IPToString(&remote_ip), remote_port);
       }
       return;
     }
@@ -2006,8 +2000,8 @@ read_from_cmd_socket(void *anything)
 
         case REQ_LOGON:
           /* If the log-on fails, record the reason why */
-          if (!issue_token && !LOG_RateLimited()) {
-            LOG(LOGS_WARN, LOGF_CmdMon,
+          if (!issue_token) {
+            DEBUG_LOG(LOGF_CmdMon,
                 "Bad command logon from %s port %d (auth_ok=%d valid_ts=%d)",
                 UTI_IPToString(&remote_ip),
                 remote_port,

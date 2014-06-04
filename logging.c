@@ -49,8 +49,6 @@ static int parent_fd = 0;
 #define DEBUG_LEVEL_PRINT_DEBUG 2
 static int debug_level = 0;
 
-static time_t last_limited = 0;
-
 #ifdef WINNT
 static FILE *logfile;
 #endif
@@ -238,22 +236,6 @@ LOG_CloseParentFd()
   if (parent_fd > 0)
     close(parent_fd);
   parent_fd = -1;
-}
-
-/* ================================================== */
-
-int
-LOG_RateLimited(void)
-{
-  time_t now;
-
-  now = time(NULL);
-
-  if (last_limited + 10 > now && last_limited <= now)
-    return 1;
-
-  last_limited = now;
-  return 0;
 }
 
 /* ================================================== */

@@ -123,9 +123,6 @@ extern void LOG_SetParentFd(int fd);
 /* Close the pipe to the foreground process so it can exit */
 extern void LOG_CloseParentFd(void);
 
-/* Return zero once per 10 seconds */
-extern int LOG_RateLimited(void);
-
 /* File logging functions */
 
 typedef int LOG_FileID;
