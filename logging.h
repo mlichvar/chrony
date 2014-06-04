@@ -28,6 +28,9 @@
 #ifndef GOT_LOGGING_H
 #define GOT_LOGGING_H
 
+/* Flag indicating whether debug messages are logged */
+extern int log_debug_enabled;
+
 /* Line logging macros.  If the compiler is GNU C, we take advantage of
    being able to get the function name also. */
 
@@ -41,7 +44,7 @@
 
 #define DEBUG_LOG(facility, ...) \
   do { \
-    if (DEBUG) \
+    if (DEBUG && log_debug_enabled) \
       LOG_Message(LOGS_DEBUG, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__); \
   } while (0)
 #define LOG(severity, facility, ...) LOG_Message(severity, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__)

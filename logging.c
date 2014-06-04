@@ -34,6 +34,9 @@
 #include "mkdirpp.h"
 #include "util.h"
 
+/* This is used by DEBUG_LOG macro */
+int log_debug_enabled = 0;
+
 /* ================================================== */
 /* Flag indicating we have initialised */
 static int initialised = 0;
@@ -148,10 +151,6 @@ void LOG_Message(LOG_Severity severity, LOG_Facility facility,
   time_t t;
   struct tm stm;
 
-  /* Don't write debug messages if debug level is too low */
-  if (debug_level < DEBUG_LEVEL_PRINT_DEBUG && severity == LOGS_DEBUG)
-    return;
-
 #ifdef WINNT
 #else
   if (!system_log) {
@@ -216,8 +215,11 @@ LOG_OpenSystemLog(void)
 void LOG_SetDebugLevel(int level)
 {
   debug_level = level;
-  if (!DEBUG && level >= DEBUG_LEVEL_PRINT_DEBUG)
-    LOG(LOGS_WARN, LOGF_Logging, "Not compiled with full debugging support");
+  if (level >= DEBUG_LEVEL_PRINT_DEBUG) {
+    if (!DEBUG)
+      LOG(LOGS_WARN, LOGF_Logging, "Not compiled with full debugging support");
+    log_debug_enabled = 1;
+  }
 }
 
 /* ================================================== */
