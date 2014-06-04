@@ -472,7 +472,7 @@ read_from_socket(void *anything)
   ReceiveBuffer message;
   union sockaddr_in46 where_from;
   unsigned int flags = 0;
-  struct timeval now, now_raw;
+  struct timeval now;
   double now_err;
   NTP_Remote_Address remote_addr;
   NTP_Local_Address local_addr;
@@ -483,7 +483,7 @@ read_from_socket(void *anything)
 
   assert(initialised);
 
-  SCH_GetLastEventTime(&now, &now_err, &now_raw);
+  SCH_GetLastEventTime(&now, &now_err, NULL);
 
   iov.iov_base = message.arbitrary;
   iov.iov_len = sizeof(message);
@@ -554,9 +554,7 @@ read_from_socket(void *anything)
         struct timeval tv;
 
         memcpy(&tv, CMSG_DATA(cmsg), sizeof(tv));
-
-        /* This should be more accurate than LCL_CookTime(&now_raw,...) */
-        UTI_AddDiffToTimeval(&now, &now_raw, &tv, &now);
+        LCL_CookTime(&tv, &now, &now_err);
       }
 #endif
     }
