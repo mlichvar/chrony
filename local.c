@@ -126,11 +126,15 @@ calculate_sys_precision(void)
   assert(best_dusec > 0);
 
   precision_quantum = best_dusec * 1.0e-6;
+
+  /* Get rounded log2 value of the measured precision */
   precision_log = 0;
-  while (best_dusec < 500000) {
+  while (best_dusec < 707107) {
     precision_log--;
     best_dusec *= 2;
   }
+
+  DEBUG_LOG(LOGF_Local, "Clock precision %.9f (%d)", precision_quantum, precision_log);
 }
 
 /* ================================================== */
