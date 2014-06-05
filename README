@@ -125,7 +125,6 @@ Richard P. Curnow <rc@rc0.org.uk>
 Maintainers
 ===========
 
-John Hasler <john@dhh.gt.org>
 Miroslav Lichvar <mlichvar@redhat.com>
 
 
@@ -179,12 +178,18 @@ Juergen Hannken-Illjes <hannken@eis.cs.tu-bs.de>
     Port to NetBSD
 
 John Hasler <john@dhh.gt.org>
+    Project and website at tuxfamily.org
     Changes to support 64 bit machines (i.e. those where
       sizeof(unsigned long) > 4)
     Bug fix to initstepslew directive
     Fix to remove potential buffer overrun errors.
     Memory locking and real-time scheduler support
     Fix fault where chronyd enters an endless loop
+
+Tjalling Hattink <t.hattink@fugro.nl>
+    Fix scheduler to allow stepping clock from timeout handler
+    Patch to take leap second in PPS refclock from locked source
+    Patch to make reading of RTC for initial trim more reliable
 
 Liam Hatton <me@liamhatton.com>
     Advice on configuring for Linux on PPC
