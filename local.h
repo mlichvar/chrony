@@ -189,7 +189,7 @@ extern void LCL_Finalise(void);
 /* Routine to convert the outstanding system clock error to a step and
    apply it, e.g. if the system clock has ended up an hour wrong due
    to a timezone problem. */
-extern int LCL_MakeStep(double threshold);
+extern int LCL_MakeStep(void);
 
 /* Routine to schedule a leap second. Leap second will be inserted
    at the end of the day if argument is positive, deleted if negative,

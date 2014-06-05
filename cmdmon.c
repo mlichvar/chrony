@@ -1589,7 +1589,7 @@ handle_manual_delete(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_make_step(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  LCL_MakeStep(0.0);
+  LCL_MakeStep();
   tx_message->status = htons(STT_SUCCESS);
 }
 

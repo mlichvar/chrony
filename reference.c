@@ -553,15 +553,15 @@ maybe_log_offset(double offset, time_t now)
 
 /* ================================================== */
 
-static void
-maybe_make_step()
+static int
+is_step_limit_reached(double offset, double offset_correction)
 {
   if (make_step_limit == 0) {
-    return;
+    return 0;
   } else if (make_step_limit > 0) {
     make_step_limit--;
   }
-  LCL_MakeStep(make_step_threshold);
+  return fabs(offset - offset_correction) > make_step_threshold;
 }
 
 /* ================================================== */
@@ -790,7 +790,7 @@ REF_SetReference(int stratum,
   double update_interval;
   double elapsed;
   double correction_rate;
-  double uncorrected_offset;
+  double uncorrected_offset, accumulate_offset, step_offset;
   struct timeval now, raw_now;
 
   assert(initialised);
@@ -868,6 +868,16 @@ REF_SetReference(int stratum,
 
   correction_rate = correction_time_ratio * 0.5 * offset_sd * update_interval;
 
+  /* Check if the clock should be stepped */
+  if (is_step_limit_reached(our_offset, uncorrected_offset)) {
+    /* Cancel the uncorrected offset and correct the total offset by step */
+    accumulate_offset = uncorrected_offset;
+    step_offset = our_offset - uncorrected_offset;
+  } else {
+    accumulate_offset = our_offset;
+    step_offset = 0.0;
+  }
+
   /* Eliminate updates that are based on totally unreliable frequency
      information. Ignore this limit with manual reference. */
 
@@ -902,21 +912,23 @@ REF_SetReference(int stratum,
 
     our_residual_freq = new_freq - our_frequency;
 
-    LCL_AccumulateFrequencyAndOffset(our_frequency, our_offset, correction_rate);
+    LCL_AccumulateFrequencyAndOffset(our_frequency, accumulate_offset, correction_rate);
     
   } else {
+    DEBUG_LOG(LOGF_Reference, "Skew %f too large to track, offset=%f", skew, accumulate_offset);
 
-#if 0    
-    LOG(LOGS_INFO, LOGF_Reference, "Skew %f too large to track, offset=%f", skew, our_offset);
-#endif
-    LCL_AccumulateOffset(our_offset, correction_rate);
+    LCL_AccumulateOffset(accumulate_offset, correction_rate);
 
     our_residual_freq = frequency;
   }
 
   update_leap_status(leap, raw_now.tv_sec);
   maybe_log_offset(our_offset, raw_now.tv_sec);
-  maybe_make_step();
+
+  if (step_offset != 0.0) {
+    LCL_ApplyStepOffset(step_offset);
+    LOG(LOGS_WARN, LOGF_Reference, "System clock was stepped by %.6f seconds", -step_offset);
+  }
 
   abs_freq_ppm = LCL_ReadAbsoluteFrequency();
 

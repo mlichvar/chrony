@@ -563,10 +563,10 @@ lcl_RegisterSystemDrivers(lcl_ReadFrequencyDriver read_freq,
 
 /* ================================================== */
 /* Look at the current difference between the system time and the NTP
-   time, and make a step to cancel it if it's larger than the threshold. */
+   time, and make a step to cancel it. */
 
 int
-LCL_MakeStep(double threshold)
+LCL_MakeStep(void)
 {
   struct timeval raw;
   double correction;
@@ -574,14 +574,11 @@ LCL_MakeStep(double threshold)
   LCL_ReadRawTime(&raw);
   LCL_GetOffsetCorrection(&raw, &correction, NULL);
 
-  if (fabs(correction) <= threshold)
-    return 0;
-
   /* Cancel remaining slew and make the step */
   LCL_AccumulateOffset(correction, 0.0);
   LCL_ApplyStepOffset(-correction);
 
-  LOG(LOGS_WARN, LOGF_Local, "System clock was stepped by %.3f seconds", correction);
+  LOG(LOGS_WARN, LOGF_Local, "System clock was stepped by %.6f seconds", correction);
 
   return 1;
 }
