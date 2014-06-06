@@ -1,3 +1,53 @@
+New in version 1.30
+===================
+
+Enhancements
+------------
+* Add asynchronous name resolving with POSIX threads
+* Add PTP hardware clock (PHC) refclock driver
+* Add new generic clock driver to slew by adjusting frequency only
+  (without kernel PLL or adjtime) and use it on Linux
+* Add rtcautotrim directive to trim RTC automatically
+* Add hwclockfile directive to share RTC LOCAL/UTC setting with hwclock
+* Add maxslewrate directive to set maximum allowed slew rate
+* Add maxdispersion option for refclocks
+* Add -q/-Q options to set clock/print offset once and exit
+* Allow directives to be specified on chronyd command line
+* Replace frequency scaling in Linux driver with retaining of tick
+* Try to detect unexpected forward time jumps and reset state
+* Exit with non-zero code when maxchange limit is reached
+* Improve makestep to not start and stop slew unnecessarily
+* Change default corrtimeratio to 3.0 to improve frequency error
+* Announce leap second only on last day of June and December
+* Use separate connected client sockets for each NTP server
+* Remove separate NTP implementation used for initstepslew
+* Limit maximum minpoll set by KoD RATE to default maxpoll
+* Don't send NTP requests with unknown key
+* Print warning when source is added with unknown key
+* Take leap second in PPS refclock from locked source
+* Make reading of RTC for initial trim more reliable
+* Add configure option to set default user to drop root privileges
+* Add configure option to compile with debug messages
+* Print debug messages when -d is used more than once
+* Change format of messages written to terminal with -d
+* Write fatal messages also to stderr with -n
+* Use IP_RECVERR socket option in chronyc to not wait unnecessarily
+* Shorten default chronyc timeout for localhost
+* Change default hostname in chronyc from localhost to 127.0.0.1
+* Print error message on invalid syntax with all chronyc commands
+* Include simulation test suite using clknetsim
+
+Bug fixes
+---------
+* Fix crash when selecting with multiple preferred sources
+* Fix frequency calculation with large frequency offsets
+* Fix code writing drift and RTC files to compile correctly
+* Fix -4/-6 options in chronyc to not reset hostname set by -h
+* Fix refclock sample validation with sub-second polling interval
+* Set stratum correctly with non-PPS SOCK refclock and local stratum
+* Modify dispersion accounting in refclocks to prevent PPS getting
+  stuck with large dispersion and not accepting new samples
+
 New in version 1.29.1
 =====================
 
