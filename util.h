@@ -108,7 +108,7 @@ extern double UTI_FloatNetworkToHost(Float x);
 extern Float UTI_FloatHostToNetwork(double x);
 
 /* Set FD_CLOEXEC on descriptor */
-extern void UTI_FdSetCloexec(int fd);
+extern int UTI_FdSetCloexec(int fd);
 
 extern int UTI_GenerateNTPAuth(int hash_id, const unsigned char *key, int key_len,
     const unsigned char *data, int data_len, unsigned char *auth, int auth_len);

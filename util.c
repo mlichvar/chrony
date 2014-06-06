@@ -647,7 +647,7 @@ UTI_FloatHostToNetwork(double x)
 
 /* ================================================== */
 
-void
+int
 UTI_FdSetCloexec(int fd)
 {
   int flags;
@@ -655,8 +655,10 @@ UTI_FdSetCloexec(int fd)
   flags = fcntl(fd, F_GETFD);
   if (flags != -1) {
     flags |= FD_CLOEXEC;
-    fcntl(fd, F_SETFD, flags);
+    return !fcntl(fd, F_SETFD, flags);
   }
+
+  return 0;
 }
 
 /* ================================================== */
