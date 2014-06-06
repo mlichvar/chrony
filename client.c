@@ -1733,8 +1733,8 @@ process_cmd_sources(char *line)
   double orig_latest_meas, latest_meas, latest_meas_err;
   IPAddr ip_addr;
   uint32_t latest_meas_ago;
-  uint16_t poll, stratum;
-  uint16_t state, mode, flags, reachability;
+  int16_t poll;
+  uint16_t stratum, state, mode, flags, reachability;
   char hostname_buf[50];
 
   /* Check whether to output verbose headers */

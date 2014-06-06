@@ -518,7 +518,7 @@ typedef struct {
 
 typedef struct {
   IPAddr ip_addr;
-  uint16_t poll;
+  int16_t poll;
   uint16_t stratum;
   uint16_t state;
   uint16_t mode;
