@@ -147,11 +147,13 @@ handle_slew(struct timeval *raw,
             LCL_ChangeType change_type,
             void *anything)
 {
+  double delta;
+
   if (change_type == LCL_ChangeUnknownStep) {
     last_ref_update.tv_sec = 0;
     last_ref_update.tv_usec = 0;
-  } else if (change_type == LCL_ChangeStep) {
-    UTI_AddDoubleToTimeval(&last_ref_update, -doffset, &last_ref_update);
+  } else if (last_ref_update.tv_sec) {
+    UTI_AdjustTimeval(&last_ref_update, cooked, &last_ref_update, &delta, dfreq, doffset);
   }
 }
 
