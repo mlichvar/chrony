@@ -48,6 +48,20 @@
 #include <grp.h>
 #endif
 
+#ifdef FEAT_SCFILTER
+#include <sys/prctl.h>
+#include <seccomp.h>
+#ifdef FEAT_PHC
+#include <linux/ptp_clock.h>
+#endif
+#ifdef FEAT_PPS
+#include <linux/pps.h>
+#endif
+#ifdef FEAT_RTC
+#include <linux/rtc.h>
+#endif
+#endif
+
 #include "sys_generic.h"
 #include "sys_linux.h"
 #include "conf.h"
@@ -407,6 +421,143 @@ SYS_Linux_DropRoot(uid_t uid, gid_t gid)
   cap_free(cap);
 
   DEBUG_LOG(LOGF_SysLinux, "Root dropped to uid %d gid %d", uid, gid);
+}
+#endif
+
+/* ================================================== */
+
+#ifdef FEAT_SCFILTER
+static
+void check_seccomp_applicability(void)
+{
+  int mail_enabled;
+  double mail_threshold;
+  char *mail_user;
+
+  CNF_GetMailOnChange(&mail_enabled, &mail_threshold, &mail_user);
+  if (mail_enabled)
+    LOG_FATAL(LOGF_SysLinux, "mailonchange directive cannot be used with -F enabled");
+}
+
+/* ================================================== */
+
+void
+SYS_Linux_EnableSystemCallFilter(int level)
+{
+  const int syscalls[] = {
+    /* Clock */
+    SCMP_SYS(adjtimex), SCMP_SYS(gettimeofday), SCMP_SYS(settimeofday),
+    SCMP_SYS(time),
+    /* Process */
+    SCMP_SYS(clone), SCMP_SYS(exit), SCMP_SYS(exit_group),
+    SCMP_SYS(rt_sigreturn), SCMP_SYS(sigreturn),
+    /* Memory */
+    SCMP_SYS(brk), SCMP_SYS(madvise), SCMP_SYS(mmap), SCMP_SYS(mmap2),
+    SCMP_SYS(mprotect), SCMP_SYS(munmap), SCMP_SYS(shmdt),
+    /* Filesystem */
+    SCMP_SYS(chmod), SCMP_SYS(chown), SCMP_SYS(chown32), SCMP_SYS(fstat),
+    SCMP_SYS(fstat64), SCMP_SYS(lseek), SCMP_SYS(rename), SCMP_SYS(stat),
+    SCMP_SYS(stat64), SCMP_SYS(unlink),
+    /* Socket */
+    SCMP_SYS(bind), SCMP_SYS(connect), SCMP_SYS(getsockname),
+    SCMP_SYS(recvfrom), SCMP_SYS(recvmsg), SCMP_SYS(sendmmsg),
+    SCMP_SYS(sendmsg), SCMP_SYS(sendto),
+    /* TODO: check socketcall arguments */
+    SCMP_SYS(socketcall),
+    /* General I/O */
+    SCMP_SYS(_newselect), SCMP_SYS(close), SCMP_SYS(open), SCMP_SYS(pipe),
+    SCMP_SYS(poll), SCMP_SYS(read), SCMP_SYS(futex), SCMP_SYS(select),
+    SCMP_SYS(set_robust_list), SCMP_SYS(write),
+  };
+
+  const int socket_domains[] = {
+    AF_NETLINK, AF_UNIX, AF_INET,
+#ifdef FEAT_IPV6
+    AF_INET6,
+#endif
+  };
+
+  const static int socket_options[][2] = {
+    { SOL_IP, IP_PKTINFO },
+#ifdef FEAT_IPV6
+    { SOL_IPV6, IPV6_V6ONLY }, { SOL_IPV6, IPV6_RECVPKTINFO },
+#endif
+    { SOL_SOCKET, SO_BROADCAST }, { SOL_SOCKET, SO_REUSEADDR },
+    { SOL_SOCKET, SO_TIMESTAMP },
+  };
+
+  const static int fcntls[] = { F_GETFD, F_SETFD };
+
+  const static unsigned long ioctls[] = {
+    FIONREAD,
+#ifdef FEAT_PPS
+    PTP_SYS_OFFSET,
+#endif
+#ifdef FEAT_PPS
+    PPS_FETCH,
+#endif
+#ifdef FEAT_RTC
+    RTC_RD_TIME, RTC_SET_TIME, RTC_UIE_ON, RTC_UIE_OFF,
+#endif
+  };
+
+  scmp_filter_ctx *ctx;
+  int i;
+
+  /* Check if the chronyd configuration is supported */
+  check_seccomp_applicability();
+
+  ctx = seccomp_init(level > 0 ? SCMP_ACT_KILL : SCMP_ACT_TRAP);
+  if (ctx == NULL)
+      LOG_FATAL(LOGF_SysLinux, "Failed to initialize seccomp");
+
+  /* Add system calls that are always allowed */
+  for (i = 0; i < (sizeof (syscalls) / sizeof (*syscalls)); i++) {
+    if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, syscalls[i], 0) < 0)
+      goto add_failed;
+  }
+
+  /* Allow sockets to be created only in selected domains */
+  for (i = 0; i < sizeof (socket_domains) / sizeof (*socket_domains); i++) {
+    if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(socket), 1,
+                         SCMP_A0(SCMP_CMP_EQ, socket_domains[i])) < 0)
+      goto add_failed;
+  }
+
+  /* Allow setting only selected sockets options */
+  for (i = 0; i < sizeof (socket_options) / sizeof (*socket_options); i++) {
+    if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setsockopt), 3,
+                         SCMP_A1(SCMP_CMP_EQ, socket_options[i][0]),
+                         SCMP_A2(SCMP_CMP_EQ, socket_options[i][1]),
+                         SCMP_A4(SCMP_CMP_LE, sizeof (int))) < 0)
+      goto add_failed;
+  }
+
+  /* Allow only selected fcntl calls */
+  for (i = 0; i < sizeof (fcntls) / sizeof (*fcntls); i++) {
+    if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fcntl), 1,
+                         SCMP_A1(SCMP_CMP_EQ, fcntls[i])) < 0 ||
+        seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fcntl64), 1,
+                         SCMP_A1(SCMP_CMP_EQ, fcntls[i])) < 0)
+      goto add_failed;
+  }
+
+  /* Allow only selected ioctls */
+  for (i = 0; i < sizeof (ioctls) / sizeof (*ioctls); i++) {
+    if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 1,
+                         SCMP_A1(SCMP_CMP_EQ, ioctls[i])) < 0)
+      goto add_failed;
+  }
+
+  if (seccomp_load(ctx) < 0)
+      LOG(LOGS_INFO, LOGF_SysLinux, "Failed to load seccomp rules");
+
+  LOG(LOGS_INFO, LOGF_SysLinux, "Loaded seccomp filter");
+  seccomp_release(ctx);
+  return;
+
+add_failed:
+  LOG_FATAL(LOGF_SysLinux, "Failed to add seccomp rules");
 }
 #endif
 

@@ -38,6 +38,10 @@ extern void SYS_Finalise(void);
 /* Drop root privileges to the specified user and group */
 extern void SYS_DropRoot(uid_t uid, gid_t gid);
 
+/* Enable a system call filter to allow only system calls
+   which chronyd normally needs after initialization */
+extern void SYS_EnableSystemCallFilter(int level);
+
 extern void SYS_SetScheduler(int SchedPriority);
 extern void SYS_LockMemory(void);
 

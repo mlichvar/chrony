@@ -122,6 +122,17 @@ void SYS_DropRoot(uid_t uid, gid_t gid)
 
 /* ================================================== */
 
+void SYS_EnableSystemCallFilter(int level)
+{
+#if defined(LINUX) && defined(FEAT_SCFILTER)
+  SYS_Linux_EnableSystemCallFilter(level);
+#else
+  LOG_FATAL(LOGF_Sys, "system call filter not supported");
+#endif
+}
+
+/* ================================================== */
+
 void SYS_SetScheduler(int SchedPriority)
 {
 #if defined(LINUX) && defined(HAVE_SCHED_SETSCHEDULER)

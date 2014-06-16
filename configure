@@ -115,6 +115,7 @@ For better control, use the options below.
   --disable-rtc          Don't include RTC even on Linux
   --disable-privdrop     Disable support for dropping root privileges
   --without-libcap       Don't use libcap even if it is available
+  --without-seccomp      Don't use seccomp even if it is available
   --disable-asyncdns     Disable asynchronous name resolving
   --disable-forcednsretry Don't retry on permanent DNS error
   --with-ntp-era=SECONDS Specify earliest assumed NTP time in seconds
@@ -217,6 +218,8 @@ try_rtc=0
 feat_droproot=1
 try_libcap=-1
 try_clockctl=0
+feat_scfilter=1
+try_seccomp=-1
 readline_lib=""
 readline_inc=""
 ncurses_lib=""
@@ -322,6 +325,9 @@ do
     --disable-asyncdns)
       feat_asyncdns=0
     ;;
+    --without-seccomp)
+      try_seccomp=0
+    ;;
     --disable-forcednsretry)
       feat_forcednsretry=0
     ;;
@@ -387,6 +393,7 @@ case $SYSTEM in
         EXTRA_OBJECTS="sys_generic.o sys_linux.o wrap_adjtimex.o"
         [ $try_libcap != "0" ] && try_libcap=1
         try_rtc=1
+        [ $try_seccomp != "0" ] && try_seccomp=1
         try_setsched=1
         try_lockmem=1
         try_phc=1
@@ -602,6 +609,14 @@ then
   add_def FEAT_PRIVDROP
 fi
 
+if [ $feat_scfilter = "1" ] && [ $try_seccomp = "1" ] && \
+  test_code seccomp 'seccomp.h' '' '-lseccomp' \
+    'seccomp_init(SCMP_ACT_KILL);'
+then
+  add_def FEAT_SCFILTER
+  EXTRA_LIBS="$EXTRA_LIBS -lseccomp"
+fi
+
 if [ $feat_rtc = "1" ] && [ $try_rtc = "1" ] && \
   test_code '<linux/rtc.h>' 'sys/ioctl.h linux/rtc.h' '' '' \
     'ioctl(1, RTC_UIE_ON&RTC_UIE_OFF&RTC_RD_TIME&RTC_SET_TIME, 0&RTC_UF);'
@@ -792,7 +807,7 @@ add_def MAIL_PROGRAM "\"$mail_program\""
 
 common_features="`get_features ASYNCDNS IPV6 SECHASH DEBUG`"
 chronyc_features="`get_features READLINE`"
-chronyd_features="`get_features CMDMON NTP REFCLOCK RTC PRIVDROP`"
+chronyd_features="`get_features CMDMON NTP REFCLOCK RTC PRIVDROP SCFILTER`"
 add_def CHRONYC_FEATURES "\"$chronyc_features $common_features\""
 add_def CHRONYD_FEATURES "\"$chronyd_features $common_features\""
 echo "Features : $chronyd_features $chronyc_features $common_features"

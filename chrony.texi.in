@@ -1029,6 +1029,11 @@ switch after start in order to drop root privileges.  It overrides the
 @code{user} directive (default @code{@DEFAULT_USER@}).  It may be set to a
 non-root user only when @code{chronyd} is compiled with support for Linux
 capabilities (libcap).
+@item -F <level>
+This option configures a system call filter when @code{chronyd} is compiled with
+support for the Linux secure computing (seccomp) facility. In level 1 the
+process is killed when a forbidden system call is made, in level -1 the SYSSIG
+signal is thrown instead and in level 0 the filter is disabled (default 0).
 @item -q
 When run in this mode, @code{chronyd} will set the system clock once
 and exit.  It will not detach from the terminal.

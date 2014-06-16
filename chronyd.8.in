@@ -111,6 +111,12 @@ directive (default \fB@DEFAULT_USER@\fR).  It may be set to a non-root user
 only when \fBchronyd\fR is compiled with support for Linux capabilities
 (libcap).
 .TP
+\fB\-F\fR \fIlevel\fR
+This option configures a system call filter when \fBchronyd\fR is compiled with
+support for the Linux secure computing (seccomp) facility. In level 1 the
+process is killed when a forbidden system call is made, in level -1 the SYSSIG
+signal is thrown instead and in level 0 the filter is disabled (default 0).
+.TP
 .B \-q
 When run in this mode, chronyd will set the system clock once
 and exit.  It will not detach from the terminal.

@@ -354,7 +354,7 @@ int main
   int debug = 0, nofork = 0, address_family = IPADDR_UNSPEC;
   int do_init_rtc = 0, restarted = 0;
   int other_pid;
-  int lock_memory = 0, sched_priority = 0;
+  int scfilter_level = 0, lock_memory = 0, sched_priority = 0;
   int system_log = 1;
   int config_args = 0;
 
@@ -384,6 +384,10 @@ int main
       } else {
         user = *argv;
       }
+    } else if (!strcmp("-F", *argv)) {
+      ++argv, --argc;
+      if (argc == 0 || sscanf(*argv, "%d", &scfilter_level) != 1)
+        LOG_FATAL(LOGF_Main, "Bad syscall filter level");
     } else if (!strcmp("-s", *argv)) {
       do_init_rtc = 1;
     } else if (!strcmp("-v", *argv) || !strcmp("--version",*argv)) {
@@ -520,6 +524,9 @@ int main
   UTI_SetQuitSignalsHandler(signal_cleanup);
 
   CAM_OpenUnixSocket();
+
+  if (scfilter_level)
+    SYS_EnableSystemCallFilter(scfilter_level);
 
   if (ref_mode == REF_ModeNormal && CNF_GetInitSources() > 0) {
     ref_mode = REF_ModeInitStepSlew;
