@@ -583,12 +583,21 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
   struct iovec iov;
   char cmsgbuf[256];
   int cmsglen;
-  socklen_t addrlen;
+  socklen_t addrlen = 0;
 
   assert(initialised);
 
+  if (local_addr->sock_fd == INVALID_SOCK_FD) {
+    DEBUG_LOG(LOGF_NtpIO, "No socket to send to %s:%d",
+              UTI_IPToString(&remote_addr->ip_addr), remote_addr->port);
+    return;
+  }
+
   switch (remote_addr->ip_addr.family) {
     case IPADDR_INET4:
+      /* Don't set address with connected socket */
+      if (local_addr->sock_fd != server_sock_fd4 && separate_client_sockets)
+        break;
       memset(&remote.in4, 0, sizeof (remote.in4));
       addrlen = sizeof (remote.in4);
       remote.in4.sin_family = AF_INET;
@@ -597,6 +606,9 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
       break;
 #ifdef HAVE_IPV6
     case IPADDR_INET6:
+      /* Don't set address with connected socket */
+      if (local_addr->sock_fd != server_sock_fd6 && separate_client_sockets)
+        break;
       memset(&remote.in6, 0, sizeof (remote.in6));
       addrlen = sizeof (remote.in6);
       remote.in6.sin6_family = AF_INET6;
@@ -609,16 +621,16 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
       return;
   }
 
-  if (local_addr->sock_fd == INVALID_SOCK_FD) {
-    DEBUG_LOG(LOGF_NtpIO, "No socket to send to %s:%d",
-              UTI_IPToString(&remote_addr->ip_addr), remote_addr->port);
-    return;
+  if (addrlen) {
+    msg.msg_name = &remote.u;
+    msg.msg_namelen = addrlen;
+  } else {
+    msg.msg_name = NULL;
+    msg.msg_namelen = 0;
   }
 
   iov.iov_base = packet;
   iov.iov_len = packetlen;
-  msg.msg_name = &remote.u;
-  msg.msg_namelen = addrlen;
   msg.msg_iov = &iov;
   msg.msg_iovlen = 1;
   msg.msg_control = cmsgbuf;
