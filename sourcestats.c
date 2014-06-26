@@ -363,10 +363,6 @@ find_best_sample_index(SST_Stats inst, double *times_back)
 
   assert(best_index >= 0);
   inst->best_single_sample = best_index;
-
-#if 0
-  LOG(LOGS_INFO, LOGF_SourceStats, "n=%d best_index=%d", n, best_index);
-#endif
 }
 
 /* ================================================== */
@@ -500,9 +496,6 @@ SST_DoNewRegression(SST_Stats inst)
     times_back_start = inst->runs_samples + best_start;
     prune_register(inst, best_start);
   } else {
-#if 0
-    LOG(LOGS_INFO, LOGF_SourceStats, "too few points (%d) for regression", inst->n_samples);
-#endif
     inst->estimated_frequency = 0.0;
     inst->skew = WORST_CASE_FREQ_BOUND;
     times_back_start = 0;
@@ -734,9 +727,8 @@ SST_IsGoodSample(SST_Stats inst, double offset, double delay,
   if (fabs(offset) - delay_increase > allowed_increase)
     return 1;
 
-#if 0
-  LOG(LOGS_INFO, LOGF_SourceStats, "bad sample: offset=%f delay=%f incr_delay=%f allowed=%f", offset, delay, allowed_increase, delay_increase);
-#endif
+  DEBUG_LOG(LOGF_SourceStats, "Bad sample: offset=%f delay=%f incr_delay=%f allowed=%f",
+      offset, delay, allowed_increase, delay_increase);
 
   return 0;
 }

@@ -164,13 +164,6 @@ UTI_AverageDiffTimevals (struct timeval *earlier,
        be backwards, or something wierd has happened.  Maybe when we
        change the frequency on Linux? */
 
-    /* This seems to be fairly benign, so don't bother logging it */
-
-#if 0
-    LOG(LOGS_INFO, LOGF_Util, "Earlier=[%s] Later=[%s]",
-        UTI_TimevalToString(earlier), UTI_TimevalToString(later));
-#endif
-
     /* Assume the required behaviour is to treat it as zero */
     *diff = 0.0;
   }

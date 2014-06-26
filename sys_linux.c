@@ -271,11 +271,6 @@ get_version_specific_details(void)
     if (!shift_hz) {
       LOG_FATAL(LOGF_SysLinux, "Can't determine hz (txc.tick=%ld txc.freq=%ld (%.8f) txc.offset=%ld)",
           tmx_params.tick, tmx_params.freq, tmx_params.dfreq, tmx_params.offset);
-    } else {
-#if 0
-      LOG(LOGS_INFO, LOGF_SysLinux, "Initial txc.tick=%ld txc.freq=%ld (%.8f) txc.offset=%ld => hz=%d shift_hz=%d",
-          tmx_params.tick, tmx_params.freq, tmx_params.dfreq, tmx_params.offset, hz, shift_hz);
-#endif
     }
   }
 
@@ -397,9 +392,7 @@ SYS_Linux_DropRoot(char *user)
 
   cap_free(cap);
 
-#if 0
-  LOG(LOGS_INFO, LOGF_SysLinux, "Privileges dropped to user %s", user);
-#endif
+  DEBUG_LOG(LOGF_SysLinux, "Privileges dropped to user %s", user);
 }
 #endif
 
@@ -428,9 +421,8 @@ void SYS_Linux_SetScheduler(int SchedPriority)
       LOG(LOGS_ERR, LOGF_SysLinux, "sched_setscheduler() failed");
     }
     else {
-#if 0
-      LOG(LOGS_INFO, LOGF_SysLinux, "Enabled SCHED_FIFO with priority %d", sched.sched_priority);
-#endif
+      DEBUG_LOG(LOGF_SysLinux, "Enabled SCHED_FIFO with priority %d",
+          sched.sched_priority);
     }
   }
 }
@@ -454,9 +446,7 @@ void SYS_Linux_MemLockAll(int LockAll)
 	LOG(LOGS_ERR, LOGF_SysLinux, "mlockall() failed");
       }
       else {
-#if 0
-	LOG(LOGS_INFO, LOGF_SysLinux, "Successfully locked into RAM");
-#endif
+	DEBUG_LOG(LOGF_SysLinux, "Successfully locked into RAM");
       }
     }
   }

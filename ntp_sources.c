@@ -200,10 +200,6 @@ NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParam
 
   assert(initialised);
 
-#if 0
-  LOG(LOGS_INFO, LOGF_NtpSources, "IP=%s port=%d", UTI_IPToString(&remote_addr->ip_addr), remote_addr->port);
-#endif
-
   /* Find empty bin & check that we don't have the address already */
   find_slot(remote_addr, &slot, &found);
   if (found) {
@@ -457,12 +453,6 @@ NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP
 
   assert(initialised);
 
-#if 0
-  LOG(LOGS_INFO, LOGF_NtpSources, "from (%s,%d) at %s",
-      UTI_IPToString(&remote_addr->ip_addr),
-      remote_addr->port, UTI_TimevalToString(now));
-#endif
-  
   find_slot(remote_addr, &slot, &found);
   if (found == 2) { /* Must match IP address AND port number */
     NCR_ProcessKnown(message, now, now_err, records[slot].data,
@@ -486,11 +476,6 @@ slew_sources(struct timeval *raw,
 
   for (i=0; i<N_RECORDS; i++) {
     if (records[i].remote_addr) {
-#if 0
-      LOG(LOGS_INFO, LOGF_Sources, "IP=%s dfreq=%f doff=%f",
-          UTI_IPToString(&records[i].remote_addr->ip_addr), dfreq, doffset);
-#endif
-
       if (change_type == LCL_ChangeUnknownStep) {
         NCR_ResetInstance(records[i].data);
       } else {
@@ -498,7 +483,6 @@ slew_sources(struct timeval *raw,
       }
     }
   }
-
 }
 
 /* ================================================== */

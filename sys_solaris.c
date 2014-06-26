@@ -409,11 +409,6 @@ set_dosynctodr(unsigned long on_off)
   kvm_close(kt);
 
   assert(read_back == on_off);
-
-#if 0
-  LOG(LOGS_INFO, LOGF_SysSolaris, "Set value of dosynctodr to %d", on_off);
-#endif
-
 }
 
 /* ================================================== */

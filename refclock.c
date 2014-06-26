@@ -908,20 +908,13 @@ static void
 filter_slew_samples(struct MedianFilter *filter, struct timeval *when, double dfreq, double doffset)
 {
   int i;
-  double delta_time, prev_offset;
+  double delta_time;
   struct timeval *sample;
 
   for (i = 0; i < filter->used; i++) {
     sample = &filter->samples[i].sample_time;
     UTI_AdjustTimeval(sample, when, sample, &delta_time, dfreq, doffset);
-    prev_offset = filter->samples[i].offset;
     filter->samples[i].offset -= delta_time;
-#if 0
-    LOG(LOGS_INFO, LOGF_Refclock, "i=%d old_off=%.9f new_off=%.9f",
-        i, prev_offset, filter->samples[i].offset);
-#else
-    (void)prev_offset;
-#endif
   }
 }
 

@@ -162,12 +162,12 @@ determine_hash_delay(unsigned long key_id)
     }
   }
 
-#if 0
-  LOG(LOGS_INFO, LOGF_Keys, "authentication delay for key %lu: %d useconds", key_id, min_usecs);
-#endif
-
   /* Add on a bit extra to allow for copying, conversions etc */
-  return min_usecs + (min_usecs >> 4);
+  min_usecs += min_usecs >> 4;
+
+  DEBUG_LOG(LOGF_Keys, "authentication delay for key %lu: %ld useconds", key_id, min_usecs);
+
+  return min_usecs;
 }
 
 /* ================================================== */

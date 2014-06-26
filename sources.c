@@ -610,13 +610,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
                            &(si->variance),
                            &(si->select_ok));
 
-#if 0
-      LOG(LOGS_INFO, LOGF_Sources, "%s dist=%f lo=%f hi=%f",
-          source_to_string(sources[i]),
-          si->root_distance,
-          si->lo_limit, si->hi_limit);
-#endif
-      
       if (si->select_ok) {
         ++n_sel_sources;
 
@@ -655,10 +648,8 @@ SRC_SelectSource(SRC_Instance updated_inst)
     }
   }
 
-#if 0
-  LOG(LOGS_INFO, LOGF_Sources, "badstat_sources=%d sel_sources=%d badstat_reach=%x sel_reach=%x",
+  DEBUG_LOG(LOGF_Sources, "badstat_sources=%d sel_sources=%d badstat_reach=%x sel_reach=%x",
       n_badstats_sources, n_sel_sources, max_badstat_reach, max_sel_reach);
-#endif
 
   /* Wait for the next call if we have no source selected and there is
      a source with bad stats (has less than 3 samples) with reachability
@@ -671,10 +662,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
       max_sel_reach >> 1 == max_badstat_reach) {
     return;
   }
-
-#if 0
-  LOG(LOGS_INFO, LOGF_Sources, "n_endpoints=%d", n_endpoints);
-#endif
 
   /* Now sort the endpoint list */
   if (n_endpoints > 0) {
@@ -709,10 +696,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
     best_lo = best_hi = 0.0;
 
     for (i=0; i<n_endpoints; i++) {
-#if 0
-      LOG(LOGS_INFO, LOGF_Sources, "i=%d t=%f tag=%d addr=%s", i, sort_list[i].offset, sort_list[i].tag,
-          source_to_string(sources[sort_list[i].index]));
-#endif
       switch(sort_list[i].tag) {
         case LOW:
           depth++;
@@ -735,11 +718,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
       }
     }
-
-#if 0
-    LOG(LOGS_INFO, LOGF_Sources, "best_depth=%d best_lo=%f best_hi=%f",
-        best_depth, best_lo, best_hi);
-#endif
 
     if (best_depth <= n_sel_sources/2) {
       /* Could not even get half the reachable sources to agree -
@@ -783,14 +761,8 @@ SRC_SelectSource(SRC_Instance updated_inst)
                (sources[i]->sel_info.hi_limit <= best_hi))) {
 
             sel_sources[n_sel_sources++] = i;
-#if 0
-            LOG(LOGS_INFO, LOGF_Sources, "i=%d addr=%s is valid", i, source_to_string(sources[i]));
-#endif
           } else {
             sources[i]->status = SRC_FALSETICKER;
-#if 0
-            LOG(LOGS_INFO, LOGF_Sources, "i=%d addr=%s is a falseticker", i, source_to_string(sources[i]));
-#endif
           }
         }
       }
@@ -811,10 +783,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
         }
       }
 
-#if 0
-      LOG(LOGS_INFO, LOGF_Sources, "min_distance=%f", min_distance);
-#endif
-
       /* Now go through and prune any NTP sources that have excessive
          variance */
       for (i=0; i<n_sel_sources; i++) {
@@ -823,9 +791,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
             sqrt(sources[index]->sel_info.variance) > min_distance) {
           sel_sources[i] = INVALID_SOURCE;
           sources[index]->status = SRC_JITTERY;
-#if 0
-          LOG(LOGS_INFO, LOGF_Sources, "i=%d addr=%s has too much variance", i, source_to_string(sources[i]));
-#endif
         }
       }
 #endif
@@ -884,10 +849,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
           if (stratum < min_stratum) min_stratum = stratum;
         }
 
-#if 0
-        LOG(LOGS_INFO, LOGF_Sources, "min_stratum=%d", min_stratum);
-#endif
-
         /* Update scores and find source with maximum score */
 
         max_score_index = INVALID_SOURCE;
@@ -936,11 +897,9 @@ SRC_SelectSource(SRC_Instance updated_inst)
             sources[i]->sel_score = 1.0 / distance; 
           }
 
-#if 0
-          LOG(LOGS_INFO, LOGF_Sources, "select score=%f refid=%x match_refid=%x status=%d dist=%f",
+          DEBUG_LOG(LOGF_Sources, "select score=%f refid=%x match_refid=%x status=%d dist=%f",
               sources[i]->sel_score, sources[i]->ref_id, updated_inst ? updated_inst->ref_id : 0,
               sources[i]->status, distance);
-#endif
         
           if (max_score < sources[i]->sel_score) {
             max_score = sources[i]->sel_score;
@@ -963,10 +922,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
           log_selection_message("Selected source %s",
                 source_to_string(sources[selected_source_index]));
                                  
-#if 0
-          LOG(LOGS_INFO, LOGF_Sources, "new_sel_index=%d", selected_source_index);
-#endif
-
           /* New source has been selected, reset all scores */
           for (i=0; i < n_sources; i++) {
             sources[i]->sel_score = 1.0;

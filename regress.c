@@ -570,11 +570,6 @@ RGR_FindBestRobustRegression
     b = X / V;
     a = my - b*mx;
 
-
-#if 0
-    printf("my=%20.12f mx=%20.12f a=%20.12f b=%20.12f\n", my, mx, a, b);
-#endif
-
     s2 = 0.0;
     for (i=start; i<n; i++) {
       resid = y[i] - a - b * x[i];

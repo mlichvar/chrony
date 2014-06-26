@@ -426,10 +426,8 @@ update_fb_drifts(double freq_ppm, double update_interval)
         (freq_ppm - fb_drifts[i].freq);
     }
 
-#if 0
-    LOG(LOGS_INFO, LOGF_Reference, "Fallback drift %d updated: %f ppm %f seconds",
+    DEBUG_LOG(LOGF_Reference, "Fallback drift %d updated: %f ppm %f seconds",
         i + fb_drift_min, fb_drifts[i].freq, fb_drifts[i].secs);
-#endif
   }
 }
 
@@ -476,18 +474,14 @@ schedule_fb_drift(struct timeval *now)
   if (c > next_fb_drift) {
     LCL_SetAbsoluteFrequency(fb_drifts[c - fb_drift_min].freq);
     next_fb_drift = c;
-#if 0
-    LOG(LOGS_INFO, LOGF_Reference, "Fallback drift %d set", c);
-#endif
+    DEBUG_LOG(LOGF_Reference, "Fallback drift %d set", c);
   }
 
   if (i <= fb_drift_max) {
     next_fb_drift = i;
     UTI_AddDoubleToTimeval(now, secs - unsynchronised, &when);
     fb_drift_timeout_id = SCH_AddTimeout(&when, fb_drift_timeout, NULL);
-#if 0
-    LOG(LOGS_INFO, LOGF_Reference, "Fallback drift %d scheduled", i);
-#endif
+    DEBUG_LOG(LOGF_Reference, "Fallback drift %d scheduled", i);
   }
 }
 
@@ -1127,9 +1121,6 @@ void
 REF_ModifyMaxupdateskew(double new_max_update_skew)
 {
   max_update_skew = new_max_update_skew * 1.0e-6;
-#if 0
-  LOG(LOGS_INFO, LOGF_Reference, "New max update skew = %.3fppm", new_max_update_skew);
-#endif
 }
 
 /* ================================================== */

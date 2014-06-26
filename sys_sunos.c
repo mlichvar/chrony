@@ -364,11 +364,6 @@ setup_kernel(unsigned long on_off)
   }
 
   kvm_close(kt);
-
-#if 0
-  LOG(LOGS_INFO, LOGF_SysSunOS, "Set value of _dosynctodr to %d", on_off);
-#endif
-
 }
 
 /* ================================================== */

@@ -220,10 +220,6 @@ prepare_socket(int family, int port_number, int client_only)
       assert(0);
   }
 
-#if 0
-  LOG(LOGS_INFO, LOGF_NtpIO, "Initialising, socket fd=%d", sock_fd);
-#endif
-
   if (bind(sock_fd, &my_addr.u, my_addr_len) < 0) {
     LOG(LOGS_ERR, LOGF_NtpIO, "Could not bind %s NTP socket : %s",
         family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
@@ -675,10 +671,9 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
   }
 #endif
 
-#if 0
-    LOG(LOGS_INFO, LOGF_NtpIO, "sending to %s:%d from %s",
-        UTI_IPToString(&remote_addr->ip_addr), remote_addr->port, UTI_IPToString(&remote_addr->local_ip_addr));
-#endif
+  DEBUG_LOG(LOGF_NtpIO, "Sending to %s:%d from %s fd %d",
+      UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
+      UTI_IPToString(&local_addr->ip_addr), local_addr->sock_fd);
 
   msg.msg_controllen = cmsglen;
   /* This is apparently required on some systems */
