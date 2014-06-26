@@ -142,7 +142,7 @@ KEY_Finalise(void)
 /* ================================================== */
 
 static int
-determine_hash_delay(int key_id)
+determine_hash_delay(unsigned long key_id)
 {
   NTP_Packet pkt;
   struct timeval before, after;
