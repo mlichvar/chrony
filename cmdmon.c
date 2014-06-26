@@ -667,46 +667,6 @@ token_acknowledged(unsigned long token, struct timeval *now)
 
 /* ================================================== */
 
-#if 0
-/* These two routines are not legal if the program is operating as a daemon, since
-   stderr is no longer open */
-
-static void
-print_command_packet(CMD_Request *pkt, int length)
-{
-  unsigned char *x;
-  int i;
-  x = (unsigned char *) pkt;
-  for (i=0; i<length; i++) {
-    fprintf(stderr, "%02x ", x[i]);
-    if (i%16 == 15) {
-      fprintf(stderr, "\n");
-    }
-  }
-  fprintf(stderr, "\n");
-}
-
-/* ================================================== */
-
-static void
-print_reply_packet(CMD_Reply *pkt)
-{
-  unsigned char *x;
-  int i;
-  x = (unsigned char *) pkt;
-  for (i=0; i<sizeof(CMD_Reply); i++) {
-    fprintf(stderr, "%02x ", x[i]);
-    if (i%16 == 15) {
-      fprintf(stderr, "\n");
-    }
-  }
-  fprintf(stderr, "\n");
-}
-
-#endif 
-
-/* ================================================== */
-
 static void
 transmit_reply(CMD_Reply *msg, union sockaddr_in46 *where_to, int auth_len)
 {
@@ -1628,20 +1588,6 @@ handle_reselect(CMD_Request *rx_message, CMD_Reply *tx_message)
   SRC_ReselectSource();
   tx_message->status = htons(STT_SUCCESS);
 }
-
-/* ================================================== */
-
-#if 0
-/* ================================================== */
-
-static void
-handle_(CMD_Request *rx_message, CMD_Reply *tx_message)
-{
-  int status;
-}
-
-
-#endif
 
 /* ================================================== */
 /* Read a packet and process it */
