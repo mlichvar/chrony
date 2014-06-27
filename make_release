@@ -50,6 +50,15 @@ mv chrony.txt chrony.txt_
 make distclean
 mv chrony.txt_ chrony.txt
 
+awk '/^[1-9] Installation$/{p=1}
+     /^[1-9]\.. Support for line editing/{exit}; p' chrony.txt | \
+  tail -n +4 > INSTALL
+
+if [ $(wc -l < INSTALL) -gt 100 -o $(wc -l < INSTALL) -lt 85 ]; then
+  echo "INSTALL generated incorrectly?"
+  exit 3
+fi
+
 rm -f config.h config.log faqgen.pl make_release chrony.spec.sample .gitignore
 
 cd ..
