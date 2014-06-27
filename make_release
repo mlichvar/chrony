@@ -9,6 +9,7 @@ if [ $# -ne 1 ]; then
 fi
 
 version=$1
+tag=$version
 subdir=chrony-${version}
 mandate=$(date +'%B %Y')
 
@@ -21,11 +22,15 @@ fi
 
 [ -d RELEASES ] || mkdir RELEASES
 
-git tag -s $version || exit 1
-
 rm -rf RELEASES/$subdir
 
-git archive --format=tar --prefix=RELEASES/${subdir}/ $version | \
+if [ $version != test ]; then
+  git tag -s $tag || exit 1
+else
+  tag=HEAD
+fi
+
+git archive --format=tar --prefix=RELEASES/${subdir}/ $tag | \
   tar xf - || exit 1
 
 cd RELEASES/$subdir || exit 1
@@ -49,6 +54,6 @@ rm -f config.h config.log faqgen.pl make_release chrony.spec.sample .gitignore
 
 cd ..
 tar cv --owner root --group root $subdir | gzip -9 > ${subdir}.tar.gz
-gpg -b -a -o ${subdir}-tar-gz-asc.txt ${subdir}.tar.gz
 
-
+[ $version != test ] && \
+  gpg -b -a -o ${subdir}-tar-gz-asc.txt ${subdir}.tar.gz
