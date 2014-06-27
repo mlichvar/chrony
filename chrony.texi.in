@@ -352,7 +352,7 @@ the directory tree where the software should be installed.  For example,
 @end example
 
 will install the @code{chronyd} daemon into /opt/free/sbin and the
-chronyc control program into /opt/free/bin.  The default value for the
+@code{chronyc} control program into /opt/free/bin.  The default value for the
 prefix is /usr/local.
 
 The configure script assumes you want to use gcc as your compiler.
@@ -380,7 +380,7 @@ editing support.  If you don't want this, specify the --disable-readline flag
 to configure.  Please refer to @pxref{line editing support} for more information.
 
 If a @file{timepps.h} header is available (e.g. from the
-@uref{http://linuxpps.org/, LinuxPPS project}), chronyd will be built with PPS API
+@uref{http://linuxpps.org/, LinuxPPS project}), @code{chronyd} will be built with PPS API
 reference clock driver.  If the header is installed in a location that isn't
 normally searched by the compiler, you can add it to the searched locations by
 setting @code{CPPFLAGS} variable to @code{-I/path/to/timepps}.
@@ -430,9 +430,18 @@ install-info /usr/local/share/info/chrony.info /usr/share/info/dir
 @end example
     
 Now that the software is successfully installed, the next step is to
-set up a configuration file.  The contents of this depend on the
-network environment in which the computer operates.  Typical scenarios
-are described in the following section of the document.
+set up a configuration file.  The default location of the file
+is @file{@SYSCONFDIR@/chrony.conf}.  Suppose you want to use public NTP
+servers from the pool.ntp.org project as your time reference.  A
+minimal working configuration file could be
+
+@example
+server 0.pool.ntp.org
+server 1.pool.ntp.org
+server 2.pool.ntp.org
+@end example
+
+Then, @code{chronyd} can be run.
 @c }}}
 @menu
 * line editing support::        If libraries are in a non-standard place
