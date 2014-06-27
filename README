@@ -61,7 +61,7 @@ Chrony can be successfully built and run on
 Any other system will require a porting exercise.  You would need to
 start from one of the existing system-specific drivers and look into
 the quirks of certain system calls and the kernel on your target
-system.  (This is described in the manual).
+system.
 
 How do I set it up?
 ===================

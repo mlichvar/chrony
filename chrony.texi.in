@@ -35,7 +35,6 @@ Copyright @copyright{} 2009-2014 Miroslav Lichvar
 * Installation::                How to compile and install the software
 * Typical scenarios::           How to configure the software for some common cases
 * Usage reference::             Reference manual
-* Porting guide::               Hints to help with porting the software
 * GPL::                         The GNU General Public License
 @end menu
 @c }}}
@@ -4475,122 +4474,6 @@ information is also written automatically when @code{chronyd} is killed
 (with SIGHUP, SIGINT, SIGQUIT or SIGTERM) or when the @code{trimrtc}
 command is issued.
 @c }}}
-@c }}}
-@c }}}
-@c }}}
-@c {{{ apx: porting guide
-@node Porting guide
-@appendix Porting guide
-@c {{{ section top
-This appendix discusses issues that have arisen in writing the
-system-specific parts of the existing ports.  This will provide useful
-information for those attempting to write ports to other systems.
-
-
-@menu
-* System driver files::         What needs to go in a driver file for a
-                                particular type of system
-* Quirks of particular systems::  Problem areas that have been found on ports
-                                already written.
-@end menu
-@c }}}
-@c {{{ S:system driver files
-@node System driver files
-@section System driver files
-The system specific parts of the software are contained in files with
-names like @code{sys_linux.c}.
-
-The following functions are required in a system driver file:
-
-@enumerate
-@item
-A function to read the current frequency
-@item
-A function to set the current frequency
-@item
-A function to slew the system time by a specified delta
-@item
-A function to step the system time by a specified delta
-@item
-A function to work out the error at a particular time between the
-system's clock and @code{chronyd's} estimate of real time.  (This is required
-because some systems have to track real time by making the system time
-follow it in a 'sawtooth' fashion).
-@end enumerate
-
-The @dfn{frequency} is the rate at which the system gains or loses time,
-measured relative to the system when running uncompensated.
-@c }}}
-@c {{{ system quirks
-@node Quirks of particular systems
-@section Quirks of particular systems
-@c {{{ section top
-These sections describe quirks in each system type that needed to be
-investigated to port the software to each system type.
-
-@menu
-* Linux porting quirks::        
-* Solaris 2.5 porting quirks::  
-* SunOS 4.1.4 porting quirks::  
-@end menu
-@c }}}
-@c {{{ linux
-@node Linux porting quirks
-@subsection Linux
-The following quirks have been found in developing the Linux port.
-
-@enumerate 1
-@item
-In order to avoid floating point arithmetic, the kernel uses shifting
-and adding to approximate a scaling of 100/128.  This approximation
-implies that the frequency set via the @code{adjtimex()} system call is
-not the frequency that is actually obtained.  The method of
-approximation varies between kernel versions and must be determined by
-examining the kernel source.  An inverse factor must be included in the
-driver to compensate.
-@item
-In some kernel versions, an @code{adjtimex()} system call with the flags
-bits all zeroed will return the amount of offset still to be corrected.
-In others (e.g. the 2.0 series beyond 2.0.32), the offset must be
-changed in order to get the old offset returned (similar to
-@code{adjtime()} on other systems).
-
-@end enumerate
-@c }}}
-@c {{{ solaris 2.5
-@node Solaris 2.5 porting quirks
-@subsection Solaris 2.5
-
-The following quirks have been found in developing the Solaris port.
-
-@enumerate 1
-@item
-The @code{adjtime()} system call with a zero argument does not cancel an
-adjustment that is in progress - it just reports the remaining
-adjustment.
-@item
-The @code{settimeofday()} system call only observes the seconds part of
-the argument - any fractional seconds part is lost.
-second.
-@item
-The kernel variable @code{dosynctodr} has to be set to zero, otherwise
-the system clock is periodically reset to the real-time clock.
-@end enumerate
-@c }}}
-@c {{{ sunos 4.1.4
-@node SunOS 4.1.4 porting quirks
-@subsection SunOS 4.1.4
-The following quirks have been found in developing the SunOS port.
-
-@enumerate 1
-@item
-The @code{adjtime()} system call truncates its argument to a multiple of
-the system's @code{tickadj} variable.  (@code{chronyd} sets that to 100,
-giving a 1 part in 100 slewing capability for correcting offsets.)
-@item
-The kernel variable @code{dosynctodr} has to be set to zero, otherwise
-the system clock is periodically reset to the real-time clock.
-@end enumerate
 @c }}}
 @c }}}
 @c }}}
