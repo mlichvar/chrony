@@ -154,10 +154,6 @@ chrony.html : chrony.texi
 chrony.info : chrony.texi
 	makeinfo chrony.texi
 
-# This is only relevant if you're maintaining the website!
-faq.php : faq.txt faqgen.pl
-	perl faqgen.pl < faq.txt > faq.php
-
 .deps:
 	@mkdir .deps
 
