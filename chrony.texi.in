@@ -35,6 +35,7 @@ Copyright @copyright{} 2009-2014 Miroslav Lichvar
 * Installation::                How to compile and install the software
 * Typical scenarios::           How to configure the software for some common cases
 * Usage reference::             Reference manual
+* FAQ::                         Frequently asked questions
 * GPL::                         The GNU General Public License
 @end menu
 @c }}}
@@ -4484,6 +4485,281 @@ information is also written automatically when @code{chronyd} is killed
 command is issued.
 @c }}}
 @c }}}
+@c }}}
+@c }}}
+@c {{{ Ch:FAQ
+@node FAQ
+@chapter Frequently asked questions
+
+@c {{{ Chapter top
+@menu
+* Administrative issues::
+* Chrony compared to other programs::
+* Selection of NTP servers::
+* Computer is not synchronising::
+* Issues with chronyc::
+* Real-time clock issues::
+* Microsoft Windows::
+* NTP-specific issues::
+* Linux-specific issues::
+* Solaris-specific issues::
+@end menu
+@c }}}
+@c {{{ S:Administrative issues
+@node Administrative issues
+@section Administrative issues
+
+@subsection Where can I get chrony source code?
+Tarballs are available via the @code{Download} link on the chrony web site.
+For the current development from the developers' version control system see the
+@code{Git} link on the web site.
+
+@subsection Are there any packaged versions of chrony?
+We are aware of packages for Debian, Fedora, Gentoo, Mandriva, Slackware, and
+Ubuntu.  We are not involved with how these are built or distributed.
+
+@subsection Where is the home page?
+It is currently at
+@uref{http://chrony.tuxfamily.org, http://chrony.tuxfamily.org}.
+
+@subsection Is there a mailing list?
+Yes, it's currently at @email{chrony-users@@chrony.tuxfamily.org}.  There is a
+low-volume list called chrony-announce which is just for announcements of new
+releases or similar matters of high importance.  You can join the lists by
+sending a message with the subject subscribe to
+@email{chrony-users-request@@chrony.tuxfamily.org} or
+@email{chrony-announce-request@@chrony.tuxfamily.org} respectively.
+
+For those who want to contribute to the development of chrony, there is a
+developers' mailing list.  You can subscribe by sending mail with the subject
+subscribe to @email{chrony-dev-request@@chrony.tuxfamily.org}.
+
+@subsection What licence is applied to chrony?
+Starting from version 1.15, chrony is licensed under the GNU General Public
+License, Version 2.  Versions prior to 1.15 were licensed under a custom
+BSD-like license.
+@c }}}
+@c {{{ S:Chrony compared to other programs
+@node Chrony compared to other programs
+@section Chrony compared to other programs
+@subsection How does chrony compare to xntpd?
+If your computer is permenently connected, or connected for long periods (that
+is, for the several hours it takes xntpd to settle down), or you need to
+support hardware reference clocks to your computer, then xntpd will work fine.
+Apart from not supporting hardware clocks, chrony will work fine too.
+
+If your computer connects to the 'net for 5 minutes once a day (or something
+like that), or you turn your Linux computer off when you're not using it, or
+you want to use NTP on an isolated network with no hardware clocks in sight,
+chrony will work much better for you.
+
+The reason I wrote chrony was that I could not get xntpd to do anything
+sensible on my PC at home, which is connected to the 'net for about 5 minutes
+once or twice a day, mainly to upload/download email and news.  Nowadays it is
+also turned off for 22-23 hours a day, when not in use.  I wanted a program
+which would
+
+@itemize @bullet
+@item slew the time to correct it when I go online and NTP servers become
+visible
+@item determine the rate at which the computer gains or loses time and use this
+information to keep it reasonably correct between connects to the 'net.  This
+has to be done using a method that does not care about the intermittent
+availability of the references or the fact the computer is turned off between
+groups of measurements.
+@item maintain the time across reboots, by working out the error and drift rate
+of the computer's real-time clock and using this information to set the system
+clock correctly at boot up. (In the last few months, it became impossible for
+me to leave my computer powered permanently.)
+@end itemize
+
+Also, when working with isolated networks with no true time references
+at all, I found xntpd gave me no help with managing the local clock's
+gain/loss rate on the NTP master node (which I set from my watch).  I
+added some automated support in chrony to deal with this.
+
+@c }}}
+@c {{{ S:Selection of NTP servers
+@node Selection of NTP servers
+@section Selection of NTP servers
+
+@subsection I have several computers on a LAN.  Should I make one the master, or make them all clients of an external server?
+I think the best configuration is to make one computer the master, with the
+others as clients of it.  Add a @code{local} directive to the master's
+chrony.conf file.  This configuration will be better because
+
+@itemize @bullet
+@item the load on the external connection is less
+@item the load on the external NTP server(s) is less
+@item if your external connection goes down, the computers on the LAN will
+maintain a common time with each other.
+@end itemize
+
+@c }}}
+@c {{{ S:Computer is not synchronising
+@node Computer is not synchronising
+@section Computer is not synchronising
+
+This is the most common problem.  There are a number of reasons, see the
+following questions.
+
+@subsection Behind a firewall?
+If there is a firewall between you and the NTP server you're trying to use,
+the packets may be blocked.  Try using a tool like etherfind or tcpdump to see
+if you're getting responses from the server.  If you have an external modem,
+see if the receive light blinks straight after the transmit light (when the
+link is quiet apart from the NTP traffic.)  Try adding @code{log measurements}
+to the @file{chrony.conf} file and look in the measurements.log file after
+chrony has been running for a short period.  See if any measurements appear.
+
+Most people run chronyd on the firewall itself, to avoid all issues of UDP
+packet forwarding and/or masquerading.
+
+@subsection Do you have a non-permanent (i.e. intermittent) Internet connection?
+Check that you're using chronyc's @code{online} and @code{offline} commands
+appropriately.  Again, check in measurements.log to see if you're getting any
+data back from the server.
+
+@subsection In measurements.log, do the '7' and '8' flag columns always show zero?
+Do you have a @code{local stratum X} directive in the @file{chrony.conf} file?  If X
+is lower than the stratum of the server you're trying to use, this situation
+will arise.  You should always make X quite high (e.g. 10) in this directive.
+@c }}}
+@c {{{ S:Issues with chronyc
+@node Issues with chronyc
+@section Issues with chronyc
+
+@subsection I keep getting the error @code{506 Cannot talk to daemon}
+Make sure that the @file{chrony.conf} file (on the computer where chronyd is
+running) has a @code{cmdallow} entry for the computer you are running chronyc
+on. This isn't necessary for localhost.
+
+Perhaps chronyd is not running.  Try using the ps command (e.g. on Linux, 'ps
+-auxw') to see if it's running.  Or try 'netstat -a' and see if the ports
+123/udp and 323/udp are listening.  If @code{chronyd} is not running, you may
+have a problem with the way you are trying to start it (e.g. at boot time).
+
+Perhaps you have a firewall set up in a way that blocks packets on port
+323/udp.  You need to amend the firewall configuration in this case.
+
+@subsection Is the chronyc<->chronyd protocol documented anywhere?
+Only by the source code :-)  See cmdmon.c (chronyd side) and client.c (chronyc
+side).
+@c }}}
+@c {{{ S:Real-time clock issues
+@node Real-time clock issues
+@section Real-time clock issues
+
+@subsection What is the real-time clock (RTC)?
+This is the clock which keeps the time even when your computer is turned off.
+It works with 1 second resolution.  @code{chronyd} can monitor the rate at
+which the real-time clock gains or loses time, and compensate for it when you
+set the system time from it at the next reboot.  See the documentation for
+details.
+
+@subsection I want to use chronyd's real-time clock support.  Must I disable hwclock?
+The hwclock program is often set-up by default in the boot and shutdown scripts
+with many Linux installations.  If you want to use chronyd's real-time clock
+support, the important thing is to disable hwclock in the shutdown procedure.
+If you don't, it will over-write the RTC with a new value, unknown to chronyd.
+At the next reboot, chronyd will compensate this (wrong) time with its estimate
+of how far the RTC has drifted whilst the power was off, giving a meaningless
+initial system time.
+
+There is no need to remove hwclock from the boot process, as long as chronyd is
+started after it has run.
+
+@subsection I just keep getting the '513 RTC driver not running' message
+For the real time clock support to work, you need the following three things
+@itemize @bullet
+@item a kernel that is supported (e.g. 2.2 onwards)
+@item enhanced RTC support compiled into the kernel
+@item an @code{rtcfile} directive in your chrony.conf file
+@end itemize
+@c }}}
+@c {{{ S:Microsoft Windows
+@node Microsoft Windows
+@section Microsoft Windows
+
+@subsection Does chrony support Windows?
+No.  The chronyc program (the command-line client used for configuring
+chronyd while it is running) has been successfully built and run under Cygwin
+in the past.  chronyd is not portable, because part of it is very
+system-dependent.  It needs adapting to work with Windows' equivalent of the
+adjtimex() call, and it needs to be made to work as an NT service.
+
+@subsection Are there any plans to support Windows?
+We have no plans to do this.  Anyone is welcome to pick this work up and
+contribute it back to the project.
+
+@subsection What alternative NTP clients are there for Windows?
+Some of the names we've seen mentioned are 
+@itemize @bullet
+@item Automachron
+@item NetTime (nettime.sourceforge.net)
+@end itemize
+@c }}}
+@c {{{ S:NTP-specific issues
+@node NTP-specific issues
+@section NTP-specific issues
+
+@subsection Can chrony be driven from broadcast NTP servers?
+No.  I remember looking at how they worked when I was first writing chrony.
+Since the 'target market' then was dial-up systems, broadcast packets were not
+relevant so I didn't bother working out how to deal with the complexities of
+doing the delay estimation.
+
+I no longer have root access to a LAN environment to develop and test broadcast
+server support.  Neither have I the time to work on this.  I would be very
+happy to accept a patch from anyone who can develop, test and debug the
+necessary changes!
+
+@subsection Can chronyd transmit broadcast NTP packets (e.g. to synchronise other computers on a private LAN)?
+Yes.  Starting from version 1.17, chrony has this capability.
+
+@subsection Can chrony keep the system clock a fixed offset away from real time?
+I have not experimented much, but I don't believe this would be possible as
+the program currently stands.
+
+@subsection What happens if the network connection is dropped without using chronyc's 'offline' command first?
+In this case chronyd will keep trying to access the server(s) that it thinks
+are online.  Eventually it will decide that they are unreachable and no longer
+consider itself synchronised to them.  If you have other computers on your LAN
+accessing the computer that is affected this way, they too will become
+'unsynchronised', unless you have the 'local' directive set up on the master
+computer.
+
+The 'auto_offline' option to the 'server' entry in the chrony.conf file may be
+useful to avoid this situation.
+@c }}}
+@c {{{ S:Linux-specific issues
+@node Linux-specific issues
+@section Linux-specific issues
+
+@subsection Why does the source code include kernel header files?
+The program needs to see the definitions of structures used to interact with
+the real time clock (via /dev/rtc) and with the adjtimex() system call.  Sadly
+this has led to a number of compilation problems with newer kernels which have
+been increasingly hard to fix in a way that makes the code compilable on all
+Linux kernel versions.  Hopefully
+the situation will not deteriorate further with future kernel versions.
+
+@subsection I get "Could not open /dev/rtc, Device or resource busy" in my syslog file
+Check that you haven't accidentally got two copies of chronyd running (perhaps
+defined in different start-up scripts.)
+@c }}}
+@c {{{ S:Solaris-specific issues
+@node Solaris-specific issues
+@section Solaris-specific issues
+
+@subsection On Solaris 2.8, I get an error message about not being able to open kvm to change dosynctodr
+(The dosynctodr variable controls whether Solaris couples the equivalent of its
+BIOS clock into its system clock at regular intervals).  The Solaris port of
+chrony was developed in the Solaris 2.5 era.  Some aspect of the Solaris kernel
+has changed which prevents the same technique working.  I no longer have root
+access to any Solaris machines to work on this, and am reliant on somebody
+developing the patch and testing it.  A good starting point would be to see if
+xntpd has been modified to work for Solaris 2.8.
 @c }}}
 @c }}}
 @c {{{ apx:GNU General Public License
