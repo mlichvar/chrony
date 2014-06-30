@@ -22,16 +22,17 @@ as a minimum
 
 However, you will probably want to include some of the other directives
 described in detail in the documentation supplied with the distribution
-(\fIchrony.txt\fR and \fIchrony.texi\fR). The following directives will be
-particularly useful : `driftfile', `commandkey', `keyfile'.  The smallest
-useful configuration file would look something like
+(\fIchrony.txt\fR and \fIchrony.texi\fR). The following directives may be
+particularly useful : `driftfile', `generatecommandkey', `keyfile', `makestep'.
+The smallest useful configuration file would look something like
 
      server a.b.c
      server d.e.f
      server g.h.i
      keyfile @SYSCONFDIR@/chrony.keys
-     commandkey 1
+     generatecommandkey
      driftfile @CHRONYVARDIR@/drift
+     makestep 10 3
 
 
 .SH "SEE ALSO"

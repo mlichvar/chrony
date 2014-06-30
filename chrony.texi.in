@@ -535,8 +535,8 @@ the files to the intended final locations.
 @node Typical scenarios
 @chapter Typical operating scenarios
 @menu
-* Computers on the net::        Your computer is permanently on the Internet (or on
-                                a private network with NTP servers)
+* Computers on the net::        Your computer is on the Internet most of the time
+                                (or on a private network with NTP servers)
 * Infrequent connection::       You connect to the Internet sometimes (e.g. via a modem)
 * Isolated networks::           You have an isolated network with no reference clocks
 * Dial-up home PCs::            Additional considerations if you turn your computer off
@@ -548,9 +548,9 @@ the files to the intended final locations.
 @node Computers on the net
 @section Computers connected to the internet
 In this section we discuss how to configure chrony for computers that
-have permanent connections to the internet (or to any network
-containing true NTP servers which ultimately derive their time from a
-reference clock).
+are connected to the Internet (or to any network containing true NTP
+servers which ultimately derive their time from a reference clock)
+permanently or most of the time.
 
 To operate in this mode, you will need to know the names of the NTP
 server machines you wish to use.  You may be able to find names of
@@ -585,17 +585,16 @@ server g.h.i
 @end example
 
 However, you will probably want to include some of the other directives
-described later.  The following directives will be particularly useful :
-@code{driftfile}, @code{commandkey}, @code{keyfile}.  The smallest
-useful configuration file would look something like
+described later.  The @code{driftfile} and @code{makestep} directives may be
+particularly useful.  The smallest useful configuration file would look
+something like
 
 @example
 server a.b.c
 server d.e.f
 server g.h.i
-keyfile @SYSCONFDIR@/chrony.keys
-commandkey 1
 driftfile @CHRONYVARDIR@/drift
+makestep 10 3
 @end example
 @c }}}
 @c {{{ S:Infrequent connection
@@ -648,21 +647,11 @@ in an offline state, and that they should not be contacted until @code{chronyd}
 receives notification that the link to the internet is present.
 
 In order to notify @code{chronyd} of the presence of the link, you will need to
-be able to log in to it with the program chronyc.  To do this, @code{chronyd}
-needs to be configured with an administrator password.  To set up an
-administrator password, you can create a file @file{@SYSCONFDIR@/chrony.keys}
-containing a single line
-
-@example
-1 ALongAndRandomPassword
-@end example
-
-and add the following line to @file{@SYSCONFDIR@/chrony.conf} (the order of the
-lines does not matter)
-
-@example
-commandkey 1
-@end example
+be able to log in to it with the program @code{chronyc}.  To do this,
+@code{chronyd} needs to be configured with an administrator password.  The
+password is read from a file specified by the @code{keyfile} directive.  The
+@code{generatecommandkey} directive can be used to generate a random password
+automatically on the first @code{chronyd} start.
 
 The smallest useful configuration file would look something like
 
@@ -671,8 +660,9 @@ server a.b.c offline
 server d.e.f offline
 server g.h.i offline
 keyfile @SYSCONFDIR@/chrony.keys
-commandkey 1
+generatecommandkey
 driftfile @CHRONYVARDIR@/drift
+makestep 10 3
 @end example
 
 The next section describes how to tell @code{chronyd} when the internet link
@@ -737,7 +727,7 @@ master's address is 192.168.169.170)
 
 @example
 driftfile @CHRONYVARDIR@/drift
-commandkey 25
+generatecommandkey
 keyfile @SYSCONFDIR@/chrony.keys
 initstepslew 10 client1 client3 client6
 local stratum 8
@@ -754,7 +744,7 @@ driftfile @CHRONYVARDIR@/drift
 logdir /var/log/chrony
 log measurements statistics tracking
 keyfile @SYSCONFDIR@/chrony.keys
-commandkey 24
+generatecommandkey
 local stratum 10
 initstepslew 20 master
 allow 192.168.169.170
@@ -888,7 +878,8 @@ logdir /var/log/chrony
 log statistics measurements tracking
 driftfile @CHRONYVARDIR@/drift
 keyfile @SYSCONFDIR@/chrony.keys
-commandkey 25
+generatecommandkey
+makestep 10 3
 maxupdateskew 100.0
 dumponexit
 dumpdir @CHRONYVARDIR@

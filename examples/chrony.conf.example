@@ -106,6 +106,9 @@ keyfile /etc/chrony.keys
 
 commandkey 1
 
+# With this directive a random password will be generated automatically.
+generatecommandkey
+
 # chronyd can save the measurement history for the servers to files when
 # it it exits.  This is useful in 2 situations:
 #
