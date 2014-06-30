@@ -17,7 +17,7 @@ Enhancements
 * Try to detect unexpected forward time jumps and reset state
 * Exit with non-zero code when maxchange limit is reached
 * Improve makestep to not start and stop slew unnecessarily
-* Change default corrtimeratio to 3.0 to improve frequency error
+* Change default corrtimeratio to 3.0 to improve frequency accuracy
 * Announce leap second only on last day of June and December
 * Use separate connected client sockets for each NTP server
 * Remove separate NTP implementation used for initstepslew
@@ -26,6 +26,7 @@ Enhancements
 * Print warning when source is added with unknown key
 * Take leap second in PPS refclock from locked source
 * Make reading of RTC for initial trim more reliable
+* Don't create cmdmon sockets when cmdport is 0
 * Add configure option to set default user to drop root privileges
 * Add configure option to compile with debug messages
 * Print debug messages when -d is used more than once
