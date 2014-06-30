@@ -1688,7 +1688,7 @@ include @SYSCONFDIR@/chrony/local.conf
 @c {{{ initstepslew
 @node initstepslew directive
 @subsection initstepslew
-In normal operation, @code{chronyd} always slews the time when it needs to
+In normal operation, @code{chronyd} slews the time when it needs to
 adjust the system clock.  For example, to correct a system clock which
 is 1 second slow, @code{chronyd} slightly increases the amount by which the
 system clock is advanced on each clock interrupt, until the error is
@@ -1720,8 +1720,7 @@ servers as arguments.  A maximum of 8 will be used.  Each of the servers
 is rapidly polled several times, and a majority voting mechanism used to
 find the most likely range of system clock error that is present.  A
 step (or slew) is applied to the system clock to correct this error.
-@code{chronyd} then enters its normal operating mode (where only slews are
-used).
+@code{chronyd} then enters its normal operating mode.
 
 An example of use of the command is
 
@@ -1742,6 +1741,15 @@ below), the master can be set up with an @code{initstepslew} directive
 which references some or all of the slaves.  Then, if the master machine
 has to be rebooted, the slaves can be relied on to 'flywheel' the time
 for the master.
+
+The @code{initstepslew} directive is functionally similar to a
+combination of the @code{makestep} and @code{server} directives with
+the @code{iburst} option. The main difference is that the
+@code{initstepslew} servers are used only before normal operation
+begins and that the foreground @code{chronyd} process waits for
+@code{initstepslew} to finish before exiting.  This is useful to
+prevent programs started in the boot sequence after @code{chronyd}
+from reading the clock before it's stepped.
 @c }}}
 @c {{{ keyfile
 @node keyfile directive
