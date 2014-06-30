@@ -1447,7 +1447,8 @@ There is also a @code{cmddeny all} directive with similar behaviour to the
 
 The @code{cmdport} directive allows the port that is used for run-time
 command and monitoring (via the program @code{chronyc}) to be altered
-from its default (323/udp).
+from its default (323/udp).  If set to 0, @code{chronyd} will not open the
+port, this is useful to disable the @code{chronyc} access completely.
 
 An example shows the syntax
 

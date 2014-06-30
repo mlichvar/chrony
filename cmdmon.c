@@ -171,21 +171,18 @@ static ADF_AuthTable access_auth_table;
 
 /* ================================================== */
 /* Forward prototypes */
-static int prepare_socket(int family);
 static void read_from_cmd_socket(void *anything);
 
 /* ================================================== */
 
 static int
-prepare_socket(int family)
+prepare_socket(int family, int port_number)
 {
-  int port_number, sock_fd;
+  int sock_fd;
   socklen_t my_addr_len;
   union sockaddr_in46 my_addr;
   IPAddr bind_address;
   int on_off = 1;
-
-  port_number = CNF_GetCommandPort();
 
   sock_fd = socket(family, SOCK_DGRAM, 0);
   if (sock_fd < 0) {
@@ -265,7 +262,7 @@ prepare_socket(int family)
 void
 CAM_Initialise(int family)
 {
-  int i;
+  int i, port_number;
 
   assert(!initialised);
   initialised = 1;
@@ -293,18 +290,20 @@ CAM_Initialise(int family)
   free_replies = NULL;
   kept_replies.next = NULL;
 
-  if (family == IPADDR_UNSPEC || family == IPADDR_INET4)
-    sock_fd4 = prepare_socket(AF_INET);
+  port_number = CNF_GetCommandPort();
+
+  if (port_number && (family == IPADDR_UNSPEC || family == IPADDR_INET4))
+    sock_fd4 = prepare_socket(AF_INET, port_number);
   else
     sock_fd4 = -1;
 #ifdef HAVE_IPV6
-  if (family == IPADDR_UNSPEC || family == IPADDR_INET6)
-    sock_fd6 = prepare_socket(AF_INET6);
+  if (port_number && (family == IPADDR_UNSPEC || family == IPADDR_INET6))
+    sock_fd6 = prepare_socket(AF_INET6, port_number);
   else
     sock_fd6 = -1;
 #endif
 
-  if (sock_fd4 < 0
+  if (port_number && sock_fd4 < 0
 #ifdef HAVE_IPV6
       && sock_fd6 < 0
 #endif
