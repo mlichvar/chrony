@@ -2,6 +2,7 @@ This is the README for chrony.
 
 What is chrony?
 ===============
+
 Chrony is a pair of programs for maintaining the accuracy of computer
 clocks.
 
@@ -94,8 +95,7 @@ by sending mail with the subject "subscribe" to
 
 chrony-announce-request@chrony.tuxfamily.org
 
-These messages will be copied to chrony-users (see below).  New versions
-are announced also on Freshmeat (http://freshmeat.net/).
+These messages will be copied to chrony-users (see below).
 
 How can I get support for chrony?
 and where can I discuss new features, possible bugs etc?
