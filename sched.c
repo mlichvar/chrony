@@ -592,7 +592,9 @@ SCH_MainLoop(void)
 
     /* if there are no file descriptors being waited on and no
        timeout set, this is clearly ridiculous, so stop the run */
-    assert(ptv || n_read_fds);
+    if (!ptv && !n_read_fds) {
+      LOG_FATAL(LOGF_Scheduler, "Nothing to do");
+    }
 
     /* Copy current set of read file descriptors */
     memcpy((void *) &rd, (void *) &read_fds, sizeof(fd_set));
