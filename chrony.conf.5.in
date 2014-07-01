@@ -24,11 +24,13 @@ However, you will probably want to include some of the other directives
 described in detail in the documentation supplied with the distribution
 (\fIchrony.txt\fR and \fIchrony.texi\fR). The following directives may be
 particularly useful : `driftfile', `generatecommandkey', `keyfile', `makestep'.
-The smallest useful configuration file would look something like
+Also, the `iburst' server option is useful to speed up the initial
+synchronization. The smallest useful configuration file would look something
+like
 
-     server a.b.c
-     server d.e.f
-     server g.h.i
+     server a.b.c iburst
+     server d.e.f iburst
+     server g.h.i iburst
      keyfile @SYSCONFDIR@/chrony.keys
      generatecommandkey
      driftfile @CHRONYVARDIR@/drift

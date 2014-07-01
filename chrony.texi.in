@@ -434,12 +434,13 @@ Now that the software is successfully installed, the next step is to
 set up a configuration file.  The default location of the file
 is @file{@SYSCONFDIR@/chrony.conf}.  Suppose you want to use public NTP
 servers from the pool.ntp.org project as your time reference.  A
-minimal working configuration file could be
+minimal useful configuration file could be
 
 @example
-server 0.pool.ntp.org
-server 1.pool.ntp.org
-server 2.pool.ntp.org
+server 0.pool.ntp.org iburst
+server 1.pool.ntp.org iburst
+server 2.pool.ntp.org iburst
+makestep 10 3
 @end example
 
 Then, @code{chronyd} can be run.
@@ -586,13 +587,14 @@ server g.h.i
 
 However, you will probably want to include some of the other directives
 described later.  The @code{driftfile} and @code{makestep} directives may be
-particularly useful.  The smallest useful configuration file would look
-something like
+particularly useful.  Also, the @code{iburst} server option is useful to speed
+up the initial synchronization.  The smallest useful configuration file would
+look something like
 
 @example
-server a.b.c
-server d.e.f
-server g.h.i
+server a.b.c iburst
+server d.e.f iburst
+server g.h.i iburst
 driftfile @CHRONYVARDIR@/drift
 makestep 10 3
 @end example
