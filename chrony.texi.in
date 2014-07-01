@@ -35,7 +35,7 @@ Copyright @copyright{} 2009-2014 Miroslav Lichvar
 * Installation::                How to compile and install the software
 * Typical scenarios::           How to configure the software for some common cases
 * Usage reference::             Reference manual
-* FAQ::                         Frequently asked questions
+* FAQ::                         Answers to some common questions about chrony
 * GPL::                         The GNU General Public License
 @end menu
 @c }}}
@@ -4497,7 +4497,7 @@ command is issued.
 @menu
 * Administrative issues::
 * Chrony compared to other programs::
-* Configuration::
+* Configuration issues::
 * Computer is not synchronising::
 * Issues with chronyc::
 * Real-time clock issues::
@@ -4581,9 +4581,9 @@ on the NTP master node (which was set from watch).  Some automated support was
 added to chrony to deal with this.
 
 @c }}}
-@c {{{ S:Configuration
-@node Configuration
-@section Configuration
+@c {{{ S:Configuration issues
+@node Configuration issues
+@section Configuration issues
 
 @subsection I have several computers on a LAN.  Should be all clients of an external server?
 The best configuration is usually to make one computer the master, with the
