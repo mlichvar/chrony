@@ -4619,6 +4619,12 @@ bindcmdaddress ::1
 
 If you don't need to use @code{chronyc} at all, you can disable the command
 sockets by adding @code{cmdport 0} to the configuration file.
+
+On Linux, if @code{chronyd} is compiled with support for Linux capabilities
+(available in the libcap library), you can specify an unprivileged user with
+the `-u' option or @code{user} directive in the @file{chrony.conf} file to drop
+root privileges after start.  The configure option @code{--with-user} can be
+used to drop the privileges by default.
 @c }}}
 @c {{{ S:Computer is not synchronising
 @node Computer is not synchronising
