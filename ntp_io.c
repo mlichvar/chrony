@@ -245,6 +245,23 @@ prepare_socket(int family, int port_number, int client_only)
 /* ================================================== */
 
 static int
+prepare_separate_client_socket(int family)
+{
+  switch (family) {
+    case IPADDR_INET4:
+      return prepare_socket(AF_INET, 0, 1);
+#ifdef HAVE_IPV6
+    case IPADDR_INET6:
+      return prepare_socket(AF_INET6, 0, 1);
+#endif
+    default:
+      return INVALID_SOCK_FD;
+  }
+}
+
+/* ================================================== */
+
+static int
 connect_socket(int sock_fd, NTP_Remote_Address *remote_addr)
 {
   union sockaddr_in46 addr;
@@ -273,7 +290,7 @@ connect_socket(int sock_fd, NTP_Remote_Address *remote_addr)
   }
 
   if (connect(sock_fd, &addr.u, addr_len) < 0) {
-    LOG(LOGS_ERR, LOGF_NtpIO, "Could not connect NTP socket to %s:%d : %s",
+    DEBUG_LOG(LOGF_NtpIO, "Could not connect NTP socket to %s:%d : %s",
         UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
         strerror(errno));
     return 0;
@@ -296,6 +313,39 @@ close_socket(int sock_fd)
 
 /* ================================================== */
 
+static int
+reconnect_socket(int sock_fd, NTP_Remote_Address *remote_addr)
+{
+  int fd;
+
+  assert(separate_client_sockets && sock_fd != INVALID_SOCK_FD &&
+      !NIO_IsServerSocket(sock_fd));
+
+  DEBUG_LOG(LOGF_NtpIO, "Reconnecting socket %d to %s:%d", sock_fd,
+      UTI_IPToString(&remote_addr->ip_addr), remote_addr->port);
+
+  /* Get a new client socket */
+  fd = prepare_separate_client_socket(remote_addr->ip_addr.family);
+  if (fd == INVALID_SOCK_FD)
+    return 0;
+
+  /* Try to connect */
+  if (!connect_socket(fd, remote_addr)) {
+    close_socket(fd);
+    return 0;
+  }
+
+  /* Replace the original socket */
+  if (dup2(fd, sock_fd) != sock_fd) {
+    DEBUG_LOG(LOGF_NtpIO, "Could not duplicate socket : %s", strerror(errno));
+    return 0;
+  }
+  close_socket(fd);
+
+  return 1;
+}
+
+/* ================================================== */
 void
 NIO_Initialise(int family)
 {
@@ -379,28 +429,14 @@ int
 NIO_GetClientSocket(NTP_Remote_Address *remote_addr)
 {
   if (separate_client_sockets) {
-    int sock_fd;
-
-    switch (remote_addr->ip_addr.family) {
-      case IPADDR_INET4:
-        sock_fd = prepare_socket(AF_INET, 0, 1);
-        break;
-#ifdef HAVE_IPV6
-      case IPADDR_INET6:
-        sock_fd = prepare_socket(AF_INET6, 0, 1);
-        break;
-#endif
-      default:
-        sock_fd = INVALID_SOCK_FD;
-    }
+    int sock_fd = prepare_separate_client_socket(remote_addr->ip_addr.family);
 
     if (sock_fd == INVALID_SOCK_FD)
       return INVALID_SOCK_FD;
 
-    if (!connect_socket(sock_fd, remote_addr)) {
-      close_socket(sock_fd);
-      return INVALID_SOCK_FD;
-    }
+    /* Try to connect the socket, if it fails (e.g. there is no route
+       to the address yet), we'll try again later */
+    connect_socket(sock_fd, remote_addr);
 
     return sock_fd;
   } else {
@@ -578,7 +614,7 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
   struct msghdr msg;
   struct iovec iov;
   char cmsgbuf[256];
-  int cmsglen;
+  int cmsglen, reconnect;
   socklen_t addrlen = 0;
 
   assert(initialised);
@@ -671,6 +707,9 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
   }
 #endif
 
+  reconnect = 0;
+
+try_again:
   DEBUG_LOG(LOGF_NtpIO, "Sending to %s:%d from %s fd %d",
       UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
       UTI_IPToString(&local_addr->ip_addr), local_addr->sock_fd);
@@ -681,8 +720,18 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
     msg.msg_control = NULL;
 
   if (sendmsg(local_addr->sock_fd, &msg, 0) < 0) {
+    /* If this is a separate client socket, try to reconnect it (but no more
+       than once) if not connected yet or if it may be bound to an address that
+       is no longer valid */
+    reconnect = !reconnect && separate_client_sockets && !addrlen &&
+      (errno == ENOTCONN || errno == EDESTADDRREQ || errno == EINVAL);
+
     DEBUG_LOG(LOGF_NtpIO, "Could not send to %s:%d : %s",
         UTI_IPToString(&remote_addr->ip_addr), remote_addr->port, strerror(errno));
+
+    /* Try sending the packet again if reconnect succeeds */
+    if (reconnect && reconnect_socket(local_addr->sock_fd, remote_addr))
+      goto try_again;
   }
 }
 
