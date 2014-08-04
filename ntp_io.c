@@ -707,18 +707,14 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
   }
 #endif
 
-  reconnect = 0;
-
-try_again:
-  DEBUG_LOG(LOGF_NtpIO, "Sending to %s:%d from %s fd %d",
-      UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
-      UTI_IPToString(&local_addr->ip_addr), local_addr->sock_fd);
-
   msg.msg_controllen = cmsglen;
   /* This is apparently required on some systems */
   if (!cmsglen)
     msg.msg_control = NULL;
 
+  reconnect = 0;
+
+try_again:
   if (sendmsg(local_addr->sock_fd, &msg, 0) < 0) {
     /* If this is a separate client socket, try to reconnect it (but no more
        than once) if not connected yet or if it may be bound to an address that
@@ -726,12 +722,18 @@ try_again:
     reconnect = !reconnect && separate_client_sockets && !addrlen &&
       (errno == ENOTCONN || errno == EDESTADDRREQ || errno == EINVAL);
 
-    DEBUG_LOG(LOGF_NtpIO, "Could not send to %s:%d : %s",
-        UTI_IPToString(&remote_addr->ip_addr), remote_addr->port, strerror(errno));
+    DEBUG_LOG(LOGF_NtpIO, "Could not send to %s:%d from %s fd %d : %s",
+        UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
+        UTI_IPToString(&local_addr->ip_addr), local_addr->sock_fd,
+        strerror(errno));
 
     /* Try sending the packet again if reconnect succeeds */
     if (reconnect && reconnect_socket(local_addr->sock_fd, remote_addr))
       goto try_again;
+  } else {
+    DEBUG_LOG(LOGF_NtpIO, "Sent to %s:%d from %s fd %d",
+        UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
+        UTI_IPToString(&local_addr->ip_addr), local_addr->sock_fd);
   }
 }
 
