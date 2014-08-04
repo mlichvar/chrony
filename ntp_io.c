@@ -190,6 +190,14 @@ prepare_socket(int family, int port_number, int client_only)
   }
 #endif
 
+#ifdef IP_FREEBIND
+  /* Allow binding to address that doesn't exist yet */
+  if (my_addr_len > 0 &&
+      setsockopt(sock_fd, IPPROTO_IP, IP_FREEBIND, (char *)&on_off, sizeof(on_off)) < 0) {
+    LOG(LOGS_ERR, LOGF_NtpIO, "Could not set free bind socket option");
+  }
+#endif
+
   if (family == AF_INET) {
 #ifdef IP_PKTINFO
     /* We want the local IP info on server sockets */
