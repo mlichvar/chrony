@@ -151,7 +151,7 @@ prepare_socket(int family, int port_number, int client_only)
     /* We want the local IP info on server sockets */
     if (!client_only &&
         setsockopt(sock_fd, IPPROTO_IP, IP_PKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
-      LOG(LOGS_ERR, LOGF_NtpIO, "Could not request packet info using socket option");
+      LOG(LOGS_ERR, LOGF_NtpIO, "Could not set packet info socket option");
       /* Don't quit - we might survive anyway */
     }
 #endif
@@ -161,18 +161,18 @@ prepare_socket(int family, int port_number, int client_only)
 #ifdef IPV6_V6ONLY
     /* Receive IPv6 packets only */
     if (setsockopt(sock_fd, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&on_off, sizeof(on_off)) < 0) {
-      LOG(LOGS_ERR, LOGF_NtpIO, "Could not request IPV6_V6ONLY socket option");
+      LOG(LOGS_ERR, LOGF_NtpIO, "Could not set IPV6_V6ONLY socket option");
     }
 #endif
 
     if (!client_only) {
 #ifdef IPV6_RECVPKTINFO
       if (setsockopt(sock_fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
-        LOG(LOGS_ERR, LOGF_NtpIO, "Could not request IPv6 packet info socket option");
+        LOG(LOGS_ERR, LOGF_NtpIO, "Could not set IPv6 packet info socket option");
       }
 #elif defined(IPV6_PKTINFO)
       if (setsockopt(sock_fd, IPPROTO_IPV6, IPV6_PKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
-        LOG(LOGS_ERR, LOGF_NtpIO, "Could not request IPv6 packet info socket option");
+        LOG(LOGS_ERR, LOGF_NtpIO, "Could not set IPv6 packet info socket option");
       }
 #endif
     }
