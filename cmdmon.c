@@ -199,6 +199,14 @@ prepare_socket(int family, int port_number)
     LOG(LOGS_ERR, LOGF_CmdMon, "Could not set reuseaddr socket options");
     /* Don't quit - we might survive anyway */
   }
+
+#ifdef IP_FREEBIND
+  /* Allow binding to address that doesn't exist yet */
+  if (setsockopt(sock_fd, IPPROTO_IP, IP_FREEBIND, (char *)&on_off, sizeof(on_off)) < 0) {
+    LOG(LOGS_ERR, LOGF_CmdMon, "Could not set free bind socket option");
+  }
+#endif
+
 #ifdef HAVE_IPV6
   if (family == AF_INET6) {
 #ifdef IPV6_V6ONLY
