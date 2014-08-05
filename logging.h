@@ -49,7 +49,11 @@ extern int log_debug_enabled;
       LOG_Message(LOGS_DEBUG, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__); \
   } while (0)
 #define LOG(severity, facility, ...) LOG_Message(severity, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__)
-#define LOG_FATAL(facility, ...) LOG_Message(LOGS_FATAL, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__)
+#define LOG_FATAL(facility, ...) \
+  do { \
+    LOG_Message(LOGS_FATAL, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__); \
+    exit(1); \
+  } while (0)
 
 /* Definition of severity */
 typedef enum {
