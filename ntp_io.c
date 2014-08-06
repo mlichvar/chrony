@@ -338,6 +338,7 @@ reconnect_socket(int sock_fd, NTP_Remote_Address *remote_addr)
   /* Replace the original socket */
   if (dup2(fd, sock_fd) != sock_fd) {
     DEBUG_LOG(LOGF_NtpIO, "Could not duplicate socket : %s", strerror(errno));
+    close_socket(fd);
     return 0;
   }
   close_socket(fd);
