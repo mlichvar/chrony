@@ -498,16 +498,17 @@ void
 UTI_TimevalToInt64(struct timeval *src,
                    NTP_int64 *dest, uint32_t fuzz)
 {
-  unsigned long usec = src->tv_usec;
-  unsigned long sec = src->tv_sec;
-  uint32_t lo;
+  uint32_t lo, sec, usec;
+
+  sec = (uint32_t)src->tv_sec;
+  usec = (uint32_t)src->tv_usec;
 
   /* Recognize zero as a special case - it always signifies
      an 'unknown' value */
   if (!usec && !sec) {
     dest->hi = dest->lo = 0;
   } else {
-    dest->hi = htonl(src->tv_sec + JAN_1970);
+    dest->hi = htonl(sec + JAN_1970);
 
     /* This formula gives an error of about 0.1us worst case */
     lo = 4295 * usec - (usec>>5) - (usec>>9);
@@ -525,13 +526,23 @@ void
 UTI_Int64ToTimeval(NTP_int64 *src,
                    struct timeval *dest)
 {
+  uint32_t ntp_sec, ntp_frac;
+
   /* As yet, there is no need to check for zero - all processing that
      has to detect that case is in the NTP layer */
 
-  dest->tv_sec = ntohl(src->hi) - JAN_1970;
+  ntp_sec = ntohl(src->hi);
+  ntp_frac = ntohl(src->lo);
+
+#ifdef HAVE_LONG_TIME_T
+  dest->tv_sec = ntp_sec - (uint32_t)(NTP_ERA_SPLIT + JAN_1970) +
+                 (time_t)NTP_ERA_SPLIT;
+#else
+  dest->tv_sec = ntp_sec - JAN_1970;
+#endif
   
   /* Until I invent a slick way to do this, just do it the obvious way */
-  dest->tv_usec = (int)(0.5 + (double)(ntohl(src->lo)) / 4294.967296);
+  dest->tv_usec = (int)(0.5 + (double)(ntp_frac) / 4294.967296);
 }
 
 /* ================================================== */

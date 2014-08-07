@@ -114,6 +114,8 @@ For better control, use the options below.
   --disable-linuxcaps    Disable Linux capabilities support
   --disable-asyncdns     Disable asynchronous name resolving
   --disable-forcednsretry Don't retry on permanent DNS error
+  --with-ntp-era=SECONDS Specify earliest assumed NTP time in seconds
+                         since 1970-01-01 [50*365 days ago]
   --with-user=USER       Specify default chronyd user [root]
   --with-sendmail=PATH   Path to sendmail binary [/usr/lib/sendmail]
   --enable-debug         Enable debugging support
@@ -194,6 +196,7 @@ try_setsched=0
 try_lockmem=0
 feat_asyncdns=1
 feat_forcednsretry=1
+ntp_era_split=""
 default_user="root"
 mail_program="/usr/lib/sendmail"
 
@@ -274,6 +277,9 @@ do
     ;;
     --disable-forcednsretry)
       feat_forcednsretry=0
+    ;;
+    --with-ntp-era=* )
+      ntp_era_split=`echo $option | sed -e 's/^.*=//;'`
     ;;
     --with-user=* )
       default_user=`echo $option | sed -e 's/^.*=//;'`
@@ -381,6 +387,33 @@ if test_code '64-bit time_t' 'time.h' '' '' '
   return x[0];'
 then
   add_def HAVE_LONG_TIME_T 1
+
+  if [ "x$ntp_era_split" != "x" ]; then
+    split_seconds=$ntp_era_split
+    split_days=0
+  else
+    split_seconds=`date '+%s'`
+    if [ "x$split_seconds" = "" ]; then
+      echo "Could not get current time, --with-ntp-era option is needed"
+      exit 1
+    fi
+    split_days=$((50 * 365))
+  fi
+
+  add_def NTP_ERA_SPLIT "(${split_seconds}LL - $split_days * 24 * 3600)"
+
+  date_format='+%Y-%m-%dT%H:%M:%SZ'
+
+  # Print the full NTP interval if a suitable date is found
+  if [ "x`date -u -d '1970-01-01 UTC 9 days ago 5 seconds 3 seconds' \
+    $date_format 2> /dev/null`" = "x1969-12-23T00:00:08Z" ]
+  then
+    time1="`date -u -d "1970-01-01 UTC $split_days days ago $split_seconds seconds" \
+      $date_format`"
+    time2="`date -u -d "1970-01-01 UTC $split_days days ago $split_seconds seconds 4294967296 seconds" \
+      $date_format`"
+    echo "NTP time mapped to $time1/$time2"
+  fi
 fi
 
 MATHCODE='return (int) pow(2.0, log(sqrt((double)argc)));'

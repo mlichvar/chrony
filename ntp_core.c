@@ -258,10 +258,35 @@ do_size_checks(void)
 
 /* ================================================== */
 
+static void
+do_time_checks(void)
+{
+#ifdef HAVE_LONG_TIME_T
+  /* Check that time before NTP_ERA_SPLIT underflows correctly */
+
+  struct timeval tv1 = {NTP_ERA_SPLIT, 1}, tv2 = {NTP_ERA_SPLIT - 1, 1};
+  NTP_int64 ntv1, ntv2;
+  int r;
+
+  UTI_TimevalToInt64(&tv1, &ntv1, 0);
+  UTI_TimevalToInt64(&tv2, &ntv2, 0);
+  UTI_Int64ToTimeval(&ntv1, &tv1);
+  UTI_Int64ToTimeval(&ntv2, &tv2);
+
+  r = tv1.tv_sec == NTP_ERA_SPLIT &&
+      tv1.tv_sec + (1ULL << 32) - 1 == tv2.tv_sec;
+
+  assert(r);
+#endif
+}
+
+/* ================================================== */
+
 void
 NCR_Initialise(void)
 {
   do_size_checks();
+  do_time_checks();
 
   logfileid = CNF_GetLogMeasurements() ? LOG_FileOpen("measurements",
       "   Date (UTC) Time     IP Address   L St 1234 abc 5678 LP RP Score Offset     Peer del. Peer disp. Root del.  Root disp.")
