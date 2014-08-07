@@ -210,9 +210,13 @@ UTI_TimevalToString(struct timeval *tv)
   char *result;
 
   result = NEXT_BUFFER;
-  /* TODO: time_t may be wider than long, switch to int64_t before 2038 */
+#ifdef HAVE_LONG_TIME_T
+  snprintf(result, BUFFER_LENGTH, "%"PRId64".%06lu",
+      (int64_t)tv->tv_sec, (unsigned long)tv->tv_usec);
+#else
   snprintf(result, BUFFER_LENGTH, "%ld.%06lu",
       (long)tv->tv_sec, (unsigned long)tv->tv_usec);
+#endif
   return result;
 }
 

@@ -62,10 +62,10 @@
 #include <syslog.h>
 #include <time.h>
 
-#if HAS_STDINT_H
-#include <stdint.h>
-#elif defined(HAS_INTTYPES_H)
+#ifdef HAS_INTTYPES_H
 #include <inttypes.h>
+#elif HAS_STDINT_H
+#include <stdint.h>
 #else
 /* Tough */
 #endif
