@@ -85,7 +85,10 @@ clean :
 	-rm -f *.o *.s chronyc chronyd core *~ chrony.info chrony.html chrony.txt
 	-rm -rf .deps
 
-getdate.c : ;
+getdate.c :
+	bison -o getdate.c getdate.y
+
+# This can be used to force regeneration of getdate.c
 getdate :
 	bison -o getdate.c getdate.y
 
