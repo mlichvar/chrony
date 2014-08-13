@@ -76,7 +76,7 @@ should not be used.
 .B \-R
 When this option is used, the \fIinitstepslew\fR directive and the
 \fImakestep\fR directive used with a positive limit will be ignored. This
-option is useful when restarting \fBchronyd\fR and can be used in conjuction
+option is useful when restarting \fBchronyd\fR and can be used in conjunction
 with the \fB-r\fR option.
 .TP
 .B \-s

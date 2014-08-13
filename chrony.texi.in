@@ -1007,7 +1007,7 @@ used.
 When this option is used, the @code{initstepslew} directive and the
 @code{makestep} directive used with a positive limit will be ignored.
 This option is useful when restarting @code{chronyd} and can be used
-in conjuction with the `-r' option.
+in conjunction with the `-r' option.
 
 @item -s
 This option will set the system clock from the computer's real-time
