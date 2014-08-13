@@ -124,6 +124,54 @@ prepare_socket(int family, int port_number, int client_only)
   /* Close on exec */
   UTI_FdSetCloexec(sock_fd);
 
+  /* Prepare local address */
+  memset(&my_addr, 0, sizeof (my_addr));
+  my_addr_len = 0;
+
+  switch (family) {
+    case AF_INET:
+      if (!client_only)
+        CNF_GetBindAddress(IPADDR_INET4, &bind_address);
+      else
+        CNF_GetBindAcquisitionAddress(IPADDR_INET4, &bind_address);
+
+      if (bind_address.family == IPADDR_INET4)
+        my_addr.in4.sin_addr.s_addr = htonl(bind_address.addr.in4);
+      else if (port_number)
+        my_addr.in4.sin_addr.s_addr = htonl(INADDR_ANY);
+      else
+        break;
+
+      my_addr.in4.sin_family = family;
+      my_addr.in4.sin_port = htons(port_number);
+      my_addr_len = sizeof (my_addr.in4);
+
+      break;
+#ifdef HAVE_IPV6
+    case AF_INET6:
+      if (!client_only)
+        CNF_GetBindAddress(IPADDR_INET6, &bind_address);
+      else
+        CNF_GetBindAcquisitionAddress(IPADDR_INET6, &bind_address);
+
+      if (bind_address.family == IPADDR_INET6)
+        memcpy(my_addr.in6.sin6_addr.s6_addr, bind_address.addr.in6,
+            sizeof (my_addr.in6.sin6_addr.s6_addr));
+      else if (port_number)
+        my_addr.in6.sin6_addr = in6addr_any;
+      else
+        break;
+
+      my_addr.in6.sin6_family = family;
+      my_addr.in6.sin6_port = htons(port_number);
+      my_addr_len = sizeof (my_addr.in6);
+
+      break;
+#endif
+    default:
+      assert(0);
+  }
+
   /* Make the socket capable of re-using an old address if binding to a specific port */
   if (port_number &&
       setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&on_off, sizeof(on_off)) < 0) {
@@ -179,48 +227,8 @@ prepare_socket(int family, int port_number, int client_only)
   }
 #endif
 
-  /* Bind the port */
-  memset(&my_addr, 0, sizeof (my_addr));
-
-  switch (family) {
-    case AF_INET:
-      my_addr_len = sizeof (my_addr.in4);
-      my_addr.in4.sin_family = family;
-      my_addr.in4.sin_port = htons(port_number);
-
-      if (!client_only)
-        CNF_GetBindAddress(IPADDR_INET4, &bind_address);
-      else
-        CNF_GetBindAcquisitionAddress(IPADDR_INET4, &bind_address);
-
-      if (bind_address.family == IPADDR_INET4)
-        my_addr.in4.sin_addr.s_addr = htonl(bind_address.addr.in4);
-      else
-        my_addr.in4.sin_addr.s_addr = htonl(INADDR_ANY);
-      break;
-#ifdef HAVE_IPV6
-    case AF_INET6:
-      my_addr_len = sizeof (my_addr.in6);
-      my_addr.in6.sin6_family = family;
-      my_addr.in6.sin6_port = htons(port_number);
-
-      if (!client_only)
-        CNF_GetBindAddress(IPADDR_INET6, &bind_address);
-      else
-        CNF_GetBindAcquisitionAddress(IPADDR_INET6, &bind_address);
-
-      if (bind_address.family == IPADDR_INET6)
-        memcpy(my_addr.in6.sin6_addr.s6_addr, bind_address.addr.in6,
-            sizeof (my_addr.in6.sin6_addr.s6_addr));
-      else
-        my_addr.in6.sin6_addr = in6addr_any;
-      break;
-#endif
-    default:
-      assert(0);
-  }
-
-  if (bind(sock_fd, &my_addr.u, my_addr_len) < 0) {
+  /* Bind the socket if a port or address was specified */
+  if (my_addr_len > 0 && bind(sock_fd, &my_addr.u, my_addr_len) < 0) {
     LOG(LOGS_ERR, LOGF_NtpIO, "Could not bind %s NTP socket : %s",
         family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
     close(sock_fd);
