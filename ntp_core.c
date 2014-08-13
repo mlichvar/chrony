@@ -279,12 +279,17 @@ start_initial_timeout(NCR_Instance inst)
 
     /* Mark source active */
     SRC_SetActive(inst->source);
+  }
+}
 
-    /* Open client socket */
-    if (inst->mode == MODE_CLIENT) {
-      assert(inst->local_addr.sock_fd == INVALID_SOCK_FD);
-      inst->local_addr.sock_fd = NIO_GetClientSocket(&inst->remote_addr);
-    }
+/* ================================================== */
+
+static void
+close_client_socket(NCR_Instance inst)
+{
+  if (inst->mode == MODE_CLIENT && inst->local_addr.sock_fd != INVALID_SOCK_FD) {
+    NIO_CloseClientSocket(inst->local_addr.sock_fd);
+    inst->local_addr.sock_fd = INVALID_SOCK_FD;
   }
 }
 
@@ -305,11 +310,7 @@ take_offline(NCR_Instance inst)
   /* And inactive */
   SRC_UnsetActive(inst->source);
 
-  /* Close client socket */
-  if (inst->mode == MODE_CLIENT && inst->local_addr.sock_fd != INVALID_SOCK_FD) {
-    NIO_CloseClientSocket(inst->local_addr.sock_fd);
-    inst->local_addr.sock_fd = INVALID_SOCK_FD;
-  }
+  close_client_socket(inst);
 
   NCR_ResetInstance(inst);
 }
@@ -328,7 +329,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
 
   switch (type) {
     case NTP_SERVER:
-      /* Client socket will be obtained when timer is started */
+      /* Client socket will be obtained when sending request */
       result->local_addr.sock_fd = INVALID_SOCK_FD;
       result->mode = MODE_CLIENT;
       break;
@@ -757,6 +758,13 @@ transmit_timeout(void *arg)
 
   DEBUG_LOG(LOGF_NtpCore, "Transmit timeout for [%s:%d]",
       UTI_IPToString(&inst->remote_addr.ip_addr), inst->remote_addr.port);
+
+  /* Open new client socket */
+  if (inst->mode == MODE_CLIENT) {
+    close_client_socket(inst);
+    assert(inst->local_addr.sock_fd == INVALID_SOCK_FD);
+    inst->local_addr.sock_fd = NIO_GetClientSocket(&inst->remote_addr);
+  }
 
   /* Check whether we need to 'warm up' the link to the other end by
      sending an echo exchange to ensure both ends' ARP caches are
@@ -1256,6 +1264,10 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
       /* Slowly increase the polling interval if we can't get good_data */
       adjust_poll(inst, 0.1);
     }
+
+    /* If in client mode, no more packets are expected to be coming from the
+       server and the socket can be closed */
+    close_client_socket(inst);
 
     requeue_transmit = 1;
   }
