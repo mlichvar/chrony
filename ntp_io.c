@@ -109,11 +109,7 @@ prepare_socket(int family, int port_number, int client_only)
   
   /* Open Internet domain UDP socket for NTP message transmissions */
 
-#if 0
-  sock_fd = socket(family, SOCK_DGRAM, IPPROTO_UDP);
-#else
   sock_fd = socket(family, SOCK_DGRAM, 0);
-#endif 
 
   if (sock_fd < 0) {
     LOG(LOGS_ERR, LOGF_NtpIO, "Could not open %s NTP socket : %s",
@@ -238,15 +234,6 @@ prepare_socket(int family, int port_number, int client_only)
   /* Register handler for read events on the socket */
   SCH_AddInputFileHandler(sock_fd, read_from_socket, (void *)(long)sock_fd);
 
-#if 0
-  if (fcntl(sock_fd, F_SETFL, O_NONBLOCK | O_NDELAY) < 0) {
-    LOG(LOGS_ERR, LOGF_NtpIO, "Could not make socket non-blocking");
-  }
-
-  if (ioctl(sock_fd, I_SETSIG, S_INPUT) < 0) {
-    LOG(LOGS_ERR, LOGF_NtpIO, "Could not enable signal");
-  }
-#endif
   return sock_fd;
 }
 
