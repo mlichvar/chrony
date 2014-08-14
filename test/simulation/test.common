@@ -101,6 +101,11 @@ test_fail() {
 	exit 1
 }
 
+test_skip() {
+	echo "SKIP"
+	exit 9
+}
+
 test_ok() {
 	pad_line
 	echo -e "\tOK"

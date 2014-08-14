@@ -2,19 +2,25 @@
 
 . test.common
 
-passed=() failed=()
+passed=() failed=() skipped=()
 
 [ $# -gt 0 ] && tests=($@) || tests=([0-9]*-*[^_])
 
 for test in "${tests[@]}"; do
 	echo "$test ($[${#passed[@]} + ${#failed[@]} + 1]/${#tests[@]})"
-	./$test && passed=(${passed[@]} $test) || failed=(${failed[@]} $test)
+	./$test
+	case $? in
+		0) passed=(${passed[@]} $test);;
+		9) skipped=(${skipped[@]} $test);;
+		*) failed=(${failed[@]} $test);;
+	esac
 	echo
 done
 
 echo "SUMMARY:"
-echo "  TOTAL  $[${#passed[@]} + ${#failed[@]}]"
+echo "  TOTAL  $[${#passed[@]} + ${#failed[@]} + ${#skipped[@]}]"
 echo "  PASSED ${#passed[@]}"
 echo "  FAILED ${#failed[@]}    (${failed[@]})"
+echo "  SKIPPED ${#skipped[@]}   (${skipped[@]})"
 
 [ ${#failed} -eq 0 ]
