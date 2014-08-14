@@ -1212,7 +1212,7 @@ CNF_AddBroadcasts(void)
 
 /* ================================================== */
 
-unsigned short
+int
 CNF_GetNTPPort(void)
 {
   return ntp_port;
@@ -1220,7 +1220,7 @@ CNF_GetNTPPort(void)
 
 /* ================================================== */
 
-unsigned short
+int
 CNF_GetAcquisitionPort(void)
 {
   return acquisition_port;
