@@ -1199,7 +1199,8 @@ By default, @code{chronyd} uses a separate client socket for each configured
 server and their source port is chosen arbitrarily by the operating system.
 However, you can use the @code{acquisitionport} directive to explicitly specify
 a port and use only one socket (per IPv4/IPv6 address family) for all
-configured servers.  This may be useful for getting through firewalls.
+configured servers.  This may be useful for getting through firewalls.  If set
+to 0, the source port of the socket will be chosen arbitrarily.
 
 It may be set to the same port as used by the NTP server (@pxref{port
 directive}) to use only one socket for all NTP packets.

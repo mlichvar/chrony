@@ -79,7 +79,7 @@ static void parse_tempcomp(char *);
 static int restarted = 0;
 static int generate_command_key = 0;
 static char *rtc_device = "/dev/rtc";
-static int acquisition_port = 0; /* 0 means let kernel choose port */
+static int acquisition_port = -1;
 static int ntp_port = 123;
 static char *keys_file = NULL;
 static char *drift_file = NULL;

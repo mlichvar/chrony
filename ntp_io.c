@@ -328,8 +328,10 @@ NIO_Initialise(int family)
   server_port = CNF_GetNTPPort();
   client_port = CNF_GetAcquisitionPort();
 
-  /* Use separate connected sockets if client port is not set */
-  separate_client_sockets = client_port == 0;
+  /* Use separate connected sockets if client port is negative */
+  separate_client_sockets = client_port < 0;
+  if (client_port < 0)
+    client_port = 0;
 
   server_sock_fd4 = INVALID_SOCK_FD;
   client_sock_fd4 = INVALID_SOCK_FD;
