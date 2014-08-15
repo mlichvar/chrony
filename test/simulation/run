@@ -23,4 +23,4 @@ echo "  PASSED ${#passed[@]}"
 echo "  FAILED ${#failed[@]}    (${failed[@]})"
 echo "  SKIPPED ${#skipped[@]}   (${skipped[@]})"
 
-[ ${#failed} -eq 0 ]
+[ ${#failed[@]} -eq 0 ]
