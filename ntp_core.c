@@ -85,8 +85,8 @@ struct NCR_Instance_Record {
                                    received packets) */
 
   int presend_minpoll;           /* If the current polling interval is
-                                    at least this, an echo datagram
-                                    will be send some time before every
+                                    at least this, an extra client packet
+                                    will be send some time before normal
                                     transmit.  This ensures that both
                                     us and the server/peer have an ARP
                                     entry for each other ready, which
@@ -191,7 +191,7 @@ struct NCR_Instance_Record {
 #define IBURST_GOOD_SAMPLES 4
 #define IBURST_TOTAL_SAMPLES SOURCE_REACH_BITS
 
-/* Time to wait after sending echo to 'warm up' link */
+/* Time to wait after sending packet to 'warm up' link */
 #define WARM_UP_DELAY 4.0
 
 /* The NTP protocol version that we support */
@@ -820,7 +820,7 @@ transmit_timeout(void *arg)
   }
 
   /* Check whether we need to 'warm up' the link to the other end by
-     sending an echo exchange to ensure both ends' ARP caches are
+     sending an NTP exchange to ensure both ends' ARP caches are
      primed.  On loaded systems this might also help ensure that bits
      of the program are paged in properly before we start. */
 
@@ -828,8 +828,11 @@ transmit_timeout(void *arg)
       (inst->presend_minpoll <= inst->local_poll) &&
       !inst->presend_done) {
     
-    /* Send */
-    NIO_SendEcho(&inst->remote_addr, &inst->local_addr);
+    /* Send a client packet, don't store the local tx values
+       as the reply will be ignored */
+    transmit_packet(MODE_CLIENT, inst->local_poll, NTP_VERSION, 0, 0,
+                    &inst->remote_orig, &inst->local_rx, NULL, NULL,
+                    &inst->remote_addr, &inst->local_addr);
 
     inst->presend_done = 1;
 
@@ -1483,6 +1486,9 @@ NCR_ProcessKnown
       break;
 
     case MODE_SERVER:
+      /* Ignore presend reply */
+      if (inst->presend_done)
+        break;
 
       switch(inst->mode) {
         case MODE_ACTIVE:

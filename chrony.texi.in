@@ -2836,18 +2836,18 @@ of the machines.
 
 In order to avoid this problem, the @code{presend} option may be used.
 It takes a single integer argument, which is the smallest polling
-interval for which a pair of packets will be exchanged between the
-client and the server prior to the actual measurement being initiated by
-the client.  For example, with the following option included in a
+interval for which an extra pair of NTP packets will be exchanged
+between the client and the server prior to the actual measurement.
+For example, with the following option included in a
 @code{server} directive :
 
 @example
 presend 9
 @end example
 
-when the polling interval is 512 seconds or more, a UDP echo datagram
-will be sent to the server a short time (currently 4 seconds) before the
-NTP client mode datagram.
+when the polling interval is 512 seconds or more, an extra NTP client
+packet will be sent to the server a short time (currently 4 seconds)
+before making the actual measurement.
 
 @item key
 The NTP protocol supports the inclusion of checksums in the packets, to

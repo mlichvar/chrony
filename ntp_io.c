@@ -687,20 +687,3 @@ NIO_SendAuthenticatedPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,
 {
   send_packet((void *) packet, NTP_NORMAL_PACKET_SIZE + auth_len, remote_addr, local_addr);
 }
-
-/* ================================================== */
-
-/* We ought to use getservbyname, but I can't really see this changing */
-#define ECHO_PORT 7
-
-void
-NIO_SendEcho(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr)
-{
-  unsigned long magic_message = 0xbe7ab1e7UL;
-  NTP_Remote_Address addr;
-
-  addr = *remote_addr;
-  addr.port = ECHO_PORT;
-
-  send_packet((void *) &magic_message, sizeof(unsigned long), &addr, local_addr);
-}

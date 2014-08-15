@@ -56,7 +56,4 @@ extern void NIO_SendNormalPacket(NTP_Packet *packet, NTP_Remote_Address *remote_
 /* Function to transmit an authenticated packet */
 extern void NIO_SendAuthenticatedPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int auth_len);
 
-/* Function to send a datagram to a remote machine's UDP echo port. */
-extern void NIO_SendEcho(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr);
-
 #endif /* GOT_NTP_IO_H */
