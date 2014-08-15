@@ -169,6 +169,9 @@ SCH_AddInputFileHandler
 
   assert(initialised);
   
+  if (fd >= FD_SETSIZE)
+    LOG_FATAL(LOGF_Scheduler, "Too many file descriptors");
+
   /* Don't want to allow the same fd to register a handler more than
      once without deleting a previous association - this suggests
      a bug somewhere else in the program. */
