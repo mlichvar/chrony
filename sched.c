@@ -57,18 +57,18 @@ static unsigned int n_read_fds;
 /* One more than the highest file descriptor that is registered */
 static unsigned int one_highest_fd;
 
-/* This assumes that fd_set is implemented as a fixed size array of
-   bits, possibly embedded inside a record.  It might therefore
-   somewhat non-portable. */
-
-#define FD_SET_SIZE (sizeof(fd_set) * 8)
+#ifndef FD_SETSIZE
+/* If FD_SETSIZE is not defined, assume that fd_set is implemented
+   as a fixed size array of bits, possibly embedded inside a record */
+#define FD_SETSIZE (sizeof(fd_set) * 8)
+#endif
 
 typedef struct {
   SCH_FileHandler       handler;
   SCH_ArbitraryArgument arg;
 } FileHandlerEntry;
 
-static FileHandlerEntry file_handlers[FD_SET_SIZE];
+static FileHandlerEntry file_handlers[FD_SETSIZE];
 
 /* Timestamp when last select() returned */
 static struct timeval last_select_ts, last_select_ts_raw;
