@@ -1644,6 +1644,9 @@ read_from_cmd_socket(void *anything)
     return;
   }
 
+  if (from_length > sizeof (where_from))
+    LOG_FATAL(LOGF_CmdMon, "Truncated source address");
+
   read_length = status;
 
   LCL_ReadRawTime(&now);

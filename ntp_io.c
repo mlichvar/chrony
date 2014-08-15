@@ -481,6 +481,9 @@ read_from_socket(void *anything)
      reponse on a subsequent recvfrom). */
 
   if (status > 0) {
+    if (msg.msg_namelen > sizeof (where_from))
+      LOG_FATAL(LOGF_NtpIO, "Truncated source address");
+
     switch (where_from.u.sa_family) {
       case AF_INET:
         remote_addr.ip_addr.family = IPADDR_INET4;
