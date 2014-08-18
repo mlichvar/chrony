@@ -438,8 +438,7 @@ read_coefs_from_file(void)
 
     tried_to_load_coefs = 1;
 
-    in = fopen(coefs_file_name, "r");
-    if (in) {
+    if (coefs_file_name && (in = fopen(coefs_file_name, "r"))) {
       if (fscanf(in, "%d%ld%lf%lf",
                  &valid_coefs_from_file,
                  &file_ref_time,
