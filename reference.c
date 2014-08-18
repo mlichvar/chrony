@@ -267,7 +267,7 @@ REF_Finalise(void)
     LCL_SetLeap(0);
   }
 
-  if (drift_file && drift_file_age > 0.0) {
+  if (drift_file) {
     update_drift_file(LCL_ReadAbsoluteFrequency(), our_skew);
   }
 
