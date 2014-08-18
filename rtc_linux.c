@@ -1027,8 +1027,12 @@ RTC_Linux_TimePreInit(void)
       }
 
       /* Correct time */
-      new_sys_time.tv_sec = rtc_t - (time_t)(0.5 + accumulated_error);
-      new_sys_time.tv_usec = 0;
+
+      new_sys_time.tv_sec = rtc_t;
+      /* Average error in the RTC reading */
+      new_sys_time.tv_usec = 500000;
+
+      UTI_AddDoubleToTimeval(&new_sys_time, -accumulated_error, &new_sys_time);
 
       /* Set system time only if the step is larger than 1 second */
       if (!(gettimeofday(&old_sys_time, NULL) < 0) &&
