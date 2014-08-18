@@ -42,7 +42,7 @@ static int driver_initialised = 0;
 static struct {
   int  (*init)(void);
   void (*fini)(void);
-  void (*time_pre_init)(void);
+  int  (*time_pre_init)(void);
   void (*time_init)(void (*after_hook)(void*), void *anything);
   void (*start_measurements)(void);
   int  (*write_parameters)(void);

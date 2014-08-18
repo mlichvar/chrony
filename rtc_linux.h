@@ -30,7 +30,7 @@
 
 extern int RTC_Linux_Initialise(void);
 extern void RTC_Linux_Finalise(void);
-extern void RTC_Linux_TimePreInit(void);
+extern int RTC_Linux_TimePreInit(void);
 extern void RTC_Linux_TimeInit(void (*after_hook)(void *), void *anything);
 extern void RTC_Linux_StartMeasurements(void);
 

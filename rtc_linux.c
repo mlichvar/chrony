@@ -973,7 +973,7 @@ RTC_Linux_WriteParameters(void)
    etc in this case, since we have fewer requirements regarding the
    RTC behaviour than we do for the rest of the module. */
 
-void
+int
 RTC_Linux_TimePreInit(void)
 {
   int fd, status;
@@ -991,7 +991,7 @@ RTC_Linux_TimePreInit(void)
   fd = open(CNF_GetRtcDevice(), O_RDONLY);
 
   if (fd < 0) {
-    return; /* Can't open it, and won't be able to later */
+    return 0; /* Can't open it, and won't be able to later */
   }
 
   /* Retry reading the rtc until both read attempts give the same sec value.
@@ -1006,6 +1006,8 @@ RTC_Linux_TimePreInit(void)
 
   /* Read system clock */
   LCL_ReadCookedTime(&old_sys_time, NULL);
+
+  close(fd);
 
   if (status >= 0) {
     /* Convert to seconds since 1970 */
@@ -1047,10 +1049,11 @@ RTC_Linux_TimePreInit(void)
       }
     } else {
       LOG(LOGS_WARN, LOGF_RtcLinux, "Could not convert RTC reading to seconds since 1/1/1970");
+      return 0;
     }
   }
 
-  close(fd);
+  return 1;
 }
 
 /* ================================================== */
