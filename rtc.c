@@ -77,7 +77,8 @@ void
 RTC_Initialise(void)
 {
   char *file_name;
-  int ok;
+
+  driver_initialised = 0;
 
   /* This is how we tell whether the user wants to load the RTC
      driver, if he is on a machine where it is an option. */
@@ -90,23 +91,11 @@ RTC_Initialise(void)
 
     if (driver.init) {
       if ((driver.init)()) {
-        ok = 1;
-      } else {
-        ok = 0;
+        driver_initialised = 1;
       }
     } else {
-      ok = 0;
+      LOG(LOGS_ERR, LOGF_Rtc, "RTC not supported on this operating system");
     }
-
-    if (ok) {
-      driver_initialised = 1;
-    } else {
-      driver_initialised = 0;
-      LOG(LOGS_ERR, LOGF_Rtc, "Real time clock not supported on this operating system");
-    }
-
-  } else {
-    driver_initialised = 0;
   }
 }
 
@@ -137,7 +126,6 @@ RTC_TimeInit(void (*after_hook)(void *), void *anything)
   if (driver_initialised) {
     (driver.time_init)(after_hook, anything);
   } else {
-    LOG(LOGS_ERR, LOGF_Rtc, "Can't initialise from real time clock, driver not loaded");
     (after_hook)(anything);
   }
 }

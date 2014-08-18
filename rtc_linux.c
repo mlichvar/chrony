@@ -456,9 +456,6 @@ read_coefs_from_file(void)
             coefs_file_name);
       }
       fclose(in);
-    } else {
-      LOG(LOGS_WARN, LOGF_RtcLinux, "Could not open RTC file %s for reading",
-          coefs_file_name);
     }
   }
 }
@@ -550,7 +547,8 @@ RTC_Linux_Initialise(void)
 
   fd = open (CNF_GetRtcDevice(), O_RDWR);
   if (fd < 0) {
-    LOG(LOGS_ERR, LOGF_RtcLinux, "Could not open %s, %s", CNF_GetRtcDevice(), strerror(errno));
+    LOG(LOGS_ERR, LOGF_RtcLinux, "Could not open RTC device %s : %s",
+        CNF_GetRtcDevice(), strerror(errno));
     return 0;
   }
 
