@@ -88,19 +88,20 @@ Support for real-time clocks is limited at present - the criteria
 are described in the section on the \fIrtcfile\fR directive in the
 documentation supplied with the distribution.
 
-If \fBchronyd\fR cannot support the real time clock on your computer,
-this option cannot be used and a warning message will be logged to
-the syslog.
-
 If used in conjunction with the \fB-r\fR flag, \fBchronyd\fR will attempt
 to preserve the old samples after setting the system clock from
-the real time clock.  This can be used to allow \fBchronyd\fR to
+the real time clock (RTC).  This can be used to allow \fBchronyd\fR to
 perform long term averaging of the gain or loss rate across system
 reboots, and is useful for dial-up systems that are shut down when
 not in use.  For this to work well, it relies on \fBchronyd\fR having
 been able to determine accurate statistics for the difference
-between the real time clock and system clock last time the
-computer was on.
+between the RTC and system clock last time the computer was on.
+
+If \fBchronyd\fR doesn't support the RTC on your computer or there is no RTC
+installed, the system clock will be set with this option to the time of the
+last modification of the drift file (specified by the \fIdriftfile\fR
+directive) to restore the system time at which \fBchronyd\fR was previously
+stopped.
 .TP
 \fB\-u\fR \fIuser\fR
 This option sets the name of the user to which will \fBchronyd\fR switch to

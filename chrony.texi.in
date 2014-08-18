@@ -1018,18 +1018,20 @@ Support for real-time clocks is limited at present - the criteria are
 described in the section on the @code{rtcfile} directive (@pxref{rtcfile
 directive}).
 
-If @code{chronyd} cannot support the real time clock on your computer,
-this option cannot be used and a warning message will be logged to the
-syslog.
-
 If used in conjunction with the `-r' flag, @code{chronyd} will attempt
 to preserve the old samples after setting the system clock from the real
-time clock.  This can be used to allow @code{chronyd} to perform long
+time clock (RTC).  This can be used to allow @code{chronyd} to perform long
 term averaging of the gain or loss rate across system reboots, and is
 useful for dial-up systems that are shut down when not in use.  For this
 to work well, it relies on @code{chronyd} having been able to determine
-accurate statistics for the difference between the real time clock and
+accurate statistics for the difference between the RTC and
 system clock last time the computer was on.
+
+If @code{chronyd} doesn't support the RTC on your computer or there is no RTC
+installed, the system clock will be set with this option to the time of the
+last modification of the drift file (specified by the @code{driftfile}
+directive) to restore the system time at which @code{chronyd} was previously
+stopped.
 @item -u <user>
 This option sets the name of the user to which will @code{chronyd} switch to
 drop root privileges if compiled with Linux capabilities support (default

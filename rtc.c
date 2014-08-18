@@ -28,6 +28,7 @@
 #include "sysincl.h"
 
 #include "rtc.h"
+#include "local.h"
 #include "logging.h"
 #include "conf.h"
 
@@ -72,6 +73,33 @@ static struct {
 };
      
 /* ================================================== */
+/* Set the system clock to the time of last modification of driftfile
+   if it's in the future */
+
+static void
+fallback_time_init(void)
+{
+  struct timeval now;
+  struct stat buf;
+  char *drift_file;
+
+  drift_file = CNF_GetDriftFile();
+  if (!drift_file)
+    return;
+
+  if (stat(drift_file, &buf))
+    return;
+
+  LCL_ReadCookedTime(&now, NULL);
+
+  if (now.tv_sec < buf.st_mtime) {
+    LCL_ApplyStepOffset(now.tv_sec - buf.st_mtime);
+    LOG(LOGS_INFO, LOGF_Rtc,
+        "System clock set from driftfile %s", drift_file);
+  }
+}
+
+/* ================================================== */
 
 void
 RTC_Initialise(int initial_set)
@@ -79,9 +107,13 @@ RTC_Initialise(int initial_set)
   char *file_name;
 
   /* Do an initial read of the RTC and set the system time to it.  This
-     is analogous to what /sbin/hwclock -s would do on Linux. */
-  if (initial_set && driver.time_pre_init) {
-    (driver.time_pre_init)();
+     is analogous to what /sbin/hwclock -s would do on Linux.  If that fails
+     or RTC is not supported, set the clock to the time of the last
+     modification of driftfile, so we at least get closer to the truth. */
+  if (initial_set) {
+    if (!driver.time_pre_init || !driver.time_pre_init()) {
+      fallback_time_init();
+    }
   }
 
   driver_initialised = 0;
