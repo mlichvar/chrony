@@ -1843,20 +1843,22 @@ read_from_cmd_socket(void *anything)
   }
 
   valid_ts = 0;
+  issue_token = 0;
 
   if (auth_ok) {
-    struct timeval ts;
-
-    UTI_TimevalNetworkToHost(&rx_message.data.logon.ts, &ts);
-    if ((utoken_ok && token_ok) ||
-        ((ntohl(rx_message.utoken) == SPECIAL_UTOKEN) &&
-         (rx_command == REQ_LOGON) &&
-         (valid_ts = ts_is_unique_and_not_stale(&ts, &now))))
+    if (utoken_ok && token_ok) {
       issue_token = 1;
-    else 
-      issue_token = 0;
-  } else {
-    issue_token = 0;
+    } else if (rx_command == REQ_LOGON &&
+               ntohl(rx_message.utoken) == SPECIAL_UTOKEN) {
+      struct timeval ts;
+
+      UTI_TimevalNetworkToHost(&rx_message.data.logon.ts, &ts);
+      valid_ts = ts_is_unique_and_not_stale(&ts, &now);
+
+      if (valid_ts) {
+        issue_token = 1;
+      }
+    }
   }
 
   authenticated = auth_ok & utoken_ok & token_ok;
