@@ -979,9 +979,8 @@ RTC_Linux_TimePreInit(void)
   int fd, status;
   struct rtc_time rtc_raw, rtc_raw_retry;
   struct tm rtc_tm;
-  time_t rtc_t, estimated_correct_rtc_t;
-  long interval;
-  double accumulated_error = 0.0;
+  time_t rtc_t;
+  double accumulated_error;
   struct timeval new_sys_time, old_sys_time;
 
   coefs_file_name = CNF_GetRtcFile();
@@ -1021,16 +1020,14 @@ RTC_Linux_TimePreInit(void)
       /* Work out approximatation to correct time (to about the
          nearest second) */
       if (valid_coefs_from_file) {
-        interval = rtc_t - file_ref_time;
-        accumulated_error = file_ref_offset + (double)(interval) * 1.0e-6 * file_rate_ppm;
-
-        /* Correct time */
-        estimated_correct_rtc_t = rtc_t - (long)(0.5 + accumulated_error);
+        accumulated_error = file_ref_offset +
+          (rtc_t - file_ref_time) * 1.0e-6 * file_rate_ppm;
       } else {
-        estimated_correct_rtc_t = rtc_t - (long)(0.5 + accumulated_error);
+        accumulated_error = 0.0;
       }
 
-      new_sys_time.tv_sec = estimated_correct_rtc_t;
+      /* Correct time */
+      new_sys_time.tv_sec = rtc_t - (time_t)(0.5 + accumulated_error);
       new_sys_time.tv_usec = 0;
 
       /* Set system time only if the step is larger than 1 second */
