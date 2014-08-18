@@ -980,7 +980,7 @@ RTC_Linux_TimePreInit(void)
   struct rtc_time rtc_raw, rtc_raw_retry;
   struct tm rtc_tm;
   time_t rtc_t;
-  double accumulated_error;
+  double accumulated_error, sys_offset;
   struct timeval new_sys_time, old_sys_time;
 
   coefs_file_name = CNF_GetRtcFile();
@@ -1003,6 +1003,9 @@ RTC_Linux_TimePreInit(void)
       status = ioctl(fd, RTC_RD_TIME, &rtc_raw_retry);
     }
   } while (status >= 0 && rtc_raw.tm_sec != rtc_raw_retry.tm_sec);
+
+  /* Read system clock */
+  LCL_ReadCookedTime(&old_sys_time, NULL);
 
   if (status >= 0) {
     /* Convert to seconds since 1970 */
@@ -1034,18 +1037,13 @@ RTC_Linux_TimePreInit(void)
 
       UTI_AddDoubleToTimeval(&new_sys_time, -accumulated_error, &new_sys_time);
 
-      /* Set system time only if the step is larger than 1 second */
-      if (!(gettimeofday(&old_sys_time, NULL) < 0) &&
-          (old_sys_time.tv_sec - new_sys_time.tv_sec > 1 ||
-           old_sys_time.tv_sec - new_sys_time.tv_sec < -1)) {
+      UTI_DiffTimevalsToDouble(&sys_offset, &old_sys_time, &new_sys_time);
 
+      /* Set system time only if the step is larger than 1 second */
+      if (fabs(sys_offset) >= 1.0) {
         LOG(LOGS_INFO, LOGF_RtcLinux, "Set system time, error in RTC = %f",
             accumulated_error);
-
-        /* Tough luck if this fails */
-        if (settimeofday(&new_sys_time, NULL) < 0) {
-          LOG(LOGS_WARN, LOGF_RtcLinux, "Could not settimeofday");
-        }
+        LCL_ApplyStepOffset(sys_offset);
       }
     } else {
       LOG(LOGS_WARN, LOGF_RtcLinux, "Could not convert RTC reading to seconds since 1/1/1970");
