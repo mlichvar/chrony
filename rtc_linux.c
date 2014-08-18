@@ -431,7 +431,6 @@ static void
 read_coefs_from_file(void)
 {
   FILE *in;
-  char line[256];
 
   if (!tried_to_load_coefs) {
 
@@ -441,18 +440,13 @@ read_coefs_from_file(void)
 
     in = fopen(coefs_file_name, "r");
     if (in) {
-      if (fgets(line, sizeof(line), in)) {
-        if (sscanf(line, "%d%ld%lf%lf",
-                   &valid_coefs_from_file,
-                   &file_ref_time,
-                   &file_ref_offset,
-                   &file_rate_ppm) == 4) {
-        } else {
-          LOG(LOGS_WARN, LOGF_RtcLinux, "Could not parse coefficients line from RTC file %s",
-              coefs_file_name);
-        }
+      if (fscanf(in, "%d%ld%lf%lf",
+                 &valid_coefs_from_file,
+                 &file_ref_time,
+                 &file_ref_offset,
+                 &file_rate_ppm) == 4) {
       } else {
-        LOG(LOGS_WARN, LOGF_RtcLinux, "Could not read first line from RTC file %s",
+        LOG(LOGS_WARN, LOGF_RtcLinux, "Could not read coefficients from RTC file %s",
             coefs_file_name);
       }
       fclose(in);
