@@ -556,15 +556,14 @@ UTI_TimevalNetworkToHost(Timeval *src, struct timeval *dest)
   sec_high = ntohl(src->tv_sec_high);
   sec_low = ntohl(src->tv_sec_low);
 
-  /* get the missing bits from current time when received timestamp
-     is only 32-bit */
-  if (sizeof (time_t) > 4 && sec_high == TV_NOHIGHSEC) {
-    struct timeval now;
+#ifdef HAVE_LONG_TIME_T
+  if (sec_high == TV_NOHIGHSEC)
+    sec_high = 0;
 
-    gettimeofday(&now, NULL);
-    sec_high = now.tv_sec >> 16 >> 16;
-  }
-  dest->tv_sec = (time_t)sec_high << 16 << 16 | sec_low;
+  dest->tv_sec = (uint64_t)sec_high << 32 | sec_low;
+#else
+  dest->tv_sec = sec_low;
+#endif
 }
 
 /* ================================================== */
@@ -573,10 +572,11 @@ void
 UTI_TimevalHostToNetwork(struct timeval *src, Timeval *dest)
 {
   dest->tv_nsec = htonl(src->tv_usec * 1000);
-  if (sizeof (time_t) > 4)
-    dest->tv_sec_high = htonl(src->tv_sec >> 16 >> 16);
-  else
-    dest->tv_sec_high = htonl(TV_NOHIGHSEC);
+#ifdef HAVE_LONG_TIME_T
+  dest->tv_sec_high = htonl((uint64_t)src->tv_sec >> 32);
+#else
+  dest->tv_sec_high = htonl(TV_NOHIGHSEC);
+#endif
   dest->tv_sec_low = htonl(src->tv_sec);
 }
 
