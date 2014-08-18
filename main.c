@@ -452,16 +452,12 @@ int main
    * be done *AFTER* the daemon-creation fork() */
   write_lockfile();
 
-  if (do_init_rtc) {
-    RTC_TimePreInit();
-  }
-
   LCL_Initialise();
   SCH_Initialise();
   SYS_Initialise();
   NIO_Initialise(address_family);
   CAM_Initialise(address_family);
-  RTC_Initialise();
+  RTC_Initialise(do_init_rtc);
   SRC_Initialise();
   RCL_Initialise();
   KEY_Initialise();

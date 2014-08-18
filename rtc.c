@@ -74,9 +74,15 @@ static struct {
 /* ================================================== */
 
 void
-RTC_Initialise(void)
+RTC_Initialise(int initial_set)
 {
   char *file_name;
+
+  /* Do an initial read of the RTC and set the system time to it.  This
+     is analogous to what /sbin/hwclock -s would do on Linux. */
+  if (initial_set && driver.time_pre_init) {
+    (driver.time_pre_init)();
+  }
 
   driver_initialised = 0;
 
@@ -127,18 +133,6 @@ RTC_TimeInit(void (*after_hook)(void *), void *anything)
     (driver.time_init)(after_hook, anything);
   } else {
     (after_hook)(anything);
-  }
-}
-
-/* ================================================== */
-/* Do an initial read of the RTC and set the system time to it.  This
-   is analogous to what /sbin/hwclock -s would do on Linux. */
-
-void
-RTC_TimePreInit(void)
-{
-  if (driver.time_pre_init) {
-    (driver.time_pre_init)();
   }
 }
 

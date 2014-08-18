@@ -28,9 +28,8 @@
 
 #include "reports.h"
 
-extern void RTC_Initialise(void);
+extern void RTC_Initialise(int initial_set);
 extern void RTC_Finalise(void);
-extern void RTC_TimePreInit(void);
 extern void RTC_TimeInit(void (*after_hook)(void *), void *anything);
 extern void RTC_StartMeasurements(void);
 extern int  RTC_GetReport(RPT_RTC_Report *report);
