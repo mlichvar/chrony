@@ -252,6 +252,14 @@ void LCL_RemoveParameterChangeHandler(LCL_ParameterChangeHandler handler, void *
 
 /* ================================================== */
 
+int
+LCL_IsFirstParameterChangeHandler(LCL_ParameterChangeHandler handler)
+{
+  return change_list.next->handler == handler;
+}
+
+/* ================================================== */
+
 static void
 invoke_parameter_change_handlers(struct timeval *raw, struct timeval *cooked,
                                  double dfreq, double doffset,

@@ -514,6 +514,10 @@ handle_slew(struct timeval *raw,
   int i;
 
   if (change_type != LCL_ChangeAdjust) {
+    /* Make sure this handler is invoked first in order to not shift new timers
+       added from other handlers */
+    assert(LCL_IsFirstParameterChangeHandler(handle_slew));
+
     /* If a step change occurs, just shift all raw time stamps by the offset */
     
     for (ptr = timer_queue.next; ptr != &timer_queue; ptr = ptr->next) {

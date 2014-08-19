@@ -92,6 +92,9 @@ extern void LCL_AddParameterChangeHandler(LCL_ParameterChangeHandler handler, vo
 /* Remove a handler */
 extern void LCL_RemoveParameterChangeHandler(LCL_ParameterChangeHandler, void *anything);
 
+/* Check if a handler is invoked first when dispatching */
+extern int LCL_IsFirstParameterChangeHandler(LCL_ParameterChangeHandler handler);
+
 /* Function type for handlers to be called back when an indeterminate
    offset is introduced into the local time.  This situation occurs
    when the frequency must be adjusted to effect a clock slew and
