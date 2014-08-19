@@ -493,7 +493,6 @@ LCL_NotifyExternalTimeStep(struct timeval *raw, struct timeval *cooked,
 void
 LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate)
 {
-  ChangeListEntry *ptr;
   struct timeval raw, cooked;
   double old_freq_ppm;
 
@@ -519,11 +518,7 @@ LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate)
   (*drv_accrue_offset)(doffset, corr_rate);
 
   /* Dispatch to all handlers */
-  for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
-    (ptr->handler)(&raw, &cooked, dfreq, doffset, 0, ptr->anything);
-  }
-
-
+  invoke_parameter_change_handlers(&raw, &cooked, dfreq, doffset, LCL_ChangeAdjust);
 }
 
 /* ================================================== */
