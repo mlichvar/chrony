@@ -307,7 +307,7 @@ NCR_Finalise(void)
 /* ================================================== */
 
 static void
-start_initial_timeout(NCR_Instance inst)
+restart_timeout(NCR_Instance inst, double delay)
 {
   /* Check if we can transmit */
   if (inst->tx_suspended) {
@@ -320,19 +320,26 @@ start_initial_timeout(NCR_Instance inst)
     SCH_RemoveTimeout(inst->timeout_id);
 
   /* Start new timer for transmission */
-  inst->timeout_id = SCH_AddTimeoutInClass(INITIAL_DELAY, SAMPLING_SEPARATION,
+  inst->timeout_id = SCH_AddTimeoutInClass(delay, SAMPLING_SEPARATION,
                                            SAMPLING_RANDOMNESS,
                                            SCH_NtpSamplingClass,
                                            transmit_timeout, (void *)inst);
+  inst->timer_running = 1;
+}
 
+/* ================================================== */
+
+static void
+start_initial_timeout(NCR_Instance inst)
+{
   if (!inst->timer_running) {
     /* This will be the first transmission after mode change */
-
-    inst->timer_running = 1;
 
     /* Mark source active */
     SRC_SetActive(inst->source);
   }
+
+  restart_timeout(inst, INITIAL_DELAY);
 }
 
 /* ================================================== */
@@ -788,7 +795,6 @@ static void
 transmit_timeout(void *arg)
 {
   NCR_Instance inst = (NCR_Instance) arg;
-  double timeout_delay;
 
   inst->timer_running = 0;
 
@@ -837,11 +843,7 @@ transmit_timeout(void *arg)
     inst->presend_done = 1;
 
     /* Requeue timeout */
-    inst->timer_running = 1;
-    inst->timeout_id = SCH_AddTimeoutInClass(WARM_UP_DELAY, SAMPLING_SEPARATION,
-                                             SAMPLING_RANDOMNESS,
-                                             SCH_NtpSamplingClass,
-                                             transmit_timeout, (void *)inst);
+    restart_timeout(inst, WARM_UP_DELAY);
 
     return;
   }
@@ -884,12 +886,7 @@ transmit_timeout(void *arg)
   }
 
   /* Restart timer for this message */
-  timeout_delay = get_transmit_delay(inst, 1, 0.0);
-  inst->timer_running = 1;
-  inst->timeout_id = SCH_AddTimeoutInClass(timeout_delay, SAMPLING_SEPARATION,
-                                           SAMPLING_RANDOMNESS,
-                                           SCH_NtpSamplingClass,
-                                           transmit_timeout, (void *)inst);
+  restart_timeout(inst, get_transmit_delay(inst, 1, 0.0));
 }
 
 
@@ -1339,11 +1336,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
     /* Get rid of old timeout and start a new one */
     assert(inst->timer_running);
-    SCH_RemoveTimeout(inst->timeout_id);
-    inst->timeout_id = SCH_AddTimeoutInClass(delay_time, SAMPLING_SEPARATION,
-                                             SAMPLING_RANDOMNESS,
-                                             SCH_NtpSamplingClass,
-                                             transmit_timeout, (void *)inst);
+    restart_timeout(inst, delay_time);
   }
 
   /* Do measurement logging */
