@@ -229,6 +229,7 @@ static ADF_AuthTable access_auth_table;
 /* Forward prototypes */
 
 static void transmit_timeout(void *arg);
+static double get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx);
 
 /* ================================================== */
 
@@ -438,6 +439,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->timeout_id = 0;
   result->tx_suspended = 1;
   result->opmode = params->online ? MD_ONLINE : MD_OFFLINE;
+  result->local_poll = result->minpoll;
   
   NCR_ResetInstance(result);
 
@@ -484,7 +486,6 @@ NCR_ResetInstance(NCR_Instance instance)
   instance->tx_count = 0;
   instance->presend_done = 0;
 
-  instance->local_poll = instance->minpoll;
   instance->poll_score = 0.0;
   instance->remote_poll = 0;
   instance->remote_stratum = 0;
@@ -497,6 +498,14 @@ NCR_ResetInstance(NCR_Instance instance)
   instance->local_tx.tv_usec = 0;
   instance->local_ntp_tx.hi = 0;
   instance->local_ntp_tx.lo = 0;
+
+  if (instance->local_poll != instance->minpoll) {
+    instance->local_poll = instance->minpoll;
+
+    /* The timer was set with a longer poll interval, restart it */
+    if (instance->timer_running)
+      restart_timeout(instance, get_transmit_delay(instance, 0, 0.0));
+  }
 }
 
 /* ================================================== */
