@@ -805,6 +805,7 @@ static void
 transmit_timeout(void *arg)
 {
   NCR_Instance inst = (NCR_Instance) arg;
+  int sent;
 
   inst->timer_running = 0;
 
@@ -860,16 +861,26 @@ transmit_timeout(void *arg)
 
   inst->presend_done = 0; /* Reset for next time */
 
+  sent = transmit_packet(inst->mode, inst->local_poll,
+                         NTP_VERSION,
+                         inst->do_auth, inst->auth_key_id,
+                         &inst->remote_orig,
+                         &inst->local_rx, &inst->local_tx, &inst->local_ntp_tx,
+                         &inst->remote_addr,
+                         &inst->local_addr);
+
   ++inst->tx_count;
 
-  /* If the source loses connectivity, back off the sampling rate to reduce
-     wasted sampling. If it's the source to which we are currently locked,
-     back off slower. */
+  /* If the source loses connectivity and our packets are still being sent,
+     back off the sampling rate to reduce the network traffic.  If it's the
+     source to which we are currently locked, back off slowly. */
 
   if (inst->tx_count >= 2) {
     /* Implies we have missed at least one transmission */
 
-    adjust_poll(inst, SRC_IsSyncPeer(inst->source) ? 0.1 : 0.25);
+    if (sent) {
+      adjust_poll(inst, SRC_IsSyncPeer(inst->source) ? 0.1 : 0.25);
+    }
 
     SRC_UpdateReachability(inst->source, 0);
 
@@ -877,14 +888,6 @@ transmit_timeout(void *arg)
       NCR_TakeSourceOffline(inst);
     }
   }
-
-  transmit_packet(inst->mode, inst->local_poll,
-                  NTP_VERSION,
-                  inst->do_auth, inst->auth_key_id,
-                  &inst->remote_orig,
-                  &inst->local_rx, &inst->local_tx, &inst->local_ntp_tx,
-                  &inst->remote_addr,
-                  &inst->local_addr);
 
   switch (inst->opmode) {
     case MD_BURST_WAS_ONLINE:
