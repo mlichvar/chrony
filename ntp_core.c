@@ -891,6 +891,10 @@ transmit_timeout(void *arg)
 
   switch (inst->opmode) {
     case MD_BURST_WAS_ONLINE:
+      /* When not reachable, don't stop online burst until sending succeeds */
+      if (!sent && !SRC_IsReachable(inst->source))
+        break;
+      /* Fall through */
     case MD_BURST_WAS_OFFLINE:
       --inst->burst_total_samples_to_go;
       break;

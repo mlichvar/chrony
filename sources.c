@@ -1168,6 +1168,14 @@ SRC_IsSyncPeer(SRC_Instance inst)
 /* ================================================== */
 
 int
+SRC_IsReachable(SRC_Instance inst)
+{
+  return inst->reachability != 0;
+}
+
+/* ================================================== */
+
+int
 SRC_ReadNumberOfSources(void)
 {
   return n_sources;

@@ -171,6 +171,7 @@ extern void SRC_DumpSources(void);
 extern void SRC_ReloadSources(void);
 
 extern int SRC_IsSyncPeer(SRC_Instance inst);
+extern int SRC_IsReachable(SRC_Instance inst);
 extern int SRC_ReadNumberOfSources(void);
 extern int SRC_ActiveSources(void);
 extern int SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now);
