@@ -1028,8 +1028,8 @@ accurate statistics for the difference between the RTC and
 system clock last time the computer was on.
 
 If @code{chronyd} doesn't support the RTC on your computer or there is no RTC
-installed, the system clock will be set with this option to the time of the
-last modification of the drift file (specified by the @code{driftfile}
+installed, the system clock will be set with this option forward to the time of
+the last modification of the drift file (specified by the @code{driftfile}
 directive) to restore the system time at which @code{chronyd} was previously
 stopped.
 @item -u <user>

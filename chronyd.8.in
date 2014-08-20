@@ -98,8 +98,8 @@ been able to determine accurate statistics for the difference
 between the RTC and system clock last time the computer was on.
 
 If \fBchronyd\fR doesn't support the RTC on your computer or there is no RTC
-installed, the system clock will be set with this option to the time of the
-last modification of the drift file (specified by the \fIdriftfile\fR
+installed, the system clock will be set with this option forward to the time of
+the last modification of the drift file (specified by the \fIdriftfile\fR
 directive) to restore the system time at which \fBchronyd\fR was previously
 stopped.
 .TP
