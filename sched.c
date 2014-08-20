@@ -539,28 +539,49 @@ handle_slew(struct timeval *raw,
 #define JUMP_DETECT_THRESHOLD 10
 
 static int
-check_current_time(struct timeval *raw, int timeout)
+check_current_time(struct timeval *prev_raw, struct timeval *raw, int timeout,
+                   struct timeval *orig_select_tv,
+                   struct timeval *rem_select_tv)
 {
-  double diff;
+  struct timeval elapsed_min, elapsed_max;
+  double step, elapsed;
 
-  if (last_select_ts_raw.tv_sec > raw->tv_sec + JUMP_DETECT_THRESHOLD) {
+  /* Get an estimate of the time spent waiting in the select() call. On some
+     systems (e.g. Linux) the timeout timeval is modified to return the
+     remaining time, use that information. */
+  if (timeout) {
+    elapsed_max = elapsed_min = *orig_select_tv;
+  } else if (rem_select_tv && rem_select_tv->tv_sec >= 0 &&
+             rem_select_tv->tv_sec <= orig_select_tv->tv_sec &&
+             (rem_select_tv->tv_sec != orig_select_tv->tv_sec ||
+              rem_select_tv->tv_usec != orig_select_tv->tv_usec)) {
+    UTI_DiffTimevals(&elapsed_min, orig_select_tv, rem_select_tv);
+    elapsed_max = elapsed_min;
+  } else {
+    if (rem_select_tv)
+      elapsed_max = *orig_select_tv;
+    else
+      UTI_DiffTimevals(&elapsed_max, raw, prev_raw);
+    elapsed_min.tv_sec = 0;
+    elapsed_min.tv_usec = 0;
+  }
+
+  if (last_select_ts_raw.tv_sec + elapsed_min.tv_sec >
+      raw->tv_sec + JUMP_DETECT_THRESHOLD) {
     LOG(LOGS_WARN, LOGF_Scheduler, "Backward time jump detected!");
-  } else if (n_timer_queue_entries > 0 &&
-      timer_queue.next->tv.tv_sec + JUMP_DETECT_THRESHOLD < raw->tv_sec) {
+  } else if (prev_raw->tv_sec + elapsed_max.tv_sec + JUMP_DETECT_THRESHOLD <
+             raw->tv_sec) {
     LOG(LOGS_WARN, LOGF_Scheduler, "Forward time jump detected!");
   } else {
     return 1;
   }
 
-  if (timeout) {
-    assert(n_timer_queue_entries > 0);
-    UTI_DiffTimevalsToDouble(&diff, &timer_queue.next->tv, raw);
-  } else {
-    UTI_DiffTimevalsToDouble(&diff, &last_select_ts_raw, raw);
-  }
+  UTI_DiffTimevalsToDouble(&step, &last_select_ts_raw, raw);
+  UTI_TimevalToDouble(&elapsed_min, &elapsed);
+  step += elapsed;
 
   /* Cooked time may no longer be valid after dispatching the handlers */
-  LCL_NotifyExternalTimeStep(raw, raw, diff, fabs(diff));
+  LCL_NotifyExternalTimeStep(raw, raw, step, fabs(step));
 
   return 0;
 }
@@ -572,8 +593,8 @@ SCH_MainLoop(void)
 {
   fd_set rd;
   int status, errsv;
-  struct timeval tv, *ptv;
-  struct timeval now, cooked;
+  struct timeval tv, saved_tv, *ptv;
+  struct timeval now, saved_now, cooked;
   double err;
 
   assert(initialised);
@@ -581,6 +602,7 @@ SCH_MainLoop(void)
   while (!need_to_exit) {
     /* Dispatch timeouts and fill now with current raw time */
     dispatch_timeouts(&now);
+    saved_now = now;
     
     /* The timeout handlers may request quit */
     if (need_to_exit)
@@ -592,6 +614,7 @@ SCH_MainLoop(void)
       UTI_DiffTimevals(&tv, &(timer_queue.next->tv), &now);
       ptv = &tv;
       assert(tv.tv_sec > 0 || tv.tv_usec > 0);
+      saved_tv = tv;
 
     } else {
       ptv = NULL;
@@ -613,7 +636,7 @@ SCH_MainLoop(void)
     LCL_CookTime(&now, &cooked, &err);
 
     /* Check if the time didn't jump unexpectedly */
-    if (!check_current_time(&now, status == 0)) {
+    if (!check_current_time(&saved_now, &now, status == 0, &saved_tv, ptv)) {
       /* Cook the time again after handling the step */
       LCL_CookTime(&now, &cooked, &err);
     }
