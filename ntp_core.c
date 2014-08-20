@@ -668,7 +668,7 @@ get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx)
 
 /* ================================================== */
 
-static void
+static int
 transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 int my_poll, /* The log2 of the local poll interval */
                 int version, /* The NTP version to be set in the packet */
@@ -690,7 +690,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 )
 {
   NTP_Packet message;
-  int leap;
+  int leap, ret;
   struct timeval local_transmit;
 
   /* Parameters read from reference module */
@@ -774,17 +774,17 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
         (unsigned char *)&message.auth_data, sizeof (message.auth_data));
     if (auth_len > 0) {
       message.auth_keyid = htonl(key_id);
-      NIO_SendAuthenticatedPacket(&message, where_to, from,
+      ret = NIO_SendAuthenticatedPacket(&message, where_to, from,
           sizeof (message.auth_keyid) + auth_len);
     } else {
       DEBUG_LOG(LOGF_NtpCore,
                 "Could not generate auth data with key %lu to send packet",
                 key_id);
-      return;
+      return 0;
     }
   } else {
     UTI_TimevalToInt64(&local_transmit, &message.transmit_ts, ts_fuzz);
-    NIO_SendNormalPacket(&message, where_to, from);
+    ret = NIO_SendNormalPacket(&message, where_to, from);
   }
 
   if (local_tx) {
@@ -795,6 +795,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     *local_ntp_tx = message.transmit_ts;
   }
 
+  return ret;
 }
 
 /* ================================================== */

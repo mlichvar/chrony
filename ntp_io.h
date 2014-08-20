@@ -51,9 +51,9 @@ extern void NIO_CloseClientSocket(int sock_fd);
 extern int NIO_IsServerSocket(int sock_fd);
 
 /* Function to transmit a packet */
-extern void NIO_SendNormalPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr);
+extern int NIO_SendNormalPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr);
 
 /* Function to transmit an authenticated packet */
-extern void NIO_SendAuthenticatedPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int auth_len);
+extern int NIO_SendAuthenticatedPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int auth_len);
 
 #endif /* GOT_NTP_IO_H */

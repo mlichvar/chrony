@@ -560,7 +560,7 @@ read_from_socket(void *anything)
 /* ================================================== */
 /* Send a packet to given address */
 
-static void
+static int
 send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr)
 {
   union sockaddr_in46 remote;
@@ -575,7 +575,7 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
   if (local_addr->sock_fd == INVALID_SOCK_FD) {
     DEBUG_LOG(LOGF_NtpIO, "No socket to send to %s:%d",
               UTI_IPToString(&remote_addr->ip_addr), remote_addr->port);
-    return;
+    return 0;
   }
 
   switch (remote_addr->ip_addr.family) {
@@ -603,7 +603,7 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
       break;
 #endif
     default:
-      return;
+      return 0;
   }
 
   if (addrlen) {
@@ -670,27 +670,30 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
         UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
         UTI_IPToString(&local_addr->ip_addr), local_addr->sock_fd,
         strerror(errno));
-  } else {
-    DEBUG_LOG(LOGF_NtpIO, "Sent to %s:%d from %s fd %d",
-        UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
-        UTI_IPToString(&local_addr->ip_addr), local_addr->sock_fd);
+    return 0;
   }
+
+  DEBUG_LOG(LOGF_NtpIO, "Sent to %s:%d from %s fd %d",
+      UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
+      UTI_IPToString(&local_addr->ip_addr), local_addr->sock_fd);
+
+  return 1;
 }
 
 /* ================================================== */
 /* Send an unauthenticated packet to a given address */
 
-void
+int
 NIO_SendNormalPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr)
 {
-  send_packet((void *) packet, NTP_NORMAL_PACKET_SIZE, remote_addr, local_addr);
+  return send_packet((void *) packet, NTP_NORMAL_PACKET_SIZE, remote_addr, local_addr);
 }
 
 /* ================================================== */
 /* Send an authenticated packet to a given address */
 
-void
+int
 NIO_SendAuthenticatedPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int auth_len)
 {
-  send_packet((void *) packet, NTP_NORMAL_PACKET_SIZE + auth_len, remote_addr, local_addr);
+  return send_packet((void *) packet, NTP_NORMAL_PACKET_SIZE + auth_len, remote_addr, local_addr);
 }
