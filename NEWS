@@ -1,3 +1,24 @@
+New in version 1.31
+===================
+
+Enhancements
+------------
+* Support operation in other NTP eras (next era begins in 2036),
+  NTP time is mapped to [-50, +86] years around build date by default
+* Restore time from driftfile with -s when RTC is missing/unsupported
+* Close connected client sockets when not waiting for reply
+* Use one client socket with random port when acquisitionport is 0
+* Use NTP packets instead of UDP echo for presend
+* Don't adjust polling interval when sending fails
+* Allow binding to addresses that don't exist yet
+* Improve detection of unexpected time jumps
+
+Bug fixes
+---------
+* Reconnect client sockets for each request to follow changes
+  in network configuration automatically
+* Restart timer when polling interval is changed on reset
+
 New in version 1.30
 ===================
 
