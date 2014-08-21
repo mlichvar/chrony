@@ -550,13 +550,15 @@ UTI_Int64ToTimeval(NTP_int64 *src,
 void
 UTI_TimevalNetworkToHost(Timeval *src, struct timeval *dest)
 {
-  uint32_t sec_low, sec_high;
+  uint32_t sec_low;
+#ifdef HAVE_LONG_TIME_T
+  uint32_t sec_high;
+#endif
 
   dest->tv_usec = ntohl(src->tv_nsec) / 1000;
-  sec_high = ntohl(src->tv_sec_high);
   sec_low = ntohl(src->tv_sec_low);
-
 #ifdef HAVE_LONG_TIME_T
+  sec_high = ntohl(src->tv_sec_high);
   if (sec_high == TV_NOHIGHSEC)
     sec_high = 0;
 
