@@ -367,7 +367,7 @@ SYS_Linux_DropRoot(char *user)
   }
 
   if (prctl(PR_SET_KEEPCAPS, 1)) {
-    LOG_FATAL(LOGF_SysLinux, "prcap() failed");
+    LOG_FATAL(LOGF_SysLinux, "prctl() failed");
   }
   
   if (setgroups(0, NULL)) {
