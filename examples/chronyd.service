@@ -1,0 +1,13 @@
+[Unit]
+Description=NTP client/server
+After=ntpdate.service sntp.service ntpd.service
+Conflicts=ntpd.service systemd-timesyncd.service
+
+[Service]
+Type=forking
+PIDFile=/var/run/chronyd.pid
+EnvironmentFile=-/etc/sysconfig/chronyd
+ExecStart=/usr/sbin/chronyd $OPTIONS
+
+[Install]
+WantedBy=multi-user.target
