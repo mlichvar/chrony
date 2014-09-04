@@ -37,7 +37,7 @@ cd RELEASES/$subdir || exit 1
 
 echo $version > version.txt
 
-sed -e "s%@@VERSION@@%${version}%" < chrony.spec.sample > chrony.spec
+sed -i -e "s%@@VERSION@@%${version}%" examples/chrony.spec
 
 for m in chrony.1 chronyc.1.in chrony.conf.5.in chronyd.8.in; do
   sed -e "s%@VERSION@%${version}%;s%@MAN_DATE@%${mandate}%" \
@@ -69,7 +69,7 @@ if [ $(wc -l < FAQ) -gt 400 -o $(wc -l < FAQ) -lt 200 ]; then
   exit 3
 fi
 
-rm -f config.h config.log faqgen.pl make_release chrony.spec.sample .gitignore
+rm -f config.h config.log make_release .gitignore
 
 cd ..
 tar cv --owner root --group root $subdir | gzip -9 > ${subdir}.tar.gz
