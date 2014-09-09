@@ -29,6 +29,8 @@
 #ifndef GOT_LOGGING_H
 #define GOT_LOGGING_H
 
+#include "sysincl.h"
+
 /* Flag indicating whether debug messages are logged */
 extern int log_debug_enabled;
 

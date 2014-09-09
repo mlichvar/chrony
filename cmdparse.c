@@ -204,7 +204,7 @@ CPS_NormalizeLine(char *line)
 
   /* Remove white-space at beginning and replace white-spaces with space char */
   for (p = q = line; *p; p++) {
-    if (isspace(*p)) {
+    if (isspace((unsigned char)*p)) {
       if (!space)
         *q++ = ' ';
       space = 1;
@@ -234,15 +234,15 @@ CPS_SplitWord(char *line)
   char *p = line, *q = line;
 
   /* Skip white-space before the word */
-  while (*q && isspace(*q))
+  while (*q && isspace((unsigned char)*q))
     q++;
 
   /* Move the word to the beginning */
-  while (*q && !isspace(*q))
+  while (*q && !isspace((unsigned char)*q))
     *p++ = *q++;
 
   /* Find the next word */
-  while (*q && isspace(*q))
+  while (*q && isspace((unsigned char)*q))
     q++;
 
   *p = '\0';

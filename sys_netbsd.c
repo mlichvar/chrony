@@ -281,7 +281,6 @@ SYS_NetBSD_Initialise(void)
   };
 
   kvm_t *kt;
-  FILE *fp;
 
   kt = kvm_open(NULL, NULL, NULL, O_RDONLY, NULL);
   if (!kt) {
