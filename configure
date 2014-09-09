@@ -160,6 +160,13 @@ add_def () {
   fi
 }
 #}}}
+#{{{ pkg_config
+pkg_config () {
+  type pkg-config > /dev/null 2> /dev/null || return 1
+
+  pkg-config $@ 2> /dev/null
+}
+#}}}
 
 # ======================================================================
 
@@ -604,8 +611,8 @@ HASH_COMPILE=""
 HASH_LINK=""
 
 if [ $try_nss = "1" ]; then
-  test_cflags="`pkg-config --cflags nss 2> /dev/null`"
-  test_link="`pkg-config --libs-only-L nss 2> /dev/null` -lfreebl3"
+  test_cflags="`pkg_config --cflags nss`"
+  test_link="`pkg_config --libs-only-L nss` -lfreebl3"
   if test_code 'NSS' 'nss.h hasht.h nsslowhash.h' \
     "$test_cflags" "$test_link" \
     'NSSLOWHASH_Begin(NSSLOWHASH_NewContext(NSSLOW_Init(), HASH_AlgSHA512));'
