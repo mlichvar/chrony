@@ -680,7 +680,7 @@ update_leap_status(NTP_Leap leap, time_t now)
     }
   }
   
-  if (leap_sec != our_leap_sec) {
+  if (leap_sec != our_leap_sec && !REF_IsLeapSecondClose()) {
     LCL_SetLeap(leap_sec);
     our_leap_sec = leap_sec;
   }
@@ -1146,6 +1146,31 @@ int
 REF_IsLocalActive(void)
 {
   return !are_we_synchronised && enable_local_stratum;
+}
+
+/* ================================================== */
+
+#define LEAP_SECOND_CLOSE 5
+
+int REF_IsLeapSecondClose(void)
+{
+  struct timeval now, now_raw;
+  time_t t;
+
+  if (!our_leap_sec)
+    return 0;
+
+  SCH_GetLastEventTime(&now, NULL, &now_raw);
+
+  t = now.tv_sec > 0 ? now.tv_sec : -now.tv_sec;
+  if ((t + LEAP_SECOND_CLOSE) % (24 * 3600) < 2 * LEAP_SECOND_CLOSE)
+    return 1;
+
+  t = now_raw.tv_sec > 0 ? now_raw.tv_sec : -now_raw.tv_sec;
+  if ((t + LEAP_SECOND_CLOSE) % (24 * 3600) < 2 * LEAP_SECOND_CLOSE)
+    return 1;
+
+  return 0;
 }
 
 /* ================================================== */

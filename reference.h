@@ -161,6 +161,10 @@ extern void REF_EnableLocal(int stratum);
 extern void REF_DisableLocal(void);
 extern int REF_IsLocalActive(void);
 
+/* Check if current raw or cooked time is close to a leap second
+   and is better to discard any measurements */
+extern int REF_IsLeapSecondClose(void);
+
 extern void REF_GetTrackingReport(RPT_TrackingReport *rep);
 
 #endif /* GOT_REFERENCE_H */

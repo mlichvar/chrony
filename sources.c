@@ -312,6 +312,11 @@ void SRC_AccumulateSample
   DEBUG_LOG(LOGF_Sources, "ip=[%s] t=%s ofs=%f del=%f disp=%f str=%d",
       source_to_string(inst), UTI_TimevalToString(sample_time), -offset, root_delay, root_dispersion, stratum);
 
+  if (REF_IsLeapSecondClose()) {
+    LOG(LOGS_INFO, LOGF_Sources, "Dropping sample around leap second");
+    return;
+  }
+
   /* WE HAVE TO NEGATE OFFSET IN THIS CALL, IT IS HERE THAT THE SENSE OF OFFSET
      IS FLIPPED */
   SST_AccumulateSample(inst->stats, sample_time, -offset, peer_delay, peer_dispersion, root_delay, root_dispersion, stratum);
