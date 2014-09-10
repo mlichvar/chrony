@@ -1114,7 +1114,8 @@ specified with a command line option.
 
 Each command in the configuration file is placed on a separate line.
 The following sections describe each of the commands in turn.  The
-directives can occur in any order in the file.
+directives can occur in any order in the file and they are not
+case-sensitive.
 
 The configuration commands can also be specified directly on the
 @code{chronyd} command line, each argument is parsed as a line and
