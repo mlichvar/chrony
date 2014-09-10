@@ -2616,7 +2616,7 @@ authenticate_from_config(const char *filename)
 
   in = fopen(filename, "r");
   if (!in) {
-    fprintf(stderr, "Could not open file %s\n", filename);
+    fprintf(stderr, "Could not open file %s : %s\n", filename, strerror(errno));
     return 0;
   }
 
@@ -2641,7 +2641,7 @@ authenticate_from_config(const char *filename)
 
   in = fopen(keyfile, "r");
   if (!in) {
-    fprintf(stderr, "Could not open keyfile %s\n", keyfile);
+    fprintf(stderr, "Could not open keyfile %s : %s\n", keyfile, strerror(errno));
     return 0;
   }
 
