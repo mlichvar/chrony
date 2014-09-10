@@ -618,6 +618,8 @@ SCH_MainLoop(void)
 
     } else {
       ptv = NULL;
+      /* This is needed to fix a compiler warning */
+      saved_tv.tv_sec = 0;
     }
 
     /* if there are no file descriptors being waited on and no
