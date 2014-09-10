@@ -4628,6 +4628,43 @@ On Linux, if @code{chronyd} is compiled with support for Linux capabilities
 the `-u' option or @code{user} directive in the @file{chrony.conf} file to drop
 root privileges after start.  The configure option @code{--with-user} can be
 used to drop the privileges by default.
+
+@subsection How can I improve the accuracy of the system clock with NTP sources?
+Select NTP servers that are well synchronised, stable and close to your network.
+It's better to use more than one server, three or four is usually recommended as
+the minimum, so @code{chronyd} can detect falsetickers and combine measurements
+from multiple sources.
+
+There are also useful options which can be set in the @code{server} directive,
+they are @code{minpoll}, @code{maxpoll}, @code{polltarget}, @code{maxdelay},
+@code{maxdelayratio} and @code{maxdelaydevratio}.
+
+The first three options set the minimum and maximum allowed polling interval,
+and how should be the actual interval adjusted in the specified range.  Their
+default values are suitable for public NTP servers, which normally don't allow
+too frequent polling, but if you run your own NTP servers or have permission to
+poll the servers frequently, setting the options for shorter polling intervals
+may significantly improve the accuracy of the system clock.
+
+The optimal polling interval depends on many factors, this includes the ratio
+between the wander of the clock and the network jitter (sometimes expressed in
+NTP documents as the Allan intercept), the temperature sensitivity of the
+crystal oscillator and the maximum rate of change of the temperature.  An
+example of the directive for a server located in the same LAN could be
+
+@example
+server ntp.local minpoll 2 maxpoll 4 polltarget 30
+@end example
+
+The maxdelay options are useful to ignore measurements with larger delay (e.g.
+due to congestion in the network) and improve the stability of the
+synchronisation.  The @code{maxdelaydevratio} option could be added to the
+previous example
+
+@example
+server ntp.local minpoll 2 maxpoll 4 polltarget 30 maxdelaydevratio 2
+@end example
+
 @c }}}
 @c {{{ S:Computer is not synchronising
 @node Computer is not synchronising
