@@ -11,7 +11,10 @@ Enhancements
 * Use NTP packets instead of UDP echo for presend
 * Don't adjust polling interval when sending fails
 * Allow binding to addresses that don't exist yet
+* Ignore measurements around leap second
 * Improve detection of unexpected time jumps
+* Include example of logrotate configuration, systemd services and
+  NetworkManager dispatcher script
 
 Bug fixes
 ---------
