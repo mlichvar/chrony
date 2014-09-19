@@ -71,7 +71,7 @@ DNS_Name2IPAddress(const char *name, IPAddr *addr)
         addr->addr.in4 = ntohl(((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
         result = 1;
         break;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
       case AF_INET6:
         addr->family = IPADDR_INET6;
         memcpy(&addr->addr.in6, &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr.s6_addr, sizeof (addr->addr.in6));
@@ -115,7 +115,7 @@ DNS_IPAddress2Name(IPAddr *ip_addr, char *name, int len)
 {
   char *result = NULL;
 
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
   struct sockaddr_in in4;
   struct sockaddr_in6 in6;
   char hbuf[NI_MAXHOST];
@@ -151,7 +151,7 @@ DNS_IPAddress2Name(IPAddr *ip_addr, char *name, int len)
       addr = htonl(ip_addr->addr.in4);
       host = gethostbyaddr((const char *) &addr, sizeof (ip_addr), AF_INET);
       break;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
     case IPADDR_INET6:
       host = gethostbyaddr((const void *) ip_addr->addr.in6, sizeof (ip_addr->addr.in6), AF_INET6);
       break;

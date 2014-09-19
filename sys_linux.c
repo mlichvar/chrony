@@ -44,7 +44,7 @@ int SchedPriority = 0;
 int LockAll = 0;
 #endif
 
-#ifdef FEAT_LINUXCAPS
+#ifdef FEAT_PRIVDROP
 #include <sys/types.h>
 #include <pwd.h>
 #include <sys/prctl.h>
@@ -352,7 +352,7 @@ SYS_Linux_Finalise(void)
 
 /* ================================================== */
 
-#ifdef FEAT_LINUXCAPS
+#ifdef FEAT_PRIVDROP
 void
 SYS_Linux_DropRoot(char *user)
 {

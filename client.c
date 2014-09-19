@@ -52,7 +52,7 @@
 
 union sockaddr_in46 {
   struct sockaddr_in in4;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
   struct sockaddr_in6 in6;
 #endif
   struct sockaddr u;
@@ -160,7 +160,7 @@ open_io(const char *hostname, int port)
       his_addr.in4.sin_port = htons(port);
       his_addr_len = sizeof (his_addr.in4);
       break;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
     case IPADDR_INET6:
       sock_fd = socket(AF_INET6, SOCK_DGRAM, 0);
 
@@ -187,7 +187,7 @@ open_io(const char *hostname, int port)
     recv_errqueue = 1;
   }
 #endif
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
 #ifdef IPV6_RECVERR
   if (ip.family == IPADDR_INET6 &&
       !setsockopt(sock_fd, IPPROTO_IPV6, IPV6_RECVERR, &on_off, sizeof(on_off))) {
@@ -1412,7 +1412,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
                       (where_from.u.sa_family == AF_INET &&
                        (where_from.in4.sin_addr.s_addr != his_addr.in4.sin_addr.s_addr ||
                         where_from.in4.sin_port != his_addr.in4.sin_port)) ||
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
                       (where_from.u.sa_family == AF_INET6 &&
                        (memcmp(where_from.in6.sin6_addr.s6_addr, his_addr.in6.sin6_addr.s6_addr,
                                sizeof (where_from.in6.sin6_addr.s6_addr)) != 0 ||

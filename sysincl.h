@@ -78,7 +78,7 @@
 
 #endif
 
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
 /* For inet_ntop() */
 #include <arpa/inet.h>
 #endif

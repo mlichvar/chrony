@@ -54,7 +54,7 @@
 
 union sockaddr_in46 {
   struct sockaddr_in in4;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
   struct sockaddr_in6 in6;
 #endif
   struct sockaddr u;
@@ -62,7 +62,7 @@ union sockaddr_in46 {
 
 /* File descriptors for command and monitoring sockets */
 static int sock_fd4;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
 static int sock_fd6;
 #endif
 
@@ -207,7 +207,7 @@ prepare_socket(int family, int port_number)
   }
 #endif
 
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
   if (family == AF_INET6) {
 #ifdef IPV6_V6ONLY
     /* Receive IPv6 packets only */
@@ -233,7 +233,7 @@ prepare_socket(int family, int port_number)
       else
         my_addr.in4.sin_addr.s_addr = htonl(INADDR_ANY);
       break;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
     case AF_INET6:
       my_addr_len = sizeof (my_addr.in6);
       my_addr.in6.sin6_family = family;
@@ -304,7 +304,7 @@ CAM_Initialise(int family)
     sock_fd4 = prepare_socket(AF_INET, port_number);
   else
     sock_fd4 = -1;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
   if (port_number && (family == IPADDR_UNSPEC || family == IPADDR_INET6))
     sock_fd6 = prepare_socket(AF_INET6, port_number);
   else
@@ -312,7 +312,7 @@ CAM_Initialise(int family)
 #endif
 
   if (port_number && sock_fd4 < 0
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
       && sock_fd6 < 0
 #endif
       ) {
@@ -333,7 +333,7 @@ CAM_Finalise(void)
     close(sock_fd4);
   }
   sock_fd4 = -1;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
   if (sock_fd6 >= 0) {
     SCH_RemoveInputFileHandler(sock_fd6);
     close(sock_fd6);
@@ -687,7 +687,7 @@ transmit_reply(CMD_Reply *msg, union sockaddr_in46 *where_to, int auth_len)
       sock_fd = sock_fd4;
       addrlen = sizeof (where_to->in4);
       break;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
     case AF_INET6:
       sock_fd = sock_fd6;
       addrlen = sizeof (where_to->in6);
@@ -711,7 +711,7 @@ transmit_reply(CMD_Reply *msg, union sockaddr_in46 *where_to, int auth_len)
         ip.addr.in4 = ntohl(where_to->in4.sin_addr.s_addr);
         port = ntohs(where_to->in4.sin_port);
         break;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
       case AF_INET6:
         ip.family = IPADDR_INET6;
         memcpy(ip.addr.in6, (where_to->in6.sin6_addr.s6_addr), sizeof(ip.addr.in6));
@@ -1659,7 +1659,7 @@ read_from_cmd_socket(void *anything)
       remote_port = ntohs(where_from.in4.sin_port);
       localhost = (remote_ip.addr.in4 == 0x7f000001UL);
       break;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
     case AF_INET6:
       remote_ip.family = IPADDR_INET6;
       memcpy(&remote_ip.addr.in6, where_from.in6.sin6_addr.s6_addr,

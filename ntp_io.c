@@ -43,7 +43,7 @@
 
 union sockaddr_in46 {
   struct sockaddr_in in4;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
   struct sockaddr_in6 in6;
 #endif
   struct sockaddr u;
@@ -52,7 +52,7 @@ union sockaddr_in46 {
 /* The server/peer and client sockets for IPv4 and IPv6 */
 static int server_sock_fd4;
 static int client_sock_fd4;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
 static int server_sock_fd6;
 static int client_sock_fd6;
 #endif
@@ -116,7 +116,7 @@ prepare_socket(int family, int port_number, int client_only)
       my_addr_len = sizeof (my_addr.in4);
 
       break;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
     case AF_INET6:
       if (!client_only)
         CNF_GetBindAddress(IPADDR_INET6, &bind_address);
@@ -181,7 +181,7 @@ prepare_socket(int family, int port_number, int client_only)
     }
 #endif
   }
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
   else if (family == AF_INET6) {
 #ifdef IPV6_V6ONLY
     /* Receive IPv6 packets only */
@@ -226,7 +226,7 @@ prepare_separate_client_socket(int family)
   switch (family) {
     case IPADDR_INET4:
       return prepare_socket(AF_INET, 0, 1);
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
     case IPADDR_INET6:
       return prepare_socket(AF_INET6, 0, 1);
 #endif
@@ -252,7 +252,7 @@ connect_socket(int sock_fd, NTP_Remote_Address *remote_addr)
       addr.in4.sin_addr.s_addr = htonl(remote_addr->ip_addr.addr.in4);
       addr.in4.sin_port = htons(remote_addr->port);
       break;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
     case IPADDR_INET6:
       addr_len = sizeof (addr.in6);
       addr.in6.sin6_family = AF_INET6;
@@ -306,7 +306,7 @@ NIO_Initialise(int family)
 
   server_sock_fd4 = INVALID_SOCK_FD;
   client_sock_fd4 = INVALID_SOCK_FD;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
   server_sock_fd6 = INVALID_SOCK_FD;
   client_sock_fd6 = INVALID_SOCK_FD;
 #endif
@@ -321,7 +321,7 @@ NIO_Initialise(int family)
         client_sock_fd4 = server_sock_fd4;
     }
   }
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
   if (family == IPADDR_UNSPEC || family == IPADDR_INET6) {
     if (server_port)
       server_sock_fd6 = prepare_socket(AF_INET6, server_port, 0);
@@ -335,11 +335,11 @@ NIO_Initialise(int family)
 #endif
 
   if ((server_port && server_sock_fd4 == INVALID_SOCK_FD
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
        && server_sock_fd6 == INVALID_SOCK_FD
 #endif
       ) || (!separate_client_sockets && client_sock_fd4 == INVALID_SOCK_FD
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
        && client_sock_fd6 == INVALID_SOCK_FD
 #endif
       )) {
@@ -356,7 +356,7 @@ NIO_Finalise(void)
     close_socket(client_sock_fd4);
   close_socket(server_sock_fd4);
   server_sock_fd4 = client_sock_fd4 = INVALID_SOCK_FD;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
   if (server_sock_fd6 != client_sock_fd6)
     close_socket(client_sock_fd6);
   close_socket(server_sock_fd6);
@@ -386,7 +386,7 @@ NIO_GetClientSocket(NTP_Remote_Address *remote_addr)
     switch (remote_addr->ip_addr.family) {
       case IPADDR_INET4:
         return client_sock_fd4;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
       case IPADDR_INET6:
         return client_sock_fd6;
 #endif
@@ -404,7 +404,7 @@ NIO_GetServerSocket(NTP_Remote_Address *remote_addr)
   switch (remote_addr->ip_addr.family) {
     case IPADDR_INET4:
       return server_sock_fd4;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
     case IPADDR_INET6:
       return server_sock_fd6;
 #endif
@@ -429,7 +429,7 @@ NIO_IsServerSocket(int sock_fd)
 {
   return sock_fd != INVALID_SOCK_FD &&
     (sock_fd == server_sock_fd4
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
      || sock_fd == server_sock_fd6
 #endif
     );
@@ -490,7 +490,7 @@ read_from_socket(void *anything)
         remote_addr.ip_addr.addr.in4 = ntohl(where_from.in4.sin_addr.s_addr);
         remote_addr.port = ntohs(where_from.in4.sin_port);
         break;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
       case AF_INET6:
         remote_addr.ip_addr.family = IPADDR_INET6;
         memcpy(&remote_addr.ip_addr.addr.in6, where_from.in6.sin6_addr.s6_addr,
@@ -589,7 +589,7 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
       remote.in4.sin_port = htons(remote_addr->port);
       remote.in4.sin_addr.s_addr = htonl(remote_addr->ip_addr.addr.in4);
       break;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
     case IPADDR_INET6:
       /* Don't set address with connected socket */
       if (local_addr->sock_fd != server_sock_fd6 && separate_client_sockets)

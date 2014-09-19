@@ -97,7 +97,7 @@ SYS_Finalise(void)
 
 void SYS_DropRoot(char *user)
 {
-#if defined(LINUX) && defined (FEAT_LINUXCAPS)
+#if defined(LINUX) && defined (FEAT_PRIVDROP)
   SYS_Linux_DropRoot(user);
 #else
   LOG_FATAL(LOGF_Sys, "dropping root privileges not supported");

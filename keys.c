@@ -63,7 +63,7 @@ static int cache_key_pos;
 static int
 generate_key(unsigned long key_id)
 {
-#ifdef GENERATE_SHA1_KEY
+#ifdef FEAT_SECHASH
   unsigned char key[20];
   const char *hashname = "SHA1";
 #else

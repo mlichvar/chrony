@@ -29,7 +29,7 @@
 
 #include "refclock.h"
 
-#if HAVE_PPSAPI
+#if FEAT_PPS
 
 #if defined(HAVE_SYS_TIMEPPS_H)
 #include <sys/timepps.h>

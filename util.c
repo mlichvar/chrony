@@ -277,7 +277,7 @@ UTI_IPToString(IPAddr *addr)
       break;
     case IPADDR_INET6:
       ip6 = addr->addr.in6;
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
       inet_ntop(AF_INET6, ip6, result, BUFFER_LENGTH);
 #else
       snprintf(result, BUFFER_LENGTH, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
@@ -296,7 +296,7 @@ UTI_IPToString(IPAddr *addr)
 int
 UTI_StringToIP(const char *addr, IPAddr *ip)
 {
-#ifdef HAVE_IPV6
+#ifdef FEAT_IPV6
   struct in_addr in4;
   struct in6_addr in6;
 
