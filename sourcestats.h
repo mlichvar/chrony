@@ -135,14 +135,6 @@ extern void SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct 
 
 extern void SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report, struct timeval *now);
 
-typedef enum {
-  SST_Skew_Decrease,
-  SST_Skew_Nochange,
-  SST_Skew_Increase
-} SST_Skew_Direction;
-
-extern SST_Skew_Direction SST_LastSkewChange(SST_Stats inst);
-
 extern int SST_Samples(SST_Stats inst);
 
 #endif /* GOT_SOURCESTATS_H */

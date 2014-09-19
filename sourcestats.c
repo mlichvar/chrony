@@ -108,9 +108,6 @@ struct SST_Stats_Record {
      about estimated_frequency */
   double skew;
 
-  /* This is the direction the skew went in at the last sample */
-  SST_Skew_Direction skew_dirn;
-
   /* This is the estimated residual variance of the data points */
   double variance;
 
@@ -216,7 +213,6 @@ SST_ResetInstance(SST_Stats inst)
   inst->min_delay_sample = 0;
   inst->estimated_frequency = 0;
   inst->skew = 2000.0e-6;
-  inst->skew_dirn = SST_Skew_Nochange;
   inst->estimated_offset = 0.0;
   inst->estimated_offset_sd = 86400.0; /* Assume it's at least within a day! */
   inst->offset_time.tv_sec = 0;
@@ -466,18 +462,6 @@ SST_DoNewRegression(SST_Stats inst)
       inst->skew = MIN_SKEW;
 
     stress = fabs(old_freq - inst->estimated_frequency) / old_skew;
-
-    if (best_start > 0) {
-      /* If we are throwing old data away, retain the current
-         assumptions about the skew */
-      inst->skew_dirn = SST_Skew_Nochange;
-    } else {
-      if (inst->skew < old_skew) {
-        inst->skew_dirn = SST_Skew_Decrease;
-      } else {
-        inst->skew_dirn = SST_Skew_Increase;
-      }
-    }
 
     if (logfileid != -1) {
       LOG_FileWrite(logfileid, "%s %-15s %10.3e %10.3e %10.3e %10.3e %10.3e %7.1e %3d %3d %3d",
@@ -849,14 +833,6 @@ SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timeval *now
     report->latest_meas_err = 0;
     report->stratum = 0;
   }
-}
-
-
-/* ================================================== */
-
-SST_Skew_Direction SST_LastSkewChange(SST_Stats inst)
-{
-  return inst->skew_dirn;
 }
 
 /* ================================================== */

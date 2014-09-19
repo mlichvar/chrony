@@ -180,14 +180,6 @@ extern int SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report, struc
 
 extern SRC_Type SRC_GetType(int index);
 
-typedef enum {
-  SRC_Skew_Decrease,
-  SRC_Skew_Nochange,
-  SRC_Skew_Increase
-} SRC_Skew_Direction;
-
-extern SRC_Skew_Direction SRC_LastSkewChange(SRC_Instance inst);
-
 extern int SRC_Samples(SRC_Instance inst);
 
 #endif /* GOT_SOURCES_H */

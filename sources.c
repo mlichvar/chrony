@@ -1300,27 +1300,6 @@ SRC_GetType(int index)
 
 /* ================================================== */
 
-SRC_Skew_Direction SRC_LastSkewChange(SRC_Instance inst)
-{
-  SRC_Skew_Direction result = SRC_Skew_Nochange;
-  
-  switch (SST_LastSkewChange(inst->stats)) {
-    case SST_Skew_Decrease:
-      result = SRC_Skew_Decrease;
-      break;
-    case SST_Skew_Nochange:
-      result = SRC_Skew_Nochange;
-      break;
-    case SST_Skew_Increase:
-      result = SRC_Skew_Increase;
-      break;
-  }
-
-  return result;
-}
-
-/* ================================================== */
-
 int
 SRC_Samples(SRC_Instance inst)
 {
