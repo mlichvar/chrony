@@ -8,8 +8,6 @@
 #
 # =======================================================================
 
-rm -f config.h config.log
-
 # This configure script determines the operating system type and version
 
 if [ "x${CC}" = "x" ]; then
@@ -317,6 +315,8 @@ do
     echo "Unrecognized option : " $option
     esac
 done
+
+rm -f config.h config.log
 
 SYSTEM=${OPERATINGSYSTEM}-${MACHINE}
 
