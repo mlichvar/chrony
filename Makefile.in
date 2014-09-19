@@ -38,14 +38,9 @@ DESTDIR=
 
 HASH_OBJ = @HASH_OBJ@
 
-OBJS = util.o sched.o regress.o local.o \
-	sys.o main.o ntp_io.o ntp_core.o ntp_sources.o \
-	sources.o sourcestats.o reference.o \
-	logging.o conf.o cmdmon.o keys.o \
-	nameserv.o nameserv_async.o manual.o addrfilt.o \
-	cmdparse.o mkdirpp.o rtc.o pktlength.o clientlog.o \
-	broadcast.o refclock.o refclock_phc.o refclock_pps.o \
-	refclock_shm.o refclock_sock.o tempcomp.o $(HASH_OBJ)
+OBJS = cmdparse.o conf.o local.o logging.o main.o mkdirpp.o reference.o \
+	regress.o rtc.o sched.o sources.o sourcestats.o stubs.o sys.o \
+	tempcomp.o util.o $(HASH_OBJ)
 
 EXTRA_OBJS=@EXTRA_OBJECTS@
 
