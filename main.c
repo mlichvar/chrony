@@ -379,7 +379,7 @@ int main
       do_init_rtc = 1;
     } else if (!strcmp("-v", *argv) || !strcmp("--version",*argv)) {
       /* This write to the terminal is OK, it comes before we turn into a daemon */
-      printf("chronyd (chrony) version %s\n", CHRONY_VERSION);
+      printf("chronyd (chrony) version %s (%s)\n", CHRONY_VERSION, CHRONYD_FEATURES);
       exit(0);
     } else if (!strcmp("-n", *argv)) {
       nofork = 1;
@@ -425,7 +425,8 @@ int main
   
   LOG_SetDebugLevel(debug);
   
-  LOG(LOGS_INFO, LOGF_Main, "chronyd version %s starting", CHRONY_VERSION);
+  LOG(LOGS_INFO, LOGF_Main, "chronyd version %s starting (%s)",
+      CHRONY_VERSION, CHRONYD_FEATURES);
 
   DNS_SetAddressFamily(address_family);
 

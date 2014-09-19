@@ -168,6 +168,22 @@ pkg_config () {
   pkg-config $@ 2> /dev/null
 }
 #}}}
+#{{{ get_features
+get_features () {
+  ff=1
+  for f; do
+    if [ "$ff" = "0" ]; then
+      echo -n " "
+    fi
+    if grep "define FEAT_$f" config.h > /dev/null; then
+      echo -n "+$f"
+    else
+      echo -n "-$f"
+    fi
+    ff=0
+  done
+}
+#}}}
 
 # ======================================================================
 
@@ -738,6 +754,13 @@ fi
 add_def DEFAULT_CONF_FILE "\"$SYSCONFDIR/chrony.conf\""
 add_def DEFAULT_USER "\"$default_user\""
 add_def MAIL_PROGRAM "\"$mail_program\""
+
+common_features="`get_features ASYNCDNS IPV6 SECHASH`"
+chronyc_features="`get_features READLINE`"
+chronyd_features="`get_features CMDMON NTP REFCLOCK RTC PRIVDROP DEBUG`"
+add_def CHRONYC_FEATURES "\"$chronyc_features $common_features\""
+add_def CHRONYD_FEATURES "\"$chronyd_features $common_features\""
+echo "Features : $chronyd_features $chronyc_features $common_features"
 
 if [ -f version.txt ]; then
   add_def CHRONY_VERSION "\"`cat version.txt`\""

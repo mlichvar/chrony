@@ -2762,7 +2762,7 @@ main(int argc, char **argv)
     } else if (!strcmp(*argv, "-6")) {
       family = IPADDR_INET6;
     } else if (!strcmp("-v", *argv) || !strcmp("--version",*argv)) {
-      printf("chronyc (chrony) version %s\n", CHRONY_VERSION);
+      printf("chronyc (chrony) version %s (%s)\n", CHRONY_VERSION, CHRONYC_FEATURES);
       exit(0);
     } else if (!strncmp(*argv, "-", 1)) {
       fprintf(stderr, "Usage : %s [-h <hostname>] [-p <port-number>] [-n] [-4|-6] [-m] [-a] [-f <file>]] [command]\n", progname);
