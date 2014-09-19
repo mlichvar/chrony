@@ -436,11 +436,11 @@ else
 fi
   
 if test_code '<stdint.h>' 'stdint.h' '' '' ''; then
-  add_def HAS_STDINT_H
+  add_def HAVE_STDINT_H
 fi
 
 if test_code '<inttypes.h>' 'inttypes.h' '' '' ''; then
-  add_def HAS_INTTYPES_H
+  add_def HAVE_INTTYPES_H
 fi
 
 if [ $feat_ipv6 = "1" ] && \
