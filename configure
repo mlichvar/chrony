@@ -103,6 +103,7 @@ For better control, use the options below.
   --readline-inc-dir=DIR Specify where readline include directory is
   --readline-lib-dir=DIR Specify where readline lib directory is
   --with-ncurses-library=DIR Specify where ncurses lib directory is
+  --disable-sechash      Disable support for hashes other than MD5
   --without-nss          Don't use NSS even if it is available
   --without-tomcrypt     Don't use libtomcrypt even if it is available
   --disable-cmdmon       Disable command and monitoring support
@@ -206,6 +207,7 @@ feat_refclock=1
 feat_readline=1
 try_readline=1
 try_editline=1
+feat_sechash=1
 try_nss=1
 try_tomcrypt=1
 feat_rtc=1
@@ -322,6 +324,9 @@ do
     ;;
     --with-sendmail=* )
       mail_program=`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --disable-sechash )
+      feat_sechash=0
     ;;
     --without-nss )
       try_nss=0
@@ -669,7 +674,7 @@ HASH_OBJ="hash_intmd5.o"
 HASH_COMPILE=""
 HASH_LINK=""
 
-if [ $try_nss = "1" ]; then
+if [ $feat_sechash = "1" ] && [ $try_nss = "1" ]; then
   test_cflags="`pkg_config --cflags nss`"
   test_link="`pkg_config --libs-only-L nss` -lfreebl3"
   if test_code 'NSS' 'nss.h hasht.h nsslowhash.h' \
@@ -684,7 +689,7 @@ if [ $try_nss = "1" ]; then
   fi
 fi
 
-if [ "x$HASH_LINK" = "x" ] && [ $try_tomcrypt = "1" ]; then
+if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ] && [ $try_tomcrypt = "1" ]; then
   if test_code 'tomcrypt' 'tomcrypt.h' '-I/usr/include/tomcrypt' '-ltomcrypt' \
     'hash_memory_multi(find_hash("md5"), NULL, NULL, NULL, 0, NULL, 0);'
   then
