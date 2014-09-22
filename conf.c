@@ -462,7 +462,7 @@ static int
 parse_string(char *line, char **result)
 {
   check_number_of_args(line, 1);
-  *result = strdup(line);
+  *result = Strdup(line);
   return 1;
 }
 
@@ -627,11 +627,11 @@ parse_refclock(char *line)
     return;
   }
 
-  name = strdup(p);
+  name = Strdup(p);
 
   p = line;
   line = CPS_SplitWord(line);
-  param = strdup(p);
+  param = Strdup(p);
 
   while (*line) {
     cmd = line;
@@ -856,7 +856,7 @@ parse_mailonchange(char *line)
   address = line;
   line = CPS_SplitWord(line);
   if (sscanf(line, "%lf", &mail_change_threshold) == 1) {
-    mail_user_on_change = strdup(address);
+    mail_user_on_change = Strdup(address);
   } else {
     mail_user_on_change = NULL;
     command_parse_error();
@@ -1138,7 +1138,7 @@ parse_tempcomp(char *line)
     return;
   }
 
-  tempcomp_file = strdup(p);
+  tempcomp_file = Strdup(p);
 }
 
 /* ================================================== */

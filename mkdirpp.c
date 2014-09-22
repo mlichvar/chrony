@@ -30,6 +30,7 @@
 
 #include "sysincl.h"
 
+#include "memory.h"
 #include "mkdirpp.h"
 
 static int
@@ -74,7 +75,7 @@ mkdir_and_parents(const char *path)
   int i, j, k, last;
   len = strlen(path);
 
-  p = (char *) malloc(1 + len);
+  p = (char *)Malloc(1 + len);
 
   i = k = 0;
   while (1) {
@@ -84,7 +85,7 @@ mkdir_and_parents(const char *path)
       p[i] = 0;
 
       if (do_dir(p) < 0) {
-        free(p);
+        Free(p);
         return 0;
       }
 
@@ -114,7 +115,7 @@ mkdir_and_parents(const char *path)
 
   }  
 
-  free(p);
+  Free(p);
   return 1;
 
 }

@@ -2,7 +2,7 @@
   chronyd/chronyc - Programs for keeping computer clocks accurate.
 
  **********************************************************************
- * Copyright (C) Richard P. Curnow  1997-2002
+ * Copyright (C) Miroslav Lichvar  2014
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
@@ -21,21 +21,47 @@
 
   =======================================================================
 
-  Header file for memory functions
+  Utility functions for memory allocation.
+
   */
 
-#ifndef GOT_MEMORY_H
-#define GOT_MEMORY_H
+#include "config.h"
 
-/* Wrappers checking for errors */
-extern void *Malloc(size_t size);
-extern void *Realloc(void *ptr, size_t size);
-extern char *Strdup(const char *s);
+#include "logging.h"
+#include "memory.h"
 
-/* Convenient macros */
-#define MallocNew(T) ((T *) Malloc(sizeof(T)))
-#define MallocArray(T, n) ((T *) Malloc((n) * sizeof(T)))
-#define ReallocArray(T,n,x) ((T *) Realloc((void *)(x), (n)*sizeof(T)))
-#define Free(x) free(x)
+void *
+Malloc(size_t size)
+{
+  void *r;
 
-#endif /* GOT_MEMORY_H */
+  r = malloc(size);
+  if (!r && size)
+    LOG_FATAL(LOGF_Memory, "Could not allocate memory");
+
+  return r;
+}
+
+void *
+Realloc(void *ptr, size_t size)
+{
+  void *r;
+
+  r = realloc(ptr, size);
+  if (!r && size)
+    LOG_FATAL(LOGF_Memory, "Could not allocate memory");
+
+  return r;
+}
+
+char *
+Strdup(const char *s)
+{
+  void *r;
+
+  r = strdup(s);
+  if (!r)
+    LOG_FATAL(LOGF_Memory, "Could not allocate memory");
+
+  return r;
+}

@@ -80,6 +80,7 @@ typedef enum {
   LOGF_Local,
   LOGF_Util,
   LOGF_Main,
+  LOGF_Memory,
   LOGF_ClientLog,
   LOGF_Configure,
   LOGF_CmdMon,

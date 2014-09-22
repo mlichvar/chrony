@@ -247,7 +247,7 @@ void LCL_RemoveParameterChangeHandler(LCL_ParameterChangeHandler handler, void *
   ptr->next->prev = ptr->prev;
   ptr->prev->next = ptr->next;
 
-  free(ptr);
+  Free(ptr);
 }
 
 /* ================================================== */
@@ -324,7 +324,7 @@ void LCL_RemoveDispersionNotifyHandler(LCL_DispersionNotifyHandler handler, void
   ptr->next->prev = ptr->prev;
   ptr->prev->next = ptr->next;
 
-  free(ptr);
+  Free(ptr);
 }
 
 /* ================================================== */

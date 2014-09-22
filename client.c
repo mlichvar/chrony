@@ -36,7 +36,6 @@
 #include "getdate.h"
 #include "cmdparse.h"
 #include "pktlength.h"
-#include "memory.h"
 #include "util.h"
 
 #ifdef FEAT_READLINE
@@ -972,11 +971,11 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
   switch (status) {
     case CPS_Success:
       if (DNS_Name2IPAddress(data.name, &ip_addr) != DNS_Success) {
-        Free(data.name);
+        free(data.name);
         fprintf(stderr, "Invalid host/IP address\n");
         break;
       }
-      Free(data.name);
+      free(data.name);
 
       if (data.params.min_stratum != SRC_DEFAULT_MINSTRATUM) {
         fprintf(stderr, "Option minstratum not supported\n");
