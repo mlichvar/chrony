@@ -34,8 +34,6 @@
 #include "sched.h"
 #include "util.h"
 
-#ifdef FEAT_ASYNCDNS
-
 #ifdef USE_PTHREAD_ASYNCDNS
 #include <pthread.h>
 
@@ -123,22 +121,4 @@ DNS_Name2IPAddressAsync(const char *name, DNS_NameResolveHandler handler, void *
 
 #else
 #error
-#endif
-
-#else
-
-/* This is a blocking implementation used when nothing else is available */
-
-void
-DNS_Name2IPAddressAsync(const char *name, DNS_NameResolveHandler handler, void *anything)
-{
-  IPAddr addr;
-  DNS_Status status;
-
-  status = DNS_Name2IPAddress(name, &addr);
-  (handler)(status, &addr, anything);
-}
-
-/* ================================================== */
-
 #endif

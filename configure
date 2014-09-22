@@ -437,7 +437,7 @@ fi
 
 if [ $feat_ntp = "1" ]; then
   add_def FEAT_NTP
-  EXTRA_OBJECTS="$EXTRA_OBJECTS broadcast.o nameserv_async.o ntp_core.o ntp_io.o ntp_sources.o"
+  EXTRA_OBJECTS="$EXTRA_OBJECTS broadcast.o ntp_core.o ntp_io.o ntp_sources.o"
 else
   feat_asyncdns=0
 fi
@@ -541,6 +541,7 @@ if [ $feat_asyncdns = "1" ] && \
 then
   add_def FEAT_ASYNCDNS
   add_def USE_PTHREAD_ASYNCDNS
+  EXTRA_OBJECTS="$EXTRA_OBJECTS nameserv_async.o"
   MYCFLAGS="$MYCFLAGS -pthread"
 fi
 

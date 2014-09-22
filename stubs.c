@@ -34,10 +34,27 @@
 #include "logging.h"
 #include "manual.h"
 #include "nameserv.h"
+#include "nameserv_async.h"
 #include "ntp_core.h"
 #include "ntp_io.h"
 #include "ntp_sources.h"
 #include "refclock.h"
+
+#ifndef FEAT_ASYNCDNS
+
+/* This is a blocking implementation used when asynchronous resolving is not available */
+
+void
+DNS_Name2IPAddressAsync(const char *name, DNS_NameResolveHandler handler, void *anything)
+{
+  IPAddr addr;
+  DNS_Status status;
+
+  status = DNS_Name2IPAddress(name, &addr);
+  (handler)(status, &addr, anything);
+}
+
+#endif /* !FEAT_ASYNCDNS */
 
 #ifndef FEAT_CMDMON
 
