@@ -159,23 +159,23 @@ NSR_Finalise(void)
 static void
 find_slot(NTP_Remote_Address *remote_addr, int *slot, int *found)
 {
-  unsigned long hash;
-  unsigned long ip;
+  uint32_t hash;
+  unsigned int i, size;
   unsigned short port;
   uint8_t *ip6;
 
-  assert(N_RECORDS == 256);
+  size = N_RECORDS;
   
   switch (remote_addr->ip_addr.family) {
     case IPADDR_INET6:
       ip6 = remote_addr->ip_addr.addr.in6;
-      ip = (ip6[0] ^ ip6[4] ^ ip6[8] ^ ip6[12]) |
+      hash = (ip6[0] ^ ip6[4] ^ ip6[8] ^ ip6[12]) |
            (ip6[1] ^ ip6[5] ^ ip6[9] ^ ip6[13]) << 8 |
            (ip6[2] ^ ip6[6] ^ ip6[10] ^ ip6[14]) << 16 |
            (ip6[3] ^ ip6[7] ^ ip6[11] ^ ip6[15]) << 24;
       break;
     case IPADDR_INET4:
-      ip = remote_addr->ip_addr.addr.in4;
+      hash = remote_addr->ip_addr.addr.in4;
       break;
     default:
       *found = *slot = 0;
@@ -183,28 +183,22 @@ find_slot(NTP_Remote_Address *remote_addr, int *slot, int *found)
   }
 
   port = remote_addr->port;
-  /* Compute hash value just by xor'ing the 4 bytes of the address together */
-  hash = ip ^ (ip >> 16);
-  hash = (hash ^ (hash >> 8)) & 0xff;
 
-  while (records[hash].remote_addr &&
-         UTI_CompareIPs(&records[hash].remote_addr->ip_addr,
-           &remote_addr->ip_addr, NULL)) {
-    hash++;
-    if (hash == 256) hash = 0;
-  }
+  for (i = 0; i < size / 2; i++) {
+    /* Use quadratic probing */
+    *slot = (hash + (i + i * i) / 2) % size;
 
-  if (records[hash].remote_addr) {
-    if (records[hash].remote_addr->port == port) {
-      *found = 2;
-    } else {
-      *found = 1;
+    if (!records[*slot].remote_addr)
+      break;
+
+    if (!UTI_CompareIPs(&records[*slot].remote_addr->ip_addr,
+                        &remote_addr->ip_addr, NULL)) {
+      *found = records[*slot].remote_addr->port == port ? 2 : 1;
+      return;
     }
-    *slot = hash;
-  } else {
-    *found = 0;
-    *slot = hash;
   }
+
+  *found = 0;
 }
 
 /* ================================================== */
