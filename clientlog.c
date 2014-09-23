@@ -174,6 +174,11 @@ CLG_Initialise(void)
 void
 CLG_Finalise(void)
 {
+  int i;
+  
+  for (i = 0; i < n_nodes; i++)
+    Free(nodes[i]);
+  Free(nodes);
 }
 
 /* ================================================== */

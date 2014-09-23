@@ -86,6 +86,9 @@ MAI_CleanupAndExit(void)
     SRC_DumpSources();
   }
 
+  /* Don't update clock when removing sources */
+  REF_SetMode(REF_ModeIgnore);
+
   TMC_Finalise();
   MNL_Finalise();
   CLG_Finalise();
@@ -93,10 +96,10 @@ MAI_CleanupAndExit(void)
   NCR_Finalise();
   BRD_Finalise();
   SST_Finalise();
-  REF_Finalise();
   KEY_Finalise();
   RCL_Finalise();
   SRC_Finalise();
+  REF_Finalise();
   RTC_Finalise();
   CAM_Finalise();
   NIO_Finalise();
@@ -106,7 +109,10 @@ MAI_CleanupAndExit(void)
 
   delete_pidfile();
   
+  CNF_Finalise();
   LOG_Finalise();
+
+  HSH_Finalise();
 
   exit(exit_status);
 }
@@ -430,7 +436,7 @@ int main
 
   DNS_SetAddressFamily(address_family);
 
-  CNF_SetRestarted(restarted);
+  CNF_Initialise(restarted);
 
   /* Parse the config file or the remaining command line arguments */
   if (!config_args) {

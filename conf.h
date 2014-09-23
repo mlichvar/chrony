@@ -30,7 +30,8 @@
 
 #include "addressing.h"
 
-extern void CNF_SetRestarted(int);
+extern void CNF_Initialise(int restarted);
+extern void CNF_Finalise(void);
 
 extern char *CNF_GetRtcDevice(void);
 

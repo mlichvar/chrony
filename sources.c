@@ -165,6 +165,7 @@ source_to_string(SRC_Instance inst);
 void SRC_Initialise(void) {
   sources = NULL;
   sort_list = NULL;
+  sel_sources = NULL;
   n_sources = 0;
   max_n_sources = 0;
   selected_source_index = INVALID_SOURCE;
@@ -183,6 +184,11 @@ void SRC_Finalise(void)
 {
   LCL_RemoveParameterChangeHandler(slew_sources, NULL);
   LCL_RemoveDispersionNotifyHandler(add_dispersion, NULL);
+
+  Free(sources);
+  Free(sort_list);
+  Free(sel_sources);
+
   initialised = 0;
 }
 

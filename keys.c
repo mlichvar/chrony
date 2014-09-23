@@ -137,6 +137,11 @@ KEY_Initialise(void)
 void
 KEY_Finalise(void)
 {
+  int i;
+
+  for (i=0; i<n_keys; i++) {
+    Free(keys[i].val);
+  }
 }
 
 /* ================================================== */

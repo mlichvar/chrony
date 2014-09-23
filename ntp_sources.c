@@ -122,6 +122,23 @@ NSR_Initialise(void)
 void
 NSR_Finalise(void)
 {
+  int i;
+  struct UnresolvedSource *us;
+
+  for (i = 0; i < N_RECORDS; i++) {
+    if (!records[i].remote_addr)
+      continue;
+    records[i].remote_addr = NULL;
+    NCR_DestroyInstance(records[i].data);
+  }
+
+  while (unresolved_sources) {
+    us = unresolved_sources;
+    unresolved_sources = us->next;
+    Free(us->name);
+    Free(us);
+  }
+
   initialised = 0;
 }
 

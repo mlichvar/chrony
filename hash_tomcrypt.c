@@ -114,3 +114,8 @@ HSH_Hash(int id, const unsigned char *in1, unsigned int in1_len,
 
   return len;
 }
+
+void
+HSH_Finalise(void)
+{
+}

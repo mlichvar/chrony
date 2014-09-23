@@ -140,6 +140,7 @@ RCL_Finalise(void)
 
     filter_fini(&inst->filter);
     Free(inst->driver_parameter);
+    SRC_DestroyInstance(inst->source);
   }
 
   if (n_sources > 0) {

@@ -78,7 +78,7 @@ static void parse_tempcomp(char *);
 
 static int restarted = 0;
 static int generate_command_key = 0;
-static char *rtc_device = "/dev/rtc";
+static char *rtc_device;
 static int acquisition_port = -1;
 static int ntp_port = 123;
 static char *keys_file = NULL;
@@ -104,8 +104,8 @@ static int do_log_refclocks = 0;
 static int do_log_tempcomp = 0;
 static int do_dump_on_exit = 0;
 static int log_banner = 32;
-static char *logdir = ".";
-static char *dumpdir = ".";
+static char *logdir;
+static char *dumpdir;
 
 static int enable_local=0;
 static int local_stratum;
@@ -180,7 +180,7 @@ static IPAddr bind_cmd_address4, bind_cmd_address6;
 
 /* Filename to use for storing pid of running chronyd, to prevent multiple
  * chronyds being started. */
-static char *pidfile = "/var/run/chronyd.pid";
+static char *pidfile;
 
 /* Temperature sensor, update interval and compensation coefficients */
 static char *tempcomp_file = NULL;
@@ -194,7 +194,7 @@ static int lock_memory = 0;
 static char *leapsec_tz = NULL;
 
 /* Name of the user to which will be dropped root privileges. */
-static char *user = DEFAULT_USER;
+static char *user;
 
 typedef struct {
   NTP_Source_Type type;
@@ -286,9 +286,39 @@ check_number_of_args(char *line, int num)
 /* ================================================== */
 
 void
-CNF_SetRestarted(int r)
+CNF_Initialise(int r)
 {
   restarted = r;
+
+  dumpdir = Strdup(".");
+  logdir = Strdup(".");
+  pidfile = Strdup("/var/run/chronyd.pid");
+  rtc_device = Strdup("/dev/rtc");
+  user = Strdup(DEFAULT_USER);
+}
+
+/* ================================================== */
+
+void
+CNF_Finalise(void)
+{
+  unsigned int i;
+
+  for (i = 0; i < n_ntp_sources; i++)
+    Free(ntp_sources[i].params.name);
+
+  Free(drift_file);
+  Free(dumpdir);
+  Free(hwclock_file);
+  Free(keys_file);
+  Free(leapsec_tz);
+  Free(logdir);
+  Free(pidfile);
+  Free(rtc_device);
+  Free(rtc_file);
+  Free(user);
+  Free(mail_user_on_change);
+  Free(tempcomp_file);
 }
 
 /* ================================================== */
@@ -462,6 +492,7 @@ static int
 parse_string(char *line, char **result)
 {
   check_number_of_args(line, 1);
+  Free(*result);
   *result = Strdup(line);
   return 1;
 }
@@ -856,6 +887,7 @@ parse_mailonchange(char *line)
   check_number_of_args(line, 2);
   address = line;
   line = CPS_SplitWord(line);
+  Free(mail_user_on_change);
   if (sscanf(line, "%lf", &mail_change_threshold) == 1) {
     mail_user_on_change = Strdup(address);
   } else {
@@ -1139,6 +1171,7 @@ parse_tempcomp(char *line)
     return;
   }
 
+  Free(tempcomp_file);
   tempcomp_file = Strdup(p);
 }
 

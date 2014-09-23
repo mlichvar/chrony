@@ -87,3 +87,17 @@ HSH_Hash(int id, const unsigned char *in1, unsigned int in1_len,
 
   return ret;
 }
+
+void
+HSH_Finalise(void)
+{
+  int i;
+
+  for (i = 0; hashes[i].name; i++) {
+    if (hashes[i].context)
+      NSSLOWHASH_Destroy(hashes[i].context);
+  }
+
+  if (ictx)
+    NSSLOW_Shutdown(ictx);
+}

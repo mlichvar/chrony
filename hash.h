@@ -38,4 +38,6 @@ extern unsigned int HSH_Hash(int id,
     const unsigned char *in2, unsigned int in2_len,
     unsigned char *out, unsigned int out_len);
 
+extern void HSH_Finalise(void);
+
 #endif
