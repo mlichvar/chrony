@@ -553,7 +553,7 @@ ts_is_unique_and_not_stale(struct timeval *ts, struct timeval *now)
 
 /* ================================================== */
 
-#define REPLY_EXTEND_QUANTUM 32
+#define REPLY_EXTEND_QUANTUM 8
 
 static void
 get_more_replies(void)
