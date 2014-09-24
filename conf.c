@@ -29,6 +29,7 @@
 
 #include "sysincl.h"
 
+#include "array.h"
 #include "conf.h"
 #include "ntp_sources.h"
 #include "ntp_core.h"
@@ -110,13 +111,11 @@ static char *dumpdir;
 static int enable_local=0;
 static int local_stratum;
 
-static int n_init_srcs;
-
 /* Threshold (in seconds) - if absolute value of initial error is less
    than this, slew instead of stepping */
 static double init_slew_threshold;
-#define MAX_INIT_SRCS 8
-static IPAddr init_srcs_ip[MAX_INIT_SRCS];
+/* Array of IPAddr */
+static ARR_Instance init_sources;
 
 static int enable_manual=0;
 
@@ -201,15 +200,11 @@ typedef struct {
   CPS_NTP_Source params;
 } NTP_Source;
 
-#define MAX_NTP_SOURCES 64
+/* Array of NTP_Source */
+static ARR_Instance ntp_sources;
 
-static NTP_Source ntp_sources[MAX_NTP_SOURCES];
-static int n_ntp_sources = 0;
-
-#define MAX_RCL_SOURCES 8
-
-static RefclockParameters refclock_sources[MAX_RCL_SOURCES];
-static int n_refclock_sources = 0;
+/* Array of RefclockParameters */
+static ARR_Instance refclock_sources;
 
 typedef struct _AllowDeny {
   struct _AllowDeny *next;
@@ -290,6 +285,10 @@ CNF_Initialise(int r)
 {
   restarted = r;
 
+  init_sources = ARR_CreateInstance(sizeof (IPAddr));
+  ntp_sources = ARR_CreateInstance(sizeof (NTP_Source));
+  refclock_sources = ARR_CreateInstance(sizeof (RefclockParameters));
+
   dumpdir = Strdup(".");
   logdir = Strdup(".");
   pidfile = Strdup("/var/run/chronyd.pid");
@@ -304,8 +303,12 @@ CNF_Finalise(void)
 {
   unsigned int i;
 
-  for (i = 0; i < n_ntp_sources; i++)
-    Free(ntp_sources[i].params.name);
+  for (i = 0; i < ARR_GetSize(ntp_sources); i++)
+    Free(((NTP_Source *)ARR_GetElement(ntp_sources, i))->params.name);
+
+  ARR_DestroyInstance(init_sources);
+  ARR_DestroyInstance(ntp_sources);
+  ARR_DestroyInstance(refclock_sources);
 
   Free(drift_file);
   Free(dumpdir);
@@ -551,17 +554,15 @@ static void
 parse_source(char *line, NTP_Source_Type type)
 {
   CPS_Status status;
+  NTP_Source source;
 
-  if (n_ntp_sources >= MAX_NTP_SOURCES)
-    return;
-
-  ntp_sources[n_ntp_sources].type = type;
-  status = CPS_ParseNTPSourceAdd(line, &ntp_sources[n_ntp_sources].params);
+  source.type = type;
+  status = CPS_ParseNTPSourceAdd(line, &source.params);
 
   switch (status) {
     case CPS_Success:
-      ntp_sources[n_ntp_sources].params.name = Strdup(ntp_sources[n_ntp_sources].params.name);
-      n_ntp_sources++;
+      source.params.name = Strdup(source.params.name);
+      ARR_AppendElement(ntp_sources, &source);
       break;
     case CPS_BadOption:
       other_parse_error("Invalid server/peer parameter");
@@ -623,16 +624,13 @@ parse_peer(char *line)
 static void
 parse_refclock(char *line)
 {
-  int i, n, poll, dpoll, filter_length, pps_rate;
+  int n, poll, dpoll, filter_length, pps_rate;
   uint32_t ref_id, lock_ref_id;
   double offset, delay, precision, max_dispersion;
   char *p, *cmd, *name, *param;
   unsigned char ref[5];
   SRC_SelectOption sel_option;
-
-  i = n_refclock_sources;
-  if (i >= MAX_RCL_SOURCES)
-    return;
+  RefclockParameters *refclock;
 
   poll = 4;
   dpoll = 0;
@@ -720,21 +718,20 @@ parse_refclock(char *line)
     return;
   }
 
-  refclock_sources[i].driver_name = name;
-  refclock_sources[i].driver_parameter = param;
-  refclock_sources[i].driver_poll = dpoll;
-  refclock_sources[i].poll = poll;
-  refclock_sources[i].filter_length = filter_length;
-  refclock_sources[i].pps_rate = pps_rate;
-  refclock_sources[i].offset = offset;
-  refclock_sources[i].delay = delay;
-  refclock_sources[i].precision = precision;
-  refclock_sources[i].max_dispersion = max_dispersion;
-  refclock_sources[i].sel_option = sel_option;
-  refclock_sources[i].ref_id = ref_id;
-  refclock_sources[i].lock_ref_id = lock_ref_id;
-
-  n_refclock_sources++;
+  refclock = (RefclockParameters *)ARR_GetNewElement(refclock_sources);
+  refclock->driver_name = name;
+  refclock->driver_parameter = param;
+  refclock->driver_poll = dpoll;
+  refclock->poll = poll;
+  refclock->filter_length = filter_length;
+  refclock->pps_rate = pps_rate;
+  refclock->offset = offset;
+  refclock->delay = delay;
+  refclock->precision = precision;
+  refclock->max_dispersion = max_dispersion;
+  refclock->sel_option = sel_option;
+  refclock->ref_id = ref_id;
+  refclock->lock_ref_id = lock_ref_id;
 }
 
 /* ================================================== */
@@ -796,7 +793,7 @@ parse_initstepslew(char *line)
     return;
   }
 
-  n_init_srcs = 0;
+  ARR_SetSize(init_sources, 0);
   p = CPS_SplitWord(line);
 
   if (sscanf(line, "%lf", &init_slew_threshold) != 1) {
@@ -809,14 +806,9 @@ parse_initstepslew(char *line)
     p = CPS_SplitWord(p);
     if (*hostname) {
       if (DNS_Name2IPAddress(hostname, &ip_addr) == DNS_Success) {
-        init_srcs_ip[n_init_srcs] = ip_addr;
-        ++n_init_srcs;
+        ARR_AppendElement(init_sources, &ip_addr);
       } else {
         LOG(LOGS_WARN, LOGF_Configure, "Could not resolve address of initstepslew server %s", hostname);
-      }
-      
-      if (n_init_srcs >= MAX_INIT_SRCS) {
-        other_parse_error("Too many initstepslew servers");
       }
     }
   }
@@ -1192,43 +1184,53 @@ CNF_AddInitSources(void)
   CPS_NTP_Source cps_source;
   NTP_Remote_Address ntp_addr;
   char dummy_hostname[2] = "H";
-  int i;
+  unsigned int i;
 
-  for (i = 0; i < n_init_srcs; i++) {
+  for (i = 0; i < ARR_GetSize(init_sources); i++) {
     /* Get the default NTP params */
     CPS_ParseNTPSourceAdd(dummy_hostname, &cps_source);
 
     /* Add the address as an offline iburst server */
-    ntp_addr.ip_addr = init_srcs_ip[i];
+    ntp_addr.ip_addr = *(IPAddr *)ARR_GetElement(init_sources, i);
     ntp_addr.port = cps_source.port;
     cps_source.params.iburst = 1;
     cps_source.params.online = 0;
 
     NSR_AddSource(&ntp_addr, NTP_SERVER, &cps_source.params);
   }
+
+  ARR_SetSize(init_sources, 0);
 }
 
 /* ================================================== */
 
 void
-CNF_AddSources(void) {
-  int i;
+CNF_AddSources(void)
+{
+  NTP_Source *source;
+  unsigned int i;
 
-  for (i=0; i<n_ntp_sources; i++) {
-    NSR_AddUnresolvedSource(ntp_sources[i].params.name, ntp_sources[i].params.port,
-        ntp_sources[i].type, &ntp_sources[i].params.params);
+  for (i = 0; i < ARR_GetSize(ntp_sources); i++) {
+    source = (NTP_Source *)ARR_GetElement(ntp_sources, i);
+    NSR_AddUnresolvedSource(source->params.name, source->params.port,
+        source->type, &source->params.params);
   }
+
+  ARR_SetSize(ntp_sources, 0);
 }
 
 /* ================================================== */
 
 void
-CNF_AddRefclocks(void) {
-  int i;
+CNF_AddRefclocks(void)
+{
+  unsigned int i;
 
-  for (i=0; i<n_refclock_sources; i++) {
-    RCL_AddRefclock(&refclock_sources[i]);
+  for (i = 0; i < ARR_GetSize(refclock_sources); i++) {
+    RCL_AddRefclock((RefclockParameters *)ARR_GetElement(refclock_sources, i));
   }
+
+  ARR_SetSize(refclock_sources, 0);
 }
 
 /* ================================================== */
@@ -1709,7 +1711,7 @@ CNF_GetHwclockFile(void)
 int
 CNF_GetInitSources(void)
 {
-  return n_init_srcs;
+  return ARR_GetSize(init_sources);
 }
 
 /* ================================================== */

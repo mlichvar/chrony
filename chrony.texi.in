@@ -1722,7 +1722,7 @@ used instead.  This makes it easier to restart @code{chronyd} whilst the
 system is in normal operation.
 
 The @code{initstepslew} directive takes a threshold and a list of NTP
-servers as arguments.  A maximum of 8 will be used.  Each of the servers
+servers as arguments.  Each of the servers
 is rapidly polled several times, and a majority voting mechanism used to
 find the most likely range of system clock error that is present.  A
 step (or slew) is applied to the system clock to correct this error.
