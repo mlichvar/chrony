@@ -110,7 +110,7 @@ static ResponseCell *free_replies;
 /* ================================================== */
 /* Array of permission levels for command types */
 
-static int permissions[] = {
+static const char permissions[] = {
   PERMIT_OPEN, /* NULL */
   PERMIT_AUTH, /* ONLINE */
   PERMIT_AUTH, /* OFFLINE */
