@@ -30,6 +30,7 @@
 
 #include "sysincl.h"
 
+#include "array.h"
 #include "sched.h"
 #include "memory.h"
 #include "util.h"
@@ -68,7 +69,7 @@ typedef struct {
   SCH_ArbitraryArgument arg;
 } FileHandlerEntry;
 
-static FileHandlerEntry file_handlers[FD_SETSIZE];
+static ARR_Instance file_handlers;
 
 /* Timestamp when last select() returned */
 static struct timeval last_select_ts, last_select_ts_raw;
@@ -134,6 +135,8 @@ SCH_Initialise(void)
   FD_ZERO(&read_fds);
   n_read_fds = 0;
 
+  file_handlers = ARR_CreateInstance(sizeof (FileHandlerEntry));
+
   n_timer_queue_entries = 0;
   next_tqe_id = 0;
 
@@ -157,6 +160,8 @@ SCH_Initialise(void)
 
 void
 SCH_Finalise(void) {
+  ARR_DestroyInstance(file_handlers);
+
   initialised = 0;
 }
 
@@ -166,6 +171,7 @@ void
 SCH_AddInputFileHandler
 (int fd, SCH_FileHandler handler, SCH_ArbitraryArgument arg)
 {
+  FileHandlerEntry *ptr;
 
   assert(initialised);
   
@@ -179,8 +185,12 @@ SCH_AddInputFileHandler
 
   ++n_read_fds;
   
-  file_handlers[fd].handler = handler;
-  file_handlers[fd].arg     = arg;
+  if (ARR_GetSize(file_handlers) < fd + 1)
+    ARR_SetSize(file_handlers, fd + 1);
+
+  ptr = (FileHandlerEntry *)ARR_GetElement(file_handlers, fd);
+  ptr->handler = handler;
+  ptr->arg = arg;
 
   FD_SET(fd, &read_fds);
 
@@ -482,13 +492,15 @@ dispatch_timeouts(struct timeval *now) {
 static void
 dispatch_filehandlers(int nfh, fd_set *fhs)
 {
+  FileHandlerEntry *ptr;
   int fh = 0;
   
   while (nfh > 0) {
     if (FD_ISSET(fh, fhs)) {
 
       /* This descriptor can be read from, dispatch its handler */
-      (file_handlers[fh].handler)(file_handlers[fh].arg);
+      ptr = (FileHandlerEntry *)ARR_GetElement(file_handlers, fh);
+      (ptr->handler)(ptr->arg);
 
       /* Decrement number of readable files still to find */
       --nfh;
