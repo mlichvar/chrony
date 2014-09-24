@@ -238,18 +238,18 @@ char *
 UTI_RefidToString(uint32_t ref_id)
 {
   unsigned int i, j, c;
-  char buf[5], *result;
-
-  for (i = j = 0; i < 4; i++) {
-    c = (ref_id >> (24 - i * 8)) & 0xff;
-    if (isprint(c))
-      buf[j++] = c;
-  }
-
-  buf[j] = '\0';
+  char *result;
 
   result = NEXT_BUFFER;
-  snprintf(result, BUFFER_LENGTH, "%s", buf);
+
+  for (i = j = 0; i < 4 && i < BUFFER_LENGTH - 1; i++) {
+    c = (ref_id >> (24 - i * 8)) & 0xff;
+    if (isprint(c))
+      result[j++] = c;
+  }
+
+  result[j] = '\0';
+
   return result;
 }
 
