@@ -30,6 +30,7 @@
 
 #include "sysincl.h"
 
+#include "array.h"
 #include "keys.h"
 #include "cmdparse.h"
 #include "conf.h"
@@ -47,10 +48,7 @@ typedef struct {
   int auth_delay;
 } Key;
 
-#define MAX_KEYS 256
-
-static int n_keys;
-static Key keys[MAX_KEYS];
+static ARR_Instance keys;
 
 static int command_key_valid;
 static int command_key_id;
@@ -118,10 +116,25 @@ generate_key(unsigned long key_id)
 
 /* ================================================== */
 
+static void
+free_keys(void)
+{
+  unsigned int i;
+
+  for (i = 0; i < ARR_GetSize(keys); i++)
+    Free(((Key *)ARR_GetElement(keys, i))->val);
+
+  ARR_SetSize(keys, 0);
+  command_key_valid = 0;
+  cache_valid = 0;
+}
+
+/* ================================================== */
+
 void
 KEY_Initialise(void)
 {
-  n_keys = 0;
+  keys = ARR_CreateInstance(sizeof (Key));
   command_key_valid = 0;
   cache_valid = 0;
   KEY_Reload();
@@ -137,11 +150,16 @@ KEY_Initialise(void)
 void
 KEY_Finalise(void)
 {
-  int i;
+  free_keys();
+  ARR_DestroyInstance(keys);
+}
 
-  for (i=0; i<n_keys; i++) {
-    Free(keys[i].val);
-  }
+/* ================================================== */
+
+static Key *
+get_key(unsigned int index)
+{
+  return ((Key *)ARR_GetElements(keys)) + index;
 }
 
 /* ================================================== */
@@ -200,18 +218,14 @@ compare_keys_by_id(const void *a, const void *b)
 void
 KEY_Reload(void)
 {
-  int i, line_number;
+  unsigned int i, line_number;
   FILE *in;
   unsigned long key_id;
   char line[2048], *keyval, *key_file;
   const char *hashname;
+  Key key;
 
-  for (i=0; i<n_keys; i++) {
-    Free(keys[i].val);
-  }
-  n_keys = 0;
-  command_key_valid = 0;
-  cache_valid = 0;
+  free_keys();
 
   key_file = CNF_GetKeysFile();
   line_number = 0;
@@ -237,22 +251,22 @@ KEY_Reload(void)
       continue;
     }
 
-    keys[n_keys].hash_id = HSH_GetHashId(hashname);
-    if (keys[n_keys].hash_id < 0) {
+    key.hash_id = HSH_GetHashId(hashname);
+    if (key.hash_id < 0) {
       LOG(LOGS_WARN, LOGF_Keys, "Unknown hash function in key %lu", key_id);
       continue;
     }
 
-    keys[n_keys].len = UTI_DecodePasswordFromText(keyval);
-    if (!keys[n_keys].len) {
+    key.len = UTI_DecodePasswordFromText(keyval);
+    if (!key.len) {
       LOG(LOGS_WARN, LOGF_Keys, "Could not decode password in key %lu", key_id);
       continue;
     }
 
-    keys[n_keys].id = key_id;
-    keys[n_keys].val = MallocArray(char, keys[n_keys].len);
-    memcpy(keys[n_keys].val, keyval, keys[n_keys].len);
-    n_keys++;
+    key.id = key_id;
+    key.val = MallocArray(char, key.len);
+    memcpy(key.val, keyval, key.len);
+    ARR_AppendElement(keys, &key);
   }
 
   fclose(in);
@@ -260,21 +274,19 @@ KEY_Reload(void)
   /* Sort keys into order.  Note, if there's a duplicate, it is
      arbitrary which one we use later - the user should have been
      more careful! */
-  qsort((void *) keys, n_keys, sizeof(Key), compare_keys_by_id);
+  qsort(ARR_GetElements(keys), ARR_GetSize(keys), sizeof (Key), compare_keys_by_id);
 
   /* Check for duplicates */
-  for (i = 1; i < n_keys; i++) {
-    if (keys[i - 1].id == keys[i].id) {
-      LOG(LOGS_WARN, LOGF_Keys, "Detected duplicate key %lu", keys[i].id);
-    }
+  for (i = 1; i < ARR_GetSize(keys); i++) {
+    if (get_key(i - 1)->id == get_key(i)->id)
+      LOG(LOGS_WARN, LOGF_Keys, "Detected duplicate key %lu", get_key(i - 1)->id);
   }
 
   /* Erase any passwords from stack */
   memset(line, 0, sizeof (line));
 
-  for (i=0; i<n_keys; i++) {
-    keys[i].auth_delay = determine_hash_delay(keys[i].id);
-  }
+  for (i = 0; i < ARR_GetSize(keys); i++)
+    get_key(i)->auth_delay = determine_hash_delay(get_key(i)->id);
 }
 
 /* ================================================== */
@@ -282,28 +294,30 @@ KEY_Reload(void)
 static int
 lookup_key(unsigned long id)
 {
-  Key specimen, *where;
+  Key specimen, *where, *keys_ptr;
   int pos;
 
+  keys_ptr = ARR_GetElements(keys);
   specimen.id = id;
-  where = (Key *) bsearch((void *)&specimen, (void *)keys, n_keys, sizeof(Key), compare_keys_by_id);
+  where = (Key *)bsearch((void *)&specimen, keys_ptr, ARR_GetSize(keys),
+                         sizeof (Key), compare_keys_by_id);
   if (!where) {
     return -1;
   } else {
-    pos = where - keys;
+    pos = where - keys_ptr;
     return pos;
   }
 }
 
 /* ================================================== */
 
-static int
-get_key_pos(unsigned long key_id)
+static Key *
+get_key_by_id(unsigned long key_id)
 {
   int position;
 
   if (cache_valid && key_id == cache_key_id)
-    return cache_key_pos;
+    return get_key(cache_key_pos);
 
   position = lookup_key(key_id);
 
@@ -311,9 +325,11 @@ get_key_pos(unsigned long key_id)
     cache_valid = 1;
     cache_key_pos = position;
     cache_key_id = key_id;
+
+    return get_key(position);
   }
 
-  return position;
+  return NULL;
 }
 
 /* ================================================== */
@@ -333,7 +349,7 @@ KEY_GetCommandKey(void)
 int
 KEY_KeyKnown(unsigned long key_id)
 {
-  return get_key_pos(key_id) >= 0;
+  return get_key_by_id(key_id) != NULL;
 }
 
 /* ================================================== */
@@ -341,15 +357,14 @@ KEY_KeyKnown(unsigned long key_id)
 int
 KEY_GetAuthDelay(unsigned long key_id)
 {
-  int key_pos;
+  Key *key;
 
-  key_pos = get_key_pos(key_id);
+  key = get_key_by_id(key_id);
 
-  if (key_pos < 0) {
+  if (!key)
     return 0;
-  }
 
-  return keys[key_pos].auth_delay;
+  return key->auth_delay;
 }
 
 /* ================================================== */
@@ -358,17 +373,15 @@ int
 KEY_GenerateAuth(unsigned long key_id, const unsigned char *data, int data_len,
     unsigned char *auth, int auth_len)
 {
-  int key_pos;
+  Key *key;
 
-  key_pos = get_key_pos(key_id);
+  key = get_key_by_id(key_id);
 
-  if (key_pos < 0) {
+  if (!key)
     return 0;
-  }
 
-  return UTI_GenerateNTPAuth(keys[key_pos].hash_id,
-      (unsigned char *)keys[key_pos].val, keys[key_pos].len,
-      data, data_len, auth, auth_len);
+  return UTI_GenerateNTPAuth(key->hash_id, (unsigned char *)key->val,
+                             key->len, data, data_len, auth, auth_len);
 }
 
 /* ================================================== */
@@ -377,15 +390,13 @@ int
 KEY_CheckAuth(unsigned long key_id, const unsigned char *data, int data_len,
     const unsigned char *auth, int auth_len)
 {
-  int key_pos;
+  Key *key;
 
-  key_pos = get_key_pos(key_id);
+  key = get_key_by_id(key_id);
 
-  if (key_pos < 0) {
+  if (!key)
     return 0;
-  }
 
-  return UTI_CheckNTPAuth(keys[key_pos].hash_id,
-      (unsigned char *)keys[key_pos].val, keys[key_pos].len,
-      data, data_len, auth, auth_len);
+  return UTI_CheckNTPAuth(key->hash_id, (unsigned char *)key->val,
+                          key->len, data, data_len, auth, auth_len);
 }
