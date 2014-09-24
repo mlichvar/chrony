@@ -207,7 +207,7 @@ SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, SRC_SelectOpt
 
   if (n_sources == max_n_sources) {
     /* Reallocate memory */
-    max_n_sources += 32;
+    max_n_sources = max_n_sources > 0 ? 2 * max_n_sources : 4;
     if (sources) {
       sources = ReallocArray(struct SRC_Instance_Record *, max_n_sources, sources);
       sort_list = ReallocArray(struct Sort_Element, 3*max_n_sources, sort_list);
