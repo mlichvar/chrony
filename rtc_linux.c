@@ -86,8 +86,8 @@ static int skip_interrupts;
    measured, together with a 'trim' that compensates these values for
    any steps made to the RTC to bring it back into line
    occasionally.  The trim is in seconds. */
-static time_t rtc_sec[MAX_SAMPLES];
-static double rtc_trim[MAX_SAMPLES];
+static time_t *rtc_sec = NULL;
+static double *rtc_trim = NULL;
 
 /* Reference time, against which delta times on the RTC scale are measured */
 static time_t rtc_ref;
@@ -95,7 +95,7 @@ static time_t rtc_ref;
 
 /* System clock (gettimeofday) samples associated with the above
    samples. */
-static struct timeval system_times[MAX_SAMPLES];
+static struct timeval *system_times = NULL;
 
 /* Number of samples currently stored. */
 static int n_samples;   
@@ -530,6 +530,10 @@ write_coefs_to_file(int valid,time_t ref_time,double offset,double rate)
 int
 RTC_Linux_Initialise(void)
 {
+  rtc_sec = MallocArray(time_t, MAX_SAMPLES);
+  rtc_trim = MallocArray(double, MAX_SAMPLES);
+  system_times = MallocArray(struct timeval, MAX_SAMPLES);
+
   /* Setup details depending on configuration options */
   setup_config();
 
@@ -588,6 +592,9 @@ RTC_Linux_Finalise(void)
     (void) RTC_Linux_WriteParameters();
 
   }
+  Free(rtc_sec);
+  Free(rtc_trim);
+  Free(system_times);
 }
 
 /* ================================================== */
