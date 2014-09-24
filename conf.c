@@ -529,6 +529,7 @@ parse_source(char *line, NTP_Source_Type type)
 
   switch (status) {
     case CPS_Success:
+      ntp_sources[n_ntp_sources].params.name = Strdup(ntp_sources[n_ntp_sources].params.name);
       n_ntp_sources++;
       break;
     case CPS_BadOption:
