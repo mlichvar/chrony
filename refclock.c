@@ -27,6 +27,7 @@
 
 #include "config.h"
 
+#include "array.h"
 #include "refclock.h"
 #include "reference.h"
 #include "conf.h"
@@ -86,10 +87,8 @@ struct RCL_Instance_Record {
   SRC_Instance source;
 };
 
-#define MAX_RCL_SOURCES 8
-
-static struct RCL_Instance_Record refclocks[MAX_RCL_SOURCES];
-static int n_sources = 0;
+/* Array of RCL_Instance_Record */
+static ARR_Instance refclocks;
 
 static LOG_FileID logfileid;
 
@@ -112,12 +111,20 @@ static int filter_get_sample(struct MedianFilter *filter, struct timeval *sample
 static void filter_slew_samples(struct MedianFilter *filter, struct timeval *when, double dfreq, double doffset);
 static void filter_add_dispersion(struct MedianFilter *filter, double dispersion);
 
+static RCL_Instance
+get_refclock(unsigned int index)
+{
+  return (RCL_Instance)ARR_GetElement(refclocks, index);
+}
+
 void
 RCL_Initialise(void)
 {
+  refclocks = ARR_CreateInstance(sizeof (struct RCL_Instance_Record));
+
   CNF_AddRefclocks();
 
-  if (n_sources > 0) {
+  if (ARR_GetSize(refclocks) > 0) {
     LCL_AddParameterChangeHandler(slew_samples, NULL);
     LCL_AddDispersionNotifyHandler(add_dispersion, NULL);
   }
@@ -130,10 +137,10 @@ RCL_Initialise(void)
 void
 RCL_Finalise(void)
 {
-  int i;
+  unsigned int i;
 
-  for (i = 0; i < n_sources; i++) {
-    RCL_Instance inst = (RCL_Instance)&refclocks[i];
+  for (i = 0; i < ARR_GetSize(refclocks); i++) {
+    RCL_Instance inst = get_refclock(i);
 
     if (inst->driver->fini)
       inst->driver->fini(inst);
@@ -143,10 +150,12 @@ RCL_Finalise(void)
     SRC_DestroyInstance(inst->source);
   }
 
-  if (n_sources > 0) {
+  if (ARR_GetSize(refclocks) > 0) {
     LCL_RemoveParameterChangeHandler(slew_samples, NULL);
     LCL_RemoveDispersionNotifyHandler(add_dispersion, NULL);
   }
+
+  ARR_DestroyInstance(refclocks);
 }
 
 int
@@ -154,10 +163,7 @@ RCL_AddRefclock(RefclockParameters *params)
 {
   int pps_source = 0;
 
-  RCL_Instance inst = &refclocks[n_sources];
-
-  if (n_sources == MAX_RCL_SOURCES)
-    return 0;
+  RCL_Instance inst = ARR_GetNewElement(refclocks);
 
   if (strcmp(params->driver_name, "SHM") == 0) {
     inst->driver = &RCL_SHM_driver;
@@ -220,8 +226,13 @@ RCL_AddRefclock(RefclockParameters *params)
     inst->ref_id = params->ref_id;
   else {
     unsigned char ref[5] = { 0, 0, 0, 0, 0 };
+    unsigned int index = ARR_GetSize(refclocks);
 
-    snprintf((char *)ref, 5, "%3.3s%d", params->driver_name, n_sources % 10);
+    snprintf((char *)ref, sizeof (ref), "%3.3s", params->driver_name);
+    ref[3] = index % 10 + '0';
+    if (index >= 10)
+      ref[2] = (index / 10) % 10 + '0';
+
     inst->ref_id = ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
   }
 
@@ -253,7 +264,6 @@ RCL_AddRefclock(RefclockParameters *params)
 
   DEBUG_LOG(LOGF_Refclock, "refclock %s added poll=%d dpoll=%d filter=%d",
       params->driver_name, inst->poll, inst->driver_poll, params->filter_length);
-  n_sources++;
 
   Free(params->driver_name);
 
@@ -263,10 +273,12 @@ RCL_AddRefclock(RefclockParameters *params)
 void
 RCL_StartRefclocks(void)
 {
-  int i, j;
+  unsigned int i, j, n;
 
-  for (i = 0; i < n_sources; i++) {
-    RCL_Instance inst = &refclocks[i];
+  n = ARR_GetSize(refclocks);
+
+  for (i = 0; i < n; i++) {
+    RCL_Instance inst = get_refclock(i);
 
     SRC_SetSelectable(inst->source);
     SRC_SetActive(inst->source);
@@ -274,9 +286,9 @@ RCL_StartRefclocks(void)
 
     if (inst->lock_ref) {
       /* Replace lock refid with index to refclocks */
-      for (j = 0; j < n_sources && refclocks[j].ref_id != inst->lock_ref; j++)
+      for (j = 0; j < n && get_refclock(j)->ref_id != inst->lock_ref; j++)
         ;
-      inst->lock_ref = (j < n_sources) ? j : -1;
+      inst->lock_ref = j < n ? j : -1;
     } else
       inst->lock_ref = -1;
   }
@@ -285,14 +297,14 @@ RCL_StartRefclocks(void)
 void
 RCL_ReportSource(RPT_SourceReport *report, struct timeval *now)
 {
-  int i;
+  unsigned int i;
   uint32_t ref_id;
 
   assert(report->ip_addr.family == IPADDR_INET4);
   ref_id = report->ip_addr.addr.in4;
 
-  for (i = 0; i < n_sources; i++) {
-    RCL_Instance inst = &refclocks[i];
+  for (i = 0; i < ARR_GetSize(refclocks); i++) {
+    RCL_Instance inst = get_refclock(i);
     if (inst->ref_id == ref_id) {
       report->poll = inst->poll;
       report->mode = RPT_LOCAL_REFERENCE;
@@ -410,16 +422,19 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
     offset -= 1.0 / rate;
 
   if (instance->lock_ref != -1) {
+    RCL_Instance lock_refclock;
     struct timeval ref_sample_time;
     double sample_diff, ref_offset, ref_dispersion, shift;
 
-    if (!filter_get_last_sample(&refclocks[instance->lock_ref].filter,
+    lock_refclock = get_refclock(instance->lock_ref);
+
+    if (!filter_get_last_sample(&lock_refclock->filter,
           &ref_sample_time, &ref_offset, &ref_dispersion)) {
       DEBUG_LOG(LOGF_Refclock, "refclock pulse ignored no ref sample");
       return 0;
     }
 
-    ref_dispersion += filter_get_avg_sample_dispersion(&refclocks[instance->lock_ref].filter);
+    ref_dispersion += filter_get_avg_sample_dispersion(&lock_refclock->filter);
 
     UTI_DiffTimevalsToDouble(&sample_diff, &cooked_time, &ref_sample_time);
     if (fabs(sample_diff) >= 2.0 / rate) {
@@ -442,7 +457,7 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
       return 0;
     }
 
-    leap = refclocks[instance->lock_ref].leap_status;
+    leap = lock_refclock->leap_status;
 
     DEBUG_LOG(LOGF_Refclock, "refclock pulse second=%.9f offset=%.9f offdiff=%.9f samplediff=%.9f",
         second, offset, ref_offset - offset, sample_diff);
@@ -509,10 +524,12 @@ static int
 pps_stratum(RCL_Instance instance, struct timeval *tv)
 {
   struct timeval ref_time;
-  int is_synchronised, stratum, i;
+  int is_synchronised, stratum;
+  unsigned int i;
   double root_delay, root_dispersion;
   NTP_Leap leap;
   uint32_t ref_id;
+  RCL_Instance refclock;
 
   REF_GetReferenceParams(tv, &is_synchronised, &leap, &stratum,
       &ref_id, &ref_time, &root_delay, &root_dispersion);
@@ -523,9 +540,10 @@ pps_stratum(RCL_Instance instance, struct timeval *tv)
     return stratum - 1;
 
   /* Or the current source is another PPS refclock */ 
-  for (i = 0; i < n_sources; i++) {
-    if (refclocks[i].ref_id == ref_id &&
-        refclocks[i].pps_active && refclocks[i].lock_ref == -1)
+  for (i = 0; i < ARR_GetSize(refclocks); i++) {
+    refclock = get_refclock(i);
+    if (refclock->ref_id == ref_id &&
+        refclock->pps_active && refclock->lock_ref == -1)
       return stratum - 1;
   }
 
@@ -580,23 +598,23 @@ static void
 slew_samples(struct timeval *raw, struct timeval *cooked, double dfreq,
              double doffset, LCL_ChangeType change_type, void *anything)
 {
-  int i;
+  unsigned int i;
 
-  for (i = 0; i < n_sources; i++) {
+  for (i = 0; i < ARR_GetSize(refclocks); i++) {
     if (change_type == LCL_ChangeUnknownStep)
-      filter_reset(&refclocks[i].filter);
+      filter_reset(&get_refclock(i)->filter);
     else
-      filter_slew_samples(&refclocks[i].filter, cooked, dfreq, doffset);
+      filter_slew_samples(&get_refclock(i)->filter, cooked, dfreq, doffset);
   }
 }
 
 static void
 add_dispersion(double dispersion, void *anything)
 {
-  int i;
+  unsigned int i;
 
-  for (i = 0; i < n_sources; i++)
-    filter_add_dispersion(&refclocks[i].filter, dispersion);
+  for (i = 0; i < ARR_GetSize(refclocks); i++)
+    filter_add_dispersion(&get_refclock(i)->filter, dispersion);
 }
 
 static void
