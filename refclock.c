@@ -262,8 +262,9 @@ RCL_AddRefclock(RefclockParameters *params)
 
   inst->source = SRC_CreateNewInstance(inst->ref_id, SRC_REFCLOCK, params->sel_option, NULL);
 
-  DEBUG_LOG(LOGF_Refclock, "refclock %s added poll=%d dpoll=%d filter=%d",
-      params->driver_name, inst->poll, inst->driver_poll, params->filter_length);
+  DEBUG_LOG(LOGF_Refclock, "refclock %s refid=%s poll=%d dpoll=%d filter=%d",
+      params->driver_name, UTI_RefidToString(inst->ref_id),
+      inst->poll, inst->driver_poll, params->filter_length);
 
   Free(params->driver_name);
 
@@ -513,8 +514,8 @@ valid_sample_time(RCL_Instance instance, struct timeval *tv)
   LCL_ReadRawTime(&raw_time);
   UTI_DiffTimevalsToDouble(&diff, &raw_time, tv);
   if (diff < 0.0 || diff > poll_interval(instance->poll + 1)) {
-    DEBUG_LOG(LOGF_Refclock, "refclock sample not valid age=%.6f tv=%s",
-        diff, UTI_TimevalToString(tv));
+    DEBUG_LOG(LOGF_Refclock, "%s refclock sample not valid age=%.6f tv=%s",
+        UTI_RefidToString(instance->ref_id), diff, UTI_TimevalToString(tv));
     return 0;
   }
   return 1;
