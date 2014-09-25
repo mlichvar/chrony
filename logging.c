@@ -211,8 +211,6 @@ void LOG_SetDebugLevel(int level)
 {
   debug_level = level;
   if (level >= DEBUG_LEVEL_PRINT_DEBUG) {
-    if (!DEBUG)
-      LOG(LOGS_WARN, LOGF_Logging, "Not compiled with full debugging support");
     log_debug_enabled = 1;
   }
 }
