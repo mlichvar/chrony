@@ -610,7 +610,7 @@ NSR_TakeSourcesOffline(IPAddr *mask, IPAddr *address)
   }
 
   /* Take sync peer offline as last to avoid reference switching */
-  if (syncpeer >= 0) {
+  if (syncpeer) {
     NCR_TakeSourceOffline(syncpeer->data);
   }
 
