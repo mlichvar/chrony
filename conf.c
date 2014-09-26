@@ -48,7 +48,7 @@
 
 static int parse_string(char *line, char **result);
 static int parse_int(char *line, int *result);
-static int parse_unsignedlong(char *, unsigned long *result);
+static int parse_uint32(char *, uint32_t *result);
 static int parse_double(char *line, double *result);
 static int parse_null(char *line);
 
@@ -85,7 +85,7 @@ static int ntp_port = 123;
 static char *keys_file = NULL;
 static char *drift_file = NULL;
 static char *rtc_file = NULL;
-static unsigned long command_key_id;
+static uint32_t command_key_id;
 static double max_update_skew = 1000.0;
 static double correction_time_ratio = 3.0;
 static double max_clock_error = 1.0; /* in ppm */
@@ -393,7 +393,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "combinelimit")) {
     parse_double(p, &combine_limit);
   } else if (!strcasecmp(command, "commandkey")) {
-    parse_unsignedlong(p, &command_key_id);
+    parse_uint32(p, &command_key_id);
   } else if (!strcasecmp(command, "corrtimeratio")) {
     parse_double(p, &correction_time_ratio);
   } else if (!strcasecmp(command, "deny")) {
@@ -516,10 +516,10 @@ parse_int(char *line, int *result)
 /* ================================================== */
 
 static int
-parse_unsignedlong(char *line, unsigned long *result)
+parse_uint32(char *line, uint32_t *result)
 {
   check_number_of_args(line, 1);
-  if (sscanf(line, "%lu", result) != 1) {
+  if (sscanf(line, "%"SCNu32, result) != 1) {
     command_parse_error();
     return 0;
   }
@@ -1376,7 +1376,7 @@ CNF_GetRtcDevice(void)
 
 /* ================================================== */
 
-unsigned long
+uint32_t
 CNF_GetCommandKey(void)
 {
   return command_key_id;

@@ -27,20 +27,22 @@
 #ifndef GOT_KEYS_H
 #define GOT_KEYS_H
 
+#include "sysincl.h"
+
 extern void KEY_Initialise(void);
 extern void KEY_Finalise(void);
 
 extern void KEY_Reload(void);
 
-extern unsigned long KEY_GetCommandKey(void);
+extern uint32_t KEY_GetCommandKey(void);
 
-extern int KEY_GetKey(unsigned long key_id, char **key, int *len);
-extern int KEY_KeyKnown(unsigned long key_id);
-extern int KEY_GetAuthDelay(unsigned long key_id);
+extern int KEY_GetKey(uint32_t key_id, char **key, int *len);
+extern int KEY_KeyKnown(uint32_t key_id);
+extern int KEY_GetAuthDelay(uint32_t key_id);
 
-extern int KEY_GenerateAuth(unsigned long key_id, const unsigned char *data,
+extern int KEY_GenerateAuth(uint32_t key_id, const unsigned char *data,
     int data_len, unsigned char *auth, int auth_len);
-extern int KEY_CheckAuth(unsigned long key_id, const unsigned char *data,
+extern int KEY_CheckAuth(uint32_t key_id, const unsigned char *data,
     int data_len, const unsigned char *auth, int auth_len);
 
 #endif /* GOT_KEYS_H */

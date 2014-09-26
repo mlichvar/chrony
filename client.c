@@ -2607,8 +2607,8 @@ authenticate_from_config(const char *filename)
   CMD_Reply rx_message;
   char line[2048], keyfile[2048], *command, *arg, *password;
   const char *hashname;
-  unsigned long key_id = 0, key_id2 = -1;
-  int ret;
+  uint32_t key_id = 0, key_id2;
+  int key_id_valid = 1, ret;
   FILE *in;
 
   in = fopen(filename, "r");
@@ -2625,13 +2625,12 @@ authenticate_from_config(const char *filename)
     if (!strcasecmp(command, "keyfile")) {
       snprintf(keyfile, sizeof (keyfile), "%s", arg);
     } else if (!strcasecmp(command, "commandkey")) {
-      if (sscanf(arg, "%lu", &key_id) != 1)
-        key_id = -1;
+      key_id_valid = sscanf(arg, "%"SCNu32, &key_id) == 1;
     }
   }
   fclose(in);
 
-  if (!*keyfile || key_id == -1) {
+  if (!*keyfile || !key_id_valid) {
     fprintf(stderr, "Could not read keyfile or commandkey in file %s\n", filename);
     return 0;
   }
@@ -2642,6 +2641,7 @@ authenticate_from_config(const char *filename)
     return 0;
   }
 
+  key_id2 = key_id + 1;
   while (fgets(line, sizeof (line), in)) {
     CPS_NormalizeLine(line);
     if (!*line || !CPS_ParseKey(line, &key_id2, &hashname, &password))
@@ -2659,7 +2659,7 @@ authenticate_from_config(const char *filename)
       ret = 0;
     }
   } else {
-    fprintf(stderr, "Could not find key %lu in keyfile %s\n", key_id, keyfile);
+    fprintf(stderr, "Could not find key %"PRIu32" in keyfile %s\n", key_id, keyfile);
     ret = 0;
   }
 

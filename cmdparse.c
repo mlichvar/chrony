@@ -127,7 +127,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
             line += n;
           }
         } else if (!strcasecmp(cmd, "key")) {
-          if (sscanf(line, "%lu%n", &src->params.authkey, &n) != 1 ||
+          if (sscanf(line, "%"SCNu32"%n", &src->params.authkey, &n) != 1 ||
               src->params.authkey == INACTIVE_AUTHKEY) {
             result = CPS_BadKey;
             done = 1;
@@ -238,7 +238,7 @@ CPS_SplitWord(char *line)
 /* ================================================== */
 
 int
-CPS_ParseKey(char *line, unsigned long *id, const char **hash, char **key)
+CPS_ParseKey(char *line, uint32_t *id, const char **hash, char **key)
 {
   char *s1, *s2, *s3, *s4;
 
@@ -251,7 +251,7 @@ CPS_ParseKey(char *line, unsigned long *id, const char **hash, char **key)
   if (!*s2 || *s4)
     return 0;
 
-  if (sscanf(s1, "%lu", id) != 1)
+  if (sscanf(s1, "%"SCNu32, id) != 1)
     return 0;
 
   if (*s3) {

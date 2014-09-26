@@ -123,7 +123,7 @@ struct NCR_Instance_Record {
                                    the association is symmetric). Note
                                    : we don't authenticate if we can't
                                    find the key in our database. */
-  unsigned long auth_key_id;    /* The ID of the authentication key to
+  uint32_t auth_key_id;          /* The ID of the authentication key to
                                    use. */
 
   /* Count of how many packets we have transmitted since last successful
@@ -435,12 +435,12 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
 
   if (params->authkey == INACTIVE_AUTHKEY) {
     result->do_auth = 0;
-    result->auth_key_id = 0UL;
+    result->auth_key_id = 0;
   } else {
     result->do_auth = 1;
     result->auth_key_id = params->authkey;
     if (!KEY_KeyKnown(result->auth_key_id)) {
-      LOG(LOGS_WARN, LOGF_NtpCore, "Source %s added with unknown key %lu",
+      LOG(LOGS_WARN, LOGF_NtpCore, "Source %s added with unknown key %"PRIu32,
           UTI_IPToString(&result->remote_addr.ip_addr), result->auth_key_id);
     }
   }
@@ -524,7 +524,7 @@ NCR_ResetInstance(NCR_Instance instance)
 /* ================================================== */
 
 static int
-check_packet_auth(NTP_Packet *pkt, unsigned long keyid, int auth_len)
+check_packet_auth(NTP_Packet *pkt, uint32_t keyid, int auth_len)
 {
   return KEY_CheckAuth(keyid, (void *)pkt, offsetof(NTP_Packet, auth_keyid), 
       (void *)&(pkt->auth_data), auth_len);
@@ -686,7 +686,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 int my_poll, /* The log2 of the local poll interval */
                 int version, /* The NTP version to be set in the packet */
                 int do_auth, /* Boolean indicating whether to authenticate the packet or not */
-                unsigned long key_id, /* The authentication key ID */
+                uint32_t key_id, /* The authentication key ID */
                 NTP_int64 *orig_ts, /* Originate timestamp (from received packet) */
                 struct timeval *local_rx, /* Local time request packet was received */
                 struct timeval *local_tx, /* RESULT : Time this reply
@@ -791,7 +791,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
           sizeof (message.auth_keyid) + auth_len);
     } else {
       DEBUG_LOG(LOGF_NtpCore,
-                "Could not generate auth data with key %lu to send packet",
+                "Could not generate auth data with key %"PRIu32" to send packet",
                 key_id);
       return 0;
     }
@@ -930,7 +930,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   double pkt_root_delay;
   double pkt_root_dispersion;
 
-  unsigned long auth_key_id;
+  uint32_t auth_key_id;
 
   /* The local time to which the (offset, delay, dispersion) triple will
      be taken to relate.  For client/server operation this is practically
@@ -1597,7 +1597,7 @@ NCR_ProcessUnknown
   NTP_Mode my_mode;
   int my_poll, version;
   int valid_auth, auth_len;
-  unsigned long key_id;
+  uint32_t key_id;
 
   /* Ignore the packet if it wasn't received by server socket */
   if (!NIO_IsServerSocket(local_addr->sock_fd)) {

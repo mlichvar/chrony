@@ -41,7 +41,7 @@
 
 
 typedef struct {
-  unsigned long id;
+  uint32_t id;
   char *val;
   int len;
   int hash_id;
@@ -51,15 +51,15 @@ typedef struct {
 static ARR_Instance keys;
 
 static int command_key_valid;
-static int command_key_id;
+static uint32_t command_key_id;
 static int cache_valid;
-static unsigned long cache_key_id;
+static uint32_t cache_key_id;
 static int cache_key_pos;
 
 /* ================================================== */
 
 static int
-generate_key(unsigned long key_id)
+generate_key(uint32_t key_id)
 {
 #ifdef FEAT_SECHASH
   unsigned char key[20];
@@ -100,7 +100,7 @@ generate_key(unsigned long key_id)
     return 0;
   }
 
-  fprintf(f, "\n%lu %s HEX:", key_id, hashname);
+  fprintf(f, "\n%"PRIu32" %s HEX:", key_id, hashname);
   for (i = 0; i < sizeof (key); i++)
     fprintf(f, "%02hhX", key[i]);
   fprintf(f, "\n");
@@ -109,7 +109,7 @@ generate_key(unsigned long key_id)
   /* Erase the key from stack */
   memset(key, 0, sizeof (key));
 
-  LOG(LOGS_INFO, LOGF_Keys, "Generated key %lu", key_id);
+  LOG(LOGS_INFO, LOGF_Keys, "Generated key %"PRIu32, key_id);
 
   return 1;
 }
@@ -165,7 +165,7 @@ get_key(unsigned int index)
 /* ================================================== */
 
 static int
-determine_hash_delay(unsigned long key_id)
+determine_hash_delay(uint32_t key_id)
 {
   NTP_Packet pkt;
   struct timeval before, after;
@@ -188,7 +188,7 @@ determine_hash_delay(unsigned long key_id)
   /* Add on a bit extra to allow for copying, conversions etc */
   min_usecs += min_usecs >> 4;
 
-  DEBUG_LOG(LOGF_Keys, "authentication delay for key %lu: %ld useconds", key_id, min_usecs);
+  DEBUG_LOG(LOGF_Keys, "authentication delay for key %"PRIu32": %ld useconds", key_id, min_usecs);
 
   return min_usecs;
 }
@@ -220,7 +220,7 @@ KEY_Reload(void)
 {
   unsigned int i, line_number;
   FILE *in;
-  unsigned long key_id;
+  uint32_t key_id;
   char line[2048], *keyval, *key_file;
   const char *hashname;
   Key key;
@@ -253,13 +253,13 @@ KEY_Reload(void)
 
     key.hash_id = HSH_GetHashId(hashname);
     if (key.hash_id < 0) {
-      LOG(LOGS_WARN, LOGF_Keys, "Unknown hash function in key %lu", key_id);
+      LOG(LOGS_WARN, LOGF_Keys, "Unknown hash function in key %"PRIu32, key_id);
       continue;
     }
 
     key.len = UTI_DecodePasswordFromText(keyval);
     if (!key.len) {
-      LOG(LOGS_WARN, LOGF_Keys, "Could not decode password in key %lu", key_id);
+      LOG(LOGS_WARN, LOGF_Keys, "Could not decode password in key %"PRIu32, key_id);
       continue;
     }
 
@@ -279,7 +279,7 @@ KEY_Reload(void)
   /* Check for duplicates */
   for (i = 1; i < ARR_GetSize(keys); i++) {
     if (get_key(i - 1)->id == get_key(i)->id)
-      LOG(LOGS_WARN, LOGF_Keys, "Detected duplicate key %lu", get_key(i - 1)->id);
+      LOG(LOGS_WARN, LOGF_Keys, "Detected duplicate key %"PRIu32, get_key(i - 1)->id);
   }
 
   /* Erase any passwords from stack */
@@ -292,7 +292,7 @@ KEY_Reload(void)
 /* ================================================== */
 
 static int
-lookup_key(unsigned long id)
+lookup_key(uint32_t id)
 {
   Key specimen, *where, *keys_ptr;
   int pos;
@@ -312,7 +312,7 @@ lookup_key(unsigned long id)
 /* ================================================== */
 
 static Key *
-get_key_by_id(unsigned long key_id)
+get_key_by_id(uint32_t key_id)
 {
   int position;
 
@@ -334,7 +334,7 @@ get_key_by_id(unsigned long key_id)
 
 /* ================================================== */
 
-unsigned long
+uint32_t
 KEY_GetCommandKey(void)
 {
   if (!command_key_valid) {
@@ -347,7 +347,7 @@ KEY_GetCommandKey(void)
 /* ================================================== */
 
 int
-KEY_KeyKnown(unsigned long key_id)
+KEY_KeyKnown(uint32_t key_id)
 {
   return get_key_by_id(key_id) != NULL;
 }
@@ -355,7 +355,7 @@ KEY_KeyKnown(unsigned long key_id)
 /* ================================================== */
 
 int
-KEY_GetAuthDelay(unsigned long key_id)
+KEY_GetAuthDelay(uint32_t key_id)
 {
   Key *key;
 
@@ -370,7 +370,7 @@ KEY_GetAuthDelay(unsigned long key_id)
 /* ================================================== */
 
 int
-KEY_GenerateAuth(unsigned long key_id, const unsigned char *data, int data_len,
+KEY_GenerateAuth(uint32_t key_id, const unsigned char *data, int data_len,
     unsigned char *auth, int auth_len)
 {
   Key *key;
@@ -387,7 +387,7 @@ KEY_GenerateAuth(unsigned long key_id, const unsigned char *data, int data_len,
 /* ================================================== */
 
 int
-KEY_CheckAuth(unsigned long key_id, const unsigned char *data, int data_len,
+KEY_CheckAuth(uint32_t key_id, const unsigned char *data, int data_len,
     const unsigned char *auth, int auth_len)
 {
   Key *key;
