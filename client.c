@@ -68,30 +68,6 @@ static int no_dns = 0;
 static int recv_errqueue = 0;
 
 /* ================================================== */
-/* Ought to extract some code from util.c to make
-   a new set of utilities that can be linked into either
-   the daemon or the client. */
-
-static char *
-time_to_log_form(time_t t)
-{
-  struct tm stm;
-  static char buffer[64];
-  static const char *months[] = {"Jan", "Feb", "Mar", "Apr",
-                                 "May", "Jun", "Jul", "Aug",
-                                 "Sep", "Oct", "Nov", "Dec"};
-
-
-  stm = *gmtime(&t);
-  snprintf(buffer, sizeof(buffer),
-          "%2d%s%02d %02d:%02d:%02d",
-          stm.tm_mday, months[stm.tm_mon], stm.tm_year % 100,
-          stm.tm_hour, stm.tm_min, stm.tm_sec);
-
-  return buffer;
-}
-
-/* ================================================== */
 /* Read a single line of commands from standard input.  Eventually we
    might want to use the GNU readline library. */
 
@@ -2154,15 +2130,15 @@ process_cmd_manual_list(const char *line)
   if (request_reply(&request, &reply, RPY_MANUAL_LIST, 0)) {
           n_samples = ntohl(reply.data.manual_list.n_samples);
           printf("210 n_samples = %d\n", n_samples);
-          printf("#    Date  Time(UTC)    Slewed   Original   Residual\n"
-                 "====================================================\n");
+          printf("#    Date     Time(UTC)    Slewed   Original   Residual\n"
+                 "=======================================================\n");
           for (i=0; i<n_samples; i++) {
             sample = &reply.data.manual_list.samples[i];
             UTI_TimevalNetworkToHost(&sample->when, &when);
             slewed_offset = UTI_FloatNetworkToHost(sample->slewed_offset);
             orig_offset = UTI_FloatNetworkToHost(sample->orig_offset);
             residual = UTI_FloatNetworkToHost(sample->residual);
-            printf("%2d %s %10.2f %10.2f %10.2f\n", i, time_to_log_form(when.tv_sec), slewed_offset, orig_offset, residual);
+            printf("%2d %s %10.2f %10.2f %10.2f\n", i, UTI_TimeToLogForm(when.tv_sec), slewed_offset, orig_offset, residual);
           }
           return 1;
   }
