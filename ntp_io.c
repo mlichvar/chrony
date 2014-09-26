@@ -243,27 +243,9 @@ connect_socket(int sock_fd, NTP_Remote_Address *remote_addr)
   union sockaddr_in46 addr;
   socklen_t addr_len;
 
-  memset(&addr, 0, sizeof (addr));
+  addr_len = UTI_IPAndPort2Sockaddr(&remote_addr->ip_addr, remote_addr->port, &addr.u);
 
-  switch (remote_addr->ip_addr.family) {
-    case IPADDR_INET4:
-      addr_len = sizeof (addr.in4);
-      addr.in4.sin_family = AF_INET;
-      addr.in4.sin_addr.s_addr = htonl(remote_addr->ip_addr.addr.in4);
-      addr.in4.sin_port = htons(remote_addr->port);
-      break;
-#ifdef FEAT_IPV6
-    case IPADDR_INET6:
-      addr_len = sizeof (addr.in6);
-      addr.in6.sin6_family = AF_INET6;
-      memcpy(addr.in6.sin6_addr.s6_addr, remote_addr->ip_addr.addr.in6,
-             sizeof (addr.in6.sin6_addr.s6_addr));
-      addr.in6.sin6_port = htons(remote_addr->port);
-      break;
-#endif
-    default:
-      assert(0);
-  }
+  assert(addr_len);
 
   if (connect(sock_fd, &addr.u, addr_len) < 0) {
     DEBUG_LOG(LOGF_NtpIO, "Could not connect NTP socket to %s:%d : %s",
@@ -484,23 +466,7 @@ read_from_socket(void *anything)
     if (msg.msg_namelen > sizeof (where_from))
       LOG_FATAL(LOGF_NtpIO, "Truncated source address");
 
-    switch (where_from.u.sa_family) {
-      case AF_INET:
-        remote_addr.ip_addr.family = IPADDR_INET4;
-        remote_addr.ip_addr.addr.in4 = ntohl(where_from.in4.sin_addr.s_addr);
-        remote_addr.port = ntohs(where_from.in4.sin_port);
-        break;
-#ifdef FEAT_IPV6
-      case AF_INET6:
-        remote_addr.ip_addr.family = IPADDR_INET6;
-        memcpy(&remote_addr.ip_addr.addr.in6, where_from.in6.sin6_addr.s6_addr,
-            sizeof (remote_addr.ip_addr.addr.in6));
-        remote_addr.port = ntohs(where_from.in6.sin6_port);
-        break;
-#endif
-      default:
-        assert(0);
-    }
+    UTI_Sockaddr2IPAndPort(&where_from.u, &remote_addr.ip_addr, &remote_addr.port);
 
     local_addr.ip_addr.family = IPADDR_UNSPEC;
     local_addr.sock_fd = sock_fd;
@@ -578,31 +544,15 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
     return 0;
   }
 
-  switch (remote_addr->ip_addr.family) {
-    case IPADDR_INET4:
-      /* Don't set address with connected socket */
-      if (local_addr->sock_fd != server_sock_fd4 && separate_client_sockets)
-        break;
-      memset(&remote.in4, 0, sizeof (remote.in4));
-      addrlen = sizeof (remote.in4);
-      remote.in4.sin_family = AF_INET;
-      remote.in4.sin_port = htons(remote_addr->port);
-      remote.in4.sin_addr.s_addr = htonl(remote_addr->ip_addr.addr.in4);
-      break;
+  /* Don't set address with connected socket */
+  if (local_addr->sock_fd == server_sock_fd4 ||
 #ifdef FEAT_IPV6
-    case IPADDR_INET6:
-      /* Don't set address with connected socket */
-      if (local_addr->sock_fd != server_sock_fd6 && separate_client_sockets)
-        break;
-      memset(&remote.in6, 0, sizeof (remote.in6));
-      addrlen = sizeof (remote.in6);
-      remote.in6.sin6_family = AF_INET6;
-      remote.in6.sin6_port = htons(remote_addr->port);
-      memcpy(&remote.in6.sin6_addr.s6_addr, &remote_addr->ip_addr.addr.in6,
-          sizeof (remote.in6.sin6_addr.s6_addr));
-      break;
+      local_addr->sock_fd == server_sock_fd6 ||
 #endif
-    default:
+      !separate_client_sockets) {
+    addrlen = UTI_IPAndPort2Sockaddr(&remote_addr->ip_addr, remote_addr->port,
+                                     &remote.u);
+    if (!addrlen)
       return 0;
   }
 

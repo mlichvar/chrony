@@ -706,23 +706,7 @@ transmit_reply(CMD_Reply *msg, union sockaddr_in46 *where_to, int auth_len)
     unsigned short port;
     IPAddr ip;
 
-    switch (where_to->u.sa_family) {
-      case AF_INET:
-        ip.family = IPADDR_INET4;
-        ip.addr.in4 = ntohl(where_to->in4.sin_addr.s_addr);
-        port = ntohs(where_to->in4.sin_port);
-        break;
-#ifdef FEAT_IPV6
-      case AF_INET6:
-        ip.family = IPADDR_INET6;
-        memcpy(ip.addr.in6, (where_to->in6.sin6_addr.s6_addr), sizeof(ip.addr.in6));
-        port = ntohs(where_to->in6.sin6_port);
-        break;
-#endif
-      default:
-        assert(0);
-    }
-
+    UTI_Sockaddr2IPAndPort(&where_to->u, &ip, &port);
     DEBUG_LOG(LOGF_CmdMon, "Could not send response to %s:%hu", UTI_IPToString(&ip), port);
   }
 }
@@ -1653,19 +1637,14 @@ read_from_cmd_socket(void *anything)
   LCL_ReadRawTime(&now);
   LCL_CookTime(&now, &cooked_now, NULL);
 
-  switch (where_from.u.sa_family) {
-    case AF_INET:
-      remote_ip.family = IPADDR_INET4;
-      remote_ip.addr.in4 = ntohl(where_from.in4.sin_addr.s_addr);
-      remote_port = ntohs(where_from.in4.sin_port);
+  UTI_Sockaddr2IPAndPort(&where_from.u, &remote_ip, &remote_port);
+
+  switch (remote_ip.family) {
+    case IPADDR_INET4:
       localhost = (remote_ip.addr.in4 == 0x7f000001UL);
       break;
 #ifdef FEAT_IPV6
-    case AF_INET6:
-      remote_ip.family = IPADDR_INET6;
-      memcpy(&remote_ip.addr.in6, where_from.in6.sin6_addr.s6_addr,
-          sizeof (remote_ip.addr.in6));
-      remote_port = ntohs(where_from.in6.sin6_port);
+    case IPADDR_INET6:
       /* Check for ::1 */
       for (localhost = 0; localhost < 16; localhost++)
         if (remote_ip.addr.in6[localhost] != 0)

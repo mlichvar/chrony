@@ -86,6 +86,9 @@ extern void UTI_IPHostToNetwork(IPAddr *src, IPAddr *dest);
 extern void UTI_IPNetworkToHost(IPAddr *src, IPAddr *dest);
 extern int UTI_CompareIPs(IPAddr *a, IPAddr *b, IPAddr *mask);
 
+extern void UTI_Sockaddr2IPAndPort(struct sockaddr *sa, IPAddr *ip, unsigned short *port);
+extern int UTI_IPAndPort2Sockaddr(IPAddr *ip, unsigned short port, struct sockaddr *sa);
+
 extern char *UTI_TimeToLogForm(time_t t);
 
 /* Adjust time following a frequency/offset change */
