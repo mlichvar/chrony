@@ -1712,10 +1712,10 @@ process_cmd_sources(char *line)
       printf(" / .- Source state '*' = current synced, '+' = combined , '-' = not combined,\n");
       printf("| /   '?' = unreachable, 'x' = time may be in error, '~' = time too variable.\n");
       printf("||                                                 .- xxxx [ yyyy ] +/- zzzz\n");
-      printf("||                                                /   xxxx = adjusted offset,\n");
-      printf("||         Log2(Polling interval) -.             |    yyyy = measured offset,\n");
-      printf("||                                  \\            |    zzzz = estimated error.\n");
-      printf("||                                   |           |                         \n");
+      printf("||      Reachability register (octal) -.           |  xxxx = adjusted offset,\n");
+      printf("||      Log2(Polling interval) --.      |          |  yyyy = measured offset,\n");
+      printf("||                                \\     |          |  zzzz = estimated error.\n");
+      printf("||                                 |    |           \\\n");
     }
 
     printf("MS Name/IP address         Stratum Poll Reach LastRx Last sample\n");
