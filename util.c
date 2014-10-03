@@ -427,7 +427,7 @@ UTI_CompareIPs(IPAddr *a, IPAddr *b, IPAddr *mask)
 /* ================================================== */
 
 void
-UTI_Sockaddr2IPAndPort(struct sockaddr *sa, IPAddr *ip, unsigned short *port)
+UTI_SockaddrToIPAndPort(struct sockaddr *sa, IPAddr *ip, unsigned short *port)
 {
   switch (sa->sa_family) {
     case AF_INET:
@@ -452,7 +452,7 @@ UTI_Sockaddr2IPAndPort(struct sockaddr *sa, IPAddr *ip, unsigned short *port)
 /* ================================================== */
 
 int
-UTI_IPAndPort2Sockaddr(IPAddr *ip, unsigned short port, struct sockaddr *sa)
+UTI_IPAndPortToSockaddr(IPAddr *ip, unsigned short port, struct sockaddr *sa)
 {
   switch (ip->family) {
     case IPADDR_INET4:

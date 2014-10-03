@@ -137,7 +137,7 @@ open_io(const char *hostname, int port)
       assert(0);
   }
 
-  his_addr_len = UTI_IPAndPort2Sockaddr(&ip, port, &his_addr.u);
+  his_addr_len = UTI_IPAndPortToSockaddr(&ip, port, &his_addr.u);
 
   if (sock_fd < 0) {
     perror("Can't create socket");

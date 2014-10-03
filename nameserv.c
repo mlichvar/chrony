@@ -120,7 +120,7 @@ DNS_IPAddress2Name(IPAddr *ip_addr, char *name, int len)
   socklen_t slen;
   char hbuf[NI_MAXHOST];
 
-  slen = UTI_IPAndPort2Sockaddr(ip_addr, 0, (struct sockaddr *)&in6);
+  slen = UTI_IPAndPortToSockaddr(ip_addr, 0, (struct sockaddr *)&in6);
   if (!getnameinfo((struct sockaddr *)&in6, slen, hbuf, sizeof (hbuf), NULL, 0, 0))
     result = hbuf;
 #else

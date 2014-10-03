@@ -243,7 +243,7 @@ connect_socket(int sock_fd, NTP_Remote_Address *remote_addr)
   union sockaddr_in46 addr;
   socklen_t addr_len;
 
-  addr_len = UTI_IPAndPort2Sockaddr(&remote_addr->ip_addr, remote_addr->port, &addr.u);
+  addr_len = UTI_IPAndPortToSockaddr(&remote_addr->ip_addr, remote_addr->port, &addr.u);
 
   assert(addr_len);
 
@@ -466,7 +466,7 @@ read_from_socket(void *anything)
     if (msg.msg_namelen > sizeof (where_from))
       LOG_FATAL(LOGF_NtpIO, "Truncated source address");
 
-    UTI_Sockaddr2IPAndPort(&where_from.u, &remote_addr.ip_addr, &remote_addr.port);
+    UTI_SockaddrToIPAndPort(&where_from.u, &remote_addr.ip_addr, &remote_addr.port);
 
     local_addr.ip_addr.family = IPADDR_UNSPEC;
     local_addr.sock_fd = sock_fd;
@@ -550,8 +550,8 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
       local_addr->sock_fd == server_sock_fd6 ||
 #endif
       !separate_client_sockets) {
-    addrlen = UTI_IPAndPort2Sockaddr(&remote_addr->ip_addr, remote_addr->port,
-                                     &remote.u);
+    addrlen = UTI_IPAndPortToSockaddr(&remote_addr->ip_addr, remote_addr->port,
+                                      &remote.u);
     if (!addrlen)
       return 0;
   }

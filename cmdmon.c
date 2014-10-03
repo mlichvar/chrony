@@ -706,7 +706,7 @@ transmit_reply(CMD_Reply *msg, union sockaddr_in46 *where_to, int auth_len)
     unsigned short port;
     IPAddr ip;
 
-    UTI_Sockaddr2IPAndPort(&where_to->u, &ip, &port);
+    UTI_SockaddrToIPAndPort(&where_to->u, &ip, &port);
     DEBUG_LOG(LOGF_CmdMon, "Could not send response to %s:%hu", UTI_IPToString(&ip), port);
   }
 }
@@ -1637,7 +1637,7 @@ read_from_cmd_socket(void *anything)
   LCL_ReadRawTime(&now);
   LCL_CookTime(&now, &cooked_now, NULL);
 
-  UTI_Sockaddr2IPAndPort(&where_from.u, &remote_ip, &remote_port);
+  UTI_SockaddrToIPAndPort(&where_from.u, &remote_ip, &remote_port);
 
   switch (remote_ip.family) {
     case IPADDR_INET4:
