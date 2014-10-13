@@ -94,10 +94,9 @@ Data Security, Inc. MD5 Message-Digest Algorithm} for authenticating
 messages between different machines on the network.
 
 In writing the @code{chronyd} program, extensive use has been made of
-RFC1305, written by David Mills.  The @code{ntp} suite's source code has
-been occasionally used to check details of the protocol that the RFC did
-not make absolutely clear.  The core algorithms in @code{chronyd} are
-all completely distinct from @code{ntp}, however.
+RFC 1305 and RFC 5905, written by David Mills.  The source code of
+the NTP reference implementation has been used to check details of the
+protocol.
 @c }}}
 @c {{{ S:Availability
 @node Availability
@@ -211,11 +210,10 @@ Things @code{ntpd} can do that @code{chronyd} can't:
 
 @itemize @bullet
 @item
-@code{ntpd} fully supports NTP version 4 (RFC5905), including broadcast,
-multicast, manycast clients / servers and the orphan mode.  It also
-supports extra authentication schemes based on public-key cryptography
-(RFC5906). @code{chronyd} uses NTP version 3 (RFC1305), which is
-compatible with version 4.
+@code{ntpd} supports all operating modes from RFC 5905, including
+broadcast, multicast and manycast client / server.  It supports the
+orphan mode and it also supports authentication based on public-key
+cryptography described in RFC 5906.
 
 @item
 @code{ntpd} has been ported to more types of computer / operating
@@ -1935,7 +1933,7 @@ An example line (which actually appears as a single line in the file)
 from the measurements log file is shown below.
 
 @example
-2010-12-22 05:40:50 158.152.1.76    N  8 1111 111 1111 10 10 1.0 \
+2014-10-13 05:40:50 158.152.1.76    N  2 111 111 1111  10 10 1.0 \
    -4.966e-03  2.296e-01  1.577e-05  1.615e-01  7.446e-03
 @end example
 
@@ -1944,7 +1942,7 @@ values from the example line above) :
 
 @enumerate 1
 @item
-Date [2010-12-22]
+Date [2014-10-13]
 @item
 Hour:Minute:Second [05:40:50].  Note that the date/time pair is
 expressed in UTC, not the local time zone.
@@ -1958,12 +1956,13 @@ currently synchronised.) [N]
 @item
 Stratum of remote computer. [2]
 @item
-RFC1305 tests 1 through 4 (1=pass, 0=fail) [1111]
+RFC 5905 tests 1 through 3 (1=pass, 0=fail) [111]
+@item
+RFC 5905 tests 5 through 7 (1=pass, 0=fail) [111]
 @item
 Tests for maximum delay, maximum delay ratio and maximum delay dev ratio,
-against defined parameters (1=pass, 0=fail) [111]
-@item
-RFC1305 tests 5 through 8 (1=pass, 0=fail) [1111]
+against defined parameters, and a test for synchronisation loop
+(1=pass, 0=fail) [1111]
 @item
 Local poll [10]
 @item
@@ -1973,15 +1972,16 @@ Remote poll [10]
 to increase or decrease the polling level.  This is adjusted based on number
 of measurements currently being used for the regression algorithm). [1.0]
 @item
-The estimated local clock error (`theta' in RFC1305).  Positive indicates that the local clock is slow. [-4.966e-03].
+The estimated local clock error (`theta' in RFC 5905).  Positive
+indicates that the local clock is slow of the remote source. [-4.966e-03].
 @item
-The peer delay (`delta' in RFC1305). [2.296e-01]
+The peer delay (`delta' in RFC 5905). [2.296e-01]
 @item
-The peer dispersion (`epsilon' in RFC1305). [1.577e-05]
+The peer dispersion (`epsilon' in RFC 5905). [1.577e-05]
 @item
-The root delay (`Delta' in RFC1305). [1.615e-01]
+The root delay (`DELTA' in RFC 5905). [1.615e-01]
 @item
-The root dispersion (`E' in RFC1305). [7.446e-03]
+The root dispersion (`EPSILON' in RFC 5905). [7.446e-03]
 @end enumerate
 
 A banner is periodically written to the log file to indicate the

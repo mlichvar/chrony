@@ -41,7 +41,8 @@ session to the next)
 
 With a good reference clock the accuracy can reach one microsecond.
 
-chronyd can also operate as an RFC1305-compatible NTP server and peer.
+chronyd can also operate as an NTPv4 (RFC 5905) server, peer and broadcast
+server.
 
 
 What will chrony run on?

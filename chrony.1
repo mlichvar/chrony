@@ -11,12 +11,12 @@ chrony \- programs for keeping computer clocks accurate
 \fBchrony\fR is a pair of programs for keeping computer clocks accurate.
 \fIchronyd\fR is a background (daemon) program and \fIchronyc\fR is a
 command-line interface to it. Time reference sources for chronyd can be
-RFC1305 NTP servers, human (via keyboard and \fIchronyc\fR), or the computer's
+NTP servers, human (via keyboard and \fIchronyc\fR), or the computer's
 real-time clock at boot time (Linux only). chronyd can determine the rate at
 which the computer gains or loses time and compensate for it while no external
 reference is present. Its use of NTP servers can be switched on and off
 (through \fIchronyc\fR) to support computers with dial-up/intermittent access
-to the Internet, and it can also act as an RFC1305-compatible NTP server.
+to the Internet, and it can also act as an NTP server.
 
 .SH USAGE
 \fIchronyc\fR is a command-line interface program which can be used to
@@ -51,7 +51,8 @@ session to the next)
 
 With a good reference clock the accuracy can reach one microsecond.
 
-\fIchronyd\fR can also operate as an RFC1305-compatible NTP server and peer.
+\fIchronyd\fR can also operate as an NTPv4 (RFC 5905) server, peer and
+broadcast server.
 
 .SH "SEE ALSO"
 .BR chronyc(1),
