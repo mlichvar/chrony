@@ -620,7 +620,7 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
     return 0;
   }
 
-  DEBUG_LOG(LOGF_NtpIO, "Sent to %s:%d from %s fd %d",
+  DEBUG_LOG(LOGF_NtpIO, "Sent %d bytes to %s:%d from %s fd %d", packetlen,
       UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
       UTI_IPToString(&local_addr->ip_addr), local_addr->sock_fd);
 
