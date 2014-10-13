@@ -848,9 +848,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
           sel_prefer = 0;
         }
 
-        /* Now find minimum stratum.  If none are left now,
-           tough. RFC1305 is not so harsh on pruning sources due to
-           excess variance, which prevents this from happening */
+        /* Now find minimum stratum.  If none are left now, tough. */
 
         index = sel_sources[0];
         min_stratum = sources[index]->sel_info.stratum;

@@ -55,10 +55,6 @@ extern void SST_ResetInstance(SST_Stats inst);
    seconds.  Positive indicates that the local clock if FAST (contrary
    to the NTP parts of the software)
 
-   root_distance is the Lambda+Delta/2 term in RFC1305, but excluding
-   the extra dispersion due to the residual standard deviation after
-   we have done the regression fit.
-
    stratum is the stratum of the source from which the sample came.
   */
 

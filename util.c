@@ -549,7 +549,7 @@ UTI_DoubleToInt32(double x)
 
 /* ================================================== */
 
-/* Seconds part of RFC1305 timestamp correponding to the origin of the
+/* Seconds part of NTP timestamp correponding to the origin of the
    struct timeval format. */
 #define JAN_1970 0x83aa7e80UL
 

@@ -119,8 +119,7 @@ struct SST_Stats_Record {
      sample times.  In this module, we use the convention that
      positive means the local clock is FAST of the source and negative
      means it is SLOW.  This is contrary to the convention in the NTP
-     stuff; that part of the code is written to correspond with
-     RFC1305 conventions. */
+     stuff. */
   double offsets[MAX_SAMPLES * REGRESS_RUNS_RATIO];
 
   /* This is an array of the offsets as originally measured.  Local

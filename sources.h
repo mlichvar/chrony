@@ -104,7 +104,7 @@ extern void SRC_GetFrequencyRange(SRC_Instance instance, double *lo, double *hi)
    indicates that the local clock is FAST relative to it.
 
    root_delay and root_dispersion are in seconds, and are as per
-   RFC1305.  root_dispersion only includes the peer's root dispersion
+   RFC 5905.  root_dispersion only includes the peer's root dispersion
    + local sampling precision + skew dispersion accrued during the
    measurement.  It is the job of the source statistics algorithms +
    track.c to add on the extra dispersion due to the residual standard

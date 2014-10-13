@@ -1071,7 +1071,7 @@ REF_GetReferenceParams
     *ref_id = LOCAL_REFERENCE_ID;
     /* Make the reference time be now less a second - this will
        scarcely affect the client, but will ensure that the transmit
-       timestamp cannot come before this (which would cause test 6 to
+       timestamp cannot come before this (which would cause test 7 to
        fail in the client's read routine) if the local system clock's
        read routine is broken in any way. */
     *ref_time = *local_time;
