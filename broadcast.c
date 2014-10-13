@@ -68,7 +68,6 @@ timeout_handler(void *arbitrary)
   Destination *d = (Destination *) arbitrary;
   NTP_Packet message;
   /* Parameters read from reference module */
-  int version;
   int leap;
   int are_we_synchronised, our_stratum;
   NTP_Leap leap_status;
@@ -76,8 +75,6 @@ timeout_handler(void *arbitrary)
   struct timeval our_ref_time;
   double our_root_delay, our_root_dispersion;
   struct timeval local_transmit;
-
-  version = 3;
 
   LCL_ReadCookedTime(&local_transmit, NULL);
   REF_GetReferenceParams(&local_transmit,
@@ -93,7 +90,7 @@ timeout_handler(void *arbitrary)
     leap = LEAP_Unsynchronised;
   }
 
-  message.lvm = ((leap << 6) &0xc0) | ((version << 3) & 0x38) | (MODE_BROADCAST & 0x07);
+  message.lvm = NTP_LVM(leap, NTP_VERSION, MODE_BROADCAST);
   message.stratum = our_stratum;
   message.poll = 6; /* FIXME: what should this be? */
   message.precision = LCL_GetSysPrecisionAsLog();
@@ -115,7 +112,7 @@ timeout_handler(void *arbitrary)
   ts_fuzz = UTI_GetNTPTsFuzz(message.precision);
   LCL_ReadCookedTime(&local_transmit, NULL);
   UTI_TimevalToInt64(&local_transmit, &message.transmit_ts, ts_fuzz);
-  NIO_SendNormalPacket(&message, &d->addr, &d->local_addr);
+  NIO_SendPacket(&message, &d->addr, &d->local_addr, NTP_NORMAL_PACKET_LENGTH);
 
   /* Requeue timeout.  Don't care if interval drifts gradually, so just do it
    * at the end. */

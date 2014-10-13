@@ -174,7 +174,7 @@ determine_hash_delay(uint32_t key_id)
 
   for (i = 0; i < 10; i++) {
     LCL_ReadRawTime(&before);
-    KEY_GenerateAuth(key_id, (unsigned char *)&pkt, NTP_NORMAL_PACKET_SIZE,
+    KEY_GenerateAuth(key_id, (unsigned char *)&pkt, NTP_NORMAL_PACKET_LENGTH,
         (unsigned char *)&pkt.auth_data, sizeof (pkt.auth_data));
     LCL_ReadRawTime(&after);
 

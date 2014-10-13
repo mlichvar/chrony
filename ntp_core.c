@@ -111,7 +111,7 @@ struct NCR_Instance_Record {
                                    use the sample for generating
                                    statistics from */
 
-  double max_delay_ratio;       /* Largest ratio of delta /
+  double max_delay_ratio;       /* Largest ratio of delay /
                                    min_delay_in_register that we can
                                    tolerate.  */
 
@@ -194,27 +194,24 @@ struct NCR_Instance_Record {
 /* Time to wait after sending packet to 'warm up' link */
 #define WARM_UP_DELAY 4.0
 
-/* The NTP protocol version that we support */
-#define NTP_VERSION 3
-
 /* Compatible NTP protocol versions */
-#define NTP_MAX_COMPAT_VERSION 4
+#define NTP_MAX_COMPAT_VERSION NTP_VERSION
 #define NTP_MIN_COMPAT_VERSION 1
 
-/* Maximum allowed dispersion - as defined in RFC1305 (16 seconds) */
+/* Maximum allowed dispersion - as defined in RFC 5905 (16 seconds) */
 #define NTP_MAX_DISPERSION 16.0
 
-/* Maximum allowed age of a reference to be supplied to a client (1 day) */
-#define NTP_MAXAGE 86400
+/* Maximum stratum number */
+#define NTP_MAX_STRATUM 16
 
-/* Maximum allowed stratum */
-#define NTP_MAX_STRATUM 15
-
-/* INVALID or Unkown  stratum from external server  as per the NTP 4 docs */
+/* Invalid stratum number */
 #define NTP_INVALID_STRATUM 0
 
 /* Minimum allowed poll interval */
 #define MIN_POLL 0
+
+/* Kiss-o'-Death codes */
+#define KOD_RATE 0x52415445UL /* RATE */
 
 /* Maximum poll interval set by KoD RATE */
 #define MAX_KOD_RATE_POLL SRC_DEFAULT_MAXPOLL
@@ -303,7 +300,7 @@ NCR_Initialise(void)
   do_time_checks();
 
   logfileid = CNF_GetLogMeasurements() ? LOG_FileOpen("measurements",
-      "   Date (UTC) Time     IP Address   L St 1234 abc 5678 LP RP Score Offset     Peer del. Peer disp. Root del.  Root disp.")
+      "   Date (UTC) Time     IP Address   L St 123 567 ABCD  LP RP Score Offset     Peer del. Peer disp. Root del.  Root disp.")
     : -1;
 
   access_auth_table = ADF_CreateTable();
@@ -525,15 +522,6 @@ NCR_ResetInstance(NCR_Instance instance)
 
 /* ================================================== */
 
-static int
-check_packet_auth(NTP_Packet *pkt, uint32_t keyid, int auth_len)
-{
-  return KEY_CheckAuth(keyid, (void *)pkt, offsetof(NTP_Packet, auth_keyid), 
-      (void *)&(pkt->auth_data), auth_len);
-}
-
-/* ================================================== */
-
 static void
 adjust_poll(NCR_Instance inst, double adj)
 {
@@ -705,7 +693,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 )
 {
   NTP_Packet message;
-  int leap, ret;
+  int leap, auth_len, length, ret;
   struct timeval local_transmit;
 
   /* Parameters read from reference module */
@@ -737,11 +725,11 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   }
 
   /* Generate transmit packet */
-  message.lvm = ((leap << 6) &0xc0) | ((version << 3) & 0x38) | (my_mode & 0x07); 
-  if (our_stratum <= NTP_MAX_STRATUM) {
+  message.lvm = NTP_LVM(leap, version, my_mode);
+  /* Stratum 16 and larger are invalid */
+  if (our_stratum < NTP_MAX_STRATUM) {
     message.stratum = our_stratum;
   } else {
-    /* (WGU) to handle NTP  "Invalid" stratum as per the NTP V4 documents. */
     message.stratum = NTP_INVALID_STRATUM;
   }
  
@@ -775,9 +763,10 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
      from the source we're sending to now. */
   LCL_ReadCookedTime(&local_transmit, NULL);
 
+  length = NTP_NORMAL_PACKET_LENGTH;
+
   /* Authenticate */
-  if (do_auth) {
-    int auth_len;
+  if (do_auth && key_id) {
     /* Pre-compensate the transmit time by approx. how long it will
        take to generate the authentication data. */
     local_transmit.tv_usec += KEY_GetAuthDelay(key_id);
@@ -789,8 +778,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
         (unsigned char *)&message.auth_data, sizeof (message.auth_data));
     if (auth_len > 0) {
       message.auth_keyid = htonl(key_id);
-      ret = NIO_SendAuthenticatedPacket(&message, where_to, from,
-          sizeof (message.auth_keyid) + auth_len);
+      length += sizeof (message.auth_keyid) + auth_len;
     } else {
       DEBUG_LOG(LOGF_NtpCore,
                 "Could not generate auth data with key %"PRIu32" to send packet",
@@ -798,9 +786,15 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
       return 0;
     }
   } else {
+    if (do_auth) {
+      /* Zero key ID means crypto-NAK, append only the ID without any data */
+      message.auth_keyid = 0;
+      length += sizeof (message.auth_keyid);
+    }
     UTI_TimevalToInt64(&local_transmit, &message.transmit_ts, ts_fuzz);
-    ret = NIO_SendNormalPacket(&message, where_to, from);
   }
+
+  ret = NIO_SendPacket(&message, where_to, from, length);
 
   if (local_tx) {
     *local_tx = local_transmit;
@@ -924,49 +918,115 @@ transmit_timeout(void *arg)
 
 /* ================================================== */
 
+static int
+check_packet_format(NTP_Packet *message, int length)
+{
+  int version;
+
+  /* Check version and length */
+
+  version = NTP_LVM_TO_VERSION(message->lvm);
+  if (version < NTP_MIN_COMPAT_VERSION || version > NTP_MAX_COMPAT_VERSION) {
+    DEBUG_LOG(LOGF_NtpCore, "NTP packet has invalid version %d", version);
+    return 0;
+  } 
+
+  if (length < NTP_NORMAL_PACKET_LENGTH || (unsigned int)length % 4) {
+    DEBUG_LOG(LOGF_NtpCore, "NTP packet has invalid length %d", length);
+    return 0;
+  }
+
+  /* We can't reliably check the packet for invalid extension fields as we
+     support MACs longer than the shortest valid extension field */
+
+  return 1;
+}
+
+/* ================================================== */
+
+static int
+check_packet_auth(NTP_Packet *pkt, int length, int *has_auth, uint32_t *key_id)
+{
+  int i, remainder, ext_length;
+  unsigned char *data;
+  uint32_t id;
+
+  /* Go through extension fields and see if there is a valid MAC */
+
+  i = NTP_NORMAL_PACKET_LENGTH;
+  data = (void *)pkt;
+
+  while (1) {
+    remainder = length - i;
+
+    /* Check if the remaining data is a valid MAC.  This needs to be done
+       before trying to parse it as an extension field, because we support
+       MACs longer than the shortest valid extension field. */
+    if (remainder >= NTP_MIN_MAC_LENGTH && remainder <= NTP_MAX_MAC_LENGTH) {
+      id = ntohl(*(uint32_t *)(data + i));
+      if (KEY_CheckAuth(id, (void *)pkt, i, (void *)(data + i + 4),
+                        remainder - 4)) {
+        if (key_id)
+          *key_id = id;
+        if (has_auth)
+          *has_auth = 1;
+        return 1;
+      }
+    }
+
+    /* Check if this is a valid field extension.  They consist of 16-bit type,
+       16-bit length of the whole field aligned to 32 bits and data. */
+    if (remainder >= NTP_MIN_EXTENSION_LENGTH) {
+      ext_length = ntohs(*(uint16_t *)(data + i + 2));
+      if (ext_length % 4 == 0 && ext_length <= remainder) {
+        i += ext_length;
+        continue;
+      }
+    }
+
+    /* Invalid or missing MAC, or format error */
+    break;
+  }
+
+  /* This is not 100% reliable as a MAC could fail to authenticate and could
+     pass as an extension field, leaving reminder smaller than the minimum MAC
+     length.  Not a big problem, at worst we won't reply with a crypto-NAK. */
+  if (has_auth)
+    *has_auth = remainder >= NTP_MIN_MAC_LENGTH;
+
+  return 0;
+}
+
+/* ================================================== */
+
 static void
-receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Instance inst, int auth_len)
+receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Instance inst, NTP_Local_Address *local_addr, int length)
 {
   int pkt_leap;
-  int source_is_synchronized;
+  uint32_t pkt_refid;
   double pkt_root_delay;
   double pkt_root_dispersion;
-
-  uint32_t auth_key_id;
 
   /* The local time to which the (offset, delay, dispersion) triple will
      be taken to relate.  For client/server operation this is practically
      the same as either the transmit or receive time.  The difference comes
-     in symmetric active mode, when the receive may come minutes after the transmit, and this time
-     will be midway between the two */
+     in symmetric active mode, when the receive may come minutes after the
+     transmit, and this time will be midway between the two */
   struct timeval sample_time;
 
-  /* The estimated offset (nomenclature from RFC1305 section 3.4.4).
-     In seconds, a positive value indicates that the local clock is
-     SLOW of the remote source and a negative value indicates that the local
-     clock is FAST of the remote source. */
-  double theta;
+  /* The estimated offset in seconds, a positive value indicates that the local
+     clock is SLOW of the remote source and a negative value indicates that the
+     local clock is FAST of the remote source */
+  double offset;
 
-  /* The estimated round delay in seconds */
-  double delta;
+  /* The estimated peer delay, dispersion and distance */
+  double delay, dispersion, distance;
 
-  /* The estimated peer dispersion in seconds */
-  double epsilon;
+  /* The total root delay and dispersion */
+  double root_delay, root_dispersion;
 
-  /* The estimated peer distance in seconds */
-  double peer_distance;
-
-  /* The total root delay */
-  double root_delay;
-
-  /* The total root dispersion */
-  double root_dispersion;
-
-  /* The skew relative to the remote source */
-  double skew;
-
-  /* The estimated skew relative to the remote source. */
-  double source_freq_lo, source_freq_hi;
+  /* The skew and estimated frequency offset relative to the remote source */
+  double skew, source_freq_lo, source_freq_hi;
 
   /* These are the timeval equivalents of the remote epochs */  
   struct timeval remote_receive_tv, remote_transmit_tv;
@@ -974,98 +1034,107 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   struct timeval local_average, remote_average;
   double local_interval, remote_interval;
 
-  int test1, test2, test3, test4, test5, test6, test7, test7i, test7ii, test8;
+  /* RFC 5905 packet tests */
+  int test1, test2, test3, test5, test6, test7;
+  int valid_packet;
 
-  int test4a, test4b, test4c;
+  /* Additional tests */
+  int testA, testB, testC, testD;
+  int good_packet;
 
-  /* In the words of section 3.4.4 of RFC1305, valid_data means
-     that the NTP protocol association with the peer/server is
-     properly synchronised.  valid_header means that the measurement
-     obtained from the packet is suitable for use in synchronising
-     our local clock.  Wierd choice of terminology. */
+  /* Kiss-o'-Death codes */
+  int kod_rate;
 
-  int valid_data, valid_header;
-  int good_data, good_header;
-
-  /* Kiss-of-Death packets */
-  int kod_rate = 0;
-  int valid_kod;
-
-  /* Variables used for doing logging */
-  static char sync_stats[4] = {'N', '+', '-', '?'};
+  /* Characters used to print synchronisation status */
+  static const char sync_stats[4] = {'N', '+', '-', '?'};
 
   /* The estimated offset predicted from previous samples.  The
      convention here is that positive means local clock FAST of
-     reference, i.e. backwards to the way that 'theta' is defined. */
+     reference, i.e. backwards to the way that 'offset' is defined. */
   double estimated_offset;
 
   /* The absolute difference between the offset estimate and
      measurement in seconds */
   double error_in_estimate;
-  double delay_time = 0;
-  int requeue_transmit = 0;
+
+  double delay_time, precision;
+  int requeue_transmit;
 
   /* ==================== */
 
-  /* Save local receive timestamp */
-  inst->local_rx = *now;
-
-  pkt_leap = (message->lvm >> 6) & 0x3;
-  if (pkt_leap == 0x3) {
-    source_is_synchronized = 0;
-  } else {
-    source_is_synchronized = 1;
-  }
-
+  pkt_leap = NTP_LVM_TO_LEAP(message->lvm);
+  pkt_refid = ntohl(message->reference_id);
   pkt_root_delay = UTI_Int32ToDouble(message->root_delay);
   pkt_root_dispersion = UTI_Int32ToDouble(message->root_dispersion);
 
-  /* Perform packet validity tests */
+  UTI_Int64ToTimeval(&message->receive_ts, &remote_receive_tv);
+  UTI_Int64ToTimeval(&message->transmit_ts, &remote_transmit_tv);
+  UTI_Int64ToTimeval(&message->reference_ts, &remote_reference_tv);
+
+  /* Check if the packet is valid per RFC 5905, section 8.
+     The test values are 1 when passed and 0 when failed. */
   
-  /* Test 1 requires that pkt.xmt != peer.org.  This protects
-     against receiving a duplicate packet */
+  /* Test 1 checks for duplicate packet */
+  test1 = message->transmit_ts.hi != inst->remote_orig.hi ||
+          message->transmit_ts.lo != inst->remote_orig.lo;
 
-  if ((message->transmit_ts.hi == inst->remote_orig.hi) &&
-      (message->transmit_ts.lo == inst->remote_orig.lo)) {
-    test1 = 0; /* Failed */
-  } else {
-    test1 = 1; /* Success */
-  }
+  /* Test 2 checks for bogus packet.  This ensures the source is responding to
+     the latest packet we sent to it. */
+  test2 = message->originate_ts.hi == inst->local_ntp_tx.hi &&
+          message->originate_ts.lo == inst->local_ntp_tx.lo;
+  
+  /* Test 3 checks for invalid timestamps.  This can happen when the
+     association if not properly 'up'. */
+  test3 = (message->originate_ts.hi || message->originate_ts.lo) &&
+          (message->receive_ts.hi || message->receive_ts.lo) &&
+          (message->transmit_ts.hi || message->transmit_ts.lo);
 
-  /* Test 2 requires pkt.org == peer.xmt.  This ensures the source
-     is responding to the latest packet we sent to it. */
-  if ((message->originate_ts.hi != inst->local_ntp_tx.hi) || 
-      (message->originate_ts.lo != inst->local_ntp_tx.lo)) {
-    test2 = 0; /* Failed */
-  } else {
-    test2 = 1; /* Success */
+  /* Test 4 would check for denied access.  It would always pass as this
+     function is called only for known sources. */
+
+  /* Test 5 checks for authentication failure.  If we expect authenticated info
+     from this peer/server and the packet doesn't have it or the authentication
+     is bad, it's got to fail.  If the peer or server sends us an authenticated
+     frame, but we're not bothered about whether he authenticates or not, just
+     ignore the test. */
+  test5 = inst->do_auth ? check_packet_auth(message, length, NULL, NULL) : 1;
+
+  /* Test 6 checks for unsynchronised server */
+  test6 = pkt_leap != LEAP_Unsynchronised &&
+          message->stratum < NTP_MAX_STRATUM &&
+          message->stratum != NTP_INVALID_STRATUM; 
+
+  /* Test 7 checks for bad data.  The root distance must be smaller than a
+     defined maximum and the transmit time must not be before the time of
+     the last synchronisation update. */
+  test7 = pkt_root_delay / 2.0 + pkt_root_dispersion < NTP_MAX_DISPERSION &&
+          UTI_CompareTimevals(&remote_reference_tv, &remote_transmit_tv) < 1;
+
+  /* The packet is considered valid if the tests above passed */
+  valid_packet = test1 && test2 && test3 && test5 && test6 && test7;
+
+  /* Check for Kiss-o'-Death codes */
+  kod_rate = 0;
+  if (test1 && test2 && test5 && pkt_leap == LEAP_Unsynchronised &&
+      message->stratum == NTP_INVALID_STRATUM) {
+    if (pkt_refid == KOD_RATE)
+      kod_rate = 1;
   }
 
   /* Regardless of any validity checks we apply, we are required to
-     save this field from the packet into the ntp source
-     instance record.  See RFC1305 section 3.4.4, peer.org <- pkt.xmt
-     & peer.peerpoll <- pkt.poll.  Note we can't do this assignment
-     before test1 has been carried out!! */
-
+     save these fields from the packet into the ntp source instance record.
+     Note we can't do this assignment before test 1 has been carried out. */
   inst->remote_orig = message->transmit_ts;
+  inst->local_rx = *now;
 
-  /* Test 3 requires that pkt.org != 0 and pkt.rec != 0.  If
-     either of these are true it means the association is not properly
-     'up'. */
-  
-  if (((message->originate_ts.hi == 0) && (message->originate_ts.lo == 0)) ||
-      ((message->receive_ts.hi == 0) && (message->receive_ts.lo == 0))) {
-    test3 = 0; /* Failed */
-  } else {
-    test3 = 1; /* Success */
-  }
+  /* This protects against replay of the last packet we sent */
+  if (test2)
+    inst->local_ntp_tx.hi = inst->local_ntp_tx.lo = 0;
 
-  SRC_GetFrequencyRange(inst->source, &source_freq_lo, &source_freq_hi);
+  if (valid_packet) {
+    precision = LCL_GetSysPrecisionAsQuantum();
 
-  UTI_Int64ToTimeval(&message->receive_ts, &remote_receive_tv);
-  UTI_Int64ToTimeval(&message->transmit_ts, &remote_transmit_tv);
-
-  if (test3) {
+    SRC_GetFrequencyRange(inst->source, &source_freq_lo, &source_freq_hi);
     
     UTI_AverageDiffTimevals(&remote_receive_tv, &remote_transmit_tv,
                             &remote_average, &remote_interval);
@@ -1073,16 +1142,19 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     UTI_AverageDiffTimevals(&inst->local_tx, now,
                             &local_average, &local_interval);
 
-    /* In our case, we work out 'delta' as the worst case delay,
+    /* In our case, we work out 'delay' as the worst case delay,
        assuming worst case frequency error between us and the other
        source */
+    delay = local_interval - remote_interval * (1.0 + source_freq_lo);
+
+    /* Clamp delay to avoid misleading results later */
+    delay = fabs(delay);
+    if (delay < precision)
+      delay = precision;
     
-    delta = local_interval - remote_interval * (1.0 + source_freq_lo);
-    
-    /* Calculate theta.  Following the NTP definition, this is negative
+    /* Calculate offset.  Following the NTP definition, this is negative
        if we are fast of the remote source. */
-    
-    UTI_DiffTimevalsToDouble(&theta, &remote_average, &local_average);
+    UTI_DiffTimevalsToDouble(&offset, &remote_average, &local_average);
     
     /* We treat the time of the sample as being midway through the local
        measurement period.  An analysis assuming constant relative
@@ -1095,174 +1167,65 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     skew = (source_freq_hi - source_freq_lo) / 2.0;
     
     /* and then calculate peer dispersion */
-    epsilon = LCL_GetSysPrecisionAsQuantum() + now_err + skew * fabs(local_interval);
+    dispersion = precision + now_err + skew * fabs(local_interval);
     
+    /* Additional tests required to pass before accumulating the sample */
+
+    /* Test A requires that the round trip delay is less than an
+       administrator-defined value */ 
+    testA = delay <= inst->max_delay;
+
+    /* Test B requires that the ratio of the round trip delay to the
+       minimum one currently in the stats data register is less than an
+       administrator-defined value */
+    testB = inst->max_delay_ratio <= 1.0 ||
+            delay / SRC_MinRoundTripDelay(inst->source) > inst->max_delay_ratio;
+
+    /* Test C requires that the ratio of the increase in delay from the minimum
+       one in the stats data register to the standard deviation of the offsets
+       in the register is less than an administrator-defined value or the
+       difference between measured offset and predicted offset is larger than
+       the increase in delay */
+    testC = SRC_IsGoodSample(inst->source, -offset, delay,
+                             inst->max_delay_dev_ratio, LCL_GetMaxClockError(),
+                             &sample_time);
+
+    /* Test D requires that the remote peer is not synchronised to us to
+       prevent a synchronisation loop */
+    testD = message->stratum <= 1 || pkt_refid != UTI_IPToRefid(&local_addr->ip_addr);
   } else {
-    /* If test3 failed, we probably can't calculate these quantities
-       properly (e.g. for the first sample received in a peering
-       connection). */
-    theta = delta = epsilon = 0.0;
+    offset = delay = dispersion = 0.0;
     sample_time = *now;
+    testA = testB = testC = testD = 0;
   }
   
-  peer_distance = epsilon + 0.5 * fabs(delta);
-  
-  /* Test 4 requires that the round trip delay to the source and the
-     source (RFC1305 'peer') dispersion are less than a cutoff value */
+  /* The packet is considered good for synchronisation if
+     the additional tests passed */
+  good_packet = testA && testB && testC && testD;
 
-  if ((fabs(delta) >= NTP_MAX_DISPERSION) ||
-      (epsilon >= NTP_MAX_DISPERSION)) {
-    test4 = 0; /* Failed */
-  } else {
-    test4 = 1; /* Success */
-  }
+  root_delay = pkt_root_delay + delay;
+  root_dispersion = pkt_root_dispersion + dispersion;
+  distance = dispersion + 0.5 * delay;
 
-  /* Test 4a (additional to RFC1305) requires that the round trip
-     delay is less than an administrator-defined value */
+  DEBUG_LOG(LOGF_NtpCore, "NTP packet lvm=%o stratum=%d poll=%d prec=%d root_delay=%f root_disp=%f refid=%"PRIx32" [%s]",
+            message->lvm, message->stratum, message->poll, message->precision,
+            pkt_root_delay, pkt_root_dispersion, pkt_refid,
+            message->stratum == NTP_INVALID_STRATUM ? UTI_RefidToString(pkt_refid) : "");
+  DEBUG_LOG(LOGF_NtpCore, "reference=%s origin=%s receive=%s transmit=%s",
+            UTI_TimestampToString(&message->reference_ts),
+            UTI_TimestampToString(&message->originate_ts),
+            UTI_TimestampToString(&message->receive_ts),
+            UTI_TimestampToString(&message->transmit_ts));
+  DEBUG_LOG(LOGF_NtpCore, "offset=%f delay=%f dispersion=%f root_delay=%f root_dispersion=%f",
+            offset, delay, dispersion, root_delay, root_dispersion);
+  DEBUG_LOG(LOGF_NtpCore, "test123=%d%d%d test567=%d%d%d testABCD=%d%d%d%d kod_rate=%d valid=%d good=%d",
+            test1, test2, test3, test5, test6, test7, testA, testB, testC, testD,
+            kod_rate, valid_packet, good_packet);
 
-  if (fabs(delta) > inst->max_delay) {
-    test4a = 0; /* Failed */
-  } else {
-    test4a = 1; /* Success */
-  }
-
-  /* Test 4b (additional to RFC1305) requires that the ratio of the
-     round trip delay to the minimum one currently in the stats data
-     register is less than an administrator-defined value */
-
-  if (inst->max_delay_ratio > 1.0 &&
-      fabs(delta/SRC_MinRoundTripDelay(inst->source)) > inst->max_delay_ratio) {
-    test4b = 0; /* Failed */
-  } else {
-    test4b = 1; /* Success */
-  }
-
-  /* Test 4c (additional to RFC1305) requires that the ratio of the
-     increase in delay from the minimum one in the stats data register to
-     the standard deviation of the offsets in the register is less than an
-     administrator-defined value or the difference between measured offset
-     and predicted offset is larger than the increase in delay */
-  if (!SRC_IsGoodSample(inst->source, -theta, fabs(delta),
-        inst->max_delay_dev_ratio, LCL_GetMaxClockError(), &sample_time)) {
-    test4c = 0; /* Failed */
-  } else {
-    test4c = 1; /* Success */
-  }
-
-  /* Test 5 relates to authentication. */
-  if (inst->do_auth) {
-    if (auth_len > 0) {
-      auth_key_id = ntohl(message->auth_keyid);
-      test5 = check_packet_auth(message, auth_key_id, auth_len);
-    } else {
-      /* If we expect authenticated info from this peer/server and the packet
-         doesn't have it, it's got to fail */
-      test5 = 0;
-    }
-  } else {
-    /* If the peer or server sends us an authenticated frame, but
-       we're not bothered about whether he authenticates or not, just
-       ignore the test. */
-    test5 = 1;
-  }
-
-  /* Test 6 checks that (i) the remote clock is synchronised (ii) the
-     transmit timestamp is not before the time it was synchronized (clearly
-     bogus if it is), and (iii) that it was not synchronised too long ago
-     */
-  UTI_Int64ToTimeval(&message->reference_ts, &remote_reference_tv);
-  if ((!source_is_synchronized) ||
-      (UTI_CompareTimevals(&remote_reference_tv, &remote_transmit_tv) == 1) ||
-      ((remote_reference_tv.tv_sec + NTP_MAXAGE - remote_transmit_tv.tv_sec) < 0)) {
-    test6 = 0; /* Failed */
-  } else {
-    test6 = 1; /* Succeeded */
-  }
-
-  /* (WGU) Set stratum to greater than any valid if incoming is 0 */
-  /* as per the NPT v4 documentation*/
-  if (message->stratum <= NTP_INVALID_STRATUM) {
-    message->stratum = NTP_MAX_STRATUM + 1;
-  }
-
-  /* Increase stratum to the configured minimum */
-  if (message->stratum < inst->min_stratum) {
-    message->stratum = inst->min_stratum;
-  }
-
-  /* Test 7i checks that the stratum in the packet is valid */
-  if (message->stratum > NTP_MAX_STRATUM) {
-    test7i = 0; /* Failed */
-  } else {
-    test7i = 1;
-  }
-
-  /* Test 7ii checks that the stratum in the packet is not higher than ours */
-  if (message->stratum > REF_GetOurStratum()) {
-    test7ii = 0; /* Failed */
-  } else {
-    test7ii = 1;
-  }
-
-  test7 = test7i && test7ii;
-
-  /* Test 8 checks that the root delay and dispersion quoted in 
-     the packet are appropriate */
-  if ((pkt_root_delay >= NTP_MAX_DISPERSION) ||
-      (pkt_root_dispersion >= NTP_MAX_DISPERSION)) {
-    test8 = 0; /* Failed */
-  } else {
-    test8 = 1;
-  }
-
-  /* Check for Kiss-of-Death */
-  if (!test7i && !source_is_synchronized) {
-      if (!memcmp(&message->reference_id, "RATE", 4))
-        kod_rate = 1;
-  }
-
-  valid_kod = test1 && test2 && test5;
-
-  valid_data = test1 && test2 && test3 && test4 && test4a && test4b;
-  good_data = valid_data && test4c;
-  valid_header = test5 && test6 && test7i && test8;
-  good_header = valid_header && test7ii;
-
-  root_delay = pkt_root_delay + fabs(delta);
-  root_dispersion = pkt_root_dispersion + epsilon;
-
-  DEBUG_LOG(LOGF_NtpCore, "lvm=%o stratum=%d poll=%d prec=%d",
-      message->lvm, message->stratum, message->poll, message->precision);
-  DEBUG_LOG(LOGF_NtpCore, "Root delay=%08x (%f), dispersion=%08x (%f)",
-      message->root_delay, pkt_root_delay, message->root_dispersion, pkt_root_dispersion);
-  DEBUG_LOG(LOGF_NtpCore, "Ref id=[%x], ref_time=%08x.%08x [%s]",
-      ntohl(message->reference_id),
-      message->reference_ts.hi, message->reference_ts.lo,
-      UTI_TimestampToString(&message->reference_ts));
-  DEBUG_LOG(LOGF_NtpCore, "Originate=%08x.%08x [%s]",
-      message->originate_ts.hi, message->originate_ts.lo,
-      UTI_TimestampToString(&message->originate_ts));
-  DEBUG_LOG(LOGF_NtpCore, "Message receive=%08x.%08x [%s]",
-      message->receive_ts.hi, message->receive_ts.lo,
-      UTI_TimestampToString(&message->receive_ts));
-
-  DEBUG_LOG(LOGF_NtpCore, "Transmit=%08x.%08x [%s]",
-      message->transmit_ts.hi, message->transmit_ts.lo,
-      UTI_TimestampToString(&message->transmit_ts));
-
-  DEBUG_LOG(LOGF_NtpCore, "theta=%f delta=%f epsilon=%f root_delay=%f root_dispersion=%f",
-      theta, delta, epsilon, root_delay, root_dispersion);
-
-  DEBUG_LOG(LOGF_NtpCore, "test1=%d test2=%d test3=%d test4=%d valid_data=%d good_data=%d",
-      test1, test2, test3, test4, valid_data, good_data);
-
-  DEBUG_LOG(LOGF_NtpCore, "test5=%d test6=%d test7=%d test8=%d valid_header=%d good_header=%d",
-      test5, test6, test7, test8, valid_header, good_header);
-
-  DEBUG_LOG(LOGF_NtpCore, "kod_rate=%d valid_kod=%d", kod_rate, valid_kod);
+  requeue_transmit = 0;
 
   /* Reduce polling rate if KoD RATE was received */
-  if (kod_rate && valid_kod) {
+  if (kod_rate) {
     if (message->poll > inst->minpoll) {
       /* Set our minpoll to message poll, but use a reasonable maximum */
       if (message->poll <= MAX_KOD_RATE_POLL)
@@ -1291,32 +1254,25 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     requeue_transmit = 1;
   }
 
-  if (valid_header && valid_data) {
+  if (valid_packet) {
     inst->remote_poll = message->poll;
     inst->remote_stratum = message->stratum;
     inst->tx_count = 0;
     SRC_UpdateReachability(inst->source, 1);
 
-    /* Mark the source as suitable for synchronisation when both header and
-       data are good, unmark when header is not good (i.e. the stratum is
-       higher than ours) */
-    if (good_header) {
-      if (good_data) {
-        SRC_SetSelectable(inst->source);
-      }
-    } else {
-      SRC_UnsetSelectable(inst->source);
-    }
-
-    if (good_data) {
+    if (good_packet) {
       /* Do this before we accumulate a new sample into the stats registers, obviously */
       estimated_offset = SRC_PredictOffset(inst->source, &sample_time);
 
+      SRC_SetSelectable(inst->source);
+
       SRC_AccumulateSample(inst->source,
                            &sample_time,
-                           theta, fabs(delta), epsilon,
+                           offset, delay, dispersion,
                            root_delay, root_dispersion,
-                           message->stratum, (NTP_Leap) pkt_leap);
+                           message->stratum > inst->min_stratum ?
+                             message->stratum : inst->min_stratum,
+                           (NTP_Leap) pkt_leap);
 
       SRC_SelectSource(inst->source);
 
@@ -1324,10 +1280,10 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
          not even within +/- the peer distance of the peer, we are clearly
          not tracking the peer at all well, so we back off the sampling
          rate depending on just how bad the situation is. */
-      error_in_estimate = fabs(-theta - estimated_offset);
+      error_in_estimate = fabs(-offset - estimated_offset);
 
       /* Now update the polling interval */
-      adjust_poll(inst, get_poll_adj(inst, error_in_estimate, peer_distance));
+      adjust_poll(inst, get_poll_adj(inst, error_in_estimate, distance));
 
       /* If we're in burst mode, check whether the burst is completed and
          revert to the previous mode */
@@ -1346,7 +1302,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
           break;
       }
     } else {
-      /* Slowly increase the polling interval if we can't get good_data */
+      /* Slowly increase the polling interval if we can't get good packet */
       adjust_poll(inst, 0.1);
     }
 
@@ -1373,39 +1329,42 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   /* Do measurement logging */
   if (logfileid != -1) {
-    LOG_FileWrite(logfileid, "%s %-15s %1c %2d %1d%1d%1d%1d %1d%1d%1d %1d%1d%1d%1d %2d %2d %4.2f %10.3e %10.3e %10.3e %10.3e %10.3e",
+    LOG_FileWrite(logfileid, "%s %-15s %1c %2d %1d%1d%1d %1d%1d%1d %1d%1d%1d%d  %2d %2d %4.2f %10.3e %10.3e %10.3e %10.3e %10.3e",
             UTI_TimeToLogForm(sample_time.tv_sec),
             UTI_IPToString(&inst->remote_addr.ip_addr),
             sync_stats[pkt_leap],
             message->stratum,
-            test1, test2, test3, test4,
-            test4a, test4b, test4c,
-            test5, test6, test7, test8,
+            test1, test2, test3, test5, test6, test7, testA, testB, testC, testD,
             inst->local_poll, inst->remote_poll,
             inst->poll_score,
-            theta, delta, epsilon,
+            offset, delay, dispersion,
             pkt_root_delay, pkt_root_dispersion);
   }            
 }
 
 /* ================================================== */
-/* From RFC1305, the standard handling of receive packets, depending
+/* From RFC 5905, the standard handling of received packets, depending
    on the mode of the packet and of the source, is :
 
-          Source mode>>>
-   Packet
-   mode       active  passive  client   server  bcast
-   vvv
+   +------------------+---------------------------------------+
+   |                  |              Packet Mode              |
+   +------------------+-------+-------+-------+-------+-------+
+   | Association Mode |   1   |   2   |   3   |   4   |   5   |
+   +------------------+-------+-------+-------+-------+-------+
+   | No Association 0 | NEWPS | DSCRD | FXMIT | MANY  | NEWBC |
+   | Symm. Active   1 | PROC  | PROC  | DSCRD | DSCRD | DSCRD |
+   | Symm. Passive  2 | PROC  | ERR   | DSCRD | DSCRD | DSCRD |
+   | Client         3 | DSCRD | DSCRD | DSCRD | PROC  | DSCRD |
+   | Server         4 | DSCRD | DSCRD | DSCRD | DSCRD | DSCRD |
+   | Broadcast      5 | DSCRD | DSCRD | DSCRD | DSCRD | DSCRD |
+   | Bcast Client   6 | DSCRD | DSCRD | DSCRD | DSCRD | PROC  |
+   +------------------+-------+-------+-------+-------+-------+
 
-   active     recv    pkt      recv     xmit    xmit
-   passive    recv    error    recv     error   error
-   client     xmit    xmit     error    xmit    xmit
-   server     recv    error    recv     error   error
-   bcast      recv    error    recv     error   error
+   Association mode 0 is implemented in NCR_ProcessUnknown(), other modes
+   in NCR_ProcessKnown().
 
-   We ignore broadcasts in this implementation - they create too many
-   problems.
-
+   Broadcast, manycast and ephemeral symmetric passive associations are not
+   supported yet.
  */
 
 /* ================================================== */
@@ -1418,19 +1377,17 @@ NCR_ProcessKnown
  struct timeval *now,           /* timestamp at time of receipt */
  double now_err,
  NCR_Instance inst,             /* the instance record for this peer/server */
- int sock_fd,                   /* the receiving socket */
+ NTP_Local_Address *local_addr, /* the receiving address */
  int length                     /* the length of the received packet */
  )
 {
-  int pkt_mode;
-  int version;
-  int auth_len;
+  int pkt_mode, proc_packet, proc_as_unknown, log_peer_access;
 
   /* Make sure the packet was received by the sending socket */
-  if (sock_fd != inst->local_addr.sock_fd) {
+  if (local_addr->sock_fd != inst->local_addr.sock_fd) {
     DEBUG_LOG(LOGF_NtpCore,
               "Packet received by wrong socket %d (expected %d)",
-              sock_fd, inst->local_addr.sock_fd);
+              local_addr->sock_fd, inst->local_addr.sock_fd);
     return;
   }
 
@@ -1439,33 +1396,61 @@ NCR_ProcessKnown
     return;
   }
 
-  /* Check version */
-  version = (message->lvm >> 3) & 0x7;
-  if (version < NTP_MIN_COMPAT_VERSION || version > NTP_MAX_COMPAT_VERSION) {
-    /* Ignore packet, but might want to log it */
+  if (!check_packet_format(message, length))
     return;
-  } 
 
-  /* Perform tests mentioned in RFC1305 to validate packet contents */
-  pkt_mode = (message->lvm >> 0) & 0x7;
-
-  /* Length of the authentication data, if any */
-  auth_len = length - (NTP_NORMAL_PACKET_SIZE + sizeof (message->auth_keyid));
-  if (auth_len < 0) {
-    auth_len = 0;
-  }
+  pkt_mode = NTP_LVM_TO_MODE(message->lvm);
+  proc_packet = 0;
+  proc_as_unknown = 0;
+  log_peer_access = 0;
 
   /* Now, depending on the mode we decide what to do */
   switch (pkt_mode) {
+    case MODE_ACTIVE:
+      switch (inst->mode) {
+        case MODE_ACTIVE:
+          /* Ordinary symmetric peering */
+          log_peer_access = 1;
+          proc_packet = 1;
+          break;
+        case MODE_PASSIVE:
+          /* In this software this case should not arise, we don't
+             support unconfigured peers */
+          break;
+        case MODE_CLIENT:
+          /* This is where we have the remote configured as a server and he has
+             us configured as a peer, process as from an unknown source */
+          proc_as_unknown = 1;
+          break;
+        default:
+          /* Discard */
+          break;
+      }
+      break;
+
+    case MODE_PASSIVE:
+      switch (inst->mode) {
+        case MODE_ACTIVE:
+          /* This would arise if we have the remote configured as a peer and
+             he does not have us configured */
+          log_peer_access = 1;
+          proc_packet = 1;
+          break;
+        case MODE_PASSIVE:
+          /* Error condition in RFC 5905 */
+          break;
+        default:
+          /* Discard */
+          break;
+      }
+      break;
+
     case MODE_CLIENT:
       /* If message is client mode, we just respond with a server mode
          packet, regardless of what we think the remote machine is
          supposed to be.  However, even though this is a configured
          peer or server, we still implement access restrictions on
          client mode operation.
-
-         This is an extension to RFC1305, as we don't bother to check
-         whether we are a client of the remote machine.
 
          This copes with the case for an isolated network where one
          machine is set by eye and is used as the master, with the
@@ -1474,40 +1459,7 @@ NCR_ProcessKnown
          one of the secondaries to flywheel it. The behaviour coded here
          is required in the secondaries to make this possible. */
 
-      NCR_ProcessUnknown(message, now, now_err,
-                         &inst->remote_addr, &inst->local_addr, length);
-
-      break;
-
-    case MODE_ACTIVE:
-
-      switch(inst->mode) {
-        case MODE_ACTIVE:
-          /* Ordinary symmetric peering */
-          CLG_LogNTPPeerAccess(&inst->remote_addr.ip_addr, (time_t) now->tv_sec);
-          receive_packet(message, now, now_err, inst, auth_len);
-          break;
-        case MODE_PASSIVE:
-          /* In this software this case should not arise, we don't
-             support unconfigured peers */
-          break;
-        case MODE_CLIENT:
-          /* This is where we have the remote configured as a server and he has
-             us configured as a peer - fair enough. */
-          CLG_LogNTPPeerAccess(&inst->remote_addr.ip_addr, (time_t) now->tv_sec);
-          receive_packet(message, now, now_err, inst, auth_len);
-          break;
-        case MODE_SERVER:
-          /* Nonsense - we can't have a preconfigured server */
-          break;
-        case MODE_BROADCAST:
-          /* We don't handle broadcasts */
-          break;
-        default:
-          /* Obviously ignore */
-          break;
-      }
-
+      proc_as_unknown = 1;
       break;
 
     case MODE_SERVER:
@@ -1515,69 +1467,37 @@ NCR_ProcessKnown
       if (inst->presend_done)
         break;
 
-      switch(inst->mode) {
-        case MODE_ACTIVE:
-          /* Slightly bizarre combination, but we can still process it */
-          CLG_LogNTPPeerAccess(&inst->remote_addr.ip_addr, (time_t) now->tv_sec);
-          receive_packet(message, now, now_err, inst, auth_len);
-          break;
-        case MODE_PASSIVE:
-          /* We have no passive peers in this software */
-          break;
+      switch (inst->mode) {
         case MODE_CLIENT:
           /* Standard case where he's a server and we're the client */
-          receive_packet(message, now, now_err, inst, auth_len);
-          break;
-        case MODE_SERVER:
-          /* RFC1305 error condition. */
-          break;
-        case MODE_BROADCAST:
-          /* RFC1305 error condition */
+          proc_packet = 1;
           break;
         default:
-          /* Obviously ignore */
-          break;
-      }
-      break;
-
-    case MODE_PASSIVE:
-
-      switch(inst->mode) {
-        case MODE_ACTIVE:
-          /* This would arise if we have the remote configured as a peer and
-             he does not have us configured */
-          CLG_LogNTPPeerAccess(&inst->remote_addr.ip_addr, (time_t) now->tv_sec);
-          receive_packet(message, now, now_err, inst, auth_len);
-          break;
-        case MODE_PASSIVE:
-          /* Error condition in RFC1305.  Also, we can't have any
-             non-transient PASSIVE sources in this version, we only
-             allow configured peers! */
-          break;
-        case MODE_CLIENT:
-          /* This is a wierd combination - how could it arise? */
-          receive_packet(message, now, now_err, inst, auth_len);
-          break;
-        case MODE_SERVER:
-          /* Error condition in RFC1305 */
-          break;
-        case MODE_BROADCAST:
-          /* Error condition in RFC1305 */
-          break;
-        default:
-          /* Obviously ignore */
+          /* Discard */
           break;
       }
       break;
 
     case MODE_BROADCAST:
-      /* Just ignore these, but might want to log them */
+      /* Just ignore these */
       break;
 
     default:
       /* Obviously ignore */
       break;
-      
+  }
+
+  if (log_peer_access)
+    CLG_LogNTPPeerAccess(&inst->remote_addr.ip_addr, now->tv_sec);
+
+  if (proc_packet) {
+    receive_packet(message, now, now_err, inst, local_addr, length);
+  } else if (proc_as_unknown) {
+    NCR_ProcessUnknown(message, now, now_err, &inst->remote_addr,
+                       &inst->local_addr, length);
+  } else {
+    DEBUG_LOG(LOGF_NtpCore, "NTP packet discarded pkt_mode=%d our_mode=%d",
+              pkt_mode, inst->mode);
   }
 }
 
@@ -1595,10 +1515,8 @@ NCR_ProcessUnknown
  int length                     /* the length of the received packet */
  )
 {
-  NTP_Mode his_mode;
-  NTP_Mode my_mode;
-  int my_poll, version;
-  int valid_auth, auth_len;
+  NTP_Mode pkt_mode, my_mode;
+  int has_auth, valid_auth;
   uint32_t key_id;
 
   /* Ignore the packet if it wasn't received by server socket */
@@ -1608,66 +1526,52 @@ NCR_ProcessUnknown
     return;
   }
 
-  /* Check version */
-  version = (message->lvm >> 3) & 0x7;
-  if (version < NTP_MIN_COMPAT_VERSION || version > NTP_MAX_COMPAT_VERSION) {
-    /* Ignore packet, but might want to log it */
+  if (!check_packet_format(message, length))
+    return;
+
+  if (!ADF_IsAllowed(access_auth_table, &remote_addr->ip_addr)) {
+    DEBUG_LOG(LOGF_NtpCore, "NTP packet received from unauthorised host %s port %d",
+              UTI_IPToString(&remote_addr->ip_addr),
+              remote_addr->port);
     return;
   }
 
-  if (ADF_IsAllowed(access_auth_table, &remote_addr->ip_addr)) {
+  pkt_mode = NTP_LVM_TO_MODE(message->lvm);
 
-    his_mode = message->lvm & 0x07;
-    
-    if (his_mode == MODE_CLIENT) {
-      /* We are server */
-      my_mode = MODE_SERVER;
-      CLG_LogNTPClientAccess(&remote_addr->ip_addr, (time_t) now->tv_sec);
-
-    } else if (his_mode == MODE_ACTIVE) {
+  switch (pkt_mode) {
+    case MODE_ACTIVE:
       /* We are symmetric passive, even though we don't ever lock to him */
       my_mode = MODE_PASSIVE;
-      CLG_LogNTPPeerAccess(&remote_addr->ip_addr, (time_t) now->tv_sec);
-
-    } else {
-      my_mode = MODE_UNDEFINED;
-    }
-    
-    /* If we can't determine a sensible mode to reply with, it means
-       he has supplied a wierd mode in his request, so ignore it. */
-
-    if (my_mode != MODE_UNDEFINED) {
-      int do_auth = 0;
-      auth_len = length - (NTP_NORMAL_PACKET_SIZE + sizeof (message->auth_keyid));
-
-      if (auth_len > 0) {
-        /* Only reply if we know the key and the packet authenticates
-           properly. */
-        key_id = ntohl(message->auth_keyid);
-        do_auth = 1;
-        valid_auth = check_packet_auth(message, key_id, auth_len);
-      }
-
-      if (!do_auth || valid_auth) {
-        /* Reply with the same poll, the client may use it to control its poll */
-        my_poll = message->poll;
-
-        transmit_packet(my_mode, my_poll,
-                        version,
-                        do_auth, do_auth ? key_id : 0,
-                        &message->transmit_ts, /* Originate (for us) is the transmit time for the client */
-                        now, /* Time we received the packet */
-                        NULL, /* Don't care when we send reply, we aren't maintaining state about this client */
-                        NULL, /* Ditto */
-                        remote_addr,
-                        local_addr);
-      }
-    }
-  } else {
-    DEBUG_LOG(LOGF_NtpCore, "NTP packet received from unauthorised host %s port %d",
-        UTI_IPToString(&remote_addr->ip_addr),
-        remote_addr->port);
+      CLG_LogNTPPeerAccess(&remote_addr->ip_addr, now->tv_sec);
+      break;
+    case MODE_CLIENT:
+      /* Reply with server packet */
+      my_mode = MODE_SERVER;
+      CLG_LogNTPClientAccess(&remote_addr->ip_addr, now->tv_sec);
+      break;
+    default:
+      /* Discard */
+      DEBUG_LOG(LOGF_NtpCore, "NTP packet discarded pkt_mode=%d", pkt_mode);
+      return;
   }
+
+  /* Check if the packet includes MAC that authenticates properly */
+  valid_auth = check_packet_auth(message, length, &has_auth, &key_id);
+
+  /* If authentication failed, reply with crypto-NAK */
+  if (has_auth && !valid_auth)
+    key_id = 0;
+
+  /* Send a reply.
+     - copy the poll value as the client may use it to control its polling
+       interval
+     - authenticate the packet if the request was authenticated
+     - originate timestamp is the client's transmit time
+     - don't save our transmit timestamp as we aren't maintaining state about
+       this client */
+  transmit_packet(my_mode, message->poll, NTP_LVM_TO_VERSION(message->lvm),
+                  has_auth, key_id, &message->transmit_ts, now, NULL, NULL,
+                  remote_addr, local_addr);
 }
 
 /* ================================================== */

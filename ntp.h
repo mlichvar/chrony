@@ -38,7 +38,20 @@ typedef struct {
 
 typedef uint32_t NTP_int32;
 
-#define MAX_NTP_AUTH_DATA_LEN MAX_HASH_LENGTH
+/* The NTP protocol version that we support */
+#define NTP_VERSION 4
+
+/* The minimum valid length of an extension field */
+#define NTP_MIN_EXTENSION_LENGTH 16
+
+/* The maximum assumed length of all extension fields in received
+   packets (RFC 5905 doesn't specify a limit on length or number of
+   extension fields in one packet) */
+#define NTP_MAX_EXTENSIONS_LENGTH 1024
+
+/* The minimum and maximum supported length of MAC */
+#define NTP_MIN_MAC_LENGTH 16
+#define NTP_MAX_MAC_LENGTH MAX_HASH_LENGTH
 
 /* Type definition for leap bits */
 typedef enum {
@@ -69,24 +82,28 @@ typedef struct {
   NTP_int64 originate_ts;
   NTP_int64 receive_ts;
   NTP_int64 transmit_ts;
+
+  /* Optional extension fields, we don't send packets with them yet */
+  /* uint8_t extensions[] */
+
+  /* Optional message authentication code (MAC) */
   NTP_int32 auth_keyid;
-  uint8_t auth_data[MAX_NTP_AUTH_DATA_LEN];
+  uint8_t auth_data[NTP_MAX_MAC_LENGTH];
 } NTP_Packet;
 
-/* We have to declare a buffer type to hold a datagram read from the
-   network.  Even though we won't be using them (yet?!), this must be
-   large enough to hold NTP control messages. */
+#define NTP_NORMAL_PACKET_LENGTH offsetof(NTP_Packet, auth_keyid)
 
-/* Define the maximum number of bytes that can be read in a single
-   message.  (This is cribbed from ntp.h in the xntpd source code). */
-
-#define MAX_NTP_MESSAGE_SIZE (468+12+16+4)
-
-typedef union {
+/* The buffer used to hold a datagram read from the network */
+typedef struct {
   NTP_Packet ntp_pkt;
-  uint8_t arbitrary[MAX_NTP_MESSAGE_SIZE];
-} ReceiveBuffer;
+  uint8_t extensions[NTP_MAX_EXTENSIONS_LENGTH];
+} NTP_Receive_Buffer;
 
-#define NTP_NORMAL_PACKET_SIZE offsetof(NTP_Packet, auth_keyid)
+/* Macros to work with the lvm field */
+#define NTP_LVM_TO_LEAP(lvm) (((lvm) >> 6) & 0x3)
+#define NTP_LVM_TO_VERSION(lvm) (((lvm) >> 3) & 0x7)
+#define NTP_LVM_TO_MODE(lvm) ((lvm) & 0x7)
+#define NTP_LVM(leap, version, mode) \
+  ((((leap) << 6) & 0xc0) | (((version) << 3) & 0x38) | ((mode) & 0x07))
 
 #endif /* GOT_NTP_H */

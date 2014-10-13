@@ -423,7 +423,7 @@ read_from_socket(void *anything)
      to read, otherwise it will block. */
 
   int status, sock_fd;
-  ReceiveBuffer message;
+  NTP_Receive_Buffer message;
   union sockaddr_in46 where_from;
   unsigned int flags = 0;
   struct timeval now;
@@ -439,7 +439,7 @@ read_from_socket(void *anything)
 
   SCH_GetLastEventTime(&now, &now_err, NULL);
 
-  iov.iov_base = message.arbitrary;
+  iov.iov_base = &message.ntp_pkt;
   iov.iov_len = sizeof(message);
   msg.msg_name = &where_from;
   msg.msg_namelen = sizeof(where_from);
@@ -507,7 +507,7 @@ read_from_socket(void *anything)
           UTI_IPToString(&local_addr.ip_addr), local_addr.sock_fd);
     }
 
-    if (status >= NTP_NORMAL_PACKET_SIZE && status <= sizeof(NTP_Packet)) {
+    if (status >= NTP_NORMAL_PACKET_LENGTH) {
 
       NSR_ProcessReceive((NTP_Packet *) &message.ntp_pkt, &now, now_err,
                          &remote_addr, &local_addr, status);
@@ -521,7 +521,7 @@ read_from_socket(void *anything)
 }
 
 /* ================================================== */
-/* Send a packet to given address */
+/* Send a packet to remote address from local address */
 
 static int
 send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr)
@@ -628,19 +628,10 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
 }
 
 /* ================================================== */
-/* Send an unauthenticated packet to a given address */
+/* Send a packet to a given address */
 
 int
-NIO_SendNormalPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr)
+NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length)
 {
-  return send_packet((void *) packet, NTP_NORMAL_PACKET_SIZE, remote_addr, local_addr);
-}
-
-/* ================================================== */
-/* Send an authenticated packet to a given address */
-
-int
-NIO_SendAuthenticatedPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int auth_len)
-{
-  return send_packet((void *) packet, NTP_NORMAL_PACKET_SIZE + auth_len, remote_addr, local_addr);
+  return send_packet((void *) packet, length, remote_addr, local_addr);
 }
