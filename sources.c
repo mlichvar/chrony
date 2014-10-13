@@ -908,7 +908,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
             sources[i]->sel_score = 1.0 / distance; 
           }
 
-          DEBUG_LOG(LOGF_Sources, "select score=%f refid=%x match_refid=%x status=%d dist=%f",
+          DEBUG_LOG(LOGF_Sources, "select score=%f refid=%"PRIx32" match_refid=%"PRIx32" status=%d dist=%f",
               sources[i]->sel_score, sources[i]->ref_id, updated_inst ? updated_inst->ref_id : 0,
               sources[i]->status, distance);
         
