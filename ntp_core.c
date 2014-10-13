@@ -425,6 +425,8 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
     result->maxpoll = result->minpoll;
 
   result->min_stratum = params->min_stratum;
+  if (result->min_stratum >= NTP_MAX_STRATUM)
+    result->min_stratum = NTP_MAX_STRATUM - 1;
   result->presend_minpoll = params->presend_minpoll;
 
   result->max_delay = params->max_delay;
