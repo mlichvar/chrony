@@ -201,9 +201,6 @@ struct NCR_Instance_Record {
 /* Maximum allowed dispersion - as defined in RFC 5905 (16 seconds) */
 #define NTP_MAX_DISPERSION 16.0
 
-/* Maximum stratum number */
-#define NTP_MAX_STRATUM 16
-
 /* Invalid stratum number */
 #define NTP_INVALID_STRATUM 0
 

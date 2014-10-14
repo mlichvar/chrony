@@ -41,6 +41,9 @@ typedef uint32_t NTP_int32;
 /* The NTP protocol version that we support */
 #define NTP_VERSION 4
 
+/* Maximum stratum number (infinity) */
+#define NTP_MAX_STRATUM 16
+
 /* The minimum valid length of an extension field */
 #define NTP_MIN_EXTENSION_LENGTH 16
 

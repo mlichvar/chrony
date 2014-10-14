@@ -90,6 +90,9 @@ timeout_handler(void *arbitrary)
     leap = LEAP_Unsynchronised;
   }
 
+  if (our_stratum >= NTP_MAX_STRATUM)
+    our_stratum = 0;
+
   message.lvm = NTP_LVM(leap, NTP_VERSION, MODE_BROADCAST);
   message.stratum = our_stratum;
   message.poll = 6; /* FIXME: what should this be? */

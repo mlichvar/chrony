@@ -1089,7 +1089,7 @@ REF_GetReferenceParams
     *is_synchronised = 0;
 
     *leap_status = LEAP_Unsynchronised;
-    *stratum = 0;
+    *stratum = NTP_MAX_STRATUM;
     *ref_id = 0;
     ref_time->tv_sec = ref_time->tv_usec = 0;
     /* These values seem to be standard for a client, and
@@ -1111,7 +1111,7 @@ REF_GetOurStratum(void)
   } else if (enable_local_stratum) {
     return local_stratum;
   } else {
-    return 16;
+    return NTP_MAX_STRATUM;
   }
 }
 
