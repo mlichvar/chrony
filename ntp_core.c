@@ -1567,7 +1567,7 @@ NCR_ProcessUnknown
   valid_auth = check_packet_auth(message, length, &has_auth, &key_id);
 
   /* If authentication failed, reply with crypto-NAK */
-  if (has_auth && !valid_auth)
+  if (!valid_auth)
     key_id = 0;
 
   /* Send a reply.
