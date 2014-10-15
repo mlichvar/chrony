@@ -27,7 +27,6 @@
 
 #include "config.h"
 
-#include "broadcast.h"
 #include "clientlog.h"
 #include "cmdmon.h"
 #include "keys.h"
@@ -89,17 +88,7 @@ MNL_Finalise(void)
 #ifndef FEAT_NTP
 
 void
-BRD_Initialise(void)
-{
-}
-
-void
-BRD_Finalise(void)
-{
-}
-
-void
-BRD_AddDestination(IPAddr *addr, unsigned short port, int interval)
+NCR_AddBroadcastDestination(IPAddr *addr, unsigned short port, int interval)
 {
 }
 

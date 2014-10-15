@@ -48,7 +48,6 @@
 #include "rtc.h"
 #include "refclock.h"
 #include "clientlog.h"
-#include "broadcast.h"
 #include "nameserv.h"
 #include "tempcomp.h"
 
@@ -94,7 +93,6 @@ MAI_CleanupAndExit(void)
   CLG_Finalise();
   NSR_Finalise();
   NCR_Finalise();
-  BRD_Finalise();
   SST_Finalise();
   KEY_Finalise();
   RCL_Finalise();
@@ -492,7 +490,6 @@ int main
 
   REF_Initialise();
   SST_Initialise();
-  BRD_Initialise();
   NCR_Initialise();
   NSR_Initialise();
   CLG_Initialise();

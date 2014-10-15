@@ -40,7 +40,6 @@
 #include "nameserv.h"
 #include "memory.h"
 #include "cmdparse.h"
-#include "broadcast.h"
 #include "util.h"
 
 /* ================================================== */
@@ -1240,9 +1239,8 @@ CNF_AddBroadcasts(void)
 {
   int i;
   for (i=0; i<n_broadcasts; i++) {
-    BRD_AddDestination(&broadcasts[i].addr,
-                       broadcasts[i].port,
-                       broadcasts[i].interval);
+    NCR_AddBroadcastDestination(&broadcasts[i].addr, broadcasts[i].port,
+                                broadcasts[i].interval);
   }
 }
 

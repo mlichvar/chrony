@@ -104,4 +104,6 @@ extern NTP_Remote_Address *NCR_GetRemoteAddress(NCR_Instance instance);
 
 extern int NCR_IsSyncPeer(NCR_Instance instance);
 
+extern void NCR_AddBroadcastDestination(IPAddr *addr, unsigned short port, int interval);
+
 #endif /* GOT_NTP_CORE_H */

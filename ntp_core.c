@@ -29,6 +29,7 @@
 
 #include "sysincl.h"
 
+#include "array.h"
 #include "ntp_core.h"
 #include "ntp_io.h"
 #include "memory.h"
@@ -166,6 +167,15 @@ struct NCR_Instance_Record {
 
 };
 
+typedef struct {
+  NTP_Remote_Address addr;
+  NTP_Local_Address local_addr;
+  int interval;
+} BroadcastDestination;
+
+/* Array of BroadcastDestination */
+static ARR_Instance broadcasts;
+
 /* ================================================== */
 /* Initial delay period before first packet is transmitted (in seconds) */
 #define INITIAL_DELAY 0.2
@@ -301,6 +311,7 @@ NCR_Initialise(void)
     : -1;
 
   access_auth_table = ADF_CreateTable();
+  broadcasts = ARR_CreateInstance(sizeof (BroadcastDestination));
 }
 
 /* ================================================== */
@@ -308,8 +319,8 @@ NCR_Initialise(void)
 void
 NCR_Finalise(void)
 {
+  ARR_DestroyInstance(broadcasts);
   ADF_DestroyTable(access_auth_table);
-
 }
 
 /* ================================================== */
@@ -1847,3 +1858,46 @@ int NCR_IsSyncPeer(NCR_Instance inst)
 }
 
 /* ================================================== */
+
+static void
+broadcast_timeout(void *arg)
+{
+  BroadcastDestination *destination;
+  NTP_int64 orig_ts;
+  struct timeval recv_ts;
+
+  destination = ARR_GetElement(broadcasts, (long)arg);
+
+  orig_ts.hi = 0;
+  orig_ts.lo = 0;
+  recv_ts.tv_sec = 0;
+  recv_ts.tv_usec = 0;
+
+  transmit_packet(MODE_BROADCAST, 6 /* FIXME: should this be log2(interval)? */,
+                  NTP_VERSION, 0, 0, &orig_ts, &recv_ts, NULL, NULL,
+                  &destination->addr, &destination->local_addr);
+
+  /* Requeue timeout.  We don't care if interval drifts gradually. */
+  SCH_AddTimeoutInClass(destination->interval, SAMPLING_SEPARATION, SAMPLING_RANDOMNESS,
+                        SCH_NtpBroadcastClass, broadcast_timeout, arg);
+}
+
+/* ================================================== */
+
+void
+NCR_AddBroadcastDestination(IPAddr *addr, unsigned short port, int interval)
+{
+  BroadcastDestination *destination;
+
+  destination = (BroadcastDestination *)ARR_GetNewElement(broadcasts);
+
+  destination->addr.ip_addr = *addr;
+  destination->addr.port = port;
+  destination->local_addr.ip_addr.family = IPADDR_UNSPEC;
+  destination->local_addr.sock_fd = NIO_GetServerSocket(&destination->addr);
+  destination->interval = interval;
+
+  SCH_AddTimeoutInClass(destination->interval, SAMPLING_SEPARATION, SAMPLING_RANDOMNESS,
+                        SCH_NtpBroadcastClass, broadcast_timeout,
+                        (void *)(long)(ARR_GetSize(broadcasts) - 1));
+}
