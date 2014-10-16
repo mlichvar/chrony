@@ -126,7 +126,10 @@ struct SRC_Instance_Record {
 struct Sort_Element {
   int index;
   double offset;
-  enum {LOW=-1, CENTRE=0, HIGH=1} tag;
+  enum {
+    LOW = -1,
+    HIGH = 1
+  } tag;
 };
 
 /* ================================================== */
@@ -571,23 +574,15 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
 void
 SRC_SelectSource(SRC_Instance updated_inst)
 {
-  int i, j, index, sel_prefer;
+  struct SelectInfo *si;
   struct timeval now, ref_time;
+  int i, j, j1, j2, index, sel_prefer, n_endpoints, n_sel_sources;
+  int n_badstats_sources, max_sel_reach, max_badstat_reach;
+  int depth, best_depth, combined, stratum, min_stratum, max_score_index;
   double src_offset, src_offset_sd, src_frequency, src_skew;
   double src_root_delay, src_root_dispersion;
-  int n_endpoints, j1, j2;
-  double best_lo, best_hi;
-  int depth, best_depth;
-  int n_sel_sources, combined;
-  double distance, sel_src_distance;
-  int stratum, min_stratum;
-  struct SelectInfo *si;
-  int n_badstats_sources;
-  int max_sel_reach, max_badstat_reach;
-  int max_score_index;
-  double max_score;
-
-  NTP_Leap leap_status = LEAP_Normal;
+  double best_lo, best_hi, distance, sel_src_distance, max_score;
+  NTP_Leap leap_status;
 
   if (updated_inst)
     updated_inst->updates++;
@@ -605,390 +600,358 @@ SRC_SelectSource(SRC_Instance updated_inst)
   SCH_GetLastEventTime(&now, NULL, NULL);
 
   /* Step 1 - build intervals about each source */
+
   n_endpoints = 0;
   n_sel_sources = 0;
   n_badstats_sources = 0;
   max_sel_reach = max_badstat_reach = 0;
-  for (i=0; i<n_sources; i++) {
 
-    if (sources[i]->selectable && sources[i]->reachability &&
-        sources[i]->sel_option != SRC_SelectNoselect) {
-
-      si = &(sources[i]->sel_info);
-      SST_GetSelectionData(sources[i]->stats, &now,
-                           &(si->stratum),
-                           &(si->lo_limit),
-                           &(si->hi_limit),
-                           &(si->root_distance),
-                           &(si->variance),
-                           &(si->select_ok));
-
-      if (si->select_ok) {
-        ++n_sel_sources;
-
-        sources[i]->status = SRC_OK; /* For now */
-
-        /* Otherwise it will be hard to pick this one later!  However,
-           this test might be too strict, we might want to dump it */
-        j1 = n_endpoints;
-        j2 = j1 + 1;
-
-        sort_list[j1].index = i;
-        sort_list[j1].offset = si->lo_limit;
-        sort_list[j1].tag = LOW;
-
-        sort_list[j2].index = i;
-        sort_list[j2].offset = si->hi_limit;
-        sort_list[j2].tag = HIGH;
-
-        n_endpoints += 2;
-
-        if (max_sel_reach < sources[i]->reachability) {
-          max_sel_reach = sources[i]->reachability;
-        }
-      } else {
-        ++n_badstats_sources;
-        sources[i]->status = SRC_BAD_STATS;
-
-        if (max_badstat_reach < sources[i]->reachability) {
-          max_badstat_reach = sources[i]->reachability;
-        }
-      }
-    } else {
-      /* If the source is not reachable, there is no way we will pick
-         it. */
+  for (i = 0; i < n_sources; i++) {
+    /* If the source is not reachable or selectable, there is no way we will
+       pick it. */
+    if (!sources[i]->selectable || !sources[i]->reachability ||
+        sources[i]->sel_option == SRC_SelectNoselect) {
       sources[i]->status = SRC_UNREACHABLE;
+      continue;
     }
+
+    si = &sources[i]->sel_info;
+    SST_GetSelectionData(sources[i]->stats, &now, &si->stratum,
+                         &si->lo_limit, &si->hi_limit, &si->root_distance,
+                         &si->variance, &si->select_ok);
+
+    if (!si->select_ok) {
+      ++n_badstats_sources;
+      sources[i]->status = SRC_BAD_STATS;
+      if (max_badstat_reach < sources[i]->reachability)
+        max_badstat_reach = sources[i]->reachability;
+      continue;
+    }
+
+    ++n_sel_sources;
+    sources[i]->status = SRC_OK; /* For now */
+
+    /* Otherwise it will be hard to pick this one later!  However,
+       this test might be too strict, we might want to dump it */
+    j1 = n_endpoints;
+    j2 = j1 + 1;
+
+    sort_list[j1].index = i;
+    sort_list[j1].offset = si->lo_limit;
+    sort_list[j1].tag = LOW;
+
+    sort_list[j2].index = i;
+    sort_list[j2].offset = si->hi_limit;
+    sort_list[j2].tag = HIGH;
+
+    n_endpoints += 2;
+
+    if (max_sel_reach < sources[i]->reachability)
+      max_sel_reach = sources[i]->reachability;
   }
 
   DEBUG_LOG(LOGF_Sources, "badstat_sources=%d sel_sources=%d badstat_reach=%x sel_reach=%x",
-      n_badstats_sources, n_sel_sources, max_badstat_reach, max_sel_reach);
+            n_badstats_sources, n_sel_sources, max_badstat_reach, max_sel_reach);
 
   /* Wait for the next call if we have no source selected and there is
      a source with bad stats (has less than 3 samples) with reachability
      equal to shifted maximum reachability of sources with valid stats.
      This delays selecting source on start with servers using the same
      polling interval until they all have valid stats. */
-
   if (n_badstats_sources && n_sel_sources &&
-      selected_source_index == INVALID_SOURCE && 
-      max_sel_reach >> 1 == max_badstat_reach) {
+      selected_source_index == INVALID_SOURCE &&
+      max_sel_reach >> 1 == max_badstat_reach)
+    return;
+
+  if (n_endpoints == 0) {
+    /* No sources provided valid endpoints */
+    if (selected_source_index != INVALID_SOURCE) {
+      log_selection_message("Can't synchronise: no reachable sources", NULL);
+      selected_source_index = INVALID_SOURCE;
+    }
     return;
   }
 
   /* Now sort the endpoint list */
-  if (n_endpoints > 0) {
+  qsort((void *) sort_list, n_endpoints, sizeof(struct Sort_Element), compare_sort_elements);
 
-    /* Sort the list into order */
-    qsort((void *) sort_list, n_endpoints, sizeof(struct Sort_Element), compare_sort_elements);
-    
-    /* Now search for the interval which is contained in the most
-       individual source intervals.  Any source which overlaps this
-       will be a candidate.
+  /* Now search for the interval which is contained in the most
+     individual source intervals.  Any source which overlaps this
+     will be a candidate.
 
-       If we get a case like
+     If we get a case like
 
-       <----------------------->
-           <-->   
-                    <-->
-           <===========>
+     <----------------------->
+     <-->
+     <-->
+     <===========>
 
-       we will build the interval as shown with '=', whereas with an extra source we get
-       <----------------------->
-          <------->
-           <-->
-                    <-->
-           <==>
+     we will build the interval as shown with '=', whereas with an extra source we get
+     <----------------------->
+     <------->
+     <-->
+     <-->
+     <==>
 
-       The first case is just bad luck - we need extra sources to
-       detect the falseticker, so just make an arbitrary choice based
-       on stratum & stability etc.
-       */
+     The first case is just bad luck - we need extra sources to
+     detect the falseticker, so just make an arbitrary choice based
+     on stratum & stability etc.
+     */
 
-    depth = best_depth = 0;
-    best_lo = best_hi = 0.0;
+  depth = best_depth = 0;
+  best_lo = best_hi = 0.0;
 
-    for (i=0; i<n_endpoints; i++) {
-      switch(sort_list[i].tag) {
-        case LOW:
-          depth++;
-          if (depth > best_depth) {
-            best_depth = depth;
-            best_lo = sort_list[i].offset;
-          }
-          break;
+  for (i = 0; i < n_endpoints; i++) {
+    switch (sort_list[i].tag) {
+      case LOW:
+        depth++;
+        if (depth > best_depth) {
+          best_depth = depth;
+          best_lo = sort_list[i].offset;
+        }
+        break;
+      case HIGH:
+        if (depth == best_depth)
+          best_hi = sort_list[i].offset;
+        depth--;
+        break;
+      default:
+        assert(0);
+    }
+  }
 
-        case CENTRE:
-          assert(0);
-          break;
+  if (best_depth <= n_sel_sources / 2) {
+    /* Could not even get half the reachable sources to agree -
+       clearly we can't synchronise. */
 
-        case HIGH:
-          if (depth == best_depth) {
-            best_hi = sort_list[i].offset;
-          }
-          depth--;
-          break;
-
-      }
+    if (selected_source_index != INVALID_SOURCE) {
+      log_selection_message("Can't synchronise: no majority", NULL);
+      REF_SetUnsynchronised();
+      selected_source_index = INVALID_SOURCE;
     }
 
-    if (best_depth <= n_sel_sources/2) {
-      /* Could not even get half the reachable sources to agree -
-         clearly we can't synchronise.
+    /* .. and mark all sources as falsetickers (so they appear thus
+       on the outputs from the command client) */
 
-         srcs     #to agree
-           1          1
-           2          2
-           3          2
-           4          3 etc
+    for (i = 0; i < n_sources; i++)
+      sources[i]->status = SRC_FALSETICKER;
 
-           */
+    return;
+  }
 
-      if (selected_source_index != INVALID_SOURCE) {
-        log_selection_message("Can't synchronise: no majority", NULL);
-        REF_SetUnsynchronised();
-      }
-      selected_source_index = INVALID_SOURCE;
+  /* We have our interval, now work out which source are in it,
+     i.e. build list of admissible sources. */
 
-      /* .. and mark all sources as falsetickers (so they appear thus
-         on the outputs from the command client) */
+  n_sel_sources = 0;
 
-      for (i=0; i<n_sources; i++) {
-        sources[i]->status = SRC_FALSETICKER;
-      }
+  for (i = 0; i < n_sources; i++) {
+    if (sources[i]->status != SRC_OK)
+      continue;
 
+    /* This should be the same condition to get into the endpoint
+       list */
+    /* Check if source's interval contains the best interval, or
+       is wholly contained within it */
+    if ((sources[i]->sel_info.lo_limit <= best_lo &&
+         sources[i]->sel_info.hi_limit >= best_hi) ||
+        (sources[i]->sel_info.lo_limit >= best_lo &&
+         sources[i]->sel_info.hi_limit <= best_hi)) {
+
+      sel_sources[n_sel_sources++] = i;
     } else {
-      
-      /* We have our interval, now work out which source are in it,
-         i.e. build list of admissible sources. */
-      
-      n_sel_sources = 0;
-      for (i=0; i<n_sources; i++) {
-        if (sources[i]->status == SRC_OK) {
-          /* This should be the same condition to get into the endpoint
-             list */
-          /* Check if source's interval contains the best interval, or
-             is wholly contained within it */
-          if (((sources[i]->sel_info.lo_limit <= best_lo) &&
-               (sources[i]->sel_info.hi_limit >= best_hi)) ||
-              ((sources[i]->sel_info.lo_limit >= best_lo) &&
-               (sources[i]->sel_info.hi_limit <= best_hi))) {
-
-            sel_sources[n_sel_sources++] = i;
-          } else {
-            sources[i]->status = SRC_FALSETICKER;
-          }
-        }
-      }
+      sources[i]->status = SRC_FALSETICKER;
+    }
+  }
 
 #if 0
-      /* We now have a list of indices for the sources which pass the
-         false-ticker test.  Now go on to reject those whose variance is
-         greater than the minimum distance of any other */
+  /* We now have a list of indices for the sources which pass the
+     false-ticker test.  Now go on to reject those whose variance is
+     greater than the minimum distance of any other */
 
-      /* Find minimum distance */
-      index = sel_sources[0];
-      min_distance = sources[index]->sel_info.root_distance;
-      for (i=1; i<n_sel_sources; i++) {
-        index = sel_sources[i];
-        distance = sources[index]->sel_info.root_distance;
-        if (distance < min_distance) {
-          min_distance = distance;
-        }
-      }
+  /* Find minimum distance */
+  index = sel_sources[0];
+  min_distance = sources[index]->sel_info.root_distance;
+  for (i = 1; i < n_sel_sources; i++) {
+    index = sel_sources[i];
+    distance = sources[index]->sel_info.root_distance;
+    if (distance < min_distance) {
+      min_distance = distance;
+    }
+  }
 
-      /* Now go through and prune any NTP sources that have excessive
-         variance */
-      for (i=0; i<n_sel_sources; i++) {
-        index = sel_sources[i];
-        if (sources[index]->type == SRC_NTP &&
-            sqrt(sources[index]->sel_info.variance) > min_distance) {
-          sel_sources[i] = INVALID_SOURCE;
-          sources[index]->status = SRC_JITTERY;
-        }
-      }
+  /* Now go through and prune any NTP sources that have excessive
+     variance */
+  for (i = 0; i < n_sel_sources; i++) {
+    index = sel_sources[i];
+    if (sources[index]->type == SRC_NTP &&
+        sqrt(sources[index]->sel_info.variance) > min_distance) {
+      sel_sources[i] = INVALID_SOURCE;
+      sources[index]->status = SRC_JITTERY;
+    }
+  }
 #endif
 
-      /* Now crunch the list and mark all sources as selectable */
-      for (i=j=0; i<n_sel_sources; i++) {
-        index = sel_sources[i];
-        if (index != INVALID_SOURCE) {
-          sources[index]->status = SRC_SELECTABLE;
-          sel_sources[j++] = sel_sources[i];
-        }
-      }
-      n_sel_sources = j;
-
-      if (n_sel_sources > 0) {
-        /* Accept leap second status if more than half of selectable sources agree */
-
-        for (i=j1=j2=0; i<n_sel_sources; i++) {
-          index = sel_sources[i];
-          if (sources[index]->leap_status == LEAP_InsertSecond) {
-            j1++;
-          } else if (sources[index]->leap_status == LEAP_DeleteSecond) {
-            j2++;
-          }
-        }
-
-        if (j1 > n_sel_sources / 2) {
-          leap_status = LEAP_InsertSecond;
-        } else if (j2 > n_sel_sources / 2) {
-          leap_status = LEAP_DeleteSecond;
-        }
-
-        /* If there are any sources with prefer option, reduce the list again
-           only to the prefer sources */
-        for (i=j=0; i<n_sel_sources; i++) {
-          if (sources[sel_sources[i]]->sel_option == SRC_SelectPrefer) {
-            sel_sources[j++] = sel_sources[i];
-          }
-        }
-        if (j > 0) {
-          n_sel_sources = j;
-          sel_prefer = 1;
-        } else {
-          sel_prefer = 0;
-        }
-
-        /* Now find minimum stratum.  If none are left now, tough. */
-
-        index = sel_sources[0];
-        min_stratum = sources[index]->sel_info.stratum;
-        for (i=1; i<n_sel_sources; i++) {
-          index = sel_sources[i];
-          stratum = sources[index]->sel_info.stratum;
-          if (stratum < min_stratum) min_stratum = stratum;
-        }
-
-        /* Update scores and find source with maximum score */
-
-        max_score_index = INVALID_SOURCE;
-        max_score = 0.0;
-        sel_src_distance = 0.0;
-
-        if (selected_source_index != INVALID_SOURCE) {
-          sel_src_distance = sources[selected_source_index]->sel_info.root_distance +
-            (sources[selected_source_index]->sel_info.stratum - min_stratum) * stratum_weight;
-        }
-
-        for (i = 0; i < n_sources; i++) {
-
-          /* Reset score for non-selectable sources */
-          if (sources[i]->status != SRC_SELECTABLE ||
-              (sel_prefer && sources[i]->sel_option != SRC_SelectPrefer)) {
-            sources[i]->sel_score = 1.0;
-            sources[i]->outlier = OUTLIER_PENALTY;
-            continue;
-          }
-            
-          distance = sources[i]->sel_info.root_distance +
-            (sources[i]->sel_info.stratum - min_stratum) * stratum_weight;
-          if (sources[i]->type == SRC_NTP)
-            distance += reselect_distance;
-
-          if (selected_source_index != INVALID_SOURCE) {
-
-            /* Update score, but only for source pairs where one source
-               has a new sample */
-            if (sources[i] == updated_inst ||
-                sources[selected_source_index] == updated_inst) {
-
-              sources[i]->sel_score *= sel_src_distance / distance;
-
-              if (sources[i]->sel_score < 1.0)
-                sources[i]->sel_score = 1.0;
-            }
-
-          } else {
-
-            /* When there is no selected source yet, assign scores so the
-               source with minimum distance will have maximum score. The scores
-               will be immediately reset. */
-
-            sources[i]->sel_score = 1.0 / distance; 
-          }
-
-          DEBUG_LOG(LOGF_Sources, "select score=%f refid=%"PRIx32" match_refid=%"PRIx32" status=%d dist=%f",
-              sources[i]->sel_score, sources[i]->ref_id, updated_inst ? updated_inst->ref_id : 0,
-              sources[i]->status, distance);
-        
-          if (max_score < sources[i]->sel_score) {
-            max_score = sources[i]->sel_score;
-            max_score_index = i;
-          }
-        }
-
-        assert(max_score_index != INVALID_SOURCE);
-
-        /* Is the current source still a survivor
-           and no other source has reached the score limit? */
-
-        if ((selected_source_index == INVALID_SOURCE) ||
-            (sources[selected_source_index]->status != SRC_SELECTABLE) ||
-            (max_score_index != selected_source_index && max_score > SCORE_LIMIT)) {
-          
-          /* We have to elect a new synchronisation source */
-
-          selected_source_index = max_score_index;
-          log_selection_message("Selected source %s",
-                source_to_string(sources[selected_source_index]));
-                                 
-          /* New source has been selected, reset all scores */
-          for (i=0; i < n_sources; i++) {
-            sources[i]->sel_score = 1.0;
-            sources[i]->outlier = 0;
-          }
-        }
-
-        sources[selected_source_index]->status = SRC_SYNC;
-
-        /* Update reference only when the selected source has a new sample */
-        if (sources[selected_source_index]->updates) {
-
-          /* Now just use the statistics of the selected source combined with
-             the other selectable sources for trimming the local clock */
-
-          SST_GetTrackingData(sources[selected_source_index]->stats, &ref_time,
-                              &src_offset, &src_offset_sd,
-                              &src_frequency, &src_skew,
-                              &src_root_delay, &src_root_dispersion);
-
-          combined = combine_sources(n_sel_sources, &ref_time, &src_offset,
-                                     &src_offset_sd, &src_frequency, &src_skew);
-
-          REF_SetReference(sources[selected_source_index]->sel_info.stratum,
-                           leap_status,
-                           combined,
-                           sources[selected_source_index]->ref_id,
-                           sources[selected_source_index]->ip_addr,
-                           &ref_time,
-                           src_offset,
-                           src_offset_sd,
-                           src_frequency,
-                           src_skew,
-                           src_root_delay,
-                           src_root_dispersion);
-
-          for (i = 0; i < n_sources; i++)
-            sources[i]->updates = 0;
-        }
-
-      } else {
-        if (selected_source_index != INVALID_SOURCE) {
-          log_selection_message("Can't synchronise: no selectable sources", NULL);
-        }
-        selected_source_index = INVALID_SOURCE;
-      }
-    }
-
-  } else {
-    /* No sources provided valid endpoints */
-    if (selected_source_index != INVALID_SOURCE) {
-      log_selection_message("Can't synchronise: no reachable sources", NULL);
-    }
-    selected_source_index = INVALID_SOURCE;
+  /* Now crunch the list and mark all sources as selectable */
+  for (i = j = 0; i < n_sel_sources; i++) {
+    index = sel_sources[i];
+    if (index == INVALID_SOURCE)
+      continue;
+    sources[index]->status = SRC_SELECTABLE;
+    sel_sources[j++] = index;
   }
+  n_sel_sources = j;
+
+  if (n_sel_sources == 0) {
+    if (selected_source_index != INVALID_SOURCE) {
+      log_selection_message("Can't synchronise: no selectable sources", NULL);
+      selected_source_index = INVALID_SOURCE;
+    }
+    return;
+  }
+
+  /* Accept leap second status if more than half of selectable sources agree */
+  for (i = j1 = j2 = 0; i < n_sel_sources; i++) {
+    index = sel_sources[i];
+    if (sources[index]->leap_status == LEAP_InsertSecond)
+      j1++;
+    else if (sources[index]->leap_status == LEAP_DeleteSecond)
+      j2++;
+  }
+
+  if (j1 > n_sel_sources / 2)
+    leap_status = LEAP_InsertSecond;
+  else if (j2 > n_sel_sources / 2)
+    leap_status = LEAP_DeleteSecond;
+  else
+    leap_status = LEAP_Normal;
+
+  /* If there are any sources with prefer option, reduce the list again
+     only to the preferred sources */
+  for (i = j = 0; i < n_sel_sources; i++) {
+    if (sources[sel_sources[i]]->sel_option == SRC_SelectPrefer)
+      sel_sources[j++] = sel_sources[i];
+  }
+
+  if (j > 0) {
+    n_sel_sources = j;
+    sel_prefer = 1;
+  } else {
+    sel_prefer = 0;
+  }
+
+  /* Find minimum stratum */
+
+  index = sel_sources[0];
+  min_stratum = sources[index]->sel_info.stratum;
+  for (i = 1; i < n_sel_sources; i++) {
+    index = sel_sources[i];
+    stratum = sources[index]->sel_info.stratum;
+    if (stratum < min_stratum)
+      min_stratum = stratum;
+  }
+
+  /* Update scores and find the source with maximum score */
+
+  max_score_index = INVALID_SOURCE;
+  max_score = 0.0;
+  sel_src_distance = 0.0;
+
+  if (selected_source_index != INVALID_SOURCE)
+    sel_src_distance = sources[selected_source_index]->sel_info.root_distance +
+      (sources[selected_source_index]->sel_info.stratum - min_stratum) * stratum_weight;
+
+  for (i = 0; i < n_sources; i++) {
+    /* Reset score for non-selectable sources */
+    if (sources[i]->status != SRC_SELECTABLE ||
+        (sel_prefer && sources[i]->sel_option != SRC_SelectPrefer)) {
+      sources[i]->sel_score = 1.0;
+      sources[i]->outlier = OUTLIER_PENALTY;
+      continue;
+    }
+
+    distance = sources[i]->sel_info.root_distance +
+      (sources[i]->sel_info.stratum - min_stratum) * stratum_weight;
+    if (sources[i]->type == SRC_NTP)
+      distance += reselect_distance;
+
+    if (selected_source_index != INVALID_SOURCE) {
+      /* Update score, but only for source pairs where one source
+         has a new sample */
+      if (sources[i] == updated_inst ||
+          sources[selected_source_index] == updated_inst) {
+
+        sources[i]->sel_score *= sel_src_distance / distance;
+
+        if (sources[i]->sel_score < 1.0)
+          sources[i]->sel_score = 1.0;
+      }
+    } else {
+      /* When there is no selected source yet, assign scores so that the
+         source with minimum distance will have maximum score.  The scores
+         will be reset when the source is selected later in this function. */
+      sources[i]->sel_score = 1.0 / distance;
+    }
+
+    DEBUG_LOG(LOGF_Sources, "select score=%f refid=%"PRIx32" match_refid=%"PRIx32" status=%d dist=%f",
+              sources[i]->sel_score, sources[i]->ref_id,
+              updated_inst ? updated_inst->ref_id : 0,
+              sources[i]->status, distance);
+
+    if (max_score < sources[i]->sel_score) {
+      max_score = sources[i]->sel_score;
+      max_score_index = i;
+    }
+  }
+
+  assert(max_score_index != INVALID_SOURCE);
+
+  /* Is the current source still a survivor and no other source has reached
+     the score limit? */
+  if (selected_source_index == INVALID_SOURCE ||
+      sources[selected_source_index]->status != SRC_SELECTABLE ||
+      (max_score_index != selected_source_index && max_score > SCORE_LIMIT)) {
+
+    /* We have to elect a new synchronisation source */
+
+    selected_source_index = max_score_index;
+    log_selection_message("Selected source %s",
+                          source_to_string(sources[selected_source_index]));
+
+    /* New source has been selected, reset all scores */
+    for (i = 0; i < n_sources; i++) {
+      sources[i]->sel_score = 1.0;
+      sources[i]->outlier = 0;
+    }
+  }
+
+  sources[selected_source_index]->status = SRC_SYNC;
+
+  /* Don't update reference when the selected source has no new samples */
+
+  if (sources[selected_source_index]->updates == 0)
+    return;
+
+  for (i = 0; i < n_sources; i++)
+    sources[i]->updates = 0;
+
+  /* Now just use the statistics of the selected source combined with
+     the other selectable sources for trimming the local clock */
+
+  SST_GetTrackingData(sources[selected_source_index]->stats, &ref_time,
+                      &src_offset, &src_offset_sd,
+                      &src_frequency, &src_skew,
+                      &src_root_delay, &src_root_dispersion);
+
+  combined = combine_sources(n_sel_sources, &ref_time, &src_offset,
+                             &src_offset_sd, &src_frequency, &src_skew);
+
+  REF_SetReference(sources[selected_source_index]->sel_info.stratum,
+                   leap_status, combined,
+                   sources[selected_source_index]->ref_id,
+                   sources[selected_source_index]->ip_addr,
+                   &ref_time, src_offset, src_offset_sd,
+                   src_frequency, src_skew,
+                   src_root_delay, src_root_dispersion);
 }
 
 /* ================================================== */
