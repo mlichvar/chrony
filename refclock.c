@@ -281,7 +281,6 @@ RCL_StartRefclocks(void)
   for (i = 0; i < n; i++) {
     RCL_Instance inst = get_refclock(i);
 
-    SRC_SetSelectable(inst->source);
     SRC_SetActive(inst->source);
     inst->timeout_id = SCH_AddTimeoutByDelay(0.0, poll_timeout, (void *)inst);
 

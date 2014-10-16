@@ -124,14 +124,6 @@ extern void SRC_SetActive(SRC_Instance inst);
 /* This routine sets the source as not receiving reachability updates */
 extern void SRC_UnsetActive(SRC_Instance inst);
 
-/* This routine indicates that packets with valid headers are being
-   received from the designated source */
-extern void SRC_SetSelectable(SRC_Instance instance);
-
-/* This routine indicates that we are no longer receiving packets with
-   valid headers from the designated source */
-extern void SRC_UnsetSelectable(SRC_Instance instance);
-
 /* This routine updates the reachability register */
 extern void SRC_UpdateReachability(SRC_Instance inst, int reachable);
 

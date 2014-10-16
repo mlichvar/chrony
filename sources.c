@@ -88,9 +88,6 @@ struct SRC_Instance_Record {
                                    reference _it_ is sync'd to) */
   IPAddr *ip_addr;              /* Its IP address if NTP source */
 
-  /* Flag indicating that we can use this source as a reference */
-  int selectable;
-
   /* Flag indicating that the source is updating reachability */
   int active;
 
@@ -231,7 +228,6 @@ SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, SRC_SelectOpt
   result->ref_id = ref_id;
   result->ip_addr = addr;
   result->active = 0;
-  result->selectable = 0;
   result->updates = 0;
   result->reachability = 0;
   result->reachability_size = 0;
@@ -258,8 +254,6 @@ void SRC_DestroyInstance(SRC_Instance instance)
 
   assert(initialised);
 
-  SRC_UnsetSelectable(instance);
-
   SST_DeleteInstance(instance->stats);
   dead_index = instance->index;
   for (i=dead_index; i<n_sources-1; i++) {
@@ -269,9 +263,11 @@ void SRC_DestroyInstance(SRC_Instance instance)
   --n_sources;
   Free(instance);
 
-  if (selected_source_index > dead_index) {
+  /* If this was the previous reference source, we have to reselect! */
+  if (selected_source_index == dead_index)
+    SRC_ReselectSource();
+  else if (selected_source_index > dead_index)
     --selected_source_index;
-  }
 }
 
 /* ================================================== */
@@ -350,37 +346,6 @@ void
 SRC_UnsetActive(SRC_Instance inst)
 {
   inst->active = 0;
-}
-
-/* ================================================== */
-
-void
-SRC_SetSelectable(SRC_Instance inst)
-{
-  inst->selectable = 1;
-
-  DEBUG_LOG(LOGF_Sources, "%s", source_to_string(inst));
-
-  /* Don't do selection at this point, though - that will come about
-     in due course when we get some useful data from the source */
-}
-
-/* ================================================== */
-
-void
-SRC_UnsetSelectable(SRC_Instance inst)
-{
-  inst->selectable = 0;
-
-  DEBUG_LOG(LOGF_Sources, "%s%s", source_to_string(inst),
-      (inst->index == selected_source_index) ? "(REF)":"");
-
-  /* If this was the previous reference source, we have to reselect!  */
-
-  if (inst->index == selected_source_index) {
-    SRC_SelectSource(NULL);
-  }
-
 }
 
 /* ================================================== */
@@ -607,9 +572,8 @@ SRC_SelectSource(SRC_Instance updated_inst)
   max_sel_reach = max_badstat_reach = 0;
 
   for (i = 0; i < n_sources; i++) {
-    /* If the source is not reachable or selectable, there is no way we will
-       pick it. */
-    if (!sources[i]->selectable || !sources[i]->reachability ||
+    /* If the source is not reachable, there is no way we will pick it */
+    if (!sources[i]->reachability ||
         sources[i]->sel_option == SRC_SelectNoselect) {
       sources[i]->status = SRC_UNREACHABLE;
       continue;

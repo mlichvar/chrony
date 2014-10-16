@@ -1272,8 +1272,6 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
       /* Do this before we accumulate a new sample into the stats registers, obviously */
       estimated_offset = SRC_PredictOffset(inst->source, &sample_time);
 
-      SRC_SetSelectable(inst->source);
-
       SRC_AccumulateSample(inst->source,
                            &sample_time,
                            offset, delay, dispersion,
