@@ -100,6 +100,9 @@ struct SRC_Instance_Record {
   /* Number of set bits in the reachability register */
   int reachability_size;
 
+  /* Updates since last reference update */
+  int updates;
+
   /* Updates left before allowing combining */
   int outlier;
 
@@ -226,6 +229,7 @@ SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, SRC_SelectOpt
   result->ip_addr = addr;
   result->active = 0;
   result->selectable = 0;
+  result->updates = 0;
   result->reachability = 0;
   result->reachability_size = 0;
   result->outlier = 0;
@@ -562,10 +566,7 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
 
 /* ================================================== */
 /* This function selects the current reference from amongst the pool
-   of sources we are holding. 
-   
-   Updates are only made to the local reference if a new source is selected
-   or match_refid is equal to the selected reference source refid */
+   of sources we are holding and updates the local reference */
 
 void
 SRC_SelectSource(SRC_Instance updated_inst)
@@ -588,6 +589,9 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
   NTP_Leap leap_status = LEAP_Normal;
   old_selected_index = selected_source_index;
+
+  if (updated_inst)
+    updated_inst->updates++;
 
   if (n_sources == 0) {
     /* In this case, we clearly cannot synchronise to anything */
@@ -940,10 +944,8 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
         sources[selected_source_index]->status = SRC_SYNC;
 
-        /* Update local reference only when a new source was selected
-           or the selected source has a new sample */
-        if (selected_source_index != old_selected_index ||
-            updated_inst == sources[selected_source_index]) {
+        /* Update reference only when the selected source has a new sample */
+        if (sources[selected_source_index]->updates) {
 
           /* Now just use the statistics of the selected source combined with
              the other selectable sources for trimming the local clock */
@@ -968,6 +970,9 @@ SRC_SelectSource(SRC_Instance updated_inst)
                            src_skew,
                            src_root_delay,
                            src_root_dispersion);
+
+          for (i = 0; i < n_sources; i++)
+            sources[i]->updates = 0;
         }
 
       } else {
