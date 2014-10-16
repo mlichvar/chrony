@@ -571,7 +571,7 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
 void
 SRC_SelectSource(SRC_Instance updated_inst)
 {
-  int i, j, index, old_selected_index, sel_prefer;
+  int i, j, index, sel_prefer;
   struct timeval now, ref_time;
   double src_offset, src_offset_sd, src_frequency, src_skew;
   double src_root_delay, src_root_dispersion;
@@ -588,7 +588,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
   double max_score;
 
   NTP_Leap leap_status = LEAP_Normal;
-  old_selected_index = selected_source_index;
 
   if (updated_inst)
     updated_inst->updates++;
@@ -598,7 +597,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
     if (selected_source_index != INVALID_SOURCE) {
       log_selection_message("Can't synchronise: no sources", NULL);
       selected_source_index = INVALID_SOURCE;
-      REF_SetUnsynchronised();
     }
     return;
   }
@@ -748,6 +746,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
       if (selected_source_index != INVALID_SOURCE) {
         log_selection_message("Can't synchronise: no majority", NULL);
+        REF_SetUnsynchronised();
       }
       selected_source_index = INVALID_SOURCE;
 
@@ -989,11 +988,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
       log_selection_message("Can't synchronise: no reachable sources", NULL);
     }
     selected_source_index = INVALID_SOURCE;
-  }
-
-  if (selected_source_index == INVALID_SOURCE &&
-      selected_source_index != old_selected_index) {
-    REF_SetUnsynchronised();
   }
 }
 
