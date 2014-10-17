@@ -520,11 +520,19 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
                      double *offset_lo_limit,
                      double *offset_hi_limit,
                      double *root_distance,
-                     double *variance, int *select_ok)
+                     double *variance,
+                     double *first_sample_ago,
+                     double *last_sample_ago,
+                     int *select_ok)
 {
   double offset, sample_elapsed;
   int i, j;
   
+  if (!inst->n_samples) {
+    *select_ok = 0;
+    return;
+  }
+
   i = get_runsbuf_index(inst, inst->best_single_sample);
   j = get_buf_index(inst, inst->best_single_sample);
 
@@ -553,10 +561,16 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
   }
 #endif
 
+  i = get_runsbuf_index(inst, 0);
+  UTI_DiffTimevalsToDouble(first_sample_ago, now, &inst->sample_times[i]);
+  i = get_runsbuf_index(inst, inst->n_samples - 1);
+  UTI_DiffTimevalsToDouble(last_sample_ago, now, &inst->sample_times[i]);
+
   *select_ok = inst->regression_ok;
 
-  DEBUG_LOG(LOGF_SourceStats, "n=%d off=%f dist=%f var=%f selok=%d",
-      inst->n_samples, offset, *root_distance, *variance, *select_ok);
+  DEBUG_LOG(LOGF_SourceStats, "n=%d off=%f dist=%f var=%f first_ago=%f last_ago=%f selok=%d",
+            inst->n_samples, offset, *root_distance, *variance,
+            *first_sample_ago, *last_sample_ago, *select_ok);
 }
 
 /* ================================================== */

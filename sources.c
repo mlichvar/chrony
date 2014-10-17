@@ -60,6 +60,7 @@ struct SelectInfo {
   double root_distance;
   double lo_limit;
   double hi_limit;
+  double last_sample_ago;
 };
 
 /* ================================================== */
@@ -67,9 +68,10 @@ struct SelectInfo {
    each source */
 typedef enum {
   SRC_OK,               /* OK so far, not a final status! */
-  SRC_UNREACHABLE,      /* Not reachable */
+  SRC_UNSELECTABLE,     /* Has noselect option set */
   SRC_BAD_STATS,        /* Doesn't have valid stats data */
   SRC_WAITS_STATS,      /* Others have bad stats, selection postponed */
+  SRC_STALE,            /* Has older samples than others */
   SRC_FALSETICKER,      /* Doesn't agree with others */
   SRC_JITTERY,          /* Scatter worse than other's dispersion (not used) */
   SRC_NONPREFERRED,     /* Others have prefer option */
@@ -570,6 +572,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   double src_offset, src_offset_sd, src_frequency, src_skew;
   double src_root_delay, src_root_dispersion;
   double best_lo, best_hi, distance, sel_src_distance, max_score;
+  double first_sample_ago, max_reach_sample_ago;
   NTP_Leap leap_status;
 
   if (updated_inst)
@@ -593,21 +596,22 @@ SRC_SelectSource(SRC_Instance updated_inst)
   n_sel_sources = 0;
   n_badstats_sources = 0;
   max_sel_reach = max_badstat_reach = 0;
+  max_reach_sample_ago = 0.0;
 
   for (i = 0; i < n_sources; i++) {
     assert(sources[i]->status != SRC_OK);
 
-    /* If the source is not reachable, there is no way we will pick it */
-    if (!sources[i]->reachability ||
-        sources[i]->sel_option == SRC_SelectNoselect) {
-      sources[i]->status = SRC_UNREACHABLE;
+    /* Ignore sources which were added with the noselect option */
+    if (sources[i]->sel_option == SRC_SelectNoselect) {
+      sources[i]->status = SRC_UNSELECTABLE;
       continue;
     }
 
     si = &sources[i]->sel_info;
     SST_GetSelectionData(sources[i]->stats, &now, &si->stratum,
                          &si->lo_limit, &si->hi_limit, &si->root_distance,
-                         &si->variance, &si->select_ok);
+                         &si->variance, &first_sample_ago,
+                         &si->last_sample_ago, &si->select_ok);
 
     if (!si->select_ok) {
       ++n_badstats_sources;
@@ -617,11 +621,31 @@ SRC_SelectSource(SRC_Instance updated_inst)
       continue;
     }
 
-    ++n_sel_sources;
     sources[i]->status = SRC_OK; /* For now */
 
-    /* Otherwise it will be hard to pick this one later!  However,
-       this test might be too strict, we might want to dump it */
+    if (sources[i]->reachability && max_reach_sample_ago < first_sample_ago)
+      max_reach_sample_ago = first_sample_ago;
+
+    if (max_sel_reach < sources[i]->reachability)
+      max_sel_reach = sources[i]->reachability;
+  }
+
+  for (i = 0; i < n_sources; i++) {
+    if (sources[i]->status != SRC_OK)
+      continue;
+
+    si = &sources[i]->sel_info;
+
+    /* Reachability is not a requirement for selection.  An unreachable source
+       can still be selected if its newest sample is not older than the oldest
+       sample from reachable sources. */
+    if (!sources[i]->reachability && max_reach_sample_ago < si->last_sample_ago) {
+      sources[i]->status = SRC_STALE;
+      continue;
+    }
+
+    ++n_sel_sources;
+
     j1 = n_endpoints;
     j2 = j1 + 1;
 
@@ -634,13 +658,11 @@ SRC_SelectSource(SRC_Instance updated_inst)
     sort_list[j2].tag = HIGH;
 
     n_endpoints += 2;
-
-    if (max_sel_reach < sources[i]->reachability)
-      max_sel_reach = sources[i]->reachability;
   }
 
-  DEBUG_LOG(LOGF_Sources, "badstat_sources=%d sel_sources=%d badstat_reach=%x sel_reach=%x",
-            n_badstats_sources, n_sel_sources, max_badstat_reach, max_sel_reach);
+  DEBUG_LOG(LOGF_Sources, "badstat=%d sel=%d badstat_reach=%x sel_reach=%x max_reach_ago=%f",
+            n_badstats_sources, n_sel_sources, max_badstat_reach,
+            max_sel_reach, max_reach_sample_ago);
 
   /* Wait for the next call if we have no source selected and there is
      a source with bad stats (has less than 3 samples) with reachability
@@ -657,7 +679,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   if (n_endpoints == 0) {
     /* No sources provided valid endpoints */
     if (selected_source_index != INVALID_SOURCE) {
-      log_selection_message("Can't synchronise: no reachable sources", NULL);
+      log_selection_message("Can't synchronise: no selectable sources", NULL);
       selected_source_index = INVALID_SOURCE;
     }
     return;
@@ -1195,8 +1217,9 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
     }
 
     switch (src->status) {
-      case SRC_UNREACHABLE:
+      case SRC_UNSELECTABLE:
       case SRC_BAD_STATS:
+      case SRC_STALE:
       case SRC_WAITS_STATS:
         report->state = RPT_UNREACH;
         break;
