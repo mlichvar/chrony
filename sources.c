@@ -66,14 +66,18 @@ struct SelectInfo {
 /* This enum contains the flag values that are used to label
    each source */
 typedef enum {
-  SRC_OK,                       /* OK so far */
-  SRC_UNREACHABLE,              /* Source is not reachable */
-  SRC_BAD_STATS,                /* Stats driver could not supply valid
-                                   data */
-  SRC_FALSETICKER,              /* Source is found to be a falseticker */
-  SRC_JITTERY,                  /* Source scatter worse than other's dispersion */
-  SRC_SELECTABLE,               /* Source is acceptable candidate */
-  SRC_SYNC                      /* Current synchronisation source */
+  SRC_OK,               /* OK so far, not a final status! */
+  SRC_UNREACHABLE,      /* Not reachable */
+  SRC_BAD_STATS,        /* Doesn't have valid stats data */
+  SRC_WAITS_STATS,      /* Others have bad stats, selection postponed */
+  SRC_FALSETICKER,      /* Doesn't agree with others */
+  SRC_JITTERY,          /* Scatter worse than other's dispersion (not used) */
+  SRC_NONPREFERRED,     /* Others have prefer option */
+  SRC_WAITS_UPDATE,     /* No updates, selection postponed */
+  SRC_DISTANT,          /* Others have shorter root distance */
+  SRC_OUTLIER,          /* Outlier in clustering (not used yet) */
+  SRC_UNSELECTED,       /* Used for synchronisation, not system peer */
+  SRC_SELECTED,         /* Used for synchronisation, selected as system peer */
 } SRC_Status;
 
 /* ================================================== */
@@ -101,7 +105,7 @@ struct SRC_Instance_Record {
   int updates;
 
   /* Updates left before allowing combining */
-  int outlier;
+  int distant;
 
   /* Flag indicating the status of the source */
   SRC_Status status;
@@ -145,8 +149,8 @@ static int selected_source_index; /* Which source index is currently
 /* Score needed to replace the currently selected source */
 #define SCORE_LIMIT 10.0
 
-/* Number of updates needed to reset the outlier status */
-#define OUTLIER_PENALTY 32
+/* Number of updates needed to reset the distant status */
+#define DISTANT_PENALTY 32
 
 static double reselect_distance;
 static double stratum_weight;
@@ -231,7 +235,7 @@ SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, SRC_SelectOpt
   result->updates = 0;
   result->reachability = 0;
   result->reachability_size = 0;
-  result->outlier = 0;
+  result->distant = 0;
   result->status = SRC_BAD_STATS;
   result->type = type;
   result->sel_score = 1.0;
@@ -457,6 +461,20 @@ source_to_string(SRC_Instance inst)
 
 /* ================================================== */
 
+static void
+mark_ok_sources(SRC_Status status)
+{
+  int i;
+
+  for (i = 0; i < n_sources; i++) {
+    if (sources[i]->status != SRC_OK)
+      continue;
+    sources[i]->status = status;
+  }
+}
+
+/* ================================================== */
+
 static int
 combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
                 double *offset_sd, double *frequency, double *skew)
@@ -483,7 +501,7 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
 
     /* Don't include this source if its distance is longer than the distance of
        the selected source multiplied by the limit, their estimated frequencies
-       are not close, or it was recently marked as outlier */
+       are not close, or it was recently marked as distant */
 
     if (index != selected_source_index &&
         (sources[index]->sel_info.root_distance > combine_limit *
@@ -491,14 +509,19 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
          fabs(*frequency - src_frequency) >
            combine_limit * (*skew + src_skew + LCL_GetMaxClockError()))) {
       /* Use a smaller penalty in first few updates */
-      sources[index]->outlier = sources[index]->reachability_size >= SOURCE_REACH_BITS ?
-                                OUTLIER_PENALTY : 1;
-    } else if (sources[index]->outlier) {
-      sources[index]->outlier--;
+      sources[index]->distant = sources[index]->reachability_size >= SOURCE_REACH_BITS ?
+                                DISTANT_PENALTY : 1;
+    } else if (sources[index]->distant) {
+      sources[index]->distant--;
     }
 
-    if (sources[index]->outlier)
+    if (sources[index]->distant) {
+      sources[index]->status = SRC_DISTANT;
       continue;
+    }
+
+    if (sources[index]->status == SRC_OK)
+      sources[index]->status = SRC_UNSELECTED;
 
     UTI_DiffTimevalsToDouble(&elapsed, ref_time, &src_ref_time);
     src_offset += elapsed * src_frequency;
@@ -572,6 +595,8 @@ SRC_SelectSource(SRC_Instance updated_inst)
   max_sel_reach = max_badstat_reach = 0;
 
   for (i = 0; i < n_sources; i++) {
+    assert(sources[i]->status != SRC_OK);
+
     /* If the source is not reachable, there is no way we will pick it */
     if (!sources[i]->reachability ||
         sources[i]->sel_option == SRC_SelectNoselect) {
@@ -624,8 +649,10 @@ SRC_SelectSource(SRC_Instance updated_inst)
      polling interval until they all have valid stats. */
   if (n_badstats_sources && n_sel_sources &&
       selected_source_index == INVALID_SOURCE &&
-      max_sel_reach >> 1 == max_badstat_reach)
+      max_sel_reach >> 1 == max_badstat_reach) {
+    mark_ok_sources(SRC_WAITS_STATS);
     return;
+  }
 
   if (n_endpoints == 0) {
     /* No sources provided valid endpoints */
@@ -696,9 +723,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
     /* .. and mark all sources as falsetickers (so they appear thus
        on the outputs from the command client) */
-
-    for (i = 0; i < n_sources; i++)
-      sources[i]->status = SRC_FALSETICKER;
+    mark_ok_sources(SRC_FALSETICKER);
 
     return;
   }
@@ -753,17 +778,16 @@ SRC_SelectSource(SRC_Instance updated_inst)
       sources[index]->status = SRC_JITTERY;
     }
   }
-#endif
 
   /* Now crunch the list and mark all sources as selectable */
   for (i = j = 0; i < n_sel_sources; i++) {
     index = sel_sources[i];
     if (index == INVALID_SOURCE)
       continue;
-    sources[index]->status = SRC_SELECTABLE;
     sel_sources[j++] = index;
   }
   n_sel_sources = j;
+#endif
 
   if (n_sel_sources == 0) {
     if (selected_source_index != INVALID_SOURCE) {
@@ -797,6 +821,10 @@ SRC_SelectSource(SRC_Instance updated_inst)
   }
 
   if (j > 0) {
+    for (i = 0; i < n_sel_sources; i++) {
+      if (sources[sel_sources[i]]->sel_option != SRC_SelectPrefer)
+        sources[sel_sources[i]]->status = SRC_NONPREFERRED;
+    }
     n_sel_sources = j;
     sel_prefer = 1;
   } else {
@@ -826,10 +854,10 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
   for (i = 0; i < n_sources; i++) {
     /* Reset score for non-selectable sources */
-    if (sources[i]->status != SRC_SELECTABLE ||
+    if (sources[i]->status != SRC_OK ||
         (sel_prefer && sources[i]->sel_option != SRC_SelectPrefer)) {
       sources[i]->sel_score = 1.0;
-      sources[i]->outlier = OUTLIER_PENALTY;
+      sources[i]->distant = DISTANT_PENALTY;
       continue;
     }
 
@@ -872,13 +900,14 @@ SRC_SelectSource(SRC_Instance updated_inst)
   /* Is the current source still a survivor and no other source has reached
      the score limit? */
   if (selected_source_index == INVALID_SOURCE ||
-      sources[selected_source_index]->status != SRC_SELECTABLE ||
+      sources[selected_source_index]->status != SRC_OK ||
       (max_score_index != selected_source_index && max_score > SCORE_LIMIT)) {
 
     /* Before selecting the new synchronisation source wait until the reference
        can be updated */
     if (sources[max_score_index]->updates == 0) {
       selected_source_index = INVALID_SOURCE;
+      mark_ok_sources(SRC_WAITS_UPDATE);
       DEBUG_LOG(LOGF_Sources, "best source has no updates");
       return;
     }
@@ -890,16 +919,25 @@ SRC_SelectSource(SRC_Instance updated_inst)
     /* New source has been selected, reset all scores */
     for (i = 0; i < n_sources; i++) {
       sources[i]->sel_score = 1.0;
-      sources[i]->outlier = 0;
+      sources[i]->distant = 0;
     }
   }
 
-  sources[selected_source_index]->status = SRC_SYNC;
+  sources[selected_source_index]->status = SRC_SELECTED;
 
   /* Don't update reference when the selected source has no new samples */
 
-  if (sources[selected_source_index]->updates == 0)
+  if (sources[selected_source_index]->updates == 0) {
+    /* Mark the remaining sources as last combine_sources() call */
+
+    for (i = 0; i < n_sel_sources; i++) {
+      index = sel_sources[i];
+      if (sources[index]->status == SRC_OK)
+        sources[index]->status = sources[index]->distant ?
+                                 SRC_DISTANT : SRC_UNSELECTED;
+    }
     return;
+  }
 
   for (i = 0; i < n_sources; i++)
     sources[i]->updates = 0;
@@ -1157,23 +1195,30 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
     }
 
     switch (src->status) {
-      case SRC_SYNC:
-        report->state = RPT_SYNC;
-        break;
-      case SRC_JITTERY:
-        report->state = RPT_JITTERY;
-        break;
-      case SRC_OK:
-      case SRC_BAD_STATS:
       case SRC_UNREACHABLE:
+      case SRC_BAD_STATS:
+      case SRC_WAITS_STATS:
         report->state = RPT_UNREACH;
         break;
       case SRC_FALSETICKER:
         report->state = RPT_FALSETICKER;
         break;
-      case SRC_SELECTABLE:
-        report->state = src->outlier ? RPT_OUTLIER : RPT_CANDIDATE;
+      case SRC_JITTERY:
+        report->state = RPT_JITTERY;
         break;
+      case SRC_NONPREFERRED:
+      case SRC_WAITS_UPDATE:
+      case SRC_DISTANT:
+      case SRC_OUTLIER:
+        report->state = RPT_OUTLIER;
+        break;
+      case SRC_UNSELECTED:
+        report->state = RPT_CANDIDATE;
+        break;
+      case SRC_SELECTED:
+        report->state = RPT_SYNC;
+        break;
+      case SRC_OK:
       default:
         assert(0);
         break;
