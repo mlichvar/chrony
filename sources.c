@@ -1181,7 +1181,7 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
 
     switch (src->sel_option) {
       case SRC_SelectNormal:
-        report->sel_option = RPT_NOSELECT;
+        report->sel_option = RPT_NORMAL;
         break;
       case SRC_SelectPrefer:
         report->sel_option = RPT_PREFER;
