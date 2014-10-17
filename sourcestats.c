@@ -622,12 +622,7 @@ SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffs
     sample = &(inst->sample_times[i]);
     prev = *sample;
     UTI_AdjustTimeval(sample, when, sample, &delta_time, dfreq, doffset);
-    prev_offset = inst->offsets[i];
     inst->offsets[i] += delta_time;
-
-    DEBUG_LOG(LOGF_SourceStats, "i=%d old_st=[%s] new_st=[%s] old_off=%f new_off=%f",
-        i, UTI_TimevalToString(&prev), UTI_TimevalToString(sample),
-        prev_offset, inst->offsets[i]);
   }
 
   /* Do a half-baked update to the regression estimates */
@@ -639,10 +634,11 @@ SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffs
   inst->estimated_offset += delta_time;
   inst->estimated_frequency -= dfreq;
 
-  DEBUG_LOG(LOGF_SourceStats, "old_off_time=[%s] new=[%s] old_off=%f new_off=%f old_freq=%.3fppm new_freq=%.3fppm",
-      UTI_TimevalToString(&prev), UTI_TimevalToString(&(inst->offset_time)),
-      prev_offset, inst->estimated_offset,
-      1.0e6*prev_freq, 1.0e6*inst->estimated_frequency);
+  DEBUG_LOG(LOGF_SourceStats, "n=%d m=%d old_off_time=%s new=%s old_off=%f new_off=%f old_freq=%.3f new_freq=%.3f",
+            inst->n_samples, inst->runs_samples,
+            UTI_TimevalToString(&prev), UTI_TimevalToString(&(inst->offset_time)),
+            prev_offset, inst->estimated_offset,
+            1.0e6 * prev_freq, 1.0e6 * inst->estimated_frequency);
 }
 
 /* ================================================== */
