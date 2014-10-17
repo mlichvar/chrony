@@ -875,7 +875,13 @@ SRC_SelectSource(SRC_Instance updated_inst)
       sources[selected_source_index]->status != SRC_SELECTABLE ||
       (max_score_index != selected_source_index && max_score > SCORE_LIMIT)) {
 
-    /* We have to elect a new synchronisation source */
+    /* Before selecting the new synchronisation source wait until the reference
+       can be updated */
+    if (sources[max_score_index]->updates == 0) {
+      selected_source_index = INVALID_SOURCE;
+      DEBUG_LOG(LOGF_Sources, "best source has no updates");
+      return;
+    }
 
     selected_source_index = max_score_index;
     log_selection_message("Selected source %s",
