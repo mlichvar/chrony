@@ -405,13 +405,9 @@ SRC_UpdateReachability(SRC_Instance inst, int reachable)
 void
 SRC_ResetReachability(SRC_Instance inst)
 {
-  /* This should be disabled until source selection is modified to keep
-     a peer selected even when not reachable */
-#if 0
   inst->reachability = 0;
   inst->reachability_size = 0;
   SRC_UpdateReachability(inst, 0);
-#endif
 }
 
 /* ================================================== */
