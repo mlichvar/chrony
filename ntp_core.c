@@ -105,6 +105,8 @@ struct NCR_Instance_Record {
 
   int poll_target;              /* Target number of sourcestats samples */
 
+  int version;                  /* Version set in packets for server/peer */
+
   double poll_score;            /* Score of current local poll */
 
   double max_delay;             /* Maximum round-trip delay to the
@@ -439,6 +441,12 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->max_delay_dev_ratio = params->max_delay_dev_ratio;
   result->auto_offline = params->auto_offline;
   result->poll_target = params->poll_target;
+
+  result->version = params->version;
+  if (result->version < NTP_MIN_COMPAT_VERSION)
+    result->version = NTP_MIN_COMPAT_VERSION;
+  else if (result->version > NTP_VERSION)
+    result->version = NTP_VERSION;
 
   if (params->authkey == INACTIVE_AUTHKEY) {
     result->do_auth = 0;
@@ -864,7 +872,7 @@ transmit_timeout(void *arg)
     
     /* Send a client packet, don't store the local tx values
        as the reply will be ignored */
-    transmit_packet(MODE_CLIENT, inst->local_poll, NTP_VERSION, 0, 0,
+    transmit_packet(MODE_CLIENT, inst->local_poll, inst->version, 0, 0,
                     &inst->remote_orig, &inst->local_rx, NULL, NULL,
                     &inst->remote_addr, &inst->local_addr);
 
@@ -879,7 +887,7 @@ transmit_timeout(void *arg)
   inst->presend_done = 0; /* Reset for next time */
 
   sent = transmit_packet(inst->mode, inst->local_poll,
-                         NTP_VERSION,
+                         inst->version,
                          inst->do_auth, inst->auth_key_id,
                          &inst->remote_orig,
                          &inst->local_rx, &inst->local_tx, &inst->local_ntp_tx,

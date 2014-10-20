@@ -604,6 +604,9 @@ parse_source(char *line, NTP_Source_Type type)
     case CPS_BadPolltarget:
       other_parse_error("Unreadable polltarget");
       break;
+    case CPS_BadVersion:
+      other_parse_error("Unreadable version");
+      break;
   }
 }
 

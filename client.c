@@ -955,6 +955,11 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
         break;
       }
 
+      if (data.params.version != NTP_VERSION) {
+        fprintf(stderr, "Option version not supported\n");
+        break;
+      }
+
       msg->data.ntp_source.port = htonl((unsigned long) data.port);
       UTI_IPHostToNetwork(&ip_addr, &msg->data.ntp_source.ip_addr);
       msg->data.ntp_source.minpoll = htonl(data.params.minpoll);
@@ -1007,6 +1012,9 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
       break;
     case CPS_BadPolltarget:
       fprintf(stderr, "Unreadable polltarget value\n");
+      break;
+    case CPS_BadVersion:
+      fprintf(stderr, "Unreadable version value\n");
       break;
   }
 

@@ -38,6 +38,7 @@ typedef struct {
   int iburst;
   int min_stratum;
   int poll_target;
+  int version;
   uint32_t authkey;
   double max_delay;
   double max_delay_ratio;

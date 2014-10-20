@@ -34,6 +34,7 @@
 #include "cmdparse.h"
 #include "memory.h"
 #include "nameserv.h"
+#include "ntp.h"
 #include "util.h"
 
 /* ================================================== */
@@ -58,6 +59,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   src->params.iburst = 0;
   src->params.min_stratum = SRC_DEFAULT_MINSTRATUM;
   src->params.poll_target = SRC_DEFAULT_POLLTARGET;
+  src->params.version = NTP_VERSION;
   src->params.sel_option = SRC_SelectNormal;
 
   result = CPS_Success;
@@ -165,6 +167,14 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
         } else if (!strcasecmp(cmd, "prefer")) {
           src->params.sel_option = SRC_SelectPrefer;
         
+        } else if (!strcasecmp(cmd, "version")) {
+          if (sscanf(line, "%d%n", &src->params.version, &n) != 1) {
+            result = CPS_BadVersion;
+            done = 1;
+          } else {
+            line += n;
+          }
+
         } else {
           result = CPS_BadOption;
           done = 1;

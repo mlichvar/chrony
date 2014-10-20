@@ -2900,6 +2900,11 @@ Target number of measurements to use for the regression algorithm which
 @code{minpoll} and @code{maxpoll}.  A higher target makes @code{chronyd} prefer
 shorter polling intervals.  The default is 6 and a useful range is 6 to 60.
 
+@item version
+This option sets the NTP version number used in packets sent to the server.
+This can be useful when the server runs an old NTP implementation that doesn't
+respond to newer versions.  The default version number is 4.
+
 @item prefer
 Prefer this source over sources without prefer option.
 
