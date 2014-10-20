@@ -2787,11 +2787,11 @@ required (the default is 123, the standard NTP port).
 Although @code{chronyd} will trim the rate at which it samples the
 server during normal operation, the user may wish to constrain the
 minimum polling interval.  This is always defined as a power of 2, so
-<tt/minpoll 5/ would mean that the polling interval cannot drop below 32
+@code{minpoll 5} would mean that the polling interval cannot drop below 32
 seconds.  The default is 6 (64 seconds).
 @item maxpoll
 In a similar way, the user may wish to constrain the maximum polling
-interval.  Again this is specified as a power of 2, so <tt/maxpoll 9/
+interval.  Again this is specified as a power of 2, @code{maxpoll 9}
 indicates that the polling interval must stay at or below 512 seconds.
 The default is 10 (1024 seconds).
 @item maxdelay
@@ -2811,7 +2811,7 @@ some sort).
 
 If the user knows that round trip delays above a certain level should
 cause the measurement to be ignored, this level can be defined with the
-maxdelay command.  For example, <tt/maxdelay 0.3/ would indicate that
+maxdelay command.  For example, @code{maxdelay 0.3} would indicate that
 measurements with a round-trip delay of 0.3 seconds or more should be
 ignored.
 
