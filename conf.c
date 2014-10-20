@@ -206,16 +206,15 @@ static ARR_Instance ntp_sources;
 static ARR_Instance refclock_sources;
 
 typedef struct _AllowDeny {
-  struct _AllowDeny *next;
-  struct _AllowDeny *prev;
   IPAddr ip;
   int subnet_bits;
   int all; /* 1 to override existing more specific defns */
   int allow; /* 0 for deny, 1 for allow */
 } AllowDeny;
 
-static AllowDeny ntp_auth_list = {&ntp_auth_list, &ntp_auth_list};
-static AllowDeny cmd_auth_list = {&cmd_auth_list, &cmd_auth_list};
+/* Arrays of AllowDeny */
+static ARR_Instance ntp_restrictions;
+static ARR_Instance cmd_restrictions;
 
 typedef struct {
   /* Both in host (not necessarily network) order */
@@ -288,6 +287,9 @@ CNF_Initialise(int r)
   ntp_sources = ARR_CreateInstance(sizeof (NTP_Source));
   refclock_sources = ARR_CreateInstance(sizeof (RefclockParameters));
 
+  ntp_restrictions = ARR_CreateInstance(sizeof (AllowDeny));
+  cmd_restrictions = ARR_CreateInstance(sizeof (AllowDeny));
+
   dumpdir = Strdup(".");
   logdir = Strdup(".");
   pidfile = Strdup("/var/run/chronyd.pid");
@@ -308,6 +310,9 @@ CNF_Finalise(void)
   ARR_DestroyInstance(init_sources);
   ARR_DestroyInstance(ntp_sources);
   ARR_DestroyInstance(refclock_sources);
+
+  ARR_DestroyInstance(ntp_restrictions);
+  ARR_DestroyInstance(cmd_restrictions);
 
   Free(drift_file);
   Free(dumpdir);
@@ -890,7 +895,7 @@ parse_mailonchange(char *line)
 /* ================================================== */
 
 static void
-parse_allow_deny(char *line, AllowDeny *list, int allow)
+parse_allow_deny(char *line, ARR_Instance restrictions, int allow)
 {
   char *p;
   unsigned long a, b, c, d, n;
@@ -907,7 +912,7 @@ parse_allow_deny(char *line, AllowDeny *list, int allow)
 
   if (!*p) {
     /* Empty line applies to all addresses */
-    new_node = MallocNew(AllowDeny);
+    new_node = (AllowDeny *)ARR_GetNewElement(restrictions);
     new_node->allow = allow;
     new_node->all = all;
     new_node->ip.family = IPADDR_UNSPEC;
@@ -921,7 +926,7 @@ parse_allow_deny(char *line, AllowDeny *list, int allow)
     n = 0;
     if (UTI_StringToIP(p, &ip_addr) ||
         (n = sscanf(p, "%lu.%lu.%lu.%lu", &a, &b, &c, &d)) >= 1) {
-      new_node = MallocNew(AllowDeny);
+      new_node = (AllowDeny *)ARR_GetNewElement(restrictions);
       new_node->allow = allow;
       new_node->all = all;
 
@@ -973,7 +978,7 @@ parse_allow_deny(char *line, AllowDeny *list, int allow)
 
     } else {
       if (DNS_Name2IPAddress(p, &ip_addr) == DNS_Success) {
-        new_node = MallocNew(AllowDeny);
+        new_node = (AllowDeny *)ARR_GetNewElement(restrictions);
         new_node->allow = allow;
         new_node->all = all;
         new_node->ip = ip_addr;
@@ -986,14 +991,6 @@ parse_allow_deny(char *line, AllowDeny *list, int allow)
       }      
     }
   }
-  
-  if (new_node) {
-    new_node->prev = list->prev;
-    new_node->next = list;
-    list->prev->next = new_node;
-    list->prev = new_node;
-  }
-
 }
   
 
@@ -1002,7 +999,7 @@ parse_allow_deny(char *line, AllowDeny *list, int allow)
 static void
 parse_allow(char *line)
 {
-  parse_allow_deny(line, &ntp_auth_list, 1);
+  parse_allow_deny(line, ntp_restrictions, 1);
 }
 
 
@@ -1011,7 +1008,7 @@ parse_allow(char *line)
 static void
 parse_deny(char *line)
 {
-  parse_allow_deny(line, &ntp_auth_list, 0);
+  parse_allow_deny(line, ntp_restrictions, 0);
 }
 
 /* ================================================== */
@@ -1019,7 +1016,7 @@ parse_deny(char *line)
 static void
 parse_cmdallow(char *line)
 {
-  parse_allow_deny(line, &cmd_auth_list, 1);
+  parse_allow_deny(line, cmd_restrictions, 1);
 }
 
 
@@ -1028,7 +1025,7 @@ parse_cmdallow(char *line)
 static void
 parse_cmddeny(char *line)
 {
-  parse_allow_deny(line, &cmd_auth_list, 0);
+  parse_allow_deny(line, cmd_restrictions, 0);
 }
 
 /* ================================================== */
@@ -1547,20 +1544,26 @@ CNF_SetupAccessRestrictions(void)
 {
   AllowDeny *node;
   int status;
+  unsigned int i;
 
-  for (node = ntp_auth_list.next; node != &ntp_auth_list; node = node->next) {
+  for (i = 0; i < ARR_GetSize(ntp_restrictions); i++) {
+    node = ARR_GetElement(ntp_restrictions, i);
     status = NCR_AddAccessRestriction(&node->ip, node->subnet_bits, node->allow, node->all);
     if (!status) {
       LOG_FATAL(LOGF_Configure, "Bad subnet in %s/%d", UTI_IPToString(&node->ip), node->subnet_bits);
     }
   }
 
-  for (node = cmd_auth_list.next; node != &cmd_auth_list; node = node->next) {
+  for (i = 0; i < ARR_GetSize(cmd_restrictions); i++) {
+    node = ARR_GetElement(cmd_restrictions, i);
     status = CAM_AddAccessRestriction(&node->ip, node->subnet_bits, node->allow, node->all);
     if (!status) {
       LOG_FATAL(LOGF_Configure, "Bad subnet in %s/%d", UTI_IPToString(&node->ip), node->subnet_bits);
     }
   }
+
+  ARR_SetSize(ntp_restrictions, 0);
+  ARR_SetSize(cmd_restrictions, 0);
 }
 
 /* ================================================== */
