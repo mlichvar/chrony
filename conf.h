@@ -101,6 +101,8 @@ extern char *CNF_GetUser(void);
 extern int CNF_GetMaxSamples(void);
 extern int CNF_GetMinSamples(void);
 
+extern int CNF_GetMinSources(void);
+
 extern double CNF_GetRtcAutotrim(void);
 extern char *CNF_GetHwclockFile(void);
 

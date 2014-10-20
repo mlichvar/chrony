@@ -74,6 +74,7 @@ typedef enum {
   SRC_STALE,            /* Has older samples than others */
   SRC_FALSETICKER,      /* Doesn't agree with others */
   SRC_JITTERY,          /* Scatter worse than other's dispersion (not used) */
+  SRC_WAITS_SOURCES,    /* Not enough sources, selection postponed */
   SRC_NONPREFERRED,     /* Others have prefer option */
   SRC_WAITS_UPDATE,     /* No updates, selection postponed */
   SRC_DISTANT,          /* Others have shorter root distance */
@@ -807,11 +808,13 @@ SRC_SelectSource(SRC_Instance updated_inst)
   n_sel_sources = j;
 #endif
 
-  if (n_sel_sources == 0) {
+  if (n_sel_sources == 0 || n_sel_sources < CNF_GetMinSources()) {
     if (selected_source_index != INVALID_SOURCE) {
-      log_selection_message("Can't synchronise: no selectable sources", NULL);
+      log_selection_message("Can't synchronise: %s selectable sources",
+                            n_sel_sources ? "not enough" : "no");
       selected_source_index = INVALID_SOURCE;
     }
+    mark_ok_sources(SRC_WAITS_SOURCES);
     return;
   }
 
@@ -1225,6 +1228,7 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
       case SRC_JITTERY:
         report->state = RPT_JITTERY;
         break;
+      case SRC_WAITS_SOURCES:
       case SRC_NONPREFERRED:
       case SRC_WAITS_UPDATE:
       case SRC_DISTANT:

@@ -135,6 +135,9 @@ static double make_step_threshold = 0.0;
 /* Threshold for automatic RTC trimming */
 static double rtc_autotrim_threshold = 0.0;
 
+/* Minimum number of selectables sources required to update the clock */
+static int min_sources = 1;
+
 /* Number of updates before offset checking, number of ignored updates
    before exiting and the maximum allowed offset */
 static int max_offset_delay = -1;
@@ -456,6 +459,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_double(p, &max_update_skew);
   } else if (!strcasecmp(command, "minsamples")) {
     parse_int(p, &min_samples);
+  } else if (!strcasecmp(command, "minsources")) {
+    parse_int(p, &min_sources);
   } else if (!strcasecmp(command, "noclientlog")) {
     no_client_log = parse_null(p);
   } else if (!strcasecmp(command, "peer")) {
@@ -1696,6 +1701,14 @@ int
 CNF_GetMinSamples(void)
 {
   return min_samples;
+}
+
+/* ================================================== */
+
+int
+CNF_GetMinSources(void)
+{
+  return min_sources;
 }
 
 /* ================================================== */

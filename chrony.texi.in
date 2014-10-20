@@ -1160,6 +1160,7 @@ the configuration file is ignored.
 * maxslewrate directive::       Set maximum slew rate
 * maxupdateskew directive::     Stop bad estimates upsetting machine clock
 * minsamples directive::        Set minimum number of samples per source
+* minsources directive::        Set minimum number of selectable sources to update clock
 * noclientlog directive::       Prevent chronyd from gathering data about clients
 * peer directive::              Specify an NTP peer
 * pidfile directive::           Specify the file where chronyd's pid is written
@@ -2445,6 +2446,23 @@ The syntax is
 
 @example
 minsamples <samples>
+@end example
+@c }}}
+@c {{{ minsources
+@node minsources directive
+@subsection minsources
+The @code{minsources} directive sets the minimum number of sources that need
+to be considered as selectable in the source selection algorithm before the
+local clock is updated.  The default value is 1.
+
+Setting this option to a larger number can be used to improve the reliability.
+More sources will have to agree with each other and the clock will not be
+updated when only one source (which could be serving wrong time) is reachable.
+
+The syntax is
+
+@example
+minsources <sources>
 @end example
 @c }}}
 @c {{{ noclientlog
