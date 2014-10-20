@@ -217,15 +217,13 @@ static ARR_Instance ntp_restrictions;
 static ARR_Instance cmd_restrictions;
 
 typedef struct {
-  /* Both in host (not necessarily network) order */
   IPAddr addr;
   unsigned short port;
   int interval;
 } NTP_Broadcast_Destination;
 
-static NTP_Broadcast_Destination *broadcasts = NULL;
-static int max_broadcasts = 0;
-static int n_broadcasts = 0;
+/* Array of NTP_Broadcast_Destination */
+static ARR_Instance broadcasts;
 
 /* ================================================== */
 
@@ -286,6 +284,7 @@ CNF_Initialise(int r)
   init_sources = ARR_CreateInstance(sizeof (IPAddr));
   ntp_sources = ARR_CreateInstance(sizeof (NTP_Source));
   refclock_sources = ARR_CreateInstance(sizeof (RefclockParameters));
+  broadcasts = ARR_CreateInstance(sizeof (NTP_Broadcast_Destination));
 
   ntp_restrictions = ARR_CreateInstance(sizeof (AllowDeny));
   cmd_restrictions = ARR_CreateInstance(sizeof (AllowDeny));
@@ -310,6 +309,7 @@ CNF_Finalise(void)
   ARR_DestroyInstance(init_sources);
   ARR_DestroyInstance(ntp_sources);
   ARR_DestroyInstance(refclock_sources);
+  ARR_DestroyInstance(broadcasts);
 
   ARR_DestroyInstance(ntp_restrictions);
   ARR_DestroyInstance(cmd_restrictions);
@@ -1088,6 +1088,7 @@ static void
 parse_broadcast(char *line)
 {
   /* Syntax : broadcast <interval> <broadcast-IP-addr> [<port>] */
+  NTP_Broadcast_Destination *destination;
   int port;
   int interval;
   char *p;
@@ -1122,20 +1123,10 @@ parse_broadcast(char *line)
     port = 123;
   }
 
-  if (max_broadcasts == n_broadcasts) {
-    /* Expand array */
-    max_broadcasts += 8;
-    if (broadcasts) {
-      broadcasts = ReallocArray(NTP_Broadcast_Destination, max_broadcasts, broadcasts);
-    } else {
-      broadcasts = MallocArray(NTP_Broadcast_Destination, max_broadcasts);
-    }
-  }
-
-  broadcasts[n_broadcasts].addr = ip;
-  broadcasts[n_broadcasts].port = port;
-  broadcasts[n_broadcasts].interval = interval;
-  ++n_broadcasts;
+  destination = (NTP_Broadcast_Destination *)ARR_GetNewElement(broadcasts);
+  destination->addr = ip;
+  destination->port = port;
+  destination->interval = interval;
 }
 
 /* ================================================== */
@@ -1234,11 +1225,16 @@ CNF_AddRefclocks(void)
 void
 CNF_AddBroadcasts(void)
 {
-  int i;
-  for (i=0; i<n_broadcasts; i++) {
-    NCR_AddBroadcastDestination(&broadcasts[i].addr, broadcasts[i].port,
-                                broadcasts[i].interval);
+  unsigned int i;
+  NTP_Broadcast_Destination *destination;
+
+  for (i = 0; i < ARR_GetSize(broadcasts); i++) {
+    destination = (NTP_Broadcast_Destination *)ARR_GetElement(broadcasts, i);
+    NCR_AddBroadcastDestination(&destination->addr, destination->port,
+                                destination->interval);
   }
+
+  ARR_SetSize(broadcasts, 0);
 }
 
 /* ================================================== */
