@@ -57,6 +57,7 @@ default_server_strata=1
 default_servers=1
 default_clients=1
 default_peers=0
+default_falsetickers=0
 default_server_start=0.0
 default_client_start=0.0
 default_chronyc_start=1000.0
@@ -397,7 +398,7 @@ run_test() {
 				step=$server_step
 				start=$server_start
 				freq=""
-				offset=0.0
+				[ $i -le $falsetickers ] && offset=$i.0 || offset=0.0
 			elif [ $stratum -le $server_strata ]; then
 				step=$server_step
 				start=$server_start
