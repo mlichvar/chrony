@@ -88,12 +88,18 @@ DNS_Name2IPAddress(const char *name, IPAddr *addr)
 #else
   struct hostent *host;
   
+  if (address_family != IPADDR_UNSPEC && address_family != IPADDR_INET4)
+    return DNS_Failure;
+
   host = gethostbyname(name);
 
   if (host == NULL) {
     if (h_errno == TRY_AGAIN)
       return DNS_TryAgain;
   } else {
+    if (host->h_addrtype != AF_INET || !host->h_addr_list[0])
+      return DNS_Failure;
+
     addr->family = IPADDR_INET4;
     addr->addr.in4 = ntohl(*(uint32_t *)host->h_addr_list[0]);
     return DNS_Success;
