@@ -44,11 +44,11 @@ DNS_SetAddressFamily(int family)
 }
 
 DNS_Status 
-DNS_Name2IPAddress(const char *name, IPAddr *addr)
+DNS_Name2IPAddress(const char *name, IPAddr *ip_addrs, int max_addrs)
 {
 #ifdef HAVE_GETADDRINFO
   struct addrinfo hints, *res, *ai;
-  int result;
+  int i, result;
   
   memset(&hints, 0, sizeof (hints));
   hints.ai_family = AF_UNSPEC;
@@ -64,29 +64,37 @@ DNS_Name2IPAddress(const char *name, IPAddr *addr)
 #endif
   }
 
-  for (ai = res; !result && ai != NULL; ai = ai->ai_next) {
+  for (ai = res, i = 0; i < max_addrs && ai != NULL; ai = ai->ai_next) {
     switch (ai->ai_family) {
       case AF_INET:
-        addr->family = IPADDR_INET4;
-        addr->addr.in4 = ntohl(((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
-        result = 1;
+        if (address_family != IPADDR_UNSPEC && address_family != IPADDR_INET4)
+          continue;
+        ip_addrs[i].family = IPADDR_INET4;
+        ip_addrs[i].addr.in4 = ntohl(((struct sockaddr_in *)ai->ai_addr)->sin_addr.s_addr);
+        i++;
         break;
 #ifdef FEAT_IPV6
       case AF_INET6:
-        addr->family = IPADDR_INET6;
-        memcpy(&addr->addr.in6, &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr.s6_addr, sizeof (addr->addr.in6));
-        result = 1;
+        if (address_family != IPADDR_UNSPEC && address_family != IPADDR_INET6)
+          continue;
+        ip_addrs[i].family = IPADDR_INET6;
+        memcpy(&ip_addrs[i].addr.in6, &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr.s6_addr,
+               sizeof (ip_addrs->addr.in6));
+        i++;
         break;
 #endif
     }
-    if (result && address_family != IPADDR_UNSPEC && address_family != addr->family)
-      result = 0;
   }
 
+  for (; i < max_addrs; i++)
+        ip_addrs[i].family = IPADDR_UNSPEC;
+
   freeaddrinfo(res);
-  return result ? DNS_Success : DNS_Failure;
+
+  return !max_addrs || ip_addrs[0].family != IPADDR_UNSPEC ? DNS_Success : DNS_Failure;
 #else
   struct hostent *host;
+  int i;
   
   if (address_family != IPADDR_UNSPEC && address_family != IPADDR_INET4)
     return DNS_Failure;
@@ -100,8 +108,14 @@ DNS_Name2IPAddress(const char *name, IPAddr *addr)
     if (host->h_addrtype != AF_INET || !host->h_addr_list[0])
       return DNS_Failure;
 
-    addr->family = IPADDR_INET4;
-    addr->addr.in4 = ntohl(*(uint32_t *)host->h_addr_list[0]);
+    for (i = 0; host->h_addr_list[i] && i < max_addrs; i++) {
+      ip_addrs[i].family = IPADDR_INET4;
+      ip_addrs[i].addr.in4 = ntohl(*(uint32_t *)host->h_addr_list[i]);
+    }
+
+    for (; i < max_addrs; i++)
+      ip_addrs[i].family = IPADDR_UNSPEC;
+
     return DNS_Success;
   }
 

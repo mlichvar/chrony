@@ -300,7 +300,7 @@ NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParam
 /* ================================================== */
 
 static void
-name_resolve_handler(DNS_Status status, IPAddr *ip_addr, void *anything)
+name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *anything)
 {
   struct UnresolvedSource *us, **i, *next;
   NTP_Remote_Address address;
@@ -313,8 +313,8 @@ name_resolve_handler(DNS_Status status, IPAddr *ip_addr, void *anything)
     case DNS_TryAgain:
       break;
     case DNS_Success:
-      DEBUG_LOG(LOGF_NtpSources, "%s resolved to %s", us->name, UTI_IPToString(ip_addr));
-      address.ip_addr = *ip_addr;
+      DEBUG_LOG(LOGF_NtpSources, "%s resolved to %s", us->name, UTI_IPToString(&ip_addrs[0]));
+      address.ip_addr = ip_addrs[0];
       address.port = us->port;
       NSR_AddSource(&address, us->type, &us->params);
       break;

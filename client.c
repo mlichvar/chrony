@@ -119,7 +119,7 @@ open_io(const char *hostname, int port)
   int on_off = 1;
 
   /* Note, this call could block for a while */
-  if (DNS_Name2IPAddress(hostname, &ip) != DNS_Success) {
+  if (DNS_Name2IPAddress(hostname, &ip, 1) != DNS_Success) {
     fprintf(stderr, "Could not get IP address for %s\n", hostname);
     exit(1);
   }
@@ -233,7 +233,7 @@ read_mask_address(char *line, IPAddr *mask, IPAddr *address)
         }
       }
     } else {
-      if (DNS_Name2IPAddress(p, address) == DNS_Success) {
+      if (DNS_Name2IPAddress(p, address, 1) == DNS_Success) {
         bits_to_mask(-1, address->family, mask);
         return 1;
       } else {
@@ -305,7 +305,7 @@ read_address_integer(char *line, IPAddr *address, int *value)
     fprintf(stderr, "Invalid syntax for address value\n");
     ok = 0;
   } else {
-    if (DNS_Name2IPAddress(hostname, address) != DNS_Success) {
+    if (DNS_Name2IPAddress(hostname, address, 1) != DNS_Success) {
       fprintf(stderr, "Could not get address for hostname\n");
       ok = 0;
     } else {
@@ -333,7 +333,7 @@ read_address_double(char *line, IPAddr *address, double *value)
     fprintf(stderr, "Invalid syntax for address value\n");
     ok = 0;
   } else {
-    if (DNS_Name2IPAddress(hostname, address) != DNS_Success) {
+    if (DNS_Name2IPAddress(hostname, address, 1) != DNS_Success) {
       fprintf(stderr, "Could not get address for hostname\n");
       ok = 0;
     } else {
@@ -660,7 +660,7 @@ parse_allow_deny(CMD_Request *msg, char *line)
         (n = sscanf(p, "%lu.%lu.%lu.%lu", &a, &b, &c, &d)) == 0) {
 
       /* Try to parse as the name of a machine */
-      if (DNS_Name2IPAddress(p, &ip) != DNS_Success) {
+      if (DNS_Name2IPAddress(p, &ip, 1) != DNS_Success) {
         fprintf(stderr, "Could not read address\n");
         return 0;
       } else {
@@ -828,7 +828,7 @@ accheck_getaddr(char *line, IPAddr *addr)
       addr->addr.in4 = (a<<24) | (b<<16) | (c<<8) | d;
       return 1;
     } else {
-      if (DNS_Name2IPAddress(p, &ip) != DNS_Success) {
+      if (DNS_Name2IPAddress(p, &ip, 1) != DNS_Success) {
         return 0;
       } else {
         *addr = ip;
@@ -935,7 +935,7 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
   status = CPS_ParseNTPSourceAdd(line, &data);
   switch (status) {
     case CPS_Success:
-      if (DNS_Name2IPAddress(data.name, &ip_addr) != DNS_Success) {
+      if (DNS_Name2IPAddress(data.name, &ip_addr, 1) != DNS_Success) {
         fprintf(stderr, "Invalid host/IP address\n");
         break;
       }
@@ -1056,7 +1056,7 @@ process_cmd_delete(CMD_Request *msg, char *line)
     fprintf(stderr, "Invalid syntax for address\n");
     ok = 0;
   } else {
-    if (DNS_Name2IPAddress(hostname, &address) != DNS_Success) {
+    if (DNS_Name2IPAddress(hostname, &address, 1) != DNS_Success) {
       fprintf(stderr, "Could not get address for hostname\n");
       ok = 0;
     } else {

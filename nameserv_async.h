@@ -31,7 +31,7 @@
 #include "nameserv.h"
 
 /* Function type for callback to process the result */
-typedef void (*DNS_NameResolveHandler)(DNS_Status status, IPAddr *ip_addr, void *anything);
+typedef void (*DNS_NameResolveHandler)(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *anything);
 
 /* Request resolving of a name to IP address. The handler will be
    called when the result is available, but it may be also called

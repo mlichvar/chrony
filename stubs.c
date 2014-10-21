@@ -41,16 +41,24 @@
 
 #ifndef FEAT_ASYNCDNS
 
+#define MAX_ADDRESSES 16
+
 /* This is a blocking implementation used when asynchronous resolving is not available */
 
 void
 DNS_Name2IPAddressAsync(const char *name, DNS_NameResolveHandler handler, void *anything)
 {
-  IPAddr addr;
+  IPAddr addrs[MAX_ADDRESSES];
   DNS_Status status;
+  int i;
 
-  status = DNS_Name2IPAddress(name, &addr);
-  (handler)(status, &addr, anything);
+  status = DNS_Name2IPAddress(name, addrs, MAX_ADDRESSES);
+
+  for (i = 0; status == DNS_Success && i < MAX_ADDRESSES &&
+              addrs[i].family != IPADDR_UNSPEC; i++)
+    ;
+
+  (handler)(status, i, addrs, anything);
 }
 
 #endif /* !FEAT_ASYNCDNS */
@@ -267,7 +275,7 @@ DNS_SetAddressFamily(int family)
 }
 
 DNS_Status
-DNS_Name2IPAddress(const char *name, IPAddr *addr)
+DNS_Name2IPAddress(const char *name, IPAddr *ip_addrs, int max_addrs)
 {
   return DNS_Failure;
 }

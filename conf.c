@@ -817,7 +817,7 @@ parse_initstepslew(char *line)
     hostname = p;
     p = CPS_SplitWord(p);
     if (*hostname) {
-      if (DNS_Name2IPAddress(hostname, &ip_addr) == DNS_Success) {
+      if (DNS_Name2IPAddress(hostname, &ip_addr, 1) == DNS_Success) {
         ARR_AppendElement(init_sources, &ip_addr);
       } else {
         LOG(LOGS_WARN, LOGF_Configure, "Could not resolve address of initstepslew server %s", hostname);
@@ -985,7 +985,7 @@ parse_allow_deny(char *line, ARR_Instance restrictions, int allow)
       }
 
     } else {
-      if (DNS_Name2IPAddress(p, &ip_addr) == DNS_Success) {
+      if (DNS_Name2IPAddress(p, &ip_addr, 1) == DNS_Success) {
         new_node = (AllowDeny *)ARR_GetNewElement(restrictions);
         new_node->allow = allow;
         new_node->all = all;
