@@ -847,6 +847,10 @@ transmit_timeout(void *arg)
       break;
   }
 
+  /* With auto_offline take the source offline on 2nd missed reply */
+  if (inst->auto_offline && inst->tx_count >= 2)
+    NCR_TakeSourceOffline(inst);
+
   if (inst->opmode == MD_OFFLINE) {
     return;
   }
@@ -908,10 +912,6 @@ transmit_timeout(void *arg)
     }
 
     SRC_UpdateReachability(inst->source, 0);
-
-    if (inst->auto_offline && inst->tx_count >= 3) {
-      NCR_TakeSourceOffline(inst);
-    }
   }
 
   switch (inst->opmode) {
