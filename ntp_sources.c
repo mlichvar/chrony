@@ -300,10 +300,29 @@ NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParam
 /* ================================================== */
 
 static void
+process_resolved_name(struct UnresolvedSource *us, IPAddr *ip_addrs, int n_addrs)
+{
+  NTP_Remote_Address address;
+  int i;
+
+  for (i = 0; i < n_addrs; i++) {
+    DEBUG_LOG(LOGF_NtpSources, "%s resolved to %s", us->name, UTI_IPToString(&ip_addrs[i]));
+
+    address.ip_addr = ip_addrs[i];
+    address.port = us->port;
+
+    /* Add only one new source for this name */
+    if (NSR_AddSource(&address, us->type, &us->params) == NSR_Success)
+      break;
+  }
+}
+
+/* ================================================== */
+
+static void
 name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *anything)
 {
   struct UnresolvedSource *us, **i, *next;
-  NTP_Remote_Address address;
 
   us = (struct UnresolvedSource *)anything;
 
@@ -313,10 +332,7 @@ name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *any
     case DNS_TryAgain:
       break;
     case DNS_Success:
-      DEBUG_LOG(LOGF_NtpSources, "%s resolved to %s", us->name, UTI_IPToString(&ip_addrs[0]));
-      address.ip_addr = ip_addrs[0];
-      address.port = us->port;
-      NSR_AddSource(&address, us->type, &us->params);
+      process_resolved_name(us, ip_addrs, n_addrs);
       break;
     case DNS_Failure:
       LOG(LOGS_WARN, LOGF_NtpSources, "Invalid host %s", us->name);
