@@ -174,5 +174,7 @@ extern SRC_Type SRC_GetType(int index);
 
 extern int SRC_Samples(SRC_Instance inst);
 
+extern SRC_SelectOption SRC_GetSelectOption(SRC_Instance inst);
+
 #endif /* GOT_SOURCES_H */
 

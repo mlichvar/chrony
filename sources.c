@@ -1311,3 +1311,10 @@ SRC_Samples(SRC_Instance inst)
 }
 
 /* ================================================== */
+
+SRC_SelectOption SRC_GetSelectOption(SRC_Instance inst)
+{
+  return inst->sel_option;
+}
+
+/* ================================================== */

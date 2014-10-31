@@ -58,6 +58,9 @@ extern void NCR_StartInstance(NCR_Instance instance);
 /* Reset an instance */
 extern void NCR_ResetInstance(NCR_Instance inst);
 
+/* Change the remote address of an instance */
+extern void NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remote_addr);
+
 /* This routine is called when a new packet arrives off the network,
    and it relates to a source we have an ongoing protocol exchange with */
 extern void NCR_ProcessKnown(NTP_Packet *message, struct timeval *now, double now_err, NCR_Instance data, NTP_Local_Address *local_addr, int length);

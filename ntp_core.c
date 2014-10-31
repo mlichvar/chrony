@@ -538,6 +538,29 @@ NCR_ResetInstance(NCR_Instance instance)
 
 /* ================================================== */
 
+void
+NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remote_addr)
+{
+  SRC_SelectOption sel_option;
+
+  inst->remote_addr = *remote_addr;
+  inst->tx_count = 0;
+  inst->presend_done = 0;
+
+  if (inst->mode == MODE_CLIENT)
+    close_client_socket(inst);
+  else
+    inst->local_addr.sock_fd = NIO_GetServerSocket(remote_addr);
+
+  /* Replace sources and sourcestats instances */
+  sel_option = SRC_GetSelectOption(inst->source);
+  SRC_DestroyInstance(inst->source);
+  inst->source = SRC_CreateNewInstance(UTI_IPToRefid(&remote_addr->ip_addr), SRC_NTP,
+                                       sel_option, &inst->remote_addr.ip_addr);
+}
+
+/* ================================================== */
+
 static void
 adjust_poll(NCR_Instance inst, double adj)
 {
