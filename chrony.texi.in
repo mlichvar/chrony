@@ -2965,10 +2965,9 @@ The syntax is
 stratumweight <dist-in-seconds>
 @end example
 
-By default, it is 1 second.  This usually means that sources with lower stratum
-will be preferred to sources with higher stratum even when their distance is
-significantly worse.  Setting @code{stratumweight} to 0 makes @code{chronyd}
-ignore stratum when selecting the source.
+By default, the weight is 0.001 seconds.  This means that stratum of the
+sources in the selection process matters only when the differences between the
+distances are in milliseconds.
 
 @c }}}
 @c {{{ tempcomp

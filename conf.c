@@ -92,7 +92,7 @@ static double max_clock_error = 1.0; /* in ppm */
 static double max_slew_rate = 1e6 / 12.0; /* in ppm */
 
 static double reselect_distance = 1e-4;
-static double stratum_weight = 1.0;
+static double stratum_weight = 1e-3;
 static double combine_limit = 3.0;
 
 static int cmd_port = DEFAULT_CANDM_PORT;
