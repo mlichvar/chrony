@@ -50,10 +50,10 @@ typedef enum {
 /* Procedure to add a new server or peer source. */
 extern NSR_Status NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParameters *params);
 
-/* Procedure to add a new server or peer source with currently unknown address.
-   The name will be periodically resolved in exponentially increasing intervals
-   until it succeeds or fails with a non-temporary error. */
-extern void NSR_AddUnresolvedSource(char *name, int port, NTP_Source_Type type, SourceParameters *params);
+/* Procedure to add a new server, peer source, or pool of servers specified by
+   name instead of address.  The name is resolved in exponentially increasing
+   intervals until it succeeds or fails with a non-temporary error. */
+extern void NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type, SourceParameters *params);
 
 /* Function type for handlers to be called back when an attempt
  * (possibly unsuccessful) to resolve unresolved sources ends */
@@ -76,6 +76,9 @@ extern NSR_Status NSR_RemoveSource(NTP_Remote_Address *remote_addr);
 
 /* Procedure to remove all sources */
 extern void NSR_RemoveAllSources(void);
+
+/* Procedure to try to find a replacement for a bad source */
+extern void NSR_HandleBadSource(IPAddr *address);
 
 /* This routine is called by ntp_io when a new packet arrives off the network */
 extern void NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length);

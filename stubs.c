@@ -149,7 +149,7 @@ NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParam
 }
 
 void
-NSR_AddUnresolvedSource(char *name, int port, NTP_Source_Type type, SourceParameters *params)
+NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type, SourceParameters *params)
 {
 }
 
@@ -161,6 +161,11 @@ NSR_RemoveSource(NTP_Remote_Address *remote_addr)
 
 void
 NSR_RemoveAllSources(void)
+{
+}
+
+void
+NSR_HandleBadSource(IPAddr *address)
 {
 }
 

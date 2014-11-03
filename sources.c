@@ -36,6 +36,7 @@
 #include "sourcestats.h"
 #include "memory.h"
 #include "ntp.h" /* For NTP_Leap */
+#include "ntp_sources.h"
 #include "local.h"
 #include "reference.h"
 #include "util.h"
@@ -398,6 +399,12 @@ SRC_UpdateReachability(SRC_Instance inst, int reachable)
   /* Check if special reference update mode failed */
   if (REF_GetMode() != REF_ModeNormal && special_mode_end()) {
     REF_SetUnsynchronised();
+  }
+
+  /* Try to replace NTP sources that are unreachable or falsetickers */
+  if (inst->type == SRC_NTP && (inst->status == SRC_FALSETICKER ||
+      (!inst->reachability && inst->reachability_size == SOURCE_REACH_BITS))) {
+    NSR_HandleBadSource(inst->ip_addr);
   }
 }
 

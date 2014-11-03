@@ -1164,6 +1164,7 @@ the configuration file is ignored.
 * noclientlog directive::       Prevent chronyd from gathering data about clients
 * peer directive::              Specify an NTP peer
 * pidfile directive::           Specify the file where chronyd's pid is written
+* pool directive::              Specify an NTP pool
 * port directive::              Set NTP server port
 * refclock directive::          Specify a reference clock
 * reselectdist directive::      Set improvement in distance needed to reselect a source
@@ -2487,6 +2488,25 @@ chronyd always writes its process ID (pid) to a file, and checks this file on st
 @example
 pidfile /var/tmp/chronyd.pid
 @end example
+@c }}}
+@c {{{ pool
+@node pool directive
+@subsection pool
+The syntax of this directive is identical to that for the @code{server}
+directive (@pxref{server directive}), except that it is used to specify a pool
+of NTP servers rather than a single NTP server.  The pool name is expected to
+resolve to multiple addresses which change over time.
+
+On start, a source will be added for each resolved address.  When a source from
+the pool is unreachable or marked as falseticker, @code{chronyd} will try to
+replace the source with a newly resolved address of the pool.
+
+An example of the pool directive is
+
+@example
+pool pool.ntp.org iburst
+@end example
+
 @c }}}
 @c {{{ port
 @node port directive

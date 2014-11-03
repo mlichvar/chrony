@@ -69,6 +69,7 @@ static void parse_mailonchange(char *);
 static void parse_makestep(char *);
 static void parse_maxchange(char *);
 static void parse_peer(char *);
+static void parse_pool(char *);
 static void parse_refclock(char *);
 static void parse_server(char *);
 static void parse_tempcomp(char *);
@@ -199,6 +200,7 @@ static char *user;
 
 typedef struct {
   NTP_Source_Type type;
+  int pool;
   CPS_NTP_Source params;
 } NTP_Source;
 
@@ -467,6 +469,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_peer(p);
   } else if (!strcasecmp(command, "pidfile")) {
     parse_string(p, &pidfile);
+  } else if (!strcasecmp(command, "pool")) {
+    parse_pool(p);
   } else if (!strcasecmp(command, "port")) {
     parse_int(p, &ntp_port);
   } else if (!strcasecmp(command, "refclock")) {
@@ -560,12 +564,13 @@ parse_null(char *line)
 /* ================================================== */
 
 static void
-parse_source(char *line, NTP_Source_Type type)
+parse_source(char *line, NTP_Source_Type type, int pool)
 {
   CPS_Status status;
   NTP_Source source;
 
   source.type = type;
+  source.pool = pool;
   status = CPS_ParseNTPSourceAdd(line, &source.params);
 
   switch (status) {
@@ -620,7 +625,7 @@ parse_source(char *line, NTP_Source_Type type)
 static void
 parse_server(char *line)
 {
-  parse_source(line, NTP_SERVER);
+  parse_source(line, NTP_SERVER, 0);
 }
 
 /* ================================================== */
@@ -628,7 +633,15 @@ parse_server(char *line)
 static void
 parse_peer(char *line)
 {
-  parse_source(line, NTP_PEER);
+  parse_source(line, NTP_PEER, 0);
+}
+
+/* ================================================== */
+
+static void
+parse_pool(char *line)
+{
+  parse_source(line, NTP_SERVER, 1);
 }
 
 /* ================================================== */
@@ -1207,8 +1220,9 @@ CNF_AddSources(void)
 
   for (i = 0; i < ARR_GetSize(ntp_sources); i++) {
     source = (NTP_Source *)ARR_GetElement(ntp_sources, i);
-    NSR_AddUnresolvedSource(source->params.name, source->params.port,
-        source->type, &source->params.params);
+    NSR_AddSourceByName(source->params.name, source->params.port,
+                        source->pool, source->type, &source->params.params);
+    Free(source->params.name);
   }
 
   ARR_SetSize(ntp_sources, 0);
