@@ -108,5 +108,4 @@ TMC_Finalise(void)
     return;
 
   SCH_RemoveTimeout(timeout_id);
-  Free(filename);
 }
