@@ -2973,21 +2973,23 @@ distances are in milliseconds.
 @c {{{ tempcomp
 @node tempcomp directive
 @subsection tempcomp
-Normally, changes in rate of drift of the system clock are caused mainly by
-changes in temperature of the crystal oscillator on the mainboard.
+Normally, changes in the rate of drift of the system clock are caused mainly by
+changes in the temperature of the crystal oscillator on the mainboard.
 
-If there are available temperature measurements from a sensor close to the
-oscillator, @code{tempcomp} directive can be used to compensate for the changes
-in rate and possibly improve clock accuracy.
+If there are temperature measurements available from a sensor close to the
+oscillator, the @code{tempcomp} directive can be used to compensate for the
+changes in the temperature and improve the stability and accuracy of the clock.
 
-Whether it will really help depends on many factors, including resolution of
-the sensor, noise in measurements, time source polling interval, compensation
-update interval, how good are the temperature coefficients, and how close is
-the sensor to the oscillator.  The frequency reported in tracking.log should
-be more stable and the offsets should be smaller.
+The result depends on many factors, including the resolution of the sensor,
+the amount of noise in the measurements, the polling interval of the time
+source, the compensation update interval, how well is the compensation
+specified, and how close is the sensor to the oscillator.  When it's working
+well, the frequency reported in the @file{tracking.log} file is more stable and
+the maximum reached offset is smaller.
 
-The directive has six parameters: path to the file which contains current
-temperature in text format, update interval (in seconds), and temperature
+There are two forms of the directive.  The first one has six parameters: a
+path to the file containing the current temperature from the sensor (in
+text format), the compensation update interval (in seconds), and temperature
 coefficients T0, k0, k1, k2.
 
 The frequency compensation is calculated (in ppm) as 
@@ -2995,23 +2997,48 @@ The frequency compensation is calculated (in ppm) as
 @code{k0 + (T - T0) * k1 + (T - T0)^2 * k2}
 
 The result has to be between -10 ppm and 10 ppm, otherwise the measurement is
-considered to be faulty and will be ignored.  The k0 coefficient can be used to
-get the results in that range.
-
-Valid measurements and calculated corrections are logged to tempcomp.log file if
-enabled with @code{log tempcomp} directive.
+considered invalid and will be ignored.  The k0 coefficient can be used to get
+the results in that range.
 
 An example of use is
 
 @example
-tempcomp /sys/class/hwmon/hwmon1/device/temp2_input 30 26000 0.0 0.000183 0.0
+tempcomp /sys/class/hwmon/hwmon0/temp2_input 30 26000 0.0 0.000183 0.0
 @end example
 
-The measured temperature will be read from the file in Linux sysfs filesystem
-every 30 seconds.  When the temperature is 26 degress (26000), the system clock
-frequency will not be adjusted.  When it is 27 degrees (27000), the clock will
-be set to run 0.183ppm faster than it would be without the compensation, etc.
+The measured temperature will be read from the file in the Linux sysfs
+filesystem every 30 seconds.  When the temperature is 26000 (26 degrees
+Celsius), the frequency correction will be zero.  When it is 27000 (27 degrees
+Celsius), the clock will be set to run 0.183ppm faster, etc.
 
+The second form has three parameters, the path to the sensor file, the update
+interval and a path to a file containing a list of (temperature, compensation)
+points, from which the compensation is linearly interpolated or extrapolated.
+
+An example is
+
+@example
+tempcomp /sys/class/hwmon/hwmon0/temp2_input 30 /etc/chrony.tempcomp
+@end example
+
+where the @file{chrony.tempcomp} file could have
+
+@example
+20000 1.0
+21000 0.64
+22000 0.36
+23000 0.16
+24000 0.04
+25000 0.0
+26000 0.04
+27000 0.16
+28000 0.36
+29000 0.64
+30000 1.0
+@end example
+
+Valid measurements with corresponding compensations are logged to the
+@file{tempcomp.log} file if enabled by the @code{log tempcomp} directive.
 @c }}}
 @c {{{ user
 @node user directive
