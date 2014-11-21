@@ -4,7 +4,7 @@
 
 test_start "reply to client configured as server"
 
-server_conf="server 192.168.123.2
+server_conf="server 192.168.123.2 noselect
 acquisitionport 123"
 client_conf="acquisitionport 123"
 
