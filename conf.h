@@ -94,7 +94,7 @@ extern void CNF_SetupAccessRestrictions(void);
 extern int CNF_GetSchedPriority(void);
 extern int CNF_GetLockMemory(void);
 
-extern void CNF_GetTempComp(char **file, double *interval, double *T0, double *k0, double *k1, double *k2);
+extern void CNF_GetTempComp(char **file, double *interval, char **point_file, double *T0, double *k0, double *k1, double *k2);
 
 extern char *CNF_GetUser(void);
 

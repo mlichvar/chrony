@@ -185,7 +185,8 @@ static IPAddr bind_cmd_address4, bind_cmd_address6;
 static char *pidfile;
 
 /* Temperature sensor, update interval and compensation coefficients */
-static char *tempcomp_file = NULL;
+static char *tempcomp_sensor_file = NULL;
+static char *tempcomp_point_file = NULL;
 static double tempcomp_interval;
 static double tempcomp_T0, tempcomp_k0, tempcomp_k1, tempcomp_k2;
 
@@ -259,18 +260,31 @@ other_parse_error(const char *message)
 
 /* ================================================== */
 
-static void
-check_number_of_args(char *line, int num)
+static int
+get_number_of_args(char *line)
 {
+  int num = 0;
+
   /* The line is normalized, between arguments is just one space */
   if (*line == ' ')
     line++;
   if (*line)
-    num--;
+    num++;
   for (; *line; line++) {
     if (*line == ' ')
-      num--;
+      num++;
   }
+
+  return num;
+}
+
+/* ================================================== */
+
+static void
+check_number_of_args(char *line, int num)
+{
+  num -= get_number_of_args(line);
+
   if (num) {
     LOG_FATAL(LOGF_Configure, "%s arguments for %s directive at line %d%s%s",
         num > 0 ? "Missing" : "Too many",
@@ -330,7 +344,8 @@ CNF_Finalise(void)
   Free(rtc_file);
   Free(user);
   Free(mail_user_on_change);
-  Free(tempcomp_file);
+  Free(tempcomp_sensor_file);
+  Free(tempcomp_point_file);
 }
 
 /* ================================================== */
@@ -1156,8 +1171,13 @@ static void
 parse_tempcomp(char *line)
 {
   char *p;
+  int point_form;
 
-  check_number_of_args(line, 6);
+  point_form = get_number_of_args(line) == 3;
+
+  if (!point_form)
+    check_number_of_args(line, 6);
+
   p = line;
   line = CPS_SplitWord(line);
 
@@ -1166,13 +1186,25 @@ parse_tempcomp(char *line)
     return;
   }
 
-  if (sscanf(line, "%lf %lf %lf %lf %lf", &tempcomp_interval, &tempcomp_T0, &tempcomp_k0, &tempcomp_k1, &tempcomp_k2) != 5) {
-    command_parse_error();
-    return;
+  Free(tempcomp_point_file);
+
+  if (point_form) {
+    if (sscanf(line, "%lf", &tempcomp_interval) != 1) {
+      command_parse_error();
+      return;
+    }
+    tempcomp_point_file = Strdup(CPS_SplitWord(line));
+  } else {
+    if (sscanf(line, "%lf %lf %lf %lf %lf", &tempcomp_interval,
+               &tempcomp_T0, &tempcomp_k0, &tempcomp_k1, &tempcomp_k2) != 5) {
+      command_parse_error();
+      return;
+    }
+    tempcomp_point_file = NULL;
   }
 
-  Free(tempcomp_file);
-  tempcomp_file = Strdup(p);
+  Free(tempcomp_sensor_file);
+  tempcomp_sensor_file = Strdup(p);
 }
 
 /* ================================================== */
@@ -1683,9 +1715,10 @@ CNF_GetLockMemory(void)
 /* ================================================== */
 
 void
-CNF_GetTempComp(char **file, double *interval, double *T0, double *k0, double *k1, double *k2)
+CNF_GetTempComp(char **file, double *interval, char **point_file, double *T0, double *k0, double *k1, double *k2)
 {
-  *file = tempcomp_file;
+  *file = tempcomp_sensor_file;
+  *point_file = tempcomp_point_file;
   *interval = tempcomp_interval;
   *T0 = tempcomp_T0;
   *k0 = tempcomp_k0;

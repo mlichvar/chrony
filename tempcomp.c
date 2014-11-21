@@ -27,6 +27,7 @@
 
 #include "config.h"
 
+#include "array.h"
 #include "conf.h"
 #include "local.h"
 #include "memory.h"
@@ -46,6 +47,37 @@ static char *filename;
 static double update_interval;
 static double T0, k0, k1, k2;
 
+struct Point {
+  double temp;
+  double comp;
+};
+
+static ARR_Instance points;
+
+static double
+get_tempcomp(double temp)
+{
+  unsigned int i;
+  struct Point *p1 = NULL, *p2 = NULL;
+
+  /* If not configured with points, calculate the compensation from the
+     specified quadratic function */
+  if (!points)
+    return k0 + (temp - T0) * k1 + (temp - T0) * (temp - T0) * k2;
+
+  /* Otherwise interpolate/extrapolate between two nearest points */
+
+  for (i = 1; i < ARR_GetSize(points); i++) {
+    p2 = (struct Point *)ARR_GetElement(points, i);
+    if (p2->temp >= temp)
+      break;
+  }
+  p1 = p2 - 1;
+
+  return (temp - p1->temp) / (p2->temp - p1->temp) *
+         (p2->comp - p1->comp) + p1->comp;
+}
+
 static void
 read_timeout(void *arg)
 {
@@ -55,10 +87,12 @@ read_timeout(void *arg)
   f = fopen(filename, "r");
 
   if (f && fscanf(f, "%lf", &temp) == 1) {
-    comp = k0 + (temp - T0) * k1 + (temp - T0) * (temp - T0) * k2;
+    comp = get_tempcomp(temp);
 
     if (fabs(comp) <= MAX_COMP) {
       comp = LCL_SetTempComp(comp);
+
+      DEBUG_LOG(LOGF_TempComp, "tempcomp updated to %f for %f", comp, temp);
 
       if (logfileid != -1) {
         struct timeval now;
@@ -83,16 +117,50 @@ read_timeout(void *arg)
   timeout_id = SCH_AddTimeoutByDelay(update_interval, read_timeout, NULL);
 }
 
+static void
+read_points(const char *filename)
+{
+  FILE *f;
+  char line[256];
+  struct Point *p;
+
+  f = fopen(filename, "r");
+  if (!f) {
+    LOG_FATAL(LOGF_TempComp, "Could not open tempcomp point file %s", filename);
+    return;
+  }
+
+  points = ARR_CreateInstance(sizeof (struct Point));
+
+  while (fgets(line, sizeof (line), f)) {
+    p = (struct Point *)ARR_GetNewElement(points);
+    if (sscanf(line, "%lf %lf", &p->temp, &p->comp) != 2) {
+      LOG_FATAL(LOGF_Configure, "Could not read tempcomp point from %s", filename);
+      break;
+    }
+  }
+
+  fclose(f);
+
+  if (ARR_GetSize(points) < 2)
+    LOG_FATAL(LOGF_Configure, "Not enough points in %s", filename);
+}
+
 void
 TMC_Initialise(void)
 {
-  CNF_GetTempComp(&filename, &update_interval, &T0, &k0, &k1, &k2);
+  char *point_file;
+
+  CNF_GetTempComp(&filename, &update_interval, &point_file, &T0, &k0, &k1, &k2);
 
   if (filename == NULL)
     return;
 
   if (update_interval <= 0.0)
     update_interval = 1.0;
+
+  if (point_file)
+    read_points(point_file);
 
   logfileid = CNF_GetLogTempComp() ? LOG_FileOpen("tempcomp",
       "   Date (UTC) Time        Temp.       Comp.")
@@ -106,6 +174,9 @@ TMC_Finalise(void)
 {
   if (filename == NULL)
     return;
+
+  if (points)
+    ARR_DestroyInstance(points);
 
   SCH_RemoveTimeout(timeout_id);
 }
