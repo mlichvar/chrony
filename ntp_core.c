@@ -1420,19 +1420,6 @@ NCR_ProcessKnown
 {
   int pkt_mode, proc_packet, proc_as_unknown, log_peer_access;
 
-  /* Make sure the packet was received by the sending socket */
-  if (local_addr->sock_fd != inst->local_addr.sock_fd) {
-    DEBUG_LOG(LOGF_NtpCore,
-              "Packet received by wrong socket %d (expected %d)",
-              local_addr->sock_fd, inst->local_addr.sock_fd);
-    return;
-  }
-
-  /* Ignore packets from offline sources */
-  if (inst->opmode == MD_OFFLINE || inst->tx_suspended) {
-    return;
-  }
-
   if (!check_packet_format(message, length))
     return;
 
@@ -1528,10 +1515,24 @@ NCR_ProcessKnown
     CLG_LogNTPPeerAccess(&inst->remote_addr.ip_addr, now->tv_sec);
 
   if (proc_packet) {
+    /* Check if the reply was received by the socket that sent the request */
+    if (local_addr->sock_fd != inst->local_addr.sock_fd) {
+      DEBUG_LOG(LOGF_NtpCore,
+                "Packet received by wrong socket %d (expected %d)",
+                local_addr->sock_fd, inst->local_addr.sock_fd);
+      return;
+    }
+
+    /* Ignore packets from offline sources */
+    if (inst->opmode == MD_OFFLINE || inst->tx_suspended) {
+      DEBUG_LOG(LOGF_NtpCore, "Packet from offline source");
+      return;
+    }
+
     receive_packet(message, now, now_err, inst, local_addr, length);
   } else if (proc_as_unknown) {
     NCR_ProcessUnknown(message, now, now_err, &inst->remote_addr,
-                       &inst->local_addr, length);
+                       local_addr, length);
   } else {
     DEBUG_LOG(LOGF_NtpCore, "NTP packet discarded pkt_mode=%d our_mode=%d",
               pkt_mode, inst->mode);
