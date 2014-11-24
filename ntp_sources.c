@@ -571,6 +571,18 @@ void NSR_AutoStartSources(void)
 
 /* ================================================== */
 
+static void
+clean_source_record(SourceRecord *record)
+{
+  assert(record->remote_addr);
+  record->remote_addr = NULL;
+  NCR_DestroyInstance(record->data);
+
+  n_sources--;
+}
+
+/* ================================================== */
+
 /* Procedure to remove a source.  We don't bother whether the port
    address is matched - we're only interested in removing a record for
    the right IP address.  Thus the caller can specify the port number
@@ -587,9 +599,7 @@ NSR_RemoveSource(NTP_Remote_Address *remote_addr)
     return NSR_NoSuchSource;
   }
 
-  n_sources--;
-  get_record(slot)->remote_addr = NULL;
-  NCR_DestroyInstance(get_record(slot)->data);
+  clean_source_record(get_record(slot));
 
   /* Rehash the table to make sure there are no broken probe sequences.
      This is costly, but it's not expected to happen frequently. */
@@ -611,9 +621,10 @@ NSR_RemoveAllSources(void)
     record = get_record(i);
     if (!record->remote_addr)
       continue;
-    NCR_DestroyInstance(record->data);
-    record->remote_addr = NULL;
+    clean_source_record(record);
   }
+
+  rehash_records();
 }
 
 /* ================================================== */
