@@ -1038,7 +1038,7 @@ check_packet_auth(NTP_Packet *pkt, int length, int *has_auth, uint32_t *key_id)
 
 /* ================================================== */
 
-static void
+static int
 receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Instance inst, NTP_Local_Address *local_addr, int length)
 {
   int pkt_leap;
@@ -1377,6 +1377,8 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
             offset, delay, dispersion,
             pkt_root_delay, pkt_root_dispersion);
   }            
+
+  return valid_packet;
 }
 
 /* ================================================== */
@@ -1408,7 +1410,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 /* This routine is called when a new packet arrives off the network,
    and it relates to a source we have an ongoing protocol exchange with */
 
-void
+int
 NCR_ProcessKnown
 (NTP_Packet *message,           /* the received message */
  struct timeval *now,           /* timestamp at time of receipt */
@@ -1421,7 +1423,7 @@ NCR_ProcessKnown
   int pkt_mode, proc_packet, proc_as_unknown, log_peer_access;
 
   if (!check_packet_format(message, length))
-    return;
+    return 0;
 
   pkt_mode = NTP_LVM_TO_MODE(message->lvm);
   proc_packet = 0;
@@ -1520,22 +1522,25 @@ NCR_ProcessKnown
       DEBUG_LOG(LOGF_NtpCore,
                 "Packet received by wrong socket %d (expected %d)",
                 local_addr->sock_fd, inst->local_addr.sock_fd);
-      return;
+      return 0;
     }
 
     /* Ignore packets from offline sources */
     if (inst->opmode == MD_OFFLINE || inst->tx_suspended) {
       DEBUG_LOG(LOGF_NtpCore, "Packet from offline source");
-      return;
+      return 0;
     }
 
-    receive_packet(message, now, now_err, inst, local_addr, length);
+    return receive_packet(message, now, now_err, inst, local_addr, length);
   } else if (proc_as_unknown) {
     NCR_ProcessUnknown(message, now, now_err, &inst->remote_addr,
                        local_addr, length);
+    /* It's not a reply to our request, don't return success */
+    return 0;
   } else {
     DEBUG_LOG(LOGF_NtpCore, "NTP packet discarded pkt_mode=%d our_mode=%d",
               pkt_mode, inst->mode);
+    return 0;
   }
 }
 
