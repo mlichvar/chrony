@@ -51,6 +51,9 @@ typedef struct {
   NCR_Instance data;            /* Data for the protocol engine for this source */
   int pool;                     /* Number of the pool from which was this source
                                    added or INVALID_POOL */
+  int tentative;                /* Flag indicating there was no valid response
+                                   yet and the source may be removed if other
+                                   sources from the pool respond first */
 } SourceRecord;
 
 /* Hash table of SourceRecord, the size should be a power of two */
@@ -98,6 +101,10 @@ static NSR_SourceResolvingEndHandler resolving_end_handler = NULL;
 struct SourcePool {
   char *name;
   int port;
+  /* Number of sources added from this pool (ignoring tentative sources) */
+  int sources;
+  /* Maximum number of sources */
+  int max_sources;
 };
 
 /* Array of SourcePool */
@@ -317,6 +324,7 @@ add_source(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParamete
       record->data = NCR_GetInstance(remote_addr, type, params);
       record->remote_addr = NCR_GetRemoteAddress(record->data);
       record->pool = pool;
+      record->tentative = pool != INVALID_POOL ? 1 : 0;
 
       if (auto_start_sources)
         NCR_StartInstance(record->data);
@@ -512,6 +520,8 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type, Source
     sp = (struct SourcePool *)ARR_GetNewElement(pools);
     sp->name = Strdup(name);
     sp->port = port;
+    sp->sources = 0;
+    sp->max_sources = params->max_sources;
     us->new_source.pool = ARR_GetSize(pools) - 1;
     us->new_source.max_new_sources = MAX_POOL_SOURCES;
   }
@@ -682,19 +692,62 @@ NSR_HandleBadSource(IPAddr *address)
 
 /* ================================================== */
 
+static void remove_tentative_pool_sources(int pool)
+{
+  SourceRecord *record;
+  unsigned int i, removed;
+
+  for (i = removed = 0; i < ARR_GetSize(records); i++) {
+    record = get_record(i);
+
+    if (!record->remote_addr || record->pool != pool || !record->tentative)
+      continue;
+
+    DEBUG_LOG(LOGF_NtpSources, "removing tentative source %s",
+              UTI_IPToString(&record->remote_addr->ip_addr));
+
+    clean_source_record(record);
+    removed++;
+  }
+
+  if (removed)
+    rehash_records();
+}
+
 /* This routine is called by ntp_io when a new packet arrives off the network,
    possibly with an authentication tail */
 void
 NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length)
 {
+  SourceRecord *record;
+  struct SourcePool *pool;
   int slot, found;
 
   assert(initialised);
 
   find_slot(remote_addr, &slot, &found);
   if (found == 2) { /* Must match IP address AND port number */
-    NCR_ProcessKnown(message, now, now_err, get_record(slot)->data,
-                     local_addr, length);
+    record = get_record(slot);
+
+    if (!NCR_ProcessKnown(message, now, now_err, record->data, local_addr, length))
+      return;
+
+    if (record->tentative) {
+      /* First reply from a pool source */
+      record->tentative = 0;
+
+      assert(record->pool != INVALID_POOL);
+      pool = (struct SourcePool *)ARR_GetElement(pools, record->pool);
+      pool->sources++;
+
+      DEBUG_LOG(LOGF_NtpSources, "pool %s has %d confirmed sources",
+                pool->name, pool->sources);
+
+      /* If the number of sources reached the configured maximum, remove
+         the tentative sources added from this pool */
+      if (pool->sources >= pool->max_sources)
+        remove_tentative_pool_sources(record->pool);
+    }
   } else {
     NCR_ProcessUnknown(message, now, now_err, remote_addr, local_addr, length);
   }

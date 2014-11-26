@@ -39,6 +39,7 @@ typedef struct {
   int min_stratum;
   int poll_target;
   int version;
+  int max_sources;
   uint32_t authkey;
   double max_delay;
   double max_delay_ratio;
@@ -55,6 +56,7 @@ typedef struct {
 #define SRC_DEFAULT_MAXDELAYDEVRATIO 10.0
 #define SRC_DEFAULT_MINSTRATUM 0
 #define SRC_DEFAULT_POLLTARGET 6
+#define SRC_DEFAULT_MAXSOURCES 4
 #define INACTIVE_AUTHKEY 0
 
 #endif /* GOT_SRCPARAMS_H */

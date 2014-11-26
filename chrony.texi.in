@@ -2492,21 +2492,28 @@ pidfile /var/tmp/chronyd.pid
 @c {{{ pool
 @node pool directive
 @subsection pool
-The syntax of this directive is identical to that for the @code{server}
+The syntax of this directive is similar to that for the @code{server}
 directive (@pxref{server directive}), except that it is used to specify a pool
 of NTP servers rather than a single NTP server.  The pool name is expected to
-resolve to multiple addresses which change over time.
+resolve to multiple addresses which may change over time.
 
-On start, a source will be added for each resolved address.  When a source from
-the pool is unreachable or marked as falseticker, @code{chronyd} will try to
-replace the source with a newly resolved address of the pool.
+All options valid in the @code{server} directive can be used in this directive
+too.  There is one option specific to @code{pool} directive: @code{maxsources}
+sets the maximum number of sources that can be used from the pool, the default
+value is 4.
+
+On start, when the pool name is resolved, @code{chronyd} will add up to 16
+sources, one for each resolved address.  When the number of sources from which
+at least one valid reply was received reaches @code{maxsources}, the other
+sources will be removed.  When a pool source is unreachable or marked as
+falseticker, @code{chronyd} will try to replace the source with a newly
+resolved address of the pool.
 
 An example of the pool directive is
 
 @example
-pool pool.ntp.org iburst
+pool pool.ntp.org iburst maxsources 3
 @end example
-
 @c }}}
 @c {{{ port
 @node port directive

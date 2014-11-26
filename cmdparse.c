@@ -60,6 +60,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   src->params.min_stratum = SRC_DEFAULT_MINSTRATUM;
   src->params.poll_target = SRC_DEFAULT_POLLTARGET;
   src->params.version = NTP_VERSION;
+  src->params.max_sources = SRC_DEFAULT_MAXSOURCES;
   src->params.sel_option = SRC_SelectNormal;
 
   result = CPS_Success;
@@ -170,6 +171,14 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
         } else if (!strcasecmp(cmd, "version")) {
           if (sscanf(line, "%d%n", &src->params.version, &n) != 1) {
             result = CPS_BadVersion;
+            done = 1;
+          } else {
+            line += n;
+          }
+
+        } else if (!strcasecmp(cmd, "maxsources")) {
+          if (sscanf(line, "%d%n", &src->params.max_sources, &n) != 1) {
+            result = CPS_BadMaxsources;
             done = 1;
           } else {
             line += n;

@@ -44,7 +44,8 @@ typedef enum {
   CPS_BadKey,
   CPS_BadMinstratum,
   CPS_BadPolltarget,
-  CPS_BadVersion
+  CPS_BadVersion,
+  CPS_BadMaxsources,
 } CPS_Status;
 
 typedef struct {

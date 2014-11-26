@@ -632,6 +632,9 @@ parse_source(char *line, NTP_Source_Type type, int pool)
     case CPS_BadVersion:
       other_parse_error("Unreadable version");
       break;
+    case CPS_BadMaxsources:
+      other_parse_error("Unreadable maxsources");
+      break;
   }
 }
 
