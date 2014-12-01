@@ -74,6 +74,11 @@ extern SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, SRC_Se
 
 extern void SRC_DestroyInstance(SRC_Instance instance);
 
+/* Function to reset a source */
+extern void SRC_ResetInstance(SRC_Instance instance);
+
+/* Function to change the sources's reference ID and IP address */
+extern void SRC_SetRefid(SRC_Instance instance, uint32_t ref_id, IPAddr *addr);
 
 /* Function to get the range of frequencies, relative to the given
    source, that we believe the local clock lies within.  The return
@@ -173,8 +178,6 @@ extern int SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report, struc
 extern SRC_Type SRC_GetType(int index);
 
 extern int SRC_Samples(SRC_Instance inst);
-
-extern SRC_SelectOption SRC_GetSelectOption(SRC_Instance inst);
 
 #endif /* GOT_SOURCES_H */
 

@@ -541,8 +541,6 @@ NCR_ResetInstance(NCR_Instance instance)
 void
 NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remote_addr)
 {
-  SRC_SelectOption sel_option;
-
   inst->remote_addr = *remote_addr;
   inst->tx_count = 0;
   inst->presend_done = 0;
@@ -552,11 +550,10 @@ NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remote_addr)
   else
     inst->local_addr.sock_fd = NIO_GetServerSocket(remote_addr);
 
-  /* Replace sources and sourcestats instances */
-  sel_option = SRC_GetSelectOption(inst->source);
-  SRC_DestroyInstance(inst->source);
-  inst->source = SRC_CreateNewInstance(UTI_IPToRefid(&remote_addr->ip_addr), SRC_NTP,
-                                       sel_option, &inst->remote_addr.ip_addr);
+  /* Update the reference ID and reset the source/sourcestats instances */
+  SRC_SetRefid(inst->source, UTI_IPToRefid(&remote_addr->ip_addr),
+               &inst->remote_addr.ip_addr);
+  SRC_ResetInstance(inst->source);
 }
 
 /* ================================================== */

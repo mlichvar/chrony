@@ -231,19 +231,13 @@ SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, SRC_SelectOpt
   }
 
   sources[n_sources] = result;
+
   result->index = n_sources;
-  result->leap_status = LEAP_Normal;
-  result->ref_id = ref_id;
-  result->ip_addr = addr;
-  result->active = 0;
-  result->updates = 0;
-  result->reachability = 0;
-  result->reachability_size = 0;
-  result->distant = 0;
-  result->status = SRC_BAD_STATS;
   result->type = type;
-  result->sel_score = 1.0;
   result->sel_option = sel_option;
+
+  SRC_SetRefid(result, ref_id, addr);
+  SRC_ResetInstance(result);
 
   n_sources++;
 
@@ -276,6 +270,33 @@ void SRC_DestroyInstance(SRC_Instance instance)
     SRC_ReselectSource();
   else if (selected_source_index > dead_index)
     --selected_source_index;
+}
+
+/* ================================================== */
+
+void
+SRC_ResetInstance(SRC_Instance instance)
+{
+  instance->leap_status = LEAP_Normal;
+  instance->active = 0;
+  instance->updates = 0;
+  instance->reachability = 0;
+  instance->reachability_size = 0;
+  instance->distant = 0;
+  instance->status = SRC_BAD_STATS;
+  instance->sel_score = 1.0;
+
+  SST_ResetInstance(instance->stats);
+}
+
+/* ================================================== */
+
+void
+SRC_SetRefid(SRC_Instance instance, uint32_t ref_id, IPAddr *addr)
+{
+  instance->ref_id = ref_id;
+  instance->ip_addr = addr;
+  SST_SetRefid(instance->stats, ref_id, addr);
 }
 
 /* ================================================== */
@@ -1315,13 +1336,6 @@ int
 SRC_Samples(SRC_Instance inst)
 {
   return SST_Samples(inst->stats);
-}
-
-/* ================================================== */
-
-SRC_SelectOption SRC_GetSelectOption(SRC_Instance inst)
-{
-  return inst->sel_option;
 }
 
 /* ================================================== */

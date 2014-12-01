@@ -46,6 +46,9 @@ extern void SST_DeleteInstance(SST_Stats inst);
 /* This function resets an instance */
 extern void SST_ResetInstance(SST_Stats inst);
 
+/* This function changes the reference ID and IP address */
+extern void SST_SetRefid(SST_Stats inst, uint32_t refid, IPAddr *addr);
+
 /* This function accumulates a single sample into the statistics handler
 
    sample_time is the epoch at which the sample is to be considered to

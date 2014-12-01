@@ -182,9 +182,8 @@ SST_CreateInstance(uint32_t refid, IPAddr *addr)
 {
   SST_Stats inst;
   inst = MallocNew(struct SST_Stats_Record);
-  inst->refid = refid;
-  inst->ip_addr = addr;
 
+  SST_SetRefid(inst, refid, addr);
   SST_ResetInstance(inst);
 
   return inst;
@@ -218,6 +217,15 @@ SST_ResetInstance(SST_Stats inst)
   inst->offset_time.tv_usec = 0;
   inst->variance = 16.0;
   inst->nruns = 0;
+}
+
+/* ================================================== */
+
+void
+SST_SetRefid(SST_Stats inst, uint32_t refid, IPAddr *addr)
+{
+  inst->refid = refid;
+  inst->ip_addr = addr;
 }
 
 /* ================================================== */
