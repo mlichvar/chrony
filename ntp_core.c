@@ -461,7 +461,10 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   }
 
   /* Create a source instance for this NTP source */
-  result->source = SRC_CreateNewInstance(UTI_IPToRefid(&remote_addr->ip_addr), SRC_NTP, params->sel_option, &result->remote_addr.ip_addr);
+  result->source = SRC_CreateNewInstance(UTI_IPToRefid(&remote_addr->ip_addr),
+                                         SRC_NTP, params->sel_option,
+                                         &result->remote_addr.ip_addr,
+                                         params->min_samples, params->max_samples);
 
   result->timer_running = 0;
   result->timeout_id = 0;

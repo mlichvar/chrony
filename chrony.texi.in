@@ -2375,9 +2375,11 @@ crystal oscillator.
 @c {{{ maxsamples
 @node maxsamples directive
 @subsection maxsamples
-The @code{maxsamples} directive sets the maximum number of samples
-@code{chronyd} should keep for each source. The default is 0, which
-disables the configurable limit, and the useful range is 4 to 64.
+The @code{maxsamples} directive sets the default maximum number of samples
+@code{chronyd} should keep for each source.  This setting can be overriden for
+individual sources in the @code{server} and @code{refclock} directives
+(@pxref{server directive}, @pxref{refclock directive}).  The default value is
+0, which disables the configurable limit.  The useful range is 4 to 64.
 
 The syntax is
 
@@ -2439,9 +2441,11 @@ the new master estimate.
 @c {{{ minsamples
 @node minsamples directive
 @subsection minsamples
-The @code{minsamples} directive sets the minimum number of samples
-@code{chronyd} should try to keep for each source. The default is 0 and the
-useful range is 4 to 64.
+The @code{minsamples} directive sets the default minimum number of samples
+@code{chronyd} should keep for each source.  This setting can be overriden for
+individual sources in the @code{server} and @code{refclock} directives
+(@pxref{server directive}, @pxref{refclock directive}).  The default value is
+0.  The useful range is 4 to 64.
 
 The syntax is
 
@@ -2669,6 +2673,12 @@ Prefer this source over sources without prefer option.
 @item noselect
 Never select this source.  This is useful for monitoring or with sources
 which are not very accurate, but are locked with a PPS refclock.
+@item minsamples
+Set the minimum number of samples kept for this source.  This overrides the
+@code{minsamples} directive (@pxref{minsamples directive}).
+@item maxsamples
+Set the maximum number of samples kept for this source.  This overrides the
+@code{maxsamples} directive (@pxref{maxsamples directive}).
 @end table
 
 @c }}}
@@ -2955,6 +2965,14 @@ Prefer this source over sources without prefer option.
 
 @item noselect
 Never select this source.  This is particularly useful for monitoring.
+
+@item minsamples
+Set the minimum number of samples kept for this source.  This overrides the
+@code{minsamples} directive (@pxref{minsamples directive}).
+
+@item maxsamples
+Set the maximum number of samples kept for this source.  This overrides the
+@code{maxsamples} directive (@pxref{maxsamples directive}).
 
 @end table
 @c }}}

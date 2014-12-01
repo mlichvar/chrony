@@ -43,10 +43,6 @@
    to store per source */
 #define MAX_SAMPLES 64
 
-/* User defined maximum and minimum number of samples */
-int max_samples;
-int min_samples;
-
 /* This is the assumed worst case bound on an unknown frequency,
    2000ppm, which would be pretty bad */
 #define WORST_CASE_FREQ_BOUND (2000.0/1.0e6)
@@ -67,6 +63,10 @@ struct SST_Stats_Record {
   /* Reference ID and IP address of source, used for logging to statistics log */
   uint32_t refid;
   IPAddr *ip_addr;
+
+  /* User defined minimum and maximum number of samples */
+  int min_samples;
+  int max_samples;
 
   /* Number of samples currently stored.  The samples are stored in circular
      buffer. */
@@ -163,8 +163,6 @@ SST_Initialise(void)
   logfileid = CNF_GetLogStatistics() ? LOG_FileOpen("statistics",
       "   Date (UTC) Time     IP Address    Std dev'n Est offset  Offset sd  Diff freq   Est skew  Stress  Ns  Bs  Nr")
     : -1;
-  max_samples = CNF_GetMaxSamples();
-  min_samples = CNF_GetMinSamples();
 }
 
 /* ================================================== */
@@ -178,10 +176,13 @@ SST_Finalise(void)
 /* This function creates a new instance of the statistics handler */
 
 SST_Stats
-SST_CreateInstance(uint32_t refid, IPAddr *addr)
+SST_CreateInstance(uint32_t refid, IPAddr *addr, int min_samples, int max_samples)
 {
   SST_Stats inst;
   inst = MallocNew(struct SST_Stats_Record);
+
+  inst->min_samples = min_samples;
+  inst->max_samples = max_samples;
 
   SST_SetRefid(inst, refid, addr);
   SST_ResetInstance(inst);
@@ -262,7 +263,7 @@ SST_AccumulateSample(SST_Stats inst, struct timeval *sample_time,
 
   /* Make room for the new sample */
   if (inst->n_samples > 0 &&
-      (inst->n_samples == MAX_SAMPLES || inst->n_samples == max_samples)) {
+      (inst->n_samples == MAX_SAMPLES || inst->n_samples == inst->max_samples)) {
     prune_register(inst, 1);
   }
 
@@ -447,7 +448,7 @@ SST_DoNewRegression(SST_Stats inst)
   inst->regression_ok = RGR_FindBestRegression(times_back + inst->runs_samples,
                                          offsets + inst->runs_samples, weights,
                                          inst->n_samples, inst->runs_samples,
-                                         min_samples,
+                                         inst->min_samples,
                                          &est_intercept, &est_slope, &est_var,
                                          &est_intercept_sd, &est_slope_sd,
                                          &best_start, &nruns, &degrees_of_freedom);

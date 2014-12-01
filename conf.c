@@ -635,6 +635,12 @@ parse_source(char *line, NTP_Source_Type type, int pool)
     case CPS_BadMaxsources:
       other_parse_error("Unreadable maxsources");
       break;
+    case CPS_BadMinsamples:
+      other_parse_error("Unreadable minsamples");
+      break;
+    case CPS_BadMaxsamples:
+      other_parse_error("Unreadable maxsamples");
+      break;
   }
 }
 
@@ -667,7 +673,7 @@ parse_pool(char *line)
 static void
 parse_refclock(char *line)
 {
-  int n, poll, dpoll, filter_length, pps_rate;
+  int n, poll, dpoll, filter_length, pps_rate, min_samples, max_samples;
   uint32_t ref_id, lock_ref_id;
   double offset, delay, precision, max_dispersion;
   char *p, *cmd, *name, *param;
@@ -679,6 +685,8 @@ parse_refclock(char *line)
   dpoll = 0;
   filter_length = 64;
   pps_rate = 0;
+  min_samples = SRC_DEFAULT_MINSAMPLES;
+  max_samples = SRC_DEFAULT_MAXSAMPLES;
   offset = 0.0;
   delay = 1e-9;
   precision = 0.0;
@@ -732,6 +740,12 @@ parse_refclock(char *line)
     } else if (!strcasecmp(cmd, "rate")) {
       if (sscanf(line, "%d%n", &pps_rate, &n) != 1)
         break;
+    } else if (!strcasecmp(cmd, "minsamples")) {
+      if (sscanf(line, "%d%n", &min_samples, &n) != 1)
+        break;
+    } else if (!strcasecmp(cmd, "maxsamples")) {
+      if (sscanf(line, "%d%n", &max_samples, &n) != 1)
+        break;
     } else if (!strcasecmp(cmd, "offset")) {
       if (sscanf(line, "%lf%n", &offset, &n) != 1)
         break;
@@ -768,6 +782,8 @@ parse_refclock(char *line)
   refclock->poll = poll;
   refclock->filter_length = filter_length;
   refclock->pps_rate = pps_rate;
+  refclock->min_samples = min_samples;
+  refclock->max_samples = max_samples;
   refclock->offset = offset;
   refclock->delay = delay;
   refclock->precision = precision;

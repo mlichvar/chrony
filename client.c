@@ -965,6 +965,16 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
         break;
       }
 
+      if (data.params.min_samples != SRC_DEFAULT_MINSAMPLES) {
+        fprintf(stderr, "Option minsamples not supported\n");
+        break;
+      }
+
+      if (data.params.max_samples != SRC_DEFAULT_MAXSAMPLES) {
+        fprintf(stderr, "Option maxsamples not supported\n");
+        break;
+      }
+
       msg->data.ntp_source.port = htonl((unsigned long) data.port);
       UTI_IPHostToNetwork(&ip_addr, &msg->data.ntp_source.ip_addr);
       msg->data.ntp_source.minpoll = htonl(data.params.minpoll);
@@ -1023,6 +1033,12 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
       break;
     case CPS_BadMaxsources:
       fprintf(stderr, "Unreadable maxsources value\n");
+      break;
+    case CPS_BadMinsamples:
+      fprintf(stderr, "Unreadable minsamples value\n");
+      break;
+    case CPS_BadMaxsamples:
+      fprintf(stderr, "Unreadable maxsamples value\n");
       break;
   }
 

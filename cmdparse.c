@@ -61,6 +61,8 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   src->params.poll_target = SRC_DEFAULT_POLLTARGET;
   src->params.version = NTP_VERSION;
   src->params.max_sources = SRC_DEFAULT_MAXSOURCES;
+  src->params.min_samples = SRC_DEFAULT_MINSAMPLES;
+  src->params.max_samples = SRC_DEFAULT_MAXSAMPLES;
   src->params.sel_option = SRC_SelectNormal;
 
   result = CPS_Success;
@@ -179,6 +181,22 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
         } else if (!strcasecmp(cmd, "maxsources")) {
           if (sscanf(line, "%d%n", &src->params.max_sources, &n) != 1) {
             result = CPS_BadMaxsources;
+            done = 1;
+          } else {
+            line += n;
+          }
+
+        } else if (!strcasecmp(cmd, "minsamples")) {
+          if (sscanf(line, "%d%n", &src->params.min_samples, &n) != 1) {
+            result = CPS_BadMinsamples;
+            done = 1;
+          } else {
+            line += n;
+          }
+
+        } else if (!strcasecmp(cmd, "maxsamples")) {
+          if (sscanf(line, "%d%n", &src->params.max_samples, &n) != 1) {
+            result = CPS_BadMaxsamples;
             done = 1;
           } else {
             line += n;
