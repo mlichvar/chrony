@@ -3231,7 +3231,7 @@ interface.
 * exit command::                Exit from chronyc
 * help command::                Generate help summary
 * local command::               Let computer be a server when it is unsynchronised
-* makestep command::            Immediately correct the system clock instead of slewing
+* makestep command::            Correct the system clock by stepping instead of slewing
 * manual command::              Enable/disable/configure options for settime
 * maxdelay command::            Set max measurement delay for a source
 * maxdelaydevratio command::    Set max measurement delay for a source as ratio to deviation
@@ -3702,17 +3702,27 @@ offset, by slowing down or speeding up the clock as required.  In
 certain situations, the system clock may be so far adrift that this
 slewing process would take a very long time to correct the system clock.
 
-The @code{makestep} command can be used in this situation.  It cancels
-any remaining correction that was being slewed, and jumps the system
-clock by the equivalent amount, making it correct immediately.
+The @code{makestep} command can be used in this situation.  There are two forms
+of the command.  The first form has no parameters.  It tells @code{chronyd} to
+cancel any remaining correction that was being slewed and jump the system clock
+by the equivalent amount, making it correct immediately.
+
+The second form configures the automatic stepping, similarly to the
+@code{makestep} directive (@pxref{makestep directive}).  It has two parameters,
+stepping threshold (in seconds) and number of future clock updates for which
+will be the threshold active.  This can be used with the @code{burst} command
+to quickly make a new measurement and correct the clock by stepping if needed,
+without waiting for @code{chronyd} to complete the measurement and update the
+clock.
+
+@example
+makestep 0.1 1
+burst 1/2
+@end example
 
 BE WARNED - certain software will be seriously affected by such jumps to
 the system time.  (That is the reason why chronyd uses slewing
 normally.)
-
-The @code{makestep} directive in the configuration file can be used
-to step the clock automatically when the adjustment is larger than a
-specified threshold, see @ref{makestep directive}.
 @c }}}
 @c {{{ manual
 @node manual command

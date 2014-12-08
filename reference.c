@@ -1126,6 +1126,15 @@ REF_ModifyMaxupdateskew(double new_max_update_skew)
 /* ================================================== */
 
 void
+REF_ModifyMakestep(int limit, double threshold)
+{
+  make_step_limit = limit;
+  make_step_threshold = threshold;
+}
+
+/* ================================================== */
+
+void
 REF_EnableLocal(int stratum)
 {
   enable_local_stratum = 1;

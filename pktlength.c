@@ -67,6 +67,8 @@ command_unpadded_length(CMD_Request *r)
         return offsetof(CMD_Request, data.modify_maxdelaydevratio.EOR);
       case REQ_MODIFY_MAXUPDATESKEW:
         return offsetof(CMD_Request, data.modify_maxupdateskew.EOR);
+      case REQ_MODIFY_MAKESTEP:
+        return offsetof(CMD_Request, data.modify_makestep.EOR);
       case REQ_LOGON :
         return offsetof(CMD_Request, data.logon.EOR);
       case REQ_SETTIME :
@@ -215,6 +217,8 @@ PKL_CommandPaddingLength(CMD_Request *r)
       return PADDING_LENGTH(data.modify_maxdelaydevratio.EOR, data.null.EOR);
     case REQ_MODIFY_MAXUPDATESKEW:
       return PADDING_LENGTH(data.modify_maxupdateskew.EOR, data.null.EOR);
+    case REQ_MODIFY_MAKESTEP:
+      return PADDING_LENGTH(data.modify_makestep.EOR, data.null.EOR);
     case REQ_LOGON:
       return PADDING_LENGTH(data.logon.EOR, data.null.EOR);
     case REQ_SETTIME:

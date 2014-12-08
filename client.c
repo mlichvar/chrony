@@ -1210,7 +1210,7 @@ give_help(void)
   printf("dump : Dump all measurements to save files\n");
   printf("local off : Disable server capability for unsynchronised clock\n");
   printf("local stratum <stratum> : Enable server capability for unsynchronised clock\n");
-  printf("makestep : Jump the time to remove any correction being slewed\n");
+  printf("makestep [<threshold> <updates>] : Correct clock by stepping\n");
   printf("manual off|on|reset : Disable/enable/reset settime command and statistics\n");
   printf("manual list : Show previous settime entries\n");
   printf("maxdelay <address> <new-max-delay> : Modify maximum round-trip valid sample delay for source\n");
@@ -2230,10 +2230,25 @@ process_cmd_rekey(CMD_Request *msg, char *line)
 
 /* ================================================== */
 
-static void
+static int
 process_cmd_makestep(CMD_Request *msg, char *line)
 {
-  msg->command = htons(REQ_MAKESTEP);
+  int limit;
+  double threshold;
+
+  if (*line) {
+    if (sscanf(line, "%lf %d", &threshold, &limit) != 2) {
+      fprintf(stderr, "Bad syntax for makestep command\n");
+      return 0;
+    }
+    msg->command = htons(REQ_MODIFY_MAKESTEP);
+    msg->data.modify_makestep.limit = htonl(limit);
+    msg->data.modify_makestep.threshold = UTI_FloatHostToNetwork(threshold);
+  } else {
+    msg->command = htons(REQ_MAKESTEP);
+  }
+
+  return 1;
 }
 
 /* ================================================== */
@@ -2512,7 +2527,7 @@ process_line(char *line, int *quit)
   } else if (!strcmp(command, "local")) {
     do_normal_submit = process_cmd_local(&tx_message, line);
   } else if (!strcmp(command, "makestep")) {
-    process_cmd_makestep(&tx_message, line);
+    do_normal_submit = process_cmd_makestep(&tx_message, line);
   } else if (!strcmp(command, "manual")) {
     if (!strncmp(line, "list", 4)) {
       do_normal_submit = 0;

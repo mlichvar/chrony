@@ -157,6 +157,9 @@ extern int REF_GetOurStratum(void);
 /* Modify the setting for the maximum skew we are prepared to allow updates on (in ppm). */
 extern void REF_ModifyMaxupdateskew(double new_max_update_skew);
 
+/* Modify makestep settings */
+extern void REF_ModifyMakestep(int limit, double threshold);
+
 extern void REF_EnableLocal(int stratum);
 extern void REF_DisableLocal(void);
 extern int REF_IsLocalActive(void);
