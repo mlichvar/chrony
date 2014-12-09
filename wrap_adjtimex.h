@@ -69,7 +69,7 @@ int TMX_SetFrequency(double *freq, long tick);
 int TMX_GetFrequency(double *freq, long *tick);
 int TMX_ReadCurrentParams(struct tmx_params *params);
 int TMX_SetLeap(int leap);
-int TMX_SetSync(int sync);
+int TMX_SetSync(int sync, double est_error, double max_error);
 int TMX_TestStepOffset(void);
 int TMX_ApplyStepOffset(double offset);
 

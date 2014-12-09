@@ -38,6 +38,7 @@ struct timex {
 #define ADJ_OFFSET		0x0001  /* time offset */
 #define ADJ_FREQUENCY		0x0002	/* frequency offset */
 #define ADJ_MAXERROR		0x0004	/* maximum time error */
+#define ADJ_ESTERROR		0x0008	/* estimated time error */
 #define ADJ_STATUS		0x0010	/* clock status */
 #define ADJ_TIMECONST		0x0020  /* pll time constant */
 #define ADJ_SETOFFSET		0x0100  /* add 'time' to current time */

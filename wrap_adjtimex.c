@@ -68,19 +68,11 @@ TMX_SetFrequency(double *freq, long tick)
 {
   struct timex txc;
   
-  txc.modes = ADJ_TICK | ADJ_FREQUENCY | ADJ_STATUS;
+  txc.modes = ADJ_TICK | ADJ_FREQUENCY;
 
   txc.freq = (long)(*freq * (double)(1 << SHIFT_USEC));
   *freq = txc.freq / (double)(1 << SHIFT_USEC);
   txc.tick = tick;
-  txc.status = status; 
-
-  if (!(status & STA_UNSYNC)) {
-    /* maxerror has to be reset periodically to prevent kernel
-       from enabling UNSYNC flag */
-    txc.modes |= ADJ_MAXERROR;
-    txc.maxerror = 0;
-  }
 
   return adjtimex(&txc);
 }
@@ -161,7 +153,7 @@ TMX_SetLeap(int leap)
   return adjtimex(&txc);
 }
 
-int TMX_SetSync(int sync)
+int TMX_SetSync(int sync, double est_error, double max_error)
 {
   struct timex txc;
 
@@ -171,8 +163,10 @@ int TMX_SetSync(int sync)
     status |= STA_UNSYNC;
   }
 
-  txc.modes = ADJ_STATUS;
+  txc.modes = ADJ_STATUS | ADJ_ESTERROR | ADJ_MAXERROR;
   txc.status = status;
+  txc.esterror = est_error * 1.0e6;
+  txc.maxerror = max_error * 1.0e6;
 
   return adjtimex(&txc);
 }

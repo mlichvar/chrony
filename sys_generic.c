@@ -39,9 +39,10 @@
 
 /* ================================================== */
 
-/* System clock frequency drivers */
+/* System clock drivers */
 static lcl_ReadFrequencyDriver drv_read_freq;
 static lcl_SetFrequencyDriver drv_set_freq;
+static lcl_SetSyncStatusDriver drv_set_sync_status;
 
 /* Current frequency as requested by the local module (in ppm) */
 static double base_freq;
@@ -270,6 +271,22 @@ apply_step_offset(double offset)
 
 /* ================================================== */
 
+static void
+set_sync_status(int synchronised, double est_error, double max_error)
+{
+  double offset;
+
+  offset = fabs(offset_register);
+  if (est_error < offset)
+    est_error = offset;
+  max_error += offset;
+
+  if (drv_set_sync_status)
+    drv_set_sync_status(synchronised, est_error, max_error);
+}
+
+/* ================================================== */
+
 void
 SYS_Generic_CompleteFreqDriver(double max_set_freq_ppm, double max_set_freq_delay,
                                lcl_ReadFrequencyDriver sys_read_freq,
@@ -282,6 +299,7 @@ SYS_Generic_CompleteFreqDriver(double max_set_freq_ppm, double max_set_freq_dela
   max_freq_change_delay = max_set_freq_delay * (1.0 + max_freq / 1.0e6);
   drv_read_freq = sys_read_freq;
   drv_set_freq = sys_set_freq;
+  drv_set_sync_status = sys_set_sync_status;
 
   base_freq = (*drv_read_freq)();
   slew_freq = 0.0;
@@ -292,7 +310,7 @@ SYS_Generic_CompleteFreqDriver(double max_set_freq_ppm, double max_set_freq_dela
   lcl_RegisterSystemDrivers(read_frequency, set_frequency,
                             accrue_offset, sys_apply_step_offset ?
                               sys_apply_step_offset : apply_step_offset,
-                            offset_convert, sys_set_leap, NULL);
+                            offset_convert, sys_set_leap, set_sync_status);
 
   LCL_AddParameterChangeHandler(handle_step, NULL);
 }

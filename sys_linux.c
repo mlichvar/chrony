@@ -58,6 +58,9 @@ int LockAll = 0;
 #include "logging.h"
 #include "wrap_adjtimex.h"
 
+/* The threshold for adjtimex maxerror when the kernel sets the UNSYNC flag */
+#define UNSYNC_MAXERROR 16.0
+
 /* This is the uncompensated system tick value */
 static int nominal_tick;
 
@@ -177,6 +180,29 @@ set_leap(int leap)
 
   LOG(LOGS_INFO, LOGF_SysLinux, "System clock status set to %s leap second",
      leap ? (leap > 0 ? "insert" : "delete") : "not insert/delete");
+}
+
+/* ================================================== */
+
+static void
+set_sync_status(int synchronised, double est_error, double max_error)
+{
+  if (synchronised) {
+    if (est_error > UNSYNC_MAXERROR)
+      est_error = UNSYNC_MAXERROR;
+    if (max_error >= UNSYNC_MAXERROR) {
+      max_error = UNSYNC_MAXERROR;
+      synchronised = 0;
+    }
+  } else {
+    est_error = max_error = UNSYNC_MAXERROR;
+  }
+
+  /* Clear the UNSYNC flag only if rtcsync is enabled */
+  if (!CNF_GetRtcSync())
+    synchronised = 0;
+
+  TMX_SetSync(synchronised, est_error, max_error);
 }
 
 /* ================================================== */
@@ -334,13 +360,11 @@ SYS_Linux_Initialise(void)
     have_setoffset = 0;
   }
 
-  TMX_SetSync(CNF_GetRtcSync());
-
   SYS_Generic_CompleteFreqDriver(1.0e6 * max_tick_bias / nominal_tick,
                                  1.0 / tick_update_hz,
                                  read_frequency, set_frequency,
                                  have_setoffset ? apply_step_offset : NULL,
-                                 set_leap, NULL);
+                                 set_leap, set_sync_status);
 }
 
 /* ================================================== */
