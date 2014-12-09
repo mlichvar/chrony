@@ -90,51 +90,6 @@ TMX_GetFrequency(double *freq, long *tick)
 }
 
 int
-TMX_ReadCurrentParams(struct tmx_params *params)
-{
-  struct timex txc;
-  int result;
-  
-  txc.modes = 0; /* pure read */
-  result = adjtimex(&txc);
-
-  params->tick     = txc.tick;
-  params->offset   = txc.offset;
-  params->freq     = txc.freq;
-  params->dfreq    = txc.freq / (double)(1 << SHIFT_USEC);
-  params->maxerror = txc.maxerror;
-  params->esterror = txc.esterror;
-  
-  params->sta_pll       = !!(txc.status & STA_PLL);
-  params->sta_ppsfreq   = !!(txc.status & STA_PPSFREQ);
-  params->sta_ppstime   = !!(txc.status & STA_PPSTIME);
-  params->sta_fll       = !!(txc.status & STA_FLL);
-  params->sta_ins       = !!(txc.status & STA_INS);
-  params->sta_del       = !!(txc.status & STA_DEL);
-  params->sta_unsync    = !!(txc.status & STA_UNSYNC);
-  params->sta_freqhold  = !!(txc.status & STA_FREQHOLD);
-  params->sta_ppssignal = !!(txc.status & STA_PPSSIGNAL);
-  params->sta_ppsjitter = !!(txc.status & STA_PPSJITTER);
-  params->sta_ppswander = !!(txc.status & STA_PPSWANDER);
-  params->sta_ppserror  = !!(txc.status & STA_PPSERROR);
-  params->sta_clockerr  = !!(txc.status & STA_CLOCKERR);
-
-  params->constant  = txc.constant;
-  params->precision = txc.precision;
-  params->tolerance = txc.tolerance;
-  params->ppsfreq   = txc.ppsfreq;
-  params->jitter    = txc.jitter;
-  params->shift     = txc.shift;
-  params->stabil    = txc.stabil;
-  params->jitcnt    = txc.jitcnt;
-  params->calcnt    = txc.calcnt;
-  params->errcnt    = txc.errcnt;
-  params->stbcnt    = txc.stbcnt;
-
-  return result;
-}
-
-int
 TMX_SetLeap(int leap)
 {
   struct timex txc;

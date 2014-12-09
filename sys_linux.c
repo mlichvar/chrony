@@ -288,17 +288,18 @@ get_version_specific_details(void)
 {
   int major, minor, patch;
   int shift_hz;
-  struct tmx_params tmx_params;
+  long tick;
+  double freq;
   struct utsname uts;
   
   if (!get_hz_and_shift_hz(&hz, &shift_hz)) {
-    TMX_ReadCurrentParams(&tmx_params);
+    if (TMX_GetFrequency(&freq, &tick) < 0)
+      LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
 
-    guess_hz_and_shift_hz(tmx_params.tick, &hz, &shift_hz);
+    guess_hz_and_shift_hz(tick, &hz, &shift_hz);
 
     if (!shift_hz) {
-      LOG_FATAL(LOGF_SysLinux, "Can't determine hz (txc.tick=%ld txc.freq=%ld (%.8f) txc.offset=%ld)",
-          tmx_params.tick, tmx_params.freq, tmx_params.dfreq, tmx_params.offset);
+      LOG_FATAL(LOGF_SysLinux, "Can't determine hz from tick %ld", tick);
     }
   }
 

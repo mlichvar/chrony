@@ -27,47 +27,9 @@
 #ifndef GOT_WRAP_ADJTIMEX_H
 #define GOT_WRAP_ADJTIMEX_H
 
-/* Cut-down version of struct timex */
-struct tmx_params {
-  long tick;
-  long offset;
-  long freq;
-  double dfreq;
-  long maxerror;
-  long esterror;
-  
-  unsigned sta_pll:1;
-  unsigned sta_ppsfreq:1;  
-  unsigned sta_ppstime:1;
-  unsigned sta_fll:1;
-  unsigned sta_ins:1;
-  unsigned sta_del:1;
-  unsigned sta_unsync:1;
-  unsigned sta_freqhold:1;
-  unsigned sta_ppssignal:1;
-  unsigned sta_ppsjitter:1;
-  unsigned sta_ppswander:1;
-  unsigned sta_ppserror:1;
-  unsigned sta_clockerr:1;
-  
-  int  status;
-  long constant;
-  long precision;
-  long tolerance;
-  long ppsfreq;
-  long jitter;
-  int  shift;
-  long stabil;
-  long jitcnt;
-  long calcnt;
-  long errcnt;
-  long stbcnt;
-};
-
 int TMX_ResetOffset(void);
 int TMX_SetFrequency(double *freq, long tick);
 int TMX_GetFrequency(double *freq, long *tick);
-int TMX_ReadCurrentParams(struct tmx_params *params);
 int TMX_SetLeap(int leap);
 int TMX_SetSync(int sync, double est_error, double max_error);
 int TMX_TestStepOffset(void);
