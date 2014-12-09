@@ -1245,6 +1245,10 @@ handle_add_source(NTP_Source_Type type, CMD_Request *rx_message, CMD_Reply *tx_m
   params.min_stratum = SRC_DEFAULT_MINSTRATUM;       
   params.poll_target = SRC_DEFAULT_POLLTARGET;
   params.max_delay_dev_ratio = SRC_DEFAULT_MAXDELAYDEVRATIO;
+  params.version = NTP_VERSION;
+  params.max_sources = SRC_DEFAULT_MAXSOURCES;
+  params.min_samples = SRC_DEFAULT_MINSAMPLES;
+  params.max_samples = SRC_DEFAULT_MAXSAMPLES;
 
   status = NSR_AddSource(&rem_addr, type, &params);
   switch (status) {
