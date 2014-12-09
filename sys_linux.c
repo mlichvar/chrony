@@ -212,16 +212,14 @@ set_sync_status(int synchronised, double est_error, double max_error)
  * Also, the bounds checking inside the kernel's adjtimex system call enforces
  * a +/- 10% movement of tick away from the nominal value 1e6/USER_HZ. */
 
-static void
-guess_hz_and_shift_hz(int tick, int *hz, int *shift_hz)
+static int
+guess_hz(int tick)
 {
   int i, tick_lo, tick_hi, ihz;
   double tick_nominal;
   /* Pick off the hz=100 case first */
   if (tick >= 9000 && tick <= 11000) {
-    *hz = 100;
-    *shift_hz = 7;
-    return;
+    return 100;
   }
 
   for (i=4; i<16; i++) { /* surely 16 .. 32768 is a wide enough range? */
@@ -231,36 +229,26 @@ guess_hz_and_shift_hz(int tick, int *hz, int *shift_hz)
     tick_hi = (int)(0.5 + tick_nominal*4.0/3.0);
     
     if (tick_lo < tick && tick <= tick_hi) {
-      *hz = ihz;
-      *shift_hz = i;
-      return;
+      return ihz;
     }
   }
 
   /* oh dear.  doomed. */
-  *hz = 0;
-  *shift_hz = 0;
+  return 0;
 }
 
 /* ================================================== */
 
 static int
-get_hz_and_shift_hz(int *hz, int *shift_hz)
+get_hz(void)
 {
 #ifdef _SC_CLK_TCK
-  if ((*hz = sysconf(_SC_CLK_TCK)) < 1) {
+  int hz;
+
+  if ((hz = sysconf(_SC_CLK_TCK)) < 1)
     return 0;
-  }
 
-  if (*hz == 100) {
-    *shift_hz = 7;
-    return 1;
-  }
-
-  for (*shift_hz = 1; (*hz >> *shift_hz) > 1; (*shift_hz)++)
-    ;
-
-  return 1;
+  return hz;
 #else
   return 0;
 #endif
@@ -287,20 +275,20 @@ static void
 get_version_specific_details(void)
 {
   int major, minor, patch;
-  int shift_hz;
   long tick;
   double freq;
   struct utsname uts;
   
-  if (!get_hz_and_shift_hz(&hz, &shift_hz)) {
+  hz = get_hz();
+
+  if (!hz) {
     if (TMX_GetFrequency(&freq, &tick) < 0)
       LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
 
-    guess_hz_and_shift_hz(tick, &hz, &shift_hz);
+    hz = guess_hz(tick);
 
-    if (!shift_hz) {
+    if (!hz)
       LOG_FATAL(LOGF_SysLinux, "Can't determine hz from tick %ld", tick);
-    }
   }
 
   dhz = (double) hz;
