@@ -82,13 +82,15 @@ static int tick_update_hz;
 /* ================================================== */
 
 inline static long
-our_round(double x) {
+our_round(double x)
+{
   long y;
 
   if (x > 0.0)
-	  y = x + 0.5;
+    y = x + 0.5;
   else
-	  y = x - 0.5;
+    y = x - 0.5;
+
   return y;
 }
 
