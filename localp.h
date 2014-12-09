@@ -57,6 +57,9 @@ typedef void (*lcl_OffsetCorrectionDriver)(struct timeval *raw, double *corr, do
 /* System driver to schedule leap second */
 typedef void (*lcl_SetLeapDriver)(int leap);
 
+/* System driver to set the synchronisation status */
+typedef void (*lcl_SetSyncStatusDriver)(int synchronised, double est_error, double max_error);
+
 extern void lcl_InvokeDispersionNotifyHandlers(double dispersion);
 
 extern void
@@ -65,6 +68,7 @@ lcl_RegisterSystemDrivers(lcl_ReadFrequencyDriver read_freq,
                           lcl_AccrueOffsetDriver accrue_offset,
                           lcl_ApplyStepOffsetDriver apply_step_offset,
                           lcl_OffsetCorrectionDriver offset_convert,
-                          lcl_SetLeapDriver set_leap);
+                          lcl_SetLeapDriver set_leap,
+                          lcl_SetSyncStatusDriver set_sync_status);
 
 #endif /* GOT_LOCALP_H */

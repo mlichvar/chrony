@@ -206,4 +206,8 @@ extern void LCL_SetLeap(int leap);
    due to clamping or rounding). */
 extern double LCL_SetTempComp(double comp);
 
+/* Routine to update the synchronisation status in the kernel to allow other
+   applications to know if the system clock is synchronised and error bounds */
+extern void LCL_SetSyncStatus(int synchronised, double est_error, double max_error);
+
 #endif /* GOT_LOCAL_H */

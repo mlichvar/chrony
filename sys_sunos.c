@@ -379,7 +379,8 @@ SYS_SunOS_Initialise(void)
   lcl_RegisterSystemDrivers(read_frequency, set_frequency, 
                             accrue_offset, apply_step_offset,
                             get_offset_correction,
-                            NULL /* set_leap */);
+                            NULL /* set_leap */,
+                            NULL /* set_sync_status */);
 
   /* Turn off the kernel switch that keeps the system clock in step
      with the non-volatile clock */

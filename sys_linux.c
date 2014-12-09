@@ -338,7 +338,7 @@ SYS_Linux_Initialise(void)
                                  1.0 / tick_update_hz,
                                  read_frequency, set_frequency,
                                  have_setoffset ? apply_step_offset : NULL,
-                                 set_leap);
+                                 set_leap, NULL);
 }
 
 /* ================================================== */

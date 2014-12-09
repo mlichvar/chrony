@@ -928,6 +928,8 @@ REF_SetReference(int stratum,
     LOG(LOGS_WARN, LOGF_Reference, "System clock was stepped by %.6f seconds", -step_offset);
   }
 
+  LCL_SetSyncStatus(are_we_synchronised, offset_sd, offset_sd + root_delay / 2.0 + root_dispersion);
+
   abs_freq_ppm = LCL_ReadAbsoluteFrequency();
 
   write_log(&now,
@@ -1015,6 +1017,8 @@ REF_SetUnsynchronised(void)
 
   update_leap_status(LEAP_Unsynchronised, 0);
   are_we_synchronised = 0;
+
+  LCL_SetSyncStatus(0, 0.0, 0.0);
 
   write_log(&now,
             "0.0.0.0",

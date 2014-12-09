@@ -35,7 +35,8 @@ extern void SYS_Generic_CompleteFreqDriver(double max_set_freq_ppm, double max_s
                                            lcl_ReadFrequencyDriver sys_read_freq,
                                            lcl_SetFrequencyDriver sys_set_freq,
                                            lcl_ApplyStepOffsetDriver sys_apply_step_offset,
-                                           lcl_SetLeapDriver sys_set_leap);
+                                           lcl_SetLeapDriver sys_set_leap,
+                                           lcl_SetSyncStatusDriver sys_set_sync_status);
 
 extern void SYS_Generic_Finalise(void);
 
