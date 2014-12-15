@@ -3316,7 +3316,7 @@ directive in the configuration file (@pxref{peer directive}).
 An example of using this command is shown below.
 
 @example
-add peer foo.bar.com minpoll 6 maxpoll 10 authkey 25
+add peer foo.bar.com minpoll 6 maxpoll 10 key 25
 @end example
 @c }}}
 @c {{{ add server
@@ -3332,7 +3332,7 @@ directive in the configuration file (@pxref{server directive}).
 An example of using this command is shown below.
 
 @example
-add server foo.bar.com minpoll 6 maxpoll 10 authkey 25
+add server foo.bar.com minpoll 6 maxpoll 10 key 25
 @end example
 @c }}}
 @c {{{ allow all
