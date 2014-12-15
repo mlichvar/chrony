@@ -22,17 +22,32 @@
 
   =======================================================================
 
-  This is a wrapper around the Linux adjtimex system call.  It isolates the
-  inclusion of <linux/adjtimex.h> from the need to include other header files,
-  many of which conflict with those in <linux/...> on some recent distributions
-  (as of Jul 2000) using kernels around 2.2.16 onwards.
+  This is a wrapper around the Linux adjtimex system call.
 
   */
 
 #include "config.h"
 
-#include "chrony_timex.h"
 #include "wrap_adjtimex.h"
+
+#include <sys/timex.h>
+
+/* Definitions used if missing in the system headers */
+#ifndef ADJ_TAI
+#define ADJ_TAI                 0x0080  /* set TAI offset */
+#endif
+#ifndef ADJ_SETOFFSET
+#define ADJ_SETOFFSET           0x0100  /* add 'time' to current time */
+#endif
+#ifndef ADJ_NANO
+#define ADJ_NANO                0x2000  /* select nanosecond resolution */
+#endif
+#ifndef ADJ_OFFSET_SS_READ
+#define ADJ_OFFSET_SS_READ      0xa001  /* read-only adjtime */
+#endif
+
+/* Frequency offset scale (shift) */
+#define SHIFT_USEC 16
 
 static int status = 0;
 
