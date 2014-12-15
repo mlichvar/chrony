@@ -218,6 +218,72 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
 /* ================================================== */
 
 void
+CPS_StatusToString(CPS_Status status, char *dest, int len)
+{
+  const char *s = NULL;
+
+  if (len > 0)
+    dest[0] = '\0';
+
+  switch (status) {
+    case CPS_Success:
+      return;
+    case CPS_BadOption:
+      s = "server/peer/pool option";
+      break;
+    case CPS_BadHost:
+      s = "address";
+      break;
+    case CPS_BadPort:
+      s = "port";
+      break;
+    case CPS_BadMinpoll:
+      s = "minpoll";
+      break;
+    case CPS_BadMaxpoll:
+      s = "maxpoll";
+      break;
+    case CPS_BadPresend:
+      s = "presend";
+      break;
+    case CPS_BadMaxdelaydevratio:
+      s = "maxdelaydevratio";
+      break;
+    case CPS_BadMaxdelayratio:
+      s = "maxdelayratio";
+      break;
+    case CPS_BadMaxdelay:
+      s = "maxdelay";
+      break;
+    case CPS_BadKey:
+      s = "key";
+      break;
+    case CPS_BadMinstratum:
+      s = "minstratum";
+      break;
+    case CPS_BadPolltarget:
+      s = "polltarget";
+      break;
+    case CPS_BadVersion:
+      s = "version";
+      break;
+    case CPS_BadMaxsources:
+      s = "maxsources";
+      break;
+    case CPS_BadMinsamples:
+      s = "minsamples";
+      break;
+    case CPS_BadMaxsamples:
+      s = "maxsamples";
+      break;
+  }
+
+  snprintf(dest, len, "Invalid %s", s);
+}
+
+/* ================================================== */
+
+void
 CPS_NormalizeLine(char *line)
 {
   char *p, *q;

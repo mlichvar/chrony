@@ -930,6 +930,7 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
   CPS_NTP_Source data;
   CPS_Status status;
   IPAddr ip_addr;
+  char str[64];
   int result = 0;
   
   status = CPS_ParseNTPSourceAdd(line, &data);
@@ -992,53 +993,9 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
       result = 1;
 
       break;
-    case CPS_BadOption:
-      fprintf(stderr, "Unrecognized subcommand\n");
-      break;
-    case CPS_BadHost:
-      fprintf(stderr, "Invalid host/IP address\n");
-      break;
-    case CPS_BadPort:
-      fprintf(stderr, "Unreadable port number\n");
-      break;
-    case CPS_BadMinpoll:
-      fprintf(stderr, "Unreadable minpoll value\n");
-      break;
-    case CPS_BadMaxpoll:
-      fprintf(stderr, "Unreadable maxpoll value\n");
-      break;
-    case CPS_BadPresend:
-      fprintf(stderr, "Unreadable presend value\n");
-      break;
-    case CPS_BadMaxdelaydevratio:
-      fprintf(stderr, "Unreadable max delay dev ratio value\n");
-      break;
-    case CPS_BadMaxdelayratio:
-      fprintf(stderr, "Unreadable max delay ratio value\n");
-      break;
-    case CPS_BadMaxdelay:
-      fprintf(stderr, "Unreadable max delay value\n");
-      break;
-    case CPS_BadKey:
-      fprintf(stderr, "Unreadable key value\n");
-      break;
-    case CPS_BadMinstratum:
-      fprintf(stderr, "Unreadable minstratum value\n");
-      break;
-    case CPS_BadPolltarget:
-      fprintf(stderr, "Unreadable polltarget value\n");
-      break;
-    case CPS_BadVersion:
-      fprintf(stderr, "Unreadable version value\n");
-      break;
-    case CPS_BadMaxsources:
-      fprintf(stderr, "Unreadable maxsources value\n");
-      break;
-    case CPS_BadMinsamples:
-      fprintf(stderr, "Unreadable minsamples value\n");
-      break;
-    case CPS_BadMaxsamples:
-      fprintf(stderr, "Unreadable maxsamples value\n");
+    default:
+      CPS_StatusToString(status, str, sizeof (str));
+      fprintf(stderr, "%s\n", str);
       break;
   }
 

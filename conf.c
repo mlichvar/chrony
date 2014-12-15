@@ -583,65 +583,20 @@ parse_source(char *line, NTP_Source_Type type, int pool)
 {
   CPS_Status status;
   NTP_Source source;
+  char str[64];
 
   source.type = type;
   source.pool = pool;
   status = CPS_ParseNTPSourceAdd(line, &source.params);
 
-  switch (status) {
-    case CPS_Success:
-      source.params.name = Strdup(source.params.name);
-      ARR_AppendElement(ntp_sources, &source);
-      break;
-    case CPS_BadOption:
-      other_parse_error("Invalid server/peer parameter");
-      break;
-    case CPS_BadHost:
-      other_parse_error("Invalid host/IP address");
-      break;
-    case CPS_BadPort:
-      other_parse_error("Unreadable port");
-      break;
-    case CPS_BadMinpoll:
-      other_parse_error("Unreadable minpoll");
-      break;
-    case CPS_BadMaxpoll:
-      other_parse_error("Unreadable maxpoll");
-      break;
-    case CPS_BadPresend:
-      other_parse_error("Unreadable presend");
-      break;
-    case CPS_BadMaxdelaydevratio:
-      other_parse_error("Unreadable maxdelaydevratio");
-      break;
-    case CPS_BadMaxdelayratio:
-      other_parse_error("Unreadable maxdelayratio");
-      break;
-    case CPS_BadMaxdelay:
-      other_parse_error("Unreadable maxdelay");
-      break;
-    case CPS_BadKey:
-      other_parse_error("Unreadable key");
-      break;
-    case CPS_BadMinstratum:
-      other_parse_error("Unreadable minstratum");
-      break;
-    case CPS_BadPolltarget:
-      other_parse_error("Unreadable polltarget");
-      break;
-    case CPS_BadVersion:
-      other_parse_error("Unreadable version");
-      break;
-    case CPS_BadMaxsources:
-      other_parse_error("Unreadable maxsources");
-      break;
-    case CPS_BadMinsamples:
-      other_parse_error("Unreadable minsamples");
-      break;
-    case CPS_BadMaxsamples:
-      other_parse_error("Unreadable maxsamples");
-      break;
+  if (status != CPS_Success) {
+    CPS_StatusToString(status, str, sizeof (str));
+    other_parse_error(str);
+    return;
   }
+
+  source.params.name = Strdup(source.params.name);
+  ARR_AppendElement(ntp_sources, &source);
 }
 
 /* ================================================== */
