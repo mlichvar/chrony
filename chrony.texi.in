@@ -3310,8 +3310,11 @@ The @code{add peer} command allows a new NTP peer to be added whilst
 @code{chronyd} is running.
 
 Following the words @code{add peer}, the syntax of the following
-parameters and options is identical to that for the @code{peer}
+parameters and options is similar to that for the @code{peer}
 directive in the configuration file (@pxref{peer directive}).
+The following peer options can be set in the command:
+@code{port}, @code{minpoll}, @code{maxpoll}, @code{presend},
+@code{maxdelayratio}, @code{maxdelay}, @code{key}
 
 An example of using this command is shown below.
 
@@ -3326,8 +3329,11 @@ The @code{add server} command allows a new NTP server to be added whilst
 @code{chronyd} is running.
 
 Following the words @code{add server}, the syntax of the following
-parameters and options is identical to that for the @code{server}
+parameters and options is similar to that for the @code{server}
 directive in the configuration file (@pxref{server directive}).
+The following server options can be set in the command:
+@code{port}, @code{minpoll}, @code{maxpoll}, @code{presend},
+@code{maxdelayratio}, @code{maxdelay}, @code{key}
 
 An example of using this command is shown below.
 
