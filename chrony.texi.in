@@ -4497,11 +4497,6 @@ This is the estimated error bound on the the frequency.
 This is the total of the network path delays to the stratum-1 computer
 from which the computer is ultimately synchronised.
 
-In certain extreme situations, this value can be negative.  (This can
-arise in a symmetric peer arrangement where the computers' frequencies
-are not tracking each other and the network delay is very short relative
-to the turn-around time at each computer.)
-
 @item Root dispersion
 This is the total dispersion accumulated through all the computers back
 to the stratum-1 computer from which the computer is ultimately
