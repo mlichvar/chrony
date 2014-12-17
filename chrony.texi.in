@@ -573,14 +573,14 @@ use their facilities.
 
 Assuming that you have found some servers, you need to set up a
 configuration file to run chrony.  The (compiled-in) default location
-for this file is @file{@SYSCONFDIR@/chrony.conf}.  Assuming that your ntp
-servers are called @code{a.b.c} and @code{d.e.f}, your
-@file{chrony.conf} file could contain as a minimum
+for this file is @file{@SYSCONFDIR@/chrony.conf}.  Assuming that your NTP
+servers are called @code{foo.example.net}, @code{bar.example.net} and
+@code{baz.example.net}, your @file{chrony.conf} file could contain as a minimum
 
 @example
-server a.b.c
-server d.e.f
-server g.h.i
+server foo.example.net
+server bar.example.net
+server baz.example.net
 @end example
 
 However, you will probably want to include some of the other directives
@@ -590,9 +590,9 @@ up the initial synchronization.  The smallest useful configuration file would
 look something like
 
 @example
-server a.b.c iburst
-server d.e.f iburst
-server g.h.i iburst
+server foo.example.net iburst
+server bar.example.net iburst
+server baz.example.net iburst
 driftfile @CHRONYVARDIR@/drift
 makestep 10 3
 @end example
@@ -618,14 +618,14 @@ In this case, you will need some additional configuration to tell
 This saves the program from continuously trying to poll the servers when
 they are inaccessible.
 
-Again, assuming that your ntp servers are called @code{a.b.c} and
-@code{d.e.f}, your @file{chrony.conf} file would need to contain
-something like
+Again, assuming that your NTP servers are called @code{foo.example.net},
+@code{bar.example.net} and @code{baz.example.net}, your @file{chrony.conf} file
+would need to contain something like
 
 @example
-server a.b.c
-server d.e.f
-server g.h.i
+server foo.example.net
+server bar.example.net
+server baz.example.net
 @end example
 
 However, your computer will keep trying to contact the servers to obtain
@@ -637,9 +637,9 @@ For this reason, it would be better to specify this part of your
 configuration file in the following way:
 
 @example
-server a.b.c offline
-server d.e.f offline
-server g.h.i offline
+server foo.example.net offline
+server bar.example.net offline
+server baz.example.net offline
 @end example
 
 The @code{offline} keyword indicates that the servers start
@@ -656,9 +656,9 @@ automatically on the first @code{chronyd} start.
 The smallest useful configuration file would look something like
 
 @example
-server a.b.c offline
-server d.e.f offline
-server g.h.i offline
+server foo.example.net offline
+server bar.example.net offline
+server baz.example.net offline
 keyfile @SYSCONFDIR@/chrony.keys
 generatecommandkey
 driftfile @CHRONYVARDIR@/drift
@@ -1231,7 +1231,7 @@ to other clients.
 Examples of use of the command are as follows:
 
 @example
-allow foo.bar.com
+allow foo.example.net
 allow 1.2
 allow 3.4.5
 allow 6.7.8/22
@@ -1731,7 +1731,7 @@ step (or slew) is applied to the system clock to correct this error.
 An example of use of the command is
 
 @example
-initstepslew 30 foo.bar.com baz.quz.com
+initstepslew 30 foo.example.net bar.example.net
 @end example
 
 where 2 NTP servers are used to make the measurement.  The @code{30}
@@ -3269,7 +3269,7 @@ Examples of use, showing a named host and a numeric IP address, are as
 follows:
 
 @example
-accheck a.b.c
+accheck foo.example.net
 accheck 1.2.3.4
 accheck 2001:db8::1
 @end example
@@ -3319,7 +3319,7 @@ The following peer options can be set in the command:
 An example of using this command is shown below.
 
 @example
-add peer foo.bar.com minpoll 6 maxpoll 10 key 25
+add peer foo.example.net minpoll 6 maxpoll 10 key 25
 @end example
 @c }}}
 @c {{{ add server
@@ -3338,7 +3338,7 @@ The following server options can be set in the command:
 An example of using this command is shown below.
 
 @example
-add server foo.bar.com minpoll 6 maxpoll 10 key 25
+add server foo.example.net minpoll 6 maxpoll 10 key 25
 @end example
 @c }}}
 @c {{{ allow all
@@ -3356,7 +3356,7 @@ the configuration file (@pxref{allow directive}).
 The syntax is illustrated in the following examples:
 
 @example
-allow foo.bar.com
+allow foo.example.net
 allow 1.2
 allow 3.4.5
 allow 6.7.8/22
@@ -3471,7 +3471,7 @@ whose IPv6 addresses have first 48 bits equal to @code{2001:db8:789a}.
 Example of the three-argument form of the command is
 
 @example
-burst 2/10 foo.bar.com
+burst 2/10 foo.example.net
 @end example
 @c }}}
 @c {{{ clients
@@ -3535,7 +3535,7 @@ used to check whether command access is permitted from a named host.
 Examples of use are as follows:
 
 @example
-cmdaccheck a.b.c
+cmdaccheck foo.example.net
 cmdaccheck 1.2.3.4
 cmdaccheck 2001:db8::1
 @end example
@@ -3593,7 +3593,7 @@ from the current set of sources.
 The syntax is illustrated in the examples below.
 
 @example
-delete foo.bar.com
+delete foo.example.net
 delete 1.2.3.4
 delete 2001:db8::1
 @end example
@@ -3616,7 +3616,7 @@ directive in the configuration file (@pxref{deny directive}).
 The syntax is illustrated in the following examples:
 
 @example
-deny foo.bar.com
+deny foo.example.net
 deny 1.2
 deny 3.4.5
 deny 6.7.8/22
@@ -3805,13 +3805,13 @@ directive}).
 The following examples illustrate the syntax
 
 @example
-maxdelay foo.bar.com 0.3
+maxdelay foo.example.net 0.3
 maxdelay 1.2.3.4 0.0015
 maxdelay 2001:db8::1 0.0015
 @end example
 
 The first example sets the maximum network delay allowed for a
-measurement to the host @code{foo.bar.com} to 0.3 seconds.  The second
+measurement to the host @code{foo.example.net} to 0.3 seconds.  The second
 and third examples set the maximum network delay for a measurement to
 the host with IPv4 address @code{1.2.3.4} and the host with IPv6 address
 @code{2001:db8::1} to 1.5 milliseconds.
@@ -3830,7 +3830,7 @@ directive}).
 The following examples illustrate the syntax
 
 @example
-maxdelaydevratio foo.bar.com 0.1
+maxdelaydevratio foo.example.net 0.1
 maxdelaydevratio 1.2.3.4 1.0
 maxdelaydevratio 2001:db8::1 100.0
 @end example
@@ -3846,13 +3846,13 @@ directive}).
 The following examples illustrate the syntax
 
 @example
-maxdelayratio foo.bar.com 1.5
+maxdelayratio foo.example.net 1.5
 maxdelayratio 1.2.3.4 2.0
 maxdelayratio 2001:db8::1 2.0
 @end example
 
 The first example sets the maximum network delay for a measurement to
-the host @code{foo.bar.com} to be 1.5 times the minimum delay found
+the host @code{foo.example.net} to be 1.5 times the minimum delay found
 amongst the previous measurements that have been retained.  The second
 and third examples set the maximum network delay for a measurement to
 the host with IPv4 address @code{1.2.3.4} and the host with IPv6
@@ -3883,10 +3883,10 @@ sampling).
 An example is 
 
 @example
-maxpoll foo.bar.com 10
+maxpoll foo.example.net 10
 @end example
 
-which sets the maximum polling interval for the host @code{foo.bar.com}
+which sets the maximum polling interval for the host @code{foo.example.net}
 to 1024 seconds.
 
 Note that the new maximum polling interval only takes effect after the
@@ -3920,10 +3920,10 @@ sampling).
 An example is 
 
 @example
-minpoll foo.bar.com 5
+minpoll foo.example.net 5
 @end example
 
-which sets the minimum polling interval for the host @code{foo.bar.com}
+which sets the minimum polling interval for the host @code{foo.example.net}
 to 32 seconds.
 
 Note that the new minimum polling interval only takes effect after the
@@ -3949,10 +3949,10 @@ IP address.
 An example is 
 
 @example
-minpoll foo.bar.com 5
+minpoll foo.example.net 5
 @end example
 
-which sets the minimum stratum for the host @code{foo.bar.com}
+which sets the minimum stratum for the host @code{foo.example.net}
 to 5.
 
 Note that the new minimum stratum only takes effect after the
@@ -4018,7 +4018,7 @@ illustrated below.
 offline
 offline 255.255.255.0/1.2.3.0
 offline 2001:db8:789a::/48
-offline foo.bar.com
+offline foo.example.net
 @end example
 
 The second form means that the @code{offline} command is to be applied
@@ -4099,10 +4099,10 @@ IP address.
 An example is 
 
 @example
-polltarget foo.bar.com 12
+polltarget foo.example.net 12
 @end example
 
-which sets the poll target for the host @code{foo.bar.com}
+which sets the poll target for the host @code{foo.example.net}
 to 12.
 @c }}}
 @c {{{ quit
@@ -4245,8 +4245,8 @@ columns.
 MS Name/IP address         Stratum Poll Reach LastRx Last sample
 ===============================================================================
 #* GPS0                          0   4   377    11   -479ns[ -621ns] +/-  134ns
-^? a.b.c                         2   6   377    23   -923us[ -924us] +/-   43ms
-^+ d.e.f                         1   6   377    21  -2629us[-2619us] +/-   86ms
+^? foo.example.net               2   6   377    23   -923us[ -924us] +/-   43ms
+^+ bar.example.net               1   6   377    21  -2629us[-2619us] +/-   86ms
 @end group
 @end example
 
@@ -4402,7 +4402,7 @@ The @code{tracking} command displays parameters about the system's clock
 performance.  An example of the output is shown below.
 
 @example
-Reference ID    : 1.2.3.4 (a.b.c)
+Reference ID    : 1.2.3.4 (foo.example.net)
 Stratum         : 3
 Ref time (UTC)  : Fri Feb  3 15:00:29 2012
 System time     : 0.000001501 seconds slow of NTP time
@@ -4433,7 +4433,7 @@ in the @file{@SYSCONFDIR@/chrony.conf} file (@pxref{local directive})).
 The stratum indicates how many hops away from a computer with an
 attached reference clock we are.  Such a computer is a stratum-1
 computer, so the computer in the example is two hops away
-(i.e. @code{a.b.c} is a stratum-2 and is synchronised from a stratum-1).
+(i.e. @code{foo.example.net} is a stratum-2 and is synchronised from a stratum-1).
 
 @item Ref time
 This is the time (UTC) at which the last measurement from the reference
