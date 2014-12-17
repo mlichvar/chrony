@@ -4747,16 +4747,27 @@ they are @code{minpoll}, @code{maxpoll}, @code{polltarget}, @code{maxdelay},
 
 The first three options set the minimum and maximum allowed polling interval,
 and how should be the actual interval adjusted in the specified range.  Their
-default values are suitable for public NTP servers, which normally don't allow
-too frequent polling, but if you run your own NTP servers or have permission to
-poll the servers frequently, setting the options for shorter polling intervals
-may significantly improve the accuracy of the system clock.
+default values are 6 (64 seconds) for @code{minpoll}, 10 (1024 seconds) for
+@code{maxpoll} and 6 (samples) for @code{polltarget}.  The default values
+should be used for general servers on the internet.  With your own NTP servers
+or if have permission to poll some servers more frequently, setting these
+options for shorter polling intervals may significantly improve the accuracy of
+the system clock.
 
-The optimal polling interval depends on many factors, this includes the ratio
+The optimal polling interval depends on many factors, including the ratio
 between the wander of the clock and the network jitter (sometimes expressed in
 NTP documents as the Allan intercept), the temperature sensitivity of the
-crystal oscillator and the maximum rate of change of the temperature.  An
-example of the directive for a server located in the same LAN could be
+crystal oscillator and the maximum rate of change of the temperature.
+
+An example of the directive for an NTP server on the internet that you are
+allowed to poll frequently could be
+
+@example
+server foo.example.net minpoll 4 maxpoll 6 polltarget 16
+@end example
+
+An example using very short polling intervals for a server located in the
+same LAN could be
 
 @example
 server ntp.local minpoll 2 maxpoll 4 polltarget 30
@@ -4765,7 +4776,7 @@ server ntp.local minpoll 2 maxpoll 4 polltarget 30
 The maxdelay options are useful to ignore measurements with larger delay (e.g.
 due to congestion in the network) and improve the stability of the
 synchronisation.  The @code{maxdelaydevratio} option could be added to the
-previous example
+example with local NTP server
 
 @example
 server ntp.local minpoll 2 maxpoll 4 polltarget 30 maxdelaydevratio 2
