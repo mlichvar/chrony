@@ -415,7 +415,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
       result->mode = MODE_CLIENT;
       break;
     case NTP_PEER:
-      result->local_addr.sock_fd = NIO_GetServerSocket(remote_addr);
+      result->local_addr.sock_fd = NIO_OpenServerSocket(remote_addr);
       result->mode = MODE_ACTIVE;
       break;
     default:
@@ -551,7 +551,7 @@ NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remote_addr)
   if (inst->mode == MODE_CLIENT)
     close_client_socket(inst);
   else
-    inst->local_addr.sock_fd = NIO_GetServerSocket(remote_addr);
+    inst->local_addr.sock_fd = NIO_OpenServerSocket(remote_addr);
 
   /* Update the reference ID and reset the source/sourcestats instances */
   SRC_SetRefid(inst->source, UTI_IPToRefid(&remote_addr->ip_addr),
@@ -885,7 +885,7 @@ transmit_timeout(void *arg)
   if (inst->mode == MODE_CLIENT) {
     close_client_socket(inst);
     assert(inst->local_addr.sock_fd == INVALID_SOCK_FD);
-    inst->local_addr.sock_fd = NIO_GetClientSocket(&inst->remote_addr);
+    inst->local_addr.sock_fd = NIO_OpenClientSocket(&inst->remote_addr);
   }
 
   /* Check whether we need to 'warm up' the link to the other end by
@@ -1923,7 +1923,7 @@ NCR_AddBroadcastDestination(IPAddr *addr, unsigned short port, int interval)
   destination->addr.ip_addr = *addr;
   destination->addr.port = port;
   destination->local_addr.ip_addr.family = IPADDR_UNSPEC;
-  destination->local_addr.sock_fd = NIO_GetServerSocket(&destination->addr);
+  destination->local_addr.sock_fd = NIO_OpenServerSocket(&destination->addr);
   destination->interval = interval;
 
   SCH_AddTimeoutInClass(destination->interval, SAMPLING_SEPARATION, SAMPLING_RANDOMNESS,

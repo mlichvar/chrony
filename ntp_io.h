@@ -39,12 +39,12 @@ extern void NIO_Initialise(int family);
 extern void NIO_Finalise(void);
 
 /* Function to obtain a socket for sending client packets */
-extern int NIO_GetClientSocket(NTP_Remote_Address *remote_addr);
+extern int NIO_OpenClientSocket(NTP_Remote_Address *remote_addr);
 
 /* Function to obtain a socket for sending server/peer packets */
-extern int NIO_GetServerSocket(NTP_Remote_Address *remote_addr);
+extern int NIO_OpenServerSocket(NTP_Remote_Address *remote_addr);
 
-/* Function to close a socket returned by NIO_GetClientSocket() */
+/* Function to close a socket returned by NIO_OpenClientSocket() */
 extern void NIO_CloseClientSocket(int sock_fd);
 
 /* Function to check if socket is a server socket */

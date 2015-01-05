@@ -347,7 +347,7 @@ NIO_Finalise(void)
 /* ================================================== */
 
 int
-NIO_GetClientSocket(NTP_Remote_Address *remote_addr)
+NIO_OpenClientSocket(NTP_Remote_Address *remote_addr)
 {
   if (separate_client_sockets) {
     int sock_fd = prepare_separate_client_socket(remote_addr->ip_addr.family);
@@ -378,7 +378,7 @@ NIO_GetClientSocket(NTP_Remote_Address *remote_addr)
 /* ================================================== */
 
 int
-NIO_GetServerSocket(NTP_Remote_Address *remote_addr)
+NIO_OpenServerSocket(NTP_Remote_Address *remote_addr)
 {
   switch (remote_addr->ip_addr.family) {
     case IPADDR_INET4:
