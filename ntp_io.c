@@ -57,9 +57,21 @@ static int server_sock_fd6;
 static int client_sock_fd6;
 #endif
 
+/* Reference counters for server sockets to keep them open only when needed */
+static int server_sock_ref4;
+#ifdef FEAT_IPV6
+static int server_sock_ref6;
+#endif
+
 /* Flag indicating we create a new connected client socket for each
    server instead of sharing client_sock_fd4 and client_sock_fd6 */
 static int separate_client_sockets;
+
+/* Flag indicating the server sockets are not created dynamically when needed,
+   either to have a socket for client requests when separate client sockets
+   are disabled and client port is equal to server port, or the server port is
+   disabled */
+static int permanent_server_sockets;
 
 /* Flag indicating that we have been initialised */
 static int initialised=0;
@@ -283,15 +295,20 @@ NIO_Initialise(int family)
   if (client_port < 0)
     client_port = 0;
 
+  permanent_server_sockets = !server_port || (!separate_client_sockets &&
+                                              client_port == server_port);
+
   server_sock_fd4 = INVALID_SOCK_FD;
   client_sock_fd4 = INVALID_SOCK_FD;
+  server_sock_ref4 = 0;
 #ifdef FEAT_IPV6
   server_sock_fd6 = INVALID_SOCK_FD;
   client_sock_fd6 = INVALID_SOCK_FD;
+  server_sock_ref6 = 0;
 #endif
 
   if (family == IPADDR_UNSPEC || family == IPADDR_INET4) {
-    if (server_port)
+    if (permanent_server_sockets && server_port)
       server_sock_fd4 = prepare_socket(AF_INET, server_port, 0);
     if (!separate_client_sockets) {
       if (client_port != server_port || !server_port)
@@ -302,7 +319,7 @@ NIO_Initialise(int family)
   }
 #ifdef FEAT_IPV6
   if (family == IPADDR_UNSPEC || family == IPADDR_INET6) {
-    if (server_port)
+    if (permanent_server_sockets && server_port)
       server_sock_fd6 = prepare_socket(AF_INET6, server_port, 0);
     if (!separate_client_sockets) {
       if (client_port != server_port || !server_port)
@@ -313,7 +330,8 @@ NIO_Initialise(int family)
   }
 #endif
 
-  if ((server_port && server_sock_fd4 == INVALID_SOCK_FD
+  if ((server_port && server_sock_fd4 == INVALID_SOCK_FD &&
+       permanent_server_sockets 
 #ifdef FEAT_IPV6
        && server_sock_fd6 == INVALID_SOCK_FD
 #endif
@@ -382,9 +400,21 @@ NIO_OpenServerSocket(NTP_Remote_Address *remote_addr)
 {
   switch (remote_addr->ip_addr.family) {
     case IPADDR_INET4:
+      if (permanent_server_sockets)
+        return server_sock_fd4;
+      if (server_sock_fd4 == INVALID_SOCK_FD)
+        server_sock_fd4 = prepare_socket(AF_INET, CNF_GetNTPPort(), 0);
+      if (server_sock_fd4 != INVALID_SOCK_FD)
+        server_sock_ref4++;
       return server_sock_fd4;
 #ifdef FEAT_IPV6
     case IPADDR_INET6:
+      if (permanent_server_sockets)
+        return server_sock_fd6;
+      if (server_sock_fd6 == INVALID_SOCK_FD)
+        server_sock_fd6 = prepare_socket(AF_INET6, CNF_GetNTPPort(), 0);
+      if (server_sock_fd6 != INVALID_SOCK_FD)
+        server_sock_ref6++;
       return server_sock_fd6;
 #endif
     default:
@@ -399,6 +429,33 @@ NIO_CloseClientSocket(int sock_fd)
 {
   if (separate_client_sockets)
     close_socket(sock_fd);
+}
+
+/* ================================================== */
+
+void
+NIO_CloseServerSocket(int sock_fd)
+{
+  if (permanent_server_sockets || sock_fd == INVALID_SOCK_FD)
+    return;
+
+  if (sock_fd == server_sock_fd4) {
+    if (--server_sock_ref4 <= 0) {
+      close_socket(server_sock_fd4);
+      server_sock_fd4 = INVALID_SOCK_FD;
+    }
+  }
+#ifdef FEAT_IPV6
+  else if (sock_fd == server_sock_fd6) {
+    if (--server_sock_ref6 <= 0) {
+      close_socket(server_sock_fd6);
+      server_sock_fd6 = INVALID_SOCK_FD;
+    }
+  }
+#endif
+  else {
+    assert(0);
+  }
 }
 
 /* ================================================== */

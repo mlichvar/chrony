@@ -47,6 +47,9 @@ extern int NIO_OpenServerSocket(NTP_Remote_Address *remote_addr);
 /* Function to close a socket returned by NIO_OpenClientSocket() */
 extern void NIO_CloseClientSocket(int sock_fd);
 
+/* Function to close a socket returned by NIO_OpenServerSocket() */
+extern void NIO_CloseServerSocket(int sock_fd);
+
 /* Function to check if socket is a server socket */
 extern int NIO_IsServerSocket(int sock_fd);
 

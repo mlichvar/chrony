@@ -229,6 +229,10 @@ static ARR_Instance broadcasts;
 
 /* ================================================== */
 
+/* Server IPv4/IPv6 sockets */
+static int server_sock_fd4;
+static int server_sock_fd6;
+
 static ADF_AuthTable access_auth_table;
 
 /* ================================================== */
@@ -305,6 +309,8 @@ do_time_checks(void)
 void
 NCR_Initialise(void)
 {
+  NTP_Remote_Address addr;
+
   do_size_checks();
   do_time_checks();
 
@@ -314,6 +320,11 @@ NCR_Initialise(void)
 
   access_auth_table = ADF_CreateTable();
   broadcasts = ARR_CreateInstance(sizeof (BroadcastDestination));
+
+  addr.ip_addr.family = IPADDR_INET4;
+  server_sock_fd4 = NIO_OpenServerSocket(&addr);
+  addr.ip_addr.family = IPADDR_INET6;
+  server_sock_fd6 = NIO_OpenServerSocket(&addr);
 }
 
 /* ================================================== */
@@ -321,6 +332,16 @@ NCR_Initialise(void)
 void
 NCR_Finalise(void)
 {
+  unsigned int i;
+
+  if (server_sock_fd4 != INVALID_SOCK_FD)
+    NIO_CloseServerSocket(server_sock_fd4);
+  if (server_sock_fd6 != INVALID_SOCK_FD)
+    NIO_CloseServerSocket(server_sock_fd6);
+
+  for (i = 0; i < ARR_GetSize(broadcasts); i++)
+    NIO_CloseServerSocket(((BroadcastDestination *)ARR_GetElement(broadcasts, i))->local_addr.sock_fd);
+
   ARR_DestroyInstance(broadcasts);
   ADF_DestroyTable(access_auth_table);
 }
@@ -490,6 +511,9 @@ NCR_DestroyInstance(NCR_Instance instance)
   if (instance->opmode != MD_OFFLINE)
     take_offline(instance);
 
+  if (instance->mode == MODE_ACTIVE)
+    NIO_CloseServerSocket(instance->local_addr.sock_fd);
+
   /* This will destroy the source instance inside the
      structure, which will cause reselection if this was the
      synchronising source etc. */
@@ -550,8 +574,10 @@ NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remote_addr)
 
   if (inst->mode == MODE_CLIENT)
     close_client_socket(inst);
-  else
+  else {
+    NIO_CloseServerSocket(inst->local_addr.sock_fd);
     inst->local_addr.sock_fd = NIO_OpenServerSocket(remote_addr);
+  }
 
   /* Update the reference ID and reset the source/sourcestats instances */
   SRC_SetRefid(inst->source, UTI_IPToRefid(&remote_addr->ip_addr),
