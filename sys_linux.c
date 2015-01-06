@@ -397,7 +397,7 @@ SYS_Linux_DropRoot(char *user)
     LOG_FATAL(LOGF_SysLinux, "setuid(%d) failed", pw->pw_uid);
   }
 
-  if ((cap = cap_from_text("cap_sys_time=ep")) == NULL) {
+  if ((cap = cap_from_text("cap_net_bind_service,cap_sys_time=ep")) == NULL) {
     LOG_FATAL(LOGF_SysLinux, "cap_from_text() failed");
   }
 
