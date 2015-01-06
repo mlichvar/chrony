@@ -309,8 +309,6 @@ do_time_checks(void)
 void
 NCR_Initialise(void)
 {
-  NTP_Remote_Address addr;
-
   do_size_checks();
   do_time_checks();
 
@@ -321,10 +319,9 @@ NCR_Initialise(void)
   access_auth_table = ADF_CreateTable();
   broadcasts = ARR_CreateInstance(sizeof (BroadcastDestination));
 
-  addr.ip_addr.family = IPADDR_INET4;
-  server_sock_fd4 = NIO_OpenServerSocket(&addr);
-  addr.ip_addr.family = IPADDR_INET6;
-  server_sock_fd6 = NIO_OpenServerSocket(&addr);
+  /* Server socket will be opened when access is allowed */
+  server_sock_fd4 = INVALID_SOCK_FD;
+  server_sock_fd6 = INVALID_SOCK_FD;
 }
 
 /* ================================================== */
@@ -1855,13 +1852,37 @@ NCR_AddAccessRestriction(IPAddr *ip_addr, int subnet_bits, int allow, int all)
     }
   }
 
-  if (status == ADF_BADSUBNET) {
+  if (status != ADF_SUCCESS)
     return 0;
-  } else if (status == ADF_SUCCESS) {
-    return 1;
+
+  /* Keep server sockets open only when an address allowed */
+  if (allow) {
+    NTP_Remote_Address remote_addr;
+
+    if (server_sock_fd4 == INVALID_SOCK_FD &&
+        ADF_IsAnyAllowed(access_auth_table, IPADDR_INET4)) {
+      remote_addr.ip_addr.family = IPADDR_INET4;
+      server_sock_fd4 = NIO_OpenServerSocket(&remote_addr);
+    }
+    if (server_sock_fd6 == INVALID_SOCK_FD &&
+        ADF_IsAnyAllowed(access_auth_table, IPADDR_INET6)) {
+      remote_addr.ip_addr.family = IPADDR_INET6;
+      server_sock_fd6 = NIO_OpenServerSocket(&remote_addr);
+    }
   } else {
-    return 0;
+    if (server_sock_fd4 != INVALID_SOCK_FD &&
+        !ADF_IsAnyAllowed(access_auth_table, IPADDR_INET4)) {
+      NIO_CloseServerSocket(server_sock_fd4);
+      server_sock_fd4 = INVALID_SOCK_FD;
+    }
+    if (server_sock_fd6 != INVALID_SOCK_FD &&
+        !ADF_IsAnyAllowed(access_auth_table, IPADDR_INET6)) {
+      NIO_CloseServerSocket(server_sock_fd6);
+      server_sock_fd6 = INVALID_SOCK_FD;
+    }
   }
+
+  return 1;
 }
 
 /* ================================================== */

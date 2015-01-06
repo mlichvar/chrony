@@ -72,4 +72,9 @@ extern void ADF_DestroyTable(ADF_AuthTable table);
 extern int ADF_IsAllowed(ADF_AuthTable table,
                          IPAddr *ip);
 
+/* Check if at least one address from a given family is allowed by
+   the rules in the table */
+extern int ADF_IsAnyAllowed(ADF_AuthTable table,
+                            int family);
+
 #endif /* GOT_ADDRFILT_H */

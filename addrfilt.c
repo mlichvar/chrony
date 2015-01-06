@@ -363,6 +363,44 @@ ADF_IsAllowed(ADF_AuthTable table,
 
 /* ================================================== */
 
+static int
+is_any_allowed(TableNode *node, State parent)
+{
+  State state;
+  int i;
+
+  state = node->state != AS_PARENT ? node->state : parent;
+  assert(state != AS_PARENT);
+
+  if (node->extended) {
+    for (i = 0; i < TABLE_SIZE; i++) {
+      if (is_any_allowed(&node->extended[i], state))
+        return 1;
+    }
+  } else if (state == ALLOW) {
+    return 1;
+  }
+
+  return 0;
+}
+
+/* ================================================== */
+
+int
+ADF_IsAnyAllowed(ADF_AuthTable table, int family)
+{
+  switch (family) {
+    case IPADDR_INET4:
+      return is_any_allowed(&table->base4, AS_PARENT);
+    case IPADDR_INET6:
+      return is_any_allowed(&table->base6, AS_PARENT);
+    default:
+      return 0;
+  }
+}
+
+/* ================================================== */
+
 #if defined TEST
 
 static void print_node(TableNode *node, uint32_t *addr, int ip_len, int shift, int subnet_bits)

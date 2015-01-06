@@ -2523,10 +2523,12 @@ pool pool.ntp.org iburst maxsources 3
 @node port directive
 @subsection port
 This option allows you to configure the port on which @code{chronyd}
-will listen for NTP requests.
+will listen for NTP requests.  The port will be open only when an address is
+allowed by the @code{allow} directive or command, an NTP peer is configured, or
+the broadcast server mode is enabled.
 
 The compiled in default is udp/123, the standard NTP port.  If set to 0,
-@code{chronyd} will not open the server socket and will operate strictly in a
+@code{chronyd} will never open the server port and will operate strictly in a
 client-only mode.  The source port used in NTP client requests can be set by
 the @code{acquisitionport} directive.
 
