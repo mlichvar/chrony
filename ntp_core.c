@@ -225,7 +225,8 @@ static ARR_Instance broadcasts;
 /* Maximum poll interval set by KoD RATE */
 #define MAX_KOD_RATE_POLL SRC_DEFAULT_MAXPOLL
 
-#define INVALID_SOCK_FD -1
+/* Invalid socket, different from the one in ntp_io.c */
+#define INVALID_SOCK_FD -2
 
 /* ================================================== */
 
