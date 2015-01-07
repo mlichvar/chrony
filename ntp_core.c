@@ -1040,7 +1040,8 @@ check_packet_auth(NTP_Packet *pkt, int length, int *has_auth, uint32_t *key_id)
        16-bit length of the whole field aligned to 32 bits and data. */
     if (remainder >= NTP_MIN_EXTENSION_LENGTH) {
       ext_length = ntohs(*(uint16_t *)(data + i + 2));
-      if (ext_length % 4 == 0 && ext_length <= remainder) {
+      if (ext_length >= NTP_MIN_EXTENSION_LENGTH &&
+          ext_length <= remainder && ext_length % 4 == 0) {
         i += ext_length;
         continue;
       }
