@@ -557,12 +557,9 @@ read_from_socket(void *anything)
 #endif
     }
 
-    if (status > 0) {
-      DEBUG_LOG(LOGF_NtpIO, "Received %d bytes from %s:%d to %s fd %d",
-          status,
-          UTI_IPToString(&remote_addr.ip_addr), remote_addr.port,
-          UTI_IPToString(&local_addr.ip_addr), local_addr.sock_fd);
-    }
+    DEBUG_LOG(LOGF_NtpIO, "Received %d bytes from %s:%d to %s fd %d",
+              status, UTI_IPToString(&remote_addr.ip_addr), remote_addr.port,
+              UTI_IPToString(&local_addr.ip_addr), local_addr.sock_fd);
 
     if (status >= NTP_NORMAL_PACKET_LENGTH) {
 
