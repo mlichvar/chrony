@@ -94,7 +94,7 @@ typedef struct {
   uint8_t auth_data[NTP_MAX_MAC_LENGTH];
 } NTP_Packet;
 
-#define NTP_NORMAL_PACKET_LENGTH offsetof(NTP_Packet, auth_keyid)
+#define NTP_NORMAL_PACKET_LENGTH (int)offsetof(NTP_Packet, auth_keyid)
 
 /* The buffer used to hold a datagram read from the network */
 typedef struct {
