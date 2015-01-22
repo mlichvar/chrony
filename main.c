@@ -93,14 +93,14 @@ MAI_CleanupAndExit(void)
   CLG_Finalise();
   NSR_Finalise();
   NCR_Finalise();
+  CAM_Finalise();
+  NIO_Finalise();
   SST_Finalise();
   KEY_Finalise();
   RCL_Finalise();
   SRC_Finalise();
   REF_Finalise();
   RTC_Finalise();
-  CAM_Finalise();
-  NIO_Finalise();
   SYS_Finalise();
   SCH_Finalise();
   LCL_Finalise();
@@ -460,8 +460,6 @@ int main
   LCL_Initialise();
   SCH_Initialise();
   SYS_Initialise();
-  NIO_Initialise(address_family);
-  CAM_Initialise(address_family);
   RTC_Initialise(do_init_rtc);
   SRC_Initialise();
   RCL_Initialise();
@@ -490,6 +488,8 @@ int main
 
   REF_Initialise();
   SST_Initialise();
+  NIO_Initialise(address_family);
+  CAM_Initialise(address_family);
   NCR_Initialise();
   NSR_Initialise();
   CLG_Initialise();
