@@ -1,7 +1,0 @@
-#!/usr/bin/bash
-
-# $1 is chrony password.
-
-
-CHRONYPASSWORD=$1 \
-/usr/local/bin/DNSchrony.pl -ulS

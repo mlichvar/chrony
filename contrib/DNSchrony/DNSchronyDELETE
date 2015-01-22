@@ -1,7 +1,0 @@
-#!/usr/bin/bash
-
-# $1 is chrony password.
-# $2 host to be deleted if ip nn.n.n.n then no DNS used
-
-CHRONYPASSWORD=$1 \
-/usr/local/bin/DNSchrony.pl -d  $2
