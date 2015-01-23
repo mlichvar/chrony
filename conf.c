@@ -177,7 +177,7 @@ static IPAddr bind_address4, bind_address6;
 static IPAddr bind_acq_address4, bind_acq_address6;
 
 /* IP addresses for binding the command socket to.  UNSPEC family means
-   use the value of bind_address */
+   the loopback address will be used */
 static IPAddr bind_cmd_address4, bind_cmd_address6;
 
 /* Filename to use for storing pid of running chronyd, to prevent multiple
@@ -1647,9 +1647,9 @@ void
 CNF_GetBindCommandAddress(int family, IPAddr *addr)
 {
   if (family == IPADDR_INET4)
-    *addr = bind_cmd_address4.family != IPADDR_UNSPEC ? bind_cmd_address4 : bind_address4;
+    *addr = bind_cmd_address4;
   else if (family == IPADDR_INET6)
-    *addr = bind_cmd_address6.family != IPADDR_UNSPEC ? bind_cmd_address6 : bind_address6;
+    *addr = bind_cmd_address6;
   else
     addr->family = IPADDR_UNSPEC;
 }

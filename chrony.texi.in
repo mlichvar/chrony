@@ -1316,10 +1316,7 @@ bindaddress 192.168.1.1
 
 to the configuration file.
 
-This directive affects NTP (UDP port 123 by default) packets.  If no
-@code{bindcmdaddress} directive is present, the address supplied by
-@code{bindaddress} will be used to control binding of the command socket (UDP
-port 323 by default) as well.
+This directive affects NTP (UDP port 123 by default) packets.
 
 The @code{bindaddress} directive has been found to cause problems when used on
 computers that need to pass NTP traffic over multiple network interfaces (e.g.
@@ -1333,30 +1330,25 @@ directive can be specified.
 @c {{{ bindcmdaddress
 @node bindcmdaddress directive
 @subsection bindcmdaddress
-The @code{bindcmdaddress} directive allows you to restrict the network
+The @code{bindcmdaddress} directive allows you to specify the network
 interface to which @code{chronyd} will listen for command packets (issued by
 @code{chronyc}).  This provides an additional level of access restriction above
 that available through @code{cmddeny} mechanism.
 
-Suppose you want to block all access except from localhost.  You
-could add the lines
+By default, @code{chronyd} binds to the loopback interface (with addresses
+@code{127.0.0.1} and @code{::1}).  This blocks all access except from
+localhost.  To listen for command packets on all interfaces, you can add the
+lines
 
 @example
-bindcmdaddress 127.0.0.1
-bindcmdaddress ::1
+bindcmdaddress 0.0.0.0
+bindcmdaddress ::
 @end example
 
 to the configuration file.
 
 For each of IPv4 and IPv6 protocols, only one @code{bindcmdaddress}
 directive can be specified.
-
-The default values are set by the @code{bindaddress} directive.
-
-The @code{bindcmdaddress} directive has been found to cause problems when used
-on computers that need to pass command traffic over multiple network
-interfaces.  Use of the @code{cmdallow} and @code{cmddeny} directives together
-with a network firewall is more likely to be successful.
 @c }}}
 @c {{{ broadcast directive
 @node broadcast directive
@@ -1424,6 +1416,10 @@ The syntax is identical to the @code{allow} directive.
 There is also a @code{cmdallow all} directive with similar behaviour to the
 @code{allow all} directive (but applying to control access in this case, of
 course).
+
+Note that @code{chronyd} has to be configured with the @code{bindcmdaddress}
+directive to not listen only on the loopback interface to actually allow remote
+access.
 @c }}}
 @c {{{ cmddeny
 @node cmddeny directive
@@ -4721,7 +4717,7 @@ NTP requests from reaching @code{chronyd}.
 
 If you don't need to use @code{chronyc} remotely, you can add the following
 directives to the configuration file to bind the command sockets to the
-loopback interface
+loopback interface.  This is done by default since version 2.0.
 
 @example
 bindcmdaddress 127.0.0.1
@@ -4816,9 +4812,10 @@ will arise.  You should always make X quite high (e.g. 10) in this directive.
 @section Issues with chronyc
 
 @subsection I keep getting the error @code{506 Cannot talk to daemon}
-Make sure that the @file{chrony.conf} file (on the computer where
-@code{chronyd} is running) has a @code{cmdallow} entry for the computer you are
-running @code{chronyc} on. This isn't necessary for localhost.
+When accessing @code{chronyd} remotely, make sure that the @file{chrony.conf}
+file (on the computer where @code{chronyd} is running) has a @code{cmdallow}
+entry for the computer you are running @code{chronyc} on and an appropriate
+@code{bindcmdaddress} directive.  This isn't necessary for localhost.
 
 Perhaps @code{chronyd} is not running.  Try using the ps command (e.g. on
 Linux, 'ps -auxw') to see if it's running.  Or try 'netstat -a' and see if the

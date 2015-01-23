@@ -232,7 +232,7 @@ prepare_socket(int family, int port_number)
       if (bind_address.family == IPADDR_INET4)
         my_addr.in4.sin_addr.s_addr = htonl(bind_address.addr.in4);
       else
-        my_addr.in4.sin_addr.s_addr = htonl(INADDR_ANY);
+        my_addr.in4.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
       break;
 #ifdef FEAT_IPV6
     case AF_INET6:
@@ -246,7 +246,7 @@ prepare_socket(int family, int port_number)
         memcpy(my_addr.in6.sin6_addr.s6_addr, bind_address.addr.in6,
             sizeof (my_addr.in6.sin6_addr.s6_addr));
       else
-        my_addr.in6.sin6_addr = in6addr_any;
+        my_addr.in6.sin6_addr = in6addr_loopback;
       break;
 #endif
     default:
