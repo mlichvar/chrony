@@ -12,30 +12,44 @@ boot time.
 
 Assuming that you have found some servers, you need to set up a
 configuration file to run \fIchrony\fR.  The (compiled-in) default location
-for this file is \fB@SYSCONFDIR@/chrony.conf\fR.  Assuming that your ntp servers
-are called `a.b.c' and `d.e.f', your \fBchrony.conf\fR file could contain
-as a minimum
+for this file is \fB@SYSCONFDIR@/chrony.conf\fR.  Assuming that your NTP
+servers are called `foo.example.net', `bar.example.net' and `baz.example.net',
+your \fBchrony.conf\fR file could contain as a minimum
 
-     server a.b.c
-     server d.e.f
-     server g.h.i
+.EX
+     server foo.example.net
+     server bar.example.net
+     server baz.example.net
+.EE
 
 However, you will probably want to include some of the other directives
 described in detail in the documentation supplied with the distribution
 (\fIchrony.txt\fR and \fIchrony.texi\fR). The following directives may be
-particularly useful : `driftfile', `generatecommandkey', `keyfile', `makestep'.
-Also, the `iburst' server option is useful to speed up the initial
-synchronization. The smallest useful configuration file would look something
-like
+particularly useful : `driftfile',  `makestep', `rtcsync'.  Also, the `iburst'
+server option is useful to speed up the initial synchronization.  The smallest
+useful configuration file would look something like
 
-     server a.b.c iburst
-     server d.e.f iburst
-     server g.h.i iburst
-     keyfile @SYSCONFDIR@/chrony.keys
-     generatecommandkey
+.EX
+     server foo.example.net iburst
+     server bar.example.net iburst
+     server baz.example.net iburst
      driftfile @CHRONYVARDIR@/drift
      makestep 10 3
+     rtcsync
+.EE
 
+When using a pool of NTP servers (one name is used for multiple servers which
+may change over time), it's better to specify them with the `pool' directive
+instead of multiple `server' directives in order to allow \fIchronyd\fR to
+replace unreachable or bad servers automatically.  The configuration file could
+in this case look like
+
+.EX
+     pool pool.ntp.org iburst
+     driftfile @CHRONYVARDIR@/drift
+     makestep 10 3
+     rtcsync
+.EE
 
 .SH "SEE ALSO"
 .BR chrony(1),
