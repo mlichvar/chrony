@@ -430,15 +430,15 @@ install-info /usr/local/share/info/chrony.info /usr/share/info/dir
     
 Now that the software is successfully installed, the next step is to
 set up a configuration file.  The default location of the file
-is @file{@SYSCONFDIR@/chrony.conf}.  Suppose you want to use public NTP
-servers from the pool.ntp.org project as your time reference.  A
+is @file{@SYSCONFDIR@/chrony.conf}.  Several examples of configuration with
+comments are included in the examples directory.  Suppose you want to use
+public NTP servers from the pool.ntp.org project as your time reference.  A
 minimal useful configuration file could be
 
 @example
-server 0.pool.ntp.org iburst
-server 1.pool.ntp.org iburst
-server 2.pool.ntp.org iburst
+pool pool.ntp.org iburst
 makestep 10 3
+rtcsync
 @end example
 
 Then, @code{chronyd} can be run.
@@ -584,10 +584,10 @@ server baz.example.net
 @end example
 
 However, you will probably want to include some of the other directives
-described later.  The @code{driftfile} and @code{makestep} directives may be
-particularly useful.  Also, the @code{iburst} server option is useful to speed
-up the initial synchronization.  The smallest useful configuration file would
-look something like
+described later.  The following directives may be particularly useful :
+@code{driftfile}, @code{makestep}, @code{rtcsync}.  Also, the @code{iburst}
+server option is useful to speed up the initial synchronization.  The smallest
+useful configuration file would look something like
 
 @example
 server foo.example.net iburst
@@ -595,6 +595,20 @@ server bar.example.net iburst
 server baz.example.net iburst
 driftfile @CHRONYVARDIR@/drift
 makestep 10 3
+rtcsync
+@end example
+
+When using a pool of NTP servers (one name is used for multiple servers which
+may change over time), it's better to specify them with the @code{pool}
+directive instead of multiple @code{server} directives in order to allow
+@code{chronyd} to replace unreachable or bad servers automatically.  The
+configuration file could in this case look like
+
+@example
+pool pool.ntp.org iburst
+driftfile @CHRONYVARDIR@/drift
+makestep 10 3
+rtcsync
 @end example
 @c }}}
 @c {{{ S:Infrequent connection
@@ -871,9 +885,9 @@ For the @file{@SYSCONFDIR@/chrony.conf} file, the following can be used as an
 example.
 
 @example
-server 0.pool.ntp.org maxdelay 0.4 offline
-server 1.pool.ntp.org maxdelay 0.4 offline
-server 2.pool.ntp.org maxdelay 0.4 offline
+server foo.example.net maxdelay 0.4 offline
+server bar.example.net maxdelay 0.4 offline
+server baz.example.net maxdelay 0.4 offline
 logdir /var/log/chrony
 log statistics measurements tracking
 driftfile @CHRONYVARDIR@/drift
@@ -1316,16 +1330,9 @@ bindaddress 192.168.1.1
 
 to the configuration file.
 
-This directive affects NTP (UDP port 123 by default) packets.
-
-The @code{bindaddress} directive has been found to cause problems when used on
-computers that need to pass NTP traffic over multiple network interfaces (e.g.
-firewalls).  It is, therefore, not particularly useful.  Use of the
-@code{allow} and @code{deny} directives together with a network firewall is
-more likely to be successful.
-
-For each of IPv4 and IPv6 protocols, only one @code{bindaddress}
-directive can be specified. 
+For each of IPv4 and IPv6 protocols, only one @code{bindaddress} directive can
+be specified.  Therefore, it's not useful on computers which should serve NTP
+on multiple network interfaces.
 @c }}}
 @c {{{ bindcmdaddress
 @node bindcmdaddress directive
@@ -4624,9 +4631,9 @@ For the current development from the developers' version control system see the
 @code{Git} link on the web site.
 
 @subsection Are there any packaged versions of chrony?
-We are aware of packages for Arch, Debian, Fedora, Gentoo, Mandriva, Slackware,
-Ubuntu, FreeBSD and NetBSD.  We are not involved with how these are built or
-distributed.
+We are aware of packages for Arch, CentOS, Debian, Fedora, Gentoo, Mageia,
+OpenSuse, Slackware, Ubuntu, FreeBSD and NetBSD.  We are not involved with how
+these are built or distributed.
 
 @subsection Where is the home page?
 It is currently at
@@ -4711,9 +4718,12 @@ increasing intervals until it succeeds.  The @code{online} command can be
 issued from @code{chronyc} to try to resolve them immediately.
 
 @subsection How can I make chronyd more secure?
-If you don't need to serve time to NTP clients, you can add @code{port 0} to
-the @file{chrony.conf} file to disable the NTP server/peer sockets and prevent
-NTP requests from reaching @code{chronyd}.
+If you don't need to serve time to NTP clients or peers, you can add
+@code{port 0} to the @file{chrony.conf} file to completely disable the NTP
+server functionality and prevent NTP requests from reaching @code{chronyd}.
+Starting from version 2.0, the NTP server port is open only when client access
+is allowed by the @code{allow} directive or command, an NTP peer is configured,
+or the @code{broadcast} directive is used.
 
 If you don't need to use @code{chronyc} remotely, you can add the following
 directives to the configuration file to bind the command sockets to the
