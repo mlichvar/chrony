@@ -1654,17 +1654,15 @@ read_from_cmd_socket(void *anything)
 
   UTI_SockaddrToIPAndPort(&where_from.u, &remote_ip, &remote_port);
 
+  /* Check if it's a loopback address (127.0.0.1 or ::1) */
   switch (remote_ip.family) {
     case IPADDR_INET4:
-      localhost = (remote_ip.addr.in4 == 0x7f000001UL);
+      localhost = remote_ip.addr.in4 == INADDR_LOOPBACK;
       break;
 #ifdef FEAT_IPV6
     case IPADDR_INET6:
-      /* Check for ::1 */
-      for (localhost = 0; localhost < 16; localhost++)
-        if (remote_ip.addr.in6[localhost] != 0)
-          break;
-      localhost = (localhost == 15 && remote_ip.addr.in6[localhost] == 1);
+      localhost = !memcmp(remote_ip.addr.in6, &in6addr_loopback,
+                          sizeof (in6addr_loopback));
       break;
 #endif
     default:
