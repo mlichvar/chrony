@@ -87,16 +87,6 @@ typedef struct {
 } RPT_RTC_Report;
 
 typedef struct {
-  unsigned long client_hits;
-  unsigned long peer_hits;
-  unsigned long cmd_hits_auth;
-  unsigned long cmd_hits_normal;
-  unsigned long cmd_hits_bad;
-  unsigned long last_ntp_hit_ago;
-  unsigned long last_cmd_hit_ago;
-} RPT_ClientAccess_Report;
-
-typedef struct {
   IPAddr ip_addr;
   unsigned long client_hits;
   unsigned long peer_hits;

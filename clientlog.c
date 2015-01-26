@@ -261,31 +261,6 @@ find_subnet(Subnet *subnet, uint32_t *addr, int addr_len, int bits_consumed)
   }
 }
 
-
-/* ================================================== */
-/* Search for the record for a particular subnet, but return NULL if
-   one of the parents does not exist - never open a node out */
-
-static void *
-find_subnet_dont_open(Subnet *subnet, uint32_t *addr, int addr_len, int bits_consumed)
-{
-  uint32_t this_subnet;
-
-  if (bits_consumed >= 32 * addr_len) {
-    return subnet;
-  } else {
-    
-    this_subnet = get_subnet(addr, bits_consumed);
-    bits_consumed += NBITS;
-
-    if (!subnet->entry[this_subnet]) {
-      return NULL;
-    } else {
-      return find_subnet_dont_open((Subnet *) subnet->entry[this_subnet], addr, addr_len, bits_consumed);
-    }
-  }
-}
-
 /* ================================================== */
 
 void
@@ -385,95 +360,6 @@ CLG_LogCommandAccess(IPAddr *client, CLG_Command_Type type, time_t now)
       default:
         assert(0);
         break;
-    }
-  }
-}
-
-/* ================================================== */
-
-CLG_Status
-CLG_GetSubnetBitmap(IPAddr *subnet, int bits, CLG_Bitmap result)
-{
-  Subnet *s;
-  uint32_t ip6[4];
-  unsigned long i;
-  unsigned long word, bit, mask;
-
-  if (bits >= 0 && bits % 8 == 0) {
-    memset (result, 0, TABLE_SIZE/8);
-    if (active) {
-      switch (subnet->family) {
-        case IPADDR_INET4:
-          if (bits >= 32)
-            return CLG_BADSUBNET;
-          s = find_subnet_dont_open(&top_subnet4, &subnet->addr.in4, 1, 32 - bits);
-          break;
-        case IPADDR_INET6:
-          if (bits >= 128)
-            return CLG_BADSUBNET;
-          split_ip6(subnet, ip6);
-          s = find_subnet_dont_open(&top_subnet6, ip6, 4, 128 - bits);
-          break;
-        default:
-          return CLG_BADSUBNET;
-      }
-
-      if (s) {
-        for (i=0; i<256; i++) {
-          if (s->entry[i]) {
-            word = i / 32;
-            bit =  i % 32;
-            mask = 1UL << bit;
-            result[word] |= mask;
-          }
-        }
-        return CLG_SUCCESS;
-      } else {
-        return CLG_EMPTYSUBNET;
-      }
-    } else {
-      return CLG_INACTIVE;
-    }
-  } else {
-    return CLG_BADSUBNET;
-  }
-}
-
-/* ================================================== */
-
-CLG_Status
-CLG_GetClientAccessReportByIP(IPAddr *ip, RPT_ClientAccess_Report *report, time_t now)
-{
-  uint32_t ip6[4];
-  Node *node;
-
-  if (!active) {
-    return CLG_INACTIVE;
-  } else {
-    switch (ip->family) {
-      case IPADDR_INET4:
-        node = (Node *) find_subnet_dont_open(&top_subnet4, &ip->addr.in4, 1, 0);
-        break;
-      case IPADDR_INET6:
-        split_ip6(ip, ip6);
-        node = (Node *) find_subnet_dont_open(&top_subnet6, ip6, 4, 0);
-        break;
-      default:
-        return CLG_EMPTYSUBNET;
-    }
-
-    if (!node) {
-      return CLG_EMPTYSUBNET;
-    } else {
-      report->client_hits = node->client_hits;
-      report->peer_hits = node->peer_hits;
-      report->cmd_hits_auth = node->cmd_hits_auth;
-      report->cmd_hits_normal = node->cmd_hits_normal;
-      report->cmd_hits_bad = node->cmd_hits_bad;
-      report->last_ntp_hit_ago = now - node->last_ntp_hit;
-      report->last_cmd_hit_ago = now - node->last_cmd_hit;
-
-      return CLG_SUCCESS;
     }
   }
 }

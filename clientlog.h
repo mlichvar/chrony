@@ -31,9 +31,6 @@
 #include "sysincl.h"
 #include "reports.h"
 
-/* Enough to hold flags for 256 hosts in a class C */
-typedef uint32_t CLG_Bitmap[8];
-
 extern void CLG_Initialise(void);
 extern void CLG_Finalise(void);
 extern void CLG_LogNTPClientAccess(IPAddr *client, time_t now);
@@ -60,26 +57,8 @@ typedef enum {
   CLG_INDEXTOOLARGE             /* Node index is higher than number of nodes present */
 } CLG_Status;
 
-/* For bits=0, 8, 16, flag which immediate subnets of that subnet are
-   known.  For bits=24, flag which hosts in that subnet are known.
-   Other values, return 0 (failed) */
-
-extern CLG_Status CLG_GetSubnetBitmap(IPAddr *subnet, int bits, CLG_Bitmap result);
-
-extern CLG_Status
-CLG_GetClientAccessReportByIP(IPAddr *ip, RPT_ClientAccess_Report *report, time_t now);
-
 CLG_Status
 CLG_GetClientAccessReportByIndex(int index, RPT_ClientAccessByIndex_Report *report,
                                  time_t now, unsigned long *n_indices);
-
-/* And an iterating function, to call 'fn' for each client or peer
-   that has accessed us since 'since'. */
-
-extern void CLG_IterateNTPClients
-(void (*fn)(IPAddr *client, void *arb),
- void *arb,
- time_t since);
-
 
 #endif /* GOT_CLIENTLOG_H */
