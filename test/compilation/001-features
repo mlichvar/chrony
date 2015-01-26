@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# Try to compile chrony in various combinations of disabled features
+
+cd ../..
+
+for opts in \
+	"--disable-asyncdns" \
+	"--disable-rtc" \
+	"--disable-cmdmon" \
+	"--disable-ntp" \
+	"--disable-refclock" \
+	"--disable-cmdmon --disable-ntp" \
+	"--disable-cmdmon --disable-refclock" \
+	"--disable-cmdmon --disable-ntp --disable-refclock"
+do
+	./configure $opts
+	make || exit 1
+done
