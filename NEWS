@@ -1,3 +1,34 @@
+New in version 2.0
+==================
+
+Enhancements
+------------
+* Update to NTP version 4 (RFC 5905)
+* Add pool directive to specify pool of NTP servers
+* Add minsources directive to set required number of selectable sources
+* Add minsamples and maxsamples options for all sources
+* Add tempcomp configuration with list of points
+* Allow unlimited number of NTP sources, refclocks and keys
+* Allow unreachable sources to remain selected
+* Improve source selection
+* Handle offline sources as unreachable
+* Open NTP server port only when necessary (client access is allowed by
+  allow directive/command, peer or broadcast is configured)
+* Change default bindcmdaddress to loopback address
+* Change default stratumweight to 0.001
+* Update adjtimex synchronisation status
+* Use system headers for adjtimex
+* Check for memory allocation errors
+* Reduce memory usage
+* Add configure options to compile without NTP, cmdmon, refclock support
+* Extend makestep command to set automatic clock stepping
+
+Bug fixes
+---------
+* Fix accepting requests from configured sources when acquisitionport
+  is equal to server port
+* Fix allocation of slots saving replies to authenticated commands
+
 New in version 1.31
 ===================
 
