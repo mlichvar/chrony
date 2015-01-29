@@ -1243,7 +1243,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
        minimum one currently in the stats data register is less than an
        administrator-defined value */
     testB = inst->max_delay_ratio <= 1.0 ||
-            delay / SRC_MinRoundTripDelay(inst->source) > inst->max_delay_ratio;
+            delay / SRC_MinRoundTripDelay(inst->source) <= inst->max_delay_ratio;
 
     /* Test C requires that the ratio of the increase in delay from the minimum
        one in the stats data register to the standard deviation of the offsets
