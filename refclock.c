@@ -226,7 +226,7 @@ RCL_AddRefclock(RefclockParameters *params)
     inst->ref_id = params->ref_id;
   else {
     unsigned char ref[5] = { 0, 0, 0, 0, 0 };
-    unsigned int index = ARR_GetSize(refclocks);
+    unsigned int index = ARR_GetSize(refclocks) - 1;
 
     snprintf((char *)ref, sizeof (ref), "%3.3s", params->driver_name);
     ref[3] = index % 10 + '0';
