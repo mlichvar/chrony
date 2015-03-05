@@ -1005,9 +1005,6 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   /* ==================== */
 
-  /* Save local receive timestamp */
-  inst->local_rx = *now;
-
   pkt_leap = (message->lvm >> 6) & 0x3;
   if (pkt_leap == 0x3) {
     source_is_synchronized = 0;
@@ -1038,14 +1035,6 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   } else {
     test2 = 1; /* Success */
   }
-
-  /* Regardless of any validity checks we apply, we are required to
-     save this field from the packet into the ntp source
-     instance record.  See RFC1305 section 3.4.4, peer.org <- pkt.xmt
-     & peer.peerpoll <- pkt.poll.  Note we can't do this assignment
-     before test1 has been carried out!! */
-
-  inst->remote_orig = message->transmit_ts;
 
   /* Test 3 requires that pkt.org != 0 and pkt.rec != 0.  If
      either of these are true it means the association is not properly
@@ -1217,6 +1206,14 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   if (!test7i && !source_is_synchronized) {
       if (!memcmp(&message->reference_id, "RATE", 4))
         kod_rate = 1;
+  }
+
+  /* The transmit timestamp and local receive timestamp must not be saved when
+     the authentication test failed to prevent denial-of-service attacks on
+     symmetric associations using authentication */
+  if (test5) {
+    inst->remote_orig = message->transmit_ts;
+    inst->local_rx = *now;
   }
 
   valid_kod = test1 && test2 && test5;
