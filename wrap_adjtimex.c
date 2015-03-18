@@ -123,6 +123,28 @@ TMX_SetLeap(int leap)
   return adjtimex(&txc);
 }
 
+int
+TMX_GetLeap(int *leap)
+{
+  struct timex txc;
+
+  txc.modes = 0;
+  if (adjtimex(&txc) < 0)
+    return -1;
+
+  status &= ~(STA_INS | STA_DEL);
+  status |= txc.status & (STA_INS | STA_DEL);
+
+  if (status & STA_INS)
+    *leap = 1;
+  else if (status & STA_DEL)
+    *leap = -1;
+  else
+    *leap = 0;
+
+  return 0;
+}
+
 int TMX_SetSync(int sync, double est_error, double max_error)
 {
   struct timex txc;

@@ -174,6 +174,15 @@ read_frequency(void)
 static void
 set_leap(int leap)
 {
+  int current_leap;
+
+  if (TMX_GetLeap(&current_leap) < 0) {
+    LOG_FATAL(LOGF_SysLinux, "adjtimex() failed in set_leap");
+  }
+
+  if (current_leap == leap)
+    return;
+
   if (TMX_SetLeap(leap) < 0) {
     LOG_FATAL(LOGF_SysLinux, "adjtimex() failed in set_leap");
   }
