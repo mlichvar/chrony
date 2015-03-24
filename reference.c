@@ -693,6 +693,9 @@ leap_start_timeout(void *arg)
   leap_in_progress = 1;
 
   switch (leap_mode) {
+    case REF_LeapModeSystem:
+      DEBUG_LOG(LOGF_Reference, "Waiting for system clock leap second correction");
+      break;
     case REF_LeapModeSlew:
       LCL_NotifyLeap(our_leap_sec);
       LCL_AccumulateOffset(our_leap_sec, 0.0);
@@ -731,11 +734,17 @@ set_leap_timeout(time_t now)
   if (!our_leap_sec)
     return;
 
-  /* Insert leap second at 0:00:00 UTC, delete at 23:59:59 UTC */
+  /* Insert leap second at 0:00:00 UTC, delete at 23:59:59 UTC.  If the clock
+     will be corrected by the system, timeout slightly sooner to be sure it
+     will happen before the system correction. */
   when.tv_sec = (now / (24 * 3600) + 1) * (24 * 3600);
   when.tv_usec = 0;
   if (our_leap_sec < 0)
     when.tv_sec--;
+  if (leap_mode == REF_LeapModeSystem) {
+    when.tv_sec--;
+    when.tv_usec = 500000;
+  }
 
   leap_timeout_id = SCH_AddTimeout(&when, leap_start_timeout, NULL);
   leap_timer_running = 1;
@@ -773,7 +782,7 @@ update_leap_status(NTP_Leap leap, time_t now, int reset)
     switch (leap_mode) {
       case REF_LeapModeSystem:
         LCL_SetSystemLeap(our_leap_sec);
-        break;
+        /* Fall through */
       case REF_LeapModeSlew:
       case REF_LeapModeStep:
       case REF_LeapModeIgnore:
@@ -1161,7 +1170,7 @@ REF_GetReferenceParams
     UTI_DiffTimevalsToDouble(&elapsed, local_time, &our_ref_time);
     extra_dispersion = (our_skew + fabs(our_residual_freq) + LCL_GetMaxClockError()) * elapsed;
 
-    *leap_status = our_leap_status;
+    *leap_status = !leap_in_progress ? our_leap_status : LEAP_Unsynchronised;
     *ref_id = our_ref_id;
     *ref_time = our_ref_time;
     *root_delay = our_root_delay;
