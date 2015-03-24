@@ -683,6 +683,14 @@ leap_end_timeout(void *arg)
 {
   leap_timer_running = 0;
   leap_in_progress = 0;
+  our_leap_sec = 0;
+
+  if (leap_mode == REF_LeapModeSystem)
+    LCL_SetSystemLeap(0);
+
+  if (our_leap_status == LEAP_InsertSecond ||
+      our_leap_status == LEAP_DeleteSecond)
+    our_leap_status = LEAP_Normal;
 }
 
 /* ================================================== */
