@@ -166,6 +166,10 @@ extern void LCL_ApplyStepOffset(double offset);
 extern void LCL_NotifyExternalTimeStep(struct timeval *raw, struct timeval *cooked,
     double offset, double dispersion);
 
+/* Routine to invoke notify handlers on leap second when the system clock
+   doesn't correct itself */
+extern void LCL_NotifyLeap(int leap);
+
 /* Perform the combination of modifying the frequency and applying
    a slew, in one easy step */
 extern void LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate);
@@ -194,10 +198,10 @@ extern void LCL_Finalise(void);
    to a timezone problem. */
 extern int LCL_MakeStep(void);
 
-/* Routine to schedule a leap second. Leap second will be inserted
-   at the end of the day if argument is positive, deleted if negative,
-   and zero cancels scheduled leap second. */
-extern void LCL_SetLeap(int leap);
+/* Routine to set the system clock to correct itself for a leap second if
+   supported.  Leap second will be inserted at the end of the day if the
+   argument is positive, deleted if negative, and zero resets the setting. */
+extern void LCL_SetSystemLeap(int leap);
 
 /* Routine to set a frequency correction (in ppm) that should be applied
    to local clock to compensate for temperature changes.  A positive

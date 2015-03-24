@@ -35,6 +35,14 @@
 #include "ntp.h"
 #include "reports.h"
 
+/* Leap second handling modes */
+typedef enum {
+  REF_LeapModeSystem,
+  REF_LeapModeSlew,
+  REF_LeapModeStep,
+  REF_LeapModeIgnore,
+} REF_LeapMode;
+
 /* Init function */
 extern void REF_Initialise(void);
 

@@ -507,6 +507,20 @@ LCL_NotifyExternalTimeStep(struct timeval *raw, struct timeval *cooked,
 /* ================================================== */
 
 void
+LCL_NotifyLeap(int leap)
+{
+  struct timeval raw, cooked;
+
+  LCL_ReadRawTime(&raw);
+  LCL_CookTime(&raw, &cooked, NULL);
+
+  /* Dispatch to all handlers as if the clock was stepped */
+  invoke_parameter_change_handlers(&raw, &cooked, 0.0, -leap, LCL_ChangeStep);
+}
+
+/* ================================================== */
+
+void
 LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate)
 {
   struct timeval raw, cooked;
@@ -599,7 +613,7 @@ LCL_MakeStep(void)
 /* ================================================== */
 
 void
-LCL_SetLeap(int leap)
+LCL_SetSystemLeap(int leap)
 {
   if (drv_set_leap) {
     (drv_set_leap)(leap);

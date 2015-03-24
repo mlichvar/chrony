@@ -98,6 +98,17 @@ static double drift_file_age;
 
 static void update_drift_file(double, double);
 
+/* Leap second handling mode */
+static REF_LeapMode leap_mode;
+
+/* Flag indicating the clock was recently corrected for leap second and it may
+   not have correct time yet (missing 23:59:60 in the UTC time scale) */
+static int leap_in_progress;
+
+/* Timer for the leap second handler */
+static int leap_timer_running;
+static SCH_TimeoutID leap_timeout_id;
+
 /* Name of a system timezone containing leap seconds occuring at midnight */
 static char *leap_tzname;
 static time_t last_tz_leap_check;
@@ -136,6 +147,7 @@ static double last_ref_update_interval;
 /* ================================================== */
 
 static NTP_Leap get_tz_leap(time_t when);
+static void update_leap_status(NTP_Leap leap, time_t now, int reset);
 
 /* ================================================== */
 
@@ -148,12 +160,20 @@ handle_slew(struct timeval *raw,
             void *anything)
 {
   double delta;
+  struct timeval now;
 
   if (change_type == LCL_ChangeUnknownStep) {
     last_ref_update.tv_sec = 0;
     last_ref_update.tv_usec = 0;
   } else if (last_ref_update.tv_sec) {
     UTI_AdjustTimeval(&last_ref_update, cooked, &last_ref_update, &delta, dfreq, doffset);
+  }
+
+  /* When the clock was stepped, check if that doesn't change our leap status
+     and also reset the leap timeout to undo the shift in the scheduler */
+  if (change_type != LCL_ChangeAdjust && our_leap_sec && !leap_in_progress) {
+    LCL_ReadRawTime(&now);
+    update_leap_status(our_leap_status, now.tv_sec, 1);
   }
 }
 
@@ -217,6 +237,10 @@ REF_Initialise(void)
 
   enable_local_stratum = CNF_AllowLocalReference(&local_stratum);
 
+  leap_timer_running = 0;
+  leap_in_progress = 0;
+  leap_mode = CNF_GetLeapSecMode();
+
   leap_tzname = CNF_GetLeapSecTimezone();
   if (leap_tzname) {
     /* Check that the timezone has good data for Jun 30 2008 and Dec 31 2008 */
@@ -263,9 +287,7 @@ REF_Initialise(void)
 void
 REF_Finalise(void)
 {
-  if (our_leap_sec) {
-    LCL_SetLeap(0);
-  }
+  update_leap_status(LEAP_Unsynchronised, 0, 0);
 
   if (drift_file) {
     update_drift_file(LCL_ReadAbsoluteFrequency(), our_skew);
@@ -657,7 +679,72 @@ get_tz_leap(time_t when)
 /* ================================================== */
 
 static void
-update_leap_status(NTP_Leap leap, time_t now)
+leap_end_timeout(void *arg)
+{
+  leap_timer_running = 0;
+  leap_in_progress = 0;
+}
+
+/* ================================================== */
+
+static void
+leap_start_timeout(void *arg)
+{
+  leap_in_progress = 1;
+
+  switch (leap_mode) {
+    case REF_LeapModeSlew:
+      LCL_NotifyLeap(our_leap_sec);
+      LCL_AccumulateOffset(our_leap_sec, 0.0);
+      LOG(LOGS_WARN, LOGF_Reference, "Adjusting system clock for leap second");
+      break;
+    case REF_LeapModeStep:
+      LCL_NotifyLeap(our_leap_sec);
+      LCL_ApplyStepOffset(our_leap_sec);
+      LOG(LOGS_WARN, LOGF_Reference, "System clock was stepped for leap second");
+      break;
+    case REF_LeapModeIgnore:
+      LOG(LOGS_WARN, LOGF_Reference, "Ignoring leap second");
+      break;
+    default:
+      break;
+  }
+
+  /* Wait until the leap second is over with some extra room to be safe */
+  leap_timeout_id = SCH_AddTimeoutByDelay(2.0, leap_end_timeout, NULL);
+}
+
+/* ================================================== */
+
+static void
+set_leap_timeout(time_t now)
+{
+  struct timeval when;
+
+  /* Stop old timer if there is one */
+  if (leap_timer_running) {
+    SCH_RemoveTimeout(leap_timeout_id);
+    leap_timer_running = 0;
+    leap_in_progress = 0;
+  }
+
+  if (!our_leap_sec)
+    return;
+
+  /* Insert leap second at 0:00:00 UTC, delete at 23:59:59 UTC */
+  when.tv_sec = (now / (24 * 3600) + 1) * (24 * 3600);
+  when.tv_usec = 0;
+  if (our_leap_sec < 0)
+    when.tv_sec--;
+
+  leap_timeout_id = SCH_AddTimeout(&when, leap_start_timeout, NULL);
+  leap_timer_running = 1;
+}
+
+/* ================================================== */
+
+static void
+update_leap_status(NTP_Leap leap, time_t now, int reset)
 {
   int leap_sec;
 
@@ -680,9 +767,22 @@ update_leap_status(NTP_Leap leap, time_t now)
     }
   }
   
-  if (leap_sec != our_leap_sec && !REF_IsLeapSecondClose()) {
-    LCL_SetLeap(leap_sec);
+  if (reset || (leap_sec != our_leap_sec && !REF_IsLeapSecondClose())) {
     our_leap_sec = leap_sec;
+
+    switch (leap_mode) {
+      case REF_LeapModeSystem:
+        LCL_SetSystemLeap(our_leap_sec);
+        break;
+      case REF_LeapModeSlew:
+      case REF_LeapModeStep:
+      case REF_LeapModeIgnore:
+        set_leap_timeout(now);
+        break;
+      default:
+        assert(0);
+        break;
+    }
   }
 
   our_leap_status = leap;
@@ -920,7 +1020,7 @@ REF_SetReference(int stratum,
     our_residual_freq = frequency;
   }
 
-  update_leap_status(leap, raw_now.tv_sec);
+  update_leap_status(leap, raw_now.tv_sec, 0);
   maybe_log_offset(our_offset, raw_now.tv_sec);
 
   if (step_offset != 0.0) {
@@ -1015,7 +1115,7 @@ REF_SetUnsynchronised(void)
     schedule_fb_drift(&now);
   }
 
-  update_leap_status(LEAP_Unsynchronised, 0);
+  update_leap_status(LEAP_Unsynchronised, 0, 0);
   are_we_synchronised = 0;
 
   LCL_SetSyncStatus(0, 0.0, 0.0);

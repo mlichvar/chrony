@@ -29,6 +29,7 @@
 #define GOT_CONF_H
 
 #include "addressing.h"
+#include "reference.h"
 
 extern void CNF_Initialise(int restarted);
 extern void CNF_Finalise(void);
@@ -75,6 +76,7 @@ extern void CNF_GetBindAddress(int family, IPAddr *addr);
 extern void CNF_GetBindAcquisitionAddress(int family, IPAddr *addr);
 extern void CNF_GetBindCommandAddress(int family, IPAddr *addr);
 extern char *CNF_GetPidFile(void);
+extern REF_LeapMode CNF_GetLeapSecMode(void);
 extern char *CNF_GetLeapSecTimezone(void);
 
 /* Value returned in ppm, as read from file */
