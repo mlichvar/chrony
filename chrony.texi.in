@@ -1158,6 +1158,7 @@ the configuration file is ignored.
 * include directive::           Include a configuration file
 * initstepslew directive::      Trim the system clock on boot-up
 * keyfile directive::           Specify location of file containing keys
+* leapsecmode directive::       Select leap second handling mode
 * leapsectz directive::         Read leap second data from tz database
 * local directive::             Allow unsynchronised machine to act as server
 * lock_all directive::          Require that chronyd be locked into RAM
@@ -1807,6 +1808,44 @@ the configured hash function, e.g. 160 bits with SHA1.
 The ID for the chronyc authentication key is specified with the commandkey
 command (see earlier). The command key can be generated automatically on
 start with the @code{generatecommandkey} directive.
+@c }}}
+@c {{{ leapsecmode
+@node leapsecmode directive
+@subsection leapsecmode
+This directive selects how @code{chronyd} handles leap seconds.  The Unix time
+doesn't include leap seconds.  When a leap second is applied to UTC, the system
+clock is off by one second and it needs to be corrected.
+
+There are four options:
+
+@table @code
+@item system
+The kernel steps the system clock backwards by one second at 0:00:00 UTC
+(before correction) when leap second is inserted or steps forward by one second
+at 23:59:59 UTC when leap second is deleted.  This is the default mode when the
+system driver supports leap seconds (currently Linux only).
+@item step
+This is similar to the system mode, except the clock is stepped by
+@code{chronyd} instead of the kernel.  This is the default mode when the system
+driver doesn't support leap seconds.
+@item slew
+The clock is corrected by slew starting at 0:00:00 UTC when leap second is
+inserted or 23:59:59 UTC when leap second is deleted.  This may be preferred
+over the system or step mode when applications running on the system are
+sensitive to jumps in the system time and it's acceptable that the clock will
+be off for a longer time.  On Linux with the default @code{maxslewrate} the
+correction takes 12 seconds.  Note that there will still be a jump in the time
+that @code{chronyd} serves to NTP clients.
+@item ignore
+No correction is applied to the clock for the leap second.  The clock will be
+corrected later in normal operation when new measurements are made and the
+estimated offset includes the one second error.
+@end table
+
+An example of the command is
+@example
+leapsecmode slew
+@end example
 @c }}}
 @c {{{ leapsectz
 @node leapsectz directive
