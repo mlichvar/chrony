@@ -612,6 +612,14 @@ LCL_MakeStep(void)
 
 /* ================================================== */
 
+int
+LCL_CanSystemLeap(void)
+{
+  return drv_set_leap ? 1 : 0;
+}
+
+/* ================================================== */
+
 void
 LCL_SetSystemLeap(int leap)
 {

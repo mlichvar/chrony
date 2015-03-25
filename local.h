@@ -198,6 +198,10 @@ extern void LCL_Finalise(void);
    to a timezone problem. */
 extern int LCL_MakeStep(void);
 
+/* Check if the system driver supports leap seconds, i.e. LCL_SetSystemLeap
+   does something */
+extern int LCL_CanSystemLeap(void);
+
 /* Routine to set the system clock to correct itself for a leap second if
    supported.  Leap second will be inserted at the end of the day if the
    argument is positive, deleted if negative, and zero resets the setting. */

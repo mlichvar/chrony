@@ -240,6 +240,9 @@ REF_Initialise(void)
   leap_timer_running = 0;
   leap_in_progress = 0;
   leap_mode = CNF_GetLeapSecMode();
+  /* Switch to step mode if the system driver doesn't support leap */
+  if (leap_mode == REF_LeapModeSystem && !LCL_CanSystemLeap())
+    leap_mode = REF_LeapModeStep;
 
   leap_tzname = CNF_GetLeapSecTimezone();
   if (leap_tzname) {
