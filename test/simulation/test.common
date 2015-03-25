@@ -49,6 +49,7 @@ default_base_delay=1e-4
 default_jitter=1e-4
 default_wander=1e-9
 default_refclock_jitter=""
+default_refclock_offset=0.0
 
 default_update_interval=0
 default_shift_pll=2
@@ -168,7 +169,7 @@ get_delay_expr() {
 }
 
 get_refclock_expr() {
-	echo "(* $refclock_jitter (normal))"
+	echo "(+ $refclock_offset (* $refclock_jitter (normal)))"
 }
 
 get_chronyd_nodes() {
