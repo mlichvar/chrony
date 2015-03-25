@@ -1051,7 +1051,7 @@ handle_source_data(CMD_Request *rx_message, CMD_Reply *tx_message)
         tx_message->data.source_data.flags = htons(RPY_SD_FLAG_PREFER);
         break;
       case RPT_NOSELECT:
-        tx_message->data.source_data.flags = htons(RPY_SD_FLAG_PREFER);
+        tx_message->data.source_data.flags = htons(RPY_SD_FLAG_NOSELECT);
         break;
     }
     tx_message->data.source_data.reachability = htons(report.reachability);
