@@ -2912,7 +2912,7 @@ If the user knows that round trip delays above a certain level should
 cause the measurement to be ignored, this level can be defined with the
 maxdelay command.  For example, @code{maxdelay 0.3} would indicate that
 measurements with a round-trip delay of 0.3 seconds or more should be
-ignored.
+ignored.  The default value is 3 seconds.
 
 @item maxdelayratio
 This option is similar to the maxdelay option above.  @code{chronyd}
