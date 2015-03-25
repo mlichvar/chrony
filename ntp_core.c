@@ -1151,6 +1151,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
      association if not properly 'up'. */
   test3 = (message->originate_ts.hi || message->originate_ts.lo) &&
           (message->receive_ts.hi || message->receive_ts.lo) &&
+          (message->reference_ts.hi || message->reference_ts.lo) &&
           (message->transmit_ts.hi || message->transmit_ts.lo);
 
   /* Test 4 would check for denied access.  It would always pass as this
