@@ -300,11 +300,6 @@ typedef struct {
   int32_t EOR;
 } REQ_CycleLogs;
 
-typedef struct {
-  IPAddr ip;
-  uint32_t bits_specd;
-} REQ_SubnetsAccessed_Subnet;
-
 /* This is based on the response size rather than the
    request size */
 #define MAX_CLIENT_ACCESSES 8
@@ -588,12 +583,6 @@ typedef struct {
   Float new_afreq_ppm;
   int32_t EOR;
 } RPY_ManualTimestamp;
-
-typedef struct {
-  IPAddr ip;
-  uint32_t bits_specd;
-  uint32_t bitmap[8];
-} RPY_SubnetsAccessed_Subnet;
 
 typedef struct {
   IPAddr ip;
