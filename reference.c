@@ -428,7 +428,7 @@ update_fb_drifts(double freq_ppm, double update_interval)
     fb_drift_timeout_id = -1;
   }
 
-  if (update_interval < 0.0 || update_interval > last_ref_update_interval * 4.0)
+  if (update_interval < 1.0 || update_interval > last_ref_update_interval * 4.0)
     return;
 
   for (i = 0; i < fb_drift_max - fb_drift_min + 1; i++) {
