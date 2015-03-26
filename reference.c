@@ -432,10 +432,6 @@ update_fb_drifts(double freq_ppm, double update_interval)
     return;
 
   for (i = 0; i < fb_drift_max - fb_drift_min + 1; i++) {
-    /* Don't allow differences larger than 10 ppm */
-    if (fabs(freq_ppm - fb_drifts[i].freq) > 10.0)
-      fb_drifts[i].secs = 0.0;
-
     secs = 1 << (i + fb_drift_min);
     if (fb_drifts[i].secs < secs) {
       /* Calculate average over 2 * secs interval before switching to
