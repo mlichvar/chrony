@@ -6,6 +6,7 @@ test_start "source selection"
 
 # Falsetickers should be detected if their number is less than half of all
 
+base_delay=1e-3
 servers=5
 
 for falsetickers in 1 2; do
@@ -29,7 +30,7 @@ done
 
 servers=3
 falsetickers=0
-base_delay="(+ $default_base_delay (equal 0.1 to 2) (equal 0.1 to 3))"
+base_delay="(+ 1e-3 (equal 0.1 to 2) (equal 0.1 to 3))"
 
 run_test || test_fail
 check_chronyd_exit || test_fail
