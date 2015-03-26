@@ -1637,14 +1637,13 @@ the program exits.  (See the dumpdir command above).
 @subsection fallbackdrift
 Fallback drifts are long-term averages of the system clock drift
 calculated over exponentially increasing intervals.  They are used
-when the clock is unsynchronised to avoid quickly drifting away from
-true time if there was a short-term deviation in drift before the
-synchronisation was lost.
+when the clock is no longer synchronised to avoid quickly drifting
+away from true time if there was a short-term deviation in the drift
+before the synchronisation was lost.
 
-The directive specifies the minimum and maximum interval for how long
-the system clock has to be unsynchronised to switch between fallback
-drifts.  They are defined as a power of 2 (in seconds).  The syntax is
-as follows
+The directive specifies the minimum and maximum interval since last
+clock update to switch between fallback drifts.  They are defined as a
+power of 2 (in seconds).  The syntax is as follows
 
 @example
 fallbackdrift 16 19
@@ -1652,13 +1651,13 @@ fallbackdrift 16 19
 
 In this example, the minimum interval is 16 (18 hours) and maximum
 interval is 19 (6 days).  The system clock frequency will be set to
-the first fallback 18 hours after the synchronisation was lost, to the
+the first fallback 18 hours after last clock update, to the
 second after 36 hours, etc.  This might be a good setting to cover
 daily and weekly temperature fluctuations.
 
 By default (or if the specified maximum or minimum is 0), no fallbacks
-will be used and the clock frequency will stay at the last value
-calculated before synchronisation was lost.
+are used and the clock frequency changes only with new measurements from
+NTP, reference clocks or manual input.
 @c }}}
 @c {{{ generatecommandkey
 @node generatecommandkey directive

@@ -457,11 +457,12 @@ update_fb_drifts(double freq_ppm, double update_interval)
 static void
 fb_drift_timeout(void *arg)
 {
-  assert(are_we_synchronised == 0);
   assert(next_fb_drift >= fb_drift_min && next_fb_drift <= fb_drift_max);
 
   fb_drift_timeout_id = -1;
 
+  DEBUG_LOG(LOGF_Reference, "Fallback drift %d active: %f ppm",
+            next_fb_drift, fb_drifts[next_fb_drift - fb_drift_min].freq);
   LCL_SetAbsoluteFrequency(fb_drifts[next_fb_drift - fb_drift_min].freq);
   REF_SetUnsynchronised();
 }
@@ -1071,6 +1072,7 @@ REF_SetReference(int stratum,
   /* Update fallback drifts */
   if (fb_drifts) {
     update_fb_drifts(abs_freq_ppm, update_interval);
+    schedule_fb_drift(&now);
   }
 
   last_ref_update_interval = update_interval;
