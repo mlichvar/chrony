@@ -634,14 +634,14 @@ SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffs
     inst->offsets[i] += delta_time;
   }
 
-  /* Do a half-baked update to the regression estimates */
+  /* Update the regression estimates */
   prev = inst->offset_time;
   prev_offset = inst->estimated_offset;
   prev_freq = inst->estimated_frequency;
   UTI_AdjustTimeval(&(inst->offset_time), when, &(inst->offset_time),
       &delta_time, dfreq, doffset);
   inst->estimated_offset += delta_time;
-  inst->estimated_frequency -= dfreq;
+  inst->estimated_frequency = (inst->estimated_frequency - dfreq) / (1.0 - dfreq);
 
   DEBUG_LOG(LOGF_SourceStats, "n=%d m=%d old_off_time=%s new=%s old_off=%f new_off=%f old_freq=%.3f new_freq=%.3f",
             inst->n_samples, inst->runs_samples,
