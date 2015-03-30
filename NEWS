@@ -1,3 +1,13 @@
+New in version 1.31.1
+=====================
+
+Security fixes
+--------------
+* Protect authenticated symmetric NTP associations against DoS attacks
+  (CVE-2015-1799)
+* Fix access configuration with subnet size indivisible by 4 (CVE-2015-1821)
+* Fix initialization of reply slots for authenticated commands (CVE-2015-1822)
+
 New in version 1.31
 ===================
 
