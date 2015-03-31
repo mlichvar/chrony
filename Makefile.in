@@ -40,7 +40,7 @@ HASH_OBJ = @HASH_OBJ@
 
 OBJS = array.o cmdparse.o conf.o local.o logging.o main.o memory.o mkdirpp.o \
        reference.o regress.o rtc.o sched.o sources.o sourcestats.o stubs.o \
-       sys.o tempcomp.o util.o $(HASH_OBJ)
+       sys.o smooth.o tempcomp.o util.o $(HASH_OBJ)
 
 EXTRA_OBJS=@EXTRA_OBJECTS@
 

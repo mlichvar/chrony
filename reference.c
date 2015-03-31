@@ -1241,6 +1241,14 @@ REF_GetOurStratum(void)
 
 /* ================================================== */
 
+double
+REF_GetSkew(void)
+{
+  return our_skew;
+}
+
+/* ================================================== */
+
 void
 REF_ModifyMaxupdateskew(double new_max_update_skew)
 {

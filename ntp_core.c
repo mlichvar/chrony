@@ -36,6 +36,7 @@
 #include "sched.h"
 #include "reference.h"
 #include "local.h"
+#include "smooth.h"
 #include "sources.h"
 #include "util.h"
 #include "conf.h"
@@ -757,14 +758,14 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
 {
   NTP_Packet message;
   int leap, auth_len, length, ret;
-  struct timeval local_transmit;
+  struct timeval local_receive, local_transmit;
 
   /* Parameters read from reference module */
-  int are_we_synchronised, our_stratum;
+  int are_we_synchronised, our_stratum, smooth_time;
   NTP_Leap leap_status;
   uint32_t our_ref_id, ts_fuzz;
   struct timeval our_ref_time;
-  double our_root_delay, our_root_dispersion;
+  double our_root_delay, our_root_dispersion, smooth_offset;
 
   /* Don't reply with version higher than ours */
   if (version > NTP_VERSION) {
@@ -780,6 +781,15 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                          &our_stratum,
                          &our_ref_id, &our_ref_time,
                          &our_root_delay, &our_root_dispersion);
+
+  /* Get current smoothing offset when sending packet to a client */
+  if (SMT_IsEnabled() && (my_mode == MODE_SERVER || my_mode == MODE_BROADCAST)) {
+    smooth_time = 1;
+    smooth_offset = SMT_GetOffset(&local_transmit);
+  } else {
+    smooth_time = 0;
+    smooth_offset = 0.0;
+  }
 
   if (are_we_synchronised) {
     leap = (int) leap_status;
@@ -807,6 +817,14 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   message.reference_id = htonl((NTP_int32) our_ref_id);
 
   /* Now fill in timestamps */
+
+  if (smooth_time) {
+    UTI_AddDoubleToTimeval(&our_ref_time, smooth_offset, &our_ref_time);
+    UTI_AddDoubleToTimeval(local_rx, smooth_offset, &local_receive);
+  } else {
+    local_receive = *local_rx;
+  }
+
   UTI_TimevalToInt64(&our_ref_time, &message.reference_ts, 0);
 
   /* Originate - this comes from the last packet the source sent us */
@@ -816,7 +834,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
      This timestamp will have been adjusted so that it will now look to
      the source like we have been running on our latest estimate of
      frequency all along */
-  UTI_TimevalToInt64(local_rx, &message.receive_ts, 0);
+  UTI_TimevalToInt64(&local_receive, &message.receive_ts, 0);
 
   /* Prepare random bits which will be added to the transmit timestamp. */
   ts_fuzz = UTI_GetNTPTsFuzz(message.precision);
@@ -825,6 +843,9 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
      store this for our own use later, next time we receive a message
      from the source we're sending to now. */
   LCL_ReadCookedTime(&local_transmit, NULL);
+
+  if (smooth_time)
+    UTI_AddDoubleToTimeval(&local_transmit, smooth_offset, &local_transmit);
 
   length = NTP_NORMAL_PACKET_LENGTH;
 

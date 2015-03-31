@@ -100,7 +100,8 @@ typedef enum {
   LOGF_SysWinnt,
   LOGF_TempComp,
   LOGF_RtcLinux,
-  LOGF_Refclock
+  LOGF_Refclock,
+  LOGF_Smooth,
 } LOG_Facility;
 
 /* Init function */

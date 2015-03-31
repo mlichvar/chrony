@@ -162,6 +162,9 @@ REF_SetUnsynchronised(void);
    synchronised */
 extern int REF_GetOurStratum(void);
 
+/* Return the current skew */
+extern double REF_GetSkew(void);
+
 /* Modify the setting for the maximum skew we are prepared to allow updates on (in ppm). */
 extern void REF_ModifyMaxupdateskew(double new_max_update_skew);
 

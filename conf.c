@@ -73,6 +73,7 @@ static void parse_peer(char *);
 static void parse_pool(char *);
 static void parse_refclock(char *);
 static void parse_server(char *);
+static void parse_smoothtime(char *);
 static void parse_tempcomp(char *);
 
 /* ================================================== */
@@ -184,6 +185,10 @@ static IPAddr bind_cmd_address4, bind_cmd_address6;
 /* Filename to use for storing pid of running chronyd, to prevent multiple
  * chronyds being started. */
 static char *pidfile;
+
+/* Smoothing constants */
+static double smooth_max_freq = 0.0; /* in ppm */
+static double smooth_max_wander = 0.0; /* in ppm/s */
 
 /* Temperature sensor, update interval and compensation coefficients */
 static char *tempcomp_sensor_file = NULL;
@@ -512,6 +517,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_int(p, &sched_priority);
   } else if (!strcasecmp(command, "server")) {
     parse_server(p);
+  } else if (!strcasecmp(command, "smoothtime")) {
+    parse_smoothtime(p);
   } else if (!strcasecmp(command, "stratumweight")) {
     parse_double(p, &stratum_weight);
   } else if (!strcasecmp(command, "tempcomp")) {
@@ -1165,6 +1172,17 @@ parse_broadcast(char *line)
 /* ================================================== */
 
 static void
+parse_smoothtime(char *line)
+{
+  check_number_of_args(line, 2);
+  if (sscanf(line, "%lf %lf", &smooth_max_freq, &smooth_max_wander) != 2) {
+    smooth_max_freq = 0.0;
+    command_parse_error();
+  }
+}
+
+/* ================================================== */
+static void
 parse_tempcomp(char *line)
 {
   char *p;
@@ -1715,6 +1733,15 @@ int
 CNF_GetLockMemory(void)
 {
   return lock_memory;
+}
+
+/* ================================================== */
+
+void
+CNF_GetSmooth(double *max_freq, double *max_wander)
+{
+  *max_freq = smooth_max_freq;
+  *max_wander = smooth_max_wander;
 }
 
 /* ================================================== */

@@ -36,6 +36,7 @@
 #include "local.h"
 #include "localp.h"
 #include "memory.h"
+#include "smooth.h"
 #include "util.h"
 #include "logging.h"
 
@@ -487,6 +488,9 @@ LCL_ApplyStepOffset(double offset)
   LCL_CookTime(&raw, &cooked, NULL);
 
   (*drv_apply_step_offset)(offset);
+
+  /* Reset smoothing on all clock steps */
+  SMT_Reset(&cooked);
 
   /* Dispatch to all handlers */
   invoke_parameter_change_handlers(&raw, &cooked, 0.0, offset, LCL_ChangeStep);
