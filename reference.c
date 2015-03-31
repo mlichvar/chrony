@@ -50,7 +50,7 @@ static int our_leap_sec;
 static int our_stratum;
 static uint32_t our_ref_id;
 static IPAddr our_ref_ip;
-struct timeval our_ref_time; /* Stored relative to reference, NOT local time */
+struct timeval our_ref_time;
 static double our_skew;
 static double our_residual_freq;
 static double our_root_delay;
@@ -161,6 +161,8 @@ handle_slew(struct timeval *raw,
 {
   double delta;
   struct timeval now;
+
+  UTI_AdjustTimeval(&our_ref_time, cooked, &our_ref_time, &delta, dfreq, doffset);
 
   if (change_type == LCL_ChangeUnknownStep) {
     last_ref_update.tv_sec = 0;
