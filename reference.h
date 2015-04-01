@@ -69,6 +69,9 @@ typedef void (*REF_ModeEndHandler)(int result);
 /* Set the handler for being notified of mode ending */
 extern void REF_SetModeEndHandler(REF_ModeEndHandler handler);
 
+/* Get leap second handling mode */
+extern REF_LeapMode REF_GetLeapMode(void);
+
 /* Function which takes a local cooked time and returns the estimated
    time of the reference.  It also returns the other parameters
    required for forming the outgoing NTP packet.

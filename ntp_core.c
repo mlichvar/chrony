@@ -786,6 +786,11 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   if (SMT_IsEnabled() && (my_mode == MODE_SERVER || my_mode == MODE_BROADCAST)) {
     smooth_time = 1;
     smooth_offset = SMT_GetOffset(&local_transmit);
+
+    /* Suppress leap second when smoothing and slew mode are enabled */
+    if (REF_GetLeapMode() == REF_LeapModeSlew &&
+        (leap_status == LEAP_InsertSecond || leap_status == LEAP_DeleteSecond))
+      leap_status = LEAP_Normal;
   } else {
     smooth_time = 0;
     smooth_offset = 0.0;

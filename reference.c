@@ -328,6 +328,14 @@ REF_SetModeEndHandler(REF_ModeEndHandler handler)
 
 /* ================================================== */
 
+REF_LeapMode
+REF_GetLeapMode(void)
+{
+  return leap_mode;
+}
+
+/* ================================================== */
+
 static double
 Sqr(double x)
 {
