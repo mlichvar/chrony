@@ -38,6 +38,7 @@ extern int MNL_AcceptTimestamp(struct timeval *ts, long *offset_cs, double *dfre
 extern void MNL_Enable(void);
 extern void MNL_Disable(void);
 extern void MNL_Reset(void);
+extern int MNL_IsEnabled(void);
 
 extern void MNL_ReportSamples(RPT_ManualSamplesReport *report, int max, int *n);
 extern int MNL_DeleteSample(int index);

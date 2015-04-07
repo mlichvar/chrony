@@ -54,6 +54,8 @@ typedef struct {
                      (measured-predicted)) */
 } Sample;
 
+#define MIN_SAMPLE_SEPARATION 1.0
+
 #define MAX_SAMPLES 16
 
 static Sample samples[16];
@@ -174,13 +176,23 @@ int
 MNL_AcceptTimestamp(struct timeval *ts, long *offset_cs, double *dfreq_ppm, double *new_afreq_ppm)
 {
   struct timeval now;
-  double offset;
+  double offset, diff;
   int i;
 
   if (enabled) {
-
-    /* Check whether timestamp is within margin of old one */
     LCL_ReadCookedTime(&now, NULL);
+
+    /* Make sure the provided timestamp is sane and the sample
+       is not too close to the last one */
+
+    if (!UTI_IsTimeOffsetSane(ts, 0.0))
+     return 0;
+
+    if (n_samples) {
+      UTI_DiffTimevalsToDouble(&diff, &now, &samples[n_samples - 1].when);
+      if (diff < MIN_SAMPLE_SEPARATION)
+        return 0;
+    }
 
     UTI_DiffTimevalsToDouble(&offset, &now, ts);
 
@@ -256,6 +268,14 @@ void
 MNL_Reset(void)
 {
   n_samples = 0;
+}
+
+/* ================================================== */
+
+int
+MNL_IsEnabled(void)
+{
+  return enabled;
 }
 
 /* ================================================== */
