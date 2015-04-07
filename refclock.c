@@ -367,7 +367,9 @@ RCL_AddSample(RCL_Instance instance, struct timeval *sample_time, double offset,
   UTI_AddDoubleToTimeval(sample_time, correction, &cooked_time);
   dispersion += instance->precision;
 
-  if (!valid_sample_time(instance, sample_time))
+  /* Make sure the timestamp and offset provided by the driver are sane */
+  if (!UTI_IsTimeOffsetSane(sample_time, offset) ||
+      !valid_sample_time(instance, sample_time))
     return 0;
 
   filter_add_sample(&instance->filter, &cooked_time, offset - correction + instance->offset, dispersion);
@@ -407,7 +409,8 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
   UTI_AddDoubleToTimeval(pulse_time, correction, &cooked_time);
   dispersion += instance->precision;
 
-  if (!valid_sample_time(instance, pulse_time))
+  if (!UTI_IsTimeOffsetSane(pulse_time, 0.0) ||
+      !valid_sample_time(instance, pulse_time))
     return 0;
 
   rate = instance->pps_rate;
