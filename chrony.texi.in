@@ -1190,6 +1190,7 @@ the configuration file is ignored.
 * rtcsync directive::           Specify that RTC should be automatically synchronised by kernel
 * sched_priority directive::    Require real-time scheduling and specify a priority for it
 * server directive::            Specify an NTP server
+* smoothtime directive::        Smooth served time to keep clients close together
 * stratumweight directive::     Specify how important is stratum when selecting source
 * tempcomp directive::          Specify temperature sensor and compensation coefficients
 * user directive::              Specify user for dropping root privileges
@@ -1833,8 +1834,11 @@ inserted or 23:59:59 UTC when leap second is deleted.  This may be preferred
 over the system or step mode when applications running on the system are
 sensitive to jumps in the system time and it's acceptable that the clock will
 be off for a longer time.  On Linux with the default @code{maxslewrate} the
-correction takes 12 seconds.  Note that there will still be a jump in the time
-that @code{chronyd} serves to NTP clients.
+correction takes 12 seconds.  Note that unless the @code{smoothtime} directive
+is used (@pxref{smoothtime directive}), there will still be a jump in the time
+that @code{chronyd} serves to NTP clients.  With the @code{smoothtime}
+directive, the leap second status will not be passed to NTP clients and the
+leap second will be "smeared" instead.
 @item ignore
 No correction is applied to the clock for the leap second.  The clock will be
 corrected later in normal operation when new measurements are made and the
@@ -1842,9 +1846,24 @@ estimated offset includes the one second error.
 @end table
 
 An example of the command is
+
 @example
 leapsecmode slew
 @end example
+
+An example enabling the leap smear for NTP clients with the @code{smoothtime}
+directive could be
+
+@example
+leapsecmode slew
+smoothtime 400 0.001
+@end example
+
+With this configuration the NTP clients would not know there was any leap
+second.  The server time they follow would be slowly corrected in about 16
+hours after the leap second was applied to UTC.  This configuration should not
+be used if the clients poll also other NTP servers, because they could reject
+this server as a falseticker or could fail to select a source completely.
 @c }}}
 @c {{{ leapsectz
 @node leapsectz directive
@@ -3018,6 +3037,42 @@ Set the maximum number of samples kept for this source.  This overrides the
 @code{maxsamples} directive (@pxref{maxsamples directive}).
 
 @end table
+@c }}}
+@c {{{ smoothtime
+@node smoothtime directive
+@subsection smoothtime
+The @code{smoothtime} directive can be used to enable smoothing of the time
+that @code{chronyd} serves to its clients to make it easier for them to track
+it and keep their clocks close together even when large offset or frequency
+corrections are applied to the server's clock, for example after being offline
+for a longer time.
+
+If a large offset has been accumulated, it may take a very long time to smooth
+it out.  This directive should be used only when the clients are not configured
+to poll also another NTP server, because they could reject this server as a
+falseticker or fail to select a source completely.
+
+The smoothing process is independent from any slewing applied to the local
+system clock, but the accumulated offset and frequency for smoothing will be
+reset when the clock is corrected by step, e.g. by the @code{makestep}
+directive or command.
+
+The directive takes two arguments, the maximum frequency offset of the smoothed
+time to the tracked NTP time (in ppm) and the maximum rate at which the
+frequency offset is allowed to change (in ppm per second).
+
+An example suitable for clients using @code{ntpd} and 1024 second polling
+interval could be
+
+@example
+smoothtime 400 0.001
+@end example
+
+An example suitable for clients using @code{chronyd} on Linux could be
+
+@example
+smoothtime 50000 0.01
+@end example
 @c }}}
 @c {{{ stratumweight
 @node stratumweight directive
