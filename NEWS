@@ -5,6 +5,8 @@ Enhancements
 ------------
 * Update to NTP version 4 (RFC 5905)
 * Add pool directive to specify pool of NTP servers
+* Add leapsecmode directive to select how to correct clock for leap second
+* Add smoothtime directive to smooth served time and enable leap smear
 * Add minsources directive to set required number of selectable sources
 * Add minsamples and maxsamples options for all sources
 * Add tempcomp configuration with list of points
@@ -15,6 +17,7 @@ Enhancements
 * Open NTP server port only when necessary (client access is allowed by
   allow directive/command, peer or broadcast is configured)
 * Change default bindcmdaddress to loopback address
+* Change default maxdelay to 3 seconds
 * Change default stratumweight to 0.001
 * Update adjtimex synchronisation status
 * Use system headers for adjtimex
@@ -25,9 +28,10 @@ Enhancements
 
 Bug fixes
 ---------
-* Fix accepting requests from configured sources when acquisitionport
-  is equal to server port
-* Fix allocation of slots saving replies to authenticated commands
+* Add sanity checks for time and frequency offset
+* Don't report synchronised status during leap second
+* Fix accepting requests from configured sources
+* Fix initial fallback drift setting
 
 New in version 1.31.1
 =====================
