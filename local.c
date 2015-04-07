@@ -42,6 +42,10 @@
 
 /* ================================================== */
 
+/* Maximum allowed frequency offset in ppm, the time must not stop
+   or run backwards */
+#define MAX_FREQ 500000.0
+
 /* Variable to store the current frequency, in ppm */
 static double current_freq_ppm;
 
@@ -398,6 +402,20 @@ LCL_ReadAbsoluteFrequency(void)
 }
 
 /* ================================================== */
+
+static double
+clamp_freq(double freq)
+{
+  if (freq <= MAX_FREQ && freq >= -MAX_FREQ)
+    return freq;
+
+  LOG(LOGS_WARN, LOGF_Local, "Frequency %.1f ppm exceeds allowed maximum", freq);
+
+  return freq >= MAX_FREQ ? MAX_FREQ : -MAX_FREQ;
+}
+
+/* ================================================== */
+
 /* This involves both setting the absolute frequency with the
    system-specific driver, as well as calling all notify handlers */
 
@@ -407,6 +425,8 @@ LCL_SetAbsoluteFrequency(double afreq_ppm)
   struct timeval raw, cooked;
   double dfreq;
   
+  afreq_ppm = clamp_freq(afreq_ppm);
+
   /* Apply temperature compensation */
   if (temp_comp_ppm != 0.0) {
     afreq_ppm = afreq_ppm * (1.0 - 1.0e-6 * temp_comp_ppm) - temp_comp_ppm;
@@ -443,6 +463,8 @@ LCL_AccumulateDeltaFrequency(double dfreq)
    terms of the gradient of the (offset) v (local time) function. */
 
   current_freq_ppm += dfreq * (1.0e6 - current_freq_ppm);
+
+  current_freq_ppm = clamp_freq(current_freq_ppm);
 
   /* Call the system-specific driver for setting the frequency */
   current_freq_ppm = (*drv_set_freq)(current_freq_ppm);
@@ -541,6 +563,8 @@ LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate)
    are handled in units of ppm, whereas the 'dfreq' argument is in
    terms of the gradient of the (offset) v (local time) function. */
   current_freq_ppm += dfreq * (1.0e6 - current_freq_ppm);
+
+  current_freq_ppm = clamp_freq(current_freq_ppm);
 
   DEBUG_LOG(LOGF_Local, "old_freq=%.3fppm new_freq=%.3fppm offset=%.6fsec",
       old_freq_ppm, current_freq_ppm, doffset);
