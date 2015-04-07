@@ -217,8 +217,9 @@ static ARR_Instance broadcasts;
 /* Invalid stratum number */
 #define NTP_INVALID_STRATUM 0
 
-/* Minimum allowed poll interval */
+/* Minimum and maximum allowed poll interval */
 #define MIN_POLL 0
+#define MAX_POLL 24
 
 /* Kiss-o'-Death codes */
 #define KOD_RATE 0x52415445UL /* RATE */
@@ -445,9 +446,13 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->minpoll = params->minpoll;
   if (result->minpoll < MIN_POLL)
     result->minpoll = SRC_DEFAULT_MINPOLL;
+  else if (result->minpoll > MAX_POLL)
+    result->minpoll = MAX_POLL;
   result->maxpoll = params->maxpoll;
   if (result->maxpoll < MIN_POLL)
     result->maxpoll = SRC_DEFAULT_MAXPOLL;
+  else if (result->maxpoll > MAX_POLL)
+    result->maxpoll = MAX_POLL;
   if (result->maxpoll < result->minpoll)
     result->maxpoll = result->minpoll;
 
@@ -1734,7 +1739,7 @@ NCR_TakeSourceOffline(NCR_Instance inst)
 void
 NCR_ModifyMinpoll(NCR_Instance inst, int new_minpoll)
 {
-  if (new_minpoll < MIN_POLL)
+  if (new_minpoll < MIN_POLL || new_minpoll > MAX_POLL)
     return;
   inst->minpoll = new_minpoll;
   LOG(LOGS_INFO, LOGF_NtpCore, "Source %s new minpoll %d", UTI_IPToString(&inst->remote_addr.ip_addr), new_minpoll);
@@ -1747,7 +1752,7 @@ NCR_ModifyMinpoll(NCR_Instance inst, int new_minpoll)
 void
 NCR_ModifyMaxpoll(NCR_Instance inst, int new_maxpoll)
 {
-  if (new_maxpoll < MIN_POLL)
+  if (new_maxpoll < MIN_POLL || new_maxpoll > MAX_POLL)
     return;
   inst->maxpoll = new_maxpoll;
   LOG(LOGS_INFO, LOGF_NtpCore, "Source %s new maxpoll %d", UTI_IPToString(&inst->remote_addr.ip_addr), new_maxpoll);
