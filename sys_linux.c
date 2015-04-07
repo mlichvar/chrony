@@ -100,12 +100,15 @@ our_round(double x)
 /* ================================================== */
 /* Positive means currently fast of true time, i.e. jump backwards */
 
-static void
+static int
 apply_step_offset(double offset)
 {
   if (TMX_ApplyStepOffset(-offset) < 0) {
-    LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
+    DEBUG_LOG(LOGF_SysLinux, "adjtimex() failed");
+    return 0;
   }
+
+  return 1;
 }
 
 /* ================================================== */

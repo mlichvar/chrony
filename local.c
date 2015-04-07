@@ -528,7 +528,10 @@ LCL_ApplyStepOffset(double offset)
   if (!check_offset(&raw, offset))
       return 0;
 
-  (*drv_apply_step_offset)(offset);
+  if (!(*drv_apply_step_offset)(offset)) {
+    LOG(LOGS_ERR, LOGF_Local, "Could not step clock");
+    return 0;
+  }
 
   /* Reset smoothing on all clock steps */
   SMT_Reset(&cooked);

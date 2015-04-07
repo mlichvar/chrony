@@ -250,7 +250,7 @@ offset_convert(struct timeval *raw,
 /* ================================================== */
 /* Positive means currently fast of true time, i.e. jump backwards */
 
-static void
+static int
 apply_step_offset(double offset)
 {
   struct timeval old_time, new_time;
@@ -260,13 +260,16 @@ apply_step_offset(double offset)
   UTI_AddDoubleToTimeval(&old_time, -offset, &new_time);
 
   if (settimeofday(&new_time, NULL) < 0) {
-    LOG_FATAL(LOGF_SysGeneric, "settimeofday() failed");
+    DEBUG_LOG(LOGF_SysGeneric, "settimeofday() failed");
+    return 0;
   }
 
   LCL_ReadRawTime(&old_time);
   UTI_DiffTimevalsToDouble(&err, &old_time, &new_time);
 
   lcl_InvokeDispersionNotifyHandlers(fabs(err));
+
+  return 1;
 }
 
 /* ================================================== */

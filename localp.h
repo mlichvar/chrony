@@ -47,7 +47,7 @@ typedef void (*lcl_AccrueOffsetDriver)(double offset, double corr_rate);
 
 /* System driver to apply a step offset. A positive argument means step
    the clock forwards. */
-typedef void (*lcl_ApplyStepOffsetDriver)(double offset);
+typedef int (*lcl_ApplyStepOffsetDriver)(double offset);
 
 /* System driver to convert a raw time to an adjusted (cooked) time.
    The number of seconds returned in 'corr' have to be added to the

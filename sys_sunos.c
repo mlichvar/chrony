@@ -223,7 +223,7 @@ accrue_offset(double offset, double corr_rate)
 /* Positive offset means system clock is fast of true time, therefore
    step backwards */
 
-static void
+static int
 apply_step_offset(double offset)
 {
   struct timeval old_time, new_time, T1;
@@ -236,7 +236,8 @@ apply_step_offset(double offset)
   UTI_AddDoubleToTimeval(&old_time, -offset, &new_time);
 
   if (settimeofday(&new_time, NULL) < 0) {
-    LOG_FATAL(LOGF_SysSunOS, "settimeofday() failed");
+    DEBUG_LOG(LOGF_SysSunOS, "settimeofday() failed");
+    return 0;
   }
 
   UTI_AddDoubleToTimeval(&T0, offset, &T1);
@@ -244,6 +245,7 @@ apply_step_offset(double offset)
 
   start_adjust();
 
+  return 1;
 }
 
 /* ================================================== */
