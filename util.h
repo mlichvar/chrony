@@ -104,6 +104,9 @@ extern void UTI_TimevalToInt64(struct timeval *src, NTP_int64 *dest, uint32_t fu
 
 extern void UTI_Int64ToTimeval(NTP_int64 *src, struct timeval *dest);
 
+/* Check if time + offset is sane */
+extern int UTI_IsTimeOffsetSane(struct timeval *tv, double offset);
+
 extern void UTI_TimevalNetworkToHost(Timeval *src, struct timeval *dest);
 extern void UTI_TimevalHostToNetwork(struct timeval *src, Timeval *dest);
 

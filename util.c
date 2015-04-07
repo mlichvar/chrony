@@ -606,6 +606,36 @@ UTI_Int64ToTimeval(NTP_int64 *src,
 
 /* ================================================== */
 
+/* Maximum offset between two sane times */
+#define MAX_OFFSET 4294967296.0
+
+int
+UTI_IsTimeOffsetSane(struct timeval *tv, double offset)
+{
+  double t;
+
+  /* Handle nan correctly here */
+  if (!(offset > -MAX_OFFSET && offset < MAX_OFFSET))
+    return 0;
+
+  UTI_TimevalToDouble(tv, &t);
+  t += offset;
+
+  /* Time before 1970 is not considered valid */
+  if (t < 0.0)
+    return 0;
+
+#ifdef HAVE_LONG_TIME_T
+  /* Check if it's in the interval to which NTP time is mapped */
+  if (t < (double)NTP_ERA_SPLIT || t > (double)(NTP_ERA_SPLIT + (1LL << 32)))
+    return 0;
+#endif
+
+  return 1;
+}
+
+/* ================================================== */
+
 void
 UTI_TimevalNetworkToHost(Timeval *src, struct timeval *dest)
 {

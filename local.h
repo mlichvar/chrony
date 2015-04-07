@@ -159,7 +159,7 @@ extern void LCL_AccumulateOffset(double offset, double corr_rate);
    the system clock is fast on true time, i.e. it needs to be stepped
    backwards. (Same convention as for AccumulateOffset routine). */
 
-extern void LCL_ApplyStepOffset(double offset);
+extern int LCL_ApplyStepOffset(double offset);
 
 /* Routine to invoke notify handlers on an unexpected time jump
    in system clock */

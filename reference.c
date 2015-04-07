@@ -1051,8 +1051,8 @@ REF_SetReference(int stratum,
   maybe_log_offset(our_offset, raw_now.tv_sec);
 
   if (step_offset != 0.0) {
-    LCL_ApplyStepOffset(step_offset);
-    LOG(LOGS_WARN, LOGF_Reference, "System clock was stepped by %.6f seconds", -step_offset);
+    if (LCL_ApplyStepOffset(step_offset))
+      LOG(LOGS_WARN, LOGF_Reference, "System clock was stepped by %.6f seconds", -step_offset);
   }
 
   LCL_SetSyncStatus(are_we_synchronised, offset_sd, offset_sd + root_delay / 2.0 + root_dispersion);

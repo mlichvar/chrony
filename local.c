@@ -416,6 +416,19 @@ clamp_freq(double freq)
 
 /* ================================================== */
 
+static int
+check_offset(struct timeval *now, double offset)
+{
+  /* Check if the time will be still sane with accumulated offset */
+  if (UTI_IsTimeOffsetSane(now, -offset))
+      return 1;
+
+  LOG(LOGS_WARN, LOGF_Local, "Adjustment of %.1f seconds is invalid", -offset);
+  return 0;
+}
+
+/* ================================================== */
+
 /* This involves both setting the absolute frequency with the
    system-specific driver, as well as calling all notify handlers */
 
@@ -490,6 +503,9 @@ LCL_AccumulateOffset(double offset, double corr_rate)
   LCL_ReadRawTime(&raw);
   LCL_CookTime(&raw, &cooked, NULL);
 
+  if (!check_offset(&cooked, offset))
+      return;
+
   (*drv_accrue_offset)(offset, corr_rate);
 
   /* Dispatch to all handlers */
@@ -498,7 +514,7 @@ LCL_AccumulateOffset(double offset, double corr_rate)
 
 /* ================================================== */
 
-void
+int
 LCL_ApplyStepOffset(double offset)
 {
   struct timeval raw, cooked;
@@ -509,6 +525,9 @@ LCL_ApplyStepOffset(double offset)
   LCL_ReadRawTime(&raw);
   LCL_CookTime(&raw, &cooked, NULL);
 
+  if (!check_offset(&raw, offset))
+      return 0;
+
   (*drv_apply_step_offset)(offset);
 
   /* Reset smoothing on all clock steps */
@@ -516,6 +535,8 @@ LCL_ApplyStepOffset(double offset)
 
   /* Dispatch to all handlers */
   invoke_parameter_change_handlers(&raw, &cooked, 0.0, offset, LCL_ChangeStep);
+
+  return 1;
 }
 
 /* ================================================== */
@@ -556,6 +577,9 @@ LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate)
   /* Due to modifying the offset, this has to be the cooked time prior
      to the change we are about to make */
   LCL_CookTime(&raw, &cooked, NULL);
+
+  if (!check_offset(&cooked, doffset))
+      return;
 
   old_freq_ppm = current_freq_ppm;
 
@@ -629,9 +653,13 @@ LCL_MakeStep(void)
   LCL_ReadRawTime(&raw);
   LCL_GetOffsetCorrection(&raw, &correction, NULL);
 
+  if (!check_offset(&raw, -correction))
+      return 0;
+
   /* Cancel remaining slew and make the step */
   LCL_AccumulateOffset(correction, 0.0);
-  LCL_ApplyStepOffset(-correction);
+  if (!LCL_ApplyStepOffset(-correction))
+    return 0;
 
   LOG(LOGS_WARN, LOGF_Local, "System clock was stepped by %.6f seconds", correction);
 

@@ -93,9 +93,9 @@ fallback_time_init(void)
   LCL_ReadCookedTime(&now, NULL);
 
   if (now.tv_sec < buf.st_mtime) {
-    LCL_ApplyStepOffset(now.tv_sec - buf.st_mtime);
-    LOG(LOGS_INFO, LOGF_Rtc,
-        "System clock set from driftfile %s", drift_file);
+    if (LCL_ApplyStepOffset(now.tv_sec - buf.st_mtime))
+      LOG(LOGS_INFO, LOGF_Rtc, "System clock set from driftfile %s",
+          drift_file);
   }
 }
 

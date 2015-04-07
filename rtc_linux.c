@@ -1043,9 +1043,9 @@ RTC_Linux_TimePreInit(void)
 
       /* Set system time only if the step is larger than 1 second */
       if (fabs(sys_offset) >= 1.0) {
-        LOG(LOGS_INFO, LOGF_RtcLinux, "Set system time, error in RTC = %f",
-            accumulated_error);
-        LCL_ApplyStepOffset(sys_offset);
+        if (LCL_ApplyStepOffset(sys_offset))
+          LOG(LOGS_INFO, LOGF_RtcLinux, "Set system time, error in RTC = %f",
+              accumulated_error);
       }
     } else {
       LOG(LOGS_WARN, LOGF_RtcLinux, "Could not convert RTC reading to seconds since 1/1/1970");
