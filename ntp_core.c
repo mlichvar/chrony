@@ -1217,11 +1217,13 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
       kod_rate = 1;
   }
 
-  /* Regardless of any validity checks we apply, we are required to
-     save these fields from the packet into the ntp source instance record.
-     Note we can't do this assignment before test 1 has been carried out. */
-  inst->remote_orig = message->transmit_ts;
-  inst->local_rx = *now;
+  /* The transmit timestamp and local receive timestamp must not be saved when
+     the authentication test failed to prevent denial-of-service attacks on
+     symmetric associations using authentication */
+  if (test5) {
+    inst->remote_orig = message->transmit_ts;
+    inst->local_rx = *now;
+  }
 
   /* This protects against replay of the last packet we sent */
   if (test2)

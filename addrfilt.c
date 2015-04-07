@@ -199,7 +199,10 @@ set_subnet(TableNode *start_node,
 
       /* How many subnet entries to set : 1->8, 2->4, 3->2 */
       N = 1 << (NBITS-bits_to_go);
-      subnet = get_subnet(ip, bits_consumed);
+
+      subnet = get_subnet(ip, bits_consumed) & ~(N - 1);
+      assert(subnet + N <= TABLE_SIZE);
+
       if (!(node->extended)) {
         open_node(node);
       }
