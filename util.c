@@ -609,6 +609,9 @@ UTI_Int64ToTimeval(NTP_int64 *src,
 /* Maximum offset between two sane times */
 #define MAX_OFFSET 4294967296.0
 
+/* Minimum allowed distance from maximum 32-bit time_t */
+#define MIN_ENDOFTIME_DISTANCE (365 * 24 * 3600)
+
 int
 UTI_IsTimeOffsetSane(struct timeval *tv, double offset)
 {
@@ -628,6 +631,10 @@ UTI_IsTimeOffsetSane(struct timeval *tv, double offset)
 #ifdef HAVE_LONG_TIME_T
   /* Check if it's in the interval to which NTP time is mapped */
   if (t < (double)NTP_ERA_SPLIT || t > (double)(NTP_ERA_SPLIT + (1LL << 32)))
+    return 0;
+#else
+  /* Don't get too close to 32-bit time_t overflow */
+  if (t > (double)(0x7fffffff - MIN_ENDOFTIME_DISTANCE))
     return 0;
 #endif
 
