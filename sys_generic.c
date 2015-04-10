@@ -108,6 +108,18 @@ handle_step(struct timeval *raw, struct timeval *cooked, double dfreq,
 }
 
 /* ================================================== */
+
+static double
+clamp_freq(double freq)
+{
+  if (freq > max_freq)
+    return max_freq;
+  if (freq < -max_freq)
+    return -max_freq;
+  return freq;
+}
+
+/* ================================================== */
 /* End currently running slew and start a new one */
 
 static void
@@ -144,11 +156,7 @@ update_slew(void)
     corr_freq = max_corr_freq;
 
   /* Get the new real frequency and clamp it */
-  total_freq = base_freq + corr_freq * (1.0e6 - base_freq);
-  if (total_freq > max_freq)
-    total_freq = max_freq;
-  else if (total_freq < -max_freq)
-    total_freq = -max_freq;
+  total_freq = clamp_freq(base_freq + corr_freq * (1.0e6 - base_freq));
 
   /* Set the new frequency (the actual frequency returned by the call may be
      slightly different from the requested frequency due to rounding) */
@@ -330,7 +338,7 @@ SYS_Generic_Finalise(void)
     slew_timer_running = 0;
   }
 
-  (*drv_set_freq)(base_freq);
+  (*drv_set_freq)(clamp_freq(base_freq));
 }
 
 /* ================================================== */
