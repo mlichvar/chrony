@@ -2460,6 +2460,21 @@ be reported using the @code{clients} command in @code{chronyc}.
 The syntax of this directive is identical to that for the @code{server}
 directive (@pxref{server directive}), except that it is used to specify
 an NTP peer rather than an NTP server.
+
+Please note that NTP peers that are not configured with a key to enable
+authentication are vulnerable to a denial-of-service attack.  An attacker
+knowing that NTP hosts A and B are peering with each other can send a packet
+with random timestamps to host A with source address of B which will set the
+NTP state variables on A to the values sent by the attacker.  Host A will then
+send on its next poll to B a packet with originate timestamp that doesn't match
+the transmit timestamp of B and the packet will be dropped.  If the attacker
+does this periodically for both hosts, they won't be able to synchronize to
+each other.
+
+This attack can be prevented by enabling authentication with the key option, or
+using the @code{server} directive on both sides to specify the other host as a
+server instead of peer, the only drawback is that it will double the network
+traffic between the two hosts.
 @c }}}
 @c {{{ pidfile
 @node pidfile directive
