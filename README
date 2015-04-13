@@ -48,22 +48,11 @@ server.
 What will chrony run on?
 ========================
 
-Chrony can be successfully built and run on
-
-1. Linux 2.2.x, 2.3.x, 2.4.x, 2.6.x, 3.x
-
-2. Solaris 2.5/2.5.1/2.6/2.7/2.8 (various platforms) 
-
-3. SunOS 4.1.4 (Sparc 2 and Sparc 20)
-
-4. BSD/386 v1.1 has been reported to work using the SunOS 4.1 driver.
-
-5. NetBSD.
-
-Any other system will require a porting exercise.  You would need to
-start from one of the existing system-specific drivers and look into
-the quirks of certain system calls and the kernel on your target
-system.
+The software is known to work on Linux, FreeBSD, NetBSD and Solaris.  Closely
+related systems may work too.  Any other system will likely require a porting
+exercise.  You would need to start from one of the existing system-specific
+drivers and look into the quirks of certain system calls and the kernel on your
+target system.
 
 How do I set it up?
 ===================

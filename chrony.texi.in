@@ -123,24 +123,10 @@ different operating systems may provide different function calls to
 achieve this, and even where the same function is used it may have
 different quirks in its behaviour.
 
-The software is known to work in the following environments:
-@itemize @bullet
-@item Linux 2.2 and newer
-
-@item NetBSD
-@item BSD/386
-
-@item Solaris 2.3/2.5/2.5.1/2.6/2.7/2.8 on Sparc (Sparc 20, Ultrasparc) and
-i386
-
-@item SunOS 4.1.4 on Sparc 2 and Sparc20.
-@end itemize
-
-Closely related systems may work too, but they have not been tested.
-
-Porting the software to other system (particularly to those supporting
-an @code{adjtime} system call) should not be difficult, however it
-requires access to such systems to test out the driver.
+The software is known to work on Linux, FreeBSD, NetBSD and Solaris.  Closely
+related systems may work too.  Porting the software to other systems
+(particularly to those supporting an @code{adjtime} system call) should not be
+difficult, however it requires access to such systems to test out the driver.
 @c }}}
 @c {{{ S:Other programs
 @node Other time synchronisation packages
@@ -305,8 +291,7 @@ Particular areas that need addressing are :
 @item Porting to other Unices
 
 This involves creating equivalents of sys_solaris.c, sys_linux.c etc for the
-new system.  Note, the Linux driver has been reported as working on a range of
-different architectures (Alpha, Sparc, MIPS as well as x86 of course).
+new system.
 
 @item Porting to Windows NT
 
@@ -1012,9 +997,8 @@ configuration file.  This option is useful if you want to stop and
 restart @code{chronyd} briefly for any reason, e.g. to install a new
 version.  However, it only makes sense on systems where the kernel can
 maintain clock compensation whilst not under @code{chronyd's} control.
-The only version where this happens so far is Linux.  On systems where
-this is not the case, e.g. Solaris and SunOS the option should not be
-used.
+The only version where this happens so far is Linux.  On other systems
+this option should not be used.
 @item -R
 When this option is used, the @code{initstepslew} directive and the
 @code{makestep} directive used with a positive limit will be ignored.
@@ -4180,9 +4164,7 @@ password
 @end example
 
 The computer will respond with a @samp{Password:} prompt, at which you
-should enter the password and press return.  (Note that the no-echo mode
-is limited to 8 characters on SunOS 4.1 due to limitations in the system
-library.  Other systems do not have this restriction.)
+should enter the password and press return.
 
 The password can be encoded as a string of characters not containing a space
 with optional @code{ASCII:} prefix or as a hexadecimal number with @code{HEX:}
@@ -4566,7 +4548,7 @@ true time (which it reports to NTP clients when it is operating in
 server mode).  The value reported on this line is the difference due to
 this effect.
 
-On systems such as Solaris and SunOS, @code{chronyd} has no means to
+On systems other than Linux, @code{chronyd} doesn't
 adjust the fundamental rate of the system clock, so keeps the system
 time correct by periodically making offsets to it as though an error had
 been measured.  The build up of these offsets will be observed in this
