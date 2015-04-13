@@ -72,44 +72,6 @@ static int sock_fd6;
 /* Flag indicating whether this module has been initialised or not */
 static int initialised = 0;
 
-/* Token which is unique every time the daemon is run */
-static unsigned long utoken;
-
-/* The register of issued tokens */
-static unsigned long issued_tokens;
-
-/* The register of received tokens */
-static unsigned long returned_tokens;
-
-/* The token number corresponding to the base of the registers */
-static unsigned long token_base;
-
-/* The position of the next free token to issue in the issue register */
-static unsigned long issue_pointer;
-
-/* Type and linked list for buffering responses */
-typedef struct _ResponseCell {
-  struct _ResponseCell *next;
-  unsigned long tok; /* The token that the client sent in the message
-                        to which this was the reply */
-  unsigned long next_tok; /* The next token issued to the same client.
-                             If we receive a request with this token,
-                             it implies the reply stored in this cell
-                             was successfully received */
-  unsigned long msg_seq; /* Client's sequence number used in request
-                            to which this is the response. */
-  unsigned long attempt; /* Attempt number that we saw in the last request
-                            with this sequence number (prevents attacker
-                            firing the same request at us to make us
-                            keep generating the same reply). */
-  struct timeval ts; /* Time we saved the reply - allows purging based
-                        on staleness. */
-  CMD_Reply rpy;
-} ResponseCell;
-
-static ResponseCell kept_replies;
-static ResponseCell *free_replies;
-
 /* ================================================== */
 /* Array of permission levels for command types */
 
@@ -305,15 +267,6 @@ CAM_Initialise(int family)
     assert(command_length == 0 || command_length >= offsetof(CMD_Reply, data));
   }
 
-  utoken = (unsigned long) time(NULL);
-
-  issued_tokens = returned_tokens = issue_pointer = 0;
-  token_base = 1; /* zero is the value used when the previous command was
-                     unauthenticated */
-
-  free_replies = NULL;
-  kept_replies.next = NULL;
-
   if (CNF_GetBindCommandPath()[0])
     sock_fdu = prepare_socket(AF_UNIX, 0);
   else
@@ -374,336 +327,9 @@ CAM_Finalise(void)
 }
 
 /* ================================================== */
-/* This function checks whether the authenticator field of the packet
-   checks correctly against what we would compute locally given the
-   rest of the packet */
-
-static int
-check_rx_packet_auth(CMD_Request *packet, int packet_len)
-{
-  int pkt_len, auth_len;
-
-  pkt_len = PKL_CommandLength(packet);
-  auth_len = packet_len - pkt_len;
-
-  return KEY_CheckAuth(KEY_GetCommandKey(), (unsigned char *)packet,
-      pkt_len, ((unsigned char *)packet) + pkt_len, auth_len);
-}
-
-/* ================================================== */
-
-static int
-generate_tx_packet_auth(CMD_Reply *packet)
-{
-  int pkt_len;
-
-  pkt_len = PKL_ReplyLength(packet);
-
-  return KEY_GenerateAuth(KEY_GetCommandKey(), (unsigned char *)packet,
-      pkt_len, ((unsigned char *)packet) + pkt_len, sizeof (packet->auth));
-}
-
-/* ================================================== */
 
 static void
-shift_tokens(void)
-{
-  do {
-    issued_tokens >>= 1;
-    returned_tokens >>= 1;
-    token_base++;
-    issue_pointer--;
-  } while ((issued_tokens & 1) && (returned_tokens & 1));
-}
-
-/* ================================================== */
-
-static unsigned long
-get_token(void)
-{
-  unsigned long result;
-
-  if (issue_pointer == 32) {
-    /* The lowest number open token has not been returned - bad luck
-       to that command client */
-    shift_tokens();
-  }
-
-  result = token_base + issue_pointer;
-  issued_tokens |= (1UL << issue_pointer);
-  issue_pointer++;
-
-  return result;
-}
-
-/* ================================================== */
-
-static int
-check_token(unsigned long token)
-{
-  int result;
-  unsigned long pos;
-
-  if (token < token_base) {
-    /* Token too old */
-    result = 0;
-  } else {
-    pos = token - token_base;
-    if (pos >= issue_pointer) {
-      /* Token hasn't been issued yet */
-      result = 0;
-    } else {
-      if (returned_tokens & (1UL << pos)) {
-        /* Token has already been returned */
-        result = 0;
-      } else {
-        /* Token is OK */
-        result = 1;
-        returned_tokens |= (1UL << pos);
-        if (pos == 0) {
-          shift_tokens();
-        }
-      }
-    }
-  }
-
-  return result;
-
-}
-
-/* ================================================== */
-
-#define TS_MARGIN 20
-
-/* ================================================== */
-
-typedef struct _TimestampCell {
-  struct _TimestampCell *next;
-  struct timeval ts;
-} TimestampCell;
-
-static struct _TimestampCell seen_ts_list={NULL};
-static struct _TimestampCell *free_ts_list=NULL;
-
-#define EXTEND_QUANTUM 32
-
-/* ================================================== */
-
-static TimestampCell *
-allocate_ts_cell(void)
-{
-  TimestampCell *result;
-  int i;
-  if (free_ts_list == NULL) {
-    free_ts_list = MallocArray(TimestampCell, EXTEND_QUANTUM);
-    for (i=0; i<EXTEND_QUANTUM-1; i++) {
-      free_ts_list[i].next = free_ts_list + i + 1;
-    }
-    free_ts_list[EXTEND_QUANTUM - 1].next = NULL;
-  }
-
-  result = free_ts_list;
-  free_ts_list = free_ts_list->next;
-  return result;
-}
-
-/* ================================================== */
-
-static void
-release_ts_cell(TimestampCell *node)
-{
-  node->next = free_ts_list;
-  free_ts_list = node;
-}
-
-/* ================================================== */
-/* Return 1 if not found, 0 if found (i.e. not unique).  Prune out any
-   stale entries. */
-
-static int
-check_unique_ts(struct timeval *ts, struct timeval *now)
-{
-  TimestampCell *last_valid, *cell, *next;
-  int ok;
-
-  ok = 1;
-  last_valid = &(seen_ts_list);
-  cell = last_valid->next;
-
-  while (cell) {
-    next = cell->next;
-    /* Check if stale */
-    if ((now->tv_sec - cell->ts.tv_sec) > TS_MARGIN) {
-      release_ts_cell(cell);
-      last_valid->next = next;
-    } else {
-      /* Timestamp in cell is still within window */
-      last_valid->next = cell;
-      last_valid = cell;
-      if ((cell->ts.tv_sec == ts->tv_sec) && (cell->ts.tv_usec == ts->tv_usec)) {
-        ok = 0;
-      }
-    }
-    cell = next;
-  }
-
-  if (ok) {
-    /* Need to add this timestamp to the list */
-    cell = allocate_ts_cell();
-    last_valid->next = cell;
-    cell->next = NULL;
-    cell->ts = *ts;
-  }
-
-  return ok;
-}
-
-/* ================================================== */
-
-static int
-ts_is_unique_and_not_stale(struct timeval *ts, struct timeval *now)
-{
-  int within_margin=0;
-  int is_unique=0;
-  long diff;
-
-  diff = now->tv_sec - ts->tv_sec;
-  if ((diff < TS_MARGIN) && (diff > -TS_MARGIN)) {
-    within_margin = 1;
-  } else {
-    within_margin = 0;
-  }
-  is_unique = check_unique_ts(ts, now);
-    
-  return within_margin && is_unique;
-}
-
-/* ================================================== */
-
-#define REPLY_EXTEND_QUANTUM 8
-
-static void
-get_more_replies(void)
-{
-  ResponseCell *new_replies;
-  int i;
-
-  if (!free_replies) {
-    new_replies = MallocArray(ResponseCell, REPLY_EXTEND_QUANTUM);
-    for (i=1; i<REPLY_EXTEND_QUANTUM; i++) {
-      new_replies[i-1].next = new_replies + i;
-    }
-    new_replies[REPLY_EXTEND_QUANTUM - 1].next = NULL;
-    free_replies = new_replies;
-  }
-}
-
-/* ================================================== */
-
-static ResponseCell *
-get_reply_slot(void)
-{
-  ResponseCell *result;
-  if (!free_replies) {
-    get_more_replies();
-  }
-  result = free_replies;
-  free_replies = result->next;
-  return result;
-}
-
-/* ================================================== */
-
-static void
-free_reply_slot(ResponseCell *cell)
-{
-  cell->next = free_replies;
-  free_replies = cell;
-}
-
-/* ================================================== */
-
-static void
-save_reply(CMD_Reply *msg,
-           unsigned long tok_reply_to,
-           unsigned long new_tok_issued,
-           unsigned long client_msg_seq,
-           unsigned short attempt,
-           struct timeval *now)
-{
-  ResponseCell *cell;
-
-  cell = get_reply_slot();
-
-  cell->ts = *now;
-  memcpy(&cell->rpy, msg, sizeof(CMD_Reply));
-  cell->tok = tok_reply_to;
-  cell->next_tok = new_tok_issued;
-  cell->msg_seq = client_msg_seq;
-  cell->attempt = (unsigned long) attempt;
-
-  cell->next = kept_replies.next;
-  kept_replies.next = cell;
-
-}
-
-/* ================================================== */
-
-static CMD_Reply *
-lookup_reply(unsigned long prev_msg_token, unsigned long client_msg_seq, unsigned short attempt)
-{
-  ResponseCell *ptr;
-
-  ptr = kept_replies.next;
-  while (ptr) {
-    if ((ptr->tok == prev_msg_token) &&
-        (ptr->msg_seq == client_msg_seq) &&
-        ((unsigned long) attempt > ptr->attempt)) {
-
-      /* Set the attempt field to remember the highest number we have
-         had so far */
-      ptr->attempt = (unsigned long) attempt;
-      return &ptr->rpy;
-    }
-    ptr = ptr->next;
-  }
-
-  return NULL;
-}
-
-
-/* ================================================== */
-
-#define REPLY_MAXAGE 300
-
-static void
-token_acknowledged(unsigned long token, struct timeval *now)
-{
-  ResponseCell *last_valid, *cell, *next;
-
-  last_valid = &kept_replies;
-  cell = kept_replies.next;
-  
-  while(cell) {
-    next = cell->next;
-
-    /* Discard if it's the one or if the reply is stale */
-    if ((cell->next_tok == token) ||
-        ((now->tv_sec - cell->ts.tv_sec) > REPLY_MAXAGE)) {
-      free_reply_slot(cell);
-      last_valid->next = next;
-    } else {
-      last_valid->next = cell;
-      last_valid = cell;
-    }
-    cell = next;
-  }
-}
-
-/* ================================================== */
-
-static void
-transmit_reply(CMD_Reply *msg, union sockaddr_all *where_to, int auth_len)
+transmit_reply(CMD_Reply *msg, union sockaddr_all *where_to)
 {
   int status;
   int tx_message_length;
@@ -729,7 +355,7 @@ transmit_reply(CMD_Reply *msg, union sockaddr_all *where_to, int auth_len)
       assert(0);
   }
 
-  tx_message_length = PKL_ReplyLength(msg) + auth_len;
+  tx_message_length = PKL_ReplyLength(msg);
   status = sendto(sock_fd, (void *) msg, tx_message_length, 0,
                   &where_to->sa, addrlen);
 
@@ -1517,26 +1143,16 @@ read_from_cmd_socket(void *anything)
   int expected_length; /* Expected length of packet without auth data */
   unsigned long flags;
   CMD_Request rx_message;
-  CMD_Reply tx_message, *prev_tx_message;
-  int rx_message_length, tx_message_length;
+  CMD_Reply tx_message;
+  int rx_message_length;
   int sock_fd;
   union sockaddr_all where_from;
   socklen_t from_length;
   IPAddr remote_ip;
   unsigned short remote_port;
-  int auth_length;
-  int auth_ok;
-  int utoken_ok, token_ok;
-  int issue_token;
-  int valid_ts;
-  int authenticated;
   int localhost;
   int allowed;
   unsigned short rx_command;
-  unsigned long rx_message_token;
-  unsigned long tx_message_token;
-  unsigned long rx_message_seq;
-  unsigned long rx_attempt;
   struct timeval now;
   struct timeval cooked_now;
 
@@ -1634,7 +1250,7 @@ read_from_cmd_socket(void *anything)
   tx_message.pad1 = 0;
   tx_message.pad2 = 0;
   tx_message.pad3 = 0;
-  tx_message.utoken = htonl(utoken);
+  tx_message.utoken = 0;
   /* Set this to a default (invalid) value.  This protects against the
      token field being set to an arbitrary value if we reject the
      message, e.g. due to the host failing the access check. */
@@ -1649,7 +1265,7 @@ read_from_cmd_socket(void *anything)
 
     if (rx_message.version >= PROTO_VERSION_MISMATCH_COMPAT_SERVER) {
       tx_message.status = htons(STT_BADPKTVERSION);
-      transmit_reply(&tx_message, &where_from, 0);
+      transmit_reply(&tx_message, &where_from);
     }
     return;
   }
@@ -1661,7 +1277,7 @@ read_from_cmd_socket(void *anything)
     CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
     tx_message.status = htons(STT_INVALID);
-    transmit_reply(&tx_message, &where_from, 0);
+    transmit_reply(&tx_message, &where_from);
     return;
   }
 
@@ -1672,137 +1288,13 @@ read_from_cmd_socket(void *anything)
     CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
     tx_message.status = htons(STT_BADPKTLENGTH);
-    transmit_reply(&tx_message, &where_from, 0);
+    transmit_reply(&tx_message, &where_from);
     return;
   }
 
   /* OK, we have a valid message.  Now dispatch on message type and process it. */
 
-  /* Do authentication stuff and command tokens here.  Well-behaved
-     clients will set their utokens to 0 to save us wasting our time
-     if the packet is unauthenticatable. */
-  if (rx_message.utoken != 0) {
-    auth_ok = check_rx_packet_auth(&rx_message, read_length);
-  } else {
-    auth_ok = 0;
-  }
-
-  /* All this malarky is to protect the system against various forms
-     of attack.
-
-     Simple packet forgeries are blocked by requiring the packet to
-     authenticate properly with MD5 or other crypto hash.  (The
-     assumption is that the command key is in a read-only keys file
-     read by the daemon, and is known only to administrators.)
-
-     Replay attacks are prevented by 2 fields in the packet.  The
-     'token' field is where the client plays back to us a token that
-     he was issued in an earlier reply.  Each time we reply to a
-     suitable packet, we issue a new token.  The 'utoken' field is set
-     to a new (hopefully increasing) value each time the daemon is
-     run.  This prevents packets from a previous incarnation being
-     played back at us when the same point in the 'token' sequence
-     comes up.  (The token mechanism also prevents a non-idempotent
-     command from being executed twice from the same client, if the
-     client fails to receive our reply the first time and tries a
-     resend.)
-
-     The problem is how a client should get its first token.  Our
-     token handling only remembers a finite number of issued tokens
-     (actually 32) - if a client replies with a (legitimate) token
-     older than that, it will be treated as though a duplicate token
-     has been supplied.  If a simple token-request protocol were used,
-     the whole thing would be vulnerable to a denial of service
-     attack, where an attacker just replays valid token-request
-     packets at us, causing us to keep issuing new tokens,
-     invalidating all the ones we have given out to true clients
-     already.
-
-     To protect against this, the token-request (REQ_LOGON) packet
-     includes a timestamp field.  To issue a token, we require that
-     this field is different from any we have processed before.  To
-     bound our storage, we require that the timestamp is within a
-     certain period of our current time.  For clients running on the
-     same host this will be easily satisfied.
-
-     */
-
-  utoken_ok = (ntohl(rx_message.utoken) == utoken);
-
-  /* Avoid binning a valid user's token if we merely get a forged
-     packet */
-  rx_message_token = ntohl(rx_message.token);
-  rx_message_seq = ntohl(rx_message.sequence);
-  rx_attempt = ntohs(rx_message.attempt);
-
-  if (auth_ok && utoken_ok) {
-    token_ok = check_token(rx_message_token);
-  } else {
-    token_ok = 0;
-  }
-
-  if (auth_ok && utoken_ok && !token_ok) {
-    /* This might be a resent message, due to the client not getting
-       our reply to the first attempt.  See if we can find the message. */
-    prev_tx_message = lookup_reply(rx_message_token, rx_message_seq, rx_attempt);
-    if (prev_tx_message) {
-      /* Just send this message again */
-      tx_message_length = PKL_ReplyLength(prev_tx_message);
-      status = sendto(sock_fd, (void *) prev_tx_message, tx_message_length, 0,
-                      &where_from.sa, from_length);
-      if (status < 0) {
-        DEBUG_LOG(LOGF_CmdMon, "Could not send response to %s",
-                  UTI_SockaddrToString(&where_from.sa));
-      }
-      return;
-    }
-    /* Otherwise, just fall through into normal processing */
-
-  }
-
-  if (auth_ok && utoken_ok && token_ok) {
-    /* See whether we can discard the previous reply from storage */
-    token_acknowledged(rx_message_token, &now);
-  }
-
-  valid_ts = 0;
-  issue_token = 0;
-
-  if (auth_ok) {
-    if (utoken_ok && token_ok) {
-      issue_token = 1;
-    } else if (rx_command == REQ_LOGON &&
-               ntohl(rx_message.utoken) == SPECIAL_UTOKEN) {
-      struct timeval ts;
-
-      UTI_TimevalNetworkToHost(&rx_message.data.logon.ts, &ts);
-      valid_ts = ts_is_unique_and_not_stale(&ts, &now);
-
-      if (valid_ts) {
-        issue_token = 1;
-      }
-    }
-  }
-
-  authenticated = auth_ok & utoken_ok & token_ok;
-
-  if (authenticated) {
-    CLG_LogCommandAccess(&remote_ip, CLG_CMD_AUTH, cooked_now.tv_sec);
-  } else {
-    CLG_LogCommandAccess(&remote_ip, CLG_CMD_NORMAL, cooked_now.tv_sec);
-  }
-
-  if (issue_token) {
-    /* Only command clients where the user has apparently 'logged on'
-       get a token to allow them to emit an authenticated command next
-       time */
-    tx_message_token = get_token();
-  } else {
-    tx_message_token = 0xffffffffUL;
-  }
-
-  tx_message.token = htonl(tx_message_token);
-
+  CLG_LogCommandAccess(&remote_ip, CLG_CMD_NORMAL, cooked_now.tv_sec);
 
   if (rx_command >= N_REQUEST_TYPES) {
     /* This should be already handled */
@@ -1817,18 +1309,10 @@ read_from_cmd_socket(void *anything)
     } else {
       switch (permissions[rx_command]) {
         case PERMIT_AUTH:
-          if (authenticated) {
-            allowed = 1;
-          } else {
-            allowed = 0;
-          }
+          allowed = 0;
           break;
         case PERMIT_LOCAL:
-          if (authenticated || localhost) {
-            allowed = 1;
-          } else {
-            allowed = 0;
-          }
+          allowed = localhost;
           break;
         case PERMIT_OPEN:
           allowed = 1;
@@ -1890,24 +1374,8 @@ read_from_cmd_socket(void *anything)
           break;
 
         case REQ_LOGON:
-          /* If the log-on fails, record the reason why */
-          if (!issue_token) {
-            DEBUG_LOG(LOGF_CmdMon,
-                "Bad command logon from %s (auth_ok=%d valid_ts=%d)",
-                UTI_SockaddrToString(&where_from.sa),
-                auth_ok, valid_ts);
-          }
-
-          if (issue_token == 1) {
-            tx_message.status = htons(STT_SUCCESS);
-          } else if (!auth_ok) {
-            tx_message.status = htons(STT_UNAUTH);
-          } else if (!valid_ts) {
-            tx_message.status = htons(STT_INVALIDTS);
-          } else {
-            tx_message.status = htons(STT_FAILED);
-          }
-            
+          /* Authentication is no longer supported, log-on always fails */
+          tx_message.status = htons(STT_FAILED);
           break;
 
         case REQ_SETTIME:
@@ -2071,21 +1539,6 @@ read_from_cmd_socket(void *anything)
     }
   }
 
-  if (auth_ok) {
-    auth_length = generate_tx_packet_auth(&tx_message);
-  } else {
-    auth_length = 0;
-  }
-
-  if (token_ok) {
-    save_reply(&tx_message,
-               rx_message_token,
-               tx_message_token,
-               rx_message_seq,
-               rx_attempt,
-               &now);
-  }
-
   /* Transmit the response */
   {
     /* Include a simple way to lose one message in three to test resend */
@@ -2093,7 +1546,7 @@ read_from_cmd_socket(void *anything)
     static int do_it=1;
 
     if (do_it) {
-      transmit_reply(&tx_message, &where_from, auth_length);
+      transmit_reply(&tx_message, &where_from);
     }
 
 #if 0
