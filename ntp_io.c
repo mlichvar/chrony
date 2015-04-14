@@ -97,8 +97,13 @@ prepare_socket(int family, int port_number, int client_only)
   sock_fd = socket(family, SOCK_DGRAM, 0);
 
   if (sock_fd < 0) {
-    LOG(LOGS_ERR, LOGF_NtpIO, "Could not open %s NTP socket : %s",
-        family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
+    if (!client_only) {
+      LOG(LOGS_ERR, LOGF_NtpIO, "Could not open %s NTP socket : %s",
+          family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
+    } else {
+      DEBUG_LOG(LOGF_NtpIO, "Could not open %s NTP socket : %s",
+                family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
+    }
     return INVALID_SOCK_FD;
   }
 
