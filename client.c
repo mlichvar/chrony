@@ -2729,11 +2729,11 @@ main(int argc, char **argv)
       family = IPADDR_INET6;
     } else if (!strcmp("-v", *argv) || !strcmp("--version",*argv)) {
       printf("chronyc (chrony) version %s (%s)\n", CHRONY_VERSION, CHRONYC_FEATURES);
-      exit(0);
+      return 0;
     } else if (!strncmp(*argv, "-", 1)) {
       fprintf(stderr, "Usage: %s [-h HOST] [-p PORT] [-n] [-4|-6] [-a] [-f FILE] [-m] [COMMAND]\n",
               progname);
-      exit(1);
+      return 1;
     } else {
       break; /* And process remainder of line as a command */
     }

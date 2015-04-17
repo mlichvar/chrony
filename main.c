@@ -387,7 +387,7 @@ int main
     } else if (!strcmp("-v", *argv) || !strcmp("--version",*argv)) {
       /* This write to the terminal is OK, it comes before we turn into a daemon */
       printf("chronyd (chrony) version %s (%s)\n", CHRONY_VERSION, CHRONYD_FEATURES);
-      exit(0);
+      return 0;
     } else if (!strcmp("-n", *argv)) {
       nofork = 1;
     } else if (!strcmp("-d", *argv)) {
@@ -409,7 +409,7 @@ int main
     } else if (!strcmp("-h", *argv) || !strcmp("--help", *argv)) {
       printf("Usage: %s [-4|-6] [-n|-d] [-q|-Q] [-r] [-R] [-s] [-f FILE|COMMAND...]\n",
              progname);
-      exit(0);
+      return 0;
     } else if (*argv[0] == '-') {
       LOG_FATAL(LOGF_Main, "Unrecognized command line option [%s]", *argv);
     } else {
@@ -422,7 +422,7 @@ int main
   if (getuid() != 0) {
     /* This write to the terminal is OK, it comes before we turn into a daemon */
     fprintf(stderr,"Not superuser\n");
-    exit(1);
+    return 1;
   }
 
   /* Turn into a daemon */
