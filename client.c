@@ -2731,7 +2731,8 @@ main(int argc, char **argv)
       printf("chronyc (chrony) version %s (%s)\n", CHRONY_VERSION, CHRONYC_FEATURES);
       exit(0);
     } else if (!strncmp(*argv, "-", 1)) {
-      fprintf(stderr, "Usage : %s [-h <hostname>] [-p <port-number>] [-n] [-4|-6] [-m] [-a] [-f <file>]] [command]\n", progname);
+      fprintf(stderr, "Usage: %s [-h HOST] [-p PORT] [-n] [-4|-6] [-a] [-f FILE] [-m] [COMMAND]\n",
+              progname);
       exit(1);
     } else {
       break; /* And process remainder of line as a command */
