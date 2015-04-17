@@ -347,6 +347,7 @@ int main
 (int argc, char **argv)
 {
   const char *conf_file = DEFAULT_CONF_FILE;
+  const char *progname = argv[0];
   char *user = NULL;
   int debug = 0, nofork = 0, address_family = IPADDR_UNSPEC;
   int do_init_rtc = 0, restarted = 0;
@@ -405,6 +406,10 @@ int main
       address_family = IPADDR_INET4;
     } else if (!strcmp("-6", *argv)) {
       address_family = IPADDR_INET6;
+    } else if (!strcmp("-h", *argv) || !strcmp("--help", *argv)) {
+      printf("Usage: %s [-4|-6] [-n|-d] [-q|-Q] [-r] [-R] [-s] [-f FILE|COMMAND...]\n",
+             progname);
+      exit(0);
     } else if (*argv[0] == '-') {
       LOG_FATAL(LOGF_Main, "Unrecognized command line option [%s]", *argv);
     } else {
