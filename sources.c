@@ -513,7 +513,7 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
 {
   struct timeval src_ref_time;
   double src_offset, src_offset_sd, src_frequency, src_skew;
-  double src_root_delay, src_root_dispersion, elapsed;
+  double src_root_delay, src_root_dispersion, sel_src_distance, elapsed;
   double offset_weight, sum_offset_weight, sum_offset, sum2_offset_sd;
   double frequency_weight, sum_frequency_weight, sum_frequency, inv_sum2_skew;
   int i, index, combined;
@@ -523,6 +523,10 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
 
   sum_offset_weight = sum_offset = sum2_offset_sd = 0.0;
   sum_frequency_weight = sum_frequency = inv_sum2_skew = 0.0;
+
+  sel_src_distance = sources[selected_source_index]->sel_info.root_distance;
+  if (sources[selected_source_index]->type == SRC_NTP)
+    sel_src_distance += reselect_distance;
 
   for (i = combined = 0; i < n_sel_sources; i++) {
     index = sel_sources[i];
@@ -536,8 +540,7 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
        are not close, or it was recently marked as distant */
 
     if (index != selected_source_index &&
-        (sources[index]->sel_info.root_distance > combine_limit *
-           (reselect_distance + sources[selected_source_index]->sel_info.root_distance) ||
+        (sources[index]->sel_info.root_distance > combine_limit * sel_src_distance ||
          fabs(*frequency - src_frequency) >
            combine_limit * (*skew + src_skew + LCL_GetMaxClockError()))) {
       /* Use a smaller penalty in first few updates */
