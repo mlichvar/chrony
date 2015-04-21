@@ -3058,7 +3058,9 @@ directive or command.
 
 The directive takes two arguments, the maximum frequency offset of the smoothed
 time to the tracked NTP time (in ppm) and the maximum rate at which the
-frequency offset is allowed to change (in ppm per second).
+frequency offset is allowed to change (in ppm per second).  The smoothing
+process is activated when 1/10000 of the estimated skew of the local clock
+falls below the maximum rate of frequency change.
 
 An example suitable for clients using @code{ntpd} and 1024 second polling
 interval could be
