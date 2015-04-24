@@ -3,56 +3,35 @@ This is the README for chrony.
 What is chrony?
 ===============
 
-Chrony is a pair of programs for maintaining the accuracy of computer
-clocks.
+chrony is a versatile implementation of the Network Time Protocol (NTP).
+It can synchronize the system clock with NTP servers, reference clocks
+(e.g. GPS receiver), and manual input using wristwatch and keyboard.
+It can also operate as an NTPv4 (RFC 5905) server and peer to provide
+a time service to other computers in the network.
 
-chronyd is a (background) daemon program that can be started at boot
-time.  This does most of the work.
+It is designed to perform well in a wide range of conditions, including
+intermittent network connections, heavily congested networks, changing
+temperatures (ordinary computer clocks are sensitive to temperature),
+and systems that do not run continuosly, or run on a virtual machine.
 
-chronyc is a command-line interface program which can be used to
-monitor chronyd's performance and to change various operating
-parameters whilst it is running.
+Typical accuracy between two machines on a LAN is in tens, or a few
+hundreds, of microseconds; over the Internet, accuracy is typically
+within a few milliseconds.  With a good hardware reference clock
+sub-microsecond accuracy is possible.
 
-chronyd's main function is to obtain measurements of the true (UTC)
-time from one of several sources, and correct the system clock
-accordingly.  It also works out the rate at which the system clock
-gains or loses time and uses this information to keep it accurate
-between measurements from the reference.
-
-The reference time can be derived from Network Time Protocol (NTP)
-servers, reference clocks, or wristwatch-and-keyboard (via chronyc).
-The main source of information about the Network Time Protocol is
-http://www.ntp.org.
-
-It is designed so that it can work on computers which only have
-intermittent access to reference sources, for example computers which
-use a dial-up account to access the Internet or laptops.  Of course, it
-will work well on computers with permanent connections too.
-
-In addition, on Linux it can monitor the system's real time clock
-performance, so the system can maintain accurate time even across
-reboots.
-
-Typical accuracies available between 2 machines are
-
-On an ethernet LAN : 100-200 microseconds, often much better
-On a V32bis dial-up modem connection : 10's of milliseconds (from one
-session to the next)
-
-With a good reference clock the accuracy can reach one microsecond.
-
-chronyd can also operate as an NTPv4 (RFC 5905) server, peer and broadcast
-server.
-
+Two programs are included in chrony, chronyd is a daemon that can be
+started at boot time and chronyc is a command-line interface program
+which can be used to monitor chronyd's performance and to change various
+operating parameters whilst it is running.
 
 What will chrony run on?
 ========================
 
-The software is known to work on Linux, FreeBSD, NetBSD and Solaris.  Closely
-related systems may work too.  Any other system will likely require a porting
-exercise.  You would need to start from one of the existing system-specific
-drivers and look into the quirks of certain system calls and the kernel on your
-target system.
+The software is known to work on Linux, FreeBSD, NetBSD and Solaris.
+Closely related systems may work too.  Any other system will likely
+require a porting exercise.  You would need to start from one of the
+existing system-specific drivers and look into the quirks of certain
+system calls and the kernel on your target system.
 
 How do I set it up?
 ===================
@@ -104,6 +83,11 @@ or
 chrony-dev-request@chrony.tuxfamily.org
 
 as applicable.
+
+License
+=======
+
+chrony is distributed under the GNU General Public License version 2.
 
 
 Author
