@@ -15,7 +15,7 @@ Enhancements
 * Improve source selection
 * Handle offline sources as unreachable
 * Open NTP server port only when necessary (client access is allowed by
-  allow directive/command, peer or broadcast is configured)
+  allow directive/command or peer/broadcast is configured)
 * Change default bindcmdaddress to loopback address
 * Change default maxdelay to 3 seconds
 * Change default stratumweight to 0.001
@@ -30,6 +30,7 @@ Bug fixes
 ---------
 * Add sanity checks for time and frequency offset
 * Don't report synchronised status during leap second
+* Don't combine reference clocks with close NTP sources
 * Fix accepting requests from configured sources
 * Fix initial fallback drift setting
 
