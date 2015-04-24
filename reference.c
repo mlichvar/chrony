@@ -248,9 +248,9 @@ REF_Initialise(void)
 
   leap_tzname = CNF_GetLeapSecTimezone();
   if (leap_tzname) {
-    /* Check that the timezone has good data for Jun 30 2008 and Dec 31 2008 */
-    if (get_tz_leap(1214784000) == LEAP_Normal &&
-        get_tz_leap(1230681600) == LEAP_InsertSecond) {
+    /* Check that the timezone has good data for Jun 30 2012 and Dec 31 2012 */
+    if (get_tz_leap(1341014400) == LEAP_InsertSecond &&
+        get_tz_leap(1356912000) == LEAP_Normal) {
       LOG(LOGS_INFO, LOGF_Reference, "Using %s timezone to obtain leap second data", leap_tzname);
     } else {
       LOG(LOGS_WARN, LOGF_Reference, "Timezone %s failed leap second check, ignoring", leap_tzname);
