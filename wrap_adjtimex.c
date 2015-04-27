@@ -71,7 +71,7 @@ TMX_ResetOffset(void)
 
   /* Set status back */
   txc.modes = ADJ_STATUS;
-  txc.modes = status;
+  txc.status = status;
   if (adjtimex(&txc) < 0)
     return -1;
 
