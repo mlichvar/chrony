@@ -316,7 +316,7 @@ NCR_Initialise(void)
   do_time_checks();
 
   logfileid = CNF_GetLogMeasurements() ? LOG_FileOpen("measurements",
-      "   Date (UTC) Time     IP Address   L St 123 567 ABCD  LP RP Score Offset     Peer del. Peer disp. Root del.  Root disp.")
+      "   Date (UTC) Time     IP Address   L St 123 567 ABCD  LP RP Score    Offset  Peer del. Peer disp.  Root del. Root disp.")
     : -1;
 
   access_auth_table = ADF_CreateTable();
