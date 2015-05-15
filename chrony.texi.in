@@ -581,9 +581,8 @@ rtcsync
 
 When using a pool of NTP servers (one name is used for multiple servers which
 may change over time), it's better to specify them with the @code{pool}
-directive instead of multiple @code{server} directives in order to allow
-@code{chronyd} to replace unreachable or bad servers automatically.  The
-configuration file could in this case look like
+directive instead of multiple @code{server} directives.  The configuration file
+could in this case look like
 
 @example
 pool pool.ntp.org iburst

@@ -40,9 +40,8 @@ useful configuration file would look something like
 
 When using a pool of NTP servers (one name is used for multiple servers which
 may change over time), it's better to specify them with the `pool' directive
-instead of multiple `server' directives in order to allow \fIchronyd\fR to
-replace unreachable or bad servers automatically.  The configuration file could
-in this case look like
+instead of multiple `server' directives.  The configuration file could in this
+case look like
 
 .EX
      pool pool.ntp.org iburst
