@@ -86,7 +86,7 @@ struct UnresolvedSource {
 #define RESOLVE_INTERVAL_UNIT 7
 #define MIN_RESOLVE_INTERVAL 2
 #define MAX_RESOLVE_INTERVAL 9
-#define MIN_REPLACEMENT_INTERVAL 5
+#define MIN_REPLACEMENT_INTERVAL 8
 
 static struct UnresolvedSource *unresolved_sources = NULL;
 static int resolving_interval = 0;
