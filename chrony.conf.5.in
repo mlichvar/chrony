@@ -51,7 +51,6 @@ case look like
 .EE
 
 .SH "SEE ALSO"
-.BR chrony(1),
 .BR chronyc(1),
 .BR chronyd(8)
 

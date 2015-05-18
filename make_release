@@ -39,7 +39,7 @@ echo $version > version.txt
 
 sed -i -e "s%@@VERSION@@%${version}%" examples/chrony.spec
 
-for m in chrony.1 chronyc.1.in chrony.conf.5.in chronyd.8.in; do
+for m in chronyc.1.in chrony.conf.5.in chronyd.8.in; do
   sed -e "s%@VERSION@%${version}%;s%@MAN_DATE@%${mandate}%" \
     < $m > ${m}_
   mv -f ${m}_ $m

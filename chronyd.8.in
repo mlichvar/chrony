@@ -134,7 +134,6 @@ To report bugs, please visit \fIhttp://chrony.tuxfamily.org/\fR
 \fBchronyd\fR is documented in detail in the documentation supplied with the
 distribution (\fIchrony.txt\fR and \fIchrony.texi\fR).
 
-.BR chrony(1),
 .BR chronyc(1),
 .BR chrony.conf(5),
 .BR hwclock(8),

@@ -45,7 +45,6 @@ cp chrony.info* $RPM_BUILD_ROOT%{_infodir}
 %{_sbindir}/chronyd
 %{_bindir}/chronyc
 %{_infodir}/chrony.info*
-%{_mandir}/man1/chrony.1.gz
 %{_mandir}/man1/chronyc.1.gz
 %{_mandir}/man5/chrony.conf.5.gz
 %{_mandir}/man8/chronyd.8.gz

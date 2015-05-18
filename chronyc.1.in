@@ -60,8 +60,7 @@ interactively.
 To report bugs, please visit \fIhttp://chrony.tuxfamily.org\fR
 
 .SH "SEE ALSO"
-.BR chronyd(8),
-.BR chrony(1)
+.BR chronyd(8)
 
 .I http://chrony.tuxfamily.org/
 

@@ -112,8 +112,6 @@ install: chronyd chronyc chrony.txt
 	chmod 644 $(DESTDIR)$(DOCDIR)/COPYING
 	cp README $(DESTDIR)$(DOCDIR)/README
 	chmod 644 $(DESTDIR)$(DOCDIR)/README
-	cp chrony.1 $(DESTDIR)$(MANDIR)/man1
-	chmod 644 $(DESTDIR)$(MANDIR)/man1/chrony.1
 	cp chronyc.1 $(DESTDIR)$(MANDIR)/man1
 	chmod 644 $(DESTDIR)$(MANDIR)/man1/chronyc.1
 	cp chronyd.8 $(DESTDIR)$(MANDIR)/man8
