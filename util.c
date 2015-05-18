@@ -707,7 +707,11 @@ UTI_FloatHostToNetwork(double x)
   if (x < 0.0) {
     x = -x;
     neg = 1;
+  } else if (x >= 0.0) {
+    neg = 0;
   } else {
+    /* Save NaN as zero */
+    x = 0.0;
     neg = 0;
   }
 
