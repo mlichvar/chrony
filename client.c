@@ -640,7 +640,8 @@ process_cmd_manual(CMD_Request *msg, const char *line)
 static int
 parse_allow_deny(CMD_Request *msg, char *line)
 {
-  unsigned long a, b, c, d, n;
+  unsigned long a, b, c, d;
+  int n, specified_subnet_bits;
   IPAddr ip;
   char *p;
   
@@ -657,7 +658,7 @@ parse_allow_deny(CMD_Request *msg, char *line)
     
     n = 0;
     if (!UTI_StringToIP(p, &ip) &&
-        (n = sscanf(p, "%lu.%lu.%lu.%lu", &a, &b, &c, &d)) == 0) {
+        (n = sscanf(p, "%lu.%lu.%lu.%lu", &a, &b, &c, &d)) <= 0) {
 
       /* Try to parse as the name of a machine */
       if (DNS_Name2IPAddress(p, &ip, 1) != DNS_Success) {
@@ -710,7 +711,6 @@ parse_allow_deny(CMD_Request *msg, char *line)
       UTI_IPHostToNetwork(&ip, &msg->data.allow_deny.ip);
 
       if (slashpos) {
-        int specified_subnet_bits, n;
         n = sscanf(slashpos+1, "%d", &specified_subnet_bits);
         if (n == 1) {
           msg->data.allow_deny.subnet_bits = htonl(specified_subnet_bits);
