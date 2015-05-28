@@ -643,6 +643,22 @@ UTI_IsTimeOffsetSane(struct timeval *tv, double offset)
 
 /* ================================================== */
 
+double
+UTI_Log2ToDouble(int l)
+{
+  if (l >= 0) {
+    if (l > 31)
+      l = 31;
+    return 1 << l;
+  } else {
+    if (l < -31)
+      l = -31;
+    return 1.0 / (1 << -l);
+  }
+}
+
+/* ================================================== */
+
 void
 UTI_TimevalNetworkToHost(Timeval *src, struct timeval *dest)
 {
