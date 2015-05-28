@@ -1078,13 +1078,14 @@ handle_rekey(CMD_Request *rx_message, CMD_Reply *tx_message)
 /* ================================================== */
 
 static void
-handle_allow(CMD_Request *rx_message, CMD_Reply *tx_message)
+handle_allowdeny(CMD_Request *rx_message, CMD_Reply *tx_message, int allow, int all)
 {
   IPAddr ip;
   int subnet_bits;
+
   UTI_IPNetworkToHost(&rx_message->data.allow_deny.ip, &ip);
   subnet_bits = ntohl(rx_message->data.allow_deny.subnet_bits);
-  if (NCR_AddAccessRestriction(&ip, subnet_bits, 1, 0)) {
+  if (NCR_AddAccessRestriction(&ip, subnet_bits, allow, all)) {
     tx_message->status = htons(STT_SUCCESS);
   } else {
     tx_message->status = htons(STT_BADSUBNET);
@@ -1094,109 +1095,14 @@ handle_allow(CMD_Request *rx_message, CMD_Reply *tx_message)
 /* ================================================== */
 
 static void
-handle_allowall(CMD_Request *rx_message, CMD_Reply *tx_message)
+handle_cmdallowdeny(CMD_Request *rx_message, CMD_Reply *tx_message, int allow, int all)
 {
   IPAddr ip;
   int subnet_bits;
+
   UTI_IPNetworkToHost(&rx_message->data.allow_deny.ip, &ip);
   subnet_bits = ntohl(rx_message->data.allow_deny.subnet_bits);
-  if (NCR_AddAccessRestriction(&ip, subnet_bits, 1, 1)) {
-    tx_message->status = htons(STT_SUCCESS);
-  } else {
-    tx_message->status = htons(STT_BADSUBNET);
-  }              
-}
-
-/* ================================================== */
-
-static void
-handle_deny(CMD_Request *rx_message, CMD_Reply *tx_message)
-{
-  IPAddr ip;
-  int subnet_bits;
-  UTI_IPNetworkToHost(&rx_message->data.allow_deny.ip, &ip);
-  subnet_bits = ntohl(rx_message->data.allow_deny.subnet_bits);
-  if (NCR_AddAccessRestriction(&ip, subnet_bits, 0, 0)) {
-    tx_message->status = htons(STT_SUCCESS);
-  } else {
-    tx_message->status = htons(STT_BADSUBNET);
-  }              
-}
-
-/* ================================================== */
-
-static void
-handle_denyall(CMD_Request *rx_message, CMD_Reply *tx_message)
-{
-  IPAddr ip;
-  int subnet_bits;
-  UTI_IPNetworkToHost(&rx_message->data.allow_deny.ip, &ip);
-  subnet_bits = ntohl(rx_message->data.allow_deny.subnet_bits);
-  if (NCR_AddAccessRestriction(&ip, subnet_bits, 0, 1)) {
-    tx_message->status = htons(STT_SUCCESS);
-  } else {
-    tx_message->status = htons(STT_BADSUBNET);
-  }              
-}
-
-/* ================================================== */
-
-static void
-handle_cmdallow(CMD_Request *rx_message, CMD_Reply *tx_message)
-{
-  IPAddr ip;
-  int subnet_bits;
-  UTI_IPNetworkToHost(&rx_message->data.allow_deny.ip, &ip);
-  subnet_bits = ntohl(rx_message->data.allow_deny.subnet_bits);
-  if (CAM_AddAccessRestriction(&ip, subnet_bits, 1, 0)) {
-    tx_message->status = htons(STT_SUCCESS);
-  } else {
-    tx_message->status = htons(STT_BADSUBNET);
-  }              
-}
-
-/* ================================================== */
-
-static void
-handle_cmdallowall(CMD_Request *rx_message, CMD_Reply *tx_message)
-{
-  IPAddr ip;
-  int subnet_bits;
-  UTI_IPNetworkToHost(&rx_message->data.allow_deny.ip, &ip);
-  subnet_bits = ntohl(rx_message->data.allow_deny.subnet_bits);
-  if (CAM_AddAccessRestriction(&ip, subnet_bits, 1, 1)) {
-    tx_message->status = htons(STT_SUCCESS);
-  } else {
-    tx_message->status = htons(STT_BADSUBNET);
-  }              
-}
-
-/* ================================================== */
-
-static void
-handle_cmddeny(CMD_Request *rx_message, CMD_Reply *tx_message)
-{
-  IPAddr ip;
-  int subnet_bits;
-  UTI_IPNetworkToHost(&rx_message->data.allow_deny.ip, &ip);
-  subnet_bits = ntohl(rx_message->data.allow_deny.subnet_bits);
-  if (CAM_AddAccessRestriction(&ip, subnet_bits, 0, 0)) {
-    tx_message->status = htons(STT_SUCCESS);
-  } else {
-    tx_message->status = htons(STT_BADSUBNET);
-  }              
-}
-
-/* ================================================== */
-
-static void
-handle_cmddenyall(CMD_Request *rx_message, CMD_Reply *tx_message)
-{
-  IPAddr ip;
-  int subnet_bits;
-  UTI_IPNetworkToHost(&rx_message->data.allow_deny.ip, &ip);
-  subnet_bits = ntohl(rx_message->data.allow_deny.subnet_bits);
-  if (CAM_AddAccessRestriction(&ip, subnet_bits, 0, 1)) {
+  if (CAM_AddAccessRestriction(&ip, subnet_bits, allow, all)) {
     tx_message->status = htons(STT_SUCCESS);
   } else {
     tx_message->status = htons(STT_BADSUBNET);
@@ -2004,35 +1910,35 @@ read_from_cmd_socket(void *anything)
           break;
 
         case REQ_ALLOW:
-          handle_allow(&rx_message, &tx_message);
+          handle_allowdeny(&rx_message, &tx_message, 1, 0);
           break;
 
         case REQ_ALLOWALL:
-          handle_allowall(&rx_message, &tx_message);
+          handle_allowdeny(&rx_message, &tx_message, 1, 1);
           break;
 
         case REQ_DENY:
-          handle_deny(&rx_message, &tx_message);
+          handle_allowdeny(&rx_message, &tx_message, 0, 0);
           break;
 
         case REQ_DENYALL:
-          handle_denyall(&rx_message, &tx_message);
+          handle_allowdeny(&rx_message, &tx_message, 0, 1);
           break;
 
         case REQ_CMDALLOW:
-          handle_cmdallow(&rx_message, &tx_message);
+          handle_cmdallowdeny(&rx_message, &tx_message, 1, 0);
           break;
 
         case REQ_CMDALLOWALL:
-          handle_cmdallowall(&rx_message, &tx_message);
+          handle_cmdallowdeny(&rx_message, &tx_message, 1, 1);
           break;
 
         case REQ_CMDDENY:
-          handle_cmddeny(&rx_message, &tx_message);
+          handle_cmdallowdeny(&rx_message, &tx_message, 0, 0);
           break;
 
         case REQ_CMDDENYALL:
-          handle_cmddenyall(&rx_message, &tx_message);
+          handle_cmdallowdeny(&rx_message, &tx_message, 0, 1);
           break;
 
         case REQ_ACCHECK:
