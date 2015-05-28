@@ -1230,7 +1230,8 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     inst->local_ntp_tx.hi = inst->local_ntp_tx.lo = 0;
 
   if (valid_packet) {
-    precision = LCL_GetSysPrecisionAsQuantum();
+    precision = LCL_GetSysPrecisionAsQuantum() +
+                UTI_Log2ToDouble(message->precision);
 
     SRC_GetFrequencyRange(inst->source, &source_freq_lo, &source_freq_hi);
     
