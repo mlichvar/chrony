@@ -117,6 +117,10 @@ typedef struct {
    transmitted for each packet type. */
 
 typedef struct {
+  int32_t EOR;
+} REQ_Null;
+
+typedef struct {
   IPAddr mask;
   IPAddr address;
   int32_t EOR;
@@ -216,17 +220,9 @@ typedef struct {
 } REQ_Manual;
 
 typedef struct {
-  int32_t EOR;
-} REQ_N_Sources;
-
-typedef struct {
   int32_t index;
   int32_t EOR;
 } REQ_Source_Data;
-
-typedef struct {
-  int32_t EOR;
-} REQ_Rekey;
 
 typedef struct {
   IPAddr ip;
@@ -265,10 +261,6 @@ typedef struct {
 } REQ_Del_Source;
 
 typedef struct {
-  int32_t EOR;
-} REQ_WriteRtc;
-
-typedef struct {
   Float dfreq;
   int32_t EOR;
 } REQ_Dfreq;
@@ -280,25 +272,9 @@ typedef struct {
 } REQ_Doffset;
 
 typedef struct {
-  int32_t EOR;
-} REQ_Tracking;
-
-typedef struct {
   uint32_t index;
   int32_t EOR;
 } REQ_Sourcestats;
-
-typedef struct {
-  int32_t EOR;
-} REQ_RTCReport;
-
-typedef struct {
-  int32_t EOR;
-} REQ_TrimRTC;
-
-typedef struct {
-  int32_t EOR;
-} REQ_CycleLogs;
 
 /* This is based on the response size rather than the
    request size */
@@ -311,25 +287,9 @@ typedef struct {
 } REQ_ClientAccessesByIndex;
 
 typedef struct {
-  int32_t EOR;
-} REQ_ManualList;
-
-typedef struct {
   int32_t index;
   int32_t EOR;
 } REQ_ManualDelete;
-
-typedef struct {
-  int32_t EOR;
-} REQ_MakeStep;
-
-typedef struct {
-  int32_t EOR;
-} REQ_Activity;
-
-typedef struct {
-  int32_t EOR;
-} REQ_Reselect;
 
 typedef struct {
   Float distance;
@@ -398,6 +358,7 @@ typedef struct {
   uint32_t token; /* Command token (to prevent replay attack) */
 
   union {
+    REQ_Null null;
     REQ_Online online;
     REQ_Offline offline;
     REQ_Burst burst;
@@ -415,27 +376,16 @@ typedef struct {
     REQ_Settime settime;
     REQ_Local local;
     REQ_Manual manual;
-    REQ_N_Sources n_sources;
     REQ_Source_Data source_data;
-    REQ_Rekey rekey;
     REQ_Allow_Deny allow_deny;
     REQ_Ac_Check ac_check;
     REQ_NTP_Source ntp_source;
     REQ_Del_Source del_source;
-    REQ_WriteRtc writertc;
     REQ_Dfreq dfreq;
     REQ_Doffset doffset;
-    REQ_Tracking tracking;
     REQ_Sourcestats sourcestats;
-    REQ_RTCReport rtcreport;
-    REQ_TrimRTC trimrtc;
-    REQ_CycleLogs cyclelogs;
     REQ_ClientAccessesByIndex client_accesses_by_index;
-    REQ_ManualList manual_list;
     REQ_ManualDelete manual_delete;
-    REQ_MakeStep make_step;
-    REQ_Activity activity;
-    REQ_Reselect reselect;
     REQ_ReselectDistance reselect_distance;
   } data; /* Command specific parameters */
 
