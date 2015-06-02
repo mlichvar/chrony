@@ -564,6 +564,9 @@ LCL_NotifyLeap(int leap)
   LCL_ReadRawTime(&raw);
   LCL_CookTime(&raw, &cooked, NULL);
 
+  /* Smooth the leap second out */
+  SMT_Leap(&cooked, leap);
+
   /* Dispatch to all handlers as if the clock was stepped */
   invoke_parameter_change_handlers(&raw, &cooked, 0.0, -leap, LCL_ChangeStep);
 }

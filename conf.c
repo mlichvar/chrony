@@ -189,6 +189,7 @@ static char *pidfile;
 /* Smoothing constants */
 static double smooth_max_freq = 0.0; /* in ppm */
 static double smooth_max_wander = 0.0; /* in ppm/s */
+static int smooth_leap_only = 0;
 
 /* Temperature sensor, update interval and compensation coefficients */
 static char *tempcomp_sensor_file = NULL;
@@ -1174,10 +1175,22 @@ parse_broadcast(char *line)
 static void
 parse_smoothtime(char *line)
 {
-  check_number_of_args(line, 2);
+  if (get_number_of_args(line) != 3)
+    check_number_of_args(line, 2);
+
   if (sscanf(line, "%lf %lf", &smooth_max_freq, &smooth_max_wander) != 2) {
     smooth_max_freq = 0.0;
     command_parse_error();
+  }
+
+  line = CPS_SplitWord(CPS_SplitWord(line));
+  smooth_leap_only = 0;
+
+  if (*line) {
+    if (!strcasecmp(line, "leaponly"))
+      smooth_leap_only = 1;
+    else
+      command_parse_error();
   }
 }
 
@@ -1738,10 +1751,11 @@ CNF_GetLockMemory(void)
 /* ================================================== */
 
 void
-CNF_GetSmooth(double *max_freq, double *max_wander)
+CNF_GetSmooth(double *max_freq, double *max_wander, int *leap_only)
 {
   *max_freq = smooth_max_freq;
   *max_wander = smooth_max_wander;
+  *leap_only = smooth_leap_only;
 }
 
 /* ================================================== */

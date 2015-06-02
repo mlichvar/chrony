@@ -77,6 +77,10 @@ static struct stage stages[NUM_STAGES];
 /* Enabled/disabled smoothing */
 static int enabled;
 
+/* Enabled/disabled mode where only leap seconds are smoothed out and normal
+   offset/frequency changes are ignored */
+static int leap_only_mode;
+
 /* Maximum skew/max_wander ratio to start updating offset and frequency */
 #define UNLOCK_SKEW_WANDER_RATIO 10000
 
@@ -185,8 +189,9 @@ update_smoothing(struct timeval *now, double offset, double freq)
 {
   /* Don't accept offset/frequency until the clock has stabilized */
   if (locked) {
-    if (REF_GetSkew() / max_wander < UNLOCK_SKEW_WANDER_RATIO) {
-      LOG(LOGS_INFO, LOGF_Smooth, "Time smoothing activated");
+    if (REF_GetSkew() / max_wander < UNLOCK_SKEW_WANDER_RATIO || leap_only_mode) {
+      LOG(LOGS_INFO, LOGF_Smooth, "Time smoothing activated%s", leap_only_mode ?
+          " (leap seconds only)" : "");
       locked = 0;
     }
     return;
@@ -208,15 +213,19 @@ handle_slew(struct timeval *raw, struct timeval *cooked, double dfreq,
 {
   double delta;
 
-  if (change_type == LCL_ChangeAdjust)
-    update_smoothing(cooked, doffset, dfreq);
+  if (change_type == LCL_ChangeAdjust) {
+    if (leap_only_mode)
+      update_smoothing(cooked, 0.0, 0.0);
+    else
+      update_smoothing(cooked, doffset, dfreq);
+  }
 
   UTI_AdjustTimeval(&last_update, cooked, &last_update, &delta, dfreq, doffset);
 }
 
 void SMT_Initialise(void)
 {
-  CNF_GetSmooth(&max_freq, &max_wander);
+  CNF_GetSmooth(&max_freq, &max_wander, &leap_only_mode);
   if (max_freq <= 0.0 || max_wander <= 0.0) {
       enabled = 0;
       return;
@@ -264,4 +273,15 @@ SMT_Reset(struct timeval *now)
   smooth_offset = 0.0;
   smooth_freq = 0.0;
   last_update = *now;
+}
+
+void
+SMT_Leap(struct timeval *now, int leap)
+{
+  /* When the leap-only mode is disabled, the leap second will be accumulated
+     in handle_slew() as a normal offset */
+  if (!enabled || !leap_only_mode)
+    return;
+
+  update_smoothing(now, leap, 0.0);
 }
