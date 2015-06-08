@@ -945,7 +945,7 @@ handle_source_data(CMD_Request *rx_message, CMD_Reply *tx_message)
   struct timeval now_corr;
 
   /* Get data */
-  LCL_ReadCookedTime(&now_corr, NULL);
+  SCH_GetLastEventTime(&now_corr, NULL, NULL);
   if (SRC_ReportSource(ntohl(rx_message->data.source_data.index), &report, &now_corr)) {
     switch (SRC_GetType(ntohl(rx_message->data.source_data.index))) {
       case SRC_NTP:
@@ -1230,7 +1230,7 @@ handle_sourcestats(CMD_Request *rx_message, CMD_Reply *tx_message)
   RPT_SourcestatsReport report;
   struct timeval now_corr;
 
-  LCL_ReadCookedTime(&now_corr, NULL);
+  SCH_GetLastEventTime(&now_corr, NULL, NULL);
   status = SRC_ReportSourcestats(ntohl(rx_message->data.sourcestats.index),
                                  &report, &now_corr);
 
@@ -1300,7 +1300,7 @@ handle_client_accesses_by_index(CMD_Request *rx_message, CMD_Reply *tx_message)
   int i, j;
   struct timeval now;
 
-  LCL_ReadCookedTime(&now, NULL);
+  SCH_GetLastEventTime(&now, NULL, NULL);
 
   first_index = ntohl(rx_message->data.client_accesses_by_index.first_index);
   n_indices = ntohl(rx_message->data.client_accesses_by_index.n_indices);
@@ -1471,8 +1471,8 @@ read_from_cmd_socket(void *anything)
 
   read_length = status;
 
-  LCL_ReadRawTime(&now);
-  LCL_CookTime(&now, &cooked_now, NULL);
+  /* Get current time cheaply */
+  SCH_GetLastEventTime(&cooked_now, NULL, &now);
 
   UTI_SockaddrToIPAndPort(&where_from.u, &remote_ip, &remote_port);
 
