@@ -44,6 +44,8 @@ ARR_CreateInstance(unsigned int elem_size)
 {
   ARR_Instance array;
 
+  assert(elem_size > 0);
+
   array = MallocNew(struct ARR_Instance_Record);
 
   array->data = NULL;
@@ -64,6 +66,9 @@ ARR_DestroyInstance(ARR_Instance array)
 static void
 realloc_array(ARR_Instance array, unsigned int min_size)
 {
+  size_t data_size;
+
+  assert(min_size <= 2 * min_size);
   if (array->allocated >= min_size && array->allocated <= 2 * min_size)
     return;
 
@@ -74,7 +79,10 @@ realloc_array(ARR_Instance array, unsigned int min_size)
     array->allocated = min_size;
   }
 
-  array->data = Realloc(array->data, array->elem_size * array->allocated);
+  data_size = (size_t)array->elem_size * array->allocated;
+  assert(data_size / array->elem_size == array->allocated);
+
+  array->data = Realloc(array->data, data_size);
 }
 
 void *
@@ -89,7 +97,7 @@ void *
 ARR_GetElement(ARR_Instance array, unsigned int index)
 {
   assert(index < array->used);
-  return (void *)((char *)array->data + index * array->elem_size);
+  return (void *)((char *)array->data + (size_t)index * array->elem_size);
 }
 
 void *
