@@ -872,16 +872,18 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
   /* If there are any sources with prefer option, reduce the list again
      only to the preferred sources */
-  for (i = j = 0; i < n_sel_sources; i++) {
+  for (i = 0; i < n_sel_sources; i++) {
     if (sources[sel_sources[i]]->sel_option == SRC_SelectPrefer)
-      sel_sources[j++] = sel_sources[i];
+      break;
   }
-
-  if (j > 0) {
-    for (i = 0; i < n_sel_sources; i++) {
+  if (i < n_sel_sources) {
+    for (i = j = 0; i < n_sel_sources; i++) {
       if (sources[sel_sources[i]]->sel_option != SRC_SelectPrefer)
         sources[sel_sources[i]]->status = SRC_NONPREFERRED;
+      else
+        sel_sources[j++] = sel_sources[i];
     }
+    assert(j > 0);
     n_sel_sources = j;
     sel_prefer = 1;
   } else {
