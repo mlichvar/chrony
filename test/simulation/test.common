@@ -65,6 +65,7 @@ default_chronyc_start=1000.0
 default_server_step=""
 default_client_step=""
 
+default_client_server_conf=""
 default_server_server_options=""
 default_client_server_options=""
 default_server_peer_options=""
@@ -192,9 +193,13 @@ get_chronyd_conf() {
 		done
 		echo "$server_conf"
 	else
-		for i in $(seq 1 $servers); do
-			echo "server 192.168.123.$[$servers * ($stratum - 2) + $i] $client_server_options"
-		done
+		if [ -n "$client_server_conf" ]; then
+			echo "$client_server_conf"
+		else
+			for i in $(seq 1 $servers); do
+				echo "server 192.168.123.$[$servers * ($stratum - 2) + $i] $client_server_options"
+			done
+		fi
 		for i in $(seq 1 $peers); do
 			[ $i -eq $peer -o $i -gt $clients ] && continue
 			echo "peer 192.168.123.$[$servers * ($stratum - 1) + $i] $client_peer_options"
