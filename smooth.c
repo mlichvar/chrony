@@ -266,13 +266,17 @@ SMT_GetOffset(struct timeval *now)
 void
 SMT_Reset(struct timeval *now)
 {
+  int i;
+
   if (!enabled)
     return;
 
-  locked = 1;
   smooth_offset = 0.0;
   smooth_freq = 0.0;
   last_update = *now;
+
+  for (i = 0; i < NUM_STAGES; i++)
+    stages[i].wander = stages[i].length = 0.0;
 }
 
 void
