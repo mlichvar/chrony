@@ -330,6 +330,10 @@ SCH_AddTimeoutByDelay(double delay, SCH_TimeoutHandler handler, SCH_ArbitraryArg
 
   LCL_ReadRawTime(&now);
   UTI_AddDoubleToTimeval(&now, delay, &then);
+  if (UTI_CompareTimevals(&now, &then) > 0) {
+    LOG_FATAL(LOGF_Scheduler, "Timeout overflow");
+  }
+
   return SCH_AddTimeout(&then, handler, arg);
 
 }
