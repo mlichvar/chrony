@@ -150,6 +150,12 @@ chrony.html : chrony.texi
 chrony.info : chrony.texi
 	makeinfo chrony.texi
 
+Makefile : Makefile.in configure
+	@echo
+	@echo Makefile needs to be regenerated, run ./configure
+	@echo
+	@exit 1
+
 .deps:
 	@mkdir .deps
 
