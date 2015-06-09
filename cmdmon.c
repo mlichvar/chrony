@@ -925,6 +925,9 @@ handle_manual(CMD_Request *rx_message, CMD_Reply *tx_message)
     case 2:
       MNL_Reset();
       break;
+    default:
+      tx_message->status = htons(STT_INVALID);
+      break;
   }
 }
 
