@@ -807,43 +807,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
     }
   }
 
-#if 0
-  /* We now have a list of indices for the sources which pass the
-     false-ticker test.  Now go on to reject those whose variance is
-     greater than the minimum distance of any other */
-
-  /* Find minimum distance */
-  index = sel_sources[0];
-  min_distance = sources[index]->sel_info.root_distance;
-  for (i = 1; i < n_sel_sources; i++) {
-    index = sel_sources[i];
-    distance = sources[index]->sel_info.root_distance;
-    if (distance < min_distance) {
-      min_distance = distance;
-    }
-  }
-
-  /* Now go through and prune any NTP sources that have excessive
-     variance */
-  for (i = 0; i < n_sel_sources; i++) {
-    index = sel_sources[i];
-    if (sources[index]->type == SRC_NTP &&
-        sqrt(sources[index]->sel_info.variance) > min_distance) {
-      sel_sources[i] = INVALID_SOURCE;
-      sources[index]->status = SRC_JITTERY;
-    }
-  }
-
-  /* Now crunch the list and mark all sources as selectable */
-  for (i = j = 0; i < n_sel_sources; i++) {
-    index = sel_sources[i];
-    if (index == INVALID_SOURCE)
-      continue;
-    sel_sources[j++] = index;
-  }
-  n_sel_sources = j;
-#endif
-
   if (n_sel_sources == 0 || n_sel_sources < CNF_GetMinSources()) {
     if (selected_source_index != INVALID_SOURCE) {
       log_selection_message("Can't synchronise: %s selectable sources",
