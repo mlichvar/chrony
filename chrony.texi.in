@@ -3048,14 +3048,18 @@ falseticker or fail to select a source completely.
 
 The smoothing process is independent from any slewing applied to the local
 system clock, but the accumulated offset and frequency for smoothing will be
-reset when the clock is corrected by step, e.g. by the @code{makestep}
-directive or command.
+reset when the clock is corrected by stepping, e.g. by the @code{makestep}
+directive or command.  The process can be reset without stepping the clock
+by the @code{smoothtime reset} command (@pxref{smoothtime command}).
 
 The directive takes two arguments, the maximum frequency offset of the smoothed
 time to the tracked NTP time (in ppm) and the maximum rate at which the
 frequency offset is allowed to change (in ppm per second).  The smoothing
-process is activated when 1/10000 of the estimated skew of the local clock
-falls below the maximum rate of frequency change.
+process is activated automatically when 1/10000 of the estimated skew of the
+local clock falls below the maximum rate of frequency change.  It can be
+activated explicitly by the @code{smoothtime activate} command, which is
+particularly useful when the clock is synchronized only with manual input
+since the skew can't be small enough to activate the process.
 
 An example suitable for clients using @code{ntpd} and 1024 second polling
 interval could be
@@ -3346,6 +3350,7 @@ interface.
 * rtcdata command::             Display RTC parameters
 * settime command::             Provide a manual input of the current time
 * smoothing command::           Display current time smoothing state
+* smoothtime command::          Reset/activate server time smoothing
 * sources command::             Display information about the current set of sources
 * sourcestats command::         Display the rate & offset estimation performance of sources
 * timeout command::             Set initial response timeout
@@ -4367,6 +4372,21 @@ This field shows how long ago was the time smoothing process updated, e.g.
 The time it would take for the smoothing process to get to zero offset and
 frequency if there were no more updates.
 @end table
+@c }}}
+@c {{{ smoothtime
+@node smoothtime command
+@subsubsection smoothtime
+The @code{smoothtime} command can be used to reset or activate the server time
+smoothing process if it is configured with the @code{smoothtime} directive
+(@pxref{smoothtime directive}).
+
+The syntax is as follows
+
+@example
+smoothtime reset
+smoothtime activate
+@end example
+
 @c }}}
 @c {{{ sources
 @node sources command

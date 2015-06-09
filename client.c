@@ -1185,6 +1185,7 @@ give_help(void)
   printf("rtcdata : Print current RTC performance parameters\n");
   printf("settime <date/time (e.g. Nov 21, 1997 16:30:05 or 16:30:05)> : Manually set the daemon time\n");
   printf("smoothing : Display current time smoothing state\n");
+  printf("smoothtime reset|activate : Reset/activate time smoothing\n");
   printf("sources [-v] : Display information about current sources\n");
   printf("sourcestats [-v] : Display estimation information about current sources\n");
   printf("tracking : Display system time information\n");
@@ -2004,6 +2005,25 @@ process_cmd_smoothing(char *line)
 /* ================================================== */
 
 static int
+process_cmd_smoothtime(CMD_Request *msg, const char *line)
+{
+  if (!strcmp(line, "reset")) {
+    msg->data.smoothtime.option = htonl(REQ_SMOOTHTIME_RESET);
+  } else if (!strcmp(line, "activate")) {
+    msg->data.smoothtime.option = htonl(REQ_SMOOTHTIME_ACTIVATE);
+  } else {
+    fprintf(stderr, "Invalid syntax for smoothtime command\n");
+    return 0;
+  }
+
+  msg->command = htons(REQ_SMOOTHTIME);
+
+  return 1;
+}
+
+/* ================================================== */
+
+static int
 process_cmd_rtcreport(char *line)
 {
   CMD_Request request;
@@ -2577,6 +2597,8 @@ process_line(char *line, int *quit)
   } else if (!strcmp(command, "smoothing")) {
     do_normal_submit = 0;
     ret = process_cmd_smoothing(line);
+  } else if (!strcmp(command, "smoothtime")) {
+    do_normal_submit = process_cmd_smoothtime(&tx_message, line);
   } else if (!strcmp(command, "sources")) {
     do_normal_submit = 0;
     ret = process_cmd_sources(line);
