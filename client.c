@@ -1184,6 +1184,7 @@ give_help(void)
   printf("reselect : Reselect synchronisation source\n");
   printf("rtcdata : Print current RTC performance parameters\n");
   printf("settime <date/time (e.g. Nov 21, 1997 16:30:05 or 16:30:05)> : Manually set the daemon time\n");
+  printf("smoothing : Display current time smoothing state\n");
   printf("sources [-v] : Display information about current sources\n");
   printf("sourcestats [-v] : Display estimation information about current sources\n");
   printf("tracking : Display system time information\n");
@@ -1965,6 +1966,44 @@ process_cmd_tracking(char *line)
 /* ================================================== */
 
 static int
+process_cmd_smoothing(char *line)
+{
+  CMD_Request request;
+  CMD_Reply reply;
+  uint32_t flags;
+  double offset;
+  double freq_ppm;
+  double wander_ppm;
+  double last_update_ago;
+  double remaining_time;
+
+  request.command = htons(REQ_SMOOTHING);
+
+  if (request_reply(&request, &reply, RPY_SMOOTHING, 0)) {
+    flags = ntohl(reply.data.smoothing.flags);
+    offset = UTI_FloatNetworkToHost(reply.data.smoothing.offset);
+    freq_ppm = UTI_FloatNetworkToHost(reply.data.smoothing.freq_ppm);
+    wander_ppm = UTI_FloatNetworkToHost(reply.data.smoothing.wander_ppm);
+    last_update_ago = UTI_FloatNetworkToHost(reply.data.smoothing.last_update_ago);
+    remaining_time = UTI_FloatNetworkToHost(reply.data.smoothing.remaining_time);
+
+    printf("Active         : %s%s\n",
+           flags & RPY_SMT_FLAG_ACTIVE ? "Yes" : "No",
+           flags & RPY_SMT_FLAG_LEAPONLY ? " (leap second only)" : "");
+    printf("Offset         : %+.9f seconds\n", offset);
+    printf("Frequency      : %+.6f ppm\n", freq_ppm);
+    printf("Wander         : %+.6f ppm per second\n", wander_ppm);
+    printf("Last update    : %.1f seconds ago\n", last_update_ago);
+    printf("Remaining time : %.1f seconds\n", remaining_time);
+    return 1;
+  }
+
+  return 0;
+}
+
+/* ================================================== */
+
+static int
 process_cmd_rtcreport(char *line)
 {
   CMD_Request request;
@@ -2535,6 +2574,9 @@ process_line(char *line, int *quit)
   } else if (!strcmp(command, "settime")) {
     do_normal_submit = 0;
     ret = process_cmd_settime(line);
+  } else if (!strcmp(command, "smoothing")) {
+    do_normal_submit = 0;
+    ret = process_cmd_smoothing(line);
   } else if (!strcmp(command, "sources")) {
     do_normal_submit = 0;
     ret = process_cmd_sources(line);

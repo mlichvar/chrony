@@ -3284,6 +3284,7 @@ password:
 @item @code{password}
 @item @code{quit}
 @item @code{rtcdata}
+@item @code{smoothing}
 @item @code{sources}
 @item @code{sourcestats}
 @item @code{tracking}
@@ -3344,6 +3345,7 @@ interface.
 * retries command::             Set maximum number of retries
 * rtcdata command::             Display RTC parameters
 * settime command::             Provide a manual input of the current time
+* smoothing command::           Display current time smoothing state
 * sources command::             Display information about the current set of sources
 * sourcestats command::         Display the rate & offset estimation performance of sources
 * timeout command::             Set initial response timeout
@@ -4320,6 +4322,51 @@ settime Nov 21, 1997 16:30:05
 
 For a full description of @code{getdate}, get hold of the getdate
 documentation (bundled, for example, with the source for GNU tar).
+@c }}}
+@c {{{ smoothing
+@node smoothing command
+@subsubsection smoothing
+The @code{smoothing} command displays the current state of the NTP server time
+smoothing. An example of the output is shown below.
+
+@example
+Active         : Yes
+Offset         : +1.000268817 seconds
+Frequency      : -0.142859 ppm
+Wander         : -0.010000 ppm per second
+Last update    : 17.8 seconds ago
+Remaining time : 19988.4 seconds
+@end example
+
+The fields are explained as follows.
+
+@table @code
+@item Active
+This shows if the server time smoothing is currently active.  Possible values
+are @code{Yes} and @code{No}.  If the @code{leaponly} option is included in the
+@code{smoothtime} directive, @code{(leap second only)} will be shown on the
+line.
+
+@item Offset
+This is the current offset applied to the time sent to NTP clients.  Positive
+value means the clients are getting time that's ahead of true time.
+
+@item Frequency
+The current frequency offset of the served time.  Negative value means the time
+observed by clients is running slower than true time.
+
+@item Wander
+The current frequency wander of the served time.  Negative value means the time
+observed by clients is slowing down.
+
+@item Last update
+This field shows how long ago was the time smoothing process updated, e.g.
+@code{chronyd} accumulated a new measurement.
+
+@item Remaining time
+The time it would take for the smoothing process to get to zero offset and
+frequency if there were no more updates.
+@end table
 @c }}}
 @c {{{ sources
 @node sources command
