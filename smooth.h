@@ -27,6 +27,8 @@
 #ifndef GOT_SMOOTH_H
 #define GOT_SMOOTH_H
 
+#include "reports.h"
+
 extern void SMT_Initialise(void);
 
 extern void SMT_Finalise(void);
@@ -38,5 +40,7 @@ extern double SMT_GetOffset(struct timeval *now);
 extern void SMT_Reset(struct timeval *now);
 
 extern void SMT_Leap(struct timeval *now, int leap);
+
+extern int SMT_GetSmoothingReport(RPT_SmoothingReport *report, struct timeval *now);
 
 #endif

@@ -146,6 +146,8 @@ command_unpadded_length(CMD_Request *r)
         return offsetof(CMD_Request, data.modify_minstratum.EOR);
       case REQ_MODIFY_POLLTARGET:
         return offsetof(CMD_Request, data.modify_polltarget.EOR);
+      case REQ_SMOOTHING:
+        return offsetof(CMD_Request, data.null.EOR);
       default:
         /* If we fall through the switch, it most likely means we've forgotten to implement a new case */
         assert(0);
@@ -296,6 +298,8 @@ PKL_CommandPaddingLength(CMD_Request *r)
       return PADDING_LENGTH(data.modify_minstratum.EOR, data.null.EOR);
     case REQ_MODIFY_POLLTARGET:
       return PADDING_LENGTH(data.modify_polltarget.EOR, data.null.EOR);
+    case REQ_SMOOTHING:
+      return PADDING_LENGTH(data.null.EOR, data.smoothing.EOR);
     default:
       /* If we fall through the switch, it most likely means we've forgotten to implement a new case */
       assert(0);
@@ -359,7 +363,8 @@ PKL_ReplyLength(CMD_Reply *r)
         }
       case RPY_ACTIVITY:
         return offsetof(CMD_Reply, data.activity.EOR);
-        
+      case RPY_SMOOTHING:
+        return offsetof(CMD_Reply, data.smoothing.EOR);
       default:
         assert(0);
     }

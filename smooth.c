@@ -97,15 +97,17 @@ static struct timeval last_update;
 
 
 static void
-get_offset_freq(struct timeval *now, double *offset, double *freq)
+get_smoothing(struct timeval *now, double *poffset, double *pfreq,
+              double *pwander)
 {
-  double elapsed, length;
+  double elapsed, length, offset, freq, wander;
   int i;
 
   UTI_DiffTimevalsToDouble(&elapsed, now, &last_update);
 
-  *offset = smooth_offset;
-  *freq = smooth_freq;
+  offset = smooth_offset;
+  freq = smooth_freq;
+  wander = 0.0;
 
   for (i = 0; i < NUM_STAGES; i++) {
     if (elapsed <= 0.0)
@@ -115,13 +117,21 @@ get_offset_freq(struct timeval *now, double *offset, double *freq)
     if (length >= elapsed)
       length = elapsed;
 
-    *offset -= length * (2.0 * *freq + stages[i].wander * length) / 2.0;
-    *freq += stages[i].wander * length;
+    wander = stages[i].wander;
+    offset -= length * (2.0 * freq + wander * length) / 2.0;
+    freq += wander * length;
     elapsed -= length;
   }
 
-  if (elapsed > 0.0)
-    *offset -= elapsed * *freq;
+  if (elapsed > 0.0) {
+    wander = 0.0;
+    offset -= elapsed * freq;
+  }
+
+  *poffset = offset;
+  *pfreq = freq;
+  if (pwander)
+    *pwander = wander;
 }
 
 static void
@@ -193,11 +203,12 @@ update_smoothing(struct timeval *now, double offset, double freq)
       LOG(LOGS_INFO, LOGF_Smooth, "Time smoothing activated%s", leap_only_mode ?
           " (leap seconds only)" : "");
       locked = 0;
+      last_update = *now;
     }
     return;
   }
 
-  get_offset_freq(now, &smooth_offset, &smooth_freq);
+  get_smoothing(now, &smooth_offset, &smooth_freq, NULL);
   smooth_offset += offset;
   smooth_freq = (smooth_freq - freq) / (1.0 - freq);
   last_update = *now;
@@ -258,7 +269,7 @@ SMT_GetOffset(struct timeval *now)
   if (!enabled)
     return 0.0;
   
-  get_offset_freq(now, &offset, &freq);
+  get_smoothing(now, &offset, &freq, NULL);
 
   return offset;
 }
@@ -288,4 +299,36 @@ SMT_Leap(struct timeval *now, int leap)
     return;
 
   update_smoothing(now, leap, 0.0);
+}
+
+int
+SMT_GetSmoothingReport(RPT_SmoothingReport *report, struct timeval *now)
+{
+  double length, elapsed;
+  int i;
+
+  if (!enabled)
+    return 0;
+
+  report->active = !locked;
+  report->leap_only = leap_only_mode;
+
+  get_smoothing(now, &report->offset, &report->freq_ppm, &report->wander_ppm);
+
+  /* Convert to ppm and negate (positive values mean faster/speeding up) */
+  report->freq_ppm *= -1.0e6;
+  report->wander_ppm *= -1.0e6;
+
+  UTI_DiffTimevalsToDouble(&elapsed, now, &last_update);
+  if (!locked && elapsed >= 0.0) {
+    for (i = 0, length = 0.0; i < NUM_STAGES; i++)
+      length += stages[i].length;
+    report->last_update_ago = elapsed;
+    report->remaining_time = elapsed < length ? length - elapsed : 0.0;
+  } else {
+    report->last_update_ago = 0.0;
+    report->remaining_time = 0.0;
+  }
+
+  return 1;
 }

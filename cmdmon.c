@@ -37,6 +37,7 @@
 #include "keys.h"
 #include "ntp_sources.h"
 #include "ntp_core.h"
+#include "smooth.h"
 #include "sources.h"
 #include "sourcestats.h"
 #include "reference.h"
@@ -162,6 +163,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* RESELECT */
   PERMIT_AUTH, /* RESELECTDISTANCE */
   PERMIT_AUTH, /* MODIFY_MAKESTEP */
+  PERMIT_OPEN, /* SMOOTHING */
 };
 
 /* ================================================== */
@@ -1224,6 +1226,31 @@ handle_tracking(CMD_Request *rx_message, CMD_Reply *tx_message)
 /* ================================================== */
 
 static void
+handle_smoothing(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  RPT_SmoothingReport report;
+  struct timeval now;
+
+  SCH_GetLastEventTime(&now, NULL, NULL);
+
+  if (!SMT_GetSmoothingReport(&report, &now)) {
+    tx_message->status = htons(STT_NOTENABLED);
+    return;
+  }
+
+  tx_message->reply  = htons(RPY_SMOOTHING);
+  tx_message->data.smoothing.flags = htonl((report.active ? RPY_SMT_FLAG_ACTIVE : 0) |
+                                           (report.leap_only ? RPY_SMT_FLAG_LEAPONLY : 0));
+  tx_message->data.smoothing.offset = UTI_FloatHostToNetwork(report.offset);
+  tx_message->data.smoothing.freq_ppm = UTI_FloatHostToNetwork(report.freq_ppm);
+  tx_message->data.smoothing.wander_ppm = UTI_FloatHostToNetwork(report.wander_ppm);
+  tx_message->data.smoothing.last_update_ago = UTI_FloatHostToNetwork(report.last_update_ago);
+  tx_message->data.smoothing.remaining_time = UTI_FloatHostToNetwork(report.remaining_time);
+}
+
+/* ================================================== */
+
+static void
 handle_sourcestats(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   int status;
@@ -1887,6 +1914,10 @@ read_from_cmd_socket(void *anything)
 
         case REQ_TRACKING:
           handle_tracking(&rx_message, &tx_message);
+          break;
+
+        case REQ_SMOOTHING:
+          handle_smoothing(&rx_message, &tx_message);
           break;
 
         case REQ_SOURCESTATS:

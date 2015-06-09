@@ -89,7 +89,8 @@
 #define REQ_RESELECT 48
 #define REQ_RESELECTDISTANCE 49
 #define REQ_MODIFY_MAKESTEP 50
-#define N_REQUEST_TYPES 51
+#define REQ_SMOOTHING 51
+#define N_REQUEST_TYPES 52
 
 /* Special utoken value used to log on with first exchange being the
    password.  (This time value has long since gone by) */
@@ -422,7 +423,8 @@ typedef struct {
 #define RPY_CLIENT_ACCESSES_BY_INDEX 10
 #define RPY_MANUAL_LIST 11
 #define RPY_ACTIVITY 12
-#define N_REPLY_TYPES 13
+#define RPY_SMOOTHING 13
+#define N_REPLY_TYPES 14
 
 /* Status codes */
 #define STT_SUCCESS 0
@@ -577,6 +579,19 @@ typedef struct {
   int32_t EOR;
 } RPY_Activity;
 
+#define RPY_SMT_FLAG_ACTIVE 0x1
+#define RPY_SMT_FLAG_LEAPONLY 0x2
+
+typedef struct {
+  uint32_t flags;
+  Float offset;
+  Float freq_ppm;
+  Float wander_ppm;
+  Float last_update_ago;
+  Float remaining_time;
+  int32_t EOR;
+} RPY_Smoothing;
+
 typedef struct {
   uint8_t version;
   uint8_t pkt_type;
@@ -603,6 +618,7 @@ typedef struct {
     RPY_ClientAccessesByIndex client_accesses_by_index;
     RPY_ManualList manual_list;
     RPY_Activity activity;
+    RPY_Smoothing smoothing;
   } data; /* Reply specific parameters */
 
   /* authentication of the packet, there is no hole after the actual data

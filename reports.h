@@ -112,4 +112,14 @@ typedef struct {
   int unresolved;
 } RPT_ActivityReport;
 
+typedef struct {
+  int active;
+  int leap_only;
+  double offset;
+  double freq_ppm;
+  double wander_ppm;
+  double last_update_ago;
+  double remaining_time;
+} RPT_SmoothingReport;
+
 #endif /* GOT_REPORTS_H */
