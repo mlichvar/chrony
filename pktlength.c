@@ -148,6 +148,8 @@ command_unpadded_length(CMD_Request *r)
         return offsetof(CMD_Request, data.modify_polltarget.EOR);
       case REQ_SMOOTHING:
         return offsetof(CMD_Request, data.null.EOR);
+      case REQ_SMOOTHTIME:
+        return offsetof(CMD_Request, data.smoothtime.EOR);
       default:
         /* If we fall through the switch, it most likely means we've forgotten to implement a new case */
         assert(0);
@@ -300,6 +302,8 @@ PKL_CommandPaddingLength(CMD_Request *r)
       return PADDING_LENGTH(data.modify_polltarget.EOR, data.null.EOR);
     case REQ_SMOOTHING:
       return PADDING_LENGTH(data.null.EOR, data.smoothing.EOR);
+    case REQ_SMOOTHTIME:
+      return PADDING_LENGTH(data.smoothtime.EOR, data.null.EOR);
     default:
       /* If we fall through the switch, it most likely means we've forgotten to implement a new case */
       assert(0);

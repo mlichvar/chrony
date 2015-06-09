@@ -199,12 +199,8 @@ update_smoothing(struct timeval *now, double offset, double freq)
 {
   /* Don't accept offset/frequency until the clock has stabilized */
   if (locked) {
-    if (REF_GetSkew() / max_wander < UNLOCK_SKEW_WANDER_RATIO || leap_only_mode) {
-      LOG(LOGS_INFO, LOGF_Smooth, "Time smoothing activated%s", leap_only_mode ?
-          " (leap seconds only)" : "");
-      locked = 0;
-      last_update = *now;
-    }
+    if (REF_GetSkew() / max_wander < UNLOCK_SKEW_WANDER_RATIO || leap_only_mode)
+      SMT_Activate(now);
     return;
   }
 
@@ -272,6 +268,18 @@ SMT_GetOffset(struct timeval *now)
   get_smoothing(now, &offset, &freq, NULL);
 
   return offset;
+}
+
+void
+SMT_Activate(struct timeval *now)
+{
+  if (!enabled || !locked)
+    return;
+
+  LOG(LOGS_INFO, LOGF_Smooth, "Time smoothing activated%s", leap_only_mode ?
+      " (leap seconds only)" : "");
+  locked = 0;
+  last_update = *now;
 }
 
 void

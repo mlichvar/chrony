@@ -90,7 +90,8 @@
 #define REQ_RESELECTDISTANCE 49
 #define REQ_MODIFY_MAKESTEP 50
 #define REQ_SMOOTHING 51
-#define N_REQUEST_TYPES 52
+#define REQ_SMOOTHTIME 52
+#define N_REQUEST_TYPES 53
 
 /* Special utoken value used to log on with first exchange being the
    password.  (This time value has long since gone by) */
@@ -297,6 +298,14 @@ typedef struct {
   int32_t EOR;
 } REQ_ReselectDistance;
 
+#define REQ_SMOOTHTIME_RESET 0
+#define REQ_SMOOTHTIME_ACTIVATE 1
+
+typedef struct {
+  int32_t option;
+  int32_t EOR;
+} REQ_SmoothTime;
+
 /* ================================================== */
 
 #define PKT_TYPE_CMD_REQUEST 1
@@ -326,7 +335,7 @@ typedef struct {
 
    Version 6 : added padding to requests to prevent amplification attack,
    changed maximum number of samples in manual list to 16, new commands: modify
-   makestep
+   makestep, smoothing report, smoothtime command
  */
 
 #define PROTO_VERSION_NUMBER 6
@@ -388,6 +397,7 @@ typedef struct {
     REQ_ClientAccessesByIndex client_accesses_by_index;
     REQ_ManualDelete manual_delete;
     REQ_ReselectDistance reselect_distance;
+    REQ_SmoothTime smoothtime;
   } data; /* Command specific parameters */
 
   /* The following fields only set the maximum size of the packet.

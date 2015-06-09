@@ -37,6 +37,8 @@ extern int SMT_IsEnabled(void);
 
 extern double SMT_GetOffset(struct timeval *now);
 
+extern void SMT_Activate(struct timeval *now);
+
 extern void SMT_Reset(struct timeval *now);
 
 extern void SMT_Leap(struct timeval *now, int leap);

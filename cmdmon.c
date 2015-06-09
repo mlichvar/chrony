@@ -164,6 +164,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* RESELECTDISTANCE */
   PERMIT_AUTH, /* MODIFY_MAKESTEP */
   PERMIT_OPEN, /* SMOOTHING */
+  PERMIT_AUTH, /* SMOOTHTIME */
 };
 
 /* ================================================== */
@@ -1251,6 +1252,35 @@ handle_smoothing(CMD_Request *rx_message, CMD_Reply *tx_message)
 /* ================================================== */
 
 static void
+handle_smoothtime(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  struct timeval now;
+  int option;
+
+  if (!SMT_IsEnabled()) {
+    tx_message->status = htons(STT_NOTENABLED);
+    return;
+  }
+
+  option = ntohl(rx_message->data.smoothtime.option);
+  SCH_GetLastEventTime(&now, NULL, NULL);
+
+  switch (option) {
+    case REQ_SMOOTHTIME_RESET:
+      SMT_Reset(&now);
+      break;
+    case REQ_SMOOTHTIME_ACTIVATE:
+      SMT_Activate(&now);
+      break;
+    default:
+      tx_message->status = htons(STT_INVALID);
+      break;
+  }
+}
+
+/* ================================================== */
+
+static void
 handle_sourcestats(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   int status;
@@ -1918,6 +1948,10 @@ read_from_cmd_socket(void *anything)
 
         case REQ_SMOOTHING:
           handle_smoothing(&rx_message, &tx_message);
+          break;
+
+        case REQ_SMOOTHTIME:
+          handle_smoothtime(&rx_message, &tx_message);
           break;
 
         case REQ_SOURCESTATS:
