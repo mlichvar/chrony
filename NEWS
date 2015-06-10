@@ -1,3 +1,22 @@
+New in version 2.1
+==================
+
+Enhancements
+------------
+* Try to replace unreachable and falseticker servers/peers specified
+  by name like pool sources
+* Add leaponly option to smoothtime directive to allow synchronised
+  leap smear between multiple servers
+* Add smoothing command to report time smoothing status
+* Add smoothtime command to activate or reset time smoothing
+
+Bug fixes
+---------
+* Fix crash in source selection with preferred sources
+* Fix resetting of time smoothing
+* Include packet precision in peer dispersion
+* Fix crash in chronyc on invalid command syntax
+
 New in version 2.0
 ==================
 
