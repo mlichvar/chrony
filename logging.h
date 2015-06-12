@@ -94,6 +94,7 @@ typedef enum {
   LOGF_Sys,
   LOGF_SysGeneric,
   LOGF_SysLinux,
+  LOGF_SysMacOSX,
   LOGF_SysNetBSD,
   LOGF_SysSolaris,
   LOGF_SysSunOS,

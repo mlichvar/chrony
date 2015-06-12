@@ -73,12 +73,14 @@ $(HASH_OBJ) : $(patsubst %.o,%.c,$(HASH_OBJ))
 	$(CC) $(CFLAGS) $(CPPFLAGS) @HASH_COMPILE@ -c $<
 
 distclean : clean
+	-rm -f .DS_Store
 	-rm -f Makefile
 	-rm -f chrony.conf.5 chrony.texi chronyc.1 chronyd.8
 
 clean :
 	-rm -f *.o *.s chronyc chronyd core *~ chrony.info chrony.html chrony.txt
 	-rm -rf .deps
+	-rm -rf *.dSYM
 
 getdate.c :
 	bison -o getdate.c getdate.y

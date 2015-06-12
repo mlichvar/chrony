@@ -2,6 +2,8 @@
 .vimrc
 *.o
 *.swp
+*.dSYM
+*.DS_Store
 RELEASES
 Makefile
 chrony.conf.5
