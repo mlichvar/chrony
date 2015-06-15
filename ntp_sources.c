@@ -369,7 +369,7 @@ process_resolved_name(struct UnresolvedSource *us, IPAddr *ip_addrs, int n_addrs
   int i, added;
 
   for (i = added = 0; i < n_addrs; i++) {
-    DEBUG_LOG(LOGF_NtpSources, "%s resolved to %s", us->name, UTI_IPToString(&ip_addrs[i]));
+    DEBUG_LOG(LOGF_NtpSources, "(%d) %s", i + 1, UTI_IPToString(&ip_addrs[i]));
 
     address.ip_addr = ip_addrs[i];
     address.port = us->port;
@@ -398,6 +398,8 @@ name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *any
   us = (struct UnresolvedSource *)anything;
 
   assert(us == resolving_source);
+
+  DEBUG_LOG(LOGF_NtpSources, "%s resolved to %d addrs", us->name, n_addrs);
 
   switch (status) {
     case DNS_TryAgain:
