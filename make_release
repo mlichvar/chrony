@@ -59,15 +59,9 @@ if [ $(wc -l < INSTALL) -gt 100 -o $(wc -l < INSTALL) -lt 85 ]; then
   exit 3
 fi
 
-awk '/^[1-9] Frequently asked questions$/{p=1}
-     /^Appendix A GNU General Public License$/{exit}; p' chrony.txt | \
- tail -n +4 | sed 's/^[1-9]\.\([1-9]\)/\1/' | sed 's/^----/--/' | \
- sed 's/^====/==/' > FAQ
-
-if [ $(wc -l < FAQ) -gt 400 -o $(wc -l < FAQ) -lt 200 ]; then
-  echo "FAQ generated incorrectly?"
-  exit 3
-fi
+a2x --lynx -f text doc/faq.adoc || exit 1
+mv doc/faq.text FAQ
+rm -rf doc
 
 rm -f config.h config.log make_release .gitignore
 

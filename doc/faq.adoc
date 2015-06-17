@@ -1,0 +1,273 @@
+:toc:
+:numbered:
+
+Frequently Asked Questions
+==========================
+
+== Chrony compared to other programs
+
+=== How does +chrony+ compare to +ntpd+?
+
++chrony+ can usually synchronise the system clock faster and with better time
+accuracy, but it doesn't implement all NTP features, e.g. broadcast/multicast
+mode, or authentication based on public-key cryptography.  For a more detailed
+comparison, see the http://chrony.tuxfamily.org/comparison.html[comparison
+page] on the chrony website and section
+http://chrony.tuxfamily.org/manual.html#Comparison-with-ntpd[Comparison with
+ntpd] in the manual.
+
+If your computer connects to the 'net only for few minutes at a time, you turn
+your Linux computer off or suspend it frequently, the clock is not very stable
+(e.g. it is a virtual machine), or you want to use NTP on an isolated network
+with no hardware clocks in sight, +chrony+ will probably work much better for
+you.
+
+The original reason +chrony+ was written was that ntpd (called xntpd at the
+time) could not to do anything sensible on a PC which was connected to the 'net
+only for about 5 minutes once or twice a day, mainly to upload/download email
+and news.  The requirements were
+
+* slew the time to correct it when going online and NTP servers
+  become visible
+* determine the rate at which the computer gains or loses time and
+  use this information to keep it reasonably correct between connects
+  to the 'net.  This has to be done using a method that does not care
+  about the intermittent availability of the references or the fact
+  the computer is turned off between groups of measurements.
+* maintain the time across reboots, by working out the error and
+  drift rate of the computer's real-time clock and using this
+  information to set the system clock correctly at boot up.
+
+Also, when working with isolated networks with no true time references at all
+ntpd was found to give no help with managing the local clock's gain/loss rate
+on the NTP master node (which was set from watch).  Some automated support was
+added to +chrony+ to deal with this.
+
+== Configuration issues
+
+=== I have several computers on a LAN. Should be all clients of an external server?
+
+The best configuration is usually to make one computer the master, with
+the others as clients of it.  Add a +local+ directive to the master's
+'chrony.conf' file.  This configuration will be better because
+
+* the load on the external connection is less
+* the load on the external NTP server(s) is less
+* if your external connection goes down, the computers on the LAN
+  will maintain a common time with each other.
+
+=== Must I specify servers by IP address if DNS is not available on chronyd start?
+
+No.  Starting from version 1.25, +chronyd+ will keep trying to resolve
+the hostnames specified in the +server+ and +peer+ directives in
+increasing intervals until it succeeds.  The +online+ command can be
+issued from +chronyc+ to try to resolve them immediately.
+
+=== How can I make chronyd more secure?
+
+If you don't need to serve time to NTP clients or peers, you can add +port 0+
+to the 'chrony.conf' file to completely disable the NTP server functionality
+and prevent NTP requests from reaching +chronyd+. Starting from version 2.0,
+the NTP server port is open only when client access is allowed by the +allow+
+directive or command, an NTP peer is configured, or the +broadcast+ directive
+is used.
+
+If you don't need to use +chronyc+ remotely, you can add the following
+directives to the configuration file to bind the command sockets to the
+loopback interface.  This is done by default since version 2.0.
+
+----
+bindcmdaddress 127.0.0.1
+bindcmdaddress ::1
+----
+
+If you don't need to use +chronyc+ at all, you can disable the command sockets
+by adding +cmdport 0+ to the configuration file.
+
+On Linux, if +chronyd+ is compiled with support for Linux capabilities
+(available in the libcap library), you can specify an unprivileged user with
+the +-u+ option or +user+ directive in the 'chrony.conf' file to drop root
+privileges after start.  The configure option +--with-user+ can be used to drop
+the privileges by default.
+
+=== How can I improve the accuracy of the system clock with NTP sources?
+
+Select NTP servers that are well synchronised, stable and close to your
+network.  It's better to use more than one server, three or four is usually
+recommended as the minimum, so +chronyd+ can detect falsetickers and combine
+measurements from multiple sources.
+
+There are also useful options which can be set in the +server+ directive, they
+are +minpoll+, +maxpoll+, +polltarget+, +maxdelay+, +maxdelayratio+ and
++maxdelaydevratio+.
+
+The first three options set the minimum and maximum allowed polling interval,
+and how should be the actual interval adjusted in the specified range.  Their
+default values are 6 (64 seconds) for +minpoll+, 10 (1024 seconds) for
++maxpoll+ and 6 (samples) for +polltarget+.  The default values should be used
+for general servers on the internet.  With your own NTP servers or if have
+permission to poll some servers more frequently, setting these options for
+shorter polling intervals may significantly improve the accuracy of the system
+clock.
+
+The optimal polling interval depends on many factors, including the ratio
+between the wander of the clock and the network jitter (sometimes expressed in
+NTP documents as the Allan intercept), the temperature sensitivity of the
+crystal oscillator and the maximum rate of change of the temperature.
+
+An example of the directive for an NTP server on the internet that you are
+allowed to poll frequently could be
+
+----
+server foo.example.net minpoll 4 maxpoll 6 polltarget 16
+----
+
+An example using very short polling intervals for a server located in the same
+LAN could be
+
+----
+server ntp.local minpoll 2 maxpoll 4 polltarget 30
+----
+
+The maxdelay options are useful to ignore measurements with larger delay (e.g.
+due to congestion in the network) and improve the stability of the
+synchronisation.  The +maxdelaydevratio+ option could be added to the example
+with local NTP server
+
+----
+server ntp.local minpoll 2 maxpoll 4 polltarget 30 maxdelaydevratio 2
+----
+
+== Computer is not synchronising
+
+This is the most common problem.  There are a number of reasons, see the
+following questions.
+
+=== Behind a firewall?
+
+If there is a firewall between you and the NTP server you're trying to use, the
+packets may be blocked.  Try using a tool like wireshark or tcpdump to see if
+you're getting responses from the server.  If you have an external modem, see
+if the receive light blinks straight after the transmit light (when the link is
+quiet apart from the NTP traffic.)  Try adding +log measurements+ to the
+'chrony.conf' file and look in the 'measurements.log' file after +chrony+ has
+been running for a short period. See if any measurements appear.
+
+=== Are NTP servers specified with the +offline+ option?
+
+Check that you're using +chronyc+\'s +online+ and +offline+ commands
+appropriately.  Again, check in 'measurements.log' to see if you're getting any
+data back from the server.
+
+== Issues with +chronyc+
+
+=== I keep getting the error +506 Cannot talk to daemon+
+
+When accessing +chronyd+ remotely, make sure that the 'chrony.conf' file (on
+the computer where +chronyd+ is running) has a 'cmdallow' entry for the
+computer you are running +chronyc+ on and an appropriate 'bindcmdaddress'
+directive.  This isn't necessary for localhost.
+
+Perhaps +chronyd+ is not running.  Try using the +ps+ command (e.g.  on Linux,
++ps -auxw+) to see if it's running.  Or try +netstat -a+ and see if the ports
+123/udp and 323/udp are listening.  If +chronyd+ is not running, you may have a
+problem with the way you are trying to start it (e.g.  at boot time).
+
+Perhaps you have a firewall set up in a way that blocks packets on port
+323/udp.  You need to amend the firewall configuration in this case.
+
+=== Is the +chronyc+ / +chronyd+ protocol documented anywhere?
+
+Only by the source code :-) See 'cmdmon.c' (+chronyd+ side) and 'client.c'
+(+chronyc+ side).
+
+== Real-time clock issues
+
+=== What is the real-time clock (RTC)?
+
+This is the clock which keeps the time even when your computer is turned off.
+It works with 1 second resolution.  +chronyd+ can monitor the rate at which the
+real-time clock gains or loses time, and compensate for it when you set the
+system time from it at the next reboot.  See the documentation for details.
+
+=== I want to use +chronyd+'s real-time clock support. Must I disable hwclock?
+
+The hwclock program is often set-up by default in the boot and shutdown scripts
+with many Linux installations.  If you want to use +chronyd+'s real-time clock
+support, the important thing is to disable hwclock in the shutdown procedure.
+If you don't, it will over-write the RTC with a new value, unknown to
++chronyd+.  At the next reboot, +chronyd+ will compensate this (wrong) time
+with its estimate of how far the RTC has drifted whilst the power was off,
+giving a meaningless initial system time.
+
+There is no need to remove hwclock from the boot process, as long as +chronyd+
+is started after it has run.
+
+=== I just keep getting the +513 RTC driver not running+ message
+
+For the real time clock support to work, you need the following three
+things
+
+* a kernel that is supported (e.g. 2.2 onwards)
+* enhanced RTC support compiled into the kernel
+* an +rtcfile+ directive in your 'chrony.conf' file
+
+== Microsoft Windows
+
+=== Does +chrony+ support Windows?
+
+No.  The +chronyc+ program (the command-line client used for configuring
++chronyd+ while it is running) has been successfully built and run under
+Cygwin in the past.  +chronyd+ is not portable, because part of it is
+very system-dependent.  It needs adapting to work with Windows'
+equivalent of the adjtimex() call, and it needs to be made to work as a
+service.
+
+=== Are there any plans to support Windows?
+
+We have no plans to do this.  Anyone is welcome to pick this work up and
+contribute it back to the project.
+
+== NTP-specific issues
+
+=== Can +chrony+ be driven from broadcast NTP servers?
+
+No, this NTP mode is not implemented yet.
+
+=== Can chronyd transmit broadcast NTP packets (e.g. to synchronise other computers on a private LAN)?
+
+Yes.  Starting from version 1.17, +chrony+ has this capability.
+
+=== Can +chrony+ keep the system clock a fixed offset away from real time?
+
+This is not possible as the program currently stands.
+
+=== What happens if the network connection is dropped without using +chronyc+'s +offline+ command first?
+
++chronyd+ will keep trying to access the server(s) that it thinks are online.
+When the network is connected again, it will take some time (on average half of
+the current polling interval) before new measurements are made and the clock is
+corrected. If the servers were set to offline and the +online+ command was
+issued when the network was connected, +chronyd+ would make new measurements
+immediately.
+
+The +auto_offline+ option to the +server+ entry in the 'chrony.conf' file may
+be useful to switch the servers to the offline state automatically.
+
+== Linux-specific issues
+
+=== I get +Could not open /dev/rtc, Device or resource busy+ in my syslog file
+
+Some other program running on the system may be using the device.
+
+== Solaris-specific issues
+
+=== I get an error message about not being able to open kvm to change dosynctodr
+
+(The dosynctodr variable controls whether Solaris couples the equivalent
+of its BIOS clock into its system clock at regular intervals).  The
+Solaris port of +chrony+ was developed in the Solaris 2.5 era.  Some
+aspect of the Solaris kernel has changed which prevents the same
+technique working.  We no longer have root access to any Solaris
+machines to work on this, and we are reliant on somebody developing the
+patch and testing it.
