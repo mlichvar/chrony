@@ -3473,10 +3473,11 @@ directive in the configuration file.
 @c {{{ authhash
 @node authhash command
 @subsubsection authhash
-This command sets the hash function used for authenticating user commands.
-For successful authentication the hash function has to be the same as the one
-set for the command key in the keys file on the server.  It needs to be set
-before the @code{password} command is used.  The default hash function is MD5.
+This command selects the hash function used for authenticating user commands.
+For successful authentication the hash function has to be the same as the
+function specified for the command key in the keys file on the server
+(@pxref{keyfile directive}).  It needs to be selected before the
+@code{password} command is used.  The default hash function is MD5.
 
 An example is
 
@@ -4172,7 +4173,10 @@ should enter the password and press return.
 The password can be encoded as a string of characters not containing a space
 with optional @code{ASCII:} prefix or as a hexadecimal number with @code{HEX:}
 prefix.  It has to match @code{chronyd's} currently defined command key
-(@pxref{commandkey directive}).
+(@pxref{commandkey directive}).  If the command key was specified with a
+different hash function than MD5, it's necessary to select the hash function
+with the @code{authhash} command (@pxref{authhash command}) before entering the
+password.
 
 The password command is run automatically on start if @code{chronyc} was
 started with the `-a' option.
