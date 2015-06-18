@@ -1790,33 +1790,37 @@ start with the @code{generatecommandkey} directive.
 @c {{{ leapsecmode
 @node leapsecmode directive
 @subsection leapsecmode
-This directive selects how @code{chronyd} handles leap seconds.  The Unix time
-doesn't include leap seconds.  When a leap second is applied to UTC, the system
-clock is off by one second and it needs to be corrected.
+A leap second is an adjustment that is occasionally applied to UTC to keep it
+close to the mean solar time.  When a leap second is inserted, the last day of
+June or December has an extra second 23:59:60.
 
-There are four options:
+For computer clocks that is a problem.  The Unix time is defined as number of
+seconds since 00:00:00 UTC on 1 January 1970 without leap seconds.  The system
+clock cannot have time 23:59:60, every minute has 60 seconds and every day has
+86400 seconds by definition.  The inserted leap second is skipped and the clock
+is suddenly ahead of UTC by one second.  The @code{leapsecmode} directive
+selects how that error is corrected.  There are four options:
 
 @table @code
 @item system
-The kernel steps the system clock backwards by one second at 0:00:00 UTC
-(before correction) when leap second is inserted or steps forward by one second
-at 23:59:59 UTC when leap second is deleted.  This is the default mode when the
-system driver supports leap seconds (currently Linux only).
+When inserting a leap second, the kernel steps the system clock backwards by
+one second when the clock gets to 00:00:00 UTC.  When deleting a leap second,
+it steps forward by one second when the clock gets to 23:59:59 UTC.  This is
+the default mode when the system driver supports leap seconds (currently Linux
+only).
 @item step
-This is similar to the system mode, except the clock is stepped by
-@code{chronyd} instead of the kernel.  This is the default mode when the system
-driver doesn't support leap seconds.
+This is similar to the @code{system} mode, except the clock is stepped by
+@code{chronyd} instead of the kernel.  It can be useful to avoid bugs in the
+kernel code that would be executed in the @code{system} mode.  This is the
+default mode when the system driver doesn't support leap seconds.
 @item slew
-The clock is corrected by slew starting at 0:00:00 UTC when leap second is
-inserted or 23:59:59 UTC when leap second is deleted.  This may be preferred
-over the system or step mode when applications running on the system are
-sensitive to jumps in the system time and it's acceptable that the clock will
-be off for a longer time.  On Linux with the default @code{maxslewrate} the
-correction takes 12 seconds.  Note that unless the @code{smoothtime} directive
-is used (@pxref{smoothtime directive}), there will still be a jump in the time
-that @code{chronyd} serves to NTP clients.  With the @code{smoothtime}
-directive, the leap second status will not be passed to NTP clients and the
-leap second will be "smeared" instead.
+The clock is corrected by slewing started at 00:00:00 UTC when a leap second is
+inserted or 23:59:59 UTC when a leap second is deleted.  This may be preferred
+over the @code{system} and @code{step} modes when applications running on the
+system are sensitive to jumps in the system time and it's acceptable that the
+clock will be off for a longer time.  On Linux with the default
+@code{maxslewrate} value (@pxref{maxslewrate directive}) the correction takes
+12 seconds.
 @item ignore
 No correction is applied to the clock for the leap second.  The clock will be
 corrected later in normal operation when new measurements are made and the
@@ -1829,19 +1833,40 @@ An example of the command is
 leapsecmode slew
 @end example
 
-An example enabling the leap smear for NTP clients with the @code{smoothtime}
-directive could be
+When serving time to NTP clients that can't be configured to correct their
+clocks for a leap second by slewing or they would correct them at slightly
+different rates when it's necessary to keep them close together, the
+@code{slew} mode can be combined with the @code{smoothtime} directive
+(@pxref{smoothtime directive}) to enable a server leap smear.
+
+When smearing a leap second, the leap status is suppressed on the server and
+the served time is corrected slowly be slewing instead of stepping. The clients
+don't need any special configuration as they don't know there is any leap
+second and they follow the server time which eventually brings them back to
+UTC.  Care must be taken to ensure they use for synchronization only NTP
+servers which smear the leap second in exactly the same way.
+
+This feature needs to be used carefully, because the server is intentionally
+not serving its best estimate of the true time.
+
+A recommended configuration to enable a server leap smear is:
 
 @example
 leapsecmode slew
-smoothtime 400 0.001
+maxslewrate 1000
+smoothtime 400 0.001 leaponly
 @end example
 
-With this configuration the NTP clients would not know there was any leap
-second.  The server time they follow would be slowly corrected in about 16
-hours after the leap second was applied to UTC.  This configuration should not
-be used if the clients poll also other NTP servers, because they could reject
-this server as a falseticker or could fail to select a source completely.
+The first directive is necessary to disable the clock step which would reset
+the smoothing process.  The second directive limits the slewing rate of the
+local clock to 1000 ppm, which improves the stability of the smoothing process
+when the local correction starts and ends.  The third directive enables the
+server time smoothing process.  It will start when the clock gets to 00:00:00
+UTC and it will take 17 hours 34 minutes to finish.  The frequency offset will
+be changing by 0.001 ppm per second and will reach maximum of 31.623 ppm.  The
+@code{leaponly} option makes the duration of the leap smear constant and allows
+the clients to safely synchronise with multiple identically configured leap
+smearing servers.
 @c }}}
 @c {{{ leapsectz
 @node leapsectz directive
@@ -3040,25 +3065,34 @@ it and keep their clocks close together even when large offset or frequency
 corrections are applied to the server's clock, for example after being offline
 for a longer time.
 
-If a large offset has been accumulated, it may take a very long time to smooth
-it out.  This directive should be used only when the clients are not configured
-to poll also another NTP server, because they could reject this server as a
-falseticker or fail to select a source completely.
+BE WARNED - the server is intentionally not serving its best estimate of the
+true time.  If a large offset has been accumulated, it may take a very long
+time to smooth it out.  This directive should be used only when the clients are
+not configured to poll also another NTP server, because they could reject this
+server as a falseticker or fail to select a source completely.
 
-The smoothing process is independent from any slewing applied to the local
-system clock, but the accumulated offset and frequency for smoothing will be
-reset when the clock is corrected by stepping, e.g. by the @code{makestep}
-directive or command.  The process can be reset without stepping the clock
-by the @code{smoothtime reset} command (@pxref{smoothtime command}).
+The smoothing process is implemented with a quadratic spline function with two
+or three pieces. It's independent from any slewing applied to the local system
+clock, but the accumulated offset and frequency will be reset when the clock is
+corrected by stepping, e.g. by the @code{makestep} directive or command.  The
+process can be reset without stepping the clock by the @code{smoothtime reset}
+command (@pxref{smoothtime command}).
 
-The directive takes two arguments, the maximum frequency offset of the smoothed
-time to the tracked NTP time (in ppm) and the maximum rate at which the
-frequency offset is allowed to change (in ppm per second).  The smoothing
-process is activated automatically when 1/10000 of the estimated skew of the
-local clock falls below the maximum rate of frequency change.  It can be
-activated explicitly by the @code{smoothtime activate} command, which is
-particularly useful when the clock is synchronized only with manual input
-since the skew can't be small enough to activate the process.
+The first two arguments of the directive are the maximum frequency offset of
+the smoothed time to the tracked NTP time (in ppm) and the maximum rate at
+which the frequency offset is allowed to change (in ppm per second).
+@code{leaponly} is an optional third argument which enables a mode where only
+leap seconds are smoothed out and normal offset/frequency changes are ignored.
+The @code{leaponly} option is useful in a combination with the
+@code{leapsecmode slew} option (@pxref{leapsecmode directive}) to allow clients
+use multiple time smoothing servers safely.
+
+The smoothing process is activated automatically when 1/10000 of the estimated
+skew of the local clock falls below the maximum rate of frequency change.  It
+can be also activated manually by the @code{smoothtime activate} command,
+which is particularly useful when the clock is synchronized only with manual
+input and the skew is always larger than the threshold.  The @code{smoothing}
+command (@pxref{smoothing command}) can be used to monitor the process.
 
 An example suitable for clients using @code{ntpd} and 1024 second polling
 interval could be
