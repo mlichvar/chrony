@@ -118,8 +118,8 @@ different operating systems may provide different function calls to
 achieve this, and even where the same function is used it may have
 different quirks in its behaviour.
 
-The software is known to work on Linux, FreeBSD, NetBSD and Solaris.  Closely
-related systems may work too.  Porting the software to other systems
+The software is known to work on Linux, FreeBSD, NetBSD, Mac OS X and Solaris.
+Closely related systems may work too.  Porting the software to other systems
 (particularly to those supporting an @code{adjtime} system call) should not be
 difficult, however it requires access to such systems to test out the driver.
 @c }}}

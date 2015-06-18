@@ -27,11 +27,11 @@ operating parameters whilst it is running.
 What will chrony run on?
 ========================
 
-The software is known to work on Linux, FreeBSD, NetBSD and Solaris.
-Closely related systems may work too.  Any other system will likely
-require a porting exercise.  You would need to start from one of the
-existing system-specific drivers and look into the quirks of certain
-system calls and the kernel on your target system.
+The software is known to work on Linux, FreeBSD, NetBSD, Mac OS X and
+Solaris.  Closely related systems may work too.  Any other system will
+likely require a porting exercise.  You would need to start from one
+of the existing system-specific drivers and look into the quirks of
+certain system calls and the kernel on your target system.
 
 How do I set it up?
 ===================
@@ -127,6 +127,9 @@ Stephan I. Boettcher <stephan@nevis1.columbia.edu>
 
 Erik Bryer <ebryer@spots.ab.ca>
     Entries in contrib directory
+
+Bryan Christianson <bryan@whatroute.net>
+    Support for Mac OS X
 
 Juliusz Chroboczek <jch@pps.jussieu.fr>
     Fix install rule in Makefile if chronyd file is in use.
