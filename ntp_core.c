@@ -824,7 +824,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   message.root_delay = UTI_DoubleToInt32(our_root_delay);
   message.root_dispersion = UTI_DoubleToInt32(our_root_dispersion);
 
-  message.reference_id = htonl((NTP_int32) our_ref_id);
+  message.reference_id = htonl(our_ref_id);
 
   /* Now fill in timestamps */
 
