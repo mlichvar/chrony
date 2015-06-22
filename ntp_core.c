@@ -789,8 +789,8 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
 
   /* Get current smoothing offset when sending packet to a client */
   if (SMT_IsEnabled() && (my_mode == MODE_SERVER || my_mode == MODE_BROADCAST)) {
-    smooth_time = 1;
     smooth_offset = SMT_GetOffset(&local_transmit);
+    smooth_time = fabs(smooth_offset) > LCL_GetSysPrecisionAsQuantum();
 
     /* Suppress leap second when smoothing and slew mode are enabled */
     if (REF_GetLeapMode() == REF_LeapModeSlew &&
@@ -799,6 +799,14 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   } else {
     smooth_time = 0;
     smooth_offset = 0.0;
+  }
+
+  if (smooth_time) {
+    our_ref_id = NTP_REFID_SMOOTH;
+    UTI_AddDoubleToTimeval(&our_ref_time, smooth_offset, &our_ref_time);
+    UTI_AddDoubleToTimeval(local_rx, smooth_offset, &local_receive);
+  } else {
+    local_receive = *local_rx;
   }
 
   if (are_we_synchronised) {
@@ -827,13 +835,6 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   message.reference_id = htonl(our_ref_id);
 
   /* Now fill in timestamps */
-
-  if (smooth_time) {
-    UTI_AddDoubleToTimeval(&our_ref_time, smooth_offset, &our_ref_time);
-    UTI_AddDoubleToTimeval(local_rx, smooth_offset, &local_receive);
-  } else {
-    local_receive = *local_rx;
-  }
 
   UTI_TimevalToInt64(&our_ref_time, &message.reference_ts, 0);
 

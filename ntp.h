@@ -112,5 +112,6 @@ typedef struct {
 /* Special NTP reference IDs */
 #define NTP_REFID_UNSYNC 0x0UL
 #define NTP_REFID_LOCAL 0x7F7F0101UL /* 127.127.1.1 */
+#define NTP_REFID_SMOOTH 0x7F7F01FFUL /* 127.127.1.255 */
 
 #endif /* GOT_NTP_H */
