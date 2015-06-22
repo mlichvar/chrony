@@ -120,11 +120,6 @@ static LOG_FileID logfileid;
 
 /* ================================================== */
 
-/* Reference ID supplied when we are locally referenced */
-#define LOCAL_REFERENCE_ID 0x7f7f0101UL
-
-/* ================================================== */
-
 /* Exponential moving averages of absolute clock frequencies
    used as a fallback when synchronisation is lost. */
 
@@ -1109,12 +1104,10 @@ REF_SetManualReference
  double skew
 )
 {
-  uint32_t manual_refid = 0x4D414E55; /* MANU */
-
   /* We are not synchronised to an external source, as such.  This is
-   only supposed to be used with the local source option, really
-   ... */
-  REF_SetReference(0, LEAP_Unsynchronised, 1, manual_refid, NULL,
+     only supposed to be used with the local source option, really.
+     Log as MANU in the tracking log, packets will have NTP_REFID_LOCAL. */
+  REF_SetReference(0, LEAP_Unsynchronised, 1, 0x4D414E55UL, NULL,
                    ref_time, offset, 0.0, frequency, skew, 0.0, 0.0);
 }
 
@@ -1200,7 +1193,7 @@ REF_GetReferenceParams
     *is_synchronised = 1;
 
     *stratum = local_stratum;
-    *ref_id = LOCAL_REFERENCE_ID;
+    *ref_id = NTP_REFID_LOCAL;
     /* Make the reference time be now less a second - this will
        scarcely affect the client, but will ensure that the transmit
        timestamp cannot come before this (which would cause test 7 to
@@ -1222,7 +1215,7 @@ REF_GetReferenceParams
 
     *leap_status = LEAP_Unsynchronised;
     *stratum = NTP_MAX_STRATUM;
-    *ref_id = 0;
+    *ref_id = NTP_REFID_UNSYNC;
     ref_time->tv_sec = ref_time->tv_usec = 0;
     /* These values seem to be standard for a client, and
        any peer or client of ours will ignore them anyway because
@@ -1336,7 +1329,7 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
   LCL_GetOffsetCorrection(&now_raw, &correction, NULL);
   UTI_AddDoubleToTimeval(&now_raw, correction, &now_cooked);
 
-  rep->ref_id = 0;
+  rep->ref_id = NTP_REFID_UNSYNC;
   rep->ip_addr.family = IPADDR_UNSPEC;
   rep->stratum = 0;
   rep->leap_status = our_leap_status;
@@ -1368,7 +1361,7 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
 
   } else if (enable_local_stratum) {
 
-    rep->ref_id = LOCAL_REFERENCE_ID;
+    rep->ref_id = NTP_REFID_LOCAL;
     rep->ip_addr.family = IPADDR_UNSPEC;
     rep->stratum = local_stratum;
     rep->ref_time = now_cooked;

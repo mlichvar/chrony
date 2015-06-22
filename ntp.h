@@ -109,4 +109,8 @@ typedef struct {
 #define NTP_LVM(leap, version, mode) \
   ((((leap) << 6) & 0xc0) | (((version) << 3) & 0x38) | ((mode) & 0x07))
 
+/* Special NTP reference IDs */
+#define NTP_REFID_UNSYNC 0x0UL
+#define NTP_REFID_LOCAL 0x7F7F0101UL /* 127.127.1.1 */
+
 #endif /* GOT_NTP_H */
