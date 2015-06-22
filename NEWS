@@ -3,10 +3,12 @@ New in version 2.1
 
 Enhancements
 ------------
+* Add support for Mac OS X
 * Try to replace unreachable and falseticker servers/peers specified
   by name like pool sources
 * Add leaponly option to smoothtime directive to allow synchronised
   leap smear between multiple servers
+* Use specific reference ID when smoothing served time
 * Add smoothing command to report time smoothing status
 * Add smoothtime command to activate or reset time smoothing
 
