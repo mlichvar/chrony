@@ -193,12 +193,12 @@ TMX_ApplyStepOffset(double offset)
   struct timex txc;
 
   txc.modes = ADJ_SETOFFSET | ADJ_NANO;
-  if (offset >= 0) {
-    txc.time.tv_sec = offset;
-  } else {
-    txc.time.tv_sec = offset - 1;
-  }
+  txc.time.tv_sec = offset;
   txc.time.tv_usec = 1.0e9 * (offset - txc.time.tv_sec);
+  if (txc.time.tv_usec < 0) {
+    txc.time.tv_sec--;
+    txc.time.tv_usec += 1000000000;
+  }
 
   return adjtimex(&txc);
 }
