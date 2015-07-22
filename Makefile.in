@@ -92,15 +92,13 @@ getdate :
 # For install, don't use the install command, because its switches
 # seem to vary between systems.
 
-install: chronyd chronyc chrony.txt
+install: chronyd chronyc
 	[ -d $(DESTDIR)$(SYSCONFDIR) ] || mkdir -p $(DESTDIR)$(SYSCONFDIR)
 	[ -d $(DESTDIR)$(SBINDIR) ] || mkdir -p $(DESTDIR)$(SBINDIR)
 	[ -d $(DESTDIR)$(BINDIR) ] || mkdir -p $(DESTDIR)$(BINDIR)
-	[ -d $(DESTDIR)$(DOCDIR) ] || mkdir -p $(DESTDIR)$(DOCDIR)
 	[ -d $(DESTDIR)$(MANDIR)/man1 ] || mkdir -p $(DESTDIR)$(MANDIR)/man1
 	[ -d $(DESTDIR)$(MANDIR)/man5 ] || mkdir -p $(DESTDIR)$(MANDIR)/man5
 	[ -d $(DESTDIR)$(MANDIR)/man8 ] || mkdir -p $(DESTDIR)$(MANDIR)/man8
-	[ -d $(DESTDIR)$(DOCDIR) ] || mkdir -p $(DESTDIR)$(DOCDIR)
 	[ -d $(DESTDIR)$(CHRONYVARDIR) ] || mkdir -p $(DESTDIR)$(CHRONYVARDIR)
 	if [ -f $(DESTDIR)$(SBINDIR)/chronyd ]; then rm -f $(DESTDIR)$(SBINDIR)/chronyd ; fi
 	if [ -f $(DESTDIR)$(BINDIR)/chronyc ]; then rm -f $(DESTDIR)$(BINDIR)/chronyc ; fi
@@ -108,8 +106,6 @@ install: chronyd chronyc chrony.txt
 	chmod 755 $(DESTDIR)$(SBINDIR)/chronyd
 	cp chronyc $(DESTDIR)$(BINDIR)/chronyc
 	chmod 755 $(DESTDIR)$(BINDIR)/chronyc
-	cp chrony.txt $(DESTDIR)$(DOCDIR)/chrony.txt
-	chmod 644 $(DESTDIR)$(DOCDIR)/chrony.txt
 	cp chronyc.1 $(DESTDIR)$(MANDIR)/man1
 	chmod 644 $(DESTDIR)$(MANDIR)/man1/chronyc.1
 	cp chronyd.8 $(DESTDIR)$(MANDIR)/man8

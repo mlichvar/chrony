@@ -387,9 +387,10 @@ entered.
 make install
 @end example
 
-This will install the binaries, plain text manual and manpages.
+This will install the binaries and manpages.
 
-To install the HTML and info versions of the manual as well, enter the command
+To install the plain text, HTML and info versions of the manual, enter the
+command
 
 @example
 make install-docs
