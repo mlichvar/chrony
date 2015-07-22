@@ -46,9 +46,6 @@ for m in chronyc.1.in chrony.conf.5.in chronyd.8.in; do
 done
 
 ./configure && make chrony.txt || exit 1
-mv chrony.txt chrony.txt_
-make distclean
-mv chrony.txt_ chrony.txt
 
 awk '/^[1-9] Installation$/{p=1}
      /^[1-9]\.. Support for line editing/{exit}; p' chrony.txt | \
@@ -63,6 +60,7 @@ a2x --lynx -f text doc/faq.adoc || exit 1
 mv doc/faq.text FAQ
 rm -rf doc
 
+make distclean
 rm -f config.h config.log make_release .gitignore
 
 cd ..
