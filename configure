@@ -41,7 +41,7 @@ test_code () {
   ldflags=$4
   code=$5
 
-  echo -n "Checking for $name : "
+  printf "%s" "Checking for $name : "
 
   (
     for h in $headers; do
@@ -174,12 +174,12 @@ get_features () {
   ff=1
   for f; do
     if [ "$ff" = "0" ]; then
-      echo -n " "
+      printf " "
     fi
     if grep "define FEAT_$f" config.h > /dev/null; then
-      echo -n "+$f"
+      printf "%s" "+$f"
     else
-      echo -n "-$f"
+      printf "%s" "-$f"
     fi
     ff=0
   done
