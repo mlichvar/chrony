@@ -649,11 +649,11 @@ UTI_Log2ToDouble(int l)
   if (l >= 0) {
     if (l > 31)
       l = 31;
-    return 1 << l;
+    return (uint32_t)1 << l;
   } else {
     if (l < -31)
       l = -31;
-    return 1.0 / (1 << -l);
+    return 1.0 / ((uint32_t)1 << -l);
   }
 }
 
