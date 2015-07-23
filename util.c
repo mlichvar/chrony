@@ -46,11 +46,13 @@ UTI_TimevalToDouble(struct timeval *a, double *b)
 INLINE_STATIC void
 UTI_DoubleToTimeval(double a, struct timeval *b)
 {
-  long int_part, frac_part;
+  long int_part;
+  double frac_part;
   int_part = (long)(a);
-  frac_part = (long)(0.5 + 1.0e6 * (a - (double)(int_part)));
+  frac_part = 1.0e6 * (a - (double)(int_part));
+  frac_part = frac_part > 0 ? frac_part + 0.5 : frac_part - 0.5;
   b->tv_sec = int_part;
-  b->tv_usec = frac_part;
+  b->tv_usec = (long)frac_part;
   UTI_NormaliseTimeval(b);
 }
 
