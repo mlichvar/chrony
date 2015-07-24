@@ -686,7 +686,11 @@ transmit_reply(CMD_Reply *msg, union sockaddr_in46 *where_to, int auth_len)
   int tx_message_length;
   int sock_fd;
   socklen_t addrlen;
+  unsigned short port;
+  IPAddr ip;
   
+  UTI_SockaddrToIPAndPort(&where_to->u, &ip, &port);
+
   switch (where_to->u.sa_family) {
     case AF_INET:
       sock_fd = sock_fd4;
@@ -707,12 +711,13 @@ transmit_reply(CMD_Reply *msg, union sockaddr_in46 *where_to, int auth_len)
                   &where_to->u, addrlen);
 
   if (status < 0) {
-    unsigned short port;
-    IPAddr ip;
-
-    UTI_SockaddrToIPAndPort(&where_to->u, &ip, &port);
-    DEBUG_LOG(LOGF_CmdMon, "Could not send response to %s:%hu", UTI_IPToString(&ip), port);
+    DEBUG_LOG(LOGF_CmdMon, "Could not send to %s:%hu fd %d : %s",
+              UTI_IPToString(&ip), port, sock_fd, strerror(errno));
+    return;
   }
+
+  DEBUG_LOG(LOGF_CmdMon, "Sent %d bytes to %s:%hu fd %d", status,
+            UTI_IPToString(&ip), port, sock_fd);
 }
   
 /* ================================================== */
@@ -1550,6 +1555,9 @@ read_from_cmd_socket(void *anything)
     default:
       assert(0);
   }
+
+  DEBUG_LOG(LOGF_CmdMon, "Received %d bytes from %s:%hu fd %d",
+            status, UTI_IPToString(&remote_ip), remote_port, sock_fd);
 
   if (!(localhost || ADF_IsAllowed(access_auth_table, &remote_ip))) {
     /* The client is not allowed access, so don't waste any more time
