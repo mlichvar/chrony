@@ -8,12 +8,7 @@
 **  This code is in the public domain and has no copyright.
 */
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-# ifdef HAVE_ALLOCA_H
-#  include <alloca.h>
-# endif
-#endif
+#include "config.h"
 
 /* Since the code of getdate.y is not included in the Emacs executable
    itself, there is no need to #define static in this file.  Even if

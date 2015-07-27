@@ -25,11 +25,12 @@
 
   */
 
+#include "config.h"
+
 #include <nss.h>
 #include <hasht.h>
 #include <nsslowhash.h>
 
-/* #include "config.h" */
 #include "hash.h"
 
 static NSSLOWInitContext *ictx;
