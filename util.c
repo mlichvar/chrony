@@ -845,11 +845,29 @@ UTI_DecodePasswordFromText(char *key)
 int
 UTI_SetQuitSignalsHandler(void (*handler)(int))
 {
-  signal(SIGINT, handler);
-  signal(SIGTERM, handler);
-#if !defined(WINNT)
-  signal(SIGQUIT, handler);
-  signal(SIGHUP, handler);
-#endif /* WINNT */
+  struct sigaction sa;
+
+  sa.sa_handler = handler;
+  sa.sa_flags = SA_RESTART;
+  if (sigemptyset(&sa.sa_mask) < 0)
+    return 0;
+
+#ifdef SIGINT
+  if (sigaction(SIGINT, &sa, NULL) < 0)
+    return 0;
+#endif
+#ifdef SIGTERM
+  if (sigaction(SIGTERM, &sa, NULL) < 0)
+    return 0;
+#endif
+#ifdef SIGQUIT
+  if (sigaction(SIGQUIT, &sa, NULL) < 0)
+    return 0;
+#endif
+#ifdef SIGHUP
+  if (sigaction(SIGHUP, &sa, NULL) < 0)
+    return 0;
+#endif
+
   return 1;
 }
