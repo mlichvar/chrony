@@ -17,6 +17,7 @@ chronyd
 chronyd.8
 config.h
 config.log
+getdate.c
 tags
 version.h
 /test/simulation/clknetsim

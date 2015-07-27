@@ -45,7 +45,7 @@ for m in chronyc.1.in chrony.conf.5.in chronyd.8.in; do
   mv -f ${m}_ $m
 done
 
-./configure && make chrony.txt || exit 1
+./configure && make chrony.txt getdate.c || exit 1
 
 awk '/^[1-9] Installation$/{p=1}
      /^[1-9]\.. Support for line editing/{exit}; p' chrony.txt | \
