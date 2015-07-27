@@ -127,4 +127,6 @@ extern int UTI_CheckNTPAuth(int hash_id, const unsigned char *key, int key_len,
 /* Decode password encoded in ASCII or HEX */
 extern int UTI_DecodePasswordFromText(char *key);
 
+extern int UTI_SetQuitSignalsHandler(void (*handler)(int));
+
 #endif /* GOT_UTIL_H */

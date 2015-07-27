@@ -51,6 +51,7 @@
 #include "nameserv.h"
 #include "smooth.h"
 #include "tempcomp.h"
+#include "util.h"
 
 /* ================================================== */
 
@@ -522,12 +523,7 @@ int main
     post_init_rtc_hook(NULL);
   }
 
-  signal(SIGINT, signal_cleanup);
-  signal(SIGTERM, signal_cleanup);
-#if !defined(WINNT)
-  signal(SIGQUIT, signal_cleanup);
-  signal(SIGHUP, signal_cleanup);
-#endif /* WINNT */
+  UTI_SetQuitSignalsHandler(signal_cleanup);
 
   /* The program normally runs under control of the main loop in
      the scheduler. */

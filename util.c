@@ -839,3 +839,17 @@ UTI_DecodePasswordFromText(char *key)
     return len;
   }
 }
+
+/* ================================================== */
+
+int
+UTI_SetQuitSignalsHandler(void (*handler)(int))
+{
+  signal(SIGINT, handler);
+  signal(SIGTERM, handler);
+#if !defined(WINNT)
+  signal(SIGQUIT, handler);
+  signal(SIGHUP, handler);
+#endif /* WINNT */
+  return 1;
+}
