@@ -34,7 +34,7 @@
 
 /* ================================================== */
 
-INLINE_STATIC void
+void
 UTI_TimevalToDouble(struct timeval *a, double *b)
 {
   *b = (double)(a->tv_sec) + 1.0e-6 * (double)(a->tv_usec);
@@ -43,7 +43,7 @@ UTI_TimevalToDouble(struct timeval *a, double *b)
 
 /* ================================================== */
 
-INLINE_STATIC void
+void
 UTI_DoubleToTimeval(double a, struct timeval *b)
 {
   long int_part;
@@ -58,7 +58,7 @@ UTI_DoubleToTimeval(double a, struct timeval *b)
 
 /* ================================================== */
 
-INLINE_STATIC int
+int
 UTI_CompareTimevals(struct timeval *a, struct timeval *b)
 {
   if (a->tv_sec < b->tv_sec) {
@@ -78,7 +78,7 @@ UTI_CompareTimevals(struct timeval *a, struct timeval *b)
 
 /* ================================================== */
 
-INLINE_STATIC void
+void
 UTI_NormaliseTimeval(struct timeval *x)
 {
   /* Reduce tv_usec to within +-1000000 of zero. JGH */
@@ -97,7 +97,7 @@ UTI_NormaliseTimeval(struct timeval *x)
 
 /* ================================================== */
 
-INLINE_STATIC void
+void
 UTI_DiffTimevals(struct timeval *result,
                  struct timeval *a,
                  struct timeval *b)
@@ -114,7 +114,7 @@ UTI_DiffTimevals(struct timeval *result,
 /* ================================================== */
 
 /* Calculate result = a - b and return as a double */
-INLINE_STATIC void
+void
 UTI_DiffTimevalsToDouble(double *result, 
                          struct timeval *a,
                          struct timeval *b)
@@ -125,7 +125,7 @@ UTI_DiffTimevalsToDouble(double *result,
 
 /* ================================================== */
 
-INLINE_STATIC void
+void
 UTI_AddDoubleToTimeval(struct timeval *start,
                        double increment,
                        struct timeval *end)
@@ -149,7 +149,7 @@ UTI_AddDoubleToTimeval(struct timeval *start,
 /* ================================================== */
 
 /* Calculate the average and difference (as a double) of two timevals */
-INLINE_STATIC void
+void
 UTI_AverageDiffTimevals (struct timeval *earlier,
                          struct timeval *later,
                          struct timeval *average,
