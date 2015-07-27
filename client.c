@@ -61,6 +61,8 @@ static int sock_fd;
 union sockaddr_in46 his_addr;
 static socklen_t his_addr_len;
 
+static int quit = 0;
+
 static int on_terminal = 0;
 
 static int no_dns = 0;
@@ -1306,6 +1308,9 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
 
     FD_SET(sock_fd, &rdfd);
 
+    if (quit)
+      return 0;
+
     select_status = select(sock_fd + 1, &rdfd, &wrfd, &exfd, &tv);
 
     if (select_status < 0) {
@@ -2451,7 +2456,7 @@ process_cmd_retries(const char *line)
 /* ================================================== */
 
 static int
-process_line(char *line, int *quit)
+process_line(char *line)
 {
   char *command;
   int do_normal_submit;
@@ -2459,7 +2464,6 @@ process_line(char *line, int *quit)
   CMD_Request tx_message;
   CMD_Reply rx_message;
 
-  *quit = 0;
   ret = 0;
 
   do_normal_submit = 1;
@@ -2534,7 +2538,7 @@ process_line(char *line, int *quit)
     process_cmd_dump(&tx_message, line);
   } else if (!strcmp(command, "exit")) {
     do_normal_submit = 0;
-    *quit = 1;
+    quit = 1;
     ret = 1;
   } else if (!strcmp(command, "help")) {
     do_normal_submit = 0;
@@ -2577,7 +2581,7 @@ process_line(char *line, int *quit)
     do_normal_submit = process_cmd_polltarget(&tx_message, line);
   } else if (!strcmp(command, "quit")) {
     do_normal_submit = 0;
-    *quit = 1;
+    quit = 1;
     ret = 1;
   } else if (!strcmp(command, "rekey")) {
     process_cmd_rekey(&tx_message, line);
@@ -2707,7 +2711,7 @@ authenticate_from_config(const char *filename)
 static int
 process_args(int argc, char **argv, int multi)
 {
-  int total_length, i, ret, quit;
+  int total_length, i, ret;
   char *line;
 
   total_length = 0;
@@ -2729,7 +2733,7 @@ process_args(int argc, char **argv, int multi)
       }
     }
 
-    ret = process_line(line, &quit);
+    ret = process_line(line);
     if (!ret || quit)
       break;
   }
@@ -2737,6 +2741,14 @@ process_args(int argc, char **argv, int multi)
   free(line);
 
   return ret;
+}
+
+/* ================================================== */
+
+static void
+signal_handler(int signum)
+{
+  quit = 1;
 }
 
 /* ================================================== */
@@ -2761,7 +2773,7 @@ main(int argc, char **argv)
   const char *progname = argv[0];
   const char *hostname = NULL;
   const char *conf_file = DEFAULT_CONF_FILE;
-  int quit = 0, ret = 1, multi = 0, auto_auth = 0, family = IPADDR_UNSPEC;
+  int ret = 1, multi = 0, auto_auth = 0, family = IPADDR_UNSPEC;
   int port = DEFAULT_CANDM_PORT;
 
   /* Parse command line options */
@@ -2827,6 +2839,8 @@ main(int argc, char **argv)
 #endif
   }
 
+  UTI_SetQuitSignalsHandler(signal_handler);
+
   open_io(hostname, port);
 
   if (auto_auth) {
@@ -2841,7 +2855,7 @@ main(int argc, char **argv)
     do {
       line = read_line();
       if (line) {
-        ret = process_line(line, &quit);
+        ret = process_line(line);
       }else {
 	/* supply the final '\n' when user exits via ^D */
         if( on_terminal ) printf("\n");
