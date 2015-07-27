@@ -177,9 +177,9 @@ read_frequency(void)
 static void
 set_leap(int leap)
 {
-  int current_leap;
+  int current_leap, applied;
 
-  if (TMX_GetLeap(&current_leap) < 0) {
+  if (TMX_GetLeap(&current_leap, &applied) < 0) {
     LOG_FATAL(LOGF_SysLinux, "adjtimex() failed in set_leap");
   }
 
@@ -190,8 +190,9 @@ set_leap(int leap)
     LOG_FATAL(LOGF_SysLinux, "adjtimex() failed in set_leap");
   }
 
-  LOG(LOGS_INFO, LOGF_SysLinux, "System clock status set to %s leap second",
-     leap ? (leap > 0 ? "insert" : "delete") : "not insert/delete");
+  LOG(LOGS_INFO, LOGF_SysLinux, "System clock status %s leap second",
+     leap ? (leap > 0 ? "set to insert" : "set to delete") :
+            (applied ? "reset after" : "set to not insert/delete"));
 }
 
 /* ================================================== */
