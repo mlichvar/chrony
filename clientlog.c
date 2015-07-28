@@ -263,25 +263,31 @@ find_subnet(Subnet *subnet, uint32_t *addr, int addr_len, int bits_consumed)
 
 /* ================================================== */
 
+static Node *
+get_node(IPAddr *ip)
+{
+  uint32_t ip6[4];
+
+  switch (ip->family) {
+    case IPADDR_INET4:
+      return (Node *)find_subnet(&top_subnet4, &ip->addr.in4, 1, 0);
+    case IPADDR_INET6:
+      split_ip6(ip, ip6);
+      return (Node *)find_subnet(&top_subnet6, ip6, 4, 0);
+    default:
+      return NULL;
+  }
+}
+
+/* ================================================== */
+
 void
 CLG_LogNTPClientAccess (IPAddr *client, time_t now)
 {
-  uint32_t ip6[4];
   Node *node;
 
   if (active) {
-    switch (client->family) {
-      case IPADDR_INET4:
-        node = (Node *) find_subnet(&top_subnet4, &client->addr.in4, 1, 0);
-        break;
-      case IPADDR_INET6:
-        split_ip6(client, ip6);
-        node = (Node *) find_subnet(&top_subnet6, ip6, 4, 0);
-        break;
-      default:
-        node = NULL;
-    }
-
+    node = get_node(client);
     if (node == NULL)
       return;
 
@@ -296,22 +302,10 @@ CLG_LogNTPClientAccess (IPAddr *client, time_t now)
 void
 CLG_LogNTPPeerAccess(IPAddr *client, time_t now)
 {
-  uint32_t ip6[4];
   Node *node;
 
   if (active) {
-    switch (client->family) {
-      case IPADDR_INET4:
-        node = (Node *) find_subnet(&top_subnet4, &client->addr.in4, 1, 0);
-        break;
-      case IPADDR_INET6:
-        split_ip6(client, ip6);
-        node = (Node *) find_subnet(&top_subnet6, ip6, 4, 0);
-        break;
-      default:
-        node = NULL;
-    }
-
+    node = get_node(client);
     if (node == NULL)
       return;
 
@@ -326,22 +320,10 @@ CLG_LogNTPPeerAccess(IPAddr *client, time_t now)
 void
 CLG_LogCommandAccess(IPAddr *client, CLG_Command_Type type, time_t now)
 {
-  uint32_t ip6[4];
   Node *node;
 
   if (active) {
-    switch (client->family) {
-      case IPADDR_INET4:
-        node = (Node *) find_subnet(&top_subnet4, &client->addr.in4, 1, 0);
-        break;
-      case IPADDR_INET6:
-        split_ip6(client, ip6);
-        node = (Node *) find_subnet(&top_subnet6, ip6, 4, 0);
-        break;
-      default:
-        node = NULL;
-    }
-
+    node = get_node(client);
     if (node == NULL)
       return;
 
