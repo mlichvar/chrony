@@ -99,10 +99,10 @@ prepare_socket(int family, int port_number, int client_only)
   if (sock_fd < 0) {
     if (!client_only) {
       LOG(LOGS_ERR, LOGF_NtpIO, "Could not open %s NTP socket : %s",
-          family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
+          UTI_SockaddrFamilyToString(family), strerror(errno));
     } else {
       DEBUG_LOG(LOGF_NtpIO, "Could not open %s NTP socket : %s",
-                family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
+                UTI_SockaddrFamilyToString(family), strerror(errno));
     }
     return INVALID_SOCK_FD;
   }
@@ -221,7 +221,7 @@ prepare_socket(int family, int port_number, int client_only)
   /* Bind the socket if a port or address was specified */
   if (my_addr_len > 0 && bind(sock_fd, &my_addr.u, my_addr_len) < 0) {
     LOG(LOGS_ERR, LOGF_NtpIO, "Could not bind %s NTP socket : %s",
-        family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
+        UTI_SockaddrFamilyToString(family), strerror(errno));
     close(sock_fd);
     return INVALID_SOCK_FD;
   }

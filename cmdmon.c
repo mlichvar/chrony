@@ -191,7 +191,7 @@ prepare_socket(int family, int port_number)
   sock_fd = socket(family, SOCK_DGRAM, 0);
   if (sock_fd < 0) {
     LOG(LOGS_ERR, LOGF_CmdMon, "Could not open %s command socket : %s",
-        family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
+        UTI_SockaddrFamilyToString(family), strerror(errno));
     return -1;
   }
 
@@ -258,7 +258,7 @@ prepare_socket(int family, int port_number)
 
   if (bind(sock_fd, &my_addr.u, my_addr_len) < 0) {
     LOG(LOGS_ERR, LOGF_CmdMon, "Could not bind %s command socket : %s",
-        family == AF_INET ? "IPv4" : "IPv6", strerror(errno));
+        UTI_SockaddrFamilyToString(family), strerror(errno));
     close(sock_fd);
     return -1;
   }

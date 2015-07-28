@@ -487,6 +487,27 @@ UTI_IPAndPortToSockaddr(IPAddr *ip, unsigned short port, struct sockaddr *sa)
 
 /* ================================================== */
 
+const char *
+UTI_SockaddrFamilyToString(int family)
+{
+  switch (family) {
+    case AF_INET:
+      return "IPv4";
+#ifdef AF_INET6
+    case AF_INET6:
+      return "IPv6";
+#endif
+    case AF_UNIX:
+      return "Unix";
+    case AF_UNSPEC:
+      return "UNSPEC";
+    default:
+      return "?";
+  }
+}
+
+/* ================================================== */
+
 char *
 UTI_TimeToLogForm(time_t t)
 {
