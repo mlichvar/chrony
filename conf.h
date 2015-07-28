@@ -75,6 +75,7 @@ extern void CNF_GetFallbackDrifts(int *min, int *max);
 extern void CNF_GetBindAddress(int family, IPAddr *addr);
 extern void CNF_GetBindAcquisitionAddress(int family, IPAddr *addr);
 extern void CNF_GetBindCommandAddress(int family, IPAddr *addr);
+extern char *CNF_GetBindCommandPath(void);
 extern char *CNF_GetPidFile(void);
 extern REF_LeapMode CNF_GetLeapSecMode(void);
 extern char *CNF_GetLeapSecTimezone(void);

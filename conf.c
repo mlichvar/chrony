@@ -182,6 +182,9 @@ static IPAddr bind_acq_address4, bind_acq_address6;
    the loopback address will be used */
 static IPAddr bind_cmd_address4, bind_cmd_address6;
 
+/* Path to the Unix domain command socket. */
+static char *bind_cmd_path;
+
 /* Filename to use for storing pid of running chronyd, to prevent multiple
  * chronyds being started. */
 static char *pidfile;
@@ -320,6 +323,7 @@ CNF_Initialise(int r)
 
   dumpdir = Strdup(".");
   logdir = Strdup(".");
+  bind_cmd_path = Strdup("/var/run/chrony/chronyd.sock");
   pidfile = Strdup("/var/run/chronyd.pid");
   rtc_device = Strdup("/dev/rtc");
   user = Strdup(DEFAULT_USER);
@@ -349,6 +353,7 @@ CNF_Finalise(void)
   Free(keys_file);
   Free(leapsec_tz);
   Free(logdir);
+  Free(bind_cmd_path);
   Free(pidfile);
   Free(rtc_device);
   Free(rtc_file);
@@ -1113,7 +1118,14 @@ parse_bindcmdaddress(char *line)
   IPAddr ip;
 
   check_number_of_args(line, 1);
-  if (UTI_StringToIP(line, &ip)) {
+
+  /* Address starting with / is for the Unix domain socket */
+  if (line[0] == '/') {
+    parse_string(line, &bind_cmd_path);
+    /* / disables the socket */
+    if (!strcmp(bind_cmd_path, "/"))
+        bind_cmd_path[0] = '\0';
+  } else if (UTI_StringToIP(line, &ip)) {
     if (ip.family == IPADDR_INET4)
       bind_cmd_address4 = ip;
     else if (ip.family == IPADDR_INET6)
@@ -1693,6 +1705,14 @@ CNF_GetBindAcquisitionAddress(int family, IPAddr *addr)
     *addr = bind_acq_address6;
   else
     addr->family = IPADDR_UNSPEC;
+}
+
+/* ================================================== */
+
+char *
+CNF_GetBindCommandPath(void)
+{
+  return bind_cmd_path;
 }
 
 /* ================================================== */
