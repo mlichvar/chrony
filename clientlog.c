@@ -279,7 +279,7 @@ CLG_LogNTPClientAccess (IPAddr *client, time_t now)
         node = (Node *) find_subnet(&top_subnet6, ip6, 4, 0);
         break;
       default:
-        assert(0);
+        node = NULL;
     }
 
     if (node == NULL)
@@ -309,7 +309,7 @@ CLG_LogNTPPeerAccess(IPAddr *client, time_t now)
         node = (Node *) find_subnet(&top_subnet6, ip6, 4, 0);
         break;
       default:
-        assert(0);
+        node = NULL;
     }
 
     if (node == NULL)
@@ -339,7 +339,7 @@ CLG_LogCommandAccess(IPAddr *client, CLG_Command_Type type, time_t now)
         node = (Node *) find_subnet(&top_subnet6, ip6, 4, 0);
         break;
       default:
-        assert(0);
+        node = NULL;
     }
 
     if (node == NULL)
