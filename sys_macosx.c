@@ -44,6 +44,7 @@
 
 #include "sys_macosx.h"
 #include "localp.h"
+#include "sched.h"
 #include "logging.h"
 #include "util.h"
 
@@ -68,11 +69,6 @@ static double current_freq;
    were passed to adjtime last time it was called. */
 
 static double adjustment_requested;
-
-/* Kernel parameters to calculate adjtime error. */
-
-static int kern_tickadj;
-static long kern_bigadj;
 
 /* ================================================== */
 
@@ -114,8 +110,6 @@ start_adjust(void)
   struct timeval T1;
   double elapsed, accrued_error;
   double adjust_required;
-  struct timeval exact_newadj;
-  long delta, tickdelta;
   double rounding_error;
   double old_adjust_remaining;
 
@@ -129,24 +123,9 @@ start_adjust(void)
 
   adjust_required = - (accrued_error + offset_register);
 
-  UTI_DoubleToTimeval(adjust_required, &exact_newadj);
-
-  /* At this point, we need to round the required adjustment the
-     same way the kernel does. */
-
-  delta = exact_newadj.tv_sec * 1000000 + exact_newadj.tv_usec;
-  if (delta > kern_bigadj || delta < -kern_bigadj)
-    tickdelta = 10 * kern_tickadj;
-  else
-    tickdelta = kern_tickadj;
-  if (delta % tickdelta)
-	delta = delta / tickdelta * tickdelta;
-  newadj.tv_sec = 0;
-  newadj.tv_usec = (int)delta;
-  UTI_NormaliseTimeval(&newadj);
-
-  /* Add rounding error back onto offset register. */
-  UTI_DiffTimevalsToDouble(&rounding_error, &newadj, &exact_newadj);
+  UTI_DoubleToTimeval(adjust_required, &newadj);
+  UTI_TimevalToDouble(&newadj, &adjustment_requested);
+  rounding_error = adjust_required - adjustment_requested;
 
   if (adjtime(&newadj, &oldadj) < 0) {
     LOG_FATAL(LOGF_SysMacOSX, "adjtime() failed");
@@ -157,7 +136,6 @@ start_adjust(void)
   offset_register = rounding_error - old_adjust_remaining;
 
   T0 = T1;
-  UTI_TimevalToDouble(&newadj, &adjustment_requested);
 }
 
 /* ================================================== */
@@ -272,26 +250,35 @@ get_offset_correction(struct timeval *raw,
 
 /* ================================================== */
 
+/* Interval in seconds between adjustments to cancel systematic drift */
+#define DRIFT_REMOVAL_INTERVAL (1.0)
+
+static int drift_removal_running = 0;
+static SCH_TimeoutID drift_removal_id;
+
+/* ================================================== */
+/* This is the timer callback routine which is called periodically to
+ invoke a time adjustment to take out the machine's drift.
+ Otherwise, times reported through this software (e.g. by running
+ ntpdate from another machine) show the machine being correct (since
+ they correct for drift build-up), but any program on this machine
+ that reads the system time will be given an erroneous value, the
+ degree of error depending on how long it is since
+ get_offset_correction was last called. */
+
+static void
+drift_removal_timeout(SCH_ArbitraryArgument not_used)
+{
+  stop_adjust();
+  start_adjust();
+  drift_removal_id = SCH_AddTimeoutByDelay(DRIFT_REMOVAL_INTERVAL, drift_removal_timeout, NULL);
+}
+
+/* ================================================== */
+
 void
 SYS_MacOSX_Initialise(void)
 {
-  int result;
-  size_t len;
-  struct clockinfo clockinfo;
-  int mib[2];
-
-  mib[0] = CTL_KERN;
-  mib[1] = KERN_CLOCKRATE;
-
-  len = sizeof(clockinfo);
-  result = sysctl(mib, 2, &clockinfo, &len, NULL, 0);
-
-  if(result < 0) {
-    LOG_FATAL(LOGF_SysMacOSX, "Cannot read clockinfo");
-  }
-  kern_tickadj = clockinfo.tickadj;
-  kern_bigadj = clockinfo.tick;
-
   clock_initialise();
 
   lcl_RegisterSystemDrivers(read_frequency, set_frequency,
@@ -299,6 +286,10 @@ SYS_MacOSX_Initialise(void)
                             get_offset_correction,
                             NULL /* set_leap */,
                             NULL /* set_sync_status */);
+
+
+  drift_removal_id = SCH_AddTimeoutByDelay(DRIFT_REMOVAL_INTERVAL, drift_removal_timeout, NULL);
+  drift_removal_running = 1;
 }
 
 /* ================================================== */
@@ -306,6 +297,10 @@ SYS_MacOSX_Initialise(void)
 void
 SYS_MacOSX_Finalise(void)
 {
+  if (drift_removal_running) {
+    SCH_RemoveTimeout(drift_removal_id);
+  }
+
   clock_finalise();
 }
 
