@@ -4,25 +4,29 @@
 Frequently Asked Questions
 ==========================
 
-== Chrony compared to other programs
+== +chrony+ compared to other programs
 
 === How does +chrony+ compare to +ntpd+?
 
-+chrony+ can usually synchronise the system clock faster and with better time
-accuracy, but it doesn't implement all NTP features, e.g. broadcast/multicast
-mode, or authentication based on public-key cryptography.  For a more detailed
-comparison, see the http://chrony.tuxfamily.org/comparison.html[comparison
-page] on the chrony website and section
++chronyd+ was designed to work well in a wide range of conditions and it can
+usually synchronise the system clock faster and with better time accuracy.  It
+doesn't implement some of the less useful NTP modes like broadcast client or
+multicast server/client.
+
+For a more detailed comparison of features and performance, see the
+http://chrony.tuxfamily.org/comparison.html[comparison page] on the +chrony+
+website and the
 http://chrony.tuxfamily.org/manual.html#Comparison-with-ntpd[Comparison with
-ntpd] in the manual.
+ntpd] section in the manual.
 
-If your computer connects to the 'net only for few minutes at a time, you turn
-your Linux computer off or suspend it frequently, the clock is not very stable
-(e.g. it is a virtual machine), or you want to use NTP on an isolated network
-with no hardware clocks in sight, +chrony+ will probably work much better for
-you.
+If your computer is connected to the internet only for few minutes at a time,
+the network connection is often congested, you turn your Linux computer off or
+suspend it frequently, the clock is not very stable (e.g. there are rapid
+changes in the temperature or it's a virtual machine), or you want to use NTP
+on an isolated network with no hardware reference clocks in sight, +chrony+
+will probably work much better for you.
 
-The original reason +chrony+ was written was that ntpd (called xntpd at the
+The original reason +chrony+ was written was that +ntpd+ (called +xntpd+ at the
 time) could not to do anything sensible on a PC which was connected to the 'net
 only for about 5 minutes once or twice a day, mainly to upload/download email
 and news.  The requirements were
@@ -39,7 +43,7 @@ and news.  The requirements were
   information to set the system clock correctly at boot up.
 
 Also, when working with isolated networks with no true time references at all
-ntpd was found to give no help with managing the local clock's gain/loss rate
++ntpd+ was found to give no help with managing the local clock's gain/loss rate
 on the NTP master node (which was set from watch).  Some automated support was
 added to +chrony+ to deal with this.
 
@@ -63,7 +67,7 @@ the hostnames specified in the +server+ and +peer+ directives in
 increasing intervals until it succeeds.  The +online+ command can be
 issued from +chronyc+ to try to resolve them immediately.
 
-=== How can I make chronyd more secure?
+=== How can I make +chronyd+ more secure?
 
 If you don't need to serve time to NTP clients or peers, you can add +port 0+
 to the 'chrony.conf' file to completely disable the NTP server functionality
@@ -146,11 +150,11 @@ following questions.
 === Behind a firewall?
 
 If there is a firewall between you and the NTP server you're trying to use, the
-packets may be blocked.  Try using a tool like wireshark or tcpdump to see if
+packets may be blocked.  Try using a tool like +wireshark+ or +tcpdump+ to see if
 you're getting responses from the server.  If you have an external modem, see
 if the receive light blinks straight after the transmit light (when the link is
 quiet apart from the NTP traffic.)  Try adding +log measurements+ to the
-'chrony.conf' file and look in the 'measurements.log' file after +chrony+ has
+'chrony.conf' file and look in the 'measurements.log' file after +chronyd+ has
 been running for a short period. See if any measurements appear.
 
 === Are NTP servers specified with the +offline+ option?
@@ -158,6 +162,32 @@ been running for a short period. See if any measurements appear.
 Check that you're using +chronyc+\'s +online+ and +offline+ commands
 appropriately.  Again, check in 'measurements.log' to see if you're getting any
 data back from the server.
+
+=== Is +chronyd+ allowed to step the system clock?
+
+By default, +chronyd+ adjusts the clock gradually by slowing it down or
+speeding it up.  If the clock is too far from the correct time, it will take
+a long time to correct the error.  The +System time+ value printed by the
++chronyc+'s +tracking+ command is the remaining correction that needs to be
+applied to the system clock.
+
+The +makestep+ directive can be used to allow +chronyd+ to step the clock. For
+example, if 'chrony.conf' had
+
+----
+makestep 1 3
+----
+
+the clock would be stepped in the first three updates if its offset was larger
+than one second.  Normally, it's recommended to allow the step only in the
+first few updates, but in some cases (e.g. a computer without RTC or virtual
+machine which can be suspended and resumed with incorrect time) it may be
+necessary to allow the step at any clock update.  The example above would
+change to
+
+----
+makestep 1 -1
+----
 
 == Issues with +chronyc+
 
@@ -186,21 +216,37 @@ Only by the source code :-) See 'cmdmon.c' (+chronyd+ side) and 'client.c'
 === What is the real-time clock (RTC)?
 
 This is the clock which keeps the time even when your computer is turned off.
-It works with 1 second resolution.  +chronyd+ can monitor the rate at which the
-real-time clock gains or loses time, and compensate for it when you set the
-system time from it at the next reboot.  See the documentation for details.
+It is used to initialize the system clock on boot. It normally doesn't drift
+more than few seconds per day.
 
-=== I want to use +chronyd+'s real-time clock support. Must I disable hwclock?
+There are two approaches how +chronyd+ can work with it.  One is to use the
++rtcsync+ directive, which tells +chronyd+ to enable a kernel mode which sets
+the RTC from the system clock every 11 minutes.  +chronyd+ itself won't touch
+the RTC.  If the computer is not turned off for a long time, the RTC should
+still be close to the true time when the system clock will be initialized from
+it on the next boot.
 
-The hwclock program is often set-up by default in the boot and shutdown scripts
-with many Linux installations.  If you want to use +chronyd+'s real-time clock
-support, the important thing is to disable hwclock in the shutdown procedure.
-If you don't, it will over-write the RTC with a new value, unknown to
-+chronyd+.  At the next reboot, +chronyd+ will compensate this (wrong) time
-with its estimate of how far the RTC has drifted whilst the power was off,
-giving a meaningless initial system time.
+The other option is to use the +rtcfile+ directive, which will tell +chronyd+
+to monitor the rate at which the RTC gains or loses time.  When +chronyd+ is
+started with the +-s+ option on the next boot, it will set the system time from
+the RTC and also compensate for the drift it has measured previously.  The
++rtcautotrim+ directive can be used to keep the RTC close to the true time, but
+it's not strictly necessary if its only purpose is to set the system clock when
++chronyd+ is started on boot.  See the documentation for details.
 
-There is no need to remove hwclock from the boot process, as long as +chronyd+
+=== I want to use +chronyd+'s RTC support. Must I disable +hwclock+?
+
+The +hwclock+ program is often set-up by default in the boot and shutdown
+scripts with many Linux installations.  With the kernel RTC synchronisation
+(+rtcsync+ directive), the RTC will be set also every 11 minutes as long as the
+system clock is synchronised.  If you want to use +chronyd+'s RTC monitoring
+(+rtcfile+ directive), it's important to disable +hwclock+ in the shutdown
+procedure.  If you don't, it will over-write the RTC with a new value, unknown
+to +chronyd+.  At the next reboot, +chronyd+ started with the +-s+ option will
+compensate this (wrong) time with its estimate of how far the RTC has drifted
+whilst the power was off, giving a meaningless initial system time.
+
+There is no need to remove +hwclock+ from the boot process, as long as +chronyd+
 is started after it has run.
 
 === I just keep getting the +513 RTC driver not running+ message
@@ -212,33 +258,24 @@ things
 * enhanced RTC support compiled into the kernel
 * an +rtcfile+ directive in your 'chrony.conf' file
 
-== Microsoft Windows
-
-=== Does +chrony+ support Windows?
-
-No.  The +chronyc+ program (the command-line client used for configuring
-+chronyd+ while it is running) has been successfully built and run under
-Cygwin in the past.  +chronyd+ is not portable, because part of it is
-very system-dependent.  It needs adapting to work with Windows'
-equivalent of the adjtimex() call, and it needs to be made to work as a
-service.
-
-=== Are there any plans to support Windows?
-
-We have no plans to do this.  Anyone is welcome to pick this work up and
-contribute it back to the project.
-
 == NTP-specific issues
 
-=== Can +chrony+ be driven from broadcast NTP servers?
+=== Can +chronyd+ be driven from broadcast NTP servers?
 
-No, this NTP mode is not implemented yet.
+No, the broadcast client mode is not supported and there is currently no plan
+to implement it.  The broadcast and multicast modes are inherently less
+accurate and less secure (even with authentication) than the ordinary
+server/client mode and they are not as useful as they used to be.  Even with
+very modest hardware a single NTP server can serve time to hundreds of
+thousands of clients using the ordinary mode.
 
-=== Can chronyd transmit broadcast NTP packets (e.g. to synchronise other computers on a private LAN)?
+=== Can +chronyd+ transmit broadcast NTP packets?
 
-Yes.  Starting from version 1.17, +chrony+ has this capability.
+Yes, the +broadcast+ directive can be used to enable the broadcast server mode
+to serve time to clients in the network which support the broadcast client mode
+(it's not supported in +chronyd+, see the previous question).
 
-=== Can +chrony+ keep the system clock a fixed offset away from real time?
+=== Can +chronyd+ keep the system clock a fixed offset away from real time?
 
 This is not possible as the program currently stands.
 
@@ -271,3 +308,19 @@ aspect of the Solaris kernel has changed which prevents the same
 technique working.  We no longer have root access to any Solaris
 machines to work on this, and we are reliant on somebody developing the
 patch and testing it.
+
+== Microsoft Windows
+
+=== Does +chrony+ support Windows?
+
+No.  The +chronyc+ program (the command-line client used for configuring
++chronyd+ while it is running) has been successfully built and run under
+Cygwin in the past.  +chronyd+ is not portable, because part of it is
+very system-dependent.  It needs adapting to work with Windows'
+equivalent of the adjtimex() call, and it needs to be made to work as a
+service.
+
+=== Are there any plans to support Windows?
+
+We have no plans to do this.  Anyone is welcome to pick this work up and
+contribute it back to the project.
