@@ -31,6 +31,7 @@
 #include "sysincl.h"
 
 #include "candm.h"
+#include "logging.h"
 #include "nameserv.h"
 #include "hash.h"
 #include "getdate.h"
@@ -68,6 +69,24 @@ static int on_terminal = 0;
 static int no_dns = 0;
 
 static int recv_errqueue = 0;
+
+/* ================================================== */
+/* Log a message. This is a minimalistic replacement of the logging.c
+   implementation to avoid linking with it and other modules. */
+
+int log_debug_enabled = 0;
+
+void LOG_Message(LOG_Severity severity, LOG_Facility facility,
+                 int line_number, const char *filename,
+                 const char *function_name, const char *format, ...)
+{
+  va_list ap;
+
+  va_start(ap, format);
+  vfprintf(stderr, format, ap);
+  putc('\n', stderr);
+  va_end(ap);
+}
 
 /* ================================================== */
 /* Read a single line of commands from standard input.  Eventually we
