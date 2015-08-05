@@ -32,6 +32,7 @@
 
 #include "candm.h"
 #include "logging.h"
+#include "memory.h"
 #include "nameserv.h"
 #include "hash.h"
 #include "getdate.h"
@@ -112,7 +113,7 @@ read_line(void)
       line[sizeof(line) - 1] = '\0';
       add_history(cmd);
       /* free the buffer allocated by readline */
-      free(cmd);
+      Free(cmd);
     } else {
       /* simulate the user has entered an empty line */
       *line = '\0';
@@ -1090,7 +1091,7 @@ process_cmd_password(CMD_Request *msg, char *line)
   if (password) {
     for (i = 0; i < password_length; i++)
       password[i] = 0;
-    free(password);
+    Free(password);
     password = NULL;
   }
 
@@ -1108,7 +1109,7 @@ process_cmd_password(CMD_Request *msg, char *line)
   password_length = UTI_DecodePasswordFromText(p);
 
   if (password_length > 0) {
-    password = malloc(password_length);
+    password = Malloc(password_length);
     memcpy(password, p, password_length);
   }
 
@@ -2738,7 +2739,7 @@ process_args(int argc, char **argv, int multi)
     total_length += strlen(argv[i]) + 1;
   }
 
-  line = (char *) malloc((2 + total_length) * sizeof(char));
+  line = (char *) Malloc((2 + total_length) * sizeof(char));
 
   for (i = 0; i < argc; i++) {
     line[0] = '\0';
@@ -2757,7 +2758,7 @@ process_args(int argc, char **argv, int multi)
       break;
   }
 
-  free(line);
+  Free(line);
 
   return ret;
 }
@@ -2884,7 +2885,7 @@ main(int argc, char **argv)
 
   close_io();
 
-  free(password);
+  Free(password);
 
   return !ret;
 }

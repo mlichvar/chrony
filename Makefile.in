@@ -44,7 +44,7 @@ OBJS = array.o cmdparse.o conf.o local.o logging.o main.o memory.o mkdirpp.o \
 
 EXTRA_OBJS=@EXTRA_OBJECTS@
 
-CLI_OBJS = client.o nameserv.o getdate.o cmdparse.o \
+CLI_OBJS = client.o cmdparse.o getdate.o memory.o nameserv.o \
            pktlength.o util.o $(HASH_OBJ)
 
 ALL_OBJS = $(OBJS) $(EXTRA_OBJS) $(CLI_OBJS)
