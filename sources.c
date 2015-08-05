@@ -44,7 +44,6 @@
 #include "logging.h"
 #include "reports.h"
 #include "nameserv.h"
-#include "mkdirpp.h"
 #include "sched.h"
 #include "regress.h"
 
@@ -1093,7 +1092,7 @@ SRC_DumpSources(void)
   direc_len = strlen(direc);
   file_len = direc_len + 24;
   filename = MallocArray(char, file_len); /* a bit of slack */
-  if (mkdir_and_parents(direc)) {
+  if (UTI_CreateDirAndParents(direc)) {
     for (i=0; i<n_sources; i++) {
       a = (sources[i]->ref_id) >> 24;
       b = ((sources[i]->ref_id) >> 16) & 0xff;

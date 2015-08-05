@@ -31,7 +31,6 @@
 
 #include "conf.h"
 #include "logging.h"
-#include "mkdirpp.h"
 #include "util.h"
 
 /* This is used by DEBUG_LOG macro */
@@ -307,7 +306,7 @@ LOG_CreateLogFileDir(void)
 
   logdir = CNF_GetLogDir();
 
-  if (!mkdir_and_parents(logdir)) {
+  if (!UTI_CreateDirAndParents(logdir)) {
     LOG(LOGS_ERR, LOGF_Logging, "Could not create directory %s", logdir);
   }
 }

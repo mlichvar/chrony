@@ -130,4 +130,7 @@ extern int UTI_DecodePasswordFromText(char *key);
 
 extern int UTI_SetQuitSignalsHandler(void (*handler)(int));
 
+/* Create a directory and any parent directories that don't exist */
+extern int UTI_CreateDirAndParents(const char *path);
+
 #endif /* GOT_UTIL_H */

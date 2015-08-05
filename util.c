@@ -29,6 +29,7 @@
 
 #include "sysincl.h"
 
+#include "memory.h"
 #include "util.h"
 #include "hash.h"
 
@@ -890,5 +891,85 @@ UTI_SetQuitSignalsHandler(void (*handler)(int))
     return 0;
 #endif
 
+  return 1;
+}
+
+/* ================================================== */
+
+static int
+create_dir(char *p)
+{
+  int status;
+  struct stat buf;
+
+  /* See if directory exists */
+  status = stat(p, &buf);
+
+  if (status < 0) {
+    if (errno == ENOENT) {
+      /* Try to create directory */
+      status = mkdir(p, 0755);
+      return status;
+    } else {
+      return status;
+    }
+  }
+
+  if (!S_ISDIR(buf.st_mode)) {
+    return -1;
+  }
+
+  return 0;
+}
+
+/* ================================================== */
+/* Return 0 if the directory couldn't be created, 1 if it could (or
+   already existed) */
+int
+UTI_CreateDirAndParents(const char *path)
+{
+  char *p;
+  int i, j, k, last;
+
+  p = (char *)Malloc(1 + strlen(path));
+
+  i = k = 0;
+  while (1) {
+    p[i++] = path[k++];
+
+    if (path[k] == '/' || !path[k]) {
+      p[i] = 0;
+
+      if (create_dir(p) < 0) {
+        Free(p);
+        return 0;
+      }
+
+      if (!path[k]) {
+        /* End of the string */
+        break;
+      }
+
+      /* Check whether its a trailing / or group of / */
+      last = 1;
+      j = k + 1;
+      while (path[j]) {
+        if (path[j] != '/') {
+          k = j - 1; /* Pick up a / into p[] thru the assignment at the top of the loop */
+          last = 0;
+          break;
+        }
+        j++;
+      }
+
+      if (last)
+        break;
+    }
+
+    if (!path[k])
+      break;
+  }
+
+  Free(p);
   return 1;
 }
