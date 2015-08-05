@@ -931,6 +931,10 @@ UTI_CreateDirAndParents(const char *path)
   char *p;
   int i, j, k, last;
 
+  /* Don't try to create current directory */
+  if (!strcmp(path, "."))
+    return 1;
+
   p = (char *)Malloc(1 + strlen(path));
 
   i = k = 0;
