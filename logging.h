@@ -81,6 +81,7 @@ typedef enum {
   LOGF_Util,
   LOGF_Main,
   LOGF_Memory,
+  LOGF_Client,
   LOGF_ClientLog,
   LOGF_Configure,
   LOGF_CmdMon,

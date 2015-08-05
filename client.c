@@ -142,8 +142,7 @@ open_io(const char *hostname, int port)
 
   /* Note, this call could block for a while */
   if (DNS_Name2IPAddress(hostname, &ip, 1) != DNS_Success) {
-    fprintf(stderr, "Could not get IP address for %s\n", hostname);
-    exit(1);
+    LOG_FATAL(LOGF_Client, "Could not get IP address for %s", hostname);
   }
 
   switch (ip.family) {
@@ -162,8 +161,7 @@ open_io(const char *hostname, int port)
   his_addr_len = UTI_IPAndPortToSockaddr(&ip, port, &his_addr.u);
 
   if (sock_fd < 0) {
-    perror("Can't create socket");
-    exit(1);
+    LOG_FATAL(LOGF_Client, "Could not create socket : %s", strerror(errno));
   }
 
   /* Enable extended error reporting (e.g. ECONNREFUSED on ICMP unreachable) */
@@ -259,13 +257,13 @@ read_mask_address(char *line, IPAddr *mask, IPAddr *address)
         bits_to_mask(-1, address->family, mask);
         return 1;
       } else {
-        fprintf(stderr, "Could not get address for hostname\n");
+        LOG(LOGS_ERR, LOGF_Client, "Could not get address for hostname");
         return 0;
       }
     }
   }
 
-  fprintf(stderr, "Invalid syntax for mask/address\n");
+  LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for mask/address");
   return 0;
 }
 
@@ -324,11 +322,11 @@ read_address_integer(char *line, IPAddr *address, int *value)
   line = CPS_SplitWord(line);
 
   if (sscanf(line, "%d", value) != 1) {
-    fprintf(stderr, "Invalid syntax for address value\n");
+    LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for address value");
     ok = 0;
   } else {
     if (DNS_Name2IPAddress(hostname, address, 1) != DNS_Success) {
-      fprintf(stderr, "Could not get address for hostname\n");
+      LOG(LOGS_ERR, LOGF_Client, "Could not get address for hostname");
       ok = 0;
     } else {
       ok = 1;
@@ -352,11 +350,11 @@ read_address_double(char *line, IPAddr *address, double *value)
   line = CPS_SplitWord(line);
 
   if (sscanf(line, "%lf", value) != 1) {
-    fprintf(stderr, "Invalid syntax for address value\n");
+    LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for address value");
     ok = 0;
   } else {
     if (DNS_Name2IPAddress(hostname, address, 1) != DNS_Success) {
-      fprintf(stderr, "Could not get address for hostname\n");
+      LOG(LOGS_ERR, LOGF_Client, "Could not get address for hostname");
       ok = 0;
     } else {
       ok = 1;
@@ -589,7 +587,7 @@ process_cmd_burst(CMD_Request *msg, char *line)
   CPS_SplitWord(s2);
 
   if (sscanf(s1, "%d/%d", &n_good_samples, &n_total_samples) != 2) {
-    fprintf(stderr, "Invalid syntax for burst command\n");
+    LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for burst command");
     return 0;
   }
 
@@ -625,7 +623,7 @@ process_cmd_local(CMD_Request *msg, const char *line)
     msg->data.local.on_off = htonl(1);
     msg->data.local.stratum = htonl(stratum);
   } else {
-    fprintf(stderr, "Invalid syntax for local command\n");
+    LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for local command");
     return 0;
   }
 
@@ -649,7 +647,7 @@ process_cmd_manual(CMD_Request *msg, const char *line)
   } else if (!strcmp(p, "reset")) {
     msg->data.manual.option = htonl(2);
   } else {
-    fprintf(stderr, "Invalid syntax for manual command\n");
+    LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for manual command");
     return 0;
   }
   msg->command = htons(REQ_MANUAL);
@@ -684,7 +682,7 @@ parse_allow_deny(CMD_Request *msg, char *line)
 
       /* Try to parse as the name of a machine */
       if (DNS_Name2IPAddress(p, &ip, 1) != DNS_Success) {
-        fprintf(stderr, "Could not read address\n");
+        LOG(LOGS_ERR, LOGF_Client, "Could not read address");
         return 0;
       } else {
         UTI_IPHostToNetwork(&ip, &msg->data.allow_deny.ip);
@@ -737,7 +735,8 @@ parse_allow_deny(CMD_Request *msg, char *line)
         if (n == 1) {
           msg->data.allow_deny.subnet_bits = htonl(specified_subnet_bits);
         } else {
-          fprintf(stderr, "Warning: badly formatted subnet size, using %ld\n", (long) ntohl(msg->data.allow_deny.subnet_bits));
+          LOG(LOGS_WARN, LOGF_Client, "Warning: badly formatted subnet size, using %d",
+              (int)ntohl(msg->data.allow_deny.subnet_bits));
         }
       } 
     }
@@ -871,7 +870,7 @@ process_cmd_accheck(CMD_Request *msg, char *line)
     UTI_IPHostToNetwork(&ip, &msg->data.ac_check.ip);
     return 1;
   } else {    
-    fprintf(stderr, "Could not read address\n");
+    LOG(LOGS_ERR, LOGF_Client, "Could not read address");
     return 0;
   }
 }
@@ -887,7 +886,7 @@ process_cmd_cmdaccheck(CMD_Request *msg, char *line)
     UTI_IPHostToNetwork(&ip, &msg->data.ac_check.ip);
     return 1;
   } else {    
-    fprintf(stderr, "Could not read address\n");
+    LOG(LOGS_ERR, LOGF_Client, "Could not read address");
     return 0;
   }
 }
@@ -959,42 +958,42 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
   switch (status) {
     case CPS_Success:
       if (DNS_Name2IPAddress(data.name, &ip_addr, 1) != DNS_Success) {
-        fprintf(stderr, "Invalid host/IP address\n");
+        LOG(LOGS_ERR, LOGF_Client, "Invalid host/IP address");
         break;
       }
 
       if (data.params.min_stratum != SRC_DEFAULT_MINSTRATUM) {
-        fprintf(stderr, "Option minstratum not supported\n");
+        LOG(LOGS_WARN, LOGF_Client, "Option minstratum not supported");
         break;
       }
 
       if (data.params.poll_target != SRC_DEFAULT_POLLTARGET) {
-        fprintf(stderr, "Option polltarget not supported\n");
+        LOG(LOGS_WARN, LOGF_Client, "Option polltarget not supported");
         break;
       }
 
       if (data.params.max_delay_dev_ratio != SRC_DEFAULT_MAXDELAYDEVRATIO) {
-        fprintf(stderr, "Option maxdelaydevratio not supported\n");
+        LOG(LOGS_WARN, LOGF_Client, "Option maxdelaydevratio not supported");
         break;
       }
 
       if (data.params.version != NTP_VERSION) {
-        fprintf(stderr, "Option version not supported\n");
+        LOG(LOGS_WARN, LOGF_Client, "Option version not supported");
         break;
       }
 
       if (data.params.max_sources != SRC_DEFAULT_MAXSOURCES) {
-        fprintf(stderr, "Option maxsources not supported\n");
+        LOG(LOGS_WARN, LOGF_Client, "Option maxsources not supported");
         break;
       }
 
       if (data.params.min_samples != SRC_DEFAULT_MINSAMPLES) {
-        fprintf(stderr, "Option minsamples not supported\n");
+        LOG(LOGS_WARN, LOGF_Client, "Option minsamples not supported");
         break;
       }
 
       if (data.params.max_samples != SRC_DEFAULT_MAXSAMPLES) {
-        fprintf(stderr, "Option maxsamples not supported\n");
+        LOG(LOGS_WARN, LOGF_Client, "Option maxsamples not supported");
         break;
       }
 
@@ -1017,7 +1016,7 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
       break;
     default:
       CPS_StatusToString(status, str, sizeof (str));
-      fprintf(stderr, "%s\n", str);
+      LOG(LOGS_ERR, LOGF_Client, "%s", str);
       break;
   }
 
@@ -1056,11 +1055,11 @@ process_cmd_delete(CMD_Request *msg, char *line)
   CPS_SplitWord(line);
 
   if (!*hostname) {
-    fprintf(stderr, "Invalid syntax for address\n");
+    LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for address");
     ok = 0;
   } else {
     if (DNS_Name2IPAddress(hostname, &address, 1) != DNS_Success) {
-      fprintf(stderr, "Could not get address for hostname\n");
+      LOG(LOGS_ERR, LOGF_Client, "Could not get address for hostname");
       ok = 0;
     } else {
       UTI_IPHostToNetwork(&address, &msg->data.del_source.ip_addr);
@@ -1118,7 +1117,7 @@ process_cmd_password(CMD_Request *msg, char *line)
     p[i] = 0;
 
   if (password_length <= 0) {
-      fprintf(stderr, "Could not decode password\n");
+      LOG(LOGS_ERR, LOGF_Client, "Could not decode password");
       return 0;
   }
 
@@ -2037,7 +2036,7 @@ process_cmd_smoothtime(CMD_Request *msg, const char *line)
   } else if (!strcmp(line, "activate")) {
     msg->data.smoothtime.option = htonl(REQ_SMOOTHTIME_ACTIVATE);
   } else {
-    fprintf(stderr, "Invalid syntax for smoothtime command\n");
+    LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for smoothtime command");
     return 0;
   }
 
@@ -2215,9 +2214,8 @@ process_cmd_manual_delete(CMD_Request *msg, const char *line)
   int index;
 
   if (sscanf(line, "%d", &index) != 1) {
-    fprintf(stderr, "Bad syntax for manual delete command\n");
+    LOG(LOGS_ERR, LOGF_Client, "Bad syntax for manual delete command");
     return 0;
-
   }
 
   msg->command = htons(REQ_MANUAL_DELETE);
@@ -2279,7 +2277,7 @@ process_cmd_makestep(CMD_Request *msg, char *line)
 
   if (*line) {
     if (sscanf(line, "%lf %d", &threshold, &limit) != 2) {
-      fprintf(stderr, "Bad syntax for makestep command\n");
+      LOG(LOGS_ERR, LOGF_Client, "Bad syntax for makestep command");
       return 0;
     }
     msg->command = htons(REQ_MODIFY_MAKESTEP);
@@ -2408,7 +2406,7 @@ process_cmd_dns(const char *line)
   } else if (!strcmp(line, "+n")) {
     no_dns = 0;
   } else {
-    fprintf(stderr, "Unrecognized dns command\n");
+    LOG(LOGS_ERR, LOGF_Client, "Unrecognized dns command");
     return 0;
   }
   return 1;
@@ -2426,13 +2424,13 @@ process_cmd_authhash(const char *line)
   hash_name = line;
 
   if (!*hash_name) {
-    fprintf(stderr, "Could not parse hash name\n");
+    LOG(LOGS_ERR, LOGF_Client, "Could not parse hash name");
     return 0;
   }
 
   new_hash_id = HSH_GetHashId(hash_name);
   if (new_hash_id < 0) {
-    fprintf(stderr, "Unknown hash name: %s\n", hash_name);
+    LOG(LOGS_ERR, LOGF_Client, "Unknown hash name: %s", hash_name);
     return 0;
   }
 
@@ -2450,7 +2448,7 @@ process_cmd_timeout(const char *line)
 
   timeout = atoi(line);
   if (timeout < 100) {
-    fprintf(stderr, "Timeout %d is too short\n", timeout);
+    LOG(LOGS_ERR, LOGF_Client, "Timeout %d is too short", timeout);
     return 0;
   }
   initial_timeout = timeout;
@@ -2466,7 +2464,7 @@ process_cmd_retries(const char *line)
 
   retries = atoi(line);
   if (retries < 0) {
-    fprintf(stderr, "Invalid maximum number of retries\n");
+    LOG(LOGS_ERR, LOGF_Client, "Invalid maximum number of retries");
     return 0;
   }
   max_retries = retries;
@@ -2643,7 +2641,7 @@ process_line(char *line)
   } else if (!strcmp(command, "writertc")) {
     process_cmd_writertc(&tx_message, line);
   } else {
-    fprintf(stderr, "Unrecognized command\n");
+    LOG(LOGS_ERR, LOGF_Client, "Unrecognized command");
     do_normal_submit = 0;
   }
     
@@ -2670,7 +2668,7 @@ authenticate_from_config(const char *filename)
 
   in = fopen(filename, "r");
   if (!in) {
-    fprintf(stderr, "Could not open file %s : %s\n", filename, strerror(errno));
+    LOG(LOGS_ERR, LOGF_Client, "Could not open file %s : %s", filename, strerror(errno));
     return 0;
   }
 
@@ -2688,13 +2686,13 @@ authenticate_from_config(const char *filename)
   fclose(in);
 
   if (!*keyfile || !key_id_valid) {
-    fprintf(stderr, "Could not read keyfile or commandkey in file %s\n", filename);
+    LOG(LOGS_ERR, LOGF_Client, "Could not read keyfile or commandkey in file %s", filename);
     return 0;
   }
 
   in = fopen(keyfile, "r");
   if (!in) {
-    fprintf(stderr, "Could not open keyfile %s : %s\n", keyfile, strerror(errno));
+    LOG(LOGS_ERR, LOGF_Client, "Could not open keyfile %s : %s", keyfile, strerror(errno));
     return 0;
   }
 
@@ -2716,7 +2714,7 @@ authenticate_from_config(const char *filename)
       ret = 0;
     }
   } else {
-    fprintf(stderr, "Could not find key %"PRIu32" in keyfile %s\n", key_id, keyfile);
+    LOG(LOGS_ERR, LOGF_Client, "Could not find key %"PRIu32" in keyfile %s", key_id, keyfile);
     ret = 0;
   }
 
@@ -2827,8 +2825,9 @@ main(int argc, char **argv)
       printf("chronyc (chrony) version %s (%s)\n", CHRONY_VERSION, CHRONYC_FEATURES);
       return 0;
     } else if (!strncmp(*argv, "-", 1)) {
-      fprintf(stderr, "Usage: %s [-h HOST] [-p PORT] [-n] [-4|-6] [-a] [-f FILE] [-m] [COMMAND]\n",
-              progname);
+      LOG(LOGS_ERR, LOGF_Client,
+          "Usage: %s [-h HOST] [-p PORT] [-n] [-4|-6] [-a] [-f FILE] [-m] [COMMAND]",
+          progname);
       return 1;
     } else {
       break; /* And process remainder of line as a command */
@@ -2846,8 +2845,7 @@ main(int argc, char **argv)
   /* MD5 is the default authentication hash */
   auth_hash_id = HSH_GetHashId("MD5");
   if (auth_hash_id < 0) {
-    fprintf(stderr, "Could not initialize MD5\n");
-    return 1;
+    LOG_FATAL(LOGF_Client, "Could not initialize MD5");
   }
   
   DNS_SetAddressFamily(family);
