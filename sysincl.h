@@ -29,7 +29,7 @@
 #ifndef GOT_SYSINCL_H
 #define GOT_SYSINCL_H
 
-#if defined (SOLARIS) || defined(SUNOS) || defined(LINUX) || defined(__NetBSD__) || defined (MACOSX)
+#if defined (SOLARIS) || defined(SUNOS) || defined(LINUX) || defined(NETBSD) || defined (MACOSX)
 
 #if !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(MACOSX)
 #include <alloca.h>

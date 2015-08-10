@@ -44,7 +44,7 @@
 #include "sys_sunos.h"
 #endif
 
-#if defined (__NetBSD__)
+#if defined (NETBSD)
 #include "sys_netbsd.h"
 #endif
 
@@ -70,7 +70,7 @@ SYS_Initialise(void)
   SYS_SunOS_Initialise();
 #endif
 
-#if defined(__NetBSD__)
+#if defined(NETBSD)
   SYS_NetBSD_Initialise();
 #endif
 
@@ -98,7 +98,7 @@ SYS_Finalise(void)
   SYS_SunOS_Finalise();
 #endif
 
-#if defined(__NetBSD__)
+#if defined(NETBSD)
   SYS_NetBSD_Finalise();
 #endif
 

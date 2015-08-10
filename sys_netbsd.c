@@ -27,7 +27,7 @@
 
 #include "config.h"
 
-#ifdef __NetBSD__
+#ifdef NETBSD
 
 #include <kvm.h>
 #include <nlist.h>
@@ -325,4 +325,4 @@ SYS_NetBSD_Finalise(void)
 /* ================================================== */
 
 
-#endif /* __NetBSD__ */
+#endif /* NETBSD */

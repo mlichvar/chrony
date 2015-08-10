@@ -401,7 +401,7 @@ case $SYSTEM in
     NetBSD-* )
         EXTRA_OBJECTS="sys_netbsd.o"
         EXTRA_LIBS="-lkvm"
-        SYSDEFS=""
+        add_def NETBSD
         echo "Configuring for $SYSTEM"
     ;;
     Darwin-* )
