@@ -39,6 +39,8 @@ extern char *CNF_GetRtcDevice(void);
 extern void CNF_ReadFile(const char *filename);
 extern void CNF_ParseLine(const char *filename, int number, char *line);
 
+extern void CNF_CreateDirs(uid_t uid, gid_t gid);
+
 extern void CNF_AddInitSources(void);
 extern void CNF_AddSources(void);
 extern void CNF_AddBroadcasts(void);

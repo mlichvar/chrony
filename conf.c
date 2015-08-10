@@ -1259,6 +1259,15 @@ parse_include(char *line)
 /* ================================================== */
 
 void
+CNF_CreateDirs(uid_t uid, gid_t gid)
+{
+  UTI_CreateDirAndParents(logdir, 0755, uid, gid);
+  UTI_CreateDirAndParents(dumpdir, 0755, uid, gid);
+}
+
+/* ================================================== */
+
+void
 CNF_AddInitSources(void)
 {
   CPS_NTP_Source cps_source;

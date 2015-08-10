@@ -1092,23 +1092,23 @@ SRC_DumpSources(void)
   direc_len = strlen(direc);
   file_len = direc_len + 24;
   filename = MallocArray(char, file_len); /* a bit of slack */
-  if (UTI_CreateDirAndParents(direc, 0755, 0, 0)) {
-    for (i=0; i<n_sources; i++) {
-      a = (sources[i]->ref_id) >> 24;
-      b = ((sources[i]->ref_id) >> 16) & 0xff;
-      c = ((sources[i]->ref_id) >> 8) & 0xff;
-      d = ((sources[i]->ref_id)) & 0xff;
-      
-      snprintf(filename, file_len-1, "%s/%d.%d.%d.%d.dat", direc, a, b, c, d);
-      out = fopen(filename, "w");
-      if (!out) {
-        LOG(LOGS_WARN, LOGF_Sources, "Could not open dump file %s", filename);
-      } else {
-        SST_SaveToFile(sources[i]->stats, out);
-        fclose(out);
-      }
+
+  for (i = 0; i < n_sources; i++) {
+    a = (sources[i]->ref_id) >> 24;
+    b = ((sources[i]->ref_id) >> 16) & 0xff;
+    c = ((sources[i]->ref_id) >> 8) & 0xff;
+    d = ((sources[i]->ref_id)) & 0xff;
+
+    snprintf(filename, file_len - 1, "%s/%d.%d.%d.%d.dat", direc, a, b, c, d);
+    out = fopen(filename, "w");
+    if (!out) {
+      LOG(LOGS_WARN, LOGF_Sources, "Could not open dump file %s", filename);
+    } else {
+      SST_SaveToFile(sources[i]->stats, out);
+      fclose(out);
     }
   }
+
   Free(filename);
 }
 

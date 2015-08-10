@@ -300,18 +300,6 @@ LOG_FileWrite(LOG_FileID id, const char *format, ...)
 /* ================================================== */
 
 void
-LOG_CreateLogFileDir(void)
-{
-  const char *logdir;
-
-  logdir = CNF_GetLogDir();
-
-  UTI_CreateDirAndParents(logdir, 0755, 0, 0);
-}
-
-/* ================================================== */
-
-void
 LOG_CycleLogFiles(void)
 {
   LOG_FileID i;

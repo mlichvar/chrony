@@ -142,7 +142,6 @@ extern LOG_FileID LOG_FileOpen(const char *name, const char *banner);
 FORMAT_ATTRIBUTE_PRINTF(2, 3)
 extern void LOG_FileWrite(LOG_FileID id, const char *format, ...);
 
-extern void LOG_CreateLogFileDir(void);
 extern void LOG_CycleLogFiles(void);
 
 #endif /* GOT_LOGGING_H */
