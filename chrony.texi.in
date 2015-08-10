@@ -1024,9 +1024,11 @@ the last modification of the drift file (specified by the @code{driftfile}
 directive) to restore the system time at which @code{chronyd} was previously
 stopped.
 @item -u <user>
-This option sets the name of the user to which will @code{chronyd} switch to
-drop root privileges if compiled with Linux capabilities support (default
-@code{@DEFAULT_USER@}).
+This option sets the name of the system user to which @code{chronyd} will
+switch after start in order to drop root privileges.  It overrides the
+@code{user} directive (default @code{@DEFAULT_USER@}).  It may be set to a
+non-root user only when @code{chronyd} is compiled with support for Linux
+capabilities (libcap).
 @item -q
 When run in this mode, @code{chronyd} will set the system clock once
 and exit.  It will not detach from the terminal.
@@ -3200,10 +3202,10 @@ Valid measurements with corresponding compensations are logged to the
 @c {{{ user
 @node user directive
 @subsection user
-The @code{user} directive sets the name of the user to which will
-@code{chronyd} switch on initialisation to drop root privileges.
-So far, it works only on Linux when compiled with capabilities support.
-Setting the name to root will disable it.
+The @code{user} directive sets the name of the system user to which
+@code{chronyd} will switch after start in order to drop root privileges.
+It may be set to a non-root user only when @code{chronyd} is compiled with
+support for Linux capabilities (libcap).
 
 The default value is @code{@DEFAULT_USER@}.
 @c }}}

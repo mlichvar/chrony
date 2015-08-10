@@ -103,9 +103,11 @@ directive) to restore the system time at which \fBchronyd\fR was previously
 stopped.
 .TP
 \fB\-u\fR \fIuser\fR
-This option sets the name of the user to which will \fBchronyd\fR switch to
-drop root privileges if compiled with Linux capabilities support (default
-\fB@DEFAULT_USER@\fR).
+This option sets the name of the system user to which \fBchronyd\fR will switch
+after start in order to drop root privileges.  It overrides the \fBuser\fR
+directive (default \fB@DEFAULT_USER@\fR).  It may be set to a non-root user
+only when \fBchronyd\fR@ is compiled with support for Linux capabilities
+(libcap).
 .TP
 .B \-q
 When run in this mode, chronyd will set the system clock once

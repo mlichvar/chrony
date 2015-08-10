@@ -490,12 +490,12 @@ int main
     user = CNF_GetUser();
   }
 
-  if (user && strcmp(user, "root")) {
-    if ((pw = getpwnam(user)) == NULL)
-      LOG_FATAL(LOGF_Main, "Could not get %s uid/gid", user);
+  if ((pw = getpwnam(user)) == NULL)
+    LOG_FATAL(LOGF_Main, "Could not get %s uid/gid", user);
 
+  /* Drop root privileges if the user has non-zero uid or gid */
+  if (pw->pw_uid || pw->pw_gid)
     SYS_DropRoot(pw->pw_uid, pw->pw_gid);
-  }
 
   LOG_CreateLogFileDir();
 
