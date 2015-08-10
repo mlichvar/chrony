@@ -350,6 +350,7 @@ int main
   const char *conf_file = DEFAULT_CONF_FILE;
   const char *progname = argv[0];
   char *user = NULL;
+  struct passwd *pw;
   int debug = 0, nofork = 0, address_family = IPADDR_UNSPEC;
   int do_init_rtc = 0, restarted = 0;
   int other_pid;
@@ -488,8 +489,12 @@ int main
   if (!user) {
     user = CNF_GetUser();
   }
+
   if (user && strcmp(user, "root")) {
-    SYS_DropRoot(user);
+    if ((pw = getpwnam(user)) == NULL)
+      LOG_FATAL(LOGF_Main, "Could not get %s uid/gid", user);
+
+    SYS_DropRoot(pw->pw_uid, pw->pw_gid);
   }
 
   LOG_CreateLogFileDir();

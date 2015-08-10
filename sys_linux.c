@@ -45,8 +45,6 @@ int LockAll = 0;
 #endif
 
 #ifdef FEAT_PRIVDROP
-#include <sys/types.h>
-#include <pwd.h>
 #include <sys/prctl.h>
 #include <sys/capability.h>
 #include <grp.h>
@@ -382,17 +380,9 @@ SYS_Linux_Finalise(void)
 
 #ifdef FEAT_PRIVDROP
 void
-SYS_Linux_DropRoot(char *user)
+SYS_Linux_DropRoot(uid_t uid, gid_t gid)
 {
-  struct passwd *pw;
   cap_t cap;
-
-  if (user == NULL)
-    return;
-
-  if ((pw = getpwnam(user)) == NULL) {
-    LOG_FATAL(LOGF_SysLinux, "getpwnam(%s) failed", user);
-  }
 
   if (prctl(PR_SET_KEEPCAPS, 1)) {
     LOG_FATAL(LOGF_SysLinux, "prctl() failed");
@@ -402,12 +392,12 @@ SYS_Linux_DropRoot(char *user)
     LOG_FATAL(LOGF_SysLinux, "setgroups() failed");
   }
 
-  if (setgid(pw->pw_gid)) {
-    LOG_FATAL(LOGF_SysLinux, "setgid(%d) failed", pw->pw_gid);
+  if (setgid(gid)) {
+    LOG_FATAL(LOGF_SysLinux, "setgid(%d) failed", gid);
   }
 
-  if (setuid(pw->pw_uid)) {
-    LOG_FATAL(LOGF_SysLinux, "setuid(%d) failed", pw->pw_uid);
+  if (setuid(uid)) {
+    LOG_FATAL(LOGF_SysLinux, "setuid(%d) failed", uid);
   }
 
   if ((cap = cap_from_text("cap_net_bind_service,cap_sys_time=ep")) == NULL) {
@@ -420,7 +410,7 @@ SYS_Linux_DropRoot(char *user)
 
   cap_free(cap);
 
-  DEBUG_LOG(LOGF_SysLinux, "Privileges dropped to user %s", user);
+  DEBUG_LOG(LOGF_SysLinux, "Root dropped to uid %d gid %d", uid, gid);
 }
 #endif
 

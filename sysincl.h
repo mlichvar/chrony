@@ -45,6 +45,7 @@
 #include <math.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <pwd.h>
 #include <resolv.h>
 #include <signal.h>
 #include <stdarg.h>

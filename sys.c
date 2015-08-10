@@ -27,6 +27,8 @@
 
 #include "config.h"
 
+#include "sysincl.h"
+
 #include "sys.h"
 #include "logging.h"
 
@@ -107,10 +109,10 @@ SYS_Finalise(void)
 
 /* ================================================== */
 
-void SYS_DropRoot(char *user)
+void SYS_DropRoot(uid_t uid, gid_t gid)
 {
 #if defined(LINUX) && defined (FEAT_PRIVDROP)
-  SYS_Linux_DropRoot(user);
+  SYS_Linux_DropRoot(uid, gid);
 #else
   LOG_FATAL(LOGF_Sys, "dropping root privileges not supported");
 #endif
