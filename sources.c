@@ -1092,7 +1092,7 @@ SRC_DumpSources(void)
   direc_len = strlen(direc);
   file_len = direc_len + 24;
   filename = MallocArray(char, file_len); /* a bit of slack */
-  if (UTI_CreateDirAndParents(direc)) {
+  if (UTI_CreateDirAndParents(direc, 0755, 0, 0)) {
     for (i=0; i<n_sources; i++) {
       a = (sources[i]->ref_id) >> 24;
       b = ((sources[i]->ref_id) >> 16) & 0xff;
@@ -1108,8 +1108,6 @@ SRC_DumpSources(void)
         fclose(out);
       }
     }
-  } else {
-    LOG(LOGS_ERR, LOGF_Sources, "Could not create directory %s", direc);
   }
   Free(filename);
 }

@@ -29,6 +29,7 @@
 
 #include "sysincl.h"
 
+#include "logging.h"
 #include "memory.h"
 #include "util.h"
 #include "hash.h"
@@ -897,7 +898,7 @@ UTI_SetQuitSignalsHandler(void (*handler)(int))
 /* ================================================== */
 
 static int
-create_dir(char *p)
+create_dir(char *p, mode_t mode, uid_t uid, gid_t gid)
 {
   int status;
   struct stat buf;
@@ -906,27 +907,39 @@ create_dir(char *p)
   status = stat(p, &buf);
 
   if (status < 0) {
-    if (errno == ENOENT) {
-      /* Try to create directory */
-      status = mkdir(p, 0755);
-      return status;
-    } else {
-      return status;
+    if (errno != ENOENT) {
+      LOG(LOGS_ERR, LOGF_Util, "Could not access %s : %s", p, strerror(errno));
+      return 0;
     }
+  } else {
+    if (S_ISDIR(buf.st_mode))
+      return 1;
+    LOG(LOGS_ERR, LOGF_Util, "%s is not directory", p);
+    return 0;
   }
 
-  if (!S_ISDIR(buf.st_mode)) {
-    return -1;
+  /* Create the directory */
+  if (mkdir(p, mode) < 0) {
+    LOG(LOGS_ERR, LOGF_Util, "Could not create directory %s : %s", p, strerror(errno));
+    return 0;
   }
 
-  return 0;
+  /* Change its ownership if requested */
+  if ((uid || gid) && chown(p, uid, gid) < 0) {
+    LOG(LOGS_ERR, LOGF_Util, "Could not change ownership of %s : %s", p, strerror(errno));
+    /* Don't leave it there with incorrect ownership */
+    rmdir(p);
+    return 0;
+  }
+
+  return 1;
 }
 
 /* ================================================== */
 /* Return 0 if the directory couldn't be created, 1 if it could (or
    already existed) */
 int
-UTI_CreateDirAndParents(const char *path)
+UTI_CreateDirAndParents(const char *path, mode_t mode, uid_t uid, gid_t gid)
 {
   char *p;
   int i, j, k, last;
@@ -942,28 +955,24 @@ UTI_CreateDirAndParents(const char *path)
     p[i++] = path[k++];
 
     if (path[k] == '/' || !path[k]) {
-      p[i] = 0;
-
-      if (create_dir(p) < 0) {
-        Free(p);
-        return 0;
-      }
-
-      if (!path[k]) {
-        /* End of the string */
-        break;
-      }
-
-      /* Check whether its a trailing / or group of / */
+      /* Check whether its end of string, a trailing / or group of / */
       last = 1;
-      j = k + 1;
+      j = k;
       while (path[j]) {
         if (path[j] != '/') {
-          k = j - 1; /* Pick up a / into p[] thru the assignment at the top of the loop */
+          /* Pick up a / into p[] thru the assignment at the top of the loop */
+          k = j - 1;
           last = 0;
           break;
         }
         j++;
+      }
+
+      p[i] = 0;
+
+      if (!create_dir(p, last ? mode : 0755, last ? uid : 0, last ? gid : 0)) {
+        Free(p);
+        return 0;
       }
 
       if (last)

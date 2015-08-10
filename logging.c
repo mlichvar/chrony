@@ -306,9 +306,7 @@ LOG_CreateLogFileDir(void)
 
   logdir = CNF_GetLogDir();
 
-  if (!UTI_CreateDirAndParents(logdir)) {
-    LOG(LOGS_ERR, LOGF_Logging, "Could not create directory %s", logdir);
-  }
+  UTI_CreateDirAndParents(logdir, 0755, 0, 0);
 }
 
 /* ================================================== */
