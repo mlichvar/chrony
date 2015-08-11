@@ -897,6 +897,27 @@ UTI_SetQuitSignalsHandler(void (*handler)(int))
 
 /* ================================================== */
 
+char *
+UTI_PathToDir(const char *path)
+{
+  char *dir, *slash;
+
+  slash = strrchr(path, '/');
+
+  if (!slash)
+    return Strdup(".");
+
+  if (slash == path)
+    return Strdup("/");
+
+  dir = Malloc(slash - path + 1);
+  snprintf(dir, slash - path + 1, "%s", path);
+
+  return dir;
+}
+
+/* ================================================== */
+
 static int
 create_dir(char *p, mode_t mode, uid_t uid, gid_t gid)
 {
@@ -984,5 +1005,35 @@ UTI_CreateDirAndParents(const char *path, mode_t mode, uid_t uid, gid_t gid)
   }
 
   Free(p);
+  return 1;
+}
+
+/* ================================================== */
+
+int
+UTI_CheckDirPermissions(const char *path, mode_t perm, uid_t uid, gid_t gid)
+{
+  struct stat buf;
+
+  if (stat(path, &buf)) {
+    LOG(LOGS_ERR, LOGF_Util, "Could not access %s : %s", path, strerror(errno));
+    return 0;
+  }
+
+  if (!S_ISDIR(buf.st_mode)) {
+    LOG(LOGS_ERR, LOGF_Util, "%s is not directory", path);
+    return 0;
+  }
+
+  if ((buf.st_mode & 0777) & ~perm) {
+    LOG(LOGS_ERR, LOGF_Util, "Wrong permissions on %s", path);
+    return 0;
+  }
+
+  if (buf.st_uid != uid || buf.st_gid != gid) {
+    LOG(LOGS_ERR, LOGF_Util, "Wrong owner/group of %s", path);
+    return 0;
+  }
+
   return 1;
 }

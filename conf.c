@@ -1261,8 +1261,26 @@ parse_include(char *line)
 void
 CNF_CreateDirs(uid_t uid, gid_t gid)
 {
+  char *dir;
+
   UTI_CreateDirAndParents(logdir, 0755, uid, gid);
   UTI_CreateDirAndParents(dumpdir, 0755, uid, gid);
+
+  /* Create a directory for the Unix domain command socket */
+  if (bind_cmd_path[0]) {
+    dir = UTI_PathToDir(bind_cmd_path);
+    UTI_CreateDirAndParents(dir, 0770, uid, gid);
+
+    /* Check the permissions and owner/group in case the directory already
+       existed.  It MUST NOT be accessible by others as permissions on Unix
+       domain sockets are ignored on some systems (e.g. Solaris). */
+    if (!UTI_CheckDirPermissions(dir, 0770, uid, gid)) {
+      LOG(LOGS_WARN, LOGF_Configure, "Disabled command socket %s", bind_cmd_path);
+      bind_cmd_path[0] = '\0';
+    }
+
+    Free(dir);
+  }
 }
 
 /* ================================================== */

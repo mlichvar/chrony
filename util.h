@@ -130,10 +130,17 @@ extern int UTI_DecodePasswordFromText(char *key);
 
 extern int UTI_SetQuitSignalsHandler(void (*handler)(int));
 
+/* Get directory (as an allocated string) for a path */
+extern char *UTI_PathToDir(const char *path);
+
 /* Create a directory with a specified mode (umasked) and set its uid/gid
    (if not 0).  Create also any parent directories that don't exist with mode
    755 and default uid/gid.  Returns 1 if created or already exists (even with
    different mode/uid/gid), 0 otherwise. */
 extern int UTI_CreateDirAndParents(const char *path, mode_t mode, uid_t uid, gid_t gid);
+
+/* Check if a directory is secure.  It must not have other than the specified
+   permissions and its uid/gid must match the specified values. */
+extern int UTI_CheckDirPermissions(const char *path, mode_t perm, uid_t uid, gid_t gid);
 
 #endif /* GOT_UTIL_H */
