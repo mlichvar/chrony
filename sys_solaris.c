@@ -127,7 +127,7 @@ start_adjust(void)
 {
   struct timeval newadj, oldadj;
   struct timeval T1;
-  double elapsed, accrued_error;
+  double elapsed, accrued_error, predicted_error;
   double adjust_required;
   struct timeval exact_newadj;
   double rounding_error;
@@ -140,8 +140,9 @@ start_adjust(void)
 
   UTI_DiffTimevalsToDouble(&elapsed, &T1, &T0);
   accrued_error = elapsed * current_freq;
+  predicted_error = DRIFT_REMOVAL_INTERVAL / 2.0 * current_freq;
   
-  adjust_required = - (accrued_error + offset_register);
+  adjust_required = - (accrued_error + offset_register + predicted_error);
 
   UTI_DoubleToTimeval(adjust_required, &exact_newadj);
 
@@ -160,7 +161,7 @@ start_adjust(void)
 
   UTI_TimevalToDouble(&oldadj, &old_adjust_remaining);
 
-  offset_register = rounding_error - old_adjust_remaining;
+  offset_register = rounding_error - old_adjust_remaining - predicted_error;
 
   T0 = T1;
   UTI_TimevalToDouble(&newadj, &adjustment_requested);
