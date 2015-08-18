@@ -51,12 +51,13 @@
 
 /* ================================================== */
 
-union sockaddr_in46 {
+union sockaddr_all {
   struct sockaddr_in in4;
 #ifdef FEAT_IPV6
   struct sockaddr_in6 in6;
 #endif
-  struct sockaddr u;
+  struct sockaddr_un un;
+  struct sockaddr sa;
 };
 
 static int sock_fd;
@@ -133,36 +134,59 @@ read_line(void)
 static void
 open_io(const char *hostname, int port)
 {
-  union sockaddr_in46 addr;
+  union sockaddr_all addr;
   socklen_t addr_len;
   IPAddr ip;
+  char *dir;
 
-  /* Note, this call could block for a while */
-  if (DNS_Name2IPAddress(hostname, &ip, 1) != DNS_Success) {
-    LOG_FATAL(LOGF_Client, "Could not get IP address for %s", hostname);
+  /* hostname starting with / is considered a path of Unix domain socket */
+  if (hostname[0] == '/') {
+    if (snprintf(addr.un.sun_path, sizeof (addr.un.sun_path), "%s", hostname) >=
+        sizeof (addr.un.sun_path))
+      LOG_FATAL(LOGF_Client, "Unix socket path too long");
+    addr.un.sun_family = AF_UNIX;
+    addr_len = sizeof (addr.un);
+  } else {
+    /* Note, this call could block for a while */
+    if (DNS_Name2IPAddress(hostname, &ip, 1) != DNS_Success) {
+      LOG_FATAL(LOGF_Client, "Could not get IP address for %s", hostname);
+    }
+
+    addr_len = UTI_IPAndPortToSockaddr(&ip, port, &addr.sa);
   }
 
-  switch (ip.family) {
-    case IPADDR_INET4:
-      sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
-      break;
-#ifdef FEAT_IPV6
-    case IPADDR_INET6:
-      sock_fd = socket(AF_INET6, SOCK_DGRAM, 0);
-      break;
-#endif
-    default:
-      assert(0);
-  }
+  sock_fd = socket(addr.sa.sa_family, SOCK_DGRAM, 0);
 
   if (sock_fd < 0) {
     LOG_FATAL(LOGF_Client, "Could not create socket : %s", strerror(errno));
   }
 
-  addr_len = UTI_IPAndPortToSockaddr(&ip, port, &addr.u);
-
-  if (connect(sock_fd, &addr.u, addr_len) < 0) {
+  if (connect(sock_fd, &addr.sa, addr_len) < 0) {
     LOG_FATAL(LOGF_Client, "Could not connect socket : %s", strerror(errno));
+  }
+
+  if (addr.sa.sa_family == AF_UNIX) {
+    /* Construct path of our socket.  Use the same directory as the server
+       socket and include our process ID to allow multiple chronyc instances
+       running at the same time. */
+    dir = UTI_PathToDir(hostname);
+    if (snprintf(addr.un.sun_path, sizeof (addr.un.sun_path),
+             "%s/chronyc.%d.sock", dir, getpid()) >= sizeof (addr.un.sun_path))
+      LOG_FATAL(LOGF_Client, "Unix socket path too long");
+    Free(dir);
+
+    addr.un.sun_family = AF_UNIX;
+    unlink(addr.un.sun_path);
+
+    /* Bind the socket to the path */
+    if (bind(sock_fd, &addr.sa, sizeof (addr.un)) < 0) {
+      LOG_FATAL(LOGF_Client, "Could not bind socket : %s", strerror(errno));
+    }
+
+    /* Allow server without root privileges to send replies to our socket */
+    if (chmod(addr.un.sun_path, 0666) < 0) {
+      LOG_FATAL(LOGF_Client, "Could not change socket permissions : %s", strerror(errno));
+    }
   }
 }
 
@@ -171,9 +195,17 @@ open_io(const char *hostname, int port)
 static void
 close_io(void)
 {
+  union sockaddr_all addr;
+  socklen_t addr_len = sizeof (addr);
+
+  /* Remove our Unix domain socket */
+  if (getsockname(sock_fd, &addr.sa, &addr_len) < 0)
+    LOG_FATAL(LOGF_Client, "getsockname() failed : %s", strerror(errno));
+  if (addr_len <= sizeof (addr) && addr_len > sizeof (addr.sa.sa_family) &&
+      addr.sa.sa_family == AF_UNIX)
+    unlink(addr.un.sun_path);
 
   close(sock_fd);
-
 }
 
 /* ================================================== */
