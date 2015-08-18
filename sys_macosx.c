@@ -70,6 +70,21 @@ static double current_freq;
 
 static double adjustment_requested;
 
+/* Interval in seconds between adjustments to cancel systematic drift */
+
+#define DRIFT_REMOVAL_INTERVAL (4.0)
+#define DRIFT_REMOVAL_INTERVAL_MIN (0.5)
+
+static double drift_removal_interval;
+static double current_drift_removal_interval;
+static struct timeval Tdrift;
+
+/* weighting applied to error in calculating drift_removal_interval */
+#define ERROR_WEIGHT (0.5)
+
+/* minimum resolution of current_frequency */
+#define FREQUENCY_RES (1.0e-9)
+
 /* ================================================== */
 
 static void
@@ -80,10 +95,13 @@ clock_initialise(void)
   offset_register = 0.0;
   adjustment_requested = 0.0;
   current_freq = 0.0;
+  drift_removal_interval = DRIFT_REMOVAL_INTERVAL;
+  current_drift_removal_interval = DRIFT_REMOVAL_INTERVAL;
 
   if (gettimeofday(&T0, NULL) < 0) {
     LOG_FATAL(LOGF_SysMacOSX, "gettimeofday() failed");
   }
+  Tdrift = T0;
 
   newadj.tv_sec = 0;
   newadj.tv_usec = 0;
@@ -108,7 +126,7 @@ start_adjust(void)
 {
   struct timeval newadj, oldadj;
   struct timeval T1;
-  double elapsed, accrued_error, predicted_error;
+  double elapsed, accrued_error, predicted_error, drift_removal_elapsed;
   double adjust_required;
   double rounding_error;
   double old_adjust_remaining;
@@ -120,7 +138,19 @@ start_adjust(void)
 
   UTI_DiffTimevalsToDouble(&elapsed, &T1, &T0);
   accrued_error = elapsed * current_freq;
-  predicted_error = DRIFT_REMOVAL_INTERVAL / 2.0 * current_freq;
+
+  UTI_DiffTimevalsToDouble(&drift_removal_elapsed, &T1, &Tdrift);
+
+  /* To allow for the clock being stepped either forward or backwards, clamp
+     the elapsed time to bounds [ 0.0, current_drift_removal_interval ] */
+  drift_removal_elapsed = MIN(MAX(0.0, drift_removal_elapsed), current_drift_removal_interval);
+
+  predicted_error = (current_drift_removal_interval - drift_removal_elapsed) / 2.0 * current_freq;
+
+  DEBUG_LOG(LOGF_SysMacOSX, "drift_removal_elapsed: %.3f current_drift_removal_interval: %.3f predicted_error: %.3f",
+                            1.0e6 * drift_removal_elapsed,
+                            1.0e6 * current_drift_removal_interval,
+                            1.0e6 * predicted_error);
 
   adjust_required = - (accrued_error + offset_register + predicted_error);
 
@@ -183,6 +213,27 @@ accrue_offset(double offset, double corr_rate)
   stop_adjust();
   offset_register += offset;
   start_adjust();
+}
+
+/* ================================================== */
+
+/* use est_error to calculate the drift_removal_interval */
+
+static void
+set_sync_status(int synchronised, double est_error, double max_error)
+{
+  double interval;
+
+  if (!synchronised) {
+    drift_removal_interval = MAX(drift_removal_interval, DRIFT_REMOVAL_INTERVAL);
+    return;
+  }
+
+  interval = ERROR_WEIGHT * est_error / (fabs(current_freq) + FREQUENCY_RES);
+  drift_removal_interval = MAX(interval, DRIFT_REMOVAL_INTERVAL_MIN);
+
+  DEBUG_LOG(LOGF_SysMacOSX, "est_error: %.3f current_freq: %.3f est drift_removal_interval: %.3f act drift_removal_interval: %.3f",
+      est_error * 1.0e6, current_freq * 1.0e6, interval, drift_removal_interval);
 }
 
 /* ================================================== */
@@ -251,8 +302,7 @@ get_offset_correction(struct timeval *raw,
 
 /* ================================================== */
 
-/* Interval in seconds between adjustments to cancel systematic drift */
-#define DRIFT_REMOVAL_INTERVAL (1.0)
+/* Cancel systematic drift */
 
 static int drift_removal_running = 0;
 static SCH_TimeoutID drift_removal_id;
@@ -270,9 +320,18 @@ static SCH_TimeoutID drift_removal_id;
 static void
 drift_removal_timeout(SCH_ArbitraryArgument not_used)
 {
+
   stop_adjust();
+
+  if (gettimeofday(&Tdrift, NULL) < 0) {
+    LOG_FATAL(LOGF_SysMacOSX, "gettimeofday() failed");
+  }
+
+  current_drift_removal_interval = drift_removal_interval;
+
   start_adjust();
-  drift_removal_id = SCH_AddTimeoutByDelay(DRIFT_REMOVAL_INTERVAL, drift_removal_timeout, NULL);
+
+  drift_removal_id = SCH_AddTimeoutByDelay(drift_removal_interval, drift_removal_timeout, NULL);
 }
 
 /* ================================================== */
@@ -286,10 +345,10 @@ SYS_MacOSX_Initialise(void)
                             accrue_offset, apply_step_offset,
                             get_offset_correction,
                             NULL /* set_leap */,
-                            NULL /* set_sync_status */);
+                            set_sync_status);
 
 
-  drift_removal_id = SCH_AddTimeoutByDelay(DRIFT_REMOVAL_INTERVAL, drift_removal_timeout, NULL);
+  drift_removal_id = SCH_AddTimeoutByDelay(drift_removal_interval, drift_removal_timeout, NULL);
   drift_removal_running = 1;
 }
 
