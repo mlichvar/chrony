@@ -60,16 +60,12 @@ union sockaddr_in46 {
 };
 
 static int sock_fd;
-union sockaddr_in46 his_addr;
-static socklen_t his_addr_len;
 
 static int quit = 0;
 
 static int on_terminal = 0;
 
 static int no_dns = 0;
-
-static int recv_errqueue = 0;
 
 /* ================================================== */
 /* Log a message. This is a minimalistic replacement of the logging.c
@@ -137,8 +133,9 @@ read_line(void)
 static void
 open_io(const char *hostname, int port)
 {
+  union sockaddr_in46 addr;
+  socklen_t addr_len;
   IPAddr ip;
-  int on_off = 1;
 
   /* Note, this call could block for a while */
   if (DNS_Name2IPAddress(hostname, &ip, 1) != DNS_Success) {
@@ -158,27 +155,15 @@ open_io(const char *hostname, int port)
       assert(0);
   }
 
-  his_addr_len = UTI_IPAndPortToSockaddr(&ip, port, &his_addr.u);
-
   if (sock_fd < 0) {
     LOG_FATAL(LOGF_Client, "Could not create socket : %s", strerror(errno));
   }
 
-  /* Enable extended error reporting (e.g. ECONNREFUSED on ICMP unreachable) */
-#ifdef IP_RECVERR
-  if (ip.family == IPADDR_INET4 &&
-      !setsockopt(sock_fd, IPPROTO_IP, IP_RECVERR, &on_off, sizeof(on_off))) {
-    recv_errqueue = 1;
+  addr_len = UTI_IPAndPortToSockaddr(&ip, port, &addr.u);
+
+  if (connect(sock_fd, &addr.u, addr_len) < 0) {
+    LOG_FATAL(LOGF_Client, "Could not connect socket : %s", strerror(errno));
   }
-#endif
-#ifdef FEAT_IPV6
-#ifdef IPV6_RECVERR
-  if (ip.family == IPADDR_INET6 &&
-      !setsockopt(sock_fd, IPPROTO_IPV6, IPV6_RECVERR, &on_off, sizeof(on_off))) {
-    recv_errqueue = 1;
-  }
-#endif
-#endif
 }
 
 /* ================================================== */
@@ -1243,11 +1228,9 @@ static int
 submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
 {
   unsigned long tx_sequence;
-  socklen_t where_from_len;
-  union sockaddr_in46 where_from;
-  int bad_length, bad_sender, bad_sequence, bad_header;
+  int bad_length, bad_sequence, bad_header;
   int select_status;
-  int recvfrom_status;
+  int recv_status;
   int read_length;
   int expected_length;
   int command_length;
@@ -1300,8 +1283,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
       auth_length = 16;
     }
 
-    if (sendto(sock_fd, (void *) request, command_length + auth_length, 0,
-               &his_addr.u, his_addr_len) < 0) {
+    if (send(sock_fd, (void *)request, command_length + auth_length, 0) < 0) {
       DEBUG_LOG(LOGF_Client, "Could not send %d bytes : %s",
                 command_length + auth_length, strerror(errno));
       return 0;
@@ -1340,32 +1322,20 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
       continue;
       
     } else {
+      recv_status = recv(sock_fd, (void *)reply, sizeof(CMD_Reply), 0);
       
-      where_from_len = sizeof(where_from);
-      recvfrom_status = recvfrom(sock_fd, (void *) reply, sizeof(CMD_Reply), 0,
-                                 &where_from.u, &where_from_len);
-      
-      if (recvfrom_status < 0) {
+      if (recv_status < 0) {
         /* If we get connrefused here, it suggests the sendto is
-           going to a dead port - but only if the daemon machine is
-           running Linux (Solaris doesn't return anything) */
-
-#ifdef IP_RECVERR
-        /* Fetch the message from the error queue */
-        if (recv_errqueue &&
-            recvfrom(sock_fd, (void *)reply, sizeof(CMD_Reply), MSG_ERRQUEUE,
-                     &where_from.u, &where_from_len) < 0)
-          ;
-#endif
+           going to a dead port */
 
         n_attempts++;
         if (n_attempts > max_retries) {
           return 0;
         }
       } else {
-        DEBUG_LOG(LOGF_Client, "Received %d bytes", recvfrom_status);
+        DEBUG_LOG(LOGF_Client, "Received %d bytes", recv_status);
         
-        read_length = recvfrom_status;
+        read_length = recv_status;
         if (read_length >= offsetof(CMD_Reply, data)) {
           expected_length = PKL_ReplyLength(reply);
         } else {
@@ -1374,17 +1344,6 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
 
         bad_length = (read_length < expected_length ||
                       expected_length < offsetof(CMD_Reply, data));
-        bad_sender = (where_from.u.sa_family != his_addr.u.sa_family ||
-                      (where_from.u.sa_family == AF_INET &&
-                       (where_from.in4.sin_addr.s_addr != his_addr.in4.sin_addr.s_addr ||
-                        where_from.in4.sin_port != his_addr.in4.sin_port)) ||
-#ifdef FEAT_IPV6
-                      (where_from.u.sa_family == AF_INET6 &&
-                       (memcmp(where_from.in6.sin6_addr.s6_addr, his_addr.in6.sin6_addr.s6_addr,
-                               sizeof (where_from.in6.sin6_addr.s6_addr)) != 0 ||
-                        where_from.in6.sin6_port != his_addr.in6.sin6_port)) ||
-#endif
-                      0);
         
         if (!bad_length) {
           bad_sequence = (ntohl(reply->sequence) != tx_sequence);
@@ -1392,7 +1351,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
           bad_sequence = 0;
         }
         
-        if (bad_length || bad_sender || bad_sequence) {
+        if (bad_length || bad_sequence) {
           n_attempts++;
           if (n_attempts > max_retries) {
             return 0;
