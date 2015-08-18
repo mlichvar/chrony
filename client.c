@@ -1300,18 +1300,13 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
       auth_length = 16;
     }
 
-#if 0
-    printf("Sent command length=%d bytes auth length=%d bytes\n", command_length, auth_length);
-#endif
-
     if (sendto(sock_fd, (void *) request, command_length + auth_length, 0,
                &his_addr.u, his_addr_len) < 0) {
-
-
-#if 0
-      perror("Could not send packet");
-#endif
+      DEBUG_LOG(LOGF_Client, "Could not send %d bytes : %s",
+                command_length + auth_length, strerror(errno));
       return 0;
+    } else {
+      DEBUG_LOG(LOGF_Client, "Sent %d bytes", command_length + auth_length);
     }
 
     /* Increment this for next time */
@@ -1333,9 +1328,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
     select_status = select(sock_fd + 1, &rdfd, &wrfd, &exfd, &tv);
 
     if (select_status < 0) {
-#if 0
-      perror("Select returned negative status");
-#endif
+      DEBUG_LOG(LOGF_Client, "select failed : %s", strerror(errno));
     } else if (select_status == 0) {
       /* Timeout must have elapsed, try a resend? */
       n_attempts ++;
@@ -1352,11 +1345,6 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
       recvfrom_status = recvfrom(sock_fd, (void *) reply, sizeof(CMD_Reply), 0,
                                  &where_from.u, &where_from_len);
       
-
-#if 0
-      printf("Received packet, status=%d\n", recvfrom_status);
-#endif
-
       if (recvfrom_status < 0) {
         /* If we get connrefused here, it suggests the sendto is
            going to a dead port - but only if the daemon machine is
@@ -1375,6 +1363,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
           return 0;
         }
       } else {
+        DEBUG_LOG(LOGF_Client, "Received %d bytes", recvfrom_status);
         
         read_length = recvfrom_status;
         if (read_length >= offsetof(CMD_Reply, data)) {
@@ -1441,14 +1430,9 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
 #endif
 
         /* Good packet received, print out results */
-#if 0
-        printf("Reply cmd=%d reply=%d stat=%d seq=%d utok=%08lx tok=%d\n",
-               ntohs(reply->command), ntohs(reply->reply),
-               ntohs(reply->status),
-               ntohl(reply->sequence),
-               ntohl(reply->utoken),
-               ntohl(reply->token));
-#endif
+        DEBUG_LOG(LOGF_Client, "Reply cmd=%d reply=%d stat=%d seq=%d utok=%08x tok=%d",
+                  ntohs(reply->command), ntohs(reply->reply), ntohs(reply->status),
+                  ntohl(reply->sequence), ntohl(reply->utoken), ntohl(reply->token));
 
         if (password) {
           *reply_auth_ok = check_reply_auth(reply, read_length);
