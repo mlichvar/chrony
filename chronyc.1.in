@@ -32,6 +32,9 @@ specify port-number
 \fB\-n\fR
 display raw IP addresses (don't attempt to look up hostnames)
 .TP
+\fB\-d\fR
+print debugging messages (if compiled with debugging support)
+.TP
 \fB\-4\fR
 resolve hostnames only to IPv4 addresses
 .TP

@@ -2797,6 +2797,8 @@ main(int argc, char **argv)
       }
     } else if (!strcmp(*argv, "-a")) {
       auto_auth = 1;
+    } else if (!strcmp(*argv, "-d")) {
+      log_debug_enabled = 1;
     } else if (!strcmp(*argv, "-m")) {
       multi = 1;
     } else if (!strcmp(*argv, "-n")) {
@@ -2810,7 +2812,7 @@ main(int argc, char **argv)
       return 0;
     } else if (!strncmp(*argv, "-", 1)) {
       LOG(LOGS_ERR, LOGF_Client,
-          "Usage: %s [-h HOST] [-p PORT] [-n] [-4|-6] [-a] [-f FILE] [-m] [COMMAND]",
+          "Usage: %s [-h HOST] [-p PORT] [-n] [-d] [-4|-6] [-a] [-f FILE] [-m] [COMMAND]",
           progname);
       return 1;
     } else {
