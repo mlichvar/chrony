@@ -3252,9 +3252,9 @@ Chronyc supports the following command line options.
 @item -v
 Displays the version number of chronyc on the terminal, and exists.
 @item -h <host>
-This option allows the user to specify which host running the
-@code{chronyd} program is to be contacted.  This allows for remote
-configuration, without having to ssh to the other host first.
+This option allows the user to specify which host (or comma-separated list of
+addresses) running the @code{chronyd} program is to be contacted.  This allows
+for remote configuration, without having to ssh to the other host first.
 
 The default is to contact @code{chronyd} running on the same host as
 that where chronyc is being run.
