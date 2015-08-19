@@ -2920,7 +2920,7 @@ main(int argc, char **argv)
   DNS_SetAddressFamily(family);
 
   if (!hostnames) {
-    hostnames = "127.0.0.1,::1";
+    hostnames = DEFAULT_COMMAND_SOCKET",127.0.0.1,::1";
 #ifdef FEAT_ASYNCDNS
     initial_timeout /= 10;
 #endif

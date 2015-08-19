@@ -24,7 +24,8 @@ A summary of the options supported by \fBchronyc\fR is included below.
 
 .TP
 \fB\-h\fR \fIhostname\fR
-specify hostname or comma-separated list of addresses (default 127.0.0.1,::1)
+specify hostname or comma-separated list of addresses
+(default @CHRONYSOCKDIR@/chronyd.sock,127.0.0.1,::1)
 .TP
 \fB\-p\fR \fIport-number\fR
 specify port-number
