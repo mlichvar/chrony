@@ -323,7 +323,7 @@ CNF_Initialise(int r)
 
   dumpdir = Strdup(".");
   logdir = Strdup(".");
-  bind_cmd_path = Strdup("/var/run/chrony/chronyd.sock");
+  bind_cmd_path = Strdup(DEFAULT_COMMAND_SOCKET);
   pidfile = Strdup("/var/run/chronyd.pid");
   rtc_device = Strdup("/dev/rtc");
   user = Strdup(DEFAULT_USER);

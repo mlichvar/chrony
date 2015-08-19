@@ -131,6 +131,7 @@ Fine tuning of the installation directories:
   --mandir=DIR           man documentation [DATAROOTDIR/man]
   --docdir=DIR           documentation root [DATAROOTDIR/doc/chrony]
   --localstatedir=DIR    modifiable single-machine data [/var]
+  --chronysockdir=DIR    location for chrony sockets [LOCALSTATEDIR/run/chrony]
   --chronyvardir=DIR     location for chrony data [LOCALSTATEDIR/lib/chrony]
 
 Overriding system detection when cross-compiling:
@@ -282,6 +283,9 @@ do
     ;;
     --localstatedir=* )
       SETLOCALSTATEDIR=`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --chronysockdir=* )
+      SETCHRONYSOCKDIR=`echo $option | sed -e 's/^.*=//;'`
     ;;
     --chronyvardir=* )
       SETCHRONYVARDIR=`echo $option | sed -e 's/^.*=//;'`
@@ -759,6 +763,11 @@ if [ "x$SETLOCALSTATEDIR" != "x" ]; then
   LOCALSTATEDIR=$SETLOCALSTATEDIR
 fi
 
+CHRONYSOCKDIR=${LOCALSTATEDIR}/run/chrony
+if [ "x$SETCHRONYSOCKDIR" != "x" ]; then
+  CHRONYSOCKDIR=$SETCHRONYSOCKDIR
+fi
+
 CHRONYVARDIR=${LOCALSTATEDIR}/lib/chrony
 if [ "x$SETCHRONYVARDIR" != "x" ]; then
   CHRONYVARDIR=$SETCHRONYVARDIR
@@ -766,6 +775,7 @@ fi
 
 add_def DEFAULT_CONF_FILE "\"$SYSCONFDIR/chrony.conf\""
 add_def DEFAULT_USER "\"$default_user\""
+add_def DEFAULT_COMMAND_SOCKET "\"$CHRONYSOCKDIR/chronyd.sock\""
 add_def MAIL_PROGRAM "\"$mail_program\""
 
 common_features="`get_features ASYNCDNS IPV6 SECHASH DEBUG`"
@@ -802,6 +812,7 @@ do
           s%@MANDIR@%${MANDIR}%;\
           s%@INFODIR@%${INFODIR}%;\
           s%@LOCALSTATEDIR@%${LOCALSTATEDIR}%;\
+          s%@CHRONYSOCKDIR@%${CHRONYSOCKDIR}%;\
           s%@CHRONYVARDIR@%${CHRONYVARDIR}%;\
           s%@DEFAULT_USER@%${default_user}%;"\
           < ${f}.in > $f
