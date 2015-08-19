@@ -1808,28 +1808,35 @@ read_from_cmd_socket(void *anything)
     /* This should be already handled */
     assert(0);
   } else {
-    /* Check level of authority required to issue the command */
-    switch(permissions[rx_command]) {
-      case PERMIT_AUTH:
-        if (authenticated) {
+    /* Check level of authority required to issue the command.  All commands
+       from the Unix domain socket (which is accessible only by the root and
+       chrony user/group) are allowed. */
+    if (where_from.sa.sa_family == AF_UNIX) {
+      assert(sock_fd == sock_fdu);
+      allowed = 1;
+    } else {
+      switch (permissions[rx_command]) {
+        case PERMIT_AUTH:
+          if (authenticated) {
+            allowed = 1;
+          } else {
+            allowed = 0;
+          }
+          break;
+        case PERMIT_LOCAL:
+          if (authenticated || localhost) {
+            allowed = 1;
+          } else {
+            allowed = 0;
+          }
+          break;
+        case PERMIT_OPEN:
           allowed = 1;
-        } else {
+          break;
+        default:
+          assert(0);
           allowed = 0;
-        }
-        break;
-      case PERMIT_LOCAL:
-        if (authenticated || localhost) {
-          allowed = 1;
-        } else {
-          allowed = 0;
-        }
-        break;
-      case PERMIT_OPEN:
-        allowed = 1;
-        break;
-      default:
-        assert(0);
-        allowed = 0;
+      }
     }
 
     if (allowed) {
