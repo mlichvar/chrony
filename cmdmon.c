@@ -1558,8 +1558,11 @@ read_from_cmd_socket(void *anything)
     return;
   }
 
-  if (from_length > sizeof (where_from))
-    LOG_FATAL(LOGF_CmdMon, "Truncated source address");
+  if (from_length > sizeof (where_from) ||
+      from_length <= sizeof (where_from.sa.sa_family)) {
+    DEBUG_LOG(LOGF_CmdMon, "Read command packet without source address");
+    return;
+  }
 
   read_length = status;
 
@@ -1582,11 +1585,9 @@ read_from_cmd_socket(void *anything)
       break;
 #endif
     case IPADDR_UNSPEC:
-      /* Unix domain socket */
-      if (where_from.sa.sa_family != AF_UNIX) {
-        DEBUG_LOG(LOGF_CmdMon, "Read command packet with no address");
+      /* This should be the Unix domain socket */
+      if (where_from.sa.sa_family != AF_UNIX)
         return;
-      }
       assert(sock_fd == sock_fdu);
       localhost = 1;
       break;
