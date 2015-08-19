@@ -709,10 +709,6 @@ transmit_reply(CMD_Reply *msg, union sockaddr_all *where_to, int auth_len)
   int tx_message_length;
   int sock_fd;
   socklen_t addrlen;
-  unsigned short port;
-  IPAddr ip;
-  
-  UTI_SockaddrToIPAndPort(&where_to->sa, &ip, &port);
 
   switch (where_to->sa.sa_family) {
     case AF_INET:
@@ -738,13 +734,13 @@ transmit_reply(CMD_Reply *msg, union sockaddr_all *where_to, int auth_len)
                   &where_to->sa, addrlen);
 
   if (status < 0) {
-    DEBUG_LOG(LOGF_CmdMon, "Could not send to %s:%hu fd %d : %s",
-              UTI_IPToString(&ip), port, sock_fd, strerror(errno));
+    DEBUG_LOG(LOGF_CmdMon, "Could not send to %s fd %d : %s",
+              UTI_SockaddrToString(&where_to->sa), sock_fd, strerror(errno));
     return;
   }
 
-  DEBUG_LOG(LOGF_CmdMon, "Sent %d bytes to %s:%hu fd %d", status,
-            UTI_IPToString(&ip), port, sock_fd);
+  DEBUG_LOG(LOGF_CmdMon, "Sent %d bytes to %s fd %d", status,
+            UTI_SockaddrToString(&where_to->sa), sock_fd);
 }
   
 /* ================================================== */
@@ -1595,8 +1591,8 @@ read_from_cmd_socket(void *anything)
       assert(0);
   }
 
-  DEBUG_LOG(LOGF_CmdMon, "Received %d bytes from %s:%hu fd %d",
-            status, UTI_IPToString(&remote_ip), remote_port, sock_fd);
+  DEBUG_LOG(LOGF_CmdMon, "Received %d bytes from %s fd %d",
+            status, UTI_SockaddrToString(&where_from.sa), sock_fd);
 
   if (!(localhost || ADF_IsAllowed(access_auth_table, &remote_ip))) {
     /* The client is not allowed access, so don't waste any more time
@@ -1646,7 +1642,8 @@ read_from_cmd_socket(void *anything)
   memset(&tx_message.auth, 0, sizeof(tx_message.auth));
 
   if (rx_message.version != PROTO_VERSION_NUMBER) {
-    DEBUG_LOG(LOGF_CmdMon, "Read command packet with protocol version %d (expected %d) from %s:%hu", rx_message.version, PROTO_VERSION_NUMBER, UTI_IPToString(&remote_ip), remote_port);
+    DEBUG_LOG(LOGF_CmdMon, "Read command packet with protocol version %d (expected %d) from %s",
+              rx_message.version, PROTO_VERSION_NUMBER, UTI_SockaddrToString(&where_from.sa));
 
     CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
@@ -1658,7 +1655,8 @@ read_from_cmd_socket(void *anything)
   }
 
   if (rx_command >= N_REQUEST_TYPES) {
-    DEBUG_LOG(LOGF_CmdMon, "Read command packet with invalid command %d from %s:%hu", rx_command, UTI_IPToString(&remote_ip), remote_port);
+    DEBUG_LOG(LOGF_CmdMon, "Read command packet with invalid command %d from %s",
+              rx_command, UTI_SockaddrToString(&where_from.sa));
 
     CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
@@ -1668,7 +1666,8 @@ read_from_cmd_socket(void *anything)
   }
 
   if (read_length < expected_length) {
-    DEBUG_LOG(LOGF_CmdMon, "Read incorrectly sized command packet from %s:%hu", UTI_IPToString(&remote_ip), remote_port);
+    DEBUG_LOG(LOGF_CmdMon, "Read incorrectly sized command packet from %s",
+              UTI_SockaddrToString(&where_from.sa));
 
     CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
 
@@ -1752,7 +1751,8 @@ read_from_cmd_socket(void *anything)
       status = sendto(sock_fd, (void *) prev_tx_message, tx_message_length, 0,
                       &where_from.sa, from_length);
       if (status < 0) {
-        DEBUG_LOG(LOGF_CmdMon, "Could not send response to %s:%hu", UTI_IPToString(&remote_ip), remote_port);
+        DEBUG_LOG(LOGF_CmdMon, "Could not send response to %s",
+                  UTI_SockaddrToString(&where_from.sa));
       }
       return;
     }
@@ -1886,9 +1886,8 @@ read_from_cmd_socket(void *anything)
           /* If the log-on fails, record the reason why */
           if (!issue_token) {
             DEBUG_LOG(LOGF_CmdMon,
-                "Bad command logon from %s port %d (auth_ok=%d valid_ts=%d)",
-                UTI_IPToString(&remote_ip),
-                remote_port,
+                "Bad command logon from %s (auth_ok=%d valid_ts=%d)",
+                UTI_SockaddrToString(&where_from.sa),
                 auth_ok, valid_ts);
           }
 
