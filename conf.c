@@ -47,7 +47,6 @@
 
 static int parse_string(char *line, char **result);
 static int parse_int(char *line, int *result);
-static int parse_uint32(char *, uint32_t *result);
 static int parse_double(char *line, double *result);
 static int parse_null(char *line);
 
@@ -80,14 +79,12 @@ static void parse_tempcomp(char *);
 /* Configuration variables */
 
 static int restarted = 0;
-static int generate_command_key = 0;
 static char *rtc_device;
 static int acquisition_port = -1;
 static int ntp_port = 123;
 static char *keys_file = NULL;
 static char *drift_file = NULL;
 static char *rtc_file = NULL;
-static uint32_t command_key_id;
 static double max_update_skew = 1000.0;
 static double correction_time_ratio = 3.0;
 static double max_clock_error = 1.0; /* in ppm */
@@ -431,8 +428,6 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_int(p, &cmd_port);
   } else if (!strcasecmp(command, "combinelimit")) {
     parse_double(p, &combine_limit);
-  } else if (!strcasecmp(command, "commandkey")) {
-    parse_uint32(p, &command_key_id);
   } else if (!strcasecmp(command, "corrtimeratio")) {
     parse_double(p, &correction_time_ratio);
   } else if (!strcasecmp(command, "deny")) {
@@ -445,8 +440,6 @@ CNF_ParseLine(const char *filename, int number, char *line)
     do_dump_on_exit = parse_null(p);
   } else if (!strcasecmp(command, "fallbackdrift")) {
     parse_fallbackdrift(p);
-  } else if (!strcasecmp(command, "generatecommandkey")) {
-    generate_command_key = parse_null(p);
   } else if (!strcasecmp(command, "hwclockfile")) {
     parse_string(p, &hwclock_file);
   } else if (!strcasecmp(command, "include")) {
@@ -459,10 +452,6 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_leapsecmode(p);
   } else if (!strcasecmp(command, "leapsectz")) {
     parse_string(p, &leapsec_tz);
-  } else if (!strcasecmp(command, "linux_freq_scale")) {
-    LOG(LOGS_WARN, LOGF_Configure, "%s directive is no longer supported", command);
-  } else if (!strcasecmp(command, "linux_hz")) {
-    LOG(LOGS_WARN, LOGF_Configure, "%s directive is no longer supported", command);
   } else if (!strcasecmp(command, "local")) {
     parse_local(p);
   } else if (!strcasecmp(command, "lock_all")) {
@@ -531,6 +520,11 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_tempcomp(p);
   } else if (!strcasecmp(command, "user")) {
     parse_string(p, &user);
+  } else if (!strcasecmp(command, "commandkey") ||
+             !strcasecmp(command, "generatecommandkey") ||
+             !strcasecmp(command, "linux_freq_scale") ||
+             !strcasecmp(command, "linux_hz")) {
+    LOG(LOGS_WARN, LOGF_Configure, "%s directive is no longer supported", command);
   } else {
     other_parse_error("Invalid command");
   }
@@ -554,19 +548,6 @@ parse_int(char *line, int *result)
 {
   check_number_of_args(line, 1);
   if (sscanf(line, "%d", result) != 1) {
-    command_parse_error();
-    return 0;
-  }
-  return 1;
-}
-
-/* ================================================== */
-
-static int
-parse_uint32(char *line, uint32_t *result)
-{
-  check_number_of_args(line, 1);
-  if (sscanf(line, "%"SCNu32, result) != 1) {
     command_parse_error();
     return 0;
   }
@@ -1484,22 +1465,6 @@ char *
 CNF_GetRtcDevice(void)
 {
   return rtc_device;
-}
-
-/* ================================================== */
-
-uint32_t
-CNF_GetCommandKey(void)
-{
-  return command_key_id;
-}
-
-/* ================================================== */
-
-int
-CNF_GetGenerateCommandKey(void)
-{
-  return generate_command_key;
 }
 
 /* ================================================== */

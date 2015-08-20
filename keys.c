@@ -50,69 +50,9 @@ typedef struct {
 
 static ARR_Instance keys;
 
-static int command_key_valid;
-static uint32_t command_key_id;
 static int cache_valid;
 static uint32_t cache_key_id;
 static int cache_key_pos;
-
-/* ================================================== */
-
-static int
-generate_key(uint32_t key_id)
-{
-#ifdef FEAT_SECHASH
-  unsigned char key[20];
-  const char *hashname = "SHA1";
-#else
-  unsigned char key[16];
-  const char *hashname = "MD5";
-#endif
-  const char *key_file, *rand_dev = "/dev/urandom";
-  FILE *f;
-  struct stat st;
-  int i;
-
-  key_file = CNF_GetKeysFile();
-
-  if (!key_file)
-    return 0;
-
-  f = fopen(rand_dev, "r");
-  if (!f || fread(key, sizeof (key), 1, f) != 1) {
-    if (f)
-      fclose(f);
-    LOG_FATAL(LOGF_Keys, "Could not read %s", rand_dev);
-    return 0;
-  }
-  fclose(f);
-
-  f = fopen(key_file, "a");
-  if (!f) {
-    LOG_FATAL(LOGF_Keys, "Could not open keyfile %s for writing", key_file);
-    return 0;
-  }
-
-  /* Make sure the keyfile is not world-readable */
-  if (stat(key_file, &st) || chmod(key_file, st.st_mode & 0770)) {
-    fclose(f);
-    LOG_FATAL(LOGF_Keys, "Could not change permissions of keyfile %s", key_file);
-    return 0;
-  }
-
-  fprintf(f, "\n%"PRIu32" %s HEX:", key_id, hashname);
-  for (i = 0; i < sizeof (key); i++)
-    fprintf(f, "%02hhX", key[i]);
-  fprintf(f, "\n");
-  fclose(f);
-
-  /* Erase the key from stack */
-  memset(key, 0, sizeof (key));
-
-  LOG(LOGS_INFO, LOGF_Keys, "Generated key %"PRIu32, key_id);
-
-  return 1;
-}
 
 /* ================================================== */
 
@@ -125,7 +65,6 @@ free_keys(void)
     Free(((Key *)ARR_GetElement(keys, i))->val);
 
   ARR_SetSize(keys, 0);
-  command_key_valid = 0;
   cache_valid = 0;
 }
 
@@ -135,14 +74,8 @@ void
 KEY_Initialise(void)
 {
   keys = ARR_CreateInstance(sizeof (Key));
-  command_key_valid = 0;
   cache_valid = 0;
   KEY_Reload();
-
-  if (CNF_GetGenerateCommandKey() && !KEY_KeyKnown(KEY_GetCommandKey())) {
-    if (generate_key(KEY_GetCommandKey()))
-      KEY_Reload();
-  }
 }
 
 /* ================================================== */
@@ -330,18 +263,6 @@ get_key_by_id(uint32_t key_id)
   }
 
   return NULL;
-}
-
-/* ================================================== */
-
-uint32_t
-KEY_GetCommandKey(void)
-{
-  if (!command_key_valid) {
-    command_key_id = CNF_GetCommandKey();
-  }
-
-  return command_key_id;
 }
 
 /* ================================================== */
