@@ -31,7 +31,6 @@
 
 #include "sysincl.h"
 #include "addressing.h"
-#include "hash.h"
 
 /* This is the default port to use for CANDM, if no alternative is
    defined */
@@ -336,6 +335,8 @@ typedef struct {
    Version 6 : added padding to requests to prevent amplification attack,
    changed maximum number of samples in manual list to 16, new commands: modify
    makestep, smoothing report, smoothtime command
+
+   Authentication was removed later in version 6.
  */
 
 #define PROTO_VERSION_NUMBER 6
@@ -364,8 +365,8 @@ typedef struct {
                              (count up from zero for same sequence
                              number) */
   uint32_t sequence; /* Client's sequence number */
-  uint32_t utoken; /* Unique token per incarnation of daemon */
-  uint32_t token; /* Command token (to prevent replay attack) */
+  uint32_t pad1;
+  uint32_t pad2;
 
   union {
     REQ_Null null;
@@ -400,14 +401,9 @@ typedef struct {
     REQ_SmoothTime smoothtime;
   } data; /* Command specific parameters */
 
-  /* The following fields only set the maximum size of the packet.
-     There are no holes between them and the actual data. */
-
-  /* Padding used to prevent traffic amplification */
+  /* Padding used to prevent traffic amplification.  It only defines the
+     maximum size of the packet, there is no hole after the data field. */
   uint8_t padding[MAX_PADDING_LENGTH];
-
-  /* Authentication data */
-  uint8_t auth[MAX_HASH_LENGTH];
 
 } CMD_Request;
 
@@ -614,9 +610,9 @@ typedef struct {
   uint16_t pad2;
   uint16_t pad3;
   uint32_t sequence; /* Echo of client's sequence number */
-  uint32_t utoken; /* Unique token per incarnation of daemon */
-  uint32_t token; /* New command token (only if command was successfully
-                          authenticated) */
+  uint32_t pad4;
+  uint32_t pad5;
+
   union {
     RPY_Null null;
     RPY_N_Sources n_sources;
@@ -630,10 +626,6 @@ typedef struct {
     RPY_Activity activity;
     RPY_Smoothing smoothing;
   } data; /* Reply specific parameters */
-
-  /* authentication of the packet, there is no hole after the actual data
-     from the data union, this field only sets the maximum auth size */
-  uint8_t auth[MAX_HASH_LENGTH];
 
 } CMD_Reply;
 

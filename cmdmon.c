@@ -1244,18 +1244,14 @@ read_from_cmd_socket(void *anything)
   tx_message.res1 = 0;
   tx_message.res2 = 0;
   tx_message.command = rx_message.command;
-  tx_message.sequence = rx_message.sequence;
   tx_message.reply = htons(RPY_NULL);
   tx_message.status = htons(STT_SUCCESS);
   tx_message.pad1 = 0;
   tx_message.pad2 = 0;
   tx_message.pad3 = 0;
-  tx_message.utoken = 0;
-  /* Set this to a default (invalid) value.  This protects against the
-     token field being set to an arbitrary value if we reject the
-     message, e.g. due to the host failing the access check. */
-  tx_message.token = htonl(0xffffffffUL);
-  memset(&tx_message.auth, 0, sizeof(tx_message.auth));
+  tx_message.sequence = rx_message.sequence;
+  tx_message.pad4 = 0;
+  tx_message.pad5 = 0;
 
   if (rx_message.version != PROTO_VERSION_NUMBER) {
     DEBUG_LOG(LOGF_CmdMon, "Read command packet with protocol version %d (expected %d) from %s",

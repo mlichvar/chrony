@@ -1270,8 +1270,8 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
   tx_sequence = sequence++;
   request->sequence = htonl(tx_sequence);
   request->attempt = 0;
-  request->utoken = 0;
-  request->token = 0;
+  request->pad1 = 0;
+  request->pad2 = 0;
 
   timeout = initial_timeout;
 
@@ -1392,9 +1392,9 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
 #endif
 
         /* Good packet received, print out results */
-        DEBUG_LOG(LOGF_Client, "Reply cmd=%d reply=%d stat=%d seq=%d utok=%08x tok=%d",
+        DEBUG_LOG(LOGF_Client, "Reply cmd=%d reply=%d stat=%d seq=%d",
                   ntohs(reply->command), ntohs(reply->reply), ntohs(reply->status),
-                  ntohl(reply->sequence), ntohl(reply->utoken), ntohl(reply->token));
+                  ntohl(reply->sequence));
         break;
       }
     }
