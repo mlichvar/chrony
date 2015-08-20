@@ -35,7 +35,6 @@
 #include "logging.h"
 #include "memory.h"
 #include "nameserv.h"
-#include "hash.h"
 #include "getdate.h"
 #include "cmdparse.h"
 #include "pktlength.h"
@@ -1179,97 +1178,6 @@ process_cmd_delete(CMD_Request *msg, char *line)
 
 /* ================================================== */
 
-static char *password = NULL;
-static int password_length;
-static int auth_hash_id;
-
-/* ================================================== */
-
-static int
-process_cmd_password(CMD_Request *msg, char *line)
-{
-  char *p;
-  struct timeval now;
-  int i, len;
-
-  /* Blank and free the old password */
-  if (password) {
-    for (i = 0; i < password_length; i++)
-      password[i] = 0;
-    Free(password);
-    password = NULL;
-  }
-
-  p = line;
-
-  if (!*p) {
-    /* blank line, prompt for password */
-    p = getpass("Password: ");
-  }
-
-  if (!*p)
-    return 0;
-
-  len = strlen(p);
-  password_length = UTI_DecodePasswordFromText(p);
-
-  if (password_length > 0) {
-    password = Malloc(password_length);
-    memcpy(password, p, password_length);
-  }
-
-  /* Erase the password from the input or getpass buffer */
-  for (i = 0; i < len; i++)
-    p[i] = 0;
-
-  if (password_length <= 0) {
-      LOG(LOGS_ERR, LOGF_Client, "Could not decode password");
-      return 0;
-  }
-
-  if (gettimeofday(&now, NULL) < 0) {
-    printf("500 - Could not read time of day\n");
-    return 0;
-  } else {
-    msg->command = htons(REQ_LOGON); /* Just force a round trip so that we get tokens etc */
-    UTI_TimevalHostToNetwork(&now, &msg->data.logon.ts);
-    return 1;
-  }
-}
-
-/* ================================================== */
-
-static int
-generate_auth(CMD_Request *msg)
-{
-  int data_len;
-
-  data_len = PKL_CommandLength(msg);
-
-  assert(auth_hash_id >= 0);
-
-  return UTI_GenerateNTPAuth(auth_hash_id, (unsigned char *)password, password_length,
-      (unsigned char *)msg, data_len, ((unsigned char *)msg) + data_len, sizeof (msg->auth));
-}
-
-/* ================================================== */
-
-static int
-check_reply_auth(CMD_Reply *msg, int len)
-{
-  int data_len;
-
-  data_len = PKL_ReplyLength(msg);
-
-  assert(auth_hash_id >= 0);
-
-  return UTI_CheckNTPAuth(auth_hash_id, (unsigned char *)password, password_length,
-      (unsigned char *)msg, data_len,
-      ((unsigned char *)msg) + data_len, len - data_len);
-}
-
-/* ================================================== */
-
 static void
 give_help(void)
 {
@@ -1306,7 +1214,6 @@ give_help(void)
   printf("minstratum <address> <new-min-stratum> : Modify minimum stratum of source\n");
   printf("offline [<mask>/<masked-address>] : Set sources in subnet to offline status\n");
   printf("online [<mask>/<masked-address>] : Set sources in subnet to online status\n");
-  printf("password [<new-password>] : Set command authentication password\n");
   printf("polltarget <address> <new-poll-target> : Modify poll target of source\n");
   printf("reselect : Reselect synchronisation source\n");
   printf("rtcdata : Print current RTC performance parameters\n");
@@ -1320,7 +1227,6 @@ give_help(void)
   printf("waitsync [max-tries [max-correction [max-skew]]] : Wait until synchronised\n");
   printf("writertc : Save RTC parameters to file\n");
   printf("\n");
-  printf("authhash <name>: Set command authentication hash function\n");
   printf("dns -n|+n : Disable/enable resolving IP addresses to hostnames\n");
   printf("dns -4|-6|-46 : Resolve hostnames only to IPv4/IPv6/both addresses\n");
   printf("timeout <milliseconds> : Set initial response timeout\n");
@@ -1333,9 +1239,6 @@ give_help(void)
 /* ================================================== */
 
 static unsigned long sequence = 0;
-static unsigned long utoken = 0;
-static unsigned long token = 0;
-
 static int max_retries = 2;
 static int initial_timeout = 1000;
 static int proto_version = PROTO_VERSION_NUMBER;
@@ -1346,7 +1249,7 @@ static int proto_version = PROTO_VERSION_NUMBER;
    successful or not.*/
 
 static int
-submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
+submit_request(CMD_Request *request, CMD_Reply *reply)
 {
   unsigned long tx_sequence;
   int bad_length, bad_sequence, bad_header;
@@ -1356,7 +1259,6 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
   int expected_length;
   int command_length;
   int padding_length;
-  int auth_length;
   struct timeval tv;
   int timeout;
   int n_attempts;
@@ -1368,8 +1270,8 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
   tx_sequence = sequence++;
   request->sequence = htonl(tx_sequence);
   request->attempt = 0;
-  request->utoken = htonl(utoken);
-  request->token = htonl(token);
+  request->utoken = 0;
+  request->token = 0;
 
   timeout = initial_timeout;
 
@@ -1381,35 +1283,15 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
     padding_length = PKL_CommandPaddingLength(request);
     assert(command_length > 0 && command_length > padding_length);
 
-    /* Zero the padding to avoid sending uninitialized data. This needs to be
-       done before generating auth data as it includes the padding. */
+    /* Zero the padding to avoid sending uninitialized data */
     memset(((char *)request) + command_length - padding_length, 0, padding_length);
 
-    /* Decide whether to authenticate */
-    if (password) {
-      if (!utoken || (request->command == htons(REQ_LOGON))) {
-        /* Otherwise, the daemon won't bother authenticating our
-           packet and we won't get a token back */
-        request->utoken = htonl(SPECIAL_UTOKEN);
-      }
-      auth_length = generate_auth(request);
-    } else {
-      auth_length = 0;
-    }
-
-    /* add empty MD5 auth so older servers will not drop the request
-       due to bad length */
-    if (!auth_length) {
-      memset(((char *)request) + command_length, 0, 16);
-      auth_length = 16;
-    }
-
-    if (send(sock_fd, (void *)request, command_length + auth_length, 0) < 0) {
+    if (send(sock_fd, (void *)request, command_length, 0) < 0) {
       DEBUG_LOG(LOGF_Client, "Could not send %d bytes : %s",
-                command_length + auth_length, strerror(errno));
+                command_length, strerror(errno));
       return 0;
     } else {
-      DEBUG_LOG(LOGF_Client, "Sent %d bytes", command_length + auth_length);
+      DEBUG_LOG(LOGF_Client, "Sent %d bytes", command_length);
     }
 
     /* Increment this for next time */
@@ -1513,30 +1395,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
         DEBUG_LOG(LOGF_Client, "Reply cmd=%d reply=%d stat=%d seq=%d utok=%08x tok=%d",
                   ntohs(reply->command), ntohs(reply->reply), ntohs(reply->status),
                   ntohl(reply->sequence), ntohl(reply->utoken), ntohl(reply->token));
-
-        if (password) {
-          *reply_auth_ok = check_reply_auth(reply, read_length);
-        } else {
-          /* Assume in this case that the reply is always considered
-             to be authentic */
-          *reply_auth_ok = 1;
-        }
-            
-        utoken = ntohl(reply->utoken);
-
-        if (*reply_auth_ok) {
-          /* If we're in authenticated mode, only acquire the utoken
-             and new token values if the reply authenticated properly.
-             This protects against forged packets with bogus tokens
-             in.  We won't accept a repeat of an old message with a
-             stale token in it, due to bad_sequence processing
-             earlier. */
-          utoken = ntohl(reply->utoken);
-          token = ntohl(reply->token);
-        }
-        
         break;
-
       }
     }
   } while (1);
@@ -1549,10 +1408,9 @@ submit_request(CMD_Request *request, CMD_Reply *reply, int *reply_auth_ok)
 static int
 request_reply(CMD_Request *request, CMD_Reply *reply, int requested_reply, int verbose)
 {
-  int reply_auth_ok;
   int status;
 
-  while (!submit_request(request, reply, &reply_auth_ok)) {
+  while (!submit_request(request, reply)) {
     /* Try connecting to other addresses before giving up */
     if (open_io())
       continue;
@@ -1627,11 +1485,7 @@ request_reply(CMD_Request *request, CMD_Reply *reply, int requested_reply, int v
       default:
         printf("520 Got unexpected error from daemon");
     }
-    if (reply_auth_ok) {
-      printf("\n");
-    } else {
-      printf(" --- Reply not authenticated\n");
-    }
+    printf("\n");
   }
   
   if (status != STT_SUCCESS &&
@@ -2482,33 +2336,6 @@ process_cmd_dns(const char *line)
 /* ================================================== */
 
 static int
-process_cmd_authhash(const char *line)
-{
-  const char *hash_name;
-  int new_hash_id;
-
-  assert(auth_hash_id >= 0);
-  hash_name = line;
-
-  if (!*hash_name) {
-    LOG(LOGS_ERR, LOGF_Client, "Could not parse hash name");
-    return 0;
-  }
-
-  new_hash_id = HSH_GetHashId(hash_name);
-  if (new_hash_id < 0) {
-    LOG(LOGS_ERR, LOGF_Client, "Unknown hash name: %s", hash_name);
-    return 0;
-  }
-
-  auth_hash_id = new_hash_id;
-
-  return 1;
-}
-
-/* ================================================== */
-
-static int
 process_cmd_timeout(const char *line)
 {
   int timeout;
@@ -2579,9 +2406,6 @@ process_line(char *line)
     } else {
       do_normal_submit = process_cmd_allow(&tx_message, line);
     }
-  } else if (!strcmp(command, "authhash")) {
-    ret = process_cmd_authhash(line);
-    do_normal_submit = 0;
   } else if (!strcmp(command, "burst")) {
     do_normal_submit = process_cmd_burst(&tx_message, line);
   } else if (!strcmp(command, "clients")) {
@@ -2660,8 +2484,6 @@ process_line(char *line)
     do_normal_submit = process_cmd_offline(&tx_message, line);
   } else if (!strcmp(command, "online")) {
     do_normal_submit = process_cmd_online(&tx_message, line);
-  } else if (!strcmp(command, "password")) {
-    do_normal_submit = process_cmd_password(&tx_message, line);
   } else if (!strcmp(command, "polltarget")) {
     do_normal_submit = process_cmd_polltarget(&tx_message, line);
   } else if (!strcmp(command, "quit")) {
@@ -2707,6 +2529,12 @@ process_line(char *line)
     do_normal_submit = 0;
   } else if (!strcmp(command, "writertc")) {
     process_cmd_writertc(&tx_message, line);
+  } else if (!strcmp(command, "authhash") ||
+             !strcmp(command, "password")) {
+    /* Warn, but don't return error to not break scripts */
+    LOG(LOGS_WARN, LOGF_Client, "Authentication is no longer supported");
+    do_normal_submit = 0;
+    ret = 1;
   } else {
     LOG(LOGS_ERR, LOGF_Client, "Unrecognized command");
     do_normal_submit = 0;
@@ -2717,77 +2545,6 @@ process_line(char *line)
   }
   fflush(stderr);
   fflush(stdout);
-  return ret;
-}
-
-/* ================================================== */
-
-static int
-authenticate_from_config(const char *filename)
-{
-  CMD_Request tx_message;
-  CMD_Reply rx_message;
-  char line[2048], keyfile[2048], *command, *arg, *password;
-  const char *hashname;
-  uint32_t key_id = 0, key_id2;
-  int key_id_valid = 1, ret;
-  FILE *in;
-
-  in = fopen(filename, "r");
-  if (!in) {
-    LOG(LOGS_ERR, LOGF_Client, "Could not open file %s : %s", filename, strerror(errno));
-    return 0;
-  }
-
-  *keyfile = '\0';
-  while (fgets(line, sizeof (line), in)) {
-    CPS_NormalizeLine(line);
-    command = line;
-    arg = CPS_SplitWord(line);
-    if (!strcasecmp(command, "keyfile")) {
-      snprintf(keyfile, sizeof (keyfile), "%s", arg);
-    } else if (!strcasecmp(command, "commandkey")) {
-      key_id_valid = sscanf(arg, "%"SCNu32, &key_id) == 1;
-    }
-  }
-  fclose(in);
-
-  if (!*keyfile || !key_id_valid) {
-    LOG(LOGS_ERR, LOGF_Client, "Could not read keyfile or commandkey in file %s", filename);
-    return 0;
-  }
-
-  in = fopen(keyfile, "r");
-  if (!in) {
-    LOG(LOGS_ERR, LOGF_Client, "Could not open keyfile %s : %s", keyfile, strerror(errno));
-    return 0;
-  }
-
-  key_id2 = key_id + 1;
-  while (fgets(line, sizeof (line), in)) {
-    CPS_NormalizeLine(line);
-    if (!*line || !CPS_ParseKey(line, &key_id2, &hashname, &password))
-      continue;
-    if (key_id == key_id2)
-      break;
-  }
-  fclose(in);
-
-  if (key_id == key_id2) {
-    if (process_cmd_authhash(hashname) &&
-        process_cmd_password(&tx_message, password)) {
-      ret = request_reply(&tx_message, &rx_message, RPY_NULL, 1);
-    } else {
-      ret = 0;
-    }
-  } else {
-    LOG(LOGS_ERR, LOGF_Client, "Could not find key %"PRIu32" in keyfile %s", key_id, keyfile);
-    ret = 0;
-  }
-
-  /* Erase password from stack */
-  memset(line, 0, sizeof (line));
-
   return ret;
 }
 
@@ -2857,8 +2614,7 @@ main(int argc, char **argv)
   char *line;
   const char *progname = argv[0];
   const char *hostnames = NULL;
-  const char *conf_file = DEFAULT_CONF_FILE;
-  int ret = 1, multi = 0, auto_auth = 0, family = IPADDR_UNSPEC;
+  int ret = 1, multi = 0, family = IPADDR_UNSPEC;
   int port = DEFAULT_CANDM_PORT;
 
   /* Parse command line options */
@@ -2875,11 +2631,9 @@ main(int argc, char **argv)
       }
     } else if (!strcmp(*argv, "-f")) {
       ++argv, --argc;
-      if (*argv) {
-        conf_file = *argv;
-      }
+      /* For compatibility */
     } else if (!strcmp(*argv, "-a")) {
-      auto_auth = 1;
+      /* For compatibility */
     } else if (!strcmp(*argv, "-d")) {
       log_debug_enabled = 1;
     } else if (!strcmp(*argv, "-m")) {
@@ -2895,7 +2649,7 @@ main(int argc, char **argv)
       return 0;
     } else if (!strncmp(*argv, "-", 1)) {
       LOG(LOGS_ERR, LOGF_Client,
-          "Usage: %s [-h HOST] [-p PORT] [-n] [-d] [-4|-6] [-a] [-f FILE] [-m] [COMMAND]",
+          "Usage: %s [-h HOST] [-p PORT] [-n] [-d] [-4|-6] [-m] [COMMAND]",
           progname);
       return 1;
     } else {
@@ -2909,12 +2663,6 @@ main(int argc, char **argv)
 
   if (on_terminal && (argc == 0)) {
     display_gpl();
-  }
-
-  /* MD5 is the default authentication hash */
-  auth_hash_id = HSH_GetHashId("MD5");
-  if (auth_hash_id < 0) {
-    LOG_FATAL(LOGF_Client, "Could not initialize MD5");
   }
   
   DNS_SetAddressFamily(family);
@@ -2932,10 +2680,6 @@ main(int argc, char **argv)
 
   if (!open_io())
     LOG_FATAL(LOGF_Client, "Could not open connection to daemon");
-
-  if (auto_auth) {
-    ret = authenticate_from_config(conf_file);
-  }
 
   if (!ret) {
     ;
@@ -2955,7 +2699,6 @@ main(int argc, char **argv)
 
   close_io();
 
-  Free(password);
   ARR_DestroyInstance(sockaddrs);
 
   return !ret;
