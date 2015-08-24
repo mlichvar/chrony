@@ -372,9 +372,12 @@ CNF_ReadFile(const char *filename)
 
   in = fopen(filename, "r");
   if (!in) {
-    LOG_FATAL(LOGF_Configure, "Could not open configuration file %s", filename);
+    LOG_FATAL(LOGF_Configure, "Could not open configuration file %s : %s",
+              filename, strerror(errno));
     return;
   }
+
+  DEBUG_LOG(LOGF_Configure, "Reading %s", filename);
 
   for (i = 1; fgets(line, sizeof(line), in); i++) {
     CNF_ParseLine(filename, i, line);
