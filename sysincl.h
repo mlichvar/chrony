@@ -39,6 +39,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <float.h>
+#include <glob.h>
 #if !defined(__FreeBSD__) && !defined(MACOSX)
 #include <malloc.h>
 #endif

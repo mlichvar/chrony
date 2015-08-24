@@ -1668,12 +1668,15 @@ hwclockfile /etc/adjtime
 @c {{{ include
 @node include directive
 @subsection include
-The @code{include} directive includes a specified configuration file.
-This is useful when maintaining configuration on multiple hosts to
-keep the differences in a separate file.
+The @code{include} directive includes a specified configuration file or
+multiple configuration files when a wildcard pattern is specified.  This can be
+useful when maintaining configuration on multiple hosts to keep the differences
+in separate files.
+
+An example of the command is
 
 @example
-include @SYSCONFDIR@/chrony/local.conf
+include @SYSCONFDIR@/chrony.d/*.conf
 @end example
 @c }}}
 @c {{{ initstepslew

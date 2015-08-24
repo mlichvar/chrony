@@ -1236,8 +1236,20 @@ parse_tempcomp(char *line)
 static void
 parse_include(char *line)
 {
+  glob_t gl;
+  size_t i;
+
   check_number_of_args(line, 1);
-  CNF_ReadFile(line);
+
+  if (glob(line, 0, NULL, &gl)) {
+    DEBUG_LOG(LOGF_Configure, "glob of %s failed", line);
+    return;
+  }
+
+  for (i = 0; i < gl.gl_pathc; i++)
+    CNF_ReadFile(gl.gl_pathv[i]);
+
+  globfree(&gl);
 }
 
 /* ================================================== */
