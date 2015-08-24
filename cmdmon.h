@@ -33,6 +33,7 @@ extern void CAM_Initialise(int family);
 
 extern void CAM_Finalise(void);
 
+extern void CAM_OpenUnixSocket(void);
 extern int CAM_AddAccessRestriction(IPAddr *ip_addr, int subnet_bits, int allow, int all);
 extern int CAM_CheckAccessRestriction(IPAddr *ip_addr);
 

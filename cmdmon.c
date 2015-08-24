@@ -267,10 +267,7 @@ CAM_Initialise(int family)
     assert(command_length == 0 || command_length >= offsetof(CMD_Reply, data));
   }
 
-  if (CNF_GetBindCommandPath()[0])
-    sock_fdu = prepare_socket(AF_UNIX, 0);
-  else
-    sock_fdu = -1;
+  sock_fdu = -1;
 
   port_number = CNF_GetCommandPort();
 
@@ -324,6 +321,17 @@ CAM_Finalise(void)
   ADF_DestroyTable(access_auth_table);
 
   initialised = 0;
+}
+
+/* ================================================== */
+
+void
+CAM_OpenUnixSocket(void)
+{
+  /* This is separated from CAM_Initialise() as it needs to be called when
+     the process has already dropped the root privileges */
+  if (CNF_GetBindCommandPath()[0])
+    sock_fdu = prepare_socket(AF_UNIX, 0);
 }
 
 /* ================================================== */

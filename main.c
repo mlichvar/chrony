@@ -95,10 +95,10 @@ MAI_CleanupAndExit(void)
   MNL_Finalise();
   CLG_Finalise();
   NSR_Finalise();
-  NCR_Finalise();
-  CAM_Finalise();
-  NIO_Finalise();
   SST_Finalise();
+  NCR_Finalise();
+  NIO_Finalise();
+  CAM_Finalise();
   KEY_Finalise();
   RCL_Finalise();
   SRC_Finalise();
@@ -474,6 +474,12 @@ int main
   RCL_Initialise();
   KEY_Initialise();
 
+  /* Open privileged ports before dropping root */
+  CAM_Initialise(address_family);
+  NIO_Initialise(address_family);
+  NCR_Initialise();
+  CNF_SetupAccessRestrictions();
+
   /* Command-line switch must have priority */
   if (!sched_priority) {
     sched_priority = CNF_GetSchedPriority();
@@ -502,9 +508,6 @@ int main
 
   REF_Initialise();
   SST_Initialise();
-  NIO_Initialise(address_family);
-  CAM_Initialise(address_family);
-  NCR_Initialise();
   NSR_Initialise();
   CLG_Initialise();
   MNL_Initialise();
@@ -514,7 +517,7 @@ int main
   /* From now on, it is safe to do finalisation on exit */
   initialised = 1;
 
-  CNF_SetupAccessRestrictions();
+  CAM_OpenUnixSocket();
 
   if (ref_mode == REF_ModeNormal && CNF_GetInitSources() > 0) {
     ref_mode = REF_ModeInitStepSlew;
