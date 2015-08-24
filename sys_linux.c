@@ -35,13 +35,11 @@
 
 #if defined(HAVE_SCHED_SETSCHEDULER)
 #  include <sched.h>
-int SchedPriority = 0;
 #endif
 
 #if defined(HAVE_MLOCKALL)
 #  include <sys/mman.h>
 #include <sys/resource.h>
-int LockAll = 0;
 #endif
 
 #ifdef FEAT_PRIVDROP
