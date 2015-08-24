@@ -1039,9 +1039,11 @@ not correct the clock.
 This option displays @code{chronyd's} version number to the terminal and
 exits.
 @item -P <priority>
-This option will select the SCHED_FIFO real-time scheduler at the
-specified priority (which must be between 0 and 100).  This mode is
-supported only on Linux.
+On Linux, this option will select the SCHED_FIFO real-time scheduler at the
+specified priority (which must be between 0 and 100).  On Mac OS X, this option
+must have either a value of 0 (the default) to disable the thread time
+constraint policy or 1 for the policy to be enabled. Other systems do not
+support this option.
 @item -m     
 This option will lock chronyd into RAM so that it will never be paged
 out.  This mode is only supported on Linux.
@@ -2910,13 +2912,15 @@ is used.
 @node sched_priority directive
 @subsection sched_priority
 
-The @code{sched_priority} directive will select the SCHED_FIFO real-time
-scheduler at the specified priority (which must be between 0 and 100).
-This mode is supported only on Linux.
+On Linux, the @code{sched_priority} directive will select the SCHED_FIFO
+real-time scheduler at the specified priority (which must be between 0 and
+100).  On Mac OS X, this option must have either a value of 0 (the default) to
+disable the thread time constraint policy or 1 for the policy to be enabled.
+Other systems do not support this option.
 
-This directive uses the Linux sched_setscheduler() system call to
-instruct the kernel to use the SCHED_FIFO first-in, first-out
-real-time scheduling policy for @code{chronyd} with the specified priority.
+On Linux, this directive uses the sched_setscheduler() system call to instruct
+the kernel to use the SCHED_FIFO first-in, first-out real-time scheduling
+policy for @code{chronyd} with the specified priority.
 This means that whenever @code{chronyd} is ready to run it will run,
 interrupting whatever else is running unless it is a higher priority
 real-time process.  This should not impact performance as @code{chronyd's}
@@ -2924,6 +2928,10 @@ resource requirements are modest, but it should result in lower and
 more consistent latency since @code{chronyd} will not need to wait for the
 scheduler to get around to running it.  You should not use this unless
 you really need it.  The sched_setscheduler man page has more details.
+
+On Mac OS X, this directive uses the thread_policy_set() kernel call to specify
+real-time scheduling. As noted for Linux, you should not use this directive
+unless you really need it.
 @c }}}
 @c {{{ server
 @node server directive

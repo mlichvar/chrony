@@ -40,9 +40,11 @@ A summary of the options supported by \fBchronyd\fR is included below.
 
 .TP
 \fB\-P\fR \fIpriority\fR
-This option will select the SCHED_FIFO real-time scheduler at the specified
-priority (which must be between 0 and 100).  This mode is supported only on
-Linux.
+On Linux, this option will select the SCHED_FIFO real-time scheduler at the
+specified priority (which must be between 0 and 100).  On Mac OS X, this
+option must have either a value of 0 (the default) to disable the thread
+time constraint policy or 1 for the policy to be enabled.  Other systems do not
+support this option.
 .TP
 .B \-m
 This option will lock chronyd into RAM so that it will never be paged out.

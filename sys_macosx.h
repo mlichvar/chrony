@@ -30,8 +30,8 @@
 #ifndef GOT_SYS_MACOSX_H
 #define GOT_SYS_MACOSX_H
 
+void SYS_MacOSX_SetScheduler(int SchedPriority);
 void SYS_MacOSX_Initialise(void);
-
 void SYS_MacOSX_Finalise(void);
 
 #endif

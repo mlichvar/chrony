@@ -42,6 +42,10 @@
 #include <stdio.h>
 #include <signal.h>
 
+#include <mach/mach.h>
+#include <mach/mach_time.h>
+#include <pthread.h>
+
 #include "sys_macosx.h"
 #include "localp.h"
 #include "sched.h"
@@ -84,6 +88,8 @@ static struct timeval Tdrift;
 
 /* minimum resolution of current_frequency */
 #define FREQUENCY_RES (1.0e-9)
+
+#define NANOS_PER_MSEC (1000000ULL)
 
 /* ================================================== */
 
@@ -332,6 +338,53 @@ drift_removal_timeout(SCH_ArbitraryArgument not_used)
   start_adjust();
 
   drift_removal_id = SCH_AddTimeoutByDelay(drift_removal_interval, drift_removal_timeout, NULL);
+}
+
+/* ================================================== */
+/*
+  Give chronyd real time priority so that time critical calculations
+  are not pre-empted by the kernel.
+*/
+
+static int
+set_realtime(void)
+{
+  /* https://developer.apple.com/library/ios/technotes/tn2169/_index.html */
+
+  mach_timebase_info_data_t timebase_info;
+  double clock2abs;
+  thread_time_constraint_policy_data_t policy;
+  int kr;
+
+  mach_timebase_info(&timebase_info);
+  clock2abs = ((double)timebase_info.denom / (double)timebase_info.numer) * NANOS_PER_MSEC;
+
+  policy.period = 0;
+  policy.computation = (uint32_t)(5 * clock2abs); /* 5 ms of work */
+  policy.constraint = (uint32_t)(10 * clock2abs);
+  policy.preemptible = 0;
+
+  kr = thread_policy_set(
+          pthread_mach_thread_np(pthread_self()),
+          THREAD_TIME_CONSTRAINT_POLICY,
+          (thread_policy_t)&policy,
+          THREAD_TIME_CONSTRAINT_POLICY_COUNT);
+
+  if (kr != KERN_SUCCESS) {
+    LOG(LOGS_WARN, LOGF_SysMacOSX, "Cannot set real-time priority: %d", kr);
+    return -1;
+  }
+  return 0;
+}
+
+/* ================================================== */
+
+void
+SYS_MacOSX_SetScheduler(int SchedPriority)
+{
+  if (SchedPriority) {
+    set_realtime();
+  }
 }
 
 /* ================================================== */

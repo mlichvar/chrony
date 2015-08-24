@@ -126,6 +126,8 @@ void SYS_SetScheduler(int SchedPriority)
 {
 #if defined(LINUX) && defined(HAVE_SCHED_SETSCHEDULER)
   SYS_Linux_SetScheduler(SchedPriority);
+#elif defined(MACOSX)
+  SYS_MacOSX_SetScheduler(SchedPriority);
 #else
   LOG_FATAL(LOGF_Sys, "scheduler priority setting not supported");
 #endif
