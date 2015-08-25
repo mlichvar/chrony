@@ -113,7 +113,8 @@ For better control, use the options below.
   --disable-pps          Disable PPS refclock driver
   --disable-ipv6         Disable IPv6 support
   --disable-rtc          Don't include RTC even on Linux
-  --disable-linuxcaps    Disable libcap (Linux capabilities) support
+  --disable-privdrop     Disable support for dropping root privileges
+  --without-libcap       Don't use libcap even if it is available
   --disable-asyncdns     Disable asynchronous name resolving
   --disable-forcednsretry Don't retry on permanent DNS error
   --with-ntp-era=SECONDS Specify earliest assumed NTP time in seconds
@@ -214,7 +215,7 @@ try_tomcrypt=1
 feat_rtc=1
 try_rtc=0
 feat_droproot=1
-try_libcap=0
+try_libcap=-1
 try_clockctl=0
 readline_lib=""
 readline_inc=""
@@ -312,8 +313,11 @@ do
     --disable-pps)
       feat_pps=0
     ;;
-    --disable-linuxcaps)
+    --disable-privdrop)
       feat_droproot=0
+    ;;
+    --without-libcap|--disable-linuxcaps)
+      try_libcap=0
     ;;
     --disable-asyncdns)
       feat_asyncdns=0
@@ -381,7 +385,7 @@ case $SYSTEM in
     ;;
     Linux* )
         EXTRA_OBJECTS="sys_generic.o sys_linux.o wrap_adjtimex.o"
-        try_libcap=1
+        [ $try_libcap != "0" ] && try_libcap=1
         try_rtc=1
         try_setsched=1
         try_lockmem=1
