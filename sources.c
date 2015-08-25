@@ -70,6 +70,7 @@ typedef enum {
   SRC_OK,               /* OK so far, not a final status! */
   SRC_UNSELECTABLE,     /* Has noselect option set */
   SRC_BAD_STATS,        /* Doesn't have valid stats data */
+  SRC_BAD_DISTANCE,     /* Has root distance longer than allowed maximum */
   SRC_WAITS_STATS,      /* Others have bad stats, selection postponed */
   SRC_STALE,            /* Has older samples than others */
   SRC_FALSETICKER,      /* Doesn't agree with others */
@@ -155,6 +156,7 @@ static int selected_source_index; /* Which source index is currently
 /* Number of updates needed to reset the distant status */
 #define DISTANT_PENALTY 32
 
+static double max_distance;
 static double reselect_distance;
 static double stratum_weight;
 static double combine_limit;
@@ -179,6 +181,7 @@ void SRC_Initialise(void) {
   n_sources = 0;
   max_n_sources = 0;
   selected_source_index = INVALID_SOURCE;
+  max_distance = CNF_GetMaxDistance();
   reselect_distance = CNF_GetReselectDistance();
   stratum_weight = CNF_GetStratumWeight();
   combine_limit = CNF_GetCombineLimit();
@@ -650,6 +653,12 @@ SRC_SelectSource(SRC_Instance updated_inst)
       sources[i]->status = SRC_BAD_STATS;
       if (max_badstat_reach < sources[i]->reachability)
         max_badstat_reach = sources[i]->reachability;
+      continue;
+    }
+
+    /* Require the root distance to be below the allowed maximum */
+    if (si->root_distance > max_distance) {
+      sources[i]->status = SRC_BAD_DISTANCE;
       continue;
     }
 
@@ -1216,6 +1225,7 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
     switch (src->status) {
       case SRC_UNSELECTABLE:
       case SRC_BAD_STATS:
+      case SRC_BAD_DISTANCE:
       case SRC_STALE:
       case SRC_WAITS_STATS:
         report->state = RPT_UNREACH;

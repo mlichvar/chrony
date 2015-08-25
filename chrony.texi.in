@@ -1152,6 +1152,7 @@ the configuration file is ignored.
 * manual directive::            Allow manual entry using chronyc's settime cmd
 * maxchange directive::         Set maximum allowed offset
 * maxclockerror directive::     Set maximum frequency error of local clock
+* maxdistance directive::       Set maximum allowed distance of sources
 * maxsamples directive::        Set maximum number of samples per source
 * maxslewrate directive::       Set maximum slew rate
 * maxupdateskew directive::     Stop bad estimates upsetting machine clock
@@ -2440,6 +2441,23 @@ maxclockerror <error-in-ppm>
 Typical values for <error-in-ppm> might be 10 for a low quality clock
 to 0.1 for a high quality clock using a temperature compensated
 crystal oscillator.
+@c }}}
+@c {{{ maxdistance
+@node maxdistance directive
+@subsection maxdistance
+The @code{maxdistance} directive sets the maximum allowed root distance of the
+sources to not be rejected by the source selection algorithm.  The distance
+includes the accumulated dispersion, which may be large when the source is no
+longer synchronised, and half of the total round-trip delay to the primary
+source.
+
+By default, the maximum distance is 3 seconds.
+
+The syntax is
+
+@example
+maxdistance <seconds>
+@end example
 @c }}}
 @c {{{ maxsamples
 @node maxsamples directive

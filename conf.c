@@ -90,6 +90,7 @@ static double correction_time_ratio = 3.0;
 static double max_clock_error = 1.0; /* in ppm */
 static double max_slew_rate = 1e6 / 12.0; /* in ppm */
 
+static double max_distance = 3.0;
 static double reselect_distance = 1e-4;
 static double stratum_weight = 1e-3;
 static double combine_limit = 3.0;
@@ -477,6 +478,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_maxchange(p);
   } else if (!strcasecmp(command, "maxclockerror")) {
     parse_double(p, &max_clock_error);
+  } else if (!strcasecmp(command, "maxdistance")) {
+    parse_double(p, &max_distance);
   } else if (!strcasecmp(command, "maxsamples")) {
     parse_int(p, &max_samples);
   } else if (!strcasecmp(command, "maxslewrate")) {
@@ -1520,6 +1523,14 @@ double
 CNF_GetMaxSlewRate(void)
 {
   return max_slew_rate;
+}
+
+/* ================================================== */
+
+double
+CNF_GetMaxDistance(void)
+{
+  return max_distance;
 }
 
 /* ================================================== */
