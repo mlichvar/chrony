@@ -215,6 +215,7 @@ feat_rtc=1
 try_rtc=0
 feat_droproot=1
 try_libcap=0
+try_clockctl=0
 readline_lib=""
 readline_inc=""
 ncurses_lib=""
@@ -405,6 +406,7 @@ case $SYSTEM in
     NetBSD-* )
         EXTRA_OBJECTS="sys_netbsd.o"
         EXTRA_LIBS="-lkvm"
+        try_clockctl=1
         add_def NETBSD
         echo "Configuring for $SYSTEM"
     ;;
@@ -588,6 +590,12 @@ if [ $feat_droproot = "1" ] && [ $try_libcap = "1" ] && \
 then
     add_def FEAT_PRIVDROP
     EXTRA_LIBS="$EXTRA_LIBS -lcap"
+fi
+
+if [ $feat_droproot = "1" ] && [ $try_clockctl = "1" ] && \
+  test_code '<sys/clockctl.h>' 'sys/clockctl.h' '' '' ''
+then
+  add_def FEAT_PRIVDROP
 fi
 
 if [ $feat_rtc = "1" ] && [ $try_rtc = "1" ] && \

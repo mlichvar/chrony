@@ -113,6 +113,8 @@ void SYS_DropRoot(uid_t uid, gid_t gid)
 {
 #if defined(LINUX) && defined (FEAT_PRIVDROP)
   SYS_Linux_DropRoot(uid, gid);
+#elif defined(NETBSD) && defined(FEAT_PRIVDROP)
+  SYS_NetBSD_DropRoot(uid, gid);
 #else
   LOG_FATAL(LOGF_Sys, "dropping root privileges not supported");
 #endif

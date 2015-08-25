@@ -324,5 +324,29 @@ SYS_NetBSD_Finalise(void)
 
 /* ================================================== */
 
+#ifdef FEAT_PRIVDROP
+void
+SYS_NetBSD_DropRoot(uid_t uid, gid_t gid)
+{
+  int fd;
+
+  if (setgroups(0, NULL))
+    LOG_FATAL(LOGF_SysNetBSD, "setgroups() failed : %s", strerror(errno));
+
+  if (setgid(gid))
+    LOG_FATAL(LOGF_SysNetBSD, "setgid(%d) failed : %s", gid, strerror(errno));
+
+  if (setuid(uid))
+    LOG_FATAL(LOGF_SysNetBSD, "setuid(%d) failed : %s", uid, strerror(errno));
+
+  DEBUG_LOG(LOGF_SysNetBSD, "Root dropped to uid %d gid %d", uid, gid);
+
+  /* Check if we have write access to /dev/clockctl */
+  fd = open("/dev/clockctl", O_WRONLY);
+  if (fd < 0)
+    LOG_FATAL(LOGF_SysNetBSD, "Can't write to /dev/clockctl");
+  close(fd);
+}
+#endif
 
 #endif /* NETBSD */
