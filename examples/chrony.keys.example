@@ -1,29 +1,15 @@
-#######################################################################
+# This is an example chrony keys file.  It is used for NTP authentication with
+# symmetric keys.  It should be readable only by root or the user to which
+# chronyd is configured to switch to.
 #
-# This is an example chrony keys file.  You should copy it to /etc/chrony.keys
-# after editing it to set up the key(s) you want to use.  It should be readable
-# only by root or the user chronyd drops the root privileges to.  In most
-# situations, you will require a single key (the 'commandkey') so that you can
-# supply a password to chronyc to enable you to modify chronyd's operation
-# whilst it is running.
-#
-# Copyright 2002 Richard P. Curnow
-#
-######################################################################
+# Don't use the example keys!  The keys need to be random for maximum security.
+# These shell commands can be used to generate random MD5 and SHA1 keys on
+# systems which have the /dev/urandom device:
+# echo "1 MD5 HEX:$(tr -d -c '[:xdigit:]' < /dev/urandom | head -c 32)"
+# echo "1 SHA1 HEX:$(tr -d -c '[:xdigit:]' < /dev/urandom | head -c 40)"
 
 # Examples of valid keys:
 
 #1 ALongAndRandomPassword
 #2 MD5 HEX:B028F91EA5C38D06C2E140B26C7F41EC
 #3 SHA1 HEX:1DC764E0791B11FA67EFC7ECBC4B0D73F68A070C
-
-# The keys should be random for maximum security.  If you wanted to use a key
-# with ID 1 as your commandkey (i.e. chronyc password) you would put
-# "commandkey 1" into chrony.conf.  If no commandkey is present in the keys
-# file and the generatecommandkey directive is specified in chrony.conf,
-# a random commandkey will be generated and added to the keys file
-# automatically on chronyd start.
-
-# You might want to define more keys if you use the authentication facility
-# in the network time protocol to authenticate request/response packets between
-# trusted clients and servers.

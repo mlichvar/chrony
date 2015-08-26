@@ -95,24 +95,10 @@
 
 driftfile /var/lib/chrony/drift
 
-# If you want to use the program called chronyc to configure aspects of
-# chronyd's operation once it is running (e.g. tell it the Internet link
-# has gone up or down), you need a password.  This is stored in the
-# following keys file.  (You also need keys to support authenticated NTP
-# exchanges between cooperating machines.)  Again, this option is
-# assumed by default.
+# If you want to enable NTP authentication with symmetric keys, you will need
+# to uncomment the following line and edit the file to set up the keys.
 
-keyfile /etc/chrony.keys
-
-# Tell chronyd which numbered key in the file is used as the password
-# for chronyc. (You can pick any integer up to 2**32-1.  '1' is just a
-# default.  Using another value will _NOT_ increase security.)
-
-commandkey 1
-
-# With this directive a random password will be generated automatically.
-
-generatecommandkey
+! keyfile /etc/chrony.keys
 
 # chronyd can save the measurement history for the servers to files when
 # it it exits.  This is useful in 2 situations:
@@ -261,11 +247,6 @@ generatecommandkey
 # You can add as many 'cmdallow' and 'cmddeny' lines as you like.  The
 # syntax and meaning is the same as for 'allow' and 'deny', except that
 # 'cmdallow' and 'cmddeny' control access to the chronyd's command port.
-
-# NOTE, even if the host where you run chronyc is granted access, you
-# still need a command key set up and you have to know the password to
-# put into chronyc to allow you to modify chronyd's parameters.  By
-# default all you can do is view information about chronyd's operation.
 
 #######################################################################
 ### REAL TIME CLOCK

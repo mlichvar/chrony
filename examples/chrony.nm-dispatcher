@@ -6,12 +6,12 @@ export LC_ALL=C
 
 if [ "$2" = "up" ]; then
 	/sbin/ip route list dev "$1" | grep -q '^default' &&
-		/usr/bin/chronyc -a online > /dev/null 2>&1
+		/usr/bin/chronyc online > /dev/null 2>&1
 fi
 
 if [ "$2" = "down" ]; then
 	/sbin/ip route list | grep -q '^default' ||
-		/usr/bin/chronyc -a offline > /dev/null 2>&1
+		/usr/bin/chronyc offline > /dev/null 2>&1
 fi
 
 exit 0

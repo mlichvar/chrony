@@ -18,14 +18,8 @@ rtcsync
 # Serve time even if not synchronized to any NTP server.
 #local stratum 10
 
-# Specify file containing keys for NTP and command authentication.
-keyfile /etc/chrony.keys
-
-# Specify key number for command authentication.
-commandkey 1
-
-# Generate new command key on start if missing.
-generatecommandkey
+# Specify file containing keys for NTP authentication.
+#keyfile /etc/chrony.keys
 
 # Disable logging of client accesses.
 noclientlog
