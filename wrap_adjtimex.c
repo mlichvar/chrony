@@ -124,7 +124,7 @@ TMX_SetLeap(int leap)
 }
 
 int
-TMX_GetLeap(int *leap, int *applied)
+TMX_GetLeapApplied(int *applied)
 {
   struct timex txc;
   int state;
@@ -133,13 +133,6 @@ TMX_GetLeap(int *leap, int *applied)
   state = adjtimex(&txc);
   if (state < 0)
     return -1;
-
-  if (txc.status & STA_INS)
-    *leap = 1;
-  else if (txc.status & STA_DEL)
-    *leap = -1;
-  else
-    *leap = 0;
 
   *applied = state == TIME_WAIT;
 

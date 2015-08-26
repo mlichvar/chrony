@@ -31,7 +31,7 @@ int TMX_ResetOffset(void);
 int TMX_SetFrequency(double *freq, long tick);
 int TMX_GetFrequency(double *freq, long *tick);
 int TMX_SetLeap(int leap);
-int TMX_GetLeap(int *leap, int *applied);
+int TMX_GetLeapApplied(int *applied);
 int TMX_SetSync(int sync, double est_error, double max_error);
 int TMX_TestStepOffset(void);
 int TMX_ApplyStepOffset(double offset);
