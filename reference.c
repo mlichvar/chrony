@@ -789,7 +789,7 @@ update_leap_status(NTP_Leap leap, time_t now, int reset)
     }
   }
   
-  if (reset || (leap_sec != our_leap_sec && !REF_IsLeapSecondClose())) {
+  if (leap_sec != our_leap_sec && !REF_IsLeapSecondClose()) {
     our_leap_sec = leap_sec;
 
     switch (leap_mode) {
@@ -805,6 +805,8 @@ update_leap_status(NTP_Leap leap, time_t now, int reset)
         assert(0);
         break;
     }
+  } else if (reset) {
+    set_leap_timeout(now);
   }
 
   our_leap_status = leap;
