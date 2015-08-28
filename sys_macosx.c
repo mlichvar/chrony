@@ -79,6 +79,11 @@ static double adjustment_requested;
 #define DRIFT_REMOVAL_INTERVAL (4.0)
 #define DRIFT_REMOVAL_INTERVAL_MIN (0.5)
 
+/* If current_drift_removal_interval / drift_removal_interval exceeds this
+   ratio, then restart the drift removal timer */
+
+#define DRIFT_REMOVAL_RESTART_RATIO (8.0)
+
 static double drift_removal_interval;
 static double current_drift_removal_interval;
 static struct timeval Tdrift;
@@ -223,27 +228,6 @@ accrue_offset(double offset, double corr_rate)
 
 /* ================================================== */
 
-/* use est_error to calculate the drift_removal_interval */
-
-static void
-set_sync_status(int synchronised, double est_error, double max_error)
-{
-  double interval;
-
-  if (!synchronised) {
-    drift_removal_interval = MAX(drift_removal_interval, DRIFT_REMOVAL_INTERVAL);
-    return;
-  }
-
-  interval = ERROR_WEIGHT * est_error / (fabs(current_freq) + FREQUENCY_RES);
-  drift_removal_interval = MAX(interval, DRIFT_REMOVAL_INTERVAL_MIN);
-
-  DEBUG_LOG(LOGF_SysMacOSX, "est_error: %.3f current_freq: %.3f est drift_removal_interval: %.3f act drift_removal_interval: %.3f",
-      est_error * 1.0e6, current_freq * 1.0e6, interval, drift_removal_interval);
-}
-
-/* ================================================== */
-
 /* Positive offset means system clock is fast of true time, therefore
    step backwards */
 
@@ -338,6 +322,34 @@ drift_removal_timeout(SCH_ArbitraryArgument not_used)
   start_adjust();
 
   drift_removal_id = SCH_AddTimeoutByDelay(drift_removal_interval, drift_removal_timeout, NULL);
+}
+
+/* ================================================== */
+
+/* use est_error to calculate the drift_removal_interval */
+
+static void
+set_sync_status(int synchronised, double est_error, double max_error)
+{
+  double interval;
+
+  if (!synchronised) {
+    drift_removal_interval = MAX(drift_removal_interval, DRIFT_REMOVAL_INTERVAL);
+  } else {
+    interval = ERROR_WEIGHT * est_error / (fabs(current_freq) + FREQUENCY_RES);
+    drift_removal_interval = MAX(interval, DRIFT_REMOVAL_INTERVAL_MIN);
+
+    DEBUG_LOG(LOGF_SysMacOSX, "est_error: %.3f current_freq: %.3f est drift_removal_interval: %.3f act drift_removal_interval: %.3f",
+                est_error * 1.0e6, current_freq * 1.0e6, interval, drift_removal_interval);
+  }
+
+  if (current_drift_removal_interval / drift_removal_interval > DRIFT_REMOVAL_RESTART_RATIO) {
+    /* recover from a large est_error by resetting the timer */
+    SCH_ArbitraryArgument unused;
+    SCH_RemoveTimeout(drift_removal_id);
+    unused = NULL;
+    drift_removal_timeout(unused);
+  }
 }
 
 /* ================================================== */
