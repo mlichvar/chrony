@@ -1051,6 +1051,8 @@ RTC_Linux_TimePreInit(void)
       LOG(LOGS_WARN, LOGF_RtcLinux, "Could not convert RTC reading to seconds since 1/1/1970");
       return 0;
     }
+  } else {
+    return 0;
   }
 
   return 1;
