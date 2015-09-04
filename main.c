@@ -517,6 +517,8 @@ int main
   /* From now on, it is safe to do finalisation on exit */
   initialised = 1;
 
+  UTI_SetQuitSignalsHandler(signal_cleanup);
+
   CAM_OpenUnixSocket();
 
   if (ref_mode == REF_ModeNormal && CNF_GetInitSources() > 0) {
@@ -531,8 +533,6 @@ int main
   } else {
     post_init_rtc_hook(NULL);
   }
-
-  UTI_SetQuitSignalsHandler(signal_cleanup);
 
   /* The program normally runs under control of the main loop in
      the scheduler. */
