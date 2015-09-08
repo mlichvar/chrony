@@ -109,7 +109,7 @@ This option sets the name of the system user to which \fBchronyd\fR will switch
 after start in order to drop root privileges.  It overrides the \fBuser\fR
 directive (default \fB@DEFAULT_USER@\fR).  It may be set to a non-root user
 only when \fBchronyd\fR is compiled with support for Linux capabilities
-(libcap).
+(libcap) or on NetBSD with the \fB/dev/clockctl\fR device.
 .TP
 \fB\-F\fR \fIlevel\fR
 This option configures a system call filter when \fBchronyd\fR is compiled with

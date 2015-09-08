@@ -85,14 +85,26 @@ bindcmdaddress 127.0.0.1
 bindcmdaddress ::1
 ----
 
-If you don't need to use +chronyc+ at all, you can disable the command sockets
-by adding +cmdport 0+ to the configuration file.
+If you don't need to use +chronyc+ at all or you need to run +chronyc+ only
+under the root or chrony user (which can access +chronyd+ through a Unix domain
+socket since version 2.2), you can disable the internet command sockets
+completely by adding +cmdport 0+ to the configuration file.
 
 On Linux, if +chronyd+ is compiled with support for Linux capabilities
-(available in the libcap library), you can specify an unprivileged user with
-the +-u+ option or +user+ directive in the 'chrony.conf' file to drop root
-privileges after start.  The configure option +--with-user+ can be used to drop
-the privileges by default.
+(available in the libcap library), or on NetBSD with the +/dev/clockctl+
+device, you can specify an unprivileged user with the +-u+ option or +user+
+directive in the 'chrony.conf' file to drop root privileges after start.  The
+configure option +--with-user+ can be used to drop the privileges by default.
+
+Also, if +chronyd+ is compiled with support for the Linux secure computing
+(seccomp) facility, you can enable a system call filter with the +-F+ option.
+It will significantly reduce the kernel attack surface and possibly prevent
+kernel exploits from the +chronyd+ process if compromised.  The filter
+shouldn't be enabled without testing that it allows all system calls needed
+with the specific configuration and libraries that +chronyd+ is using (e.g.
+libc and its NSS configuration).  If +chronyd+ is getting killed, some system
+call is missing and the filter has to be disabled until it's patched to allow
+that call.
 
 === How can I improve the accuracy of the system clock with NTP sources?
 
@@ -141,6 +153,15 @@ with local NTP server
 ----
 server ntp.local minpoll 2 maxpoll 4 polltarget 30 maxdelaydevratio 2
 ----
+
+=== What happened to the +commandkey+ and +generatecommandkey+ directives?
+
+They were removed in version 2.2.  Authentication is no longer supported in the
+command protocol.  Commands that required authentication are now allowed only
+through a Unix domain socket, which is accessible only by the root and chrony
+users.  If you need to configure +chronyd+ remotely or locally without the root
+password, please consider using ssh and/or sudo to run +chronyc+ under the root
+or chrony user on the same host as +chronyd+ is running.
 
 == Computer is not synchronising
 
@@ -205,6 +226,12 @@ problem with the way you are trying to start it (e.g.  at boot time).
 
 Perhaps you have a firewall set up in a way that blocks packets on port
 323/udp.  You need to amend the firewall configuration in this case.
+
+=== I keep getting the error +501 Not authorised+
+
+Since version 2.2, the +password+ command doesn't do anything and +chronyc+
+needs to run under the root or chrony user, which are allowed to access the
+Unix domain command socket.
 
 === Is the +chronyc+ / +chronyd+ protocol documented anywhere?
 

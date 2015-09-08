@@ -636,16 +636,9 @@ server bar.example.net offline
 server baz.example.net offline
 @end example
 
-The @code{offline} keyword indicates that the servers start
-in an offline state, and that they should not be contacted until @code{chronyd}
-receives notification that the link to the internet is present.
-
-In order to notify @code{chronyd} of the presence of the link, you will need to
-be able to log in to it with the program @code{chronyc}.  To do this,
-@code{chronyd} needs to be configured with an administrator password.  The
-password is read from a file specified by the @code{keyfile} directive.  The
-@code{generatecommandkey} directive can be used to generate a random password
-automatically on the first @code{chronyd} start.
+The @code{offline} keyword indicates that the servers start in an offline
+state, and that they should not be contacted until @code{chronyd} receives
+notification from @code{chronyc} that the link to the internet is present.
 
 The smallest useful configuration file would look something like
 
@@ -653,10 +646,9 @@ The smallest useful configuration file would look something like
 server foo.example.net offline
 server bar.example.net offline
 server baz.example.net offline
-keyfile @SYSCONFDIR@/chrony.keys
-generatecommandkey
 driftfile @CHRONYVARDIR@/drift
 makestep 10 3
+rtcsync
 @end example
 
 The next section describes how to tell @code{chronyd} when the internet link
@@ -664,28 +656,22 @@ goes up and down.
 
 @node Advising chronyd of internet availability
 @subsection How to tell chronyd when the internet link is available.
-To use this option, you will need to configure a command key in
-@code{chronyd's} configuration file @file{@SYSCONFDIR@/chrony.conf}, as described in
-the previous section.
-
 To tell @code{chronyd} when to start and finish sampling the servers, the
-@code{online} and @code{offline} commands of chronyc need to be used.
+@code{online} and @code{offline} commands of @code{chronyc} need to be used.
 To give an example of their use, we assume that @code{pppd} is the
-program being used to connect to the internet, and that chronyc has been
-installed at its default location @file{@BINDIR@/chronyc}.  We
-also assume that the command key has been set up as described in the
-previous section.
+program being used to connect to the internet, and that @code{chronyc} has been
+installed at its default location @file{@BINDIR@/chronyc}.
 
 In the file @file{/etc/ppp/ip-up} we add the command sequence
 
 @example
-@BINDIR@/chronyc -a online
+@BINDIR@/chronyc online
 @end example
 
 and in the file @file{/etc/ppp/ip-down} we add the sequence
 
 @example
-@BINDIR@/chronyc -a offline
+@BINDIR@/chronyc offline
 @end example
 
 @code{chronyd's} polling of the servers will now only occur whilst the
@@ -721,8 +707,6 @@ master's address is 192.168.169.170)
 
 @example
 driftfile @CHRONYVARDIR@/drift
-generatecommandkey
-keyfile @SYSCONFDIR@/chrony.keys
 initstepslew 10 client1 client3 client6
 local stratum 8
 manual
@@ -737,8 +721,6 @@ server master
 driftfile @CHRONYVARDIR@/drift
 logdir /var/log/chrony
 log measurements statistics tracking
-keyfile @SYSCONFDIR@/chrony.keys
-generatecommandkey
 local stratum 10
 initstepslew 20 master
 allow 192.168.169.170
@@ -871,8 +853,6 @@ server baz.example.net maxdelay 0.4 offline
 logdir /var/log/chrony
 log statistics measurements tracking
 driftfile @CHRONYVARDIR@/drift
-keyfile @SYSCONFDIR@/chrony.keys
-generatecommandkey
 makestep 10 3
 maxupdateskew 100.0
 dumponexit
@@ -887,13 +867,13 @@ online and offline respectively.
 The relevant part of the @file{/etc/ppp/ip-up} file is
 
 @example
-@BINDIR@/chronyc -a online
+@BINDIR@/chronyc online
 @end example
 
 and the relevant part of the @file{/etc/ppp/ip-down} script is
 
 @example
-@BINDIR@/chronyc -a -m offline dump writertc
+@BINDIR@/chronyc -m offline dump writertc
 @end example
 
 To start @code{chronyd} during the boot sequence, the following
@@ -1028,7 +1008,7 @@ This option sets the name of the system user to which @code{chronyd} will
 switch after start in order to drop root privileges.  It overrides the
 @code{user} directive (default @code{@DEFAULT_USER@}).  It may be set to a
 non-root user only when @code{chronyd} is compiled with support for Linux
-capabilities (libcap).
+capabilities (libcap) or on NetBSD with the @code{/dev/clockctl} device.
 @item -F <level>
 This option configures a system call filter when @code{chronyd} is compiled with
 support for the Linux secure computing (seccomp) facility. In level 1 the
@@ -1130,18 +1110,16 @@ the configuration file is ignored.
 * bindcmdaddress directive::    Limit network interface used for commands
 * broadcast directive::         Make chronyd act as an NTP broadcast server
 * clientloglimit directive::    Set client log memory limit
-* cmdallow directive::          Give control access to chronyc on other computers
-* cmddeny directive::           Deny control access to chronyc on other computers
-* cmdport directive::           Set port to use for runtime commanding
+* cmdallow directive::          Give monitoring access to chronyc on other computers
+* cmddeny directive::           Deny monitoring access to chronyc on other computers
+* cmdport directive::           Set port to use for runtime monitoring
 * combinelimit directive::      Limit sources included in combining algorithm
-* commandkey directive::        Set runtime command key
 * corrtimeratio directive::     Set correction time ratio
 * deny directive::              Deny access to NTP clients
 * driftfile directive::         Specify location of file containing drift data
 * dumpdir directive::           Specify directory for dumping measurements
 * dumponexit directive::        Dump measurements when daemon exits
 * fallbackdrift directive::     Specify fallback drift intervals
-* generatecommandkey directive:: Generate command key automatically
 * hwclockfile directive::       Specify location of hwclock's adjtime file
 * include directive::           Include a configuration file
 * initstepslew directive::      Trim the system clock on boot-up
@@ -1329,9 +1307,15 @@ on multiple network interfaces.
 @node bindcmdaddress directive
 @subsection bindcmdaddress
 The @code{bindcmdaddress} directive allows you to specify the network
-interface to which @code{chronyd} will listen for command packets (issued by
-@code{chronyc}).  This provides an additional level of access restriction above
-that available through @code{cmddeny} mechanism.
+interface to which @code{chronyd} will listen for monitoring command packets
+(issued by @code{chronyc}).  This provides an additional level of access
+restriction above that available through @code{cmddeny} mechanism.
+
+This directive can also change the path of the Unix domain command socket,
+which is used by @code{chronyc} to send configuration commands.  The socket
+must be in a directory that is accessible only by the root or chrony user.  The
+directory will be created on start if it doesn't exist.  The default path of
+the socket is @code{@CHRONYSOCKDIR@/chronyd.sock}.
 
 By default, @code{chronyd} binds to the loopback interface (with addresses
 @code{127.0.0.1} and @code{::1}).  This blocks all access except from
@@ -1347,6 +1331,11 @@ to the configuration file.
 
 For each of IPv4 and IPv6 protocols, only one @code{bindcmdaddress}
 directive can be specified.
+
+An example that sets the path of the Unix domain command socket is
+@example
+bindcmdaddress /var/run/chrony/chronyd.sock
+@end example
 @c }}}
 @c {{{ broadcast directive
 @node broadcast directive
@@ -1405,14 +1394,15 @@ clientloglimit 1048576
 @subsection cmdallow
 
 This is similar to the @code{allow} directive (@pxref{allow directive}), except
-that it allows control access (rather than NTP client access) to a particular
-subnet or host.  (By 'control access' is meant that chronyc can be run on those
-hosts and successfully connect to chronyd on this computer.)
+that it allows monitoring access (rather than NTP client access) to a particular
+subnet or host.  (By 'monitoring access' is meant that @code{chronyc} can be
+run on those hosts and retrieve monitoring data from @code{chronyd} on this
+computer.)
 
 The syntax is identical to the @code{allow} directive.
 
 There is also a @code{cmdallow all} directive with similar behaviour to the
-@code{allow all} directive (but applying to control access in this case, of
+@code{allow all} directive (but applying to monitoring access in this case, of
 course).
 
 Note that @code{chronyd} has to be configured with the @code{bindcmdaddress}
@@ -1424,7 +1414,7 @@ access.
 @subsection cmddeny
 
 This is similar to the @code{cmdallow} directive (@pxref{cmdallow directive}),
-except that it denies control access to a particular subnet or host,
+except that it denies monitoring access to a particular subnet or host,
 rather than allowing it.
 
 The syntax is identical.
@@ -1437,9 +1427,10 @@ There is also a @code{cmddeny all} directive with similar behaviour to the
 @subsection cmdport
 
 The @code{cmdport} directive allows the port that is used for run-time
-command and monitoring (via the program @code{chronyc}) to be altered
+monitoring (via the @code{chronyc} program) to be altered
 from its default (323/udp).  If set to 0, @code{chronyd} will not open the
-port, this is useful to disable the @code{chronyc} access completely.
+port, this is useful to disable the @code{chronyc} access from the internet.
+(It does not disable the Unix domain command socket.)
 
 An example shows the syntax
 
@@ -1474,40 +1465,6 @@ The syntax is
 @example
 combinelimit <limit>
 @end example
-@c }}}
-@c {{{ commandkey
-@node commandkey directive
-@subsection commandkey
-The commandkey command is used to set the key number used for
-authenticating user commands via the chronyc program at run time.
-This allows certain actions of the chronyc program to be restricted to
-administrators.
-
-An example of the commandkey command is
-
-@example
-commandkey 20
-@end example
-
-By default, the key number is 0.
-
-In the key file (see the keyfile command) there should be a line of
-the form
-
-@example
-20 MD5 HEX:B028F91EA5C38D06C2E140B26C7F41EC
-@end example
-
-When running the chronyc program to perform run-time configuration,
-the command
-
-@example
-password HEX:B028F91EA5C38D06C2E140B26C7F41EC
-@end example
-
-must be entered before any commands affecting the operation of the
-daemon can be entered, or chronyc must be started with the `-a' option to run
-the password command automatically.
 @c }}}
 @c {{{ corrtimeratio
 @node corrtimeratio directive
@@ -1649,16 +1606,6 @@ By default (or if the specified maximum or minimum is 0), no fallbacks
 are used and the clock frequency changes only with new measurements from
 NTP, reference clocks or manual input.
 @c }}}
-@c {{{ generatecommandkey
-@node generatecommandkey directive
-@subsection generatecommandkey
-With this directive, if the command key is not found on start in the file
-specified by the @code{keyfile} directive, @code{chronyd} will generate a new
-command key from the /dev/urandom file and write it to the key file.
-
-The generated key will use SHA1 if @code{chronyd} is compiled with the support,
-otherwise MD5 will be used.
-@c }}}
 @c {{{ hwclockfile
 @node hwclockfile directive
 @subsection hwclockfile
@@ -1757,12 +1704,7 @@ from reading the clock before it's stepped.
 @node keyfile directive
 @subsection keyfile
 This command is used to specify the location of the file containing
-ID/key pairs for the following 2 uses:
-
-@itemize @bullet 
-@item Authentication of NTP packets.
-@item Authentication of administrator commands entered via chronyc.
-@end itemize
+ID/key pairs for authentication of NTP packets.
 
 The format of the command is shown in the example below
 
@@ -1782,24 +1724,27 @@ pairs.  The format of the file is shown below
 @end example
 
 Each line consists of an ID, a name of authentication hash function (optional)
-and a password. The ID can be any unsigned integer in the range 0 through
-2**32-1, but ID of 0 can be used only for the command key and not for the NTP
-authentication. The hash function is MD5 by default, depending on how was
-@code{chronyd} compiled other allowed hash functions may be SHA1, SHA256,
+and a password.  The ID can be any unsigned integer in the range 1 through
+2**32-1.  The hash function is MD5 by default, depending on how was
+@code{chronyd} compiled, other allowed hash functions may be SHA1, SHA256,
 SHA384, SHA512, RMD128, RMD160, RMD256, RMD320, TIGER and WHIRLPOOL.  The
 password can be encoded as a string of characters not containing a space with
 optional @code{ASCII:} prefix or as a hexadecimal number with @code{HEX:}
 prefix.
 
 The password is used with the hash function to generate and verify a message
-authentication code (MAC) in NTP and command packets.
+authentication code (MAC) in NTP packets.
 For maximum security, it's recommended to use SHA1 or stronger hash function.
 The passwords should be random and they should be as long as the output size of
 the configured hash function, e.g. 160 bits with SHA1.
 
-The ID for the chronyc authentication key is specified with the commandkey
-command (see earlier). The command key can be generated automatically on
-start with the @code{generatecommandkey} directive.
+These shell commands can be used to generate random MD5 and SHA1 keys on
+systems which have the @code{/dev/urandom} device:
+
+@example
+echo "1 MD5 HEX:$(tr -d -c '[:xdigit:]' < /dev/urandom | head -c 32)"
+echo "1 SHA1 HEX:$(tr -d -c '[:xdigit:]' < /dev/urandom | head -c 40)"
+@end example
 @c }}}
 @c {{{ leapsecmode
 @node leapsecmode directive
@@ -2368,6 +2313,10 @@ mailonchange root@@localhost 0.5
 
 This would send a mail message to root if a change of more than 0.5
 seconds were applied to the system clock.
+
+This directive can't be used when a system call filter is enabled by the
+@code{-F} option as the @code{chronyd} process will not be allowed to fork
+and execute the sendmail binary.
 @c }}}
 @c {{{ makestep
 @node makestep directive
@@ -3239,7 +3188,8 @@ Valid measurements with corresponding compensations are logged to the
 The @code{user} directive sets the name of the system user to which
 @code{chronyd} will switch after start in order to drop root privileges.
 It may be set to a non-root user only when @code{chronyd} is compiled with
-support for Linux capabilities (libcap).
+support for Linux capabilities (libcap) or on NetBSD with the
+@code{/dev/clockctl} device.
 
 The default value is @code{@DEFAULT_USER@}.
 @c }}}
@@ -3271,7 +3221,7 @@ chronyc
 at the command line.  The prompt @code{chronyc} is displayed whilst
 chronyc is expecting input from the user, when it is being run from a
 terminal.  If chronyc's input or output are redirected from/to a file,
-the prompt is now shown.
+the prompt is not shown.
 
 When you are finished entering commands, the commands @code{exit} or
 @code{quit} will terminate the program.  (Entering @key{Control-D} will
@@ -3288,7 +3238,7 @@ Displays the version number of chronyc on the terminal, and exists.
 @item -h <host>
 This option allows the user to specify which host (or comma-separated list of
 addresses) running the @code{chronyd} program is to be contacted.  This allows
-for remote configuration, without having to ssh to the other host first.
+for remote monitoring, without having to ssh to the other host first.
 
 The default is to contact @code{chronyd} running on the same host as
 that where chronyc is being run.
@@ -3310,13 +3260,9 @@ With this option hostnames will be resolved only to IPv6 addresses.
 With this option multiple commands can be specified on the command line.
 Each argument will be interpreted as a whole command.
 @item -f <conf-file>
-This option can be used to specify an alternate location of the @code{chronyd}
-configuration file (default @file{@SYSCONFDIR@/chrony.conf}). The configuration file is
-needed for the `-a' option.
+This option is ignored and is provided only for compatibility.
 @item -a
-With this option @code{chronyc} will try to authenticate automatically on
-start. It will read the configuration file, read the command key from the
-keyfile and run the authhash and password commands.
+This option is ignored and is provided only for compatibility.
 @end table
 @c }}}
 @c {{{ SS:Security with chronyc
@@ -3325,51 +3271,49 @@ keyfile and run the authhash and password commands.
 Many of the commands available through chronyc have a fair amount of
 power to reconfigure the run-time behaviour of @code{chronyd}.  Consequently,
 @code{chronyc} is quite dangerous for the integrity of the target
-system's clock performance.  Having access to @code{chronyd} via chronyc is
-more or less equivalent to being able to modify @code{chronyd's} configuration
-file (typically @file{@SYSCONFDIR@/chrony.conf}) and to restart @code{chronyd}.
+system's clock performance.  Having access to @code{chronyd} via @code{chronyc}
+is more or less equivalent to being able to modify @code{chronyd's}
+configuration file (typically @file{@SYSCONFDIR@/chrony.conf}) and to restart
+@code{chronyd}.
 
-Chronyc also provides a number of monitoring (as opposed to commanding)
-commands, which will not affect the behaviour of @code{chronyd}.  However, you
-may still want to restrict access to these commands.
+@code{chronyc} also provides a number of monitoring (as opposed to
+commanding or configuration) commands, which will not affect the behaviour of
+@code{chronyd}.  However, you may still want to restrict access to these
+commands.
 
-In view of this, access to some of the capabilities of chronyc will
-usually be tightly controlled.  There are two mechanisms supported:
+There are two ways how @code{chronyc} can access @code{chronyd}.  One is the
+Internet Protocol (IPv4 or IPv6) and the other is a Unix domain socket, which
+is accessible only locally by the root or chrony user (by default
+@code{@CHRONYSOCKDIR@/chronyd.sock}).
 
-@enumerate 1
-@item
-The set of hosts from which @code{chronyd} will accept commands can be
-restricted.  By default, commands will only be accepted from the same
-host that @code{chronyd} is running on.
-@item
-Any command that actually reconfigures some aspect of @code{chronyd's}
-behaviour requires the user of chronyc to know a password.  This
-password is specified in @code{chronyd's} keys file (@pxref{keyfile directive})
-and specified via the commandkey option in its configuration file
-(@pxref{commandkey directive}).
-@end enumerate
-
-Only the following commands can be used @emph{without} providing a
-password:
+Only the following monitoring commands are allowed from the internet:
 
 @itemize @bullet
 @item @code{activity}
-@item @code{authhash}
-@item @code{dns}
-@item @code{exit}
-@item @code{help}
-@item @code{password}
-@item @code{quit}
+@item @code{manual list}
 @item @code{rtcdata}
 @item @code{smoothing}
 @item @code{sources}
 @item @code{sourcestats}
 @item @code{tracking}
-@item @code{waitsync}
+@item @code{waitsync}.
 @end itemize
 
-All other commands require a password to have been specified previously,
-because they affect @code{chronyd's} operation.
+The set of hosts from which @code{chronyd} will accept these commands can be
+restricted.  By default, the commands will be accepted only from the localhost
+(127.0.0.1 or ::1).
+
+All other commands are allowed only through the Unix domain socket.  When sent
+over the internet, @code{chronyd} will respond with a @code{Not authorised}
+error, even if it's from the localhost.
+
+In @code{chrony} versions before 2.2 the commands had to be authenticated with
+a password and they were allowed from the internet, but that is no longer
+supported.
+
+By default, @code{chronyc} tries to connect to the Unix domain socket first.
+If that fails (e.g. because @code{chronyc} is running under a non-root user),
+it will try to connect to 127.0.0.1 and then ::1.
 @c }}}
 @c {{{ SS:Chronyc command reference
 @node Chronyc command reference
@@ -3386,7 +3330,6 @@ interface.
 * add server command::          Add a new NTP server
 * allow all command::           Allowing NTP client access
 * allow command::               Allowing NTP client access
-* authhash command::            Set the command authentication hash function
 * burst command::               Initiating a rapid set of measurements
 * clients command::             Show clients that have accessed the server
 * cmdaccheck command::          Verifying command client access
@@ -3414,7 +3357,6 @@ interface.
 * minstratum command::          Set minimum stratum for a source
 * offline command::             Warn that connectivity to a source will be lost
 * online command::              Warn that connectivity to a source has been restored
-* password command::            Provide password needed for most commands
 * polltarget command::          Set poll target for a source
 * quit command::                Exit from chronyc
 * reselect command::            Reselect synchronisation source
@@ -3544,24 +3486,6 @@ allow
 The effect of each of these examples is the same as that of the @code{allow}
 directive in the configuration file.
 @c }}}
-@c {{{ authhash
-@node authhash command
-@subsubsection authhash
-This command selects the hash function used for authenticating user commands.
-For successful authentication the hash function has to be the same as the
-function specified for the command key in the keys file on the server
-(@pxref{keyfile directive}).  It needs to be selected before the
-@code{password} command is used.  The default hash function is MD5.
-
-An example is
-
-@example
-authhash SHA1
-@end example
-
-The authhash command is run automatically on start if @code{chronyc} was
-started with the `-a' option.
-@c }}}
 @c {{{ burst
 @node burst command
 @subsubsection burst
@@ -3654,14 +3578,15 @@ burst 2/10 foo.example.net
 @comment  node-name,  next,  previous,  up
 @subsubsection clients
 This command shows a list of all clients that have accessed the server,
-through either the NTP or command/monitoring ports.  There are no arguments.
+through either the NTP or command/monitoring ports.  It doesn't include
+access to the Unix domain comamnd socket.  There are no arguments.
 
 An example of the output is
 
 @example
 Hostname                   Client    Peer CmdAuth CmdNorm  CmdBad  LstN  LstC
 =========================  ======  ======  ======  ======  ======  ====  ====
-localhost                       0       0      15       1       0   29y     0
+localhost                       0       0       0       1       0   29y     0
 aardvark.xxx                    4       0       0       0       0    49   29y
 badger.xxx                      4       0       0       0       0     6   29y
 @end example
@@ -3683,9 +3608,9 @@ client mode packet.
 The number of times the client has accessed the server using an NTP
 symmetric active mode packet.
 @item
-The number of authenticated command packets that have been processed
-from the client (i.e. those following a successful @code{password}
-command).
+The number of authenticated command packets that have been processed from the
+client.  Authentication is no longer supported in command packets, so the
+number should be always zero.
 @item
 The number of unauthenticated command packets that have been processed
 from the client.
@@ -3752,7 +3677,7 @@ periodically purged.  An example of how to do this is shown below.
 
 @example
 % mv /var/log/chrony/measurements.log /var/log/chrony/measurements1.log
-% chronyc -a cyclelogs
+% chronyc cyclelogs
 % ls -l /var/log/chrony
 -rw-r--r--   1 root     root            0 Jun  8 18:17 measurements.log
 -rw-r--r--   1 root     root        12345 Jun  8 18:17 measurements1.log
@@ -4220,40 +4145,6 @@ particular source or sources has been restored.
 
 The syntax is identical to that of the @code{offline} command, see
 @ref{offline command}.
-@c }}}
-@c {{{ password
-@node password command
-@subsubsection password
-The password command is used to allow chronyc to send privileged
-commands to @code{chronyd}.  The password can either be entered on the command
-line, or can be entered without echoing.  The syntax for entering the
-password on the command line is as follows
-
-@example
-password xyzzy
-password ASCII:xyzzy
-password HEX:78797a7a79
-@end example
-
-To enter the password without it being echoed, enter
-
-@example
-password
-@end example
-
-The computer will respond with a @samp{Password:} prompt, at which you
-should enter the password and press return.
-
-The password can be encoded as a string of characters not containing a space
-with optional @code{ASCII:} prefix or as a hexadecimal number with @code{HEX:}
-prefix.  It has to match @code{chronyd's} currently defined command key
-(@pxref{commandkey directive}).  If the command key was specified with a
-different hash function than MD5, it's necessary to select the hash function
-with the @code{authhash} command (@pxref{authhash command}) before entering the
-password.
-
-The password command is run automatically on start if @code{chronyc} was
-started with the `-a' option.
 @c }}}
 @c {{{ polltarget
 @node polltarget command
