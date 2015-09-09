@@ -75,6 +75,11 @@ CAM_Finalise(void)
 {
 }
 
+void
+CAM_OpenUnixSocket(void)
+{
+}
+
 int
 CAM_AddAccessRestriction(IPAddr *ip_addr, int subnet_bits, int allow, int all)
 {
