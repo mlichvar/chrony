@@ -5,8 +5,14 @@
 cd ../..
 
 for opts in \
+	"--enable-debug" \
 	"--disable-asyncdns" \
+	"--disable-ipv6" \
+	"--disable-privdrop" \
+	"--disable-readline" \
 	"--disable-rtc" \
+	"--disable-scfilter" \
+	"--disable-sechash" \
 	"--disable-cmdmon" \
 	"--disable-ntp" \
 	"--disable-refclock" \
@@ -15,5 +21,5 @@ for opts in \
 	"--disable-cmdmon --disable-ntp --disable-refclock"
 do
 	./configure $opts
-	make || exit 1
+	make "$@" || exit 1
 done
