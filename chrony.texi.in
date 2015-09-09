@@ -694,40 +694,31 @@ support for this, in the form of the @code{manual} directive in the
 configuration file and the @code{settime} command in the @code{chronyc}
 program.
 
-If the master is rebooted, @code{chronyd} can re-read the drift rate
-from the drift file.  However, the master has no accurate estimate of
-the current time.  To get around this, the system can be configured so
-that the master can initially set itself to a `majority-vote' of
-selected clients' times; this allows the clients to `flywheel' the
-master across its outage.
+The @code{smoothtime} directive (@pxref{smoothtime directive}) is useful when
+the clocks of the clients need to stay close together when the local time is
+adjusted by the @code{settime} command.  The smoothing process needs to be
+activated by the @code{smoothtime activate} command when the local time is
+ready to be served. After that point, any adjustments will be smoothed out.
 
-A typical configuration file for the master (called @code{master}) might
-be (assuming the clients are in the 192.168.165.x subnet and that the
-master's address is 192.168.169.170)
+A typical configuration file for the master (called @code{master}) might be
+(assuming the clients are in the 192.168.165.x subnet)
 
 @example
 driftfile @CHRONYVARDIR@/drift
-initstepslew 10 client1 client3 client6
 local stratum 8
 manual
 allow 192.168.165
+smoothtime 400 0.01
 @end example
 
-For the clients that have to resynchronise the master when it restarts,
-the configuration file might be
+For the clients the configuration file might be
 
 @example
-server master
+server master iburst
 driftfile @CHRONYVARDIR@/drift
 logdir /var/log/chrony
 log measurements statistics tracking
-local stratum 10
-initstepslew 20 master
-allow 192.168.169.170
 @end example
-
-The rest of the clients would be the same, except that the @code{local}
-and @code{allow} directives are not required.
 @c }}}
 @c {{{ S:Dial-up home PCs
 @node Dial-up home PCs
