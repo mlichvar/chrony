@@ -1058,8 +1058,13 @@ UTI_CheckDirPermissions(const char *path, mode_t perm, uid_t uid, gid_t gid)
     return 0;
   }
 
-  if (buf.st_uid != uid || buf.st_gid != gid) {
-    LOG(LOGS_ERR, LOGF_Util, "Wrong owner/group of %s", path);
+  if (buf.st_uid != uid) {
+    LOG(LOGS_ERR, LOGF_Util, "Wrong owner of %s (%s != %d)", path, "UID", uid);
+    return 0;
+  }
+
+  if (buf.st_gid != gid) {
+    LOG(LOGS_ERR, LOGF_Util, "Wrong owner of %s (%s != %d)", path, "GID", gid);
     return 0;
   }
 
