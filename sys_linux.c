@@ -478,7 +478,7 @@ SYS_Linux_EnableSystemCallFilter(int level)
   };
 
   const static int socket_options[][2] = {
-    { SOL_IP, IP_PKTINFO },
+    { SOL_IP, IP_PKTINFO }, { SOL_IP, IP_FREEBIND },
 #ifdef FEAT_IPV6
     { SOL_IPV6, IPV6_V6ONLY }, { SOL_IPV6, IPV6_RECVPKTINFO },
 #endif
