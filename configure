@@ -376,23 +376,6 @@ rm -f config.h config.log
 SYSTEM=${OPERATINGSYSTEM}-${MACHINE}
 
 case $SYSTEM in
-    SunOS-sun4* )
-    case $VERSION in
-        4.* )
-            EXTRA_OBJECTS="sys_sunos.o strerror.o"
-            EXTRA_LIBS="-lkvm"
-            add_def SUNOS
-            echo "Configuring for SunOS (" $SYSTEM "version" $VERSION ")"
-        ;;
-        5.* )
-            EXTRA_OBJECTS="sys_solaris.o"
-            EXTRA_LIBS="-lsocket -lnsl -lkvm -lelf"
-            EXTRA_CLI_LIBS="-lsocket -lnsl"
-            add_def SOLARIS
-            echo "Configuring for Solaris (" $SYSTEM "SunOS version" $VERSION ")"
-        ;;
-    esac
-    ;;
     Linux* )
         EXTRA_OBJECTS="sys_generic.o sys_linux.o sys_timex.o"
         [ $try_libcap != "0" ] && try_libcap=1
@@ -428,7 +411,7 @@ case $SYSTEM in
         add_def MACOSX
         echo "Configuring for MacOS X (" $SYSTEM "MacOS X version" $VERSION ")"
     ;;
-    SunOS-i86pc* )                                          
+    SunOS-i86pc*|SunOS-sun4* )
         # Doug Woodward <dougw@whistler.com> reported that this configuration
         # works for Solaris 2.8 / SunOS 5.8 on x86 platforms
         EXTRA_OBJECTS="sys_solaris.o"                
