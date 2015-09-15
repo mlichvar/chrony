@@ -99,6 +99,7 @@ typedef enum {
   LOGF_SysNetBSD,
   LOGF_SysSolaris,
   LOGF_SysSunOS,
+  LOGF_SysTimex,
   LOGF_SysWinnt,
   LOGF_TempComp,
   LOGF_RtcLinux,
