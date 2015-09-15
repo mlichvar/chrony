@@ -419,8 +419,7 @@ case $SYSTEM in
         echo "Configuring for $SYSTEM (using SunOS driver)"
     ;;
     NetBSD-* )
-        EXTRA_OBJECTS="sys_netbsd.o"
-        EXTRA_LIBS="-lkvm"
+        EXTRA_OBJECTS="sys_generic.o sys_netbsd.o sys_timex.o"
         try_clockctl=1
         add_def NETBSD
         echo "Configuring for $SYSTEM"
