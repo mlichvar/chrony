@@ -440,12 +440,6 @@ case $SYSTEM in
         add_def SOLARIS
         echo "Configuring for Solaris (" $SYSTEM "SunOS version" $VERSION ")" 
     ;;                                                                        
-    CYGWIN32_NT-i[3456]86 )
-        EXTRA_OBJECTS="sys_winnt.o"
-        EXTRA_LIBS=""
-        add_def WINNT
-        echo "Configuring for Windows NT (Cygwin32)"
-    ;;
     * )
         echo "Sorry, I don't know how to build this software on your system."
         exit 1

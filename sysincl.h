@@ -91,43 +91,4 @@
 #include <nlist.h>
 #endif
 
-#if defined (WINNT)
-
-/* Designed to work with the GCC from the GNAT-3.10 for Win32
-   distribution */
-
-#define Win32_Winsock
-#include <assert.h>
-#include <ctype.h>
-
-#if 1
-/* Cheat and inline the necessary bits from <errno.h>.  We don't
-   include it directly because it redefines some EXXX constants that
-   conflict with <windows32/sockets.h> (included by <windows.h>) */
-
-int*	_errno();
-int*	__doserrno();
-
-#define	errno		(*_errno())
-#define	_doserrno	(*__doserrno())
-
-#define ENOENT 2
-#else
-
-#include <errno.h>
-#endif
-
-
-#include <float.h>
-#include <math.h>
-#include <signal.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <time.h>
-#include <windows.h>
-#endif
-
 #endif /* GOT_SYSINCL_H */

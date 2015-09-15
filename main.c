@@ -275,11 +275,6 @@ write_lockfile(void)
 static void
 go_daemon(void)
 {
-#ifdef WINNT
-
-
-#else
-
   int pid, fd, pipefd[2];
 
   /* Create pipe which will the daemon use to notify the grandparent
@@ -338,8 +333,6 @@ go_daemon(void)
       LOG_SetParentFd(pipefd[1]);
     }
   }
-
-#endif
 }
 
 /* ================================================== */
