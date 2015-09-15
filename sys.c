@@ -42,6 +42,8 @@
 #include "sys_netbsd.h"
 #elif defined(MACOSX)
 #include "sys_macosx.h"
+#elif defined(FREEBSD)
+#include "sys_timex.h"
 #endif
 
 /* ================================================== */
@@ -59,6 +61,8 @@ SYS_Initialise(void)
   SYS_NetBSD_Initialise();
 #elif defined(MACOSX)
   SYS_MacOSX_Initialise();
+#elif defined(FREEBSD)
+  SYS_Timex_Initialise();
 #else
 #error Unknown system
 #endif
@@ -79,6 +83,8 @@ SYS_Finalise(void)
   SYS_NetBSD_Finalise();
 #elif defined(MACOSX)
   SYS_MacOSX_Finalise();
+#elif defined(FREEBSD)
+  SYS_Timex_Finalise();
 #else
 #error Unknown system
 #endif
