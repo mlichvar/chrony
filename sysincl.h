@@ -29,20 +29,12 @@
 #ifndef GOT_SYSINCL_H
 #define GOT_SYSINCL_H
 
-#if defined (SOLARIS) || defined(SUNOS) || defined(LINUX) || defined(NETBSD) || defined (MACOSX)
-
-#if !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(MACOSX)
-#include <alloca.h>
-#endif
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <float.h>
 #include <glob.h>
-#if !defined(__FreeBSD__) && !defined(MACOSX)
-#include <malloc.h>
-#endif
 #include <math.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -78,17 +70,9 @@
 
 #include <unistd.h>
 
-#endif
-
 #ifdef FEAT_IPV6
 /* For inet_ntop() */
 #include <arpa/inet.h>
-#endif
-
-#if defined (SOLARIS) || defined(SUNOS)
-/* Only needed on these platforms, and doesn't exist on some Linux
-   versions. */
-#include <nlist.h>
 #endif
 
 #endif /* GOT_SYSINCL_H */
