@@ -394,7 +394,7 @@ case $SYSTEM in
     esac
     ;;
     Linux* )
-        EXTRA_OBJECTS="sys_generic.o sys_linux.o wrap_adjtimex.o"
+        EXTRA_OBJECTS="sys_generic.o sys_linux.o sys_timex.o"
         [ $try_libcap != "0" ] && try_libcap=1
         try_rtc=1
         [ $try_seccomp != "0" ] && try_seccomp=1

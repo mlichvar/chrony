@@ -62,14 +62,21 @@
 #endif
 #endif
 
-#include "sys_generic.h"
 #include "sys_linux.h"
+#include "sys_timex.h"
 #include "conf.h"
 #include "logging.h"
-#include "wrap_adjtimex.h"
 
-/* The threshold for adjtimex maxerror when the kernel sets the UNSYNC flag */
-#define UNSYNC_MAXERROR 16.0
+/* Frequency scale to convert from ppm to the timex freq */
+#define FREQ_SCALE (double)(1 << 16)
+
+/* Definitions used if missed in the system headers */
+#ifndef ADJ_SETOFFSET
+#define ADJ_SETOFFSET           0x0100  /* add 'time' to current time */
+#endif
+#ifndef ADJ_NANO
+#define ADJ_NANO                0x2000  /* select nanosecond resolution */
+#endif
 
 /* This is the uncompensated system tick value */
 static int nominal_tick;
@@ -113,10 +120,18 @@ our_round(double x)
 static int
 apply_step_offset(double offset)
 {
-  if (TMX_ApplyStepOffset(-offset) < 0) {
-    DEBUG_LOG(LOGF_SysLinux, "adjtimex() failed");
-    return 0;
+  struct timex txc;
+
+  txc.modes = ADJ_SETOFFSET | ADJ_NANO;
+  txc.time.tv_sec = -offset;
+  txc.time.tv_usec = 1.0e9 * (-offset - txc.time.tv_sec);
+  if (txc.time.tv_usec < 0) {
+    txc.time.tv_sec--;
+    txc.time.tv_usec += 1000000000;
   }
+
+  if (SYS_Timex_Adjust(&txc, 1) < 0)
+    return 0;
 
   return 1;
 }
@@ -131,6 +146,7 @@ apply_step_offset(double offset)
 static double
 set_frequency(double freq_ppm)
 {
+  struct timex txc;
   long required_tick;
   double required_freq;
   int required_delta_tick;
@@ -154,14 +170,15 @@ set_frequency(double freq_ppm)
   required_freq = -(freq_ppm - dhz * required_delta_tick);
   required_tick = nominal_tick - required_delta_tick;
 
-  if (TMX_SetFrequency(&required_freq, required_tick) < 0) {
-    LOG_FATAL(LOGF_SysLinux, "adjtimex failed for set_frequency, freq_ppm=%10.4e required_freq=%10.4e required_tick=%ld",
-        freq_ppm, required_freq, required_tick);
-  }
+  txc.modes = ADJ_TICK | ADJ_FREQUENCY;
+  txc.freq = required_freq * FREQ_SCALE;
+  txc.tick = required_tick;
+
+  SYS_Timex_Adjust(&txc, 0);
 
   current_delta_tick = required_delta_tick;
 
-  return dhz * current_delta_tick - required_freq;
+  return dhz * current_delta_tick - txc.freq / FREQ_SCALE;
 }
 
 /* ================================================== */
@@ -170,60 +187,15 @@ set_frequency(double freq_ppm)
 static double
 read_frequency(void)
 {
-  long tick;
-  double freq;
+  struct timex txc;
 
-  if (TMX_GetFrequency(&freq, &tick) < 0) {
-    LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
-  }
+  txc.modes = 0;
 
-  current_delta_tick = nominal_tick - tick;
-  
-  return dhz * current_delta_tick - freq;
-}
+  SYS_Timex_Adjust(&txc, 0);
 
-/* ================================================== */
+  current_delta_tick = nominal_tick - txc.tick;
 
-static void
-set_leap(int leap)
-{
-  int applied;
-
-  applied = 0;
-  if (!leap && TMX_GetLeapApplied(&applied) < 0) {
-    LOG_FATAL(LOGF_SysLinux, "adjtimex() failed in set_leap");
-  }
-
-  if (TMX_SetLeap(leap) < 0) {
-    LOG_FATAL(LOGF_SysLinux, "adjtimex() failed in set_leap");
-  }
-
-  LOG(LOGS_INFO, LOGF_SysLinux, "System clock status %s leap second",
-     leap ? (leap > 0 ? "set to insert" : "set to delete") :
-            (applied ? "reset after" : "set to not insert/delete"));
-}
-
-/* ================================================== */
-
-static void
-set_sync_status(int synchronised, double est_error, double max_error)
-{
-  if (synchronised) {
-    if (est_error > UNSYNC_MAXERROR)
-      est_error = UNSYNC_MAXERROR;
-    if (max_error >= UNSYNC_MAXERROR) {
-      max_error = UNSYNC_MAXERROR;
-      synchronised = 0;
-    }
-  } else {
-    est_error = max_error = UNSYNC_MAXERROR;
-  }
-
-  /* Clear the UNSYNC flag only if rtcsync is enabled */
-  if (!CNF_GetRtcSync())
-    synchronised = 0;
-
-  TMX_SetSync(synchronised, est_error, max_error);
+  return dhz * current_delta_tick - txc.freq / FREQ_SCALE;
 }
 
 /* ================================================== */
@@ -234,10 +206,16 @@ set_sync_status(int synchronised, double est_error, double max_error)
  * a +/- 10% movement of tick away from the nominal value 1e6/USER_HZ. */
 
 static int
-guess_hz(int tick)
+guess_hz(void)
 {
-  int i, tick_lo, tick_hi, ihz;
+  struct timex txc;
+  int i, tick, tick_lo, tick_hi, ihz;
   double tick_nominal;
+
+  txc.modes = 0;
+  SYS_Timex_Adjust(&txc, 0);
+  tick = txc.tick;
+
   /* Pick off the hz=100 case first */
   if (tick >= 9000 && tick <= 11000) {
     return 100;
@@ -255,6 +233,8 @@ guess_hz(int tick)
   }
 
   /* oh dear.  doomed. */
+  LOG_FATAL(LOGF_SysLinux, "Can't determine hz from tick %d", tick);
+
   return 0;
 }
 
@@ -296,21 +276,12 @@ static void
 get_version_specific_details(void)
 {
   int major, minor, patch;
-  long tick;
-  double freq;
   struct utsname uts;
   
   hz = get_hz();
 
-  if (!hz) {
-    if (TMX_GetFrequency(&freq, &tick) < 0)
-      LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
-
-    hz = guess_hz(tick);
-
-    if (!hz)
-      LOG_FATAL(LOGF_SysLinux, "Can't determine hz from tick %ld", tick);
-  }
+  if (!hz)
+    hz = guess_hz();
 
   dhz = (double) hz;
   nominal_tick = (1000000L + (hz/2))/hz; /* Mirror declaration in kernel */
@@ -354,6 +325,48 @@ get_version_specific_details(void)
 }
 
 /* ================================================== */
+
+static void
+reset_adjtime_offset(void)
+{
+  struct timex txc;
+
+  /* Reset adjtime() offset */
+  txc.modes = ADJ_OFFSET_SINGLESHOT;
+  txc.offset = 0;
+
+  SYS_Timex_Adjust(&txc, 0);
+}
+
+/* ================================================== */
+
+static int
+test_step_offset(void)
+{
+  struct timex txc;
+
+  /* Zero maxerror and check it's reset to a maximum after ADJ_SETOFFSET.
+     This seems to be the only way how to verify that the kernel really
+     supports the ADJ_SETOFFSET mode as it doesn't return an error on unknown
+     mode. */
+
+  txc.modes = MOD_MAXERROR;
+  txc.maxerror = 0;
+
+  if (SYS_Timex_Adjust(&txc, 1) < 0 || txc.maxerror != 0)
+    return 0;
+
+  txc.modes = ADJ_SETOFFSET | ADJ_NANO;
+  txc.time.tv_sec = 0;
+  txc.time.tv_usec = 0;
+
+  if (SYS_Timex_Adjust(&txc, 1) < 0 || txc.maxerror < 100000)
+    return 0;
+
+  return 1;
+}
+
+/* ================================================== */
 /* Initialisation code for this module */
 
 void
@@ -361,20 +374,17 @@ SYS_Linux_Initialise(void)
 {
   get_version_specific_details();
 
-  if (TMX_ResetOffset() < 0) {
-    LOG_FATAL(LOGF_SysLinux, "adjtimex() failed");
-  }
+  reset_adjtime_offset();
 
-  if (have_setoffset && TMX_TestStepOffset() < 0) {
+  if (have_setoffset && !test_step_offset()) {
     LOG(LOGS_INFO, LOGF_SysLinux, "adjtimex() doesn't support ADJ_SETOFFSET");
     have_setoffset = 0;
   }
 
-  SYS_Generic_CompleteFreqDriver(1.0e6 * max_tick_bias / nominal_tick,
-                                 1.0 / tick_update_hz,
-                                 read_frequency, set_frequency,
-                                 have_setoffset ? apply_step_offset : NULL,
-                                 set_leap, set_sync_status);
+  SYS_Timex_InitialiseWithFunctions(1.0e6 * max_tick_bias / nominal_tick,
+                                    1.0 / tick_update_hz,
+                                    read_frequency, set_frequency,
+                                    have_setoffset ? apply_step_offset : NULL);
 }
 
 /* ================================================== */
@@ -383,7 +393,7 @@ SYS_Linux_Initialise(void)
 void
 SYS_Linux_Finalise(void)
 {
-  SYS_Generic_Finalise();
+  SYS_Timex_Finalise();
 }
 
 /* ================================================== */
