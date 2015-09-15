@@ -32,23 +32,15 @@
 #include "sys.h"
 #include "logging.h"
 
-#if defined (LINUX)
+#if defined(LINUX)
 #include "sys_linux.h"
-#endif
-
-#if defined (SOLARIS)
+#elif defined(SOLARIS)
 #include "sys_solaris.h"
-#endif
-
-#if defined (SUNOS)
+#elif defined(SUNOS)
 #include "sys_sunos.h"
-#endif
-
-#if defined (NETBSD)
+#elif defined(NETBSD)
 #include "sys_netbsd.h"
-#endif
-
-#if defined (MACOSX)
+#elif defined(MACOSX)
 #include "sys_macosx.h"
 #endif
 
@@ -57,27 +49,19 @@
 void
 SYS_Initialise(void)
 {
-
 #if defined(LINUX)
   SYS_Linux_Initialise();
-#endif
-
-#if defined(SOLARIS)
+#elif defined(SOLARIS)
   SYS_Solaris_Initialise();
-#endif
-
-#if defined(SUNOS)
+#elif defined(SUNOS)
   SYS_SunOS_Initialise();
-#endif
-
-#if defined(NETBSD)
+#elif defined(NETBSD)
   SYS_NetBSD_Initialise();
-#endif
-
-#if defined(MACOSX)
+#elif defined(MACOSX)
   SYS_MacOSX_Initialise();
+#else
+#error Unknown system
 #endif
-
 }
 
 /* ================================================== */
@@ -85,25 +69,18 @@ SYS_Initialise(void)
 void
 SYS_Finalise(void)
 {
-  
 #if defined(LINUX)
   SYS_Linux_Finalise();
-#endif
-
-#if defined(SOLARIS)
+#elif defined(SOLARIS)
   SYS_Solaris_Finalise();
-#endif
-
-#if defined(SUNOS)
+#elif defined(SUNOS)
   SYS_SunOS_Finalise();
-#endif
-
-#if defined(NETBSD)
+#elif defined(NETBSD)
   SYS_NetBSD_Finalise();
-#endif
-
-#if defined(MACOSX)
+#elif defined(MACOSX)
   SYS_MacOSX_Finalise();
+#else
+#error Unknown system
 #endif
 }
 
