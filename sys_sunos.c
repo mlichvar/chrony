@@ -76,6 +76,9 @@ static double adjustment_requested;
    */
 static unsigned long our_tickadj = 100;
 
+/* Interval in seconds between adjustments to cancel systematic drift */
+#define DRIFT_REMOVAL_INTERVAL (4.0)
+
 /* ================================================== */
 
 static void
@@ -290,9 +293,6 @@ immediate_step(void)
 }
 
 /* ================================================== */
-
-/* Interval in seconds between adjustments to cancel systematic drift */
-#define DRIFT_REMOVAL_INTERVAL (4.0)
 
 static int drift_removal_running = 0;
 static SCH_TimeoutID drift_removal_id;

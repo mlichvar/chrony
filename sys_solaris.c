@@ -83,6 +83,8 @@ static int index=0;
 /* If 1, need to run dosynctodr().  If 0, don't */
 static int need_dosynctodr = -1;
 
+/* Interval in seconds between adjustments to cancel systematic drift */
+#define DRIFT_REMOVAL_INTERVAL (4.0)
 
 #define GET_ZERO (zeroes[index^=1])
 
@@ -304,9 +306,6 @@ immediate_step(void)
 }
 
 /* ================================================== */
-
-/* Interval in seconds between adjustments to cancel systematic drift */
-#define DRIFT_REMOVAL_INTERVAL (4.0)
 
 static int drift_removal_running = 0;
 static SCH_TimeoutID drift_removal_id;
