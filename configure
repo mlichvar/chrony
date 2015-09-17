@@ -386,11 +386,6 @@ case $OPERATINGSYSTEM in
         try_phc=1
         add_def LINUX
         echo "Configuring for " $SYSTEM
-        if [ "${MACHINE}" = "alpha" ]; then
-           echo "Enabling -mieee"
-           # FIXME: Should really test for GCC
-           MYCFLAGS="$MYCFLAGS -mieee"
-        fi
     ;;
 
     FreeBSD)
