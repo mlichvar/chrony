@@ -416,7 +416,7 @@ case $OPERATINGSYSTEM in
         echo "Configuring for Solaris (" $SYSTEM "SunOS version" $VERSION ")" 
     ;;                                                                        
     * )
-        echo "Sorry, I don't know how to build this software on your system."
+        echo "error: $SYSTEM is not supported (yet?)"
         exit 1
     ;;
 esac
@@ -461,7 +461,7 @@ then
   else
     split_seconds=`date '+%s'`
     if [ "x$split_seconds" = "" ]; then
-      echo "Could not get current time, --with-ntp-era option is needed"
+      echo "error: could not get current time, --with-ntp-era option is needed"
       exit 1
     fi
     split_days=$((50 * 365))
@@ -490,7 +490,7 @@ else
   if test_code 'math in -lm' 'math.h' '' '-lm' "$MATHCODE"; then
     LIBS="-lm"
   else
-    echo "Can't compile/link a program which uses sqrt(), log(), pow(), bailing out"
+    echo "error: could not compile/link a program which uses sqrt(), log(), pow()"
     exit 1
   fi
 fi
