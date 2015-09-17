@@ -10,26 +10,6 @@
 
 # This configure script determines the operating system type and version
 
-if [ "x${CC}" = "x" ]; then
-  MYCC="gcc"
-else
-  MYCC="${CC}"
-fi
-
-if [ "x${CFLAGS}" = "x" ]; then
-  MYCFLAGS="-O2 -g"
-else
-  MYCFLAGS="${CFLAGS}"
-fi
-
-MYCPPFLAGS="${CPPFLAGS}"
-
-if [ "x${MYCC}" = "xgcc" ]; then
-  MYCFLAGS="${MYCFLAGS} -Wmissing-prototypes -Wall"
-fi
-
-MYLDFLAGS="${LDFLAGS}"
-
 # ======================================================================
 # FUNCTIONS
 
@@ -447,6 +427,35 @@ fi
 if [ $feat_refclock = "1" ]; then
   add_def FEAT_REFCLOCK
   EXTRA_OBJECTS="$EXTRA_OBJECTS refclock.o refclock_phc.o refclock_pps.o refclock_shm.o refclock_sock.o"
+fi
+
+MYCC="$CC"
+MYCFLAGS="$CFLAGS"
+MYCPPFLAGS="$CPPFLAGS"
+MYLDFLAGS="$LDFLAGS"
+
+if [ "x$MYCC" = "x" ]; then
+  MYCC=gcc
+  if ! test_code "$MYCC" '' '' '' ''; then
+    MYCC=cc
+    if ! test_code "$MYCC" '' '' '' ''; then
+      echo "error: no C compiler found"
+      exit 1
+    fi
+  fi
+else
+  if ! test_code "$MYCC" '' '' '' ''; then
+    echo "error: C compiler $MYCC cannot create executables"
+    exit 1
+  fi
+fi
+
+if [ "x$MYCFLAGS" = "x" ]; then
+  MYCFLAGS="-O2 -g"
+fi
+
+if [ "x$MYCC" = "xgcc" ]; then
+  MYCFLAGS="$MYCFLAGS -Wmissing-prototypes -Wall"
 fi
 
 if test_code '64-bit time_t' 'time.h' '' '' '
