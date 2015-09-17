@@ -375,8 +375,8 @@ rm -f config.h config.log
 
 SYSTEM=${OPERATINGSYSTEM}-${MACHINE}
 
-case $SYSTEM in
-    Linux* )
+case $OPERATINGSYSTEM in
+    Linux)
         EXTRA_OBJECTS="sys_generic.o sys_linux.o sys_timex.o"
         [ $try_libcap != "0" ] && try_libcap=1
         try_rtc=1
@@ -393,25 +393,25 @@ case $SYSTEM in
         fi
     ;;
 
-    FreeBSD-i386|FreeBSD-amd64 )
+    FreeBSD)
         EXTRA_OBJECTS="sys_generic.o sys_timex.o"
         add_def FREEBSD
         echo "Configuring for $SYSTEM"
     ;;
-    NetBSD-* )
+    NetBSD)
         EXTRA_OBJECTS="sys_generic.o sys_netbsd.o sys_timex.o"
         try_clockctl=1
         add_def NETBSD
         echo "Configuring for $SYSTEM"
     ;;
-    Darwin-* )
+    Darwin)
         EXTRA_OBJECTS="sys_macosx.o"
         EXTRA_LIBS="-lresolv"
         EXTRA_CLI_LIBS="-lresolv"
         add_def MACOSX
         echo "Configuring for MacOS X (" $SYSTEM "MacOS X version" $VERSION ")"
     ;;
-    SunOS-i86pc*|SunOS-sun4* )
+    SunOS)
         # Doug Woodward <dougw@whistler.com> reported that this configuration
         # works for Solaris 2.8 / SunOS 5.8 on x86 platforms
         EXTRA_OBJECTS="sys_solaris.o"                
