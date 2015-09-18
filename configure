@@ -390,9 +390,13 @@ case $OPERATINGSYSTEM in
         # Doug Woodward <dougw@whistler.com> reported that this configuration
         # works for Solaris 2.8 / SunOS 5.8 on x86 platforms
         EXTRA_OBJECTS="sys_solaris.o"                
-        EXTRA_LIBS="-lsocket -lnsl -lkvm -lelf"      
-        EXTRA_CLI_LIBS="-lsocket -lnsl"                              
+        EXTRA_LIBS="-lsocket -lnsl -lkvm -lelf -lresolv"
+        EXTRA_CLI_LIBS="-lsocket -lnsl -lresolv"
         add_def SOLARIS
+        # These are needed to have msg_control in struct msghdr
+        add_def __EXTENSIONS__
+        add_def _XOPEN_SOURCE 1
+        add_def _XOPEN_SOURCE_EXTENDED 1
         echo "Configuring for Solaris (" $SYSTEM "SunOS version" $VERSION ")" 
     ;;                                                                        
     * )
@@ -513,7 +517,7 @@ if test_code '<inttypes.h>' 'inttypes.h' '' '' ''; then
 fi
 
 if [ $feat_ipv6 = "1" ] && \
-  test_code 'IPv6 support' 'arpa/inet.h sys/socket.h netinet/in.h' '' '' '
+  test_code 'IPv6 support' 'arpa/inet.h sys/socket.h netinet/in.h' '' "$EXTRA_LIBS" '
     struct sockaddr_in6 n;
     char p[100];
     n.sin6_addr = in6addr_any;
@@ -534,7 +538,7 @@ then
   fi
 fi
 
-if test_code 'getaddrinfo()' 'sys/types.h sys/socket.h netdb.h' '' '' \
+if test_code 'getaddrinfo()' 'sys/types.h sys/socket.h netdb.h' '' "$EXTRA_LIBS" \
   'return getaddrinfo(0, 0, 0, 0);'
 then
   add_def HAVE_GETADDRINFO

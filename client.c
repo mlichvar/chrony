@@ -215,28 +215,28 @@ prepare_socket(union sockaddr_all *addr)
   }
 
   if (addr->sa.sa_family == AF_UNIX) {
-    struct sockaddr_un sun;
+    struct sockaddr_un sa_un;
 
     /* Construct path of our socket.  Use the same directory as the server
        socket and include our process ID to allow multiple chronyc instances
        running at the same time. */
     dir = UTI_PathToDir(addr->un.sun_path);
-    if (snprintf(sun.sun_path, sizeof (sun.sun_path),
-                 "%s/chronyc.%d.sock", dir, getpid()) >= sizeof (sun.sun_path))
+    if (snprintf(sa_un.sun_path, sizeof (sa_un.sun_path),
+                 "%s/chronyc.%d.sock", dir, (int)getpid()) >= sizeof (sa_un.sun_path))
       LOG_FATAL(LOGF_Client, "Unix socket path too long");
     Free(dir);
 
-    sun.sun_family = AF_UNIX;
-    unlink(sun.sun_path);
+    sa_un.sun_family = AF_UNIX;
+    unlink(sa_un.sun_path);
 
     /* Bind the socket to the path */
-    if (bind(sock_fd, (struct sockaddr *)&sun, sizeof (sun)) < 0) {
+    if (bind(sock_fd, (struct sockaddr *)&sa_un, sizeof (sa_un)) < 0) {
       DEBUG_LOG(LOGF_Client, "Could not bind socket : %s", strerror(errno));
       return 0;
     }
 
     /* Allow server without root privileges to send replies to our socket */
-    if (chmod(sun.sun_path, 0666) < 0) {
+    if (chmod(sa_un.sun_path, 0666) < 0) {
       DEBUG_LOG(LOGF_Client, "Could not change socket permissions : %s", strerror(errno));
       return 0;
     }

@@ -265,7 +265,7 @@ write_lockfile(void)
   if (!out) {
     LOG_FATAL(LOGF_Main, "could not open lockfile %s for writing", pidfile);
   } else {
-    fprintf(out, "%d\n", getpid());
+    fprintf(out, "%d\n", (int)getpid());
     fclose(out);
   }
 }
