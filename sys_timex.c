@@ -215,6 +215,12 @@ SYS_Timex_Adjust(struct timex *txc, int ignore_error)
 {
   int state;
 
+#ifdef SOLARIS
+  /* The kernel seems to check the constant even when it's not being set */
+  if (!(txc->modes & MOD_TIMECONST))
+    txc->constant = 10;
+#endif
+
   state = NTP_ADJTIME(txc);
 
   if (state < 0) {
