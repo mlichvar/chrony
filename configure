@@ -387,10 +387,8 @@ case $OPERATINGSYSTEM in
         echo "Configuring for MacOS X (" $SYSTEM "MacOS X version" $VERSION ")"
     ;;
     SunOS)
-        # Doug Woodward <dougw@whistler.com> reported that this configuration
-        # works for Solaris 2.8 / SunOS 5.8 on x86 platforms
-        EXTRA_OBJECTS="sys_solaris.o"                
-        EXTRA_LIBS="-lsocket -lnsl -lkvm -lelf -lresolv"
+        EXTRA_OBJECTS="sys_generic.o sys_solaris.o sys_timex.o"
+        EXTRA_LIBS="-lsocket -lnsl -lresolv"
         EXTRA_CLI_LIBS="-lsocket -lnsl -lresolv"
         add_def SOLARIS
         # These are needed to have msg_control in struct msghdr
