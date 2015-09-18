@@ -55,6 +55,7 @@
 #include <sys/shm.h>
 #include <syslog.h>
 #include <time.h>
+#include <unistd.h>
 
 #ifdef HAVE_INTTYPES_H
 #include <inttypes.h>
@@ -63,12 +64,6 @@
 #else
 /* Tough */
 #endif
-
-/* One or other of these to make getsid() visible */
-#define __EXTENSIONS__ 1
-#define __USE_XOPEN_EXTENDED 1
-
-#include <unistd.h>
 
 #ifdef FEAT_IPV6
 /* For inet_ntop() */
