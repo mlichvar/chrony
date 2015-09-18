@@ -209,11 +209,6 @@ prepare_socket(union sockaddr_all *addr)
     return 0;
   }
 
-  if (connect(sock_fd, &addr->sa, addr_len) < 0) {
-    DEBUG_LOG(LOGF_Client, "Could not connect socket : %s", strerror(errno));
-    return 0;
-  }
-
   if (addr->sa.sa_family == AF_UNIX) {
     struct sockaddr_un sa_un;
 
@@ -240,6 +235,11 @@ prepare_socket(union sockaddr_all *addr)
       DEBUG_LOG(LOGF_Client, "Could not change socket permissions : %s", strerror(errno));
       return 0;
     }
+  }
+
+  if (connect(sock_fd, &addr->sa, addr_len) < 0) {
+    DEBUG_LOG(LOGF_Client, "Could not connect socket : %s", strerror(errno));
+    return 0;
   }
 
   return 1;
