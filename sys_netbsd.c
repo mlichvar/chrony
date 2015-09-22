@@ -32,13 +32,79 @@
 #include "sys_netbsd.h"
 #include "sys_timex.h"
 #include "logging.h"
+#include "util.h"
+
+/* Maximum frequency offset accepted by the kernel (in ppm) */
+#define MAX_FREQ 500.0
+
+/* Minimum assumed rate at which the kernel updates the clock frequency */
+#define MIN_TICK_RATE 100
+
+/* Interval between kernel updates of the adjtime() offset */
+#define ADJTIME_UPDATE_INTERVAL 1.0
+
+/* Maximum adjtime() slew rate (in ppm) */
+#define MAX_ADJTIME_SLEWRATE 5000.0
+
+/* Minimum offset adjtime() slews faster than MAX_FREQ */
+#define MIN_FASTSLEW_OFFSET 1.0
+
+/* ================================================== */
+
+/* Positive offset means system clock is fast of true time, therefore
+   slew backwards */
+
+static void
+accrue_offset(double offset, double corr_rate)
+{
+  struct timeval newadj, oldadj;
+
+  UTI_DoubleToTimeval(-offset, &newadj);
+
+  if (adjtime(&newadj, &oldadj) < 0)
+    LOG_FATAL(LOGF_SysNetBSD, "adjtime() failed");
+
+  /* Add the old remaining adjustment if not zero */
+  UTI_TimevalToDouble(&oldadj, &offset);
+  if (offset != 0.0) {
+    UTI_AddDoubleToTimeval(&newadj, offset, &newadj);
+    if (adjtime(&newadj, NULL) < 0)
+      LOG_FATAL(LOGF_SysNetBSD, "adjtime() failed");
+  }
+}
+
+/* ================================================== */
+
+static void
+get_offset_correction(struct timeval *raw,
+                      double *corr, double *err)
+{
+  struct timeval remadj;
+  double adjustment_remaining;
+
+  if (adjtime(NULL, &remadj) < 0)
+    LOG_FATAL(LOGF_SysNetBSD, "adjtime() failed");
+
+  UTI_TimevalToDouble(&remadj, &adjustment_remaining);
+
+  *corr = adjustment_remaining;
+  if (err) {
+    if (*corr != 0.0)
+      *err = 1.0e-6 * MAX_ADJTIME_SLEWRATE / ADJTIME_UPDATE_INTERVAL;
+    else
+      *err = 0.0;
+  }
+}
 
 /* ================================================== */
 
 void
 SYS_NetBSD_Initialise(void)
 {
-  SYS_Timex_Initialise();
+  SYS_Timex_InitialiseWithFunctions(MAX_FREQ, 1.0 / MIN_TICK_RATE,
+                                    NULL, NULL, NULL,
+                                    MIN_FASTSLEW_OFFSET, MAX_ADJTIME_SLEWRATE,
+                                    accrue_offset, get_offset_correction);
 }
 
 /* ================================================== */
