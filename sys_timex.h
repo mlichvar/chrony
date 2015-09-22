@@ -37,7 +37,10 @@ extern void SYS_Timex_Initialise(void);
 extern void SYS_Timex_InitialiseWithFunctions(double max_set_freq_ppm, double max_set_freq_delay,
                                               lcl_ReadFrequencyDriver sys_read_freq,
                                               lcl_SetFrequencyDriver sys_set_freq,
-                                              lcl_ApplyStepOffsetDriver sys_apply_step_offset);
+                                              lcl_ApplyStepOffsetDriver sys_apply_step_offset,
+                                              double min_fastslew_offset, double max_fastslew_rate,
+                                              lcl_AccrueOffsetDriver sys_accrue_offset,
+                                              lcl_OffsetCorrectionDriver sys_get_offset_correction);
 
 extern void SYS_Timex_Finalise(void);
 

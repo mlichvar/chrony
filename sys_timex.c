@@ -181,7 +181,8 @@ initialise_timex(void)
 void
 SYS_Timex_Initialise(void)
 {
-  SYS_Timex_InitialiseWithFunctions(MAX_FREQ, 1.0 / MIN_TICK_RATE, NULL, NULL, NULL);
+  SYS_Timex_InitialiseWithFunctions(MAX_FREQ, 1.0 / MIN_TICK_RATE, NULL, NULL, NULL,
+                                    0.0, 0.0, NULL, NULL);
 }
 
 /* ================================================== */
@@ -190,14 +191,20 @@ void
 SYS_Timex_InitialiseWithFunctions(double max_set_freq_ppm, double max_set_freq_delay,
                                   lcl_ReadFrequencyDriver sys_read_freq,
                                   lcl_SetFrequencyDriver sys_set_freq,
-                                  lcl_ApplyStepOffsetDriver sys_apply_step_offset)
+                                  lcl_ApplyStepOffsetDriver sys_apply_step_offset,
+                                  double min_fastslew_offset, double max_fastslew_rate,
+                                  lcl_AccrueOffsetDriver sys_accrue_offset,
+                                  lcl_OffsetCorrectionDriver sys_get_offset_correction)
 {
   initialise_timex();
 
   SYS_Generic_CompleteFreqDriver(max_set_freq_ppm, max_set_freq_delay,
                                  sys_read_freq ? sys_read_freq : read_frequency,
                                  sys_set_freq ? sys_set_freq : set_frequency,
-                                 sys_apply_step_offset, set_leap, set_sync_status);
+                                 sys_apply_step_offset,
+                                 min_fastslew_offset, max_fastslew_rate,
+                                 sys_accrue_offset, sys_get_offset_correction,
+                                 set_leap, set_sync_status);
 }
 
 /* ================================================== */

@@ -384,7 +384,8 @@ SYS_Linux_Initialise(void)
   SYS_Timex_InitialiseWithFunctions(1.0e6 * max_tick_bias / nominal_tick,
                                     1.0 / tick_update_hz,
                                     read_frequency, set_frequency,
-                                    have_setoffset ? apply_step_offset : NULL);
+                                    have_setoffset ? apply_step_offset : NULL,
+                                    0.0, 0.0, NULL, NULL);
 }
 
 /* ================================================== */

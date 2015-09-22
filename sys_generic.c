@@ -43,6 +43,8 @@
 static lcl_ReadFrequencyDriver drv_read_freq;
 static lcl_SetFrequencyDriver drv_set_freq;
 static lcl_SetSyncStatusDriver drv_set_sync_status;
+static lcl_AccrueOffsetDriver drv_accrue_offset;
+static lcl_OffsetCorrectionDriver drv_get_offset_correction;
 
 /* Current frequency as requested by the local module (in ppm) */
 static double base_freq;
@@ -85,6 +87,16 @@ static double correction_rate;
    real frequency of the clock */
 static double slew_error;
 
+/* Minimum offset that the system driver can slew faster than the maximum
+   frequency offset that it allows to be set directly */
+static double fastslew_min_offset;
+
+/* Maximum slew rate of the system driver */
+static double fastslew_max_rate;
+
+/* Flag indicating that the system driver is currently slewing */
+static int fastslew_active;
+
 /* ================================================== */
 
 static void handle_end_of_slew(void *anything);
@@ -105,6 +117,38 @@ handle_step(struct timeval *raw, struct timeval *cooked, double dfreq,
   } else if (change_type == LCL_ChangeStep) {
     UTI_AddDoubleToTimeval(&slew_start, -doffset, &slew_start);
   }
+}
+
+/* ================================================== */
+
+static void
+start_fastslew(void)
+{
+  if (!drv_accrue_offset)
+    return;
+
+  drv_accrue_offset(offset_register, 0.0);
+
+  DEBUG_LOG(LOGF_SysGeneric, "fastslew offset=%e", offset_register);
+
+  offset_register = 0.0;
+  fastslew_active = 1;
+}
+
+/* ================================================== */
+
+static void
+stop_fastslew(struct timeval *now)
+{
+  double corr;
+
+  if (!drv_get_offset_correction || !fastslew_active)
+    return;
+
+  /* Cancel the remaining offset */
+  drv_get_offset_correction(now, &corr, NULL);
+  drv_accrue_offset(corr, 0.0);
+  offset_register -= corr;
 }
 
 /* ================================================== */
@@ -138,6 +182,8 @@ update_slew(void)
   UTI_DiffTimevalsToDouble(&duration, &now, &slew_start);
   offset_register -= slew_freq * duration;
 
+  stop_fastslew(&now);
+
   /* Estimate how long should the next slew take */
   if (fabs(offset_register) < MIN_OFFSET_CORRECTION) {
     duration = MAX_SLEW_TIMEOUT;
@@ -154,6 +200,14 @@ update_slew(void)
     corr_freq = -max_corr_freq;
   else if (corr_freq > max_corr_freq)
     corr_freq = max_corr_freq;
+
+  /* Let the system driver perform the slew if the requested frequency
+     offset is too large for the frequency driver */
+  if (drv_accrue_offset && fabs(corr_freq) >= fastslew_max_rate &&
+      fabs(offset_register) > fastslew_min_offset) {
+    start_fastslew();
+    corr_freq = 0.0;
+  }
 
   /* Get the new real frequency and clamp it */
   total_freq = clamp_freq(base_freq + corr_freq * (1.0e6 - base_freq));
@@ -175,8 +229,8 @@ update_slew(void)
 
   /* Compute the duration of the slew and clamp it.  If the slewing frequency
      is zero or has wrong sign (e.g. due to rounding in the frequency driver or
-     when base_freq is larger than max_freq), use maximum timeout and try again
-     on the next update. */
+     when base_freq is larger than max_freq, or fast slew is active), use the
+     maximum timeout and try again on the next update. */
   if (fabs(offset_register) < MIN_OFFSET_CORRECTION ||
       offset_register * slew_freq <= 0.0) {
     duration = MAX_SLEW_TIMEOUT;
@@ -246,13 +300,25 @@ static void
 offset_convert(struct timeval *raw,
                double *corr, double *err)
 {
-  double duration;
+  double duration, fastslew_corr, fastslew_err;
 
   UTI_DiffTimevalsToDouble(&duration, raw, &slew_start);
 
-  *corr = slew_freq * duration - offset_register;
-  if (err)
-    *err = fabs(duration) <= max_freq_change_delay ? slew_error : 0.0;
+  if (drv_get_offset_correction && fastslew_active) {
+    drv_get_offset_correction(raw, &fastslew_corr, &fastslew_err);
+    if (fastslew_corr == 0.0 && fastslew_err == 0.0)
+      fastslew_active = 0;
+  } else {
+    fastslew_corr = fastslew_err = 0.0;
+  }
+
+  *corr = slew_freq * duration + fastslew_corr - offset_register;
+
+  if (err) {
+    *err = fastslew_err;
+    if (fabs(duration) <= max_freq_change_delay)
+      *err += slew_error;
+  }
 }
 
 /* ================================================== */
@@ -303,6 +369,9 @@ SYS_Generic_CompleteFreqDriver(double max_set_freq_ppm, double max_set_freq_dela
                                lcl_ReadFrequencyDriver sys_read_freq,
                                lcl_SetFrequencyDriver sys_set_freq,
                                lcl_ApplyStepOffsetDriver sys_apply_step_offset,
+                               double min_fastslew_offset, double max_fastslew_rate,
+                               lcl_AccrueOffsetDriver sys_accrue_offset,
+                               lcl_OffsetCorrectionDriver sys_get_offset_correction,
                                lcl_SetLeapDriver sys_set_leap,
                                lcl_SetSyncStatusDriver sys_set_sync_status)
 {
@@ -310,6 +379,8 @@ SYS_Generic_CompleteFreqDriver(double max_set_freq_ppm, double max_set_freq_dela
   max_freq_change_delay = max_set_freq_delay * (1.0 + max_freq / 1.0e6);
   drv_read_freq = sys_read_freq;
   drv_set_freq = sys_set_freq;
+  drv_accrue_offset = sys_accrue_offset;
+  drv_get_offset_correction = sys_get_offset_correction;
   drv_set_sync_status = sys_set_sync_status;
 
   base_freq = (*drv_read_freq)();
@@ -317,6 +388,10 @@ SYS_Generic_CompleteFreqDriver(double max_set_freq_ppm, double max_set_freq_dela
   offset_register = 0.0;
 
   max_corr_freq = CNF_GetMaxSlewRate() / 1.0e6;
+
+  fastslew_min_offset = min_fastslew_offset;
+  fastslew_max_rate = max_fastslew_rate / 1.0e6;
+  fastslew_active = 0;
 
   lcl_RegisterSystemDrivers(read_frequency, set_frequency,
                             accrue_offset, sys_apply_step_offset ?
@@ -331,6 +406,8 @@ SYS_Generic_CompleteFreqDriver(double max_set_freq_ppm, double max_set_freq_dela
 void
 SYS_Generic_Finalise(void)
 {
+  struct timeval now;
+
   /* Must *NOT* leave a slew running - clock could drift way off
      if the daemon is not restarted */
   if (slew_timer_running) {
@@ -339,6 +416,9 @@ SYS_Generic_Finalise(void)
   }
 
   (*drv_set_freq)(clamp_freq(base_freq));
+
+  LCL_ReadRawTime(&now);
+  stop_fastslew(&now);
 }
 
 /* ================================================== */

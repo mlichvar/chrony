@@ -35,6 +35,9 @@ extern void SYS_Generic_CompleteFreqDriver(double max_set_freq_ppm, double max_s
                                            lcl_ReadFrequencyDriver sys_read_freq,
                                            lcl_SetFrequencyDriver sys_set_freq,
                                            lcl_ApplyStepOffsetDriver sys_apply_step_offset,
+                                           double min_fastslew_offset, double max_fastslew_rate,
+                                           lcl_AccrueOffsetDriver sys_accrue_offset,
+                                           lcl_OffsetCorrectionDriver sys_get_offset_correction,
                                            lcl_SetLeapDriver sys_set_leap,
                                            lcl_SetSyncStatusDriver sys_set_sync_status);
 
