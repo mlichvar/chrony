@@ -38,12 +38,10 @@
 #include "sys_solaris.h"
 #elif defined(SUNOS)
 #include "sys_sunos.h"
-#elif defined(NETBSD)
+#elif defined(NETBSD) || defined(FREEBSD)
 #include "sys_netbsd.h"
 #elif defined(MACOSX)
 #include "sys_macosx.h"
-#elif defined(FREEBSD)
-#include "sys_timex.h"
 #endif
 
 /* ================================================== */
@@ -57,12 +55,10 @@ SYS_Initialise(void)
   SYS_Solaris_Initialise();
 #elif defined(SUNOS)
   SYS_SunOS_Initialise();
-#elif defined(NETBSD)
+#elif defined(NETBSD) || defined(FREEBSD)
   SYS_NetBSD_Initialise();
 #elif defined(MACOSX)
   SYS_MacOSX_Initialise();
-#elif defined(FREEBSD)
-  SYS_Timex_Initialise();
 #else
 #error Unknown system
 #endif
@@ -79,12 +75,10 @@ SYS_Finalise(void)
   SYS_Solaris_Finalise();
 #elif defined(SUNOS)
   SYS_SunOS_Finalise();
-#elif defined(NETBSD)
+#elif defined(NETBSD) || defined(FREEBSD)
   SYS_NetBSD_Finalise();
 #elif defined(MACOSX)
   SYS_MacOSX_Finalise();
-#elif defined(FREEBSD)
-  SYS_Timex_Finalise();
 #else
 #error Unknown system
 #endif

@@ -369,7 +369,7 @@ case $OPERATINGSYSTEM in
     ;;
 
     FreeBSD)
-        EXTRA_OBJECTS="sys_generic.o sys_timex.o"
+        EXTRA_OBJECTS="sys_generic.o sys_netbsd.o sys_timex.o"
         add_def FREEBSD
         echo "Configuring for $SYSTEM"
     ;;
