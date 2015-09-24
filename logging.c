@@ -119,9 +119,12 @@ static void log_message(int fatal, LOG_Severity severity, const char *message)
 
 /* ================================================== */
 
-void LOG_Message(LOG_Severity severity, LOG_Facility facility,
-                 int line_number, const char *filename,
-                 const char *function_name, const char *format, ...)
+void LOG_Message(LOG_Severity severity,
+#if DEBUG > 0
+                 LOG_Facility facility, int line_number,
+                 const char *filename, const char *function_name,
+#endif
+                 const char *format, ...)
 {
   char buf[2048];
   va_list other_args;
@@ -134,8 +137,10 @@ void LOG_Message(LOG_Severity severity, LOG_Facility facility,
     stm = *gmtime(&t);
     strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &stm);
     fprintf(stderr, "%s ", buf);
+#if DEBUG > 0
     if (debug_level >= DEBUG_LEVEL_PRINT_FUNCTION)
       fprintf(stderr, "%s:%d:(%s) ", filename, line_number, function_name);
+#endif
   }
 
   va_start(other_args, format);

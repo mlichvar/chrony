@@ -45,17 +45,27 @@ extern int log_debug_enabled;
 #define FORMAT_ATTRIBUTE_PRINTF(str, first)
 #endif
 
+#if DEBUG > 0
+#define LOG_MESSAGE(severity, facility, ...) \
+  LOG_Message(LOGS_DEBUG, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__);
+#else
+#define LOG_MESSAGE(severity, facility, ...) \
+  LOG_Message(severity, __VA_ARGS__);
+#endif
+
 #define DEBUG_LOG(facility, ...) \
   do { \
     if (DEBUG && log_debug_enabled) \
-      LOG_Message(LOGS_DEBUG, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__); \
+      LOG_MESSAGE(LOGS_DEBUG, facility, __VA_ARGS__); \
   } while (0)
-#define LOG(severity, facility, ...) LOG_Message(severity, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__)
+
 #define LOG_FATAL(facility, ...) \
   do { \
-    LOG_Message(LOGS_FATAL, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__); \
+    LOG_MESSAGE(LOGS_FATAL, facility, __VA_ARGS__); \
     exit(1); \
   } while (0)
+
+#define LOG(severity, facility, ...) LOG_MESSAGE(severity, facility, __VA_ARGS__)
 
 /* Definition of severity */
 typedef enum {
@@ -114,10 +124,15 @@ extern void LOG_Initialise(void);
 extern void LOG_Finalise(void);
 
 /* Line logging function */
+#if DEBUG > 0
 FORMAT_ATTRIBUTE_PRINTF(6, 7)
 extern void LOG_Message(LOG_Severity severity, LOG_Facility facility,
                         int line_number, const char *filename,
                         const char *function_name, const char *format, ...);
+#else
+FORMAT_ATTRIBUTE_PRINTF(2, 3)
+extern void LOG_Message(LOG_Severity severity, const char *format, ...);
+#endif
 
 /* Set debug level:
    0, 1 - only non-debug messages are logged

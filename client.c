@@ -76,9 +76,12 @@ static int no_dns = 0;
 
 int log_debug_enabled = 0;
 
-void LOG_Message(LOG_Severity severity, LOG_Facility facility,
-                 int line_number, const char *filename,
-                 const char *function_name, const char *format, ...)
+void LOG_Message(LOG_Severity severity,
+#if DEBUG > 0
+                 LOG_Facility facility, int line_number,
+                 const char *filename, const char *function_name,
+#endif
+                 const char *format, ...)
 {
   va_list ap;
 
