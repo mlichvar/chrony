@@ -1184,59 +1184,85 @@ process_cmd_delete(CMD_Request *msg, char *line)
 static void
 give_help(void)
 {
-  printf("Commands:\n");
-  printf("accheck <address> : Check whether NTP access is allowed to <address>\n");
-  printf("activity : Check how many NTP sources are online/offline\n");
-  printf("add peer <address> ... : Add a new NTP peer\n");
-  printf("add server <address> ... : Add a new NTP server\n");
-  printf("allow [<subnet-addr>] : Allow NTP access to that subnet as a default\n");
-  printf("allow all [<subnet-addr>] : Allow NTP access to that subnet and all children\n");
-  printf("burst <n-good>/<n-max> [<mask>/<masked-address>] : Start a rapid set of measurements\n");
-  printf("clients : Report on clients that have accessed the server\n");
-  printf("cmdaccheck <address> : Check whether command access is allowed to <address>\n");
-  printf("cmdallow [<subnet-addr>] : Allow command access to that subnet as a default\n");
-  printf("cmdallow all [<subnet-addr>] : Allow command access to that subnet and all children\n");
-  printf("cmddeny [<subnet-addr>] : Deny command access to that subnet as a default\n");
-  printf("cmddeny all [<subnet-addr>] : Deny command access to that subnet and all children\n");
-  printf("cyclelogs : Close and re-open logs files\n");
-  printf("delete <address> : Remove an NTP server or peer\n");
-  printf("deny [<subnet-addr>] : Deny NTP access to that subnet as a default\n");
-  printf("deny all [<subnet-addr>] : Deny NTP access to that subnet and all children\n");
-  printf("dump : Dump all measurements to save files\n");
-  printf("local off : Disable server capability for unsynchronised clock\n");
-  printf("local stratum <stratum> : Enable server capability for unsynchronised clock\n");
-  printf("makestep [<threshold> <updates>] : Correct clock by stepping\n");
-  printf("manual off|on|reset : Disable/enable/reset settime command and statistics\n");
-  printf("manual list : Show previous settime entries\n");
-  printf("maxdelay <address> <new-max-delay> : Modify maximum round-trip valid sample delay for source\n");
-  printf("maxdelayratio <address> <new-max-ratio> : Modify max round-trip delay ratio for source\n");
-  printf("maxdelaydevratio <address> <new-max-ratio> : Modify max round-trip delay dev ratio for source\n");
-  printf("maxpoll <address> <new-maxpoll> : Modify maximum polling interval of source\n");
-  printf("maxupdateskew <new-max-skew> : Modify maximum skew for a clock frequency update to be made\n");
-  printf("minpoll <address> <new-minpoll> : Modify minimum polling interval of source\n");
-  printf("minstratum <address> <new-min-stratum> : Modify minimum stratum of source\n");
-  printf("offline [<mask>/<masked-address>] : Set sources in subnet to offline status\n");
-  printf("online [<mask>/<masked-address>] : Set sources in subnet to online status\n");
-  printf("polltarget <address> <new-poll-target> : Modify poll target of source\n");
-  printf("reselect : Reselect synchronisation source\n");
-  printf("rtcdata : Print current RTC performance parameters\n");
-  printf("settime <date/time (e.g. Nov 21, 1997 16:30:05 or 16:30:05)> : Manually set the daemon time\n");
-  printf("smoothing : Display current time smoothing state\n");
-  printf("smoothtime reset|activate : Reset/activate time smoothing\n");
-  printf("sources [-v] : Display information about current sources\n");
-  printf("sourcestats [-v] : Display estimation information about current sources\n");
-  printf("tracking : Display system time information\n");
-  printf("trimrtc : Correct RTC relative to system clock\n");
-  printf("waitsync [max-tries [max-correction [max-skew]]] : Wait until synchronised\n");
-  printf("writertc : Save RTC parameters to file\n");
-  printf("\n");
-  printf("dns -n|+n : Disable/enable resolving IP addresses to hostnames\n");
-  printf("dns -4|-6|-46 : Resolve hostnames only to IPv4/IPv6/both addresses\n");
-  printf("timeout <milliseconds> : Set initial response timeout\n");
-  printf("retries <n> : Set maximum number of retries\n");
-  printf("exit|quit : Leave the program\n");
-  printf("help : Generate this help\n");
-  printf("\n");
+  int line, len;
+  const char *s, cols[] =
+    "System clock:\0\0"
+    "tracking\0Display system time information\0"
+    "makestep\0Correct clock by stepping immediately\0"
+    "makestep [<threshold> <updates>]\0Configure automatic clock stepping\0"
+    "maxupdateskew <skew>\0Modify maximum valid skew to update frequency\0"
+    "waitsync [max-tries [max-correction [max-skew]]]\0"
+                          "Wait until synchronised in specified limits\0"
+    "\0\0"
+    "Time sources:\0\0"
+    "sources [-v]\0Display information about current sources\0"
+    "sourcestats [-v]\0Display statistics about collected measurements\0"
+    "reselect\0Force reselecting synchronisation source\0"
+    "\0\0"
+    "NTP sources:\0\0"
+    "activity\0Check how many NTP sources are online/offline\0"
+    "add server <address> [options]\0Add new NTP server\0"
+    "add peer <address> [options]\0Add new NTP peer\0"
+    "delete <address>\0Remove server or peer\0"
+    "burst <n-good>/<n-max> [<mask>/<address>]\0Start rapid set of measurements\0"
+    "maxdelay <address> <delay>\0Modify maximum valid sample delay\0"
+    "maxdelayratio <address> <ratio>\0Modify maximum valid delay/minimum ratio\0"
+    "maxdelaydevratio <address> <ratio>\0Modify maximum valid delay/deviation ratio\0"
+    "minpoll <address> <poll>\0Modify minimum polling interval\0"
+    "maxpoll <address> <poll>\0Modify maximum polling interval\0"
+    "minstratum <address> <stratum>\0Modify minimum stratum\0"
+    "offline [<mask>/<address>]\0Set sources in subnet to offline status\0"
+    "online [<mask>/<address>]\0Set sources in subnet to online status\0"
+    "polltarget <address> <target>\0Modify poll target of source\0"
+    "\0\0"
+    "Manual time input:\0\0"
+    "manual off|on|reset\0Disable/enable/reset settime command\0"
+    "manual list\0Show previous settime entries\0"
+    "manual delete <index>\0Delete previous settime entry\0"
+    "settime <time>\0Set daemon time\0"
+    "\0(e.g. Sep 25, 2015 16:30:05 or 16:30:05)\0"
+    "\0\0NTP access:\0\0"
+    "accheck <address>\0Check whether address is allowed\0"
+    "clients\0Report on clients that have accessed the server\0"
+    "allow [<subnet>]\0Allow access to subnet as a default\0"
+    "allow all [<subnet>]\0Allow access to subnet and all children\0"
+    "deny [<subnet>]\0Deny access to subnet as a default\0"
+    "deny all [<subnet>]\0Deny access to subnet and all children\0"
+    "local stratum <stratum>\0Serve time at stratum when not synchronised\0"
+    "local off\0Don't serve time when not synchronised\0"
+    "smoothtime reset|activate\0Reset/activate time smoothing\0"
+    "smoothing\0Display current time smoothing state\0"
+    "\0\0"
+    "Monitoring access:\0\0"
+    "cmdaccheck <address>\0Check whether address is allowed\0"
+    "cmdallow [<subnet>]\0Allow access to subnet as a default\0"
+    "cmdallow all [<subnet>]\0Allow access to subnet and all children\0"
+    "cmddeny [<subnet>]\0Deny access to subnet as a default\0"
+    "cmddeny all [<subnet>]\0Deny access to subnet and all children\0"
+    "\0\0"
+    "Real-time clock:\0\0"
+    "rtcdata\0Print current RTC performance parameters\0"
+    "trimrtc\0Correct RTC relative to system clock\0"
+    "writertc\0Save RTC performance parameters to file\0"
+    "\0\0"
+    "Other daemon commands:\0\0"
+    "cyclelogs\0Close and re-open log files\0"
+    "dump\0Dump all measurements to save files\0"
+    "\0\0"
+    "Client commands:\0\0"
+    "dns -n|+n\0Disable/enable resolving IP addresses to hostnames\0"
+    "dns -4|-6|-46\0Resolve hostnames only to IPv4/IPv6/both addresses\0"
+    "timeout <milliseconds>\0Set initial response timeout\0"
+    "retries <retries>\0Set maximum number of retries\0"
+    "exit|quit\0Leave the program\0"
+    "help\0Generate this help\0"
+    "\0";
+
+  /* Indent the second column */
+  for (s = cols, line = 0; s < cols + sizeof (cols); s += len + 1, line++) {
+    len = strlen(s);
+    printf(line % 2 == 0 ? (len >= 28 ? "%s\n%28s" : "%-28s") : "%s\n", s, "");
+  }
 }
 
 /* ================================================== */
