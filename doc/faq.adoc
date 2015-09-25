@@ -20,7 +20,7 @@ http://chrony.tuxfamily.org/manual.html#Comparison-with-ntpd[Comparison with
 ntpd] section in the manual.
 
 If your computer is connected to the internet only for few minutes at a time,
-the network connection is often congested, you turn your Linux computer off or
+the network connection is often congested, you turn your computer off or
 suspend it frequently, the clock is not very stable (e.g. there are rapid
 changes in the temperature or it's a virtual machine), or you want to use NTP
 on an isolated network with no hardware reference clocks in sight, +chrony+
@@ -323,18 +323,6 @@ be useful to switch the servers to the offline state automatically.
 === I get +Could not open /dev/rtc, Device or resource busy+ in my syslog file
 
 Some other program running on the system may be using the device.
-
-== Solaris-specific issues
-
-=== I get an error message about not being able to open kvm to change dosynctodr
-
-(The dosynctodr variable controls whether Solaris couples the equivalent
-of its BIOS clock into its system clock at regular intervals).  The
-Solaris port of +chrony+ was developed in the Solaris 2.5 era.  Some
-aspect of the Solaris kernel has changed which prevents the same
-technique working.  We no longer have root access to any Solaris
-machines to work on this, and we are reliant on somebody developing the
-patch and testing it.
 
 == Microsoft Windows
 

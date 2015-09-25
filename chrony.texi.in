@@ -120,8 +120,9 @@ different quirks in its behaviour.
 
 The software is known to work on Linux, FreeBSD, NetBSD, Mac OS X and Solaris.
 Closely related systems may work too.  Porting the software to other systems
-(particularly to those supporting an @code{adjtime} system call) should not be
-difficult, however it requires access to such systems to test out the driver.
+(particularly to those supporting an @code{adjtime} or @code{ntp_adjtime}
+system call) should not be difficult, however it requires access to such
+systems to test out the driver.
 @c }}}
 @c {{{ S:Other programs
 @node Other time synchronisation packages
@@ -163,9 +164,9 @@ step the time too, but it has to use a different means of adjusting the
 clock, which has some
 disadvantages.
 @item
-@code{chronyd} can adjust the rate of the clock on Linux in a larger
-range, which allows it to operate even on machines with broken or
-unstable clock (e.g. in some virtual machines).
+@code{chronyd} can adjust the rate of the clock in a larger range, which
+allows it to operate even on machines with broken or unstable clock
+(e.g. in some virtual machines).
 @end itemize
 
 Things @code{chronyd} can do that @code{ntpd} can't:
@@ -961,10 +962,9 @@ used.  These histories are created by using the @code{dump} command in
 @code{chronyc}, or by setting the @code{dumponexit} directive in the
 configuration file.  This option is useful if you want to stop and
 restart @code{chronyd} briefly for any reason, e.g. to install a new
-version.  However, it only makes sense on systems where the kernel can
-maintain clock compensation whilst not under @code{chronyd's} control.
-The only version where this happens so far is Linux.  On other systems
-this option should not be used.
+version.  However, it should be used only on systems where the kernel
+can maintain clock compensation whilst not under @code{chronyd's}
+control (i.e. Linux, FreeBSD, NetBSD and Solaris).
 @item -R
 When this option is used, the @code{initstepslew} directive and the
 @code{makestep} directive used with a positive limit will be ignored.
@@ -1460,9 +1460,9 @@ combinelimit <limit>
 @c {{{ corrtimeratio
 @node corrtimeratio directive
 @subsection corrtimeratio
-When @code{chronyd} makes a time correction, it controls how quickly
-the system clock is slewed (so far only on Linux).  This rate
-affects the frequency error of the system clock.
+When @code{chronyd} is slewing the system clock to correct an offset, the rate
+at which it is slewing adds to the frequency error of the clock.  On Linux,
+FreeBSD, NetBSD and Solaris this rate can be controlled.
 
 The @code{corrtimeratio} directive sets the ratio between the
 duration in which the clock is slewed for an average correction
@@ -1539,12 +1539,11 @@ driftfile @CHRONYVARDIR@/drift
 To compute the rate of gain or loss of time, @code{chronyd} has to store
 a measurement history for each of the time sources it uses.
 
-Certain systems (so far only Linux) have operating system support for
-setting the rate of gain or loss to compensate for known errors.  (On
-other systems, @code{chronyd} must simulate such a capability by
-periodically slewing the system clock forwards or backwards by a
-suitable amount to compensate for the error built up since the previous
-slew).
+Certain systems (Linux, FreeBSD, NetBSD, Solaris) have operating system
+support for setting the rate of gain or loss to compensate for known errors.
+(On Mac OS X, @code{chronyd} must simulate such a capability by periodically
+slewing the system clock forwards or backwards by a suitable amount to
+compensate for the error built up since the previous slew).
 
 For such systems, it is possible to save the measurement history across
 restarts of @code{chronyd} (assuming no changes are made to the system
@@ -1756,8 +1755,8 @@ selects how that error is corrected.  There are four options:
 When inserting a leap second, the kernel steps the system clock backwards by
 one second when the clock gets to 00:00:00 UTC.  When deleting a leap second,
 it steps forward by one second when the clock gets to 23:59:59 UTC.  This is
-the default mode when the system driver supports leap seconds (currently Linux
-only).
+the default mode when the system driver supports leap seconds (i.e. on
+Linux, FreeBSD, NetBSD and Solaris).
 @item step
 This is similar to the @code{system} mode, except the clock is stepped by
 @code{chronyd} instead of the kernel.  It can be useful to avoid bugs in the
@@ -2427,10 +2426,16 @@ maxsamples <samples>
 The @code{maxslewrate} directive sets the maximum rate at which @code{chronyd}
 is allowed to slew the time.  It limits the slew rate controlled by the
 correction time ratio (@pxref{corrtimeratio directive}) and is effective
-only on systems where @code{chronyd} is able to control the rate (so
-far only Linux).
+only on systems where @code{chronyd} is able to control the rate (i.e.
+Linux, FreeBSD, NetBSD, Solaris).
 
-By default, the maximum slew rate is 83333.333 ppm (one twelfth).
+For each system there is a maximum frequency offset of the clock that
+can be set by the driver.  On Linux it's 100000 ppm, on FreeBSD and NetBSD
+it's 5000 ppm and on Solaris it is 32500 ppm.  Also, due to a kernel
+limitation, setting @code{maxslewrate} on FreeBSD and NetBSD to a value between
+500 ppm and 5000 ppm will effectively set it to 500 ppm.
+
+By default, the maximum slew rate is set to 83333.333 ppm (one twelfth).
 
 The syntax is
 
@@ -2851,7 +2856,7 @@ system time is copied to the real time clock (RTC) every 11 minutes.
 
 This directive is supported only on Linux and cannot be used when the
 normal RTC tracking is enabled, i.e. when the @code{rtcfile} directive
-is used.
+is used.  On other systems this directive does nothing.
 @c }}}
 @c {{{ sched_priority
 @node sched_priority directive
@@ -3323,11 +3328,11 @@ interface.
 * allow command::               Allowing NTP client access
 * burst command::               Initiating a rapid set of measurements
 * clients command::             Show clients that have accessed the server
-* cmdaccheck command::          Verifying command client access
-* cmdallow all command::        Allowing command client access
-* cmdallow command::            Allowing command client access
-* cmddeny all command::         Denying command client access
-* cmddeny command::             Denying command client access
+* cmdaccheck command::          Verifying monitoring client access
+* cmdallow all command::        Allowing monitoring client access
+* cmdallow command::            Allowing monitoring client access
+* cmddeny all command::         Denying monitoring client access
+* cmddeny command::             Denying monitoring client access
 * cyclelogs command::           Close and re-open open log files
 * delete command::              Remove an NTP server or peer
 * deny all command::            Denying NTP client access
@@ -3621,7 +3626,7 @@ of that type has ever been received.
 @node cmdaccheck command
 @subsubsection cmdaccheck
 This command is similar to the @code{accheck} command, except that it is
-used to check whether command access is permitted from a named host.
+used to check whether monitoring access is permitted from a named host.
 
 Examples of use are as follows:
 
@@ -3634,30 +3639,30 @@ cmdaccheck 2001:db8::1
 @c {{{ cmdallow all
 @node cmdallow all command
 @subsubsection cmdallow all
-This is similar to the @code{allow all} command, except that it is used to@c {{{
-allow particular hosts or subnets to use the chronyc program to interact@c }}}
-with @code{chronyd} on the current host.
+This is similar to the @code{allow all} command, except that it is used to
+allow particular hosts or subnets to use @code{chronyc} to monitor with
+@code{chronyd} on the current host.
 @c }}}
 @c {{{ cmdallow
 @node cmdallow command
 @subsubsection cmdallow
-This is similar to the @code{allow} command, except that it is used to
-allow particular hosts or subnets to use the chronyc program to interact
-with @code{chronyd} on the current host.
+This is similar to the @code{allow} command, except that it is used to allow
+particular hosts or subnets to use @code{chronyc} to monitor with
+@code{chronyd} on the current host.
 @c }}}
 @c {{{ cmddeny all
 @node cmddeny all command
 @subsubsection cmddeny all
-This is similar to the @code{deny all} command, except that it is used
-to allow particular hosts or subnets to use the chronyc program to
-interact with @code{chronyd} on the current host.
+This is similar to the @code{deny all} command, except that it is used to allow
+particular hosts or subnets to use @code{chronyc} to monitor @code{chronyd} on
+the current host.
 @c }}}
 @c {{{ cmddeny
 @node cmddeny command
 @subsubsection cmddeny
-This is similar to the @code{deny} command, except that it is used to
-allow particular hosts or subnets to use the chronyc program to interact
-with @code{chronyd} on the current host.
+This is similar to the @code{deny} command, except that it is used to allow
+particular hosts or subnets to use @code{chronyc} to monitor @code{chronyd} on
+the current host.
 @c }}}
 @c {{{ cyclelogs
 @node cyclelogs command
@@ -4570,12 +4575,6 @@ shell) will be different from @code{chronyd's} estimate of the current
 true time (which it reports to NTP clients when it is operating in
 server mode).  The value reported on this line is the difference due to
 this effect.
-
-On systems other than Linux, @code{chronyd} doesn't
-adjust the fundamental rate of the system clock, so keeps the system
-time correct by periodically making offsets to it as though an error had
-been measured.  The build up of these offsets will be observed in this
-report.
 
 @item Last offset
 This is the estimated local offset on the last clock update.

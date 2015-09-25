@@ -69,10 +69,9 @@ This option will reload sample histories for each of the servers being used.
 These histories are created by using the \fIdump\fR command in \fIchronyc\fR,
 or by setting the \fIdumponexit\fR directive in the configuration file.  This
 option is useful if you want to stop and restart \fBchronyd\fR briefly for any
-reason, e.g. to install a new version.  However, it only makes sense on
+reason, e.g. to install a new version.  However, it should be used only on
 systems where the kernel can maintain clock compensation whilst not under
-\fBchronyd\fR's control.  The only version where this happens so far is Linux.
-On other systems this option should not be used.
+\fBchronyd\fR's control (i.e. Linux, FreeBSD, NetBSD and Solaris).
 .TP
 .B \-R
 When this option is used, the \fIinitstepslew\fR directive and the
