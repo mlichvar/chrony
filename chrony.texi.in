@@ -3355,6 +3355,7 @@ interface.
 * online command::              Warn that connectivity to a source has been restored
 * polltarget command::          Set poll target for a source
 * quit command::                Exit from chronyc
+* refresh command::             Refresh IP addresses
 * reselect command::            Reselect synchronisation source
 * reselectdist command::        Set improvement in distance needed to reselect a source
 * retries command::             Set maximum number of retries
@@ -4173,6 +4174,17 @@ to 12.
 @subsubsection quit
 The quit command exits from chronyc and returns the user to the shell
 (same as the exit command).
+@c }}}
+@c {{{ refresh command
+@node refresh command
+@subsubsection refresh
+The @code{refresh} command can be used to force @code{chronyd} to resolve the
+names of configured sources to IP addresses again, e.g. after suspending and
+resuming the machine in a different network.
+
+Sources that stop responding will be replaced with newly resolved addresses
+automatically after 8 polling intervals, but this command may still be useful
+to replace them immediately and not wait until they are marked as unreachable.
 @c }}}
 @c {{{ reselect command
 @node reselect command
