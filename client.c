@@ -2341,7 +2341,7 @@ process_cmd_waitsync(char *line)
       }
     }
 
-    if (!ret && (!max_tries || i < max_tries)) {
+    if (!ret && (!max_tries || i < max_tries) && !quit) {
       sleep(10);
     } else {
       break;
@@ -2729,7 +2729,7 @@ main(int argc, char **argv)
   } else {
     do {
       line = read_line();
-      if (line) {
+      if (line && !quit) {
         ret = process_line(line);
       }else {
 	/* supply the final '\n' when user exits via ^D */
