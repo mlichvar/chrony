@@ -32,12 +32,14 @@
 #include "keys.h"
 #include "logging.h"
 #include "manual.h"
+#include "memory.h"
 #include "nameserv.h"
 #include "nameserv_async.h"
 #include "ntp_core.h"
 #include "ntp_io.h"
 #include "ntp_sources.h"
 #include "refclock.h"
+#include "sched.h"
 
 #ifndef FEAT_ASYNCDNS
 
@@ -45,20 +47,43 @@
 
 /* This is a blocking implementation used when asynchronous resolving is not available */
 
-void
-DNS_Name2IPAddressAsync(const char *name, DNS_NameResolveHandler handler, void *anything)
+struct DNS_Async_Instance {
+  const char *name;
+  DNS_NameResolveHandler handler;
+  void *arg;
+};
+
+static void
+resolve_name(void *anything)
 {
+  struct DNS_Async_Instance *inst;
   IPAddr addrs[MAX_ADDRESSES];
   DNS_Status status;
   int i;
 
-  status = DNS_Name2IPAddress(name, addrs, MAX_ADDRESSES);
+  inst = (struct DNS_Async_Instance *)anything;
+  status = DNS_Name2IPAddress(inst->name, addrs, MAX_ADDRESSES);
 
   for (i = 0; status == DNS_Success && i < MAX_ADDRESSES &&
-              addrs[i].family != IPADDR_UNSPEC; i++)
+       addrs[i].family != IPADDR_UNSPEC; i++)
     ;
 
-  (handler)(status, i, addrs, anything);
+  (inst->handler)(status, i, addrs, inst->arg);
+
+  Free(inst);
+}
+
+void
+DNS_Name2IPAddressAsync(const char *name, DNS_NameResolveHandler handler, void *anything)
+{
+  struct DNS_Async_Instance *inst;
+
+  inst = MallocNew(struct DNS_Async_Instance);
+  inst->name = name;
+  inst->handler = handler;
+  inst->arg = anything;
+
+  SCH_AddTimeoutByDelay(0.0, resolve_name, inst);
 }
 
 #endif /* !FEAT_ASYNCDNS */

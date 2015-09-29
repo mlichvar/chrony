@@ -34,8 +34,7 @@
 typedef void (*DNS_NameResolveHandler)(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *anything);
 
 /* Request resolving of a name to IP address. The handler will be
-   called when the result is available, but it may be also called
-   directly from this function call. */
+   called when the result is available. */
 extern void DNS_Name2IPAddressAsync(const char *name, DNS_NameResolveHandler handler, void *anything);
 
 #endif
