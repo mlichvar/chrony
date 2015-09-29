@@ -129,6 +129,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* MODIFY_MAKESTEP */
   PERMIT_OPEN, /* SMOOTHING */
   PERMIT_AUTH, /* SMOOTHTIME */
+  PERMIT_AUTH, /* REFRESH */
 };
 
 /* ================================================== */
@@ -1141,6 +1142,14 @@ handle_reselect(CMD_Request *rx_message, CMD_Reply *tx_message)
 }
 
 /* ================================================== */
+
+static void
+handle_refresh(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  NSR_RefreshAddresses();
+}
+
+/* ================================================== */
 /* Read a packet and process it */
 
 static void
@@ -1532,6 +1541,10 @@ read_from_cmd_socket(void *anything)
 
         case REQ_MODIFY_POLLTARGET:
           handle_modify_polltarget(&rx_message, &tx_message);
+          break;
+
+        case REQ_REFRESH:
+          handle_refresh(&rx_message, &tx_message);
           break;
 
         default:

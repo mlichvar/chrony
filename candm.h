@@ -90,7 +90,8 @@
 #define REQ_MODIFY_MAKESTEP 50
 #define REQ_SMOOTHING 51
 #define REQ_SMOOTHTIME 52
-#define N_REQUEST_TYPES 53
+#define REQ_REFRESH 53
+#define N_REQUEST_TYPES 54
 
 /* Special utoken value used to log on with first exchange being the
    password.  (This time value has long since gone by) */

@@ -2293,6 +2293,14 @@ process_cmd_reselect(CMD_Request *msg, char *line)
 
 /* ================================================== */
 
+static void
+process_cmd_refresh(CMD_Request *msg, char *line)
+{
+  msg->command = htons(REQ_REFRESH);
+}
+
+/* ================================================== */
+
 static int
 process_cmd_waitsync(char *line)
 {
@@ -2520,6 +2528,8 @@ process_line(char *line)
     do_normal_submit = 0;
     quit = 1;
     ret = 1;
+  } else if (!strcmp(command, "refresh")) {
+    process_cmd_refresh(&tx_message, line);
   } else if (!strcmp(command, "rekey")) {
     process_cmd_rekey(&tx_message, line);
   } else if (!strcmp(command, "reselect")) {

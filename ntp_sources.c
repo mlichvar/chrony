@@ -703,6 +703,23 @@ NSR_HandleBadSource(IPAddr *address)
 
 /* ================================================== */
 
+void
+NSR_RefreshAddresses(void)
+{
+  SourceRecord *record;
+  unsigned int i;
+
+  for (i = 0; i < ARR_GetSize(records); i++) {
+    record = get_record(i);
+    if (!record->remote_addr || !record->name)
+      continue;
+
+    resolve_source_replacement(record);
+  }
+}
+
+/* ================================================== */
+
 static void remove_tentative_pool_sources(int pool)
 {
   SourceRecord *record;
