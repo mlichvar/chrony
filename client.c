@@ -1261,7 +1261,8 @@ give_help(void)
   /* Indent the second column */
   for (s = cols, line = 0; s < cols + sizeof (cols); s += len + 1, line++) {
     len = strlen(s);
-    printf(line % 2 == 0 ? (len >= 28 ? "%s\n%28s" : "%-28s") : "%s\n", s, "");
+    printf(line % 2 == 0 ? (len >= 28 ? "%s\n%28s" : "%-28s%s") : "%s%s\n",
+           s, "");
   }
 }
 
