@@ -1317,13 +1317,18 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
     /* Zero the padding to avoid sending uninitialized data */
     memset(((char *)request) + command_length - padding_length, 0, padding_length);
 
+    if (sock_fd < 0) {
+      DEBUG_LOG(LOGF_Client, "No socket to send request");
+      return 0;
+    }
+
     if (send(sock_fd, (void *)request, command_length, 0) < 0) {
       DEBUG_LOG(LOGF_Client, "Could not send %d bytes : %s",
                 command_length, strerror(errno));
       return 0;
-    } else {
-      DEBUG_LOG(LOGF_Client, "Sent %d bytes", command_length);
     }
+
+    DEBUG_LOG(LOGF_Client, "Sent %d bytes", command_length);
 
     /* Increment this for next time */
     ++ request->attempt;
