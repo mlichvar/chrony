@@ -200,6 +200,11 @@ NSR_HandleBadSource(IPAddr *address)
 }
 
 void
+NSR_RefreshAddresses(void)
+{
+}
+
+void
 NSR_SetSourceResolvingEndHandler(NSR_SourceResolvingEndHandler handler)
 {
   if (handler)
