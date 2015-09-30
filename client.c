@@ -2710,9 +2710,6 @@ main(int argc, char **argv)
 
   if (!hostnames) {
     hostnames = DEFAULT_COMMAND_SOCKET",127.0.0.1,::1";
-#ifdef FEAT_ASYNCDNS
-    initial_timeout /= 10;
-#endif
   }
 
   UTI_SetQuitSignalsHandler(signal_handler);
