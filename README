@@ -145,6 +145,9 @@ Alexander Gretencord <arutha@gmx.de>
     Changes to installation directory system to make it easier for
     package builders.
 
+Andrew Griffiths <agriffit@redhat.com>
+    Patch to add support for seccomp filter
+
 Walter Haidinger <walter.haidinger@gmx.at>
     Providing me with login access to a Linux installation where v1.12
     wouldn't compile, so I could develop the fixes for v1.13.  Also, for
@@ -203,6 +206,9 @@ Kalle Olavi Niemitalo  <tosi@stekt.oulu.fi>
 
 Frank Otto <sandwichmacher@web.de>
     Handling arbitrary HZ values
+
+Gautier PHILIPPON <gautier.philippon@ensimag.grenoble-inp.fr>
+    Patch to add refresh command to chronyc
 
 Andreas Piesk <apiesk@virbus.de>
     Patch to make chronyc use the readline library if available
