@@ -2724,9 +2724,7 @@ main(int argc, char **argv)
   if (!open_io())
     LOG_FATAL(LOGF_Client, "Could not open connection to daemon");
 
-  if (!ret) {
-    ;
-  } else if (argc > 0) {
+  if (argc > 0) {
     ret = process_args(argc, argv, multi);
   } else {
     do {
