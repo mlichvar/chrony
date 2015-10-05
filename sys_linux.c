@@ -563,7 +563,7 @@ SYS_Linux_EnableSystemCallFilter(int level)
   }
 
   if (seccomp_load(ctx) < 0)
-      LOG(LOGS_INFO, LOGF_SysLinux, "Failed to load seccomp rules");
+    LOG_FATAL(LOGF_SysLinux, "Failed to load seccomp rules");
 
   LOG(LOGS_INFO, LOGF_SysLinux, "Loaded seccomp filter");
   seccomp_release(ctx);
