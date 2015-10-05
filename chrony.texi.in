@@ -419,7 +419,7 @@ minimal useful configuration file could be
 
 @example
 pool pool.ntp.org iburst
-makestep 10 3
+makestep 1.0 3
 rtcsync
 @end example
 
@@ -576,7 +576,7 @@ server foo.example.net iburst
 server bar.example.net iburst
 server baz.example.net iburst
 driftfile @CHRONYVARDIR@/drift
-makestep 10 3
+makestep 1.0 3
 rtcsync
 @end example
 
@@ -588,7 +588,7 @@ could in this case look like
 @example
 pool pool.ntp.org iburst
 driftfile @CHRONYVARDIR@/drift
-makestep 10 3
+makestep 1.0 3
 rtcsync
 @end example
 @c }}}
@@ -648,7 +648,7 @@ server foo.example.net offline
 server bar.example.net offline
 server baz.example.net offline
 driftfile @CHRONYVARDIR@/drift
-makestep 10 3
+makestep 1.0 3
 rtcsync
 @end example
 
@@ -845,7 +845,7 @@ server baz.example.net maxdelay 0.4 offline
 logdir /var/log/chrony
 log statistics measurements tracking
 driftfile @CHRONYVARDIR@/drift
-makestep 10 3
+makestep 1.0 3
 maxupdateskew 100.0
 dumponexit
 dumpdir @CHRONYVARDIR@
@@ -2328,10 +2328,10 @@ only with NTP sources.
 An example of the use of this directive is
 
 @example
-makestep 1000 10
+makestep 0.1 10
 @end example
 
-This would step system clock if the adjustment is larger than 1000
+This would step system clock if the adjustment is larger than 0.1
 seconds, but only in the first ten clock updates.
 @c }}}
 @c {{{ manual

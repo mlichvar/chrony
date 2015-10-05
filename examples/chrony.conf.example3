@@ -128,15 +128,15 @@ driftfile /var/lib/chrony/drift
 #######################################################################
 ### INITIAL CLOCK CORRECTION
 # This option is useful to quickly correct the clock on start if it's
-# off by a large amount.  The value '10' means that if the error is less
-# than 10 seconds, it will be gradually removed by speeding up or
-# slowing down your computer's clock until it is correct.  If the error
-# is above 10 seconds, an immediate time jump will be applied to correct
-# it.  The value '1' means the step is allowed only on the first update
-# of the clock.  Some software can get upset if the system clock jumps
+# off by a large amount.  The value '1.0' means that if the error is less
+# than 1 second, it will be gradually removed by speeding up or slowing
+# down your computer's clock until it is correct.  If the error is above
+# 1 second, an immediate time jump will be applied to correct it.  The
+# value '3' means the step is allowed only in the first three updates of
+# the clock.  Some software can get upset if the system clock jumps
 # (especially backwards), so be careful!
 
-! makestep 10 1
+! makestep 1.0 3
 
 #######################################################################
 ### LOGGING

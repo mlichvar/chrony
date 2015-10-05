@@ -34,7 +34,7 @@ useful configuration file would look something like
      server bar.example.net iburst
      server baz.example.net iburst
      driftfile @CHRONYVARDIR@/drift
-     makestep 10 3
+     makestep 1.0 3
      rtcsync
 .EE
 
@@ -46,7 +46,7 @@ case look like
 .EX
      pool pool.ntp.org iburst
      driftfile @CHRONYVARDIR@/drift
-     makestep 10 3
+     makestep 1.0 3
      rtcsync
 .EE
 

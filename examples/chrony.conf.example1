@@ -5,8 +5,8 @@ pool pool.ntp.org iburst
 driftfile /var/lib/chrony/drift
 
 # In first three updates step the system clock instead of slew
-# if the adjustment is larger than 10 seconds.
-makestep 10 3
+# if the adjustment is larger than 1 second.
+makestep 1.0 3
 
 # Enable kernel synchronization of the real-time clock (RTC).
 rtcsync
