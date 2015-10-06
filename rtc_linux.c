@@ -974,7 +974,7 @@ RTC_Linux_WriteParameters(void)
    RTC behaviour than we do for the rest of the module. */
 
 int
-RTC_Linux_TimePreInit(void)
+RTC_Linux_TimePreInit(time_t driftfile_time)
 {
   int fd, status;
   struct rtc_time rtc_raw, rtc_raw_retry;
@@ -1038,6 +1038,11 @@ RTC_Linux_TimePreInit(void)
       new_sys_time.tv_usec = 500000;
 
       UTI_AddDoubleToTimeval(&new_sys_time, -accumulated_error, &new_sys_time);
+
+      if (new_sys_time.tv_sec < driftfile_time) {
+        LOG(LOGS_WARN, LOGF_RtcLinux, "RTC time before last driftfile modification (ignored)");
+        return 0;
+      }
 
       UTI_DiffTimevalsToDouble(&sys_offset, &old_sys_time, &new_sys_time);
 

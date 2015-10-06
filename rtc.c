@@ -44,7 +44,7 @@ static int driver_preinit_ok = 0;
 static struct {
   int  (*init)(void);
   void (*fini)(void);
-  int  (*time_pre_init)(void);
+  int  (*time_pre_init)(time_t driftfile_time);
   void (*time_init)(void (*after_hook)(void*), void *anything);
   void (*start_measurements)(void);
   int  (*write_parameters)(void);
@@ -74,29 +74,37 @@ static struct {
 };
      
 /* ================================================== */
-/* Set the system clock to the time of last modification of driftfile
-   if it's in the future */
+/* Get the last modification time of the driftfile */
 
-static void
-fallback_time_init(void)
+static time_t
+get_driftfile_time(void)
 {
-  struct timeval now;
   struct stat buf;
   char *drift_file;
 
   drift_file = CNF_GetDriftFile();
   if (!drift_file)
-    return;
+    return 0;
 
   if (stat(drift_file, &buf))
-    return;
+    return 0;
+
+  return buf.st_mtime;
+}
+
+/* ================================================== */
+/* Set the system time to the driftfile time if it's in the future */
+
+static void
+apply_driftfile_time(time_t t)
+{
+  struct timeval now;
 
   LCL_ReadCookedTime(&now, NULL);
 
-  if (now.tv_sec < buf.st_mtime) {
-    if (LCL_ApplyStepOffset(now.tv_sec - buf.st_mtime))
-      LOG(LOGS_INFO, LOGF_Rtc, "System clock set from driftfile %s",
-          drift_file);
+  if (now.tv_sec < t) {
+    if (LCL_ApplyStepOffset(now.tv_sec - t))
+      LOG(LOGS_INFO, LOGF_Rtc, "System time restored from driftfile");
   }
 }
 
@@ -105,18 +113,24 @@ fallback_time_init(void)
 void
 RTC_Initialise(int initial_set)
 {
+  time_t driftfile_time;
   char *file_name;
 
-  /* Do an initial read of the RTC and set the system time to it.  This
-     is analogous to what /sbin/hwclock -s would do on Linux.  If that fails
-     or RTC is not supported, set the clock to the time of the last
-     modification of driftfile, so we at least get closer to the truth. */
+  /* If the -s option was specified, try to do an initial read of the RTC and
+     set the system time to it.  Also, read the last modification time of the
+     driftfile (i.e. system time when chronyd was previously stopped) and set
+     the system time to it if it's in the future to bring the clock closer to
+     the true time when the RTC is broken (e.g. it has no battery), is missing,
+     or there is no RTC driver. */
   if (initial_set) {
-    if (driver.time_pre_init && driver.time_pre_init()) {
+    driftfile_time = get_driftfile_time();
+
+    if (driver.time_pre_init && driver.time_pre_init(driftfile_time)) {
       driver_preinit_ok = 1;
     } else {
       driver_preinit_ok = 0;
-      fallback_time_init();
+      if (driftfile_time)
+        apply_driftfile_time(driftfile_time);
     }
   }
 

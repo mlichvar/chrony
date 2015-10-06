@@ -80,13 +80,9 @@ option is useful when restarting \fBchronyd\fR and can be used in conjunction
 with the \fB-r\fR option.
 .TP
 .B \-s
-This option will set the system clock from the computer's real-time
-clock.  This is analogous to supplying the \fI-s\fR flag to the
-\fI/sbin/hwclock\fR program during the Linux boot sequence.
-
-Support for real-time clocks is limited at present - the criteria
-are described in the section on the \fIrtcfile\fR directive in the
-documentation supplied with the distribution.
+This option will set the system clock from the computer's real-time clock or
+to the last modification time of the file specified by the \fIdriftfile\fR
+directive.  Real-time clocks are supported only on Linux.
 
 If used in conjunction with the \fB-r\fR flag, \fBchronyd\fR will attempt
 to preserve the old samples after setting the system clock from
@@ -97,11 +93,10 @@ not in use.  For this to work well, it relies on \fBchronyd\fR having
 been able to determine accurate statistics for the difference
 between the RTC and system clock last time the computer was on.
 
-If \fBchronyd\fR doesn't support the RTC on your computer or there is no RTC
-installed, the system clock will be set with this option forward to the time of
-the last modification of the drift file (specified by the \fIdriftfile\fR
-directive) to restore the system time at which \fBchronyd\fR was previously
-stopped.
+If the last modification time of the drift file is later than the current time
+and the RTC time, the system time will be set to it to restore the time when
+\fBchronyd\fR was previously stopped.  This is useful on computers that have no
+RTC or the RTC is broken (e.g. it has no battery).
 .TP
 \fB\-u\fR \fIuser\fR
 This option sets the name of the system user to which \fBchronyd\fR will switch

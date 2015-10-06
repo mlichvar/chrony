@@ -972,13 +972,9 @@ This option is useful when restarting @code{chronyd} and can be used
 in conjunction with the `-r' option.
 
 @item -s
-This option will set the system clock from the computer's real-time
-clock.  This is analogous to supplying the `-s' flag to the
-@file{/sbin/hwclock} program during the Linux boot sequence.
-
-Support for real-time clocks is limited at present - the criteria are
-described in the section on the @code{rtcfile} directive (@pxref{rtcfile
-directive}).
+This option will set the system clock from the computer's real-time clock or
+to the last modification time of the file specified by the @code{driftfile}
+directive.  Real-time clocks are supported only on Linux.
 
 If used in conjunction with the `-r' flag, @code{chronyd} will attempt
 to preserve the old samples after setting the system clock from the real
@@ -989,11 +985,10 @@ to work well, it relies on @code{chronyd} having been able to determine
 accurate statistics for the difference between the RTC and
 system clock last time the computer was on.
 
-If @code{chronyd} doesn't support the RTC on your computer or there is no RTC
-installed, the system clock will be set with this option forward to the time of
-the last modification of the drift file (specified by the @code{driftfile}
-directive) to restore the system time at which @code{chronyd} was previously
-stopped.
+If the last modification time of the drift file is later than the current time
+and the RTC time, the system time will be set to it to restore the time when
+@code{chronyd} was previously stopped.  This is useful on computers that have
+no RTC or the RTC is broken (e.g. it has no battery).
 @item -u <user>
 This option sets the name of the system user to which @code{chronyd} will
 switch after start in order to drop root privileges.  It overrides the
