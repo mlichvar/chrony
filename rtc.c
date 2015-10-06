@@ -39,6 +39,7 @@
 /* ================================================== */
 
 static int driver_initialised = 0;
+static int driver_preinit_ok = 0;
 
 static struct {
   int  (*init)(void);
@@ -111,7 +112,10 @@ RTC_Initialise(int initial_set)
      or RTC is not supported, set the clock to the time of the last
      modification of driftfile, so we at least get closer to the truth. */
   if (initial_set) {
-    if (!driver.time_pre_init || !driver.time_pre_init()) {
+    if (driver.time_pre_init && driver.time_pre_init()) {
+      driver_preinit_ok = 1;
+    } else {
+      driver_preinit_ok = 0;
       fallback_time_init();
     }
   }
@@ -150,9 +154,9 @@ RTC_Finalise(void)
 /* ================================================== */
 /* Start the processing to get a single measurement from the real time
    clock, and use it to trim the system time, based on knowing the
-   drift rate of the RTC and the error the last time we set it.  The
-   TimePreInit routine has already run, so we can be sure that the
-   trim required is not *too* large.
+   drift rate of the RTC and the error the last time we set it.  If the
+   TimePreInit routine has succeeded, we can be sure that the trim required
+   is not *too* large.
 
    We are called with a hook to a function to be called after the
    initialisation is complete.  We also call this if we cannot do the
@@ -161,7 +165,7 @@ RTC_Finalise(void)
 void
 RTC_TimeInit(void (*after_hook)(void *), void *anything)
 {
-  if (driver_initialised) {
+  if (driver_initialised && driver_preinit_ok) {
     (driver.time_init)(after_hook, anything);
   } else {
     (after_hook)(anything);
