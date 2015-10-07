@@ -1191,7 +1191,7 @@ give_help(void)
     "makestep\0Correct clock by stepping immediately\0"
     "makestep <threshold> <updates>\0Configure automatic clock stepping\0"
     "maxupdateskew <skew>\0Modify maximum valid skew to update frequency\0"
-    "waitsync [max-tries [max-correction [max-skew]]]\0"
+    "waitsync [max-tries [max-correction [max-skew [interval]]]]\0"
                           "Wait until synchronised in specified limits\0"
     "\0\0"
     "Time sources:\0\0"
@@ -2313,14 +2313,20 @@ process_cmd_waitsync(char *line)
   CMD_Request request;
   CMD_Reply reply;
   uint32_t ref_id, a, b, c, d;
-  double correction, skew_ppm, max_correction, max_skew_ppm;
+  double correction, skew_ppm, max_correction, max_skew_ppm, interval;
   int ret = 0, max_tries, i;
+  struct timeval timeout;
 
   max_tries = 0;
   max_correction = 0.0;
   max_skew_ppm = 0.0;
+  interval = 10.0;
 
-  sscanf(line, "%d %lf %lf", &max_tries, &max_correction, &max_skew_ppm);
+  sscanf(line, "%d %lf %lf %lf", &max_tries, &max_correction, &max_skew_ppm, &interval);
+
+  /* Don't allow shorter interval than 0.1 seconds */
+  if (interval < 0.1)
+    interval = 0.1;
 
   request.command = htons(REQ_TRACKING);
 
@@ -2347,7 +2353,9 @@ process_cmd_waitsync(char *line)
     }
 
     if (!ret && (!max_tries || i < max_tries) && !quit) {
-      sleep(10);
+      UTI_DoubleToTimeval(interval, &timeout);
+      if (select(0, NULL, NULL, NULL, &timeout))
+        break;
     } else {
       break;
     }

@@ -4687,10 +4687,10 @@ with the @code{rtcautotrim} directive (@pxref{rtcautotrim directive}).
 @subsubsection waitsync
 The @code{waitsync} command waits for @code{chronyd} to synchronise.
 
-Up to three optional arguments can be specified, the first is the maximum
-number of tries in 10 second intervals before giving up and returning a
-non-zero error code.  When 0 is specified, or there are no arguments, the
-number of tries will not be limited.
+Up to four optional arguments can be specified, the first is the maximum
+number of tries before giving up and returning a non-zero error code.  When 0
+is specified, or there are no arguments, the number of tries will not be
+limited.
 
 The second and third arguments are the maximum allowed remaining correction of
 the system clock and the maximum allowed skew (in ppm) as reported by the
@@ -4698,14 +4698,18 @@ the system clock and the maximum allowed skew (in ppm) as reported by the
 and @code{Skew} fields.  If not specified or zero, the value will not be
 checked.
 
+The fourth argument is the interval in which the check is repeated.  The
+interval is 10 seconds by default.
+
 An example is
 
 @example
 waitsync 60 0.01
 @end example
 
-which will wait up to about 10 minutes for @code{chronyd} to synchronise to a
-source and the remaining correction to be less than 10 milliseconds.
+which will wait up to about 10 minutes (60 times 10 seconds) for @code{chronyd}
+to synchronise to a source and the remaining correction to be less than 10
+milliseconds.
 @c }}}
 @c {{{ writertc
 @node writertc command
