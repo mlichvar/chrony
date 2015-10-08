@@ -367,6 +367,9 @@ t_from_rtc(struct tm *stm) {
   t2 = mktime(&temp2);
   diff = t2 - t1;
 
+  if (t1 - diff == -1)
+    DEBUG_LOG(LOGF_RtcLinux, "Could not convert RTC time");
+
   return t1 - diff;
 }
 
@@ -384,8 +387,8 @@ read_hwclock_file(const char *hwclock_file)
 
   in = fopen(hwclock_file, "r");
   if (!in) {
-    LOG(LOGS_WARN, LOGF_RtcLinux, "Could not open hwclockfile %s",
-        hwclock_file);
+    LOG(LOGS_WARN, LOGF_RtcLinux, "Could not open %s : %s",
+        hwclock_file, strerror(errno));
     return;
   }
 
@@ -402,7 +405,7 @@ read_hwclock_file(const char *hwclock_file)
   } else if (i == 3 && !strncmp(line, "UTC", 3)) {
     rtc_on_utc = 1;
   } else {
-    LOG(LOGS_WARN, LOGF_RtcLinux, "Could not read LOCAL/UTC setting from hwclockfile %s",
+    LOG(LOGS_WARN, LOGF_RtcLinux, "Could not read RTC LOCAL/UTC setting from %s",
         hwclock_file);
   }
 }
@@ -445,7 +448,7 @@ read_coefs_from_file(void)
                  &file_ref_offset,
                  &file_rate_ppm) == 4) {
       } else {
-        LOG(LOGS_WARN, LOGF_RtcLinux, "Could not read coefficients from RTC file %s",
+        LOG(LOGS_WARN, LOGF_RtcLinux, "Could not read coefficients from %s",
             coefs_file_name);
       }
       fclose(in);
@@ -607,14 +610,16 @@ switch_interrupts(int onoff)
   if (onoff) {
     status = ioctl(fd, RTC_UIE_ON, 0);
     if (status < 0) {
-      LOG(LOGS_ERR, LOGF_RtcLinux, "Could not start measurement : %s", strerror(errno));
+      LOG(LOGS_ERR, LOGF_RtcLinux, "Could not %s RTC interrupt : %s",
+          "enable", strerror(errno));
       return;
     }
     skip_interrupts = 1;
   } else {
     status = ioctl(fd, RTC_UIE_OFF, 0);
     if (status < 0) {
-      LOG(LOGS_ERR, LOGF_RtcLinux, "Could not stop measurement : %s", strerror(errno));
+      LOG(LOGS_ERR, LOGF_RtcLinux, "Could not %s RTC interrupt : %s",
+          "disable", strerror(errno));
       return;
     }
   }
@@ -694,10 +699,11 @@ handle_initial_trim(void)
     /* sys_error_now is positive if the system clock is fast */
     sys_error_now = rtc_error_now - coef_seconds_fast;
           
-    LOG(LOGS_INFO, LOGF_RtcLinux, "System trim from RTC = %f", sys_error_now);
     LCL_AccumulateOffset(sys_error_now, 0.0);
+    LOG(LOGS_INFO, LOGF_RtcLinux, "System clock off from RTC by %f seconds (slew)",
+        sys_error_now);
   } else {
-    LOG(LOGS_WARN, LOGF_RtcLinux, "No valid file coefficients, cannot trim system time");
+    LOG(LOGS_WARN, LOGF_RtcLinux, "No valid rtcfile coefficients");
   }
   
   coefs_valid = 0;
@@ -722,7 +728,7 @@ handle_relock_after_trim(void)
   if (valid) {
     write_coefs_to_file(1,ref,fast,saved_coef_gain_rate);
   } else {
-    LOG(LOGS_WARN, LOGF_RtcLinux, "Could not do regression after trim");
+    DEBUG_LOG(LOGF_RtcLinux, "Could not do regression after trim");
   }
 
   coefs_valid = 0;
@@ -857,7 +863,6 @@ read_from_device(void *any)
     rtc_t = t_from_rtc(&rtc_tm);
 
     if (rtc_t == (time_t)(-1)) {
-      LOG(LOGS_ERR, LOGF_RtcLinux, "Could not convert RTC time to timeval");
       error = 1;
       goto turn_off_interrupt;
     }      
@@ -883,7 +888,7 @@ turn_off_interrupt:
   switch (operating_mode) {
     case OM_INITIAL:
       if (error) {
-        LOG(LOGS_WARN, LOGF_RtcLinux, "Could not complete initial step due to errors");
+        DEBUG_LOG(LOGF_RtcLinux, "Could not complete initial step due to errors");
         operating_mode = OM_NORMAL;
         (after_init_hook)(after_init_hook_arg);
 
@@ -897,7 +902,7 @@ turn_off_interrupt:
 
     case OM_AFTERTRIM:
       if (error) {
-        LOG(LOGS_WARN, LOGF_RtcLinux, "Could not complete after trim relock due to errors");
+        DEBUG_LOG(LOGF_RtcLinux, "Could not complete after trim relock due to errors");
         operating_mode = OM_NORMAL;
 
         switch_interrupts(0);
@@ -1049,11 +1054,9 @@ RTC_Linux_TimePreInit(time_t driftfile_time)
       /* Set system time only if the step is larger than 1 second */
       if (fabs(sys_offset) >= 1.0) {
         if (LCL_ApplyStepOffset(sys_offset))
-          LOG(LOGS_INFO, LOGF_RtcLinux, "Set system time, error in RTC = %f",
-              accumulated_error);
+          LOG(LOGS_INFO, LOGF_RtcLinux, "System time set from RTC");
       }
     } else {
-      LOG(LOGS_WARN, LOGF_RtcLinux, "Could not convert RTC reading to seconds since 1/1/1970");
       return 0;
     }
   } else {
@@ -1097,7 +1100,8 @@ RTC_Linux_Trim(void)
 
   if (fabs(coef_seconds_fast) > 1.0) {
 
-    LOG(LOGS_INFO, LOGF_RtcLinux, "Trimming RTC, error = %.3f seconds", coef_seconds_fast);
+    LOG(LOGS_INFO, LOGF_RtcLinux, "RTC wrong by %.3f seconds (step)",
+        coef_seconds_fast);
 
     /* Do processing to set clock.  Let R be the value we set the
        RTC to, then in 500ms the RTC ticks (R+1) (see comments in
