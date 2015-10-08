@@ -382,7 +382,7 @@ read_hwclock_file(const char *hwclock_file)
   char line[256];
   int i;
 
-  if (!hwclock_file)
+  if (!hwclock_file || !hwclock_file[0])
     return;
 
   in = fopen(hwclock_file, "r");

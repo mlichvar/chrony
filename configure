@@ -102,6 +102,7 @@ For better control, use the options below.
   --with-ntp-era=SECONDS Specify earliest assumed NTP time in seconds
                          since 1970-01-01 [50*365 days ago]
   --with-user=USER       Specify default chronyd user [root]
+  --with-hwclockfile=PATH Specify default path to hwclock(8) adjtime file
   --with-sendmail=PATH   Path to sendmail binary [/usr/lib/sendmail]
   --enable-debug         Enable debugging support
 
@@ -214,6 +215,7 @@ feat_asyncdns=1
 feat_forcednsretry=1
 ntp_era_split=""
 default_user="root"
+default_hwclockfile=""
 mail_program="/usr/lib/sendmail"
 
 for option
@@ -320,6 +322,9 @@ do
     ;;
     --with-user=* )
       default_user=`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --with-hwclockfile=* )
+      default_hwclockfile=`echo $option | sed -e 's/^.*=//;'`
     ;;
     --with-sendmail=* )
       mail_program=`echo $option | sed -e 's/^.*=//;'`
@@ -784,6 +789,7 @@ if [ "x$SETCHRONYVARDIR" != "x" ]; then
 fi
 
 add_def DEFAULT_CONF_FILE "\"$SYSCONFDIR/chrony.conf\""
+add_def DEFAULT_HWCLOCK_FILE "\"$default_hwclockfile\""
 add_def DEFAULT_USER "\"$default_user\""
 add_def DEFAULT_COMMAND_SOCKET "\"$CHRONYSOCKDIR/chronyd.sock\""
 add_def MAIL_PROGRAM "\"$mail_program\""
@@ -824,6 +830,7 @@ do
           s%@LOCALSTATEDIR@%${LOCALSTATEDIR}%;\
           s%@CHRONYSOCKDIR@%${CHRONYSOCKDIR}%;\
           s%@CHRONYVARDIR@%${CHRONYVARDIR}%;\
+          s%@DEFAULT_HWCLOCK_FILE@%${default_hwclockfile}%;\
           s%@DEFAULT_USER@%${default_user}%;"\
           < ${f}.in > $f
 done

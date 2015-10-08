@@ -1595,9 +1595,11 @@ NTP, reference clocks or manual input.
 @node hwclockfile directive
 @subsection hwclockfile
 The @code{hwclockfile} directive sets the location of the adjtime file which is
-used by the @file{/sbin/hwclock} program.  With this directive, @code{chronyd}
-will parse the file to find out if the RTC keeps local time or UTC.  It
-overrides the @code{rtconutc} directive (@pxref{rtconutc directive}).
+used by the @file{/sbin/hwclock} program on Linux.  @code{chronyd} parses the
+file to find out if the RTC keeps local time or UTC.  It overrides the
+@code{rtconutc} directive (@pxref{rtconutc directive}).
+
+The default value is @file{@DEFAULT_HWCLOCK_FILE@}.
 
 An example of the command is
 

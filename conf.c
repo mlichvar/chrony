@@ -124,7 +124,7 @@ static int enable_manual=0;
 static int rtc_on_utc = 0;
 
 /* Filename used to read the hwclock(8) LOCAL/UTC setting */
-static char *hwclock_file = NULL;
+static char *hwclock_file;
 
 /* Flag set if the RTC should be automatically synchronised by kernel */
 static int rtc_sync = 0;
@@ -324,6 +324,7 @@ CNF_Initialise(int r)
   bind_cmd_path = Strdup(DEFAULT_COMMAND_SOCKET);
   pidfile = Strdup("/var/run/chronyd.pid");
   rtc_device = Strdup("/dev/rtc");
+  hwclock_file = Strdup(DEFAULT_HWCLOCK_FILE);
   user = Strdup(DEFAULT_USER);
 }
 
