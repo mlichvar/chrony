@@ -5,7 +5,7 @@ Enhancements
 ------------
 * Add support for configuration and monitoring over Unix domain socket
   (accessible by root or chrony user when root privileges are dropped)
-* Add support for system call filtering with seccomp on Linux
+* Add support for system call filtering with seccomp on Linux (experimental)
 * Add support for dropping root privileges on NetBSD
 * Control frequency of system clock on FreeBSD, NetBSD, Solaris
 * Add system leap second handling mode on FreeBSD, NetBSD, Solaris
@@ -14,9 +14,12 @@ Enhancements
 * Add maxdistance directive to limit source selection by root distance
 * Add refresh command to get new addresses of NTP sources
 * Allow wildcard patterns in include directive
+* Restore time from driftfile with -s option if later than RTC time
+* Add configure option to set default hwclockfile
 * Add -d option to chronyc to enable debug messages
 * Allow multiple addresses to be specified for chronyc with -h option
   and reconnect when no valid reply is received
+* Make check interval in waitsync command configurable
 
 Bug fixes
 ---------
