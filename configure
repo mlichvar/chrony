@@ -528,12 +528,12 @@ if [ $feat_ipv6 = "1" ] && \
 then
   add_def FEAT_IPV6
   if test_code 'in6_pktinfo' 'sys/socket.h netinet/in.h' '' '' '
-    return sizeof(struct in6_pktinfo);'
+    return sizeof (struct in6_pktinfo) + IPV6_PKTINFO;'
   then
     add_def HAVE_IN6_PKTINFO
   else
     if test_code 'in6_pktinfo with _GNU_SOURCE' 'sys/socket.h netinet/in.h' \
-      '-D_GNU_SOURCE' '' 'return sizeof(struct in6_pktinfo);'
+      '-D_GNU_SOURCE' '' 'return sizeof (struct in6_pktinfo) + IPV6_PKTINFO;'
     then
       add_def _GNU_SOURCE
       add_def HAVE_IN6_PKTINFO
