@@ -519,6 +519,13 @@ if test_code '<inttypes.h>' 'inttypes.h' '' '' ''; then
   add_def HAVE_INTTYPES_H
 fi
 
+if test_code 'struct in_pktinfo' 'sys/socket.h netinet/in.h' '' '' '
+  struct in_pktinfo ipi;
+  return sizeof (ipi.ipi_spec_dst.s_addr) + IP_PKTINFO;'
+then
+  add_def HAVE_IN_PKTINFO
+fi
+
 if [ $feat_ipv6 = "1" ] && \
   test_code 'IPv6 support' 'arpa/inet.h sys/socket.h netinet/in.h' '' "$EXTRA_LIBS" '
     struct sockaddr_in6 n;

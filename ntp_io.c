@@ -189,7 +189,7 @@ prepare_socket(int family, int port_number, int client_only)
 #endif
 
   if (family == AF_INET) {
-#ifdef IP_PKTINFO
+#ifdef HAVE_IN_PKTINFO
     /* We want the local IP info on server sockets */
     if (setsockopt(sock_fd, IPPROTO_IP, IP_PKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
       LOG(LOGS_ERR, LOGF_NtpIO, "Could not set packet info socket option");
@@ -533,7 +533,7 @@ read_from_socket(void *anything)
     local_addr.sock_fd = sock_fd;
 
     for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-#ifdef IP_PKTINFO
+#ifdef HAVE_IN_PKTINFO
       if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_PKTINFO) {
         struct in_pktinfo ipi;
 
@@ -631,7 +631,7 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
   msg.msg_flags = 0;
   cmsglen = 0;
 
-#ifdef IP_PKTINFO
+#ifdef HAVE_IN_PKTINFO
   if (local_addr->ip_addr.family == IPADDR_INET4) {
     struct cmsghdr *cmsg;
     struct in_pktinfo *ipi;
