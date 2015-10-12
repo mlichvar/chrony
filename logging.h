@@ -47,7 +47,7 @@ extern int log_debug_enabled;
 
 #if DEBUG > 0
 #define LOG_MESSAGE(severity, facility, ...) \
-  LOG_Message(LOGS_DEBUG, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__);
+  LOG_Message(severity, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__);
 #else
 #define LOG_MESSAGE(severity, facility, ...) \
   LOG_Message(severity, __VA_ARGS__);
