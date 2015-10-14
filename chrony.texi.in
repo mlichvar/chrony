@@ -2394,7 +2394,11 @@ includes the accumulated dispersion, which may be large when the source is no
 longer synchronised, and half of the total round-trip delay to the primary
 source.
 
-By default, the maximum distance is 3 seconds.
+By default, the maximum root distance is 3 seconds.
+
+Setting @code{maxdistance} to a larger value can be useful to allow
+synchronisation with a server that only has a very infrequent connection to its
+sources and can accumulate a large dispersion between updates of its clock.
 
 The syntax is
 
