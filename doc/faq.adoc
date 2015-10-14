@@ -49,6 +49,44 @@ added to +chrony+ to deal with this.
 
 == Configuration issues
 
+=== What is the minimum recommended configuration for an NTP client?
+
+First, the client needs to know which NTP servers it should ask for the current
+time.  They are specified by the +server+ or +pool+ directive.  The +pool+
+directive can be used for names that resolve to multiple addresses.  For good
+reliability the client should have at least three servers.  The +iburst+ option
+speeds up the initial synchronisation.
+
+To stabilize the initial synchronisation on the next start, the estimated drift
+of the system clock is saved by adding the +driftfile+ directive.
+
+If the system clock can be far from the true time after boot for any reason,
++chronyd+ should be allowed to correct it quickly by stepping instead of
+slewing, which would take a very long time.  The +makestep+ directive does
+that.
+
+In order to keep the real-time clock (RTC) close to the true time on Linux, so
+the system time is reasonably close to the true time when it's initialized on
+the next boot from the RTC, the +rtcsync+ directive enables a kernel mode in
+which the system time is copied to the RTC every 11 minutes.
+
+If you want to use public NTP servers from the
+http://www.pool.ntp.org/[pool.ntp.org] project, the minimal 'chrony.conf' file
+could be:
+
+----
+pool pool.ntp.org iburst
+driftfile /var/lib/chrony/drift
+makestep 1 3
+rtcsync
+----
+
+=== How do I make an NTP server from an NTP client?
+
+You need to add an +allow+ directive to the 'chrony.conf' file in order to open
+the NTP port and allow +chronyd+ to reply to client requests.  +allow+ with no
+specified subnet allows all IPv4 and IPv6 addresses.
+
 === I have several computers on a LAN. Should be all clients of an external server?
 
 The best configuration is usually to make one computer the master, with
