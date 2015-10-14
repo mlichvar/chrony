@@ -137,9 +137,9 @@ The `reference' implementation of the Network Time Protocol is the
 program @code{ntpd}, available via
 @uref{http://www.ntp.org/, The NTP home page}.
 
-One of the main differences between @code{ntpd} and @code{chronyd} is in
-the algorithms used to control the computer's clock. Things
-@code{chronyd} can do better than @code{ntpd}:
+One of the main differences between @code{ntpd} and @code{chronyd} is in how
+they control the computer's clock.  Things @code{chronyd} can do better than
+@code{ntpd}:
 
 @itemize @bullet
 @item
@@ -159,13 +159,16 @@ longer periods of time.
 @item
 @code{chronyd} in the default configuration never steps the time to not
 upset other running programs.  @code{ntpd} can be configured to never
-step the time too, but it has to use a different means of adjusting the
-clock, which has some
-disadvantages.
+step the time too, but in that case it has to use a different means of
+adjusting the clock (daemon loop instead of kernel discipline), which may
+have a negative effect on accuracy of the clock.
 @item
 @code{chronyd} can adjust the rate of the clock in a larger range, which
 allows it to operate even on machines with broken or unstable clock
 (e.g. in some virtual machines).
+@item
+@code{chronyd} is smaller, it uses less memory and it wakes up the CPU only
+when necessary, which is better for power saving.
 @end itemize
 
 Things @code{chronyd} can do that @code{ntpd} can't:
@@ -191,20 +194,35 @@ Things @code{ntpd} can do that @code{chronyd} can't:
 
 @itemize @bullet
 @item
-@code{ntpd} supports all operating modes from RFC 5905, including
-broadcast, multicast and manycast client / server.  It supports the
-orphan mode and it also supports authentication based on public-key
-cryptography described in RFC 5906.
+@code{ntpd} supports all operating modes from RFC 5905, including broadcast,
+multicast, and manycast server/client.  However, the broadcast and multicast
+modes are inherently less accurate and less secure (even with authentication)
+than the ordinary server/client mode and should generally be avoided.
 
 @item
-@code{ntpd} has been ported to more types of computer / operating
-system.
+@code{ntpd} supports the Autokey protocol (RFC 5906) to authenticate servers
+with public-key cryptography.  Note that the protocol has been shown to be
+insecure and it will be probably replaced with an implementation of the Network
+Time Security (NTS) specification.
 
 @item
-@code{ntpd} includes drivers for many reference clocks. @code{chronyd}
-relies on other programs (e.g. gpsd) to access the data from the
-reference clocks.
+@code{ntpd} supports the orphan mode, which allows synchronisation to a common
+timescale in isolated networks with multiple servers.  With @code{chronyd}
+there can be only one master and all other computers have to be directly or
+indirectly synchronised to it.
+
+@item
+@code{ntpd} has been ported to more operating systems.
+
+@item
+@code{ntpd} includes a large number of reference clock drivers. @code{chronyd}
+relies on other programs (e.g. @code{gpsd}) to access the timing data via the
+@code{SHM} or @code{SOCK} driver.
 @end itemize
+
+A comparison of NTP implementations that includes more features and also
+their performance is on the @uref{http://chrony.tuxfamily.org/comparison.html,
+chrony comparison} page.
 
 @node Comparison with timed
 @subsection timed
