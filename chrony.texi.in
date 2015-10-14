@@ -49,7 +49,6 @@ Copyright @copyright{} 2009-2015 Miroslav Lichvar
 * Other time synchronisation packages::  Comparision with other software
 * Distribution and warranty::   There is no warranty
 * Bug reporting::               How to report bugs and make suggestions
-* Contributing::                Areas where contributions are particularly welcome
 @end menu
 @c }}}
 @c {{{ S:Overview
@@ -272,39 +271,6 @@ pin-point the problem in some cases.  Please be patient and plan for this!
 Of course, if you can debug the problem yourself and send us a source code
 patch to fix it, we will be very grateful!
 
-@c }}}
-@c {{{ S:Contributions
-@node Contributing
-@section Contributions
-
-Although chrony is now a fairly mature and established project, there are still
-areas that could be improved.  If you can program in C and have some expertise
-in these areas, you might be able to fill the gaps.
-
-Particular areas that need addressing are :
-
-@enumerate
-@item Porting to other Unices
-
-This involves creating equivalents of sys_solaris.c, sys_linux.c etc for the
-new system.
-
-@item Porting to Windows NT
-
-A small amount of work on this was done under Cygwin.  Only the sorting
-out of the include files has really been achieved so far.  The two main
-areas still to address are
-
-@enumerate
-@item The system clock driver.
-@item How to make chronyd into an NT service (i.e. what to replace fork(),
-setsid() etc with so that chronyd can be automatically started in the system
-bootstrap.
-@end enumerate
-
-@item More drivers for reference clock support
-
-@end enumerate
 @c }}}
 @c }}}
 @c {{{ Ch:Installation
