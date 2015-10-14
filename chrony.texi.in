@@ -3,7 +3,7 @@
 @afourwide
 @paragraphindent 0
 @setfilename chrony.info
-@settitle User guide for the chrony suite
+@settitle User guide for the chrony suite version @CHRONY_VERSION@
 @c @setchapternewpage off
 
 @ifinfo

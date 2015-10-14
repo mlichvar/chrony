@@ -809,10 +809,12 @@ add_def CHRONYD_FEATURES "\"$chronyd_features $common_features\""
 echo "Features : $chronyd_features $chronyc_features $common_features"
 
 if [ -f version.txt ]; then
-  add_def CHRONY_VERSION "\"`cat version.txt`\""
+  CHRONY_VERSION="`cat version.txt`"
 else
-  add_def CHRONY_VERSION "\"DEVELOPMENT\""
+  CHRONY_VERSION="DEVELOPMENT"
 fi
+
+add_def CHRONY_VERSION "\"${CHRONY_VERSION}\""
 
 for f in Makefile chrony.conf.5 chrony.texi chronyc.1 chronyd.8
 do
@@ -838,7 +840,8 @@ do
           s%@CHRONYSOCKDIR@%${CHRONYSOCKDIR}%;\
           s%@CHRONYVARDIR@%${CHRONYVARDIR}%;\
           s%@DEFAULT_HWCLOCK_FILE@%${default_hwclockfile}%;\
-          s%@DEFAULT_USER@%${default_user}%;"\
+          s%@DEFAULT_USER@%${default_user}%;\
+          s%@CHRONY_VERSION@%${CHRONY_VERSION}%;" \
           < ${f}.in > $f
 done
 
