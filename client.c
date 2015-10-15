@@ -1366,6 +1366,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
       if (recv_status < 0) {
         /* If we get connrefused here, it suggests the sendto is
            going to a dead port */
+        DEBUG_LOG(LOGF_Client, "Could not receive : %s", strerror(errno));
 
         n_attempts++;
         if (n_attempts > max_retries) {
