@@ -12,6 +12,7 @@ Enhancements
 * Add dynamic drift removal on Mac OS X
 * Add support for setting real-time priority on Mac OS X
 * Add maxdistance directive to limit source selection by root distance
+  (3 seconds by default)
 * Add refresh command to get new addresses of NTP sources
 * Allow wildcard patterns in include directive
 * Restore time from driftfile with -s option if later than RTC time
@@ -23,7 +24,7 @@ Enhancements
 
 Bug fixes
 ---------
-* Fix building on Solaris
+* Fix building on NetBSD, Solaris
 * Restore time from driftfile with -s option if reading RTC failed
 
 Removed features
