@@ -6,12 +6,12 @@ cd ../..
 
 for opts in \
 	"--enable-debug" \
+	"--enable-scfilter" \
 	"--disable-asyncdns" \
 	"--disable-ipv6" \
 	"--disable-privdrop" \
 	"--disable-readline" \
 	"--disable-rtc" \
-	"--disable-scfilter" \
 	"--disable-sechash" \
 	"--disable-cmdmon" \
 	"--disable-ntp" \

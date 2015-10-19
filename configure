@@ -95,7 +95,7 @@ For better control, use the options below.
   --disable-rtc          Don't include RTC even on Linux
   --disable-privdrop     Disable support for dropping root privileges
   --without-libcap       Don't use libcap even if it is available
-  --disable-scfilter     Disable support for system call filtering
+  --enable-scfilter      Enable support for system call filtering
   --without-seccomp      Don't use seccomp even if it is available
   --disable-asyncdns     Disable asynchronous name resolving
   --disable-forcednsretry Don't retry on permanent DNS error
@@ -200,7 +200,7 @@ try_rtc=0
 feat_droproot=1
 try_libcap=-1
 try_clockctl=0
-feat_scfilter=1
+feat_scfilter=0
 try_seccomp=-1
 readline_lib=""
 readline_inc=""
@@ -304,6 +304,9 @@ do
     ;;
     --without-libcap|--disable-linuxcaps)
       try_libcap=0
+    ;;
+    --enable-scfilter)
+      feat_scfilter=1
     ;;
     --disable-scfilter)
       feat_scfilter=0
