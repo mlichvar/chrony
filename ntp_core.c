@@ -215,6 +215,9 @@ static ARR_Instance broadcasts;
 /* Invalid stratum number */
 #define NTP_INVALID_STRATUM 0
 
+/* Maximum allowed time for server to process client packet */
+#define MAX_SERVER_INTERVAL 4.0
+
 /* Minimum and maximum allowed poll interval */
 #define MIN_POLL 0
 #define MAX_POLL 24
@@ -1265,9 +1268,10 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     
     /* Additional tests required to pass before accumulating the sample */
 
-    /* Test A requires that the round trip delay is less than an
-       administrator-defined value */ 
-    testA = delay <= inst->max_delay;
+    /* Test A requires that the peer delay is not larger than the configured
+       maximum and in client mode also that the server processing time is sane */
+    testA = delay <= inst->max_delay &&
+            (inst->mode != MODE_CLIENT || remote_interval <= MAX_SERVER_INTERVAL);
 
     /* Test B requires that the ratio of the round trip delay to the
        minimum one currently in the stats data register is less than an
