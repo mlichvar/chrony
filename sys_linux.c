@@ -460,15 +460,17 @@ SYS_Linux_EnableSystemCallFilter(int level)
     SCMP_SYS(adjtimex), SCMP_SYS(gettimeofday), SCMP_SYS(settimeofday),
     SCMP_SYS(time),
     /* Process */
-    SCMP_SYS(clone), SCMP_SYS(exit), SCMP_SYS(exit_group),
-    SCMP_SYS(rt_sigreturn), SCMP_SYS(sigreturn),
+    SCMP_SYS(clone), SCMP_SYS(exit), SCMP_SYS(exit_group), SCMP_SYS(getrlimit),
+    SCMP_SYS(rt_sigaction), SCMP_SYS(rt_sigreturn), SCMP_SYS(rt_sigprocmask),
+    SCMP_SYS(set_tid_address), SCMP_SYS(sigreturn),
     /* Memory */
     SCMP_SYS(brk), SCMP_SYS(madvise), SCMP_SYS(mmap), SCMP_SYS(mmap2),
     SCMP_SYS(mprotect), SCMP_SYS(munmap), SCMP_SYS(shmdt),
     /* Filesystem */
-    SCMP_SYS(chmod), SCMP_SYS(chown), SCMP_SYS(chown32), SCMP_SYS(fstat),
-    SCMP_SYS(fstat64), SCMP_SYS(lseek), SCMP_SYS(rename), SCMP_SYS(stat),
-    SCMP_SYS(stat64), SCMP_SYS(unlink),
+    SCMP_SYS(access), SCMP_SYS(chmod), SCMP_SYS(chown), SCMP_SYS(chown32),
+    SCMP_SYS(fstat), SCMP_SYS(fstat64), SCMP_SYS(lseek), SCMP_SYS(rename),
+    SCMP_SYS(stat), SCMP_SYS(stat64), SCMP_SYS(statfs), SCMP_SYS(statfs64),
+    SCMP_SYS(unlink),
     /* Socket */
     SCMP_SYS(bind), SCMP_SYS(connect), SCMP_SYS(getsockname),
     SCMP_SYS(recvfrom), SCMP_SYS(recvmsg), SCMP_SYS(sendmmsg),
