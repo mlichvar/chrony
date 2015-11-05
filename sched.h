@@ -30,7 +30,7 @@
 #include "sysincl.h"
 
 /* Type for timeout IDs, valid IDs are always greater than zero */
-typedef unsigned long SCH_TimeoutID;
+typedef unsigned int SCH_TimeoutID;
 
 typedef enum {
   SCH_ReservedTimeoutValue = 0,
