@@ -76,9 +76,8 @@ static struct timeval slew_start;
 #define MIN_SLEW_TIMEOUT 1.0
 #define MAX_SLEW_TIMEOUT 1.0e4
 
-/* Scheduler timeout ID and flag if the timer is currently running */
+/* Scheduler timeout ID for ending of the currently running slew */
 static SCH_TimeoutID slew_timeout_id;
-static int slew_timer_running;
 
 /* Suggested offset correction rate (correction time * offset) */
 static double correction_rate;
@@ -173,8 +172,7 @@ update_slew(void)
   double old_slew_freq, total_freq, corr_freq, duration;
 
   /* Remove currently running timeout */
-  if (slew_timer_running)
-    SCH_RemoveTimeout(slew_timeout_id);
+  SCH_RemoveTimeout(slew_timeout_id);
 
   LCL_ReadRawTime(&now);
 
@@ -245,9 +243,7 @@ update_slew(void)
   /* Restart timer for the next update */
   UTI_AddDoubleToTimeval(&now, duration, &end_of_slew);
   slew_timeout_id = SCH_AddTimeout(&end_of_slew, handle_end_of_slew, NULL);
-
   slew_start = now;
-  slew_timer_running = 1;
 
   DEBUG_LOG(LOGF_SysGeneric, "slew offset=%e corr_rate=%e base_freq=%f total_freq=%f slew_freq=%e duration=%f slew_error=%e",
       offset_register, correction_rate, base_freq, total_freq, slew_freq,
@@ -259,7 +255,7 @@ update_slew(void)
 static void
 handle_end_of_slew(void *anything)
 {
-  slew_timer_running = 0;
+  slew_timeout_id = 0;
   update_slew();
 }
 
@@ -410,10 +406,9 @@ SYS_Generic_Finalise(void)
 
   /* Must *NOT* leave a slew running - clock could drift way off
      if the daemon is not restarted */
-  if (slew_timer_running) {
-    SCH_RemoveTimeout(slew_timeout_id);
-    slew_timer_running = 0;
-  }
+
+  SCH_RemoveTimeout(slew_timeout_id);
+  slew_timeout_id = 0;
 
   (*drv_set_freq)(clamp_freq(base_freq));
 

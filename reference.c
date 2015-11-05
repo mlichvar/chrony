@@ -106,7 +106,6 @@ static REF_LeapMode leap_mode;
 static int leap_in_progress;
 
 /* Timer for the leap second handler */
-static int leap_timer_running;
 static SCH_TimeoutID leap_timeout_id;
 
 /* Name of a system timezone containing leap seconds occuring at midnight */
@@ -234,7 +233,7 @@ REF_Initialise(void)
 
   enable_local_stratum = CNF_AllowLocalReference(&local_stratum);
 
-  leap_timer_running = 0;
+  leap_timeout_id = 0;
   leap_in_progress = 0;
   leap_mode = CNF_GetLeapSecMode();
   /* Switch to step mode if the system driver doesn't support leap */
@@ -264,7 +263,7 @@ REF_Initialise(void)
     fb_drifts = MallocArray(struct fb_drift, fb_drift_max - fb_drift_min + 1);
     memset(fb_drifts, 0, sizeof (struct fb_drift) * (fb_drift_max - fb_drift_min + 1));
     next_fb_drift = 0;
-    fb_drift_timeout_id = -1;
+    fb_drift_timeout_id = 0;
   }
 
   last_ref_update.tv_sec = 0;
@@ -428,10 +427,8 @@ update_fb_drifts(double freq_ppm, double update_interval)
     next_fb_drift = 0;
   }
 
-  if (fb_drift_timeout_id != -1) {
-    SCH_RemoveTimeout(fb_drift_timeout_id);
-    fb_drift_timeout_id = -1;
-  }
+  SCH_RemoveTimeout(fb_drift_timeout_id);
+  fb_drift_timeout_id = 0;
 
   if (update_interval < 1.0 || update_interval > last_ref_update_interval * 4.0)
     return;
@@ -464,7 +461,7 @@ fb_drift_timeout(void *arg)
 {
   assert(next_fb_drift >= fb_drift_min && next_fb_drift <= fb_drift_max);
 
-  fb_drift_timeout_id = -1;
+  fb_drift_timeout_id = 0;
 
   DEBUG_LOG(LOGF_Reference, "Fallback drift %d active: %f ppm",
             next_fb_drift, fb_drifts[next_fb_drift - fb_drift_min].freq);
@@ -481,7 +478,7 @@ schedule_fb_drift(struct timeval *now)
   double unsynchronised;
   struct timeval when;
 
-  if (fb_drift_timeout_id != -1)
+  if (fb_drift_timeout_id)
     return; /* already scheduled */
 
   UTI_DiffTimevalsToDouble(&unsynchronised, now, &last_ref_update);
@@ -686,7 +683,7 @@ get_tz_leap(time_t when)
 static void
 leap_end_timeout(void *arg)
 {
-  leap_timer_running = 0;
+  leap_timeout_id = 0;
   leap_in_progress = 0;
   our_leap_sec = 0;
 
@@ -738,11 +735,9 @@ set_leap_timeout(time_t now)
   struct timeval when;
 
   /* Stop old timer if there is one */
-  if (leap_timer_running) {
-    SCH_RemoveTimeout(leap_timeout_id);
-    leap_timer_running = 0;
-    leap_in_progress = 0;
-  }
+  SCH_RemoveTimeout(leap_timeout_id);
+  leap_timeout_id = 0;
+  leap_in_progress = 0;
 
   if (!our_leap_sec)
     return;
@@ -760,7 +755,6 @@ set_leap_timeout(time_t now)
   }
 
   leap_timeout_id = SCH_AddTimeout(&when, leap_start_timeout, NULL);
-  leap_timer_running = 1;
 }
 
 /* ================================================== */

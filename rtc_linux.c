@@ -72,8 +72,7 @@ static int fd = -1;
 
 static int measurement_period = LOWEST_MEASUREMENT_PERIOD;
 
-static int timeout_running = 0;
-static SCH_TimeoutID timeout_id;
+static SCH_TimeoutID timeout_id = 0;
 
 static int skip_interrupts;
 
@@ -581,10 +580,8 @@ RTC_Linux_Initialise(void)
 void
 RTC_Linux_Finalise(void)
 {
-  if (timeout_running) {
-    SCH_RemoveTimeout(timeout_id);
-    timeout_running = 0;
-  }
+  SCH_RemoveTimeout(timeout_id);
+  timeout_id = 0;
 
   /* Remove input file handler */
   if (fd >= 0) {
@@ -630,7 +627,7 @@ switch_interrupts(int onoff)
 static void
 measurement_timeout(void *any)
 {
-  timeout_running = 0;
+  timeout_id = 0;
   switch_interrupts(1);
 }
 
@@ -894,7 +891,6 @@ turn_off_interrupt:
 
         switch_interrupts(0);
     
-        timeout_running = 1;
         timeout_id = SCH_AddTimeoutByDelay((double) measurement_period, measurement_timeout, NULL);
       }
 
@@ -907,7 +903,6 @@ turn_off_interrupt:
 
         switch_interrupts(0);
     
-        timeout_running = 1;
         timeout_id = SCH_AddTimeoutByDelay((double) measurement_period, measurement_timeout, NULL);
       }
       
@@ -916,7 +911,6 @@ turn_off_interrupt:
     case OM_NORMAL:
       switch_interrupts(0);
     
-      timeout_running = 1;
       timeout_id = SCH_AddTimeoutByDelay((double) measurement_period, measurement_timeout, NULL);
 
       break;
@@ -936,9 +930,8 @@ RTC_Linux_TimeInit(void (*after_hook)(void *), void *anything)
   after_init_hook_arg = anything;
 
   operating_mode = OM_INITIAL;
-  timeout_running = 0;
+  timeout_id = 0;
   switch_interrupts(1);
-
 }
 
 /* ================================================== */
@@ -946,7 +939,6 @@ RTC_Linux_TimeInit(void (*after_hook)(void *), void *anything)
 void
 RTC_Linux_StartMeasurements(void)
 {
-  timeout_running = 0;
   measurement_timeout(NULL);
 }
 
@@ -1126,10 +1118,8 @@ RTC_Linux_Trim(void)
     coef_ref_time = now.tv_sec;
 
     /* And start rapid sampling, interrupts on now */
-    if (timeout_running) {
-      SCH_RemoveTimeout(timeout_id);
-      timeout_running = 0;
-    }
+    SCH_RemoveTimeout(timeout_id);
+    timeout_id = 0;
     switch_interrupts(1);
   }
 

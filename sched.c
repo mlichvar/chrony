@@ -278,6 +278,18 @@ release_tqe(TimerQueueEntry *node)
 
 /* ================================================== */
 
+static SCH_TimeoutID
+get_new_tqe_id(void)
+{
+  next_tqe_id++;
+  if (!next_tqe_id)
+    next_tqe_id++;
+
+  return next_tqe_id;
+}
+
+/* ================================================== */
+
 SCH_TimeoutID
 SCH_AddTimeout(struct timeval *tv, SCH_TimeoutHandler handler, SCH_ArbitraryArgument arg)
 {
@@ -288,7 +300,7 @@ SCH_AddTimeout(struct timeval *tv, SCH_TimeoutHandler handler, SCH_ArbitraryArgu
 
   new_tqe = allocate_tqe();
 
-  new_tqe->id = next_tqe_id++;
+  new_tqe->id = get_new_tqe_id();
   new_tqe->handler = handler;
   new_tqe->arg = arg;
   new_tqe->tv = *tv;
@@ -397,7 +409,7 @@ SCH_AddTimeoutInClass(double min_delay, double separation, double randomness,
   /* We have located the insertion point */
   new_tqe = allocate_tqe();
 
-  new_tqe->id = next_tqe_id++;
+  new_tqe->id = get_new_tqe_id();
   new_tqe->handler = handler;
   new_tqe->arg = arg;
   UTI_AddDoubleToTimeval(&now, new_min_delay, &new_tqe->tv);
@@ -420,6 +432,9 @@ SCH_RemoveTimeout(SCH_TimeoutID id)
   TimerQueueEntry *ptr;
 
   assert(initialised);
+
+  if (!id)
+    return;
 
   for (ptr = timer_queue.next; ptr != &timer_queue; ptr = ptr->next) {
 

@@ -294,7 +294,6 @@ get_offset_correction(struct timeval *raw,
 
 /* Cancel systematic drift */
 
-static int drift_removal_running = 0;
 static SCH_TimeoutID drift_removal_id;
 
 /* ================================================== */
@@ -414,7 +413,6 @@ SYS_MacOSX_Initialise(void)
 
 
   drift_removal_id = SCH_AddTimeoutByDelay(drift_removal_interval, drift_removal_timeout, NULL);
-  drift_removal_running = 1;
 }
 
 /* ================================================== */
@@ -422,9 +420,7 @@ SYS_MacOSX_Initialise(void)
 void
 SYS_MacOSX_Finalise(void)
 {
-  if (drift_removal_running) {
-    SCH_RemoveTimeout(drift_removal_id);
-  }
+  SCH_RemoveTimeout(drift_removal_id);
 
   clock_finalise();
 }

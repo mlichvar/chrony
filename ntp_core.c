@@ -71,8 +71,6 @@ struct NCR_Instance_Record {
                                    (client/server or symmetric active peer) */
   OperatingMode opmode;         /* Whether we are sampling this source
                                    or not and in what way */
-  int timer_running;            /* Boolean indicating whether we have a timeout
-                                   pending to transmit to the source */
   SCH_TimeoutID timeout_id;     /* Scheduler's timeout ID, if we are
                                    running on a timer. */
   int tx_suspended;             /* Boolean indicating we can't transmit yet */
@@ -353,20 +351,18 @@ restart_timeout(NCR_Instance inst, double delay)
 {
   /* Check if we can transmit */
   if (inst->tx_suspended) {
-    assert(!inst->timer_running);
+    assert(!inst->timeout_id);
     return;
   }
 
   /* Stop old timer if running */
-  if (inst->timer_running)
-    SCH_RemoveTimeout(inst->timeout_id);
+  SCH_RemoveTimeout(inst->timeout_id);
 
   /* Start new timer for transmission */
   inst->timeout_id = SCH_AddTimeoutInClass(delay, SAMPLING_SEPARATION,
                                            SAMPLING_RANDOMNESS,
                                            SCH_NtpSamplingClass,
                                            transmit_timeout, (void *)inst);
-  inst->timer_running = 1;
 }
 
 /* ================================================== */
@@ -374,7 +370,7 @@ restart_timeout(NCR_Instance inst, double delay)
 static void
 start_initial_timeout(NCR_Instance inst)
 {
-  if (!inst->timer_running) {
+  if (!inst->timeout_id) {
     /* This will be the first transmission after mode change */
 
     /* Mark source active */
@@ -401,10 +397,9 @@ static void
 take_offline(NCR_Instance inst)
 {
   inst->opmode = MD_OFFLINE;
-  if (inst->timer_running) {
-    SCH_RemoveTimeout(inst->timeout_id);
-    inst->timer_running = 0;
-  }
+
+  SCH_RemoveTimeout(inst->timeout_id);
+  inst->timeout_id = 0;
 
   /* Mark source unreachable */
   SRC_ResetReachability(inst->source);
@@ -491,7 +486,6 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
                                          &result->remote_addr.ip_addr,
                                          params->min_samples, params->max_samples);
 
-  result->timer_running = 0;
   result->timeout_id = 0;
   result->tx_suspended = 1;
   result->opmode = params->online ? MD_ONLINE : MD_OFFLINE;
@@ -562,7 +556,7 @@ NCR_ResetInstance(NCR_Instance instance)
     instance->local_poll = instance->minpoll;
 
     /* The timer was set with a longer poll interval, restart it */
-    if (instance->timer_running)
+    if (instance->timeout_id)
       restart_timeout(instance, get_transmit_delay(instance, 0, 0.0));
   }
 }
@@ -911,7 +905,7 @@ transmit_timeout(void *arg)
   NCR_Instance inst = (NCR_Instance) arg;
   int sent;
 
-  inst->timer_running = 0;
+  inst->timeout_id = 0;
 
   switch (inst->opmode) {
     case MD_BURST_WAS_ONLINE:
@@ -1421,7 +1415,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     }
 
     /* Get rid of old timeout and start a new one */
-    assert(inst->timer_running);
+    assert(inst->timeout_id);
     restart_timeout(inst, delay_time);
   }
 
