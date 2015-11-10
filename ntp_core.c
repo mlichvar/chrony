@@ -781,7 +781,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 )
 {
   NTP_Packet message;
-  int leap, auth_len, length, ret;
+  int leap, auth_len, length, ret, precision;
   struct timeval local_receive, local_transmit;
   NTP_int64 ts_fuzz;
 
@@ -797,28 +797,38 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     version = NTP_VERSION;
   }
 
-  /* This is accurate enough and cheaper than calling LCL_ReadCookedTime.
-     A more accurate time stamp will be taken later in this function. */
-  SCH_GetLastEventTime(&local_transmit, NULL, NULL);
+  smooth_time = 0;
+  smooth_offset = 0.0;
 
-  REF_GetReferenceParams(&local_transmit,
-                         &are_we_synchronised, &leap_status,
-                         &our_stratum,
-                         &our_ref_id, &our_ref_time,
-                         &our_root_delay, &our_root_dispersion);
-
-  /* Get current smoothing offset when sending packet to a client */
-  if (SMT_IsEnabled() && (my_mode == MODE_SERVER || my_mode == MODE_BROADCAST)) {
-    smooth_offset = SMT_GetOffset(&local_transmit);
-    smooth_time = fabs(smooth_offset) > LCL_GetSysPrecisionAsQuantum();
-
-    /* Suppress leap second when smoothing and slew mode are enabled */
-    if (REF_GetLeapMode() == REF_LeapModeSlew &&
-        (leap_status == LEAP_InsertSecond || leap_status == LEAP_DeleteSecond))
-      leap_status = LEAP_Normal;
+  if (my_mode == MODE_CLIENT) {
+    /* Don't reveal local time or state of the clock in client packets */
+    precision = 32;
+    are_we_synchronised = leap_status = our_stratum = our_ref_id = 0;
+    our_ref_time.tv_sec = our_ref_time.tv_usec = 0;
+    our_root_delay = our_root_dispersion = 0.0;
   } else {
-    smooth_time = 0;
-    smooth_offset = 0.0;
+    /* This is accurate enough and cheaper than calling LCL_ReadCookedTime.
+       A more accurate timestamp will be taken later in this function. */
+    SCH_GetLastEventTime(&local_transmit, NULL, NULL);
+
+    REF_GetReferenceParams(&local_transmit,
+                           &are_we_synchronised, &leap_status,
+                           &our_stratum,
+                           &our_ref_id, &our_ref_time,
+                           &our_root_delay, &our_root_dispersion);
+
+    /* Get current smoothing offset when sending packet to a client */
+    if (SMT_IsEnabled() && (my_mode == MODE_SERVER || my_mode == MODE_BROADCAST)) {
+      smooth_offset = SMT_GetOffset(&local_transmit);
+      smooth_time = fabs(smooth_offset) > LCL_GetSysPrecisionAsQuantum();
+
+      /* Suppress leap second when smoothing and slew mode are enabled */
+      if (REF_GetLeapMode() == REF_LeapModeSlew &&
+          (leap_status == LEAP_InsertSecond || leap_status == LEAP_DeleteSecond))
+        leap_status = LEAP_Normal;
+    }
+
+    precision = LCL_GetSysPrecisionAsLog();
   }
 
   if (smooth_time) {
@@ -845,7 +855,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   }
  
   message.poll = my_poll;
-  message.precision = LCL_GetSysPrecisionAsLog();
+  message.precision = precision;
 
   /* If we're sending a client mode packet and we aren't synchronized yet, 
      we might have to set up artificial values for some of these parameters */
@@ -861,14 +871,17 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   /* Originate - this comes from the last packet the source sent us */
   message.originate_ts = *orig_ts;
 
+  /* Prepare random bits which will be added to the receive timestamp */
+  UTI_GetInt64Fuzz(&ts_fuzz, precision);
+
   /* Receive - this is when we received the last packet from the source.
      This timestamp will have been adjusted so that it will now look to
      the source like we have been running on our latest estimate of
      frequency all along */
-  UTI_TimevalToInt64(&local_receive, &message.receive_ts, NULL);
+  UTI_TimevalToInt64(&local_receive, &message.receive_ts, &ts_fuzz);
 
   /* Prepare random bits which will be added to the transmit timestamp. */
-  UTI_GetInt64Fuzz(&ts_fuzz, message.precision);
+  UTI_GetInt64Fuzz(&ts_fuzz, precision);
 
   /* Transmit - this our local time right now!  Also, we might need to
      store this for our own use later, next time we receive a message
