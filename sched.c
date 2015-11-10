@@ -459,9 +459,12 @@ SCH_RemoveTimeout(SCH_TimeoutID id)
       /* Release memory back to the operating system */
       release_tqe(ptr);
 
-      break;
+      return;
     }
   }
+
+  /* Catch calls with invalid non-zero ID */
+  assert(0);
 }
 
 /* ================================================== */
