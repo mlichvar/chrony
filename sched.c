@@ -281,9 +281,17 @@ release_tqe(TimerQueueEntry *node)
 static SCH_TimeoutID
 get_new_tqe_id(void)
 {
+  TimerQueueEntry *ptr;
+
+try_again:
   next_tqe_id++;
   if (!next_tqe_id)
-    next_tqe_id++;
+    goto try_again;
+
+  /* Make sure the ID isn't already used */
+  for (ptr = timer_queue.next; ptr != &timer_queue; ptr = ptr->next)
+    if (ptr->id == next_tqe_id)
+      goto try_again;
 
   return next_tqe_id;
 }
