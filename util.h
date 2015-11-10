@@ -144,4 +144,7 @@ extern int UTI_CreateDirAndParents(const char *path, mode_t mode, uid_t uid, gid
    permissions and its uid/gid must match the specified values. */
 extern int UTI_CheckDirPermissions(const char *path, mode_t perm, uid_t uid, gid_t gid);
 
+/* Fill buffer with random bytes */
+extern void UTI_GetRandomBytes(void *buf, unsigned int len);
+
 #endif /* GOT_UTIL_H */

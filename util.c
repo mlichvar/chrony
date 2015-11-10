@@ -1070,3 +1070,23 @@ UTI_CheckDirPermissions(const char *path, mode_t perm, uid_t uid, gid_t gid)
 
   return 1;
 }
+
+/* ================================================== */
+
+#define DEV_URANDOM "/dev/urandom"
+
+void
+UTI_GetRandomBytes(void *buf, unsigned int len)
+{
+#ifdef HAVE_ARC4RANDOM
+  arc4random_buf(buf, len);
+#else
+  static FILE *f = NULL;
+  if (!f)
+    f = fopen(DEV_URANDOM, "r");
+  if (!f)
+    LOG_FATAL(LOGF_Util, "Can't open %s : %s", DEV_URANDOM, strerror(errno));
+  if (fread(buf, 1, len, f) != len)
+    LOG_FATAL(LOGF_Util, "Can't read from %s", DEV_URANDOM);
+#endif
+}
