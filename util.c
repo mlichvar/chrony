@@ -566,16 +566,21 @@ UTI_AdjustTimeval(struct timeval *old_tv, struct timeval *when, struct timeval *
 
 /* ================================================== */
 
-uint32_t
-UTI_GetNTPTsFuzz(int precision)
+void
+UTI_GetInt64Fuzz(NTP_int64 *ts, int precision)
 {
-  uint32_t fuzz;
-  int fuzz_bits;
-  
-  fuzz_bits = 32 - 1 + precision;
-  fuzz = random() % (1 << fuzz_bits);
+  int start, bits;
 
-  return fuzz;
+  assert(precision >= -32 && precision <= 32);
+
+  start = sizeof (*ts) - (precision + 32 + 7) / 8;
+  ts->hi = ts->lo = 0;
+
+  UTI_GetRandomBytes((unsigned char *)ts + start, sizeof (*ts) - start);
+
+  bits = (precision + 32) % 8;
+  if (bits)
+    ((unsigned char *)ts)[start] %= 1U << bits;
 }
 
 /* ================================================== */
@@ -608,9 +613,9 @@ UTI_DoubleToInt32(double x)
 
 void
 UTI_TimevalToInt64(struct timeval *src,
-                   NTP_int64 *dest, uint32_t fuzz)
+                   NTP_int64 *dest, NTP_int64 *fuzz)
 {
-  uint32_t lo, sec, usec;
+  uint32_t hi, lo, sec, usec;
 
   sec = (uint32_t)src->tv_sec;
   usec = (uint32_t)src->tv_usec;
@@ -618,18 +623,22 @@ UTI_TimevalToInt64(struct timeval *src,
   /* Recognize zero as a special case - it always signifies
      an 'unknown' value */
   if (!usec && !sec) {
-    dest->hi = dest->lo = 0;
+    hi = lo = 0;
   } else {
-    dest->hi = htonl(sec + JAN_1970);
+    hi = htonl(sec + JAN_1970);
 
     /* This formula gives an error of about 0.1us worst case */
-    lo = 4295 * usec - (usec>>5) - (usec>>9);
+    lo = htonl(4295 * usec - (usec >> 5) - (usec >> 9));
 
     /* Add the fuzz */
-    lo ^= fuzz;
-
-    dest->lo = htonl(lo);
+    if (fuzz) {
+      hi ^= fuzz->hi;
+      lo ^= fuzz->lo;
+    }
   }
+
+  dest->hi = hi;
+  dest->lo = lo;
 }
 
 /* ================================================== */

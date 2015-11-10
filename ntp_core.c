@@ -286,8 +286,8 @@ do_time_checks(void)
   NTP_int64 ntv1, ntv2;
   int r;
 
-  UTI_TimevalToInt64(&tv1, &ntv1, 0);
-  UTI_TimevalToInt64(&tv2, &ntv2, 0);
+  UTI_TimevalToInt64(&tv1, &ntv1, NULL);
+  UTI_TimevalToInt64(&tv2, &ntv2, NULL);
   UTI_Int64ToTimeval(&ntv1, &tv1);
   UTI_Int64ToTimeval(&ntv2, &tv2);
 
@@ -783,11 +783,12 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   NTP_Packet message;
   int leap, auth_len, length, ret;
   struct timeval local_receive, local_transmit;
+  NTP_int64 ts_fuzz;
 
   /* Parameters read from reference module */
   int are_we_synchronised, our_stratum, smooth_time;
   NTP_Leap leap_status;
-  uint32_t our_ref_id, ts_fuzz;
+  uint32_t our_ref_id;
   struct timeval our_ref_time;
   double our_root_delay, our_root_dispersion, smooth_offset;
 
@@ -855,7 +856,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
 
   /* Now fill in timestamps */
 
-  UTI_TimevalToInt64(&our_ref_time, &message.reference_ts, 0);
+  UTI_TimevalToInt64(&our_ref_time, &message.reference_ts, NULL);
 
   /* Originate - this comes from the last packet the source sent us */
   message.originate_ts = *orig_ts;
@@ -864,10 +865,10 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
      This timestamp will have been adjusted so that it will now look to
      the source like we have been running on our latest estimate of
      frequency all along */
-  UTI_TimevalToInt64(&local_receive, &message.receive_ts, 0);
+  UTI_TimevalToInt64(&local_receive, &message.receive_ts, NULL);
 
   /* Prepare random bits which will be added to the transmit timestamp. */
-  ts_fuzz = UTI_GetNTPTsFuzz(message.precision);
+  UTI_GetInt64Fuzz(&ts_fuzz, message.precision);
 
   /* Transmit - this our local time right now!  Also, we might need to
      store this for our own use later, next time we receive a message
@@ -885,7 +886,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
        take to generate the authentication data. */
     local_transmit.tv_usec += KEY_GetAuthDelay(key_id);
     UTI_NormaliseTimeval(&local_transmit);
-    UTI_TimevalToInt64(&local_transmit, &message.transmit_ts, ts_fuzz);
+    UTI_TimevalToInt64(&local_transmit, &message.transmit_ts, &ts_fuzz);
 
     auth_len = KEY_GenerateAuth(key_id, (unsigned char *) &message,
         offsetof(NTP_Packet, auth_keyid),
@@ -905,7 +906,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
       message.auth_keyid = 0;
       length += sizeof (message.auth_keyid);
     }
-    UTI_TimevalToInt64(&local_transmit, &message.transmit_ts, ts_fuzz);
+    UTI_TimevalToInt64(&local_transmit, &message.transmit_ts, &ts_fuzz);
   }
 
   ret = NIO_SendPacket(&message, where_to, from, length);
