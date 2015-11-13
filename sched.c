@@ -150,8 +150,6 @@ SCH_Initialise(void)
   LCL_ReadRawTime(&last_select_ts_raw);
   last_select_ts = last_select_ts_raw;
 
-  srandom(last_select_ts.tv_sec << 16 ^ last_select_ts.tv_usec);
-
   initialised = 1;
 }
 
@@ -376,7 +374,10 @@ SCH_AddTimeoutInClass(double min_delay, double separation, double randomness,
   assert(class < SCH_NumberOfClasses);
 
   if (randomness > 0.0) {
-    r = random() % 0xffff / (0xffff - 1.0) * randomness + 1.0;
+    uint16_t rnd;
+
+    UTI_GetRandomBytes(&rnd, sizeof (rnd));
+    r = rnd / (double)0xffff * randomness + 1.0;
     min_delay *= r;
     separation *= r;
   }
