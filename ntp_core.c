@@ -1380,24 +1380,6 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   /* Reduce polling rate if KoD RATE was received */
   if (kod_rate) {
-    if (message->poll > inst->minpoll) {
-      /* Set our minpoll to message poll, but use a reasonable maximum */
-      if (message->poll <= MAX_KOD_RATE_POLL)
-        inst->minpoll = message->poll;
-      else if (inst->minpoll < MAX_KOD_RATE_POLL)
-        inst->minpoll = MAX_KOD_RATE_POLL;
-
-      if (inst->minpoll > inst->maxpoll)
-        inst->maxpoll = inst->minpoll;
-      if (inst->minpoll > inst->local_poll)
-        inst->local_poll = inst->minpoll;
-
-      LOG(LOGS_WARN, LOGF_NtpCore,
-          "Received KoD RATE with poll %d from %s, minpoll set to %d",
-          message->poll, UTI_IPToString(&inst->remote_addr.ip_addr),
-          inst->minpoll);
-    }
-
     /* Stop ongoing burst */
     if (inst->opmode == MD_BURST_WAS_OFFLINE || inst->opmode == MD_BURST_WAS_ONLINE) {
       inst->burst_good_samples_to_go = 0;
