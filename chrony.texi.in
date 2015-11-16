@@ -4044,8 +4044,8 @@ next measurement has been made.
 @node offline command
 @subsubsection offline
 The @code{offline} command is used to warn @code{chronyd} that the network
-connection to a particular host or hosts is about to be lost.  It should
-be used on computers with a dial-up or similar connection to their time
+connection to a particular host or hosts is about to be lost.  It can
+be used on computers with intermittent connection to their time
 sources, to warn @code{chronyd} that the connection is about to be broken.
 
 An example of how to use @code{offline} in this case is shown in
@@ -4081,14 +4081,6 @@ achieve this.  The situation is shown in the figure below.
 @end group
 @end example
 
-
-
-If the source to which @code{chronyd} is currently synchronised is indicated
-offline in this way, @code{chronyd} will continue to treat it as the
-synchronisation source.  If the network connection were broken without
-the @code{offline} command being used, @code{chronyd} would assume that the
-source had failed and would attempt to pick another synchronisation
-source.
 
 There are four forms of the @code{offline} command.  The first form is a
 wildcard, meaning all sources.  The second form allows an IP address mask
