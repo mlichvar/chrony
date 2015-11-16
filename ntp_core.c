@@ -375,6 +375,9 @@ restart_timeout(NCR_Instance inst, double delay)
 static void
 start_initial_timeout(NCR_Instance inst)
 {
+  double delay, last_tx;
+  struct timeval now;
+
   if (!inst->tx_timeout_id) {
     /* This will be the first transmission after mode change */
 
@@ -382,7 +385,18 @@ start_initial_timeout(NCR_Instance inst)
     SRC_SetActive(inst->source);
   }
 
-  restart_timeout(inst, INITIAL_DELAY);
+  /* In case the offline period was too short, adjust the delay to keep
+     the interval between packets at least as long as the current polling
+     interval */
+  SCH_GetLastEventTime(&now, NULL, NULL);
+  UTI_DiffTimevalsToDouble(&last_tx, &now, &inst->local_tx);
+  if (last_tx < 0.0)
+    last_tx = 0.0;
+  delay = get_transmit_delay(inst, 0, 0.0) - last_tx;
+  if (delay < INITIAL_DELAY)
+    delay = INITIAL_DELAY;
+
+  restart_timeout(inst, delay);
 }
 
 /* ================================================== */
@@ -499,6 +513,8 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->tx_suspended = 1;
   result->opmode = params->online ? MD_ONLINE : MD_OFFLINE;
   result->local_poll = result->minpoll;
+  result->local_tx.tv_sec = 0;
+  result->local_tx.tv_usec = 0;
   
   NCR_ResetInstance(result);
 
@@ -556,8 +572,6 @@ NCR_ResetInstance(NCR_Instance instance)
   instance->remote_orig.lo = 0;
   instance->local_rx.tv_sec = 0;
   instance->local_rx.tv_usec = 0;
-  instance->local_tx.tv_sec = 0;
-  instance->local_tx.tv_usec = 0;
   instance->local_ntp_tx.hi = 0;
   instance->local_ntp_tx.lo = 0;
 
