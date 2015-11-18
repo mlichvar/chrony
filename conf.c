@@ -727,13 +727,14 @@ parse_refclock(char *line)
       n = 0;
       sel_option = SRC_SelectPrefer;
     } else {
-      break;
+      other_parse_error("Invalid refclock option");
+      return;
     }
     line += n;
   }
 
   if (*line) {
-    other_parse_error("Invalid/unreadable refclock parameter");
+    command_parse_error();
     return;
   }
 
