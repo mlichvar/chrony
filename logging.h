@@ -100,6 +100,7 @@ typedef enum {
   LOGF_Keys,
   LOGF_Logging,
   LOGF_Nameserv,
+  LOGF_PrivOps,
   LOGF_Rtc,
   LOGF_Regress,
   LOGF_Sys,
