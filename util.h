@@ -82,6 +82,7 @@ extern char *UTI_IPToString(IPAddr *ip);
 
 extern int UTI_StringToIP(const char *addr, IPAddr *ip);
 extern uint32_t UTI_IPToRefid(IPAddr *ip);
+extern uint32_t UTI_IPToHash(IPAddr *ip);
 extern void UTI_IPHostToNetwork(IPAddr *src, IPAddr *dest);
 extern void UTI_IPNetworkToHost(IPAddr *src, IPAddr *dest);
 extern int UTI_CompareIPs(IPAddr *a, IPAddr *b, IPAddr *mask);

@@ -359,6 +359,34 @@ UTI_IPToRefid(IPAddr *ip)
 
 /* ================================================== */
 
+uint32_t
+UTI_IPToHash(IPAddr *ip)
+{
+  unsigned char *addr;
+  unsigned int i, len;
+  uint32_t hash;
+
+  switch (ip->family) {
+    case IPADDR_INET4:
+      addr = (unsigned char *)&ip->addr.in4;
+      len = sizeof (ip->addr.in4);
+      break;
+    case IPADDR_INET6:
+      addr = ip->addr.in6;
+      len = sizeof (ip->addr.in6);
+      break;
+    default:
+      return 0;
+  }
+
+  for (i = 0, hash = 0; i < len; i++)
+    hash = 71 * hash + addr[i];
+
+  return hash;
+}
+
+/* ================================================== */
+
 void
 UTI_IPHostToNetwork(IPAddr *src, IPAddr *dest)
 {
