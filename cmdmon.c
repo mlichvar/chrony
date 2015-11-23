@@ -1040,11 +1040,11 @@ handle_client_accesses_by_index(CMD_Request *rx_message, CMD_Reply *tx_message)
     switch (result) {
       case CLG_SUCCESS:
         UTI_IPHostToNetwork(&report.ip_addr, &tx_message->data.client_accesses_by_index.clients[j].ip);
-        tx_message->data.client_accesses_by_index.clients[j].client_hits = htonl(report.client_hits);
-        tx_message->data.client_accesses_by_index.clients[j].peer_hits = htonl(report.peer_hits);
-        tx_message->data.client_accesses_by_index.clients[j].cmd_hits_auth = htonl(report.cmd_hits_auth);
-        tx_message->data.client_accesses_by_index.clients[j].cmd_hits_normal = htonl(report.cmd_hits_normal);
-        tx_message->data.client_accesses_by_index.clients[j].cmd_hits_bad = htonl(report.cmd_hits_bad);
+        tx_message->data.client_accesses_by_index.clients[j].client_hits = htonl(report.ntp_hits);
+        tx_message->data.client_accesses_by_index.clients[j].peer_hits = htonl(0);
+        tx_message->data.client_accesses_by_index.clients[j].cmd_hits_auth = htonl(0);
+        tx_message->data.client_accesses_by_index.clients[j].cmd_hits_normal = htonl(report.cmd_hits);
+        tx_message->data.client_accesses_by_index.clients[j].cmd_hits_bad = htonl(0);
         tx_message->data.client_accesses_by_index.clients[j].last_ntp_hit_ago = htonl(report.last_ntp_hit_ago);
         tx_message->data.client_accesses_by_index.clients[j].last_cmd_hit_ago = htonl(report.last_cmd_hit_ago);
         j++;
@@ -1240,8 +1240,6 @@ read_from_cmd_socket(void *anything)
       rx_message.res2 != 0) {
 
     /* We don't know how to process anything like this */
-    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
-    
     return;
   }
 
@@ -1265,8 +1263,6 @@ read_from_cmd_socket(void *anything)
     DEBUG_LOG(LOGF_CmdMon, "Read command packet with protocol version %d (expected %d) from %s",
               rx_message.version, PROTO_VERSION_NUMBER, UTI_SockaddrToString(&where_from.sa));
 
-    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
-
     if (rx_message.version >= PROTO_VERSION_MISMATCH_COMPAT_SERVER) {
       tx_message.status = htons(STT_BADPKTVERSION);
       transmit_reply(&tx_message, &where_from);
@@ -1278,8 +1274,6 @@ read_from_cmd_socket(void *anything)
     DEBUG_LOG(LOGF_CmdMon, "Read command packet with invalid command %d from %s",
               rx_command, UTI_SockaddrToString(&where_from.sa));
 
-    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
-
     tx_message.status = htons(STT_INVALID);
     transmit_reply(&tx_message, &where_from);
     return;
@@ -1289,8 +1283,6 @@ read_from_cmd_socket(void *anything)
     DEBUG_LOG(LOGF_CmdMon, "Read incorrectly sized command packet from %s",
               UTI_SockaddrToString(&where_from.sa));
 
-    CLG_LogCommandAccess(&remote_ip, CLG_CMD_BAD_PKT, cooked_now.tv_sec);
-
     tx_message.status = htons(STT_BADPKTLENGTH);
     transmit_reply(&tx_message, &where_from);
     return;
@@ -1298,7 +1290,7 @@ read_from_cmd_socket(void *anything)
 
   /* OK, we have a valid message.  Now dispatch on message type and process it. */
 
-  CLG_LogCommandAccess(&remote_ip, CLG_CMD_NORMAL, cooked_now.tv_sec);
+  CLG_LogCommandAccess(&remote_ip, cooked_now.tv_sec);
 
   if (rx_command >= N_REQUEST_TYPES) {
     /* This should be already handled */

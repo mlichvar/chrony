@@ -1516,7 +1516,7 @@ NCR_ProcessKnown
  int length                     /* the length of the received packet */
  )
 {
-  int pkt_mode, proc_packet, proc_as_unknown, log_peer_access;
+  int pkt_mode, proc_packet, proc_as_unknown;
 
   if (!check_packet_format(message, length))
     return 0;
@@ -1524,7 +1524,6 @@ NCR_ProcessKnown
   pkt_mode = NTP_LVM_TO_MODE(message->lvm);
   proc_packet = 0;
   proc_as_unknown = 0;
-  log_peer_access = 0;
 
   /* Now, depending on the mode we decide what to do */
   switch (pkt_mode) {
@@ -1532,7 +1531,6 @@ NCR_ProcessKnown
       switch (inst->mode) {
         case MODE_ACTIVE:
           /* Ordinary symmetric peering */
-          log_peer_access = 1;
           proc_packet = 1;
           break;
         case MODE_PASSIVE:
@@ -1555,7 +1553,6 @@ NCR_ProcessKnown
         case MODE_ACTIVE:
           /* This would arise if we have the remote configured as a peer and
              he does not have us configured */
-          log_peer_access = 1;
           proc_packet = 1;
           break;
         case MODE_PASSIVE:
@@ -1608,9 +1605,6 @@ NCR_ProcessKnown
       /* Obviously ignore */
       break;
   }
-
-  if (log_peer_access)
-    CLG_LogNTPPeerAccess(&inst->remote_addr.ip_addr, now->tv_sec);
 
   if (proc_packet) {
     /* Check if the reply was received by the socket that sent the request */
@@ -1681,18 +1675,18 @@ NCR_ProcessUnknown
     case MODE_ACTIVE:
       /* We are symmetric passive, even though we don't ever lock to him */
       my_mode = MODE_PASSIVE;
-      CLG_LogNTPPeerAccess(&remote_addr->ip_addr, now->tv_sec);
       break;
     case MODE_CLIENT:
       /* Reply with server packet */
       my_mode = MODE_SERVER;
-      CLG_LogNTPClientAccess(&remote_addr->ip_addr, now->tv_sec);
       break;
     default:
       /* Discard */
       DEBUG_LOG(LOGF_NtpCore, "NTP packet discarded pkt_mode=%d", pkt_mode);
       return;
   }
+
+  CLG_LogNTPAccess(&remote_addr->ip_addr, now->tv_sec);
 
   /* Check if the packet includes MAC that authenticates properly */
   valid_auth = check_packet_auth(message, length, &has_auth, &key_id);

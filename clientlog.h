@@ -33,18 +33,8 @@
 
 extern void CLG_Initialise(void);
 extern void CLG_Finalise(void);
-extern void CLG_LogNTPClientAccess(IPAddr *client, time_t now);
-extern void CLG_LogNTPPeerAccess(IPAddr *client, time_t now);
-
-/* When logging command packets, there are several subtypes */
-
-typedef enum {
-  CLG_CMD_AUTH,                 /* authenticated */
-  CLG_CMD_NORMAL,               /* normal */
-  CLG_CMD_BAD_PKT               /* bad version or packet length */
-} CLG_Command_Type;
-
-extern void CLG_LogCommandAccess(IPAddr *client, CLG_Command_Type type, time_t now);
+extern void CLG_LogNTPAccess(IPAddr *client, time_t now);
+extern void CLG_LogCommandAccess(IPAddr *client, time_t now);
 
 /* And some reporting functions, for use by chronyc. */
 /* TBD */

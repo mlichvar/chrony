@@ -51,13 +51,10 @@
 /* Number of entries in each subtable */
 #define TABLE_SIZE (1UL<<NBITS)
 
-typedef struct _Node {
+typedef struct {
   IPAddr ip_addr;
-  unsigned long client_hits;
-  unsigned long peer_hits;
-  unsigned long cmd_hits_bad;
-  unsigned long cmd_hits_normal;
-  unsigned long cmd_hits_auth;
+  uint32_t ntp_hits;
+  uint32_t cmd_hits;
   time_t last_ntp_hit;
   time_t last_cmd_hit;
 } Node;
@@ -138,11 +135,8 @@ clear_subnet(Subnet *subnet)
 static void
 clear_node(Node *node)
 {
-  node->client_hits = 0;
-  node->peer_hits = 0;
-  node->cmd_hits_auth = 0;
-  node->cmd_hits_normal = 0;
-  node->cmd_hits_bad = 0;
+  node->ntp_hits = 0;
+  node->cmd_hits = 0;
   node->last_ntp_hit = (time_t) 0;
   node->last_cmd_hit = (time_t) 0;
 }
@@ -282,7 +276,7 @@ get_node(IPAddr *ip)
 /* ================================================== */
 
 void
-CLG_LogNTPClientAccess (IPAddr *client, time_t now)
+CLG_LogNTPAccess(IPAddr *client, time_t now)
 {
   Node *node;
 
@@ -292,33 +286,15 @@ CLG_LogNTPClientAccess (IPAddr *client, time_t now)
       return;
 
     node->ip_addr = *client;
-    ++node->client_hits;
     node->last_ntp_hit = now;
+    ++node->ntp_hits;
   }
 }
 
 /* ================================================== */
 
 void
-CLG_LogNTPPeerAccess(IPAddr *client, time_t now)
-{
-  Node *node;
-
-  if (active) {
-    node = get_node(client);
-    if (node == NULL)
-      return;
-
-    node->ip_addr = *client;
-    ++node->peer_hits;
-    node->last_ntp_hit = now;
-  }
-}
-
-/* ================================================== */
-
-void
-CLG_LogCommandAccess(IPAddr *client, CLG_Command_Type type, time_t now)
+CLG_LogCommandAccess(IPAddr *client, time_t now)
 {
   Node *node;
 
@@ -329,20 +305,7 @@ CLG_LogCommandAccess(IPAddr *client, CLG_Command_Type type, time_t now)
 
     node->ip_addr = *client;
     node->last_cmd_hit = now;
-    switch (type) {
-      case CLG_CMD_AUTH:
-        ++node->cmd_hits_auth;
-        break;
-      case CLG_CMD_NORMAL:
-        ++node->cmd_hits_normal;
-        break;
-      case CLG_CMD_BAD_PKT:
-        ++node->cmd_hits_bad;
-        break;
-      default:
-        assert(0);
-        break;
-    }
+    ++node->cmd_hits;
   }
 }
 
@@ -367,15 +330,11 @@ CLG_GetClientAccessReportByIndex(int index, RPT_ClientAccessByIndex_Report *repo
     node = nodes[index];
     
     report->ip_addr = node->ip_addr;
-    report->client_hits = node->client_hits;
-    report->peer_hits = node->peer_hits;
-    report->cmd_hits_auth = node->cmd_hits_auth;
-    report->cmd_hits_normal = node->cmd_hits_normal;
-    report->cmd_hits_bad = node->cmd_hits_bad;
+    report->ntp_hits = node->ntp_hits;
+    report->cmd_hits = node->cmd_hits;
     report->last_ntp_hit_ago = now - node->last_ntp_hit;
     report->last_cmd_hit_ago = now - node->last_cmd_hit;
     
     return CLG_SUCCESS;
   }
-
 }
