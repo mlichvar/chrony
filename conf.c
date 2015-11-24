@@ -862,11 +862,6 @@ parse_clientloglimit(char *line)
   if (sscanf(line, "%lu", &client_log_limit) != 1) {
     command_parse_error();
   }
-
-  if (client_log_limit == 0) {
-    /* unlimited */
-    client_log_limit = (unsigned long)-1;
-  }
 }
 
 /* ================================================== */
