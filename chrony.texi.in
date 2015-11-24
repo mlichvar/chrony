@@ -1353,10 +1353,10 @@ directive}).
 @c {{{ clientloglimit
 @node clientloglimit directive
 @subsection clientloglimit
-This directive specifies the maximum size of the memory allocated to
-log client accesses.  When the limit is reached, only information for
-clients that have already been logged will be updated.  The default is
-524288 bytes.
+This directive specifies the maximum amount of memory that @code{chronyd} is
+allowed to allocate for logging of client accesses.  The default limit is
+524288 bytes, which allows monitoring of several thousands of addresses at the
+same time.
 
 In older @code{chrony} versions if the limit was set to 0, the memory
 allocation was unlimited.

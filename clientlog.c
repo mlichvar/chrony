@@ -34,6 +34,8 @@
 #include "config.h"
 
 #include "sysincl.h"
+
+#include "array.h"
 #include "clientlog.h"
 #include "conf.h"
 #include "memory.h"
@@ -41,104 +43,143 @@
 #include "util.h"
 #include "logging.h"
 
-/* Number of bits of address per layer of the table.  This value has
-   been chosen on the basis that a server will predominantly be serving
-   a lot of hosts in a few subnets, rather than a few hosts scattered
-   across many subnets. */
-
-#define NBITS 8
-
-/* Number of entries in each subtable */
-#define TABLE_SIZE (1UL<<NBITS)
-
 typedef struct {
   IPAddr ip_addr;
   uint32_t ntp_hits;
   uint32_t cmd_hits;
   time_t last_ntp_hit;
   time_t last_cmd_hit;
-} Node;
+} Record;
 
-typedef struct _Subnet {
-  void *entry[TABLE_SIZE];
-} Subnet;
+/* Hash table of records, there is a fixed number of records per slot */
+static ARR_Instance records;
 
-/* ================================================== */
+#define SLOT_BITS 4
 
-/* Table for the IPv4 class A subnet */
-static Subnet top_subnet4;
-/* Table for IPv6 */
-static Subnet top_subnet6;
+/* Number of records in one slot of the hash table */
+#define SLOT_SIZE (1U << SLOT_BITS)
 
-/* Table containing pointers directly to all nodes that have been
-   allocated. */
-static Node **nodes = NULL;
+/* Minimum number of slots */
+#define MIN_SLOTS 1
 
-/* Number of nodes actually in the table. */
-static int n_nodes = 0;
+/* Maximum number of slots, this is a hard limit */
+#define MAX_SLOTS (1U << (24 - SLOT_BITS))
 
-/* Number of entries for which the table has been sized. */
-static int max_nodes = 0;
+/* Number of slots in the hash table */
+static unsigned int slots;
+
+/* Maximum number of slots given memory allocation limit */
+static unsigned int max_slots;
 
 /* Flag indicating whether facility is turned on or not */
-static int active = 0;
-
-/* Flag indicating whether memory allocation limit has been reached
-   and no new nodes or subnets should be allocated */
-static int alloc_limit_reached;
-
-static unsigned long alloc_limit;
-static unsigned long alloced;
+static int active;
 
 /* ================================================== */
 
-static void
-split_ip6(IPAddr *ip, uint32_t *dst)
-{
-  int i;
-
-  for (i = 0; i < 4; i++)
-    dst[i] = ip->addr.in6[i * 4 + 0] << 24 |
-             ip->addr.in6[i * 4 + 1] << 16 |
-             ip->addr.in6[i * 4 + 2] << 8 |
-             ip->addr.in6[i * 4 + 3];
-}
+static int expand_hashtable(void);
 
 /* ================================================== */
 
-inline static uint32_t
-get_subnet(uint32_t *addr, unsigned int where)
+static Record *
+get_record(IPAddr *ip)
 {
-  int off;
+  unsigned int first, i;
+  time_t last_hit, oldest_hit = 0;
+  Record *record, *oldest_record;
 
-  off = where / 32;
-  where %= 32;
+  if (ip->family != IPADDR_INET4 && ip->family != IPADDR_INET6)
+    return NULL;
 
-  return (addr[off] >> (32 - NBITS - where)) & ((1UL << NBITS) - 1);
-}
+  while (1) {
+    /* Get index of the first record in the slot */
+    first = UTI_IPToHash(ip) % slots * SLOT_SIZE;
 
-/* ================================================== */
+    for (i = 0, oldest_record = NULL; i < SLOT_SIZE; i++) {
+      record = ARR_GetElement(records, first + i);
 
+      if (!UTI_CompareIPs(ip, &record->ip_addr, NULL))
+        return record;
 
-static void
-clear_subnet(Subnet *subnet)
-{
-  int i;
+      if (record->ip_addr.family == IPADDR_UNSPEC)
+        break;
 
-  for (i=0; i<TABLE_SIZE; i++) {
-    subnet->entry[i] = NULL;
+      last_hit = MAX(record->last_ntp_hit, record->last_cmd_hit);
+
+      if (!oldest_record ||
+          oldest_hit > last_hit ||
+          (oldest_hit == last_hit && record->ntp_hits + record->cmd_hits <
+           oldest_record->ntp_hits + oldest_record->cmd_hits)) {
+        oldest_record = record;
+        oldest_hit = last_hit;
+      }
+    }
+
+    /* If the slot still has an empty record, use it */
+    if (record->ip_addr.family == IPADDR_UNSPEC)
+      break;
+
+    /* Resize the table if possible and try again as the new slot may
+       have some empty records */
+    if (expand_hashtable())
+      continue;
+
+    /* There is no other option, replace the oldest record */
+    record = oldest_record;
+    break;
   }
+
+  record->ip_addr = *ip;
+  record->ntp_hits = record->cmd_hits = 0;
+  record->last_ntp_hit = record->last_cmd_hit = 0;
+
+  return record;
 }
 
 /* ================================================== */
 
-static void
-clear_node(Node *node)
+static int
+expand_hashtable(void)
 {
-  node->ntp_hits = 0;
-  node->cmd_hits = 0;
-  node->last_ntp_hit = (time_t) 0;
-  node->last_cmd_hit = (time_t) 0;
+  ARR_Instance old_records;
+  Record *old_record, *new_record;
+  unsigned int i;
+
+  old_records = records;
+
+  if (2 * slots > max_slots)
+    return 0;
+
+  records = ARR_CreateInstance(sizeof (Record));
+
+  slots = MAX(MIN_SLOTS, 2 * slots);
+  assert(slots <= max_slots);
+
+  ARR_SetSize(records, slots * SLOT_SIZE);
+
+  /* Mark all new records as empty */
+  for (i = 0; i < slots * SLOT_SIZE; i++) {
+    new_record = ARR_GetElement(records, i);
+    new_record->ip_addr.family = IPADDR_UNSPEC;
+  }
+
+  if (!old_records)
+    return 1;
+
+  /* Copy old records to the new hash table */
+  for (i = 0; i < ARR_GetSize(old_records); i++) {
+    old_record = ARR_GetElement(old_records, i);
+    if (old_record->ip_addr.family == IPADDR_UNSPEC)
+      continue;
+
+    new_record = get_record(&old_record->ip_addr);
+
+    assert(new_record);
+    *new_record = *old_record;
+  }
+
+  ARR_DestroyInstance(old_records);
+
+  return 1;
 }
 
 /* ================================================== */
@@ -146,21 +187,23 @@ clear_node(Node *node)
 void
 CLG_Initialise(void)
 {
-  clear_subnet(&top_subnet4);
-  clear_subnet(&top_subnet6);
-  if (CNF_GetNoClientLog()) {
-    active = 0;
-  } else {
-    active = 1;
-  }
+  active = !CNF_GetNoClientLog();
+  if (!active)
+    return;
 
-  nodes = NULL;
-  max_nodes = 0;
-  n_nodes = 0;
+  /* Calculate the maximum number of slots that can be allocated in the
+     configured memory limit.  Take into account expanding of the hash
+     table where two copies exist at the same time. */
+  max_slots = CNF_GetClientLogLimit() / (sizeof (Record) * SLOT_SIZE * 3 / 2);
+  if (max_slots < MIN_SLOTS)
+    max_slots = MIN_SLOTS;
+  else if (max_slots > MAX_SLOTS)
+    max_slots = MAX_SLOTS;
 
-  alloced = 0;
-  alloc_limit = CNF_GetClientLogLimit();
-  alloc_limit_reached = 0;
+  slots = 0;
+  records = NULL;
+
+  expand_hashtable();
 }
 
 /* ================================================== */
@@ -168,109 +211,10 @@ CLG_Initialise(void)
 void
 CLG_Finalise(void)
 {
-  int i;
-  
-  for (i = 0; i < n_nodes; i++)
-    Free(nodes[i]);
-  Free(nodes);
-}
-
-/* ================================================== */
-
-static void check_alloc_limit() {
-  if (alloc_limit_reached)
+  if (!active)
     return;
 
-  if (alloced >= alloc_limit) {
-    LOG(LOGS_WARN, LOGF_ClientLog, "Client log memory limit reached");
-    alloc_limit_reached = 1;
-  }
-}
-
-/* ================================================== */
-
-static void
-create_subnet(Subnet *parent_subnet, int the_entry)
-{
-  parent_subnet->entry[the_entry] = (void *) MallocNew(Subnet);
-  clear_subnet((Subnet *) parent_subnet->entry[the_entry]);
-  alloced += sizeof (Subnet);
-  check_alloc_limit();
-}
-
-/* ================================================== */
-
-static void
-create_node(Subnet *parent_subnet, int the_entry)
-{
-  Node *new_node;
-  new_node = MallocNew(Node);
-  parent_subnet->entry[the_entry] = (void *) new_node;
-  clear_node(new_node);
-
-  alloced += sizeof (Node);
-
-  if (n_nodes == max_nodes) {
-    if (nodes) {
-      assert(max_nodes > 0);
-      max_nodes *= 2;
-      nodes = ReallocArray(Node *, max_nodes, nodes);
-    } else {
-      assert(max_nodes == 0);
-      max_nodes = 16;
-      nodes = MallocArray(Node *, max_nodes);
-    }
-    alloced += sizeof (Node *) * (max_nodes - n_nodes);
-  }
-  nodes[n_nodes++] = (Node *) new_node;
-  check_alloc_limit();
-}
-
-/* ================================================== */
-/* Recursively seek out the Node entry for a particular address,
-   expanding subnet tables and node entries as we go if necessary. */
-
-static void *
-find_subnet(Subnet *subnet, uint32_t *addr, int addr_len, int bits_consumed)
-{
-  uint32_t this_subnet;
-
-  this_subnet = get_subnet(addr, bits_consumed);
-  bits_consumed += NBITS;
-
-  if (bits_consumed < 32 * addr_len) {
-    if (!subnet->entry[this_subnet]) {
-      if (alloc_limit_reached)
-        return NULL;
-      create_subnet(subnet, this_subnet);
-    }
-    return find_subnet((Subnet *) subnet->entry[this_subnet], addr, addr_len, bits_consumed);
-  } else {
-    if (!subnet->entry[this_subnet]) {
-      if (alloc_limit_reached)
-        return NULL;
-      create_node(subnet, this_subnet);
-    }
-    return subnet->entry[this_subnet];
-  }
-}
-
-/* ================================================== */
-
-static Node *
-get_node(IPAddr *ip)
-{
-  uint32_t ip6[4];
-
-  switch (ip->family) {
-    case IPADDR_INET4:
-      return (Node *)find_subnet(&top_subnet4, &ip->addr.in4, 1, 0);
-    case IPADDR_INET6:
-      split_ip6(ip, ip6);
-      return (Node *)find_subnet(&top_subnet6, ip6, 4, 0);
-    default:
-      return NULL;
-  }
+  ARR_DestroyInstance(records);
 }
 
 /* ================================================== */
@@ -278,17 +222,17 @@ get_node(IPAddr *ip)
 void
 CLG_LogNTPAccess(IPAddr *client, time_t now)
 {
-  Node *node;
+  Record *record;
 
-  if (active) {
-    node = get_node(client);
-    if (node == NULL)
-      return;
+  if (!active)
+    return;
 
-    node->ip_addr = *client;
-    node->last_ntp_hit = now;
-    ++node->ntp_hits;
-  }
+  record = get_record(client);
+  if (record == NULL)
+    return;
+
+  record->ntp_hits++;
+  record->last_ntp_hit = now;
 }
 
 /* ================================================== */
@@ -296,17 +240,17 @@ CLG_LogNTPAccess(IPAddr *client, time_t now)
 void
 CLG_LogCommandAccess(IPAddr *client, time_t now)
 {
-  Node *node;
+  Record *record;
 
-  if (active) {
-    node = get_node(client);
-    if (node == NULL)
-      return;
+  if (!active)
+    return;
 
-    node->ip_addr = *client;
-    node->last_cmd_hit = now;
-    ++node->cmd_hits;
-  }
+  record = get_record(client);
+  if (record == NULL)
+    return;
+
+  record->cmd_hits++;
+  record->last_cmd_hit = now;
 }
 
 /* ================================================== */
@@ -315,26 +259,22 @@ CLG_Status
 CLG_GetClientAccessReportByIndex(int index, RPT_ClientAccessByIndex_Report *report,
                                  time_t now, unsigned long *n_indices)
 {
-  Node *node;
+  Record *record;
 
-  *n_indices = n_nodes;
-
-  if (!active) {
+  if (!active)
     return CLG_INACTIVE;
-  } else {
 
-    if ((index < 0) || (index >= n_nodes)) {
-      return CLG_INDEXTOOLARGE;
-    }
+  *n_indices = ARR_GetSize(records);
+  if (index < 0 || index >= *n_indices)
+    return CLG_INDEXTOOLARGE;
     
-    node = nodes[index];
-    
-    report->ip_addr = node->ip_addr;
-    report->ntp_hits = node->ntp_hits;
-    report->cmd_hits = node->cmd_hits;
-    report->last_ntp_hit_ago = now - node->last_ntp_hit;
-    report->last_cmd_hit_ago = now - node->last_cmd_hit;
-    
-    return CLG_SUCCESS;
-  }
+  record = ARR_GetElement(records, index);
+
+  report->ip_addr = record->ip_addr;
+  report->ntp_hits = record->ntp_hits;
+  report->cmd_hits = record->cmd_hits;
+  report->last_ntp_hit_ago = now - record->last_ntp_hit;
+  report->last_cmd_hit_ago = now - record->last_cmd_hit;
+
+  return CLG_SUCCESS;
 }
