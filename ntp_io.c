@@ -37,6 +37,7 @@
 #include "local.h"
 #include "logging.h"
 #include "conf.h"
+#include "privops.h"
 #include "util.h"
 
 #define INVALID_SOCK_FD -1
@@ -221,7 +222,7 @@ prepare_socket(int family, int port_number, int client_only)
 #endif
 
   /* Bind the socket if a port or address was specified */
-  if (my_addr_len > 0 && bind(sock_fd, &my_addr.u, my_addr_len) < 0) {
+  if (my_addr_len > 0 && PRV_BindSocket(sock_fd, &my_addr.u, my_addr_len) < 0) {
     LOG(LOGS_ERR, LOGF_NtpIO, "Could not bind %s NTP socket : %s",
         UTI_SockaddrFamilyToString(family), strerror(errno));
     close(sock_fd);

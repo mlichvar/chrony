@@ -978,7 +978,13 @@ This option sets the name of the system user to which @code{chronyd} will
 switch after start in order to drop root privileges.  It overrides the
 @code{user} directive (default @code{@DEFAULT_USER@}).  It may be set to a
 non-root user only when @code{chronyd} is compiled with support for Linux
-capabilities (libcap) or on NetBSD with the @code{/dev/clockctl} device.
+capabilities (libcap), on NetBSD with the @code{/dev/clockctl} device or on
+Mac OS X.
+
+In the Mac OS X implementation @code{chronyd} forks into two processes.  The
+child process retains root privileges but can only perform a very limited range
+of privileged system calls on behalf of the parent.  The parent process drops
+root privileges to run as the specified system user.
 @item -F <level>
 This option configures a system call filter when @code{chronyd} is compiled with
 support for the Linux secure computing (seccomp) facility. In level 1 the
@@ -3169,8 +3175,13 @@ Valid measurements with corresponding compensations are logged to the
 The @code{user} directive sets the name of the system user to which
 @code{chronyd} will switch after start in order to drop root privileges.
 It may be set to a non-root user only when @code{chronyd} is compiled with
-support for Linux capabilities (libcap) or on NetBSD with the
-@code{/dev/clockctl} device.
+support for Linux capabilities (libcap), on NetBSD with the
+@code{/dev/clockctl} device or on Mac OS X.
+
+In the Mac OS X implementation @code{chronyd} forks into two processes.  The
+child process retains root privileges but can only perform a very limited range
+of privileged system calls on behalf of the parent.  The parent process drops
+root privileges to run as the specified system user.
 
 The default value is @code{@DEFAULT_USER@}.
 @c }}}

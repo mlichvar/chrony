@@ -392,6 +392,14 @@ case $OPERATINGSYSTEM in
         EXTRA_LIBS="-lresolv"
         EXTRA_CLI_LIBS="-lresolv"
         add_def MACOSX
+        if [ $feat_droproot = "1" ]; then
+          EXTRA_OBJECTS="$EXTRA_OBJECTS privops.o"
+          add_def PRIVOPS_ADJUSTTIME
+          add_def PRIVOPS_SETTIME
+          add_def PRIVOPS_BINDSOCKET
+          add_def PRIVOPS_HELPER
+          add_def FEAT_PRIVDROP
+        fi
         echo "Configuring for MacOS X (" $SYSTEM "MacOS X version" $VERSION ")"
     ;;
     SunOS)

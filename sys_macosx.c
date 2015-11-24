@@ -50,6 +50,7 @@
 #include "localp.h"
 #include "sched.h"
 #include "logging.h"
+#include "privops.h"
 #include "util.h"
 
 /* ================================================== */
@@ -117,7 +118,7 @@ clock_initialise(void)
   newadj.tv_sec = 0;
   newadj.tv_usec = 0;
 
-  if (adjtime(&newadj, &oldadj) < 0) {
+  if (PRV_AdjustTime(&newadj, &oldadj) < 0) {
     LOG_FATAL(LOGF_SysMacOSX, "adjtime() failed");
   }
 }
@@ -169,7 +170,7 @@ start_adjust(void)
   UTI_TimevalToDouble(&newadj, &adjustment_requested);
   rounding_error = adjust_required - adjustment_requested;
 
-  if (adjtime(&newadj, &oldadj) < 0) {
+  if (PRV_AdjustTime(&newadj, &oldadj) < 0) {
     LOG_FATAL(LOGF_SysMacOSX, "adjtime() failed");
   }
 
@@ -193,7 +194,7 @@ stop_adjust(void)
   zeroadj.tv_sec = 0;
   zeroadj.tv_usec = 0;
 
-  if (adjtime(&zeroadj, &remadj) < 0) {
+  if (PRV_AdjustTime(&zeroadj, &remadj) < 0) {
     LOG_FATAL(LOGF_SysMacOSX, "adjtime() failed");
   }
 
@@ -244,7 +245,7 @@ apply_step_offset(double offset)
 
   UTI_AddDoubleToTimeval(&old_time, -offset, &new_time);
 
-  if (settimeofday(&new_time, NULL) < 0) {
+  if (PRV_SetTime(&new_time, NULL) < 0) {
     DEBUG_LOG(LOGF_SysMacOSX, "settimeofday() failed");
     return 0;
   }
@@ -400,6 +401,26 @@ SYS_MacOSX_SetScheduler(int SchedPriority)
 
 /* ================================================== */
 
+#ifdef FEAT_PRIVDROP
+void SYS_MacOSX_DropRoot(uid_t uid, gid_t gid)
+{
+  PRV_Initialise();
+
+  if (setgroups(0, NULL))
+    LOG_FATAL(LOGF_SysMacOSX, "setgroups() failed : %s", strerror(errno));
+
+  if (setgid(gid))
+    LOG_FATAL(LOGF_SysMacOSX, "setgid(%d) failed : %s", gid, strerror(errno));
+
+  if (setuid(uid))
+    LOG_FATAL(LOGF_SysMacOSX, "setuid(%d) failed : %s", uid, strerror(errno));
+
+  DEBUG_LOG(LOGF_SysMacOSX, "Root dropped to uid %d gid %d", uid, gid);
+}
+#endif
+
+/* ================================================== */
+
 void
 SYS_MacOSX_Initialise(void)
 {
@@ -423,6 +444,9 @@ SYS_MacOSX_Finalise(void)
   SCH_RemoveTimeout(drift_removal_id);
 
   clock_finalise();
+#ifdef FEAT_PRIVDROP
+  PRV_Finalise();
+#endif
 }
 
 /* ================================================== */
