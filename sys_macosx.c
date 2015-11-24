@@ -31,16 +31,7 @@
 
 #ifdef MACOSX
 
-#include <sys/sysctl.h>
-#include <sys/time.h>
-
-#include <nlist.h>
-#include <fcntl.h>
-#include <assert.h>
-#include <sys/time.h>
-
-#include <stdio.h>
-#include <signal.h>
+#include "sysincl.h"
 
 #include <mach/mach.h>
 #include <mach/mach_time.h>
@@ -48,8 +39,8 @@
 
 #include "sys_macosx.h"
 #include "localp.h"
-#include "sched.h"
 #include "logging.h"
+#include "sched.h"
 #include "privops.h"
 #include "util.h"
 
