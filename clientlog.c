@@ -47,6 +47,8 @@ typedef struct {
   IPAddr ip_addr;
   uint32_t ntp_hits;
   uint32_t cmd_hits;
+  int8_t ntp_rate;
+  int8_t cmd_rate;
   time_t last_ntp_hit;
   time_t last_cmd_hit;
 } Record;
@@ -70,6 +72,11 @@ static unsigned int slots;
 
 /* Maximum number of slots given memory allocation limit */
 static unsigned int max_slots;
+
+/* Request rates are saved in the record as 8-bit scaled log2 values */
+#define RATE_SCALE 4
+#define MIN_RATE (-14 * RATE_SCALE)
+#define INVALID_RATE -128
 
 /* Flag indicating whether facility is turned on or not */
 static int active;
@@ -130,6 +137,7 @@ get_record(IPAddr *ip)
 
   record->ip_addr = *ip;
   record->ntp_hits = record->cmd_hits = 0;
+  record->ntp_rate = record->cmd_rate = INVALID_RATE;
   record->last_ntp_hit = record->last_cmd_hit = 0;
 
   return record;
@@ -184,6 +192,47 @@ expand_hashtable(void)
 
 /* ================================================== */
 
+static int
+update_rate(int rate, time_t now, time_t last_hit)
+{
+  uint32_t interval;
+  int interval2;
+
+  if (!last_hit || now < last_hit)
+    return rate;
+
+  interval = now - last_hit;
+
+  /* Convert the interval to scaled and rounded log2 */
+  if (interval) {
+    interval += interval >> 1;
+    for (interval2 = 0; interval2 < -MIN_RATE; interval2 += RATE_SCALE) {
+      if (interval <= 1)
+        break;
+      interval >>= 1;
+    }
+  } else {
+    interval2 = -RATE_SCALE;
+  }
+
+  if (rate == INVALID_RATE)
+    return -interval2;
+
+  /* Update the rate in a rough approximation of exponential moving average */
+  if (rate < -interval2) {
+    rate++;
+  } else if (rate > -interval2) {
+    if (rate > RATE_SCALE * 5 / 2 - interval2)
+      rate = RATE_SCALE * 5 / 2 - interval2;
+    else
+      rate = (rate - interval2 - 1) / 2;
+  }
+
+  return rate;
+}
+
+/* ================================================== */
+
 void
 CLG_Initialise(void)
 {
@@ -195,10 +244,7 @@ CLG_Initialise(void)
      configured memory limit.  Take into account expanding of the hash
      table where two copies exist at the same time. */
   max_slots = CNF_GetClientLogLimit() / (sizeof (Record) * SLOT_SIZE * 3 / 2);
-  if (max_slots < MIN_SLOTS)
-    max_slots = MIN_SLOTS;
-  else if (max_slots > MAX_SLOTS)
-    max_slots = MAX_SLOTS;
+  max_slots = CLAMP(MIN_SLOTS, max_slots, MAX_SLOTS);
 
   slots = 0;
   records = NULL;
@@ -232,7 +278,11 @@ CLG_LogNTPAccess(IPAddr *client, time_t now)
     return;
 
   record->ntp_hits++;
+  record->ntp_rate = update_rate(record->ntp_rate, now, record->last_ntp_hit);
   record->last_ntp_hit = now;
+
+  DEBUG_LOG(LOGF_ClientLog, "NTP hits %"PRIu32" rate %d",
+            record->ntp_hits, record->ntp_rate);
 }
 
 /* ================================================== */
@@ -250,7 +300,11 @@ CLG_LogCommandAccess(IPAddr *client, time_t now)
     return;
 
   record->cmd_hits++;
+  record->cmd_rate = update_rate(record->cmd_rate, now, record->last_cmd_hit);
   record->last_cmd_hit = now;
+
+  DEBUG_LOG(LOGF_ClientLog, "Cmd hits %"PRIu32" rate %d",
+            record->cmd_hits, record->cmd_rate);
 }
 
 /* ================================================== */
