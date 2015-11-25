@@ -1158,7 +1158,7 @@ read_from_cmd_socket(void *anything)
   CMD_Request rx_message;
   CMD_Reply tx_message;
   int status, read_length, expected_length, rx_message_length;
-  int localhost, allowed, sock_fd;
+  int localhost, allowed, sock_fd, log_index;
   union sockaddr_all where_from;
   socklen_t from_length;
   IPAddr remote_ip;
@@ -1290,7 +1290,14 @@ read_from_cmd_socket(void *anything)
 
   /* OK, we have a valid message.  Now dispatch on message type and process it. */
 
-  CLG_LogCommandAccess(&remote_ip, cooked_now.tv_sec);
+  log_index = CLG_LogCommandAccess(&remote_ip, cooked_now.tv_sec);
+
+  /* Don't reply to all requests from hosts other than localhost if the rate
+     is excessive */
+  if (!localhost && log_index >= 0 && CLG_LimitCommandResponseRate(log_index)) {
+      DEBUG_LOG(LOGF_CmdMon, "Command packet discarded to limit response rate");
+      return;
+  }
 
   if (rx_command >= N_REQUEST_TYPES) {
     /* This should be already handled */

@@ -47,8 +47,15 @@ typedef struct {
   IPAddr ip_addr;
   uint32_t ntp_hits;
   uint32_t cmd_hits;
+  uint16_t ntp_drops;
+  uint16_t cmd_drops;
   int8_t ntp_rate;
   int8_t cmd_rate;
+  int8_t ntp_timeout_rate;
+  uint8_t ntp_burst;
+  uint8_t cmd_burst;
+  uint8_t flags;
+  uint16_t _pad;
   time_t last_ntp_hit;
   time_t last_cmd_hit;
 } Record;
@@ -77,6 +84,36 @@ static unsigned int max_slots;
 #define RATE_SCALE 4
 #define MIN_RATE (-14 * RATE_SCALE)
 #define INVALID_RATE -128
+
+/* Thresholds for request rate to activate response rate limiting */
+
+#define MIN_THRESHOLD (-10 * RATE_SCALE)
+#define MAX_THRESHOLD (0 * RATE_SCALE)
+
+static int ntp_threshold;
+static int cmd_threshold;
+
+/* Numbers of responses after the rate exceeded the threshold before
+   actually dropping requests */
+
+#define MIN_LEAK_BURST 0
+#define MAX_LEAK_BURST 255
+
+static int ntp_leak_burst;
+static int cmd_leak_burst;
+
+/* Rates at which responses are randomly allowed (in log2). This is
+   necessary to prevent an attacker sending requests with spoofed
+   source address from blocking responses to the client completely. */
+
+#define MIN_LEAK_RATE 1
+#define MAX_LEAK_RATE 4
+
+static int ntp_leak_rate;
+static int cmd_leak_rate;
+
+/* Flag indicating whether the last response was dropped */
+#define FLAG_NTP_DROPPED 0x1
 
 /* Flag indicating whether facility is turned on or not */
 static int active;
@@ -137,7 +174,11 @@ get_record(IPAddr *ip)
 
   record->ip_addr = *ip;
   record->ntp_hits = record->cmd_hits = 0;
+  record->ntp_drops = record->cmd_drops = 0;
   record->ntp_rate = record->cmd_rate = INVALID_RATE;
+  record->ntp_timeout_rate = INVALID_RATE;
+  record->ntp_burst = record->cmd_burst = 0;
+  record->flags = 0;
   record->last_ntp_hit = record->last_cmd_hit = 0;
 
   return record;
@@ -236,6 +277,8 @@ update_rate(int rate, time_t now, time_t last_hit)
 void
 CLG_Initialise(void)
 {
+  int threshold, burst, leak_rate;
+
   active = !CNF_GetNoClientLog();
   if (!active)
     return;
@@ -250,6 +293,20 @@ CLG_Initialise(void)
   records = NULL;
 
   expand_hashtable();
+
+  if (CNF_GetNTPRateLimit(&threshold, &burst, &leak_rate))
+    ntp_threshold = CLAMP(MIN_THRESHOLD, threshold * -RATE_SCALE, MAX_THRESHOLD);
+  else
+    ntp_threshold = INVALID_RATE;
+  ntp_leak_burst = CLAMP(MIN_LEAK_BURST, burst, MAX_LEAK_BURST);
+  ntp_leak_rate = CLAMP(MIN_LEAK_RATE, leak_rate, MAX_LEAK_RATE);
+
+  if (CNF_GetCommandRateLimit(&threshold, &burst, &leak_rate))
+    cmd_threshold = CLAMP(MIN_THRESHOLD, threshold * -RATE_SCALE, MAX_THRESHOLD);
+  else
+    cmd_threshold = INVALID_RATE;
+  cmd_leak_burst = CLAMP(MIN_LEAK_BURST, burst, MAX_LEAK_BURST);
+  cmd_leak_rate = CLAMP(MIN_LEAK_RATE, leak_rate, MAX_LEAK_RATE);
 }
 
 /* ================================================== */
@@ -265,46 +322,161 @@ CLG_Finalise(void)
 
 /* ================================================== */
 
-void
+static int
+get_index(Record *record)
+{
+  return record - (Record *)ARR_GetElements(records);
+}
+
+/* ================================================== */
+
+int
 CLG_LogNTPAccess(IPAddr *client, time_t now)
 {
   Record *record;
 
   if (!active)
-    return;
+    return -1;
 
   record = get_record(client);
   if (record == NULL)
-    return;
+    return -1;
 
   record->ntp_hits++;
-  record->ntp_rate = update_rate(record->ntp_rate, now, record->last_ntp_hit);
+
+  /* Update one of the two rates depending on whether the previous request
+     of the client had a reply or it timed out */
+  if (record->flags & FLAG_NTP_DROPPED)
+    record->ntp_timeout_rate = update_rate(record->ntp_timeout_rate,
+                                           now, record->last_ntp_hit);
+  else
+    record->ntp_rate = update_rate(record->ntp_rate, now, record->last_ntp_hit);
+
   record->last_ntp_hit = now;
 
-  DEBUG_LOG(LOGF_ClientLog, "NTP hits %"PRIu32" rate %d",
-            record->ntp_hits, record->ntp_rate);
+  DEBUG_LOG(LOGF_ClientLog, "NTP hits %"PRIu32" rate %d trate %d burst %d",
+            record->ntp_hits, record->ntp_rate, record->ntp_timeout_rate,
+            record->ntp_burst);
+
+  return get_index(record);
 }
 
 /* ================================================== */
 
-void
+int
 CLG_LogCommandAccess(IPAddr *client, time_t now)
 {
   Record *record;
 
   if (!active)
-    return;
+    return -1;
 
   record = get_record(client);
   if (record == NULL)
-    return;
+    return -1;
 
   record->cmd_hits++;
   record->cmd_rate = update_rate(record->cmd_rate, now, record->last_cmd_hit);
   record->last_cmd_hit = now;
 
-  DEBUG_LOG(LOGF_ClientLog, "Cmd hits %"PRIu32" rate %d",
-            record->cmd_hits, record->cmd_rate);
+  DEBUG_LOG(LOGF_ClientLog, "Cmd hits %"PRIu32" rate %d burst %d",
+            record->cmd_hits, record->cmd_rate, record->cmd_burst);
+
+  return get_index(record);
+}
+
+/* ================================================== */
+
+static int
+limit_response_random(int leak_rate)
+{
+  static uint32_t rnd;
+  static int bits_left = 0;
+  int r;
+
+  if (bits_left < leak_rate) {
+    UTI_GetRandomBytes(&rnd, sizeof (rnd));
+    bits_left = 8 * sizeof (rnd);
+  }
+
+  /* Return zero on average once per 2^leak_rate */
+  r = rnd % (1U << leak_rate) ? 1 : 0;
+  rnd >>= leak_rate;
+  bits_left -= leak_rate;
+
+  return r;
+}
+
+/* ================================================== */
+
+int
+CLG_LimitNTPResponseRate(int index)
+{
+  Record *record;
+  int drop;
+
+  record = ARR_GetElement(records, index);
+  record->flags &= ~FLAG_NTP_DROPPED;
+
+  /* Respond to all requests if the rate doesn't exceed the threshold */
+  if (ntp_threshold == INVALID_RATE ||
+      record->ntp_rate == INVALID_RATE ||
+      record->ntp_rate <= ntp_threshold) {
+    record->ntp_burst = 0;
+    return 0;
+  }
+
+  /* Allow the client to send a burst of requests */
+  if (record->ntp_burst < ntp_leak_burst) {
+    record->ntp_burst++;
+    return 0;
+  }
+
+  drop = limit_response_random(ntp_leak_rate);
+
+  /* Poorly implemented clients may send new requests at even a higher rate
+     when they are not getting replies.  If the request rate seems to be more
+     than twice as much as when replies are sent, give up on rate limiting to
+     reduce the amount of traffic.  Invert the sense of the leak to respond to
+     most of the requests, but still keep the estimated rate updated. */
+  if (record->ntp_timeout_rate != INVALID_RATE &&
+      record->ntp_timeout_rate > record->ntp_rate + RATE_SCALE)
+    drop = !drop;
+
+  if (!drop)
+    return 0;
+
+  record->flags |= FLAG_NTP_DROPPED;
+  record->ntp_drops++;
+
+  return 1;
+}
+
+/* ================================================== */
+
+int
+CLG_LimitCommandResponseRate(int index)
+{
+  Record *record;
+
+  record = ARR_GetElement(records, index);
+
+  if (cmd_threshold == INVALID_RATE ||
+      record->cmd_rate == INVALID_RATE ||
+      record->cmd_rate <= cmd_threshold) {
+    record->cmd_burst = 0;
+    return 0;
+  }
+
+  if (record->cmd_burst < cmd_leak_burst) {
+    record->cmd_burst++;
+    return 0;
+  }
+
+  if (!limit_response_random(cmd_leak_rate))
+    return 0;
+
+  return 1;
 }
 
 /* ================================================== */

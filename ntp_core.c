@@ -1649,7 +1649,7 @@ NCR_ProcessUnknown
  )
 {
   NTP_Mode pkt_mode, my_mode;
-  int has_auth, valid_auth;
+  int has_auth, valid_auth, log_index;
   uint32_t key_id;
 
   /* Ignore the packet if it wasn't received by server socket */
@@ -1686,7 +1686,13 @@ NCR_ProcessUnknown
       return;
   }
 
-  CLG_LogNTPAccess(&remote_addr->ip_addr, now->tv_sec);
+  log_index = CLG_LogNTPAccess(&remote_addr->ip_addr, now->tv_sec);
+
+  /* Don't reply to all requests if the rate is excessive */
+  if (log_index >= 0 && CLG_LimitNTPResponseRate(log_index)) {
+      DEBUG_LOG(LOGF_NtpCore, "NTP packet discarded to limit response rate");
+      return;
+  }
 
   /* Check if the packet includes MAC that authenticates properly */
   valid_auth = check_packet_auth(message, length, &has_auth, &key_id);
