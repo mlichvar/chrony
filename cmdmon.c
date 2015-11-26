@@ -1155,30 +1155,21 @@ handle_refresh(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 read_from_cmd_socket(void *anything)
 {
-  int status;
-  int read_length; /* Length of packet read */
-  int expected_length; /* Expected length of packet without auth data */
-  unsigned long flags;
   CMD_Request rx_message;
   CMD_Reply tx_message;
-  int rx_message_length;
-  int sock_fd;
+  int status, read_length, expected_length, rx_message_length;
+  int localhost, allowed, sock_fd;
   union sockaddr_all where_from;
   socklen_t from_length;
   IPAddr remote_ip;
-  unsigned short remote_port;
-  int localhost;
-  int allowed;
-  unsigned short rx_command;
-  struct timeval now;
-  struct timeval cooked_now;
+  unsigned short remote_port, rx_command;
+  struct timeval now, cooked_now;
 
-  flags = 0;
   rx_message_length = sizeof(rx_message);
   from_length = sizeof(where_from);
 
   sock_fd = (long)anything;
-  status = recvfrom(sock_fd, (char *)&rx_message, rx_message_length, flags,
+  status = recvfrom(sock_fd, (char *)&rx_message, rx_message_length, 0,
                     &where_from.sa, &from_length);
 
   if (status < 0) {
