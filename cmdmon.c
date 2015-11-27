@@ -1017,50 +1017,50 @@ handle_cyclelogs(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_client_accesses_by_index(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  CLG_Status result;
   RPT_ClientAccessByIndex_Report report;
-  unsigned long first_index, n_indices, n_indices_in_table;
-  int i, j;
+  RPY_ClientAccesses_Client *client;
+  int n_indices;
+  uint32_t i, j, req_first_index, req_n_clients;
   struct timeval now;
 
   SCH_GetLastEventTime(&now, NULL, NULL);
 
-  first_index = ntohl(rx_message->data.client_accesses_by_index.first_index);
-  n_indices = ntohl(rx_message->data.client_accesses_by_index.n_indices);
-  if (n_indices > MAX_CLIENT_ACCESSES)
-    n_indices = MAX_CLIENT_ACCESSES;
+  req_first_index = ntohl(rx_message->data.client_accesses_by_index.first_index);
+  req_n_clients = ntohl(rx_message->data.client_accesses_by_index.n_clients);
+  if (req_n_clients > MAX_CLIENT_ACCESSES)
+    req_n_clients = MAX_CLIENT_ACCESSES;
 
-  tx_message->reply = htons(RPY_CLIENT_ACCESSES_BY_INDEX);
-
-  for (i = 0, j = 0; i < n_indices; i++) {
-    result = CLG_GetClientAccessReportByIndex(first_index + i, &report,
-                                              now.tv_sec, &n_indices_in_table);
-    tx_message->data.client_accesses_by_index.n_indices = htonl(n_indices_in_table);
-
-    switch (result) {
-      case CLG_SUCCESS:
-        UTI_IPHostToNetwork(&report.ip_addr, &tx_message->data.client_accesses_by_index.clients[j].ip);
-        tx_message->data.client_accesses_by_index.clients[j].client_hits = htonl(report.ntp_hits);
-        tx_message->data.client_accesses_by_index.clients[j].peer_hits = htonl(0);
-        tx_message->data.client_accesses_by_index.clients[j].cmd_hits_auth = htonl(0);
-        tx_message->data.client_accesses_by_index.clients[j].cmd_hits_normal = htonl(report.cmd_hits);
-        tx_message->data.client_accesses_by_index.clients[j].cmd_hits_bad = htonl(0);
-        tx_message->data.client_accesses_by_index.clients[j].last_ntp_hit_ago = htonl(report.last_ntp_hit_ago);
-        tx_message->data.client_accesses_by_index.clients[j].last_cmd_hit_ago = htonl(report.last_cmd_hit_ago);
-        j++;
-        break;
-      case CLG_INDEXTOOLARGE:
-        break; /* ignore this index */
-      case CLG_INACTIVE:
-        tx_message->status = htons(STT_INACTIVE);
-        return;
-      default:
-        assert(0);
-        break;
-    }
+  n_indices = CLG_GetNumberOfIndices();
+  if (n_indices < 0) {
+    tx_message->status = htons(STT_INACTIVE);
+    return;
   }
 
-  tx_message->data.client_accesses_by_index.next_index = htonl(first_index + i);
+  tx_message->reply = htons(RPY_CLIENT_ACCESSES_BY_INDEX);
+  tx_message->data.client_accesses_by_index.n_indices = htonl(n_indices);
+
+  memset(tx_message->data.client_accesses_by_index.clients, 0,
+         sizeof (tx_message->data.client_accesses_by_index.clients));
+
+  for (i = req_first_index, j = 0; i < (uint32_t)n_indices && j < req_n_clients; i++) {
+    if (!CLG_GetClientAccessReportByIndex(i, &report, now.tv_sec))
+      continue;
+
+    client = &tx_message->data.client_accesses_by_index.clients[j++];
+
+    UTI_IPHostToNetwork(&report.ip_addr, &client->ip);
+    client->ntp_hits = htonl(report.ntp_hits);
+    client->cmd_hits = htonl(report.cmd_hits);
+    client->ntp_drops = htons(report.ntp_drops);
+    client->cmd_drops = htons(report.cmd_drops);
+    client->ntp_interval = report.ntp_interval;
+    client->cmd_interval = report.cmd_interval;
+    client->ntp_timeout_interval = report.ntp_timeout_interval;
+    client->last_ntp_hit_ago = htonl(report.last_ntp_hit_ago);
+    client->last_cmd_hit_ago = htonl(report.last_cmd_hit_ago);
+  }
+
+  tx_message->data.client_accesses_by_index.next_index = htonl(i);
   tx_message->data.client_accesses_by_index.n_clients = htonl(j);
 }
 

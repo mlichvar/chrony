@@ -88,10 +88,15 @@ typedef struct {
 
 typedef struct {
   IPAddr ip_addr;
-  unsigned long ntp_hits;
-  unsigned long cmd_hits;
-  unsigned long last_ntp_hit_ago;
-  unsigned long last_cmd_hit_ago;
+  uint32_t ntp_hits;
+  uint32_t cmd_hits;
+  uint16_t ntp_drops;
+  uint16_t cmd_drops;
+  int8_t ntp_interval;
+  int8_t cmd_interval;
+  int8_t ntp_timeout_interval;
+  uint32_t last_ntp_hit_ago;
+  uint32_t last_cmd_hit_ago;
 } RPT_ClientAccessByIndex_Report;
 
 typedef struct {

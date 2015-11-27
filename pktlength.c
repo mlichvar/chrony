@@ -346,17 +346,7 @@ PKL_ReplyLength(CMD_Reply *r)
         /* No longer supported */
         return 0;
       case RPY_CLIENT_ACCESSES_BY_INDEX:
-        {
-          unsigned long nc = ntohl(r->data.client_accesses_by_index.n_clients);
-          if (r->status == htons(STT_SUCCESS)) {
-            if (nc > MAX_CLIENT_ACCESSES)
-              return 0;
-            return (offsetof(CMD_Reply, data.client_accesses_by_index.clients) +
-                    nc * sizeof(RPY_ClientAccesses_Client));
-          } else {
-            return offsetof(CMD_Reply, data);
-          }
-        }
+        return offsetof(CMD_Reply, data.client_accesses_by_index.EOR);
       case RPY_MANUAL_LIST:
         {
           unsigned long ns = ntohl(r->data.manual_list.n_samples);

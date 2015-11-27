@@ -284,7 +284,7 @@ typedef struct {
 
 typedef struct {
   uint32_t first_index;
-  uint32_t n_indices;
+  uint32_t n_clients;
   int32_t EOR;
 } REQ_ClientAccessesByIndex;
 
@@ -351,7 +351,7 @@ typedef struct {
 #define PROTO_VERSION_PADDING 6
 
 /* The maximum length of padding in request packet, currently
-   defined by CLIENT_ACCESSES_BY_INDEX and MANUAL_LIST */
+   defined by MANUAL_LIST */
 #define MAX_PADDING_LENGTH 396
 
 /* ================================================== */
@@ -545,11 +545,14 @@ typedef struct {
 
 typedef struct {
   IPAddr ip;
-  uint32_t client_hits;
-  uint32_t peer_hits;
-  uint32_t cmd_hits_auth;
-  uint32_t cmd_hits_normal;
-  uint32_t cmd_hits_bad;
+  uint32_t ntp_hits;
+  uint32_t cmd_hits;
+  uint16_t ntp_drops;
+  uint16_t cmd_drops;
+  int8_t ntp_interval;
+  int8_t cmd_interval;
+  int8_t ntp_timeout_interval;
+  int8_t pad;
   uint32_t last_ntp_hit_ago;
   uint32_t last_cmd_hit_ago;
 } RPY_ClientAccesses_Client;

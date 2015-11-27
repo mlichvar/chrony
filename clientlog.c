@@ -481,26 +481,41 @@ CLG_LimitCommandResponseRate(int index)
 
 /* ================================================== */
 
-CLG_Status
-CLG_GetClientAccessReportByIndex(int index, RPT_ClientAccessByIndex_Report *report,
-                                 time_t now, unsigned long *n_indices)
+extern int
+CLG_GetNumberOfIndices(void)
+{
+  if (!active)
+    return -1;
+
+  return ARR_GetSize(records);
+}
+
+/* ================================================== */
+
+int
+CLG_GetClientAccessReportByIndex(int index, RPT_ClientAccessByIndex_Report *report, time_t now)
 {
   Record *record;
 
-  if (!active)
-    return CLG_INACTIVE;
+  if (!active || index < 0 || index >= ARR_GetSize(records))
+    return 0;
 
-  *n_indices = ARR_GetSize(records);
-  if (index < 0 || index >= *n_indices)
-    return CLG_INDEXTOOLARGE;
-    
   record = ARR_GetElement(records, index);
+
+  if (record->ip_addr.family == IPADDR_UNSPEC)
+    return 0;
 
   report->ip_addr = record->ip_addr;
   report->ntp_hits = record->ntp_hits;
   report->cmd_hits = record->cmd_hits;
+  report->ntp_drops = record->ntp_drops;
+  report->cmd_drops = record->cmd_drops;
+  report->ntp_interval = (record->ntp_rate - RATE_SCALE / 2) / -RATE_SCALE;
+  report->cmd_interval = (record->cmd_rate - RATE_SCALE / 2) / -RATE_SCALE;
+  report->ntp_timeout_interval =
+                 (record->ntp_timeout_rate - RATE_SCALE / 2) / -RATE_SCALE;
   report->last_ntp_hit_ago = now - record->last_ntp_hit;
   report->last_cmd_hit_ago = now - record->last_cmd_hit;
 
-  return CLG_SUCCESS;
+  return 1;
 }
