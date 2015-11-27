@@ -1404,8 +1404,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
                            &sample_time,
                            offset, delay, dispersion,
                            root_delay, root_dispersion,
-                           message->stratum > inst->min_stratum ?
-                             message->stratum : inst->min_stratum,
+                           MAX(message->stratum, inst->min_stratum),
                            (NTP_Leap) pkt_leap);
 
       SRC_SelectSource(inst->source);

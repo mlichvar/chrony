@@ -148,4 +148,17 @@ extern int UTI_CheckDirPermissions(const char *path, mode_t perm, uid_t uid, gid
 /* Fill buffer with random bytes */
 extern void UTI_GetRandomBytes(void *buf, unsigned int len);
 
+/* Macros to get maximum and minimum of two values */
+#ifdef MAX
+#undef MAX
+#endif
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+#ifdef MIN
+#undef MIN
+#endif
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+
+/* Macro to clamp a value between two values */
+#define CLAMP(min, x, max) (MAX((min), MIN((x), (max))))
+
 #endif /* GOT_UTIL_H */
