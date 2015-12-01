@@ -103,6 +103,12 @@ ARR_GetElement(ARR_Instance array, unsigned int index)
 void *
 ARR_GetElements(ARR_Instance array)
 {
+  /* Return a non-NULL pointer when the array has zero size */
+  if (!array->data) {
+    assert(!array->used);
+    return array;
+  }
+
   return array->data;
 }
 
