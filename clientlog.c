@@ -508,6 +508,8 @@ CLG_LimitCommandResponseRate(int index)
   if (!limit_response_random(cmd_leak_rate))
     return 0;
 
+  record->cmd_drops++;
+
   return 1;
 }
 
