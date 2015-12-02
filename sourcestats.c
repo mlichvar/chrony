@@ -845,7 +845,7 @@ SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timeval *now
     UTI_DiffTimevals(&ago, now, &inst->sample_times[i]);
     report->latest_meas_ago = ago.tv_sec;
   } else {
-    report->latest_meas_ago = 86400 * 365 * 10;
+    report->latest_meas_ago = (uint32_t)-1;
     report->orig_latest_meas = 0;
     report->latest_meas = 0;
     report->latest_meas_err = 0;
