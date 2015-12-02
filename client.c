@@ -1544,7 +1544,10 @@ static void
 print_seconds(unsigned long s)
 {
   unsigned long d;
-  if (s <= 1024) {
+
+  if (s == (uint32_t)-1) {
+    printf("   -");
+  } else if (s <= 1024) {
     printf("%4ld", s);
   } else if (s < 36000) {
     printf("%3ldm", s / 60);
@@ -1639,6 +1642,18 @@ print_signed_freq_ppm(double f)
     printf("%+10.3f", f);
   } else {
     printf("%+10.0f", f);
+  }
+}
+
+/* ================================================== */
+
+static void
+print_clientlog_interval(int rate)
+{
+  if (rate >= 127) {
+    printf(" -");
+  } else {
+    printf("%2d", rate);
   }
 }
 
@@ -2084,13 +2099,17 @@ process_cmd_clients(char *line)
         DNS_IPAddress2Name(&ip, hostname, sizeof (hostname));
 
       printf("%-25s", hostname);
-      printf("  %6"PRIu32"  %5"PRIu16"  %2d  %2d  ",
-             ntohl(client->ntp_hits), ntohs(client->ntp_drops),
-             client->ntp_interval, client->ntp_timeout_interval);
+      printf("  %6"PRIu32"  %5"PRIu16"  ",
+             ntohl(client->ntp_hits), ntohs(client->ntp_drops));
+      print_clientlog_interval(client->ntp_interval);
+      printf("  ");
+      print_clientlog_interval(client->ntp_timeout_interval);
+      printf("  ");
       print_seconds(ntohl(client->last_ntp_hit_ago));
-      printf("  %6"PRIu32"  %5"PRIu16"  %2d  ",
-             ntohl(client->cmd_hits), ntohs(client->cmd_drops),
-             client->cmd_interval);
+      printf("  %6"PRIu32"  %5"PRIu16"  ",
+             ntohl(client->cmd_hits), ntohs(client->cmd_drops));
+      print_clientlog_interval(client->cmd_interval);
+      printf("  ");
       print_seconds(ntohl(client->last_cmd_hit_ago));
       printf("\n");
     }
