@@ -1043,7 +1043,7 @@ handle_client_accesses_by_index(CMD_Request *rx_message, CMD_Reply *tx_message)
          sizeof (tx_message->data.client_accesses_by_index.clients));
 
   for (i = req_first_index, j = 0; i < (uint32_t)n_indices && j < req_n_clients; i++) {
-    if (!CLG_GetClientAccessReportByIndex(i, &report, now.tv_sec))
+    if (!CLG_GetClientAccessReportByIndex(i, &report, &now))
       continue;
 
     client = &tx_message->data.client_accesses_by_index.clients[j++];
@@ -1290,7 +1290,7 @@ read_from_cmd_socket(void *anything)
 
   /* OK, we have a valid message.  Now dispatch on message type and process it. */
 
-  log_index = CLG_LogCommandAccess(&remote_ip, cooked_now.tv_sec);
+  log_index = CLG_LogCommandAccess(&remote_ip, &cooked_now);
 
   /* Don't reply to all requests from hosts other than localhost if the rate
      is excessive */

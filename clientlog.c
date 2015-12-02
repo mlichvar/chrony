@@ -45,6 +45,8 @@
 
 typedef struct {
   IPAddr ip_addr;
+  uint32_t last_ntp_hit;
+  uint32_t last_cmd_hit;
   uint32_t ntp_hits;
   uint32_t cmd_hits;
   uint16_t ntp_drops;
@@ -56,8 +58,6 @@ typedef struct {
   uint8_t cmd_burst;
   uint8_t flags;
   uint16_t _pad;
-  time_t last_ntp_hit;
-  time_t last_cmd_hit;
 } Record;
 
 /* Hash table of records, there is a fixed number of records per slot */
@@ -80,6 +80,10 @@ static unsigned int slots;
 /* Maximum number of slots given memory allocation limit */
 static unsigned int max_slots;
 
+/* Times of last hits are saved as 32-bit fixed point values */
+#define TS_FRAC 4
+#define INVALID_TS 0
+
 /* Request rates are saved in the record as 8-bit scaled log2 values */
 #define RATE_SCALE 4
 #define MIN_RATE (-14 * RATE_SCALE)
@@ -88,7 +92,7 @@ static unsigned int max_slots;
 /* Thresholds for request rate to activate response rate limiting */
 
 #define MIN_THRESHOLD (-10 * RATE_SCALE)
-#define MAX_THRESHOLD (0 * RATE_SCALE)
+#define MAX_THRESHOLD (TS_FRAC * RATE_SCALE)
 
 static int ntp_threshold;
 static int cmd_threshold;
@@ -124,6 +128,18 @@ static int expand_hashtable(void);
 
 /* ================================================== */
 
+static int
+compare_ts(uint32_t x, uint32_t y)
+{
+  if (x == y)
+    return 0;
+  if (y == INVALID_TS)
+    return 1;
+  return (int32_t)(x - y) > 0 ? 1 : -1;
+}
+
+/* ================================================== */
+
 static Record *
 get_record(IPAddr *ip)
 {
@@ -147,10 +163,10 @@ get_record(IPAddr *ip)
       if (record->ip_addr.family == IPADDR_UNSPEC)
         break;
 
-      last_hit = MAX(record->last_ntp_hit, record->last_cmd_hit);
+      last_hit = compare_ts(record->last_ntp_hit, record->last_cmd_hit) > 0 ?
+                 record->last_ntp_hit : record->last_cmd_hit;
 
-      if (!oldest_record ||
-          oldest_hit > last_hit ||
+      if (!oldest_record || compare_ts(oldest_hit, last_hit) > 0 ||
           (oldest_hit == last_hit && record->ntp_hits + record->cmd_hits <
            oldest_record->ntp_hits + oldest_record->cmd_hits)) {
         oldest_record = record;
@@ -173,13 +189,13 @@ get_record(IPAddr *ip)
   }
 
   record->ip_addr = *ip;
+  record->last_ntp_hit = record->last_cmd_hit = INVALID_TS;
   record->ntp_hits = record->cmd_hits = 0;
   record->ntp_drops = record->cmd_drops = 0;
   record->ntp_rate = record->cmd_rate = INVALID_RATE;
   record->ntp_timeout_rate = INVALID_RATE;
   record->ntp_burst = record->cmd_burst = 0;
   record->flags = 0;
-  record->last_ntp_hit = record->last_cmd_hit = 0;
 
   return record;
 }
@@ -234,26 +250,27 @@ expand_hashtable(void)
 /* ================================================== */
 
 static int
-update_rate(int rate, time_t now, time_t last_hit)
+update_rate(int rate, uint32_t now, uint32_t last_hit)
 {
   uint32_t interval;
   int interval2;
 
-  if (!last_hit || now < last_hit)
-    return rate;
-
   interval = now - last_hit;
+
+  if (last_hit == INVALID_TS || (int32_t)interval < 0)
+    return rate;
 
   /* Convert the interval to scaled and rounded log2 */
   if (interval) {
     interval += interval >> 1;
-    for (interval2 = 0; interval2 < -MIN_RATE; interval2 += RATE_SCALE) {
+    for (interval2 = -RATE_SCALE * TS_FRAC; interval2 < -MIN_RATE;
+         interval2 += RATE_SCALE) {
       if (interval <= 1)
         break;
       interval >>= 1;
     }
   } else {
-    interval2 = -RATE_SCALE;
+    interval2 = -RATE_SCALE * (TS_FRAC + 1);
   }
 
   if (rate == INVALID_RATE)
@@ -322,6 +339,16 @@ CLG_Finalise(void)
 
 /* ================================================== */
 
+static uint32_t
+get_ts_from_timeval(struct timeval *tv)
+{
+  uint32_t sec = tv->tv_sec, usec = tv->tv_usec;
+
+  return sec << TS_FRAC | (4295U * usec - (usec >> 5)) >> (32 - TS_FRAC);
+}
+
+/* ================================================== */
+
 static int
 get_index(Record *record)
 {
@@ -331,9 +358,10 @@ get_index(Record *record)
 /* ================================================== */
 
 int
-CLG_LogNTPAccess(IPAddr *client, time_t now)
+CLG_LogNTPAccess(IPAddr *client, struct timeval *now)
 {
   Record *record;
+  uint32_t now_ts;
 
   if (!active)
     return -1;
@@ -342,17 +370,18 @@ CLG_LogNTPAccess(IPAddr *client, time_t now)
   if (record == NULL)
     return -1;
 
-  record->ntp_hits++;
+  now_ts = get_ts_from_timeval(now);
 
   /* Update one of the two rates depending on whether the previous request
      of the client had a reply or it timed out */
   if (record->flags & FLAG_NTP_DROPPED)
     record->ntp_timeout_rate = update_rate(record->ntp_timeout_rate,
-                                           now, record->last_ntp_hit);
+                                           now_ts, record->last_ntp_hit);
   else
-    record->ntp_rate = update_rate(record->ntp_rate, now, record->last_ntp_hit);
+    record->ntp_rate = update_rate(record->ntp_rate, now_ts, record->last_ntp_hit);
 
-  record->last_ntp_hit = now;
+  record->ntp_hits++;
+  record->last_ntp_hit = now_ts;
 
   DEBUG_LOG(LOGF_ClientLog, "NTP hits %"PRIu32" rate %d trate %d burst %d",
             record->ntp_hits, record->ntp_rate, record->ntp_timeout_rate,
@@ -364,9 +393,10 @@ CLG_LogNTPAccess(IPAddr *client, time_t now)
 /* ================================================== */
 
 int
-CLG_LogCommandAccess(IPAddr *client, time_t now)
+CLG_LogCommandAccess(IPAddr *client, struct timeval *now)
 {
   Record *record;
+  uint32_t now_ts;
 
   if (!active)
     return -1;
@@ -375,9 +405,11 @@ CLG_LogCommandAccess(IPAddr *client, time_t now)
   if (record == NULL)
     return -1;
 
+  now_ts = get_ts_from_timeval(now);
+
+  record->cmd_rate = update_rate(record->cmd_rate, now_ts, record->last_cmd_hit);
   record->cmd_hits++;
-  record->cmd_rate = update_rate(record->cmd_rate, now, record->last_cmd_hit);
-  record->last_cmd_hit = now;
+  record->last_cmd_hit = now_ts;
 
   DEBUG_LOG(LOGF_ClientLog, "Cmd hits %"PRIu32" rate %d burst %d",
             record->cmd_hits, record->cmd_rate, record->cmd_burst);
@@ -492,10 +524,33 @@ CLG_GetNumberOfIndices(void)
 
 /* ================================================== */
 
+static int get_interval(int rate)
+{
+  if (rate == INVALID_RATE)
+    return 127;
+
+  rate += rate > 0 ? RATE_SCALE / 2 : -RATE_SCALE / 2;
+
+  return rate / -RATE_SCALE;
+}
+
+/* ================================================== */
+
+static uint32_t get_last_ago(uint32_t x, uint32_t y)
+{
+  if (y == INVALID_TS || (int32_t)(x - y) < 0)
+    return -1;
+
+  return (x - y) >> TS_FRAC;
+}
+
+/* ================================================== */
+
 int
-CLG_GetClientAccessReportByIndex(int index, RPT_ClientAccessByIndex_Report *report, time_t now)
+CLG_GetClientAccessReportByIndex(int index, RPT_ClientAccessByIndex_Report *report, struct timeval *now)
 {
   Record *record;
+  uint32_t now_ts;
 
   if (!active || index < 0 || index >= ARR_GetSize(records))
     return 0;
@@ -505,17 +560,18 @@ CLG_GetClientAccessReportByIndex(int index, RPT_ClientAccessByIndex_Report *repo
   if (record->ip_addr.family == IPADDR_UNSPEC)
     return 0;
 
+  now_ts = get_ts_from_timeval(now);
+
   report->ip_addr = record->ip_addr;
   report->ntp_hits = record->ntp_hits;
   report->cmd_hits = record->cmd_hits;
   report->ntp_drops = record->ntp_drops;
   report->cmd_drops = record->cmd_drops;
-  report->ntp_interval = (record->ntp_rate - RATE_SCALE / 2) / -RATE_SCALE;
-  report->cmd_interval = (record->cmd_rate - RATE_SCALE / 2) / -RATE_SCALE;
-  report->ntp_timeout_interval =
-                 (record->ntp_timeout_rate - RATE_SCALE / 2) / -RATE_SCALE;
-  report->last_ntp_hit_ago = now - record->last_ntp_hit;
-  report->last_cmd_hit_ago = now - record->last_cmd_hit;
+  report->ntp_interval = get_interval(record->ntp_rate);
+  report->cmd_interval = get_interval(record->cmd_rate);
+  report->ntp_timeout_interval = get_interval(record->ntp_timeout_rate);
+  report->last_ntp_hit_ago = get_last_ago(now_ts, record->last_ntp_hit);
+  report->last_cmd_hit_ago = get_last_ago(now_ts, record->last_cmd_hit);
 
   return 1;
 }

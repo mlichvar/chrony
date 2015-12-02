@@ -1686,7 +1686,7 @@ NCR_ProcessUnknown
       return;
   }
 
-  log_index = CLG_LogNTPAccess(&remote_addr->ip_addr, now->tv_sec);
+  log_index = CLG_LogNTPAccess(&remote_addr->ip_addr, now);
 
   /* Don't reply to all requests if the rate is excessive */
   if (log_index >= 0 && CLG_LimitNTPResponseRate(log_index)) {
