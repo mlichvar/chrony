@@ -50,15 +50,12 @@ static int parse_int(char *line, int *result);
 static int parse_double(char *line, double *result);
 static int parse_null(char *line);
 
-static void parse_allow(char *);
+static void parse_allow_deny(char *line, ARR_Instance restrictions, int allow);
 static void parse_bindacqaddress(char *);
 static void parse_bindaddress(char *);
 static void parse_bindcmdaddress(char *);
 static void parse_broadcast(char *);
 static void parse_clientloglimit(char *);
-static void parse_cmdallow(char *);
-static void parse_cmddeny(char *);
-static void parse_deny(char *);
 static void parse_fallbackdrift(char *);
 static void parse_include(char *);
 static void parse_initstepslew(char *);
@@ -68,13 +65,11 @@ static void parse_log(char *);
 static void parse_mailonchange(char *);
 static void parse_makestep(char *);
 static void parse_maxchange(char *);
-static void parse_peer(char *);
-static void parse_pool(char *);
 static void parse_ratelimit(char *line, int *enabled, int *interval,
                             int *burst, int *leak);
 static void parse_refclock(char *);
-static void parse_server(char *);
 static void parse_smoothtime(char *);
+static void parse_source(char *line, NTP_Source_Type type, int pool);
 static void parse_tempcomp(char *);
 
 /* ================================================== */
@@ -426,7 +421,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
   if (!strcasecmp(command, "acquisitionport")) {
     parse_int(p, &acquisition_port);
   } else if (!strcasecmp(command, "allow")) {
-    parse_allow(p);
+    parse_allow_deny(p, ntp_restrictions, 1);
   } else if (!strcasecmp(command, "bindacqaddress")) {
     parse_bindacqaddress(p);
   } else if (!strcasecmp(command, "bindaddress")) {
@@ -438,9 +433,9 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "clientloglimit")) {
     parse_clientloglimit(p);
   } else if (!strcasecmp(command, "cmdallow")) {
-    parse_cmdallow(p);
+    parse_allow_deny(p, cmd_restrictions, 1);
   } else if (!strcasecmp(command, "cmddeny")) {
-    parse_cmddeny(p);
+    parse_allow_deny(p, cmd_restrictions, 0);
   } else if (!strcasecmp(command, "cmdport")) {
     parse_int(p, &cmd_port);
   } else if (!strcasecmp(command, "cmdratelimit")) {
@@ -451,7 +446,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "corrtimeratio")) {
     parse_double(p, &correction_time_ratio);
   } else if (!strcasecmp(command, "deny")) {
-    parse_deny(p);
+    parse_allow_deny(p, ntp_restrictions, 0);
   } else if (!strcasecmp(command, "driftfile")) {
     parse_string(p, &drift_file);
   } else if (!strcasecmp(command, "dumpdir")) {
@@ -509,11 +504,11 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "noclientlog")) {
     no_client_log = parse_null(p);
   } else if (!strcasecmp(command, "peer")) {
-    parse_peer(p);
+    parse_source(p, NTP_PEER, 0);
   } else if (!strcasecmp(command, "pidfile")) {
     parse_string(p, &pidfile);
   } else if (!strcasecmp(command, "pool")) {
-    parse_pool(p);
+    parse_source(p, NTP_SERVER, 1);
   } else if (!strcasecmp(command, "port")) {
     parse_int(p, &ntp_port);
   } else if (!strcasecmp(command, "ratelimit")) {
@@ -536,7 +531,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "sched_priority")) {
     parse_int(p, &sched_priority);
   } else if (!strcasecmp(command, "server")) {
-    parse_server(p);
+    parse_source(p, NTP_SERVER, 0);
   } else if (!strcasecmp(command, "smoothtime")) {
     parse_smoothtime(p);
   } else if (!strcasecmp(command, "stratumweight")) {
@@ -622,30 +617,6 @@ parse_source(char *line, NTP_Source_Type type, int pool)
 
   source.params.name = Strdup(source.params.name);
   ARR_AppendElement(ntp_sources, &source);
-}
-
-/* ================================================== */
-
-static void
-parse_server(char *line)
-{
-  parse_source(line, NTP_SERVER, 0);
-}
-
-/* ================================================== */
-
-static void
-parse_peer(char *line)
-{
-  parse_source(line, NTP_PEER, 0);
-}
-
-/* ================================================== */
-
-static void
-parse_pool(char *line)
-{
-  parse_source(line, NTP_SERVER, 1);
 }
 
 /* ================================================== */
@@ -1070,41 +1041,6 @@ parse_allow_deny(char *line, ARR_Instance restrictions, int allow)
   }
 }
   
-
-/* ================================================== */
-
-static void
-parse_allow(char *line)
-{
-  parse_allow_deny(line, ntp_restrictions, 1);
-}
-
-
-/* ================================================== */
-
-static void
-parse_deny(char *line)
-{
-  parse_allow_deny(line, ntp_restrictions, 0);
-}
-
-/* ================================================== */
-
-static void
-parse_cmdallow(char *line)
-{
-  parse_allow_deny(line, cmd_restrictions, 1);
-}
-
-
-/* ================================================== */
-
-static void
-parse_cmddeny(char *line)
-{
-  parse_allow_deny(line, cmd_restrictions, 0);
-}
-
 /* ================================================== */
 
 static void
