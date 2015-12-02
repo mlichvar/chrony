@@ -352,7 +352,7 @@ UTI_IPToRefid(IPAddr *ip)
         assert(0);
         return 0;
       };
-      return buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
+      return (uint32_t)buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
   }
   return 0;
 }
@@ -796,11 +796,19 @@ UTI_TimevalHostToNetwork(struct timeval *src, Timeval *dest)
 double
 UTI_FloatNetworkToHost(Float f)
 {
-  int32_t exp, coef, x;
+  int32_t exp, coef;
+  uint32_t x;
 
   x = ntohl(f.f);
+
   exp = (x >> FLOAT_COEF_BITS) - FLOAT_COEF_BITS;
-  coef = x << FLOAT_EXP_BITS >> FLOAT_EXP_BITS;
+  if (exp >= 1 << (FLOAT_EXP_BITS - 1))
+      exp -= 1 << FLOAT_EXP_BITS;
+
+  coef = x % (1U << FLOAT_COEF_BITS);
+  if (coef >= 1 << (FLOAT_COEF_BITS - 1))
+      coef -= 1 << FLOAT_COEF_BITS;
+
   return coef * pow(2.0, exp);
 }
 
@@ -857,7 +865,7 @@ UTI_FloatHostToNetwork(double x)
   if (neg)
     coef = (uint32_t)-coef << FLOAT_EXP_BITS >> FLOAT_EXP_BITS;
 
-  f.f = htonl(exp << FLOAT_COEF_BITS | coef);
+  f.f = htonl((uint32_t)exp << FLOAT_COEF_BITS | coef);
   return f;
 }
 

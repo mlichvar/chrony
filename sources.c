@@ -414,7 +414,7 @@ SRC_UpdateReachability(SRC_Instance inst, int reachable)
 {
   inst->reachability <<= 1;
   inst->reachability |= !!reachable;
-  inst->reachability &= ~(-1 << SOURCE_REACH_BITS);
+  inst->reachability %= 1U << SOURCE_REACH_BITS;
 
   if (inst->reachability_size < SOURCE_REACH_BITS)
       inst->reachability_size++;
