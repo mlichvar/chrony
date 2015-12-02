@@ -69,6 +69,18 @@ static REF_Mode ref_mode = REF_ModeNormal;
 /* ================================================== */
 
 static void
+do_platform_checks(void)
+{
+  /* Require at least 32-bit integers, two's complement representation and
+     the usual implementation of conversion of unsigned integers */
+  assert(sizeof (int) >= 4);
+  assert(-1 == ~0);
+  assert((int32_t)4294967295 == (int32_t)-1);
+}
+
+/* ================================================== */
+
+static void
 delete_pidfile(void)
 {
   const char *pidfile = CNF_GetPidFile();
@@ -350,6 +362,8 @@ int main
   int scfilter_level = 0, lock_memory = 0, sched_priority = 0;
   int system_log = 1;
   int config_args = 0;
+
+  do_platform_checks();
 
   LOG_Initialise();
 
