@@ -2844,12 +2844,17 @@ Note that this setting is overriden when the @code{hwclockfile} directive
 @node rtcsync directive
 @subsection rtcsync
 
-The @code{rtcsync} directive will enable a kernel mode where the
-system time is copied to the real time clock (RTC) every 11 minutes.
+The @code{rtcsync} directive enables a mode where the system time is
+periodically copied to the real time clock (RTC).
 
-This directive is supported only on Linux and cannot be used when the
-normal RTC tracking is enabled, i.e. when the @code{rtcfile} directive
-is used.  On other systems this directive does nothing.
+On Linux the RTC copy is performed by the kernel every 11 minutes. This
+directive cannot be used when the normal RTC tracking is enabled,
+i.e. when the @code{rtcfile} directive is used.
+
+On Mac OS X, chronyd will perform the RTC copy every 60 minutes when the
+system clock is in a synchronised state.
+
+On other systems this directive does nothing.
 @c }}}
 @c {{{ sched_priority
 @node sched_priority directive

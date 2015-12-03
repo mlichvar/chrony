@@ -38,6 +38,7 @@
 #include <pthread.h>
 
 #include "sys_macosx.h"
+#include "conf.h"
 #include "localp.h"
 #include "logging.h"
 #include "sched.h"
@@ -88,6 +89,11 @@ static struct timeval Tdrift;
 
 #define NANOS_PER_MSEC (1000000ULL)
 
+/* RTC synchronisation - once an hour */
+
+static struct timeval last_rtc_sync;
+#define RTC_SYNC_INTERVAL (60 * 60.0)
+
 /* ================================================== */
 
 static void
@@ -105,6 +111,7 @@ clock_initialise(void)
     LOG_FATAL(LOGF_SysMacOSX, "gettimeofday() failed");
   }
   Tdrift = T0;
+  last_rtc_sync = T0;
 
   newadj.tv_sec = 0;
   newadj.tv_usec = 0;
@@ -317,7 +324,8 @@ drift_removal_timeout(SCH_ArbitraryArgument not_used)
 
 /* ================================================== */
 
-/* use est_error to calculate the drift_removal_interval */
+/* use est_error to calculate the drift_removal_interval and
+   update the RTC */
 
 static void
 set_sync_status(int synchronised, double est_error, double max_error)
@@ -327,6 +335,20 @@ set_sync_status(int synchronised, double est_error, double max_error)
   if (!synchronised) {
     drift_removal_interval = MAX(drift_removal_interval, DRIFT_REMOVAL_INTERVAL);
   } else {
+    if (CNF_GetRtcSync()) {
+      struct timeval now;
+      double rtc_sync_elapsed;
+
+      SCH_GetLastEventTime(NULL, NULL, &now);
+      UTI_DiffTimevalsToDouble(&rtc_sync_elapsed, &now, &last_rtc_sync);
+      if (fabs(rtc_sync_elapsed) >= RTC_SYNC_INTERVAL) {
+        /* update the RTC by applying a step of 0.0 secs */
+        apply_step_offset(0.0);
+        last_rtc_sync = now;
+        DEBUG_LOG(LOGF_SysMacOSX, "rtc synchronised");
+      }
+    }
+
     interval = ERROR_WEIGHT * est_error / (fabs(current_freq) + FREQUENCY_RES);
     drift_removal_interval = MAX(interval, DRIFT_REMOVAL_INTERVAL_MIN);
 
