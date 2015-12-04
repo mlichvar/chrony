@@ -465,7 +465,7 @@ SYS_Linux_EnableSystemCallFilter(int level)
     SCMP_SYS(set_tid_address), SCMP_SYS(sigreturn),
     /* Memory */
     SCMP_SYS(brk), SCMP_SYS(madvise), SCMP_SYS(mmap), SCMP_SYS(mmap2),
-    SCMP_SYS(mprotect), SCMP_SYS(munmap), SCMP_SYS(shmdt),
+    SCMP_SYS(mprotect), SCMP_SYS(mremap), SCMP_SYS(munmap), SCMP_SYS(shmdt),
     /* Filesystem */
     SCMP_SYS(access), SCMP_SYS(chmod), SCMP_SYS(chown), SCMP_SYS(chown32),
     SCMP_SYS(fstat), SCMP_SYS(fstat64), SCMP_SYS(lseek), SCMP_SYS(rename),
