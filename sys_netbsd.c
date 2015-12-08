@@ -33,6 +33,7 @@
 #include "sys_netbsd.h"
 #include "sys_timex.h"
 #include "logging.h"
+#include "privops.h"
 #include "util.h"
 
 /* Maximum frequency offset accepted by the kernel (in ppm) */
@@ -123,6 +124,8 @@ void
 SYS_NetBSD_DropRoot(uid_t uid, gid_t gid)
 {
   int fd;
+
+  PRV_StartHelper();
 
   if (setgroups(0, NULL))
     LOG_FATAL(LOGF_SysNetBSD, "setgroups() failed : %s", strerror(errno));

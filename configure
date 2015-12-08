@@ -614,6 +614,7 @@ if [ $feat_droproot = "1" ] && [ $try_clockctl = "1" ] && \
   test_code '<sys/clockctl.h>' 'sys/clockctl.h' '' '' ''
 then
   add_def FEAT_PRIVDROP
+  priv_ops="BINDSOCKET"
 fi
 
 if [ $feat_scfilter = "1" ] && [ $try_seccomp = "1" ] && \
