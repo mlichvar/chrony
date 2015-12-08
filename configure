@@ -487,7 +487,7 @@ then
     split_days=0
   else
     split_seconds=`date '+%s'`
-    if [ "x$split_seconds" = "" ]; then
+    if [ "x$split_seconds" = "x" ]; then
       echo "error: could not get current time, --with-ntp-era option is needed"
       exit 1
     fi
