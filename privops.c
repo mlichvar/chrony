@@ -270,14 +270,14 @@ helper_main(int fd)
 
 /* ======================================================================= */
 
-/* DAEMON - read helper response from fd */
+/* DAEMON - read helper response */
 
 static int
-read_response(int fd, PrvResponse *res)
+read_response(PrvResponse *res)
 {
   int resp_len;
 
-  resp_len = recv(fd, res, sizeof (*res), 0);
+  resp_len = recv(helper_fd, res, sizeof (*res), 0);
   if (resp_len < 0)
     LOG_FATAL(LOGF_PrivOps, "Could not read from helper : %s", strerror(errno));
   if (resp_len != sizeof (*res))
@@ -299,10 +299,10 @@ read_response(int fd, PrvResponse *res)
 
 /* ======================================================================= */
 
-/* DAEMON - send daemon request to fd and wait for response */
+/* DAEMON - send daemon request to the helper */
 
-static int
-send_to_helper(int fd, PrvRequest *req, PrvResponse *res)
+static void
+send_request(PrvRequest *req)
 {
   struct msghdr msg;
   struct iovec iov;
@@ -338,12 +338,21 @@ send_to_helper(int fd, PrvRequest *req, PrvResponse *res)
     *ptr_send_fd = req->u.bind_sock.sock;
   }
 
-  if (sendmsg(fd, &msg, 0) < 0)
+  if (sendmsg(helper_fd, &msg, 0) < 0)
     LOG_FATAL(LOGF_PrivOps, "Could not send to helper : %s", strerror(errno));
 
   DEBUG_LOG(LOGF_PrivOps, "Sent request op=%d", req->op);
+}
 
-  return read_response(fd, res);
+/* ======================================================================= */
+
+/* DAEMON - send daemon request and wait for response */
+
+static int
+submit_request(PrvRequest *req, PrvResponse *res)
+{
+  send_request(req);
+  return read_response(res);
 }
 
 /* ======================================================================= */
@@ -365,7 +374,7 @@ PRV_AdjustTime(const struct timeval *delta, struct timeval *olddelta)
   req.op = op_ADJTIME;
   req.u.adj_tv.tv = *delta;
 
-  if (!send_to_helper(helper_fd, &req, &res))
+  if (!submit_request(&req, &res))
     return -1;
 
   if (olddelta)
@@ -397,7 +406,7 @@ PRV_SetTime(const struct timeval *tp, const struct timezone *tzp)
   req.op = op_SETTIMEOFDAY;
   req.u.settime_tv.tv = *tp;
 
-  if (!send_to_helper(helper_fd, &req, &res))
+  if (!submit_request(&req, &res))
     return -1;
 
   return 0;
@@ -429,7 +438,7 @@ PRV_BindSocket(int sock, struct sockaddr *address, socklen_t address_len)
   req.u.bind_sock.sa_len = address_len;
   memcpy(&req.u.bind_sock.sa.u, address, address_len);
 
-  if (!send_to_helper(helper_fd, &req, &res))
+  if (!submit_request(&req, &res))
     return -1;
 
   return 0;
