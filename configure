@@ -202,6 +202,7 @@ try_libcap=-1
 try_clockctl=0
 feat_scfilter=0
 try_seccomp=-1
+priv_ops=""
 readline_lib=""
 readline_inc=""
 ncurses_lib=""
@@ -393,12 +394,8 @@ case $OPERATINGSYSTEM in
         EXTRA_CLI_LIBS="-lresolv"
         add_def MACOSX
         if [ $feat_droproot = "1" ]; then
-          EXTRA_OBJECTS="$EXTRA_OBJECTS privops.o"
-          add_def PRIVOPS_ADJUSTTIME
-          add_def PRIVOPS_SETTIME
-          add_def PRIVOPS_BINDSOCKET
-          add_def PRIVOPS_HELPER
           add_def FEAT_PRIVDROP
+          priv_ops="ADJUSTTIME SETTIME BINDSOCKET"
         fi
         echo "Configuring for MacOS X (" $SYSTEM "MacOS X version" $VERSION ")"
     ;;
@@ -625,6 +622,14 @@ if [ $feat_scfilter = "1" ] && [ $try_seccomp = "1" ] && \
 then
   add_def FEAT_SCFILTER
   EXTRA_LIBS="$EXTRA_LIBS -lseccomp"
+fi
+
+if [ "x$priv_ops" != "x" ]; then
+  EXTRA_OBJECTS="$EXTRA_OBJECTS privops.o"
+  add_def PRIVOPS_HELPER
+  for o in $priv_ops; do
+    add_def PRIVOPS_$o
+  done
 fi
 
 if [ $feat_rtc = "1" ] && [ $try_rtc = "1" ] && \
