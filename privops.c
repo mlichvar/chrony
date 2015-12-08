@@ -450,7 +450,11 @@ PRV_Initialise(void)
   if (have_helper())
     LOG_FATAL(LOGF_PrivOps, "Helper already running");
 
-  if (socketpair(AF_UNIX, SOCK_DGRAM, 0, sock_pair))
+  if (
+#ifdef SOCK_SEQPACKET
+      socketpair(AF_UNIX, SOCK_SEQPACKET, 0, sock_pair) &&
+#endif
+      socketpair(AF_UNIX, SOCK_DGRAM, 0, sock_pair))
     LOG_FATAL(LOGF_PrivOps, "socketpair() failed : %s", strerror(errno));
 
   UTI_FdSetCloexec(sock_pair[0]);
