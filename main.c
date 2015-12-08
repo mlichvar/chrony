@@ -76,7 +76,7 @@ do_platform_checks(void)
      the usual implementation of conversion of unsigned integers */
   assert(sizeof (int) >= 4);
   assert(-1 == ~0);
-  assert((int32_t)4294967295 == (int32_t)-1);
+  assert((int32_t)4294967295U == (int32_t)-1);
 }
 
 /* ================================================== */
