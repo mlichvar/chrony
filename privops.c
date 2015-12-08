@@ -92,6 +92,7 @@ typedef struct {
 } PrvResponse;
 
 static int helper_fd = -1;
+static pid_t helper_pid;
 
 static int
 have_helper(void)
@@ -381,7 +382,7 @@ stop_helper(void)
   req.op = op_QUIT;
   send_request(&req);
 
-  wait(&status);
+  waitpid(helper_pid, &status, 0);
 }
 
 /* ======================================================================= */
@@ -518,6 +519,7 @@ PRV_Initialise(void)
     /* parent process */
     close(sock_pair[1]);
     helper_fd = sock_pair[0];
+    helper_pid = pid;
 
     /* stop the helper even when not exiting cleanly from the main function */
     atexit(stop_helper);
