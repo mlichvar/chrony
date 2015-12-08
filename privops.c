@@ -36,6 +36,7 @@
 #define op_ADJTIME        1024
 #define op_SETTIMEOFDAY   1025
 #define op_BINDSOCKET     1026
+#define op_QUIT           1099
 
 union sockaddr_in46 {
   struct sockaddr_in in4;
@@ -234,8 +235,9 @@ helper_main(int fd)
 {
   PrvRequest req;
   PrvResponse res;
+  int quit = 0;
 
-  while (1) {
+  while (!quit) {
     if (!receive_from_daemon(fd, &req))
       /* read error or closed input - we cannot recover - give up */
       break;
@@ -255,6 +257,10 @@ helper_main(int fd)
       case op_BINDSOCKET:
         do_bindsocket(&req.u.bind_sock, &res);
         break;
+
+      case op_QUIT:
+        quit = 1;
+        continue;
 
       default:
         res_fatal(&res, "Unexpected operator %d", req.op);
@@ -338,8 +344,11 @@ send_request(PrvRequest *req)
     *ptr_send_fd = req->u.bind_sock.sock;
   }
 
-  if (sendmsg(helper_fd, &msg, 0) < 0)
+  if (sendmsg(helper_fd, &msg, 0) < 0) {
+    /* don't try to send another request from exit() */
+    helper_fd = -1;
     LOG_FATAL(LOGF_PrivOps, "Could not send to helper : %s", strerror(errno));
+  }
 
   DEBUG_LOG(LOGF_PrivOps, "Sent request op=%d", req->op);
 }
@@ -353,6 +362,26 @@ submit_request(PrvRequest *req, PrvResponse *res)
 {
   send_request(req);
   return read_response(res);
+}
+
+/* ======================================================================= */
+
+/* DAEMON - send the helper a request to exit and wait until it exits */
+
+static void
+stop_helper(void)
+{
+  PrvRequest req;
+  int status;
+
+  if (!have_helper())
+    return;
+
+  memset(&req, 0, sizeof (req));
+  req.op = op_QUIT;
+  send_request(&req);
+
+  wait(&status);
 }
 
 /* ======================================================================= */
@@ -489,6 +518,9 @@ PRV_Initialise(void)
     /* parent process */
     close(sock_pair[1]);
     helper_fd = sock_pair[0];
+
+    /* stop the helper even when not exiting cleanly from the main function */
+    atexit(stop_helper);
   }
 }
 
@@ -499,9 +531,10 @@ PRV_Initialise(void)
 void
 PRV_Finalise(void)
 {
-  int status;
+  if (!have_helper())
+    return;
 
+  stop_helper();
   close(helper_fd);
   helper_fd = -1;
-  wait(&status);
 }
