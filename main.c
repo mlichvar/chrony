@@ -49,6 +49,7 @@
 #include "refclock.h"
 #include "clientlog.h"
 #include "nameserv.h"
+#include "privops.h"
 #include "smooth.h"
 #include "tempcomp.h"
 #include "util.h"
@@ -111,6 +112,7 @@ MAI_CleanupAndExit(void)
   NCR_Finalise();
   NIO_Finalise();
   CAM_Finalise();
+  PRV_Finalise();
   KEY_Finalise();
   RCL_Finalise();
   SRC_Finalise();
@@ -484,6 +486,7 @@ int main
   SRC_Initialise();
   RCL_Initialise();
   KEY_Initialise();
+  PRV_Initialise();
 
   /* Open privileged ports before dropping root */
   CAM_Initialise(address_family);

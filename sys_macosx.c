@@ -417,7 +417,7 @@ SYS_MacOSX_SetScheduler(int SchedPriority)
 #ifdef FEAT_PRIVDROP
 void SYS_MacOSX_DropRoot(uid_t uid, gid_t gid)
 {
-  PRV_Initialise();
+  PRV_StartHelper();
 
   if (setgroups(0, NULL))
     LOG_FATAL(LOGF_SysMacOSX, "setgroups() failed : %s", strerror(errno));
@@ -457,9 +457,6 @@ SYS_MacOSX_Finalise(void)
   SCH_RemoveTimeout(drift_removal_id);
 
   clock_finalise();
-#ifdef FEAT_PRIVDROP
-  PRV_Finalise();
-#endif
 }
 
 /* ================================================== */

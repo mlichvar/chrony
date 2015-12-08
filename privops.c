@@ -91,7 +91,7 @@ typedef struct {
   } u;
 } PrvResponse;
 
-static int helper_fd = -1;
+static int helper_fd;
 static pid_t helper_pid;
 
 static int
@@ -477,11 +477,19 @@ PRV_BindSocket(int sock, struct sockaddr *address, socklen_t address_len)
 
 /* ======================================================================= */
 
+void
+PRV_Initialise(void)
+{
+  helper_fd = -1;
+}
+
+/* ======================================================================= */
+
 /* DAEMON - setup socket(s) then fork to run the helper */
 /* must be called before privileges are dropped */
 
 void
-PRV_Initialise(void)
+PRV_StartHelper(void)
 {
   pid_t pid;
   int fd, sock_pair[2];

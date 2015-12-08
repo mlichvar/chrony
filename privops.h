@@ -48,7 +48,12 @@ int PRV_BindSocket(int sock, struct sockaddr *address, socklen_t address_len);
 
 #ifdef PRIVOPS_HELPER
 void PRV_Initialise(void);
+void PRV_StartHelper(void);
 void PRV_Finalise(void);
+#else
+#define PRV_Initialise()
+#define PRV_StartHelper()
+#define PRV_Finalise()
 #endif
 
 #endif
