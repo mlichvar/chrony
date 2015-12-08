@@ -45,7 +45,6 @@
 #ifdef FEAT_PRIVDROP
 #include <sys/prctl.h>
 #include <sys/capability.h>
-#include <grp.h>
 #endif
 
 #ifdef FEAT_SCFILTER
@@ -66,6 +65,7 @@
 #include "sys_timex.h"
 #include "conf.h"
 #include "logging.h"
+#include "util.h"
 
 /* Frequency scale to convert from ppm to the timex freq */
 #define FREQ_SCALE (double)(1 << 16)
@@ -409,17 +409,7 @@ SYS_Linux_DropRoot(uid_t uid, gid_t gid)
     LOG_FATAL(LOGF_SysLinux, "prctl() failed");
   }
   
-  if (setgroups(0, NULL)) {
-    LOG_FATAL(LOGF_SysLinux, "setgroups() failed");
-  }
-
-  if (setgid(gid)) {
-    LOG_FATAL(LOGF_SysLinux, "setgid(%d) failed", gid);
-  }
-
-  if (setuid(uid)) {
-    LOG_FATAL(LOGF_SysLinux, "setuid(%d) failed", uid);
-  }
+  UTI_DropRoot(uid, gid);
 
   if ((cap = cap_from_text("cap_net_bind_service,cap_sys_time=ep")) == NULL) {
     LOG_FATAL(LOGF_SysLinux, "cap_from_text() failed");
@@ -430,8 +420,6 @@ SYS_Linux_DropRoot(uid_t uid, gid_t gid)
   }
 
   cap_free(cap);
-
-  DEBUG_LOG(LOGF_SysLinux, "Root dropped to uid %d gid %d", uid, gid);
 }
 #endif
 

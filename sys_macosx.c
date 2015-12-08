@@ -419,16 +419,7 @@ void SYS_MacOSX_DropRoot(uid_t uid, gid_t gid)
 {
   PRV_StartHelper();
 
-  if (setgroups(0, NULL))
-    LOG_FATAL(LOGF_SysMacOSX, "setgroups() failed : %s", strerror(errno));
-
-  if (setgid(gid))
-    LOG_FATAL(LOGF_SysMacOSX, "setgid(%d) failed : %s", gid, strerror(errno));
-
-  if (setuid(uid))
-    LOG_FATAL(LOGF_SysMacOSX, "setuid(%d) failed : %s", uid, strerror(errno));
-
-  DEBUG_LOG(LOGF_SysMacOSX, "Root dropped to uid %d gid %d", uid, gid);
+  UTI_DropRoot(uid, gid);
 }
 #endif
 

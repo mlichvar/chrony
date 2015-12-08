@@ -127,16 +127,7 @@ SYS_NetBSD_DropRoot(uid_t uid, gid_t gid)
 
   PRV_StartHelper();
 
-  if (setgroups(0, NULL))
-    LOG_FATAL(LOGF_SysNetBSD, "setgroups() failed : %s", strerror(errno));
-
-  if (setgid(gid))
-    LOG_FATAL(LOGF_SysNetBSD, "setgid(%d) failed : %s", gid, strerror(errno));
-
-  if (setuid(uid))
-    LOG_FATAL(LOGF_SysNetBSD, "setuid(%d) failed : %s", uid, strerror(errno));
-
-  DEBUG_LOG(LOGF_SysNetBSD, "Root dropped to uid %d gid %d", uid, gid);
+  UTI_DropRoot(uid, gid);
 
   /* Check if we have write access to /dev/clockctl */
   fd = open("/dev/clockctl", O_WRONLY);

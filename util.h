@@ -145,6 +145,9 @@ extern int UTI_CreateDirAndParents(const char *path, mode_t mode, uid_t uid, gid
    permissions and its uid/gid must match the specified values. */
 extern int UTI_CheckDirPermissions(const char *path, mode_t perm, uid_t uid, gid_t gid);
 
+/* Set process user/group IDs and drop supplementary groups */
+extern void UTI_DropRoot(uid_t uid, gid_t gid);
+
 /* Fill buffer with random bytes */
 extern void UTI_GetRandomBytes(void *buf, unsigned int len);
 

@@ -1118,6 +1118,26 @@ UTI_CheckDirPermissions(const char *path, mode_t perm, uid_t uid, gid_t gid)
 
 /* ================================================== */
 
+void
+UTI_DropRoot(uid_t uid, gid_t gid)
+{
+  /* Drop supplementary groups */
+  if (setgroups(0, NULL))
+    LOG_FATAL(LOGF_Util, "setgroups() failed : %s", strerror(errno));
+
+  /* Set effective, saved and real group ID */
+  if (setgid(gid))
+    LOG_FATAL(LOGF_Util, "setgid(%d) failed : %s", gid, strerror(errno));
+
+  /* Set effective, saved and real user ID */
+  if (setuid(uid))
+    LOG_FATAL(LOGF_Util, "setuid(%d) failed : %s", uid, strerror(errno));
+
+  DEBUG_LOG(LOGF_Util, "Dropped root privileges: UID %d GID %d", uid, gid);
+}
+
+/* ================================================== */
+
 #define DEV_URANDOM "/dev/urandom"
 
 void

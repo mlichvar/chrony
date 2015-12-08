@@ -35,6 +35,7 @@
 #include <fcntl.h>
 #include <float.h>
 #include <glob.h>
+#include <grp.h>
 #include <math.h>
 #include <netdb.h>
 #include <netinet/in.h>
