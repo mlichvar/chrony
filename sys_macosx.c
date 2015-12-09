@@ -248,7 +248,7 @@ apply_step_offset(double offset)
     return 0;
   }
 
-  UTI_AddDoubleToTimeval(&T0, offset, &T1);
+  UTI_AddDoubleToTimeval(&T0, -offset, &T1);
   T0 = T1;
 
   start_adjust();
