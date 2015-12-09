@@ -112,7 +112,6 @@ MAI_CleanupAndExit(void)
   NCR_Finalise();
   NIO_Finalise();
   CAM_Finalise();
-  PRV_Finalise();
   KEY_Finalise();
   RCL_Finalise();
   SRC_Finalise();
@@ -121,6 +120,7 @@ MAI_CleanupAndExit(void)
   SYS_Finalise();
   SCH_Finalise();
   LCL_Finalise();
+  PRV_Finalise();
 
   delete_pidfile();
   
@@ -479,6 +479,7 @@ int main
    * be done *AFTER* the daemon-creation fork() */
   write_lockfile();
 
+  PRV_Initialise();
   LCL_Initialise();
   SCH_Initialise();
   SYS_Initialise();
@@ -486,7 +487,6 @@ int main
   SRC_Initialise();
   RCL_Initialise();
   KEY_Initialise();
-  PRV_Initialise();
 
   /* Open privileged ports before dropping root */
   CAM_Initialise(address_family);
