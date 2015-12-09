@@ -279,7 +279,7 @@ helper_main(int fd)
 
 /* DAEMON - receive helper response */
 
-static int
+static void
 receive_response(PrvResponse *res)
 {
   int resp_len;
@@ -296,12 +296,8 @@ receive_response(PrvResponse *res)
   DEBUG_LOG(LOGF_PrivOps, "Received response rc=%d", res->rc);
 
   /* if operation failed in the helper, set errno so daemon can print log message */
-  if (res->rc) {
+  if (res->res_errno)
     errno = res->res_errno;
-    return 0;
-  }
-
-  return 1;
 }
 
 /* ======================================================================= */
@@ -358,11 +354,11 @@ send_request(PrvRequest *req)
 
 /* DAEMON - send daemon request and wait for response */
 
-static int
+static void
 submit_request(PrvRequest *req, PrvResponse *res)
 {
   send_request(req);
-  return receive_response(res);
+  receive_response(res);
 }
 
 /* ======================================================================= */
@@ -404,13 +400,12 @@ PRV_AdjustTime(const struct timeval *delta, struct timeval *olddelta)
   req.op = OP_ADJUSTTIME;
   req.data.adjust_time.tv = *delta;
 
-  if (!submit_request(&req, &res))
-    return -1;
+  submit_request(&req, &res);
 
   if (olddelta)
     *olddelta = res.data.adjust_time.tv;
 
-  return 0;
+  return res.rc;
 }
 #endif
 
@@ -436,10 +431,9 @@ PRV_SetTime(const struct timeval *tp, const struct timezone *tzp)
   req.op = OP_SETTIME;
   req.data.set_time.tv = *tp;
 
-  if (!submit_request(&req, &res))
-    return -1;
+  submit_request(&req, &res);
 
-  return 0;
+  return res.rc;
 }
 #endif
 
@@ -468,10 +462,9 @@ PRV_BindSocket(int sock, struct sockaddr *address, socklen_t address_len)
   req.data.bind_socket.sa_len = address_len;
   memcpy(&req.data.bind_socket.sa.u, address, address_len);
 
-  if (!submit_request(&req, &res))
-    return -1;
+  submit_request(&req, &res);
 
-  return 0;
+  return res.rc;
 }
 #endif
 
