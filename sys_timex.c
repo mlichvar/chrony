@@ -30,16 +30,22 @@
 #include "sysincl.h"
 
 #include "conf.h"
+#include "privops.h"
 #include "sys_generic.h"
 #include "sys_timex.h"
 #include "logging.h"
 
+#ifdef PRIVOPS_ADJUSTTIMEX
+#define NTP_ADJTIME PRV_AdjustTimex
+#define NTP_ADJTIME_NAME "ntp_adjtime"
+#else
 #ifdef LINUX
 #define NTP_ADJTIME adjtimex
 #define NTP_ADJTIME_NAME "adjtimex"
 #else
 #define NTP_ADJTIME ntp_adjtime
 #define NTP_ADJTIME_NAME "ntp_adjtime"
+#endif
 #endif
 
 /* Maximum frequency offset accepted by the kernel (in ppm) */
