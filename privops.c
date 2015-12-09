@@ -33,10 +33,10 @@
 #include "privops.h"
 #include "util.h"
 
-#define op_ADJTIME        1024
-#define op_SETTIMEOFDAY   1025
-#define op_BINDSOCKET     1026
-#define op_QUIT           1099
+#define OP_ADJUSTTIME     1024
+#define OP_SETTIME        1025
+#define OP_BINDSOCKET     1026
+#define OP_QUIT           1099
 
 union sockaddr_in46 {
   struct sockaddr_in in4;
@@ -65,10 +65,10 @@ typedef struct {
 typedef struct {
   int op;
   union {
-    ReqAdjustTime adj_tv;
-    ReqSetTime settime_tv;
-    ReqBindSocket bind_sock;
-  } u;
+    ReqAdjustTime adjust_time;
+    ReqSetTime set_time;
+    ReqBindSocket bind_socket;
+  } data;
 } PrvRequest;
 
 /* helper response structs */
@@ -87,8 +87,8 @@ typedef struct {
   int res_errno;
   union {
     ResFatalMsg fatal_msg;
-    ResAdjustTime adj_tv;
-  } u;
+    ResAdjustTime adjust_time;
+  } data;
 } PrvResponse;
 
 static int helper_fd;
@@ -110,7 +110,7 @@ res_fatal(PrvResponse *res, const char *fmt, ...)
 
   res->fatal_error = 1;
   va_start(ap, fmt);
-  vsnprintf(res->u.fatal_msg.msg, sizeof (res->u.fatal_msg.msg), fmt, ap);
+  vsnprintf(res->data.fatal_msg.msg, sizeof (res->data.fatal_msg.msg), fmt, ap);
   va_end(ap);
 }
 
@@ -153,16 +153,16 @@ receive_from_daemon(int fd, PrvRequest *req)
   if (recvmsg(fd, &msg, 0) != sizeof (*req))
     return 0;
 
-  if (req->op == op_BINDSOCKET) {
+  if (req->op == OP_BINDSOCKET) {
     /* extract transferred descriptor */
-    req->u.bind_sock.sock = -1;
+    req->data.bind_socket.sock = -1;
     for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
       if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
-        memcpy(&req->u.bind_sock.sock, CMSG_DATA(cmsg), sizeof (int));
+        memcpy(&req->data.bind_socket.sock, CMSG_DATA(cmsg), sizeof (int));
     }
 
     /* return error if valid descriptor not found */
-    if (req->u.bind_sock.sock < 0)
+    if (req->data.bind_socket.sock < 0)
       return 0;
   }
 
@@ -175,9 +175,9 @@ receive_from_daemon(int fd, PrvRequest *req)
 
 #ifdef PRIVOPS_ADJUSTTIME
 static void
-do_adjtime(const ReqAdjustTime *req, PrvResponse *res)
+do_adjust_time(const ReqAdjustTime *req, PrvResponse *res)
 {
-  res->rc = adjtime(&req->tv, &res->u.adj_tv.tv);
+  res->rc = adjtime(&req->tv, &res->data.adjust_time.tv);
   if (res->rc)
     res->res_errno = errno;
 }
@@ -188,7 +188,7 @@ do_adjtime(const ReqAdjustTime *req, PrvResponse *res)
 /* HELPER - perform settimeofday() */
 
 static void
-do_settimeofday(const ReqSetTime *req, PrvResponse *res)
+do_set_time(const ReqSetTime *req, PrvResponse *res)
 {
   res->rc = settimeofday(&req->tv, NULL);
   if (res->rc)
@@ -197,10 +197,10 @@ do_settimeofday(const ReqSetTime *req, PrvResponse *res)
 
 /* ======================================================================= */
 
-/* HELPER - bind port to a socket */
+/* HELPER - perform bind() */
 
 static void
-do_bindsocket(ReqBindSocket *req, PrvResponse *res)
+do_bind_socket(ReqBindSocket *req, PrvResponse *res)
 {
   unsigned short port;
   IPAddr ip;
@@ -247,19 +247,19 @@ helper_main(int fd)
 
     switch (req.op) {
 #ifdef PRIVOPS_ADJUSTTIME
-      case op_ADJTIME:
-        do_adjtime(&req.u.adj_tv, &res);
+      case OP_ADJUSTTIME:
+        do_adjust_time(&req.data.adjust_time, &res);
         break;
 #endif
-      case op_SETTIMEOFDAY:
-        do_settimeofday(&req.u.settime_tv, &res);
+      case OP_SETTIME:
+        do_set_time(&req.data.set_time, &res);
         break;
 
-      case op_BINDSOCKET:
-        do_bindsocket(&req.u.bind_sock, &res);
+      case OP_BINDSOCKET:
+        do_bind_socket(&req.data.bind_socket, &res);
         break;
 
-      case op_QUIT:
+      case OP_QUIT:
         quit = 1;
         continue;
 
@@ -277,10 +277,10 @@ helper_main(int fd)
 
 /* ======================================================================= */
 
-/* DAEMON - read helper response */
+/* DAEMON - receive helper response */
 
 static int
-read_response(PrvResponse *res)
+receive_response(PrvResponse *res)
 {
   int resp_len;
 
@@ -291,7 +291,7 @@ read_response(PrvResponse *res)
     LOG_FATAL(LOGF_PrivOps, "Invalid helper response");
 
   if (res->fatal_error)
-    LOG_FATAL(LOGF_PrivOps, "Error in helper : %s", res->u.fatal_msg.msg);
+    LOG_FATAL(LOGF_PrivOps, "Error in helper : %s", res->data.fatal_msg.msg);
 
   DEBUG_LOG(LOGF_PrivOps, "Received response rc=%d", res->rc);
 
@@ -326,7 +326,7 @@ send_request(PrvRequest *req)
   msg.msg_controllen = 0;
   msg.msg_flags = 0;
 
-  if (req->op == op_BINDSOCKET) {
+  if (req->op == OP_BINDSOCKET) {
     /* send file descriptor as a control message */
     struct cmsghdr *cmsg;
     int *ptr_send_fd;
@@ -342,7 +342,7 @@ send_request(PrvRequest *req)
     cmsg->cmsg_len = CMSG_LEN(sizeof (int));
 
     ptr_send_fd = (int *)CMSG_DATA(cmsg);
-    *ptr_send_fd = req->u.bind_sock.sock;
+    *ptr_send_fd = req->data.bind_socket.sock;
   }
 
   if (sendmsg(helper_fd, &msg, 0) < 0) {
@@ -362,7 +362,7 @@ static int
 submit_request(PrvRequest *req, PrvResponse *res)
 {
   send_request(req);
-  return read_response(res);
+  return receive_response(res);
 }
 
 /* ======================================================================= */
@@ -379,7 +379,7 @@ stop_helper(void)
     return;
 
   memset(&req, 0, sizeof (req));
-  req.op = op_QUIT;
+  req.op = OP_QUIT;
   send_request(&req);
 
   waitpid(helper_pid, &status, 0);
@@ -401,14 +401,14 @@ PRV_AdjustTime(const struct timeval *delta, struct timeval *olddelta)
     return adjtime(delta, olddelta);
 
   memset(&req, 0, sizeof (req));
-  req.op = op_ADJTIME;
-  req.u.adj_tv.tv = *delta;
+  req.op = OP_ADJUSTTIME;
+  req.data.adjust_time.tv = *delta;
 
   if (!submit_request(&req, &res))
     return -1;
 
   if (olddelta)
-    *olddelta = res.u.adj_tv.tv;
+    *olddelta = res.data.adjust_time.tv;
 
   return 0;
 }
@@ -433,8 +433,8 @@ PRV_SetTime(const struct timeval *tp, const struct timezone *tzp)
     return settimeofday(tp, NULL);
 
   memset(&req, 0, sizeof (req));
-  req.op = op_SETTIMEOFDAY;
-  req.u.settime_tv.tv = *tp;
+  req.op = OP_SETTIME;
+  req.data.set_time.tv = *tp;
 
   if (!submit_request(&req, &res))
     return -1;
@@ -445,7 +445,7 @@ PRV_SetTime(const struct timeval *tp, const struct timezone *tzp)
 
 /* ======================================================================= */
 
-/* DAEMON - bind socket to reserved port */
+/* DAEMON - request bind() */
 
 #ifdef PRIVOPS_BINDSOCKET
 int
@@ -463,10 +463,10 @@ PRV_BindSocket(int sock, struct sockaddr *address, socklen_t address_len)
     return bind(sock, address, address_len);
 
   memset(&req, 0, sizeof (req));
-  req.op = op_BINDSOCKET;
-  req.u.bind_sock.sock = sock;
-  req.u.bind_sock.sa_len = address_len;
-  memcpy(&req.u.bind_sock.sa.u, address, address_len);
+  req.op = OP_BINDSOCKET;
+  req.data.bind_socket.sock = sock;
+  req.data.bind_socket.sa_len = address_len;
+  memcpy(&req.data.bind_socket.sa.u, address, address_len);
 
   if (!submit_request(&req, &res))
     return -1;
