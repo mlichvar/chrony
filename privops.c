@@ -34,8 +34,9 @@
 #include "util.h"
 
 #define OP_ADJUSTTIME     1024
-#define OP_SETTIME        1025
-#define OP_BINDSOCKET     1026
+#define OP_ADJUSTTIMEX    1025
+#define OP_SETTIME        1026
+#define OP_BINDSOCKET     1027
 #define OP_QUIT           1099
 
 union sockaddr_in46 {
@@ -52,6 +53,12 @@ typedef struct {
   struct timeval tv;
 } ReqAdjustTime;
 
+#ifdef PRIVOPS_ADJUSTTIMEX
+typedef struct {
+  struct timex tmx;
+} ReqAdjustTimex;
+#endif
+
 typedef struct {
   struct timeval tv;
 } ReqSetTime;
@@ -66,6 +73,9 @@ typedef struct {
   int op;
   union {
     ReqAdjustTime adjust_time;
+#ifdef PRIVOPS_ADJUSTTIMEX
+    ReqAdjustTimex adjust_timex;
+#endif
     ReqSetTime set_time;
     ReqBindSocket bind_socket;
   } data;
@@ -76,6 +86,12 @@ typedef struct {
 typedef struct {
   struct timeval tv;
 } ResAdjustTime;
+
+#ifdef PRIVOPS_ADJUSTTIMEX
+typedef struct {
+  struct timex tmx;
+} ResAdjustTimex;
+#endif
 
 typedef struct {
   char msg[256];
@@ -88,6 +104,9 @@ typedef struct {
   union {
     ResFatalMsg fatal_msg;
     ResAdjustTime adjust_time;
+#ifdef PRIVOPS_ADJUSTTIMEX
+    ResAdjustTimex adjust_timex;
+#endif
   } data;
 } PrvResponse;
 
@@ -185,6 +204,21 @@ do_adjust_time(const ReqAdjustTime *req, PrvResponse *res)
 
 /* ======================================================================= */
 
+/* HELPER - perform ntp_adjtime() */
+
+#ifdef PRIVOPS_ADJUSTTIMEX
+static void
+do_adjust_timex(const ReqAdjustTimex *req, PrvResponse *res)
+{
+  res->data.adjust_timex.tmx = req->tmx;
+  res->rc = ntp_adjtime(&res->data.adjust_timex.tmx);
+  if (res->rc < 0)
+    res->res_errno = errno;
+}
+#endif
+
+/* ======================================================================= */
+
 /* HELPER - perform settimeofday() */
 
 #ifdef PRIVOPS_SETTIME
@@ -253,6 +287,11 @@ helper_main(int fd)
 #ifdef PRIVOPS_ADJUSTTIME
       case OP_ADJUSTTIME:
         do_adjust_time(&req.data.adjust_time, &res);
+        break;
+#endif
+#ifdef PRIVOPS_ADJUSTTIMEX
+      case OP_ADJUSTTIMEX:
+        do_adjust_timex(&req.data.adjust_timex, &res);
         break;
 #endif
 #ifdef PRIVOPS_SETTIME
@@ -410,6 +449,32 @@ PRV_AdjustTime(const struct timeval *delta, struct timeval *olddelta)
 
   if (olddelta)
     *olddelta = res.data.adjust_time.tv;
+
+  return res.rc;
+}
+#endif
+
+/* ======================================================================= */
+
+/* DAEMON - request ntp_adjtime() */
+
+#ifdef PRIVOPS_ADJUSTTIMEX
+int
+PRV_AdjustTimex(struct timex *tmx)
+{
+  PrvRequest req;
+  PrvResponse res;
+
+  if (!have_helper())
+    return ntp_adjtime(tmx);
+
+  memset(&req, 0, sizeof (req));
+  req.op = OP_ADJUSTTIMEX;
+  req.data.adjust_timex.tmx = *tmx;
+
+  submit_request(&req, &res);
+
+  *tmx = res.data.adjust_timex.tmx;
 
   return res.rc;
 }

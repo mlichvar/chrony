@@ -34,6 +34,12 @@ int PRV_AdjustTime(const struct timeval *delta, struct timeval *olddelta);
 #define PRV_AdjustTime adjtime
 #endif
 
+#ifdef PRIVOPS_ADJUSTTIMEX
+int PRV_AdjustTimex(struct timex *txc);
+#else
+#define PRV_AdjustTimex ntp_adjtime
+#endif
+
 #ifdef PRIVOPS_SETTIME
 int PRV_SetTime(const struct timeval *tp, const struct timezone *tzp);
 #else
