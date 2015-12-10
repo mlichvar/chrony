@@ -28,8 +28,10 @@
 
 #include "sysincl.h"
 
+#include "privops.h"
 #include "sys_solaris.h"
 #include "sys_timex.h"
+#include "util.h"
 
 /* ================================================== */
 
@@ -48,3 +50,14 @@ SYS_Solaris_Finalise(void)
 {
   SYS_Timex_Finalise();
 }
+
+/* ================================================== */
+
+#ifdef FEAT_PRIVDROP
+void
+SYS_Solaris_DropRoot(uid_t uid, gid_t gid)
+{
+  PRV_StartHelper();
+  UTI_DropRoot(uid, gid);
+}
+#endif

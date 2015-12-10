@@ -31,4 +31,6 @@ void SYS_Solaris_Initialise(void);
 
 void SYS_Solaris_Finalise(void);
 
+void SYS_Solaris_DropRoot(uid_t uid, gid_t gid);
+
 #endif

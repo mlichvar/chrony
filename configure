@@ -411,6 +411,10 @@ case $OPERATINGSYSTEM in
         add_def __EXTENSIONS__
         add_def _XOPEN_SOURCE 1
         add_def _XOPEN_SOURCE_EXTENDED 1
+        if [ $feat_droproot = "1" ]; then
+          add_def FEAT_PRIVDROP
+          priv_ops="ADJUSTTIMEX SETTIME BINDSOCKET"
+        fi
         echo "Configuring for Solaris (" $SYSTEM "SunOS version" $VERSION ")" 
     ;;                                                                        
     * )
