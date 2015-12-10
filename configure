@@ -376,10 +376,13 @@ case $OPERATINGSYSTEM in
         add_def LINUX
         echo "Configuring for " $SYSTEM
     ;;
-
     FreeBSD)
         EXTRA_OBJECTS="sys_generic.o sys_netbsd.o sys_timex.o"
         add_def FREEBSD
+        if [ $feat_droproot = "1" ]; then
+          add_def FEAT_PRIVDROP
+          priv_ops="ADJUSTTIME ADJUSTTIMEX SETTIME BINDSOCKET"
+        fi
         echo "Configuring for $SYSTEM"
     ;;
     NetBSD)

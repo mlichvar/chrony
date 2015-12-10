@@ -23,7 +23,7 @@
 
   =======================================================================
 
-  Driver file for the NetBSD operating system.
+  Driver file for the NetBSD and FreeBSD operating system.
   */
 
 #include "config.h"
@@ -63,14 +63,14 @@ accrue_offset(double offset, double corr_rate)
 
   UTI_DoubleToTimeval(-offset, &newadj);
 
-  if (adjtime(&newadj, &oldadj) < 0)
+  if (PRV_AdjustTime(&newadj, &oldadj) < 0)
     LOG_FATAL(LOGF_SysNetBSD, "adjtime() failed");
 
   /* Add the old remaining adjustment if not zero */
   UTI_TimevalToDouble(&oldadj, &offset);
   if (offset != 0.0) {
     UTI_AddDoubleToTimeval(&newadj, offset, &newadj);
-    if (adjtime(&newadj, NULL) < 0)
+    if (PRV_AdjustTime(&newadj, NULL) < 0)
       LOG_FATAL(LOGF_SysNetBSD, "adjtime() failed");
   }
 }
@@ -84,7 +84,7 @@ get_offset_correction(struct timeval *raw,
   struct timeval remadj;
   double adjustment_remaining;
 
-  if (adjtime(NULL, &remadj) < 0)
+  if (PRV_AdjustTime(NULL, &remadj) < 0)
     LOG_FATAL(LOGF_SysNetBSD, "adjtime() failed");
 
   UTI_TimevalToDouble(&remadj, &adjustment_remaining);
@@ -123,16 +123,22 @@ SYS_NetBSD_Finalise(void)
 void
 SYS_NetBSD_DropRoot(uid_t uid, gid_t gid)
 {
+#ifdef NETBSD
   int fd;
+#endif
 
+  /* On NetBSD the helper is used only for socket binding, but on FreeBSD
+     it's used also for setting and adjusting the system clock */
   PRV_StartHelper();
 
   UTI_DropRoot(uid, gid);
 
+#ifdef NETBSD
   /* Check if we have write access to /dev/clockctl */
   fd = open("/dev/clockctl", O_WRONLY);
   if (fd < 0)
     LOG_FATAL(LOGF_SysNetBSD, "Can't write to /dev/clockctl");
   close(fd);
+#endif
 }
 #endif
