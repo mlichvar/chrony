@@ -59,6 +59,10 @@
 #include <time.h>
 #include <unistd.h>
 
+#if defined(LINUX) || defined(FREEBSD) || defined(NETBSD) || defined(SOLARIS)
+#include <sys/timex.h>
+#endif
+
 #ifdef HAVE_INTTYPES_H
 #include <inttypes.h>
 #elif HAVE_STDINT_H

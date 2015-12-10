@@ -27,8 +27,6 @@
 #ifndef GOT_SYS_TIMEX_H
 #define GOT_SYS_TIMEX_H
 
-#include <sys/timex.h>
-
 #include "localp.h"
 
 extern void SYS_Timex_Initialise(void);
