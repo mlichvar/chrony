@@ -187,6 +187,7 @@ do_adjust_time(const ReqAdjustTime *req, PrvResponse *res)
 
 /* HELPER - perform settimeofday() */
 
+#ifdef PRIVOPS_SETTIME
 static void
 do_set_time(const ReqSetTime *req, PrvResponse *res)
 {
@@ -194,11 +195,13 @@ do_set_time(const ReqSetTime *req, PrvResponse *res)
   if (res->rc)
     res->res_errno = errno;
 }
+#endif
 
 /* ======================================================================= */
 
 /* HELPER - perform bind() */
 
+#ifdef PRIVOPS_BINDSOCKET
 static void
 do_bind_socket(ReqBindSocket *req, PrvResponse *res)
 {
@@ -226,6 +229,7 @@ do_bind_socket(ReqBindSocket *req, PrvResponse *res)
   /* sock is still open on daemon side, but we're done with it in the helper */
   close(sock_fd);
 }
+#endif
 
 /* ======================================================================= */
 
@@ -251,14 +255,16 @@ helper_main(int fd)
         do_adjust_time(&req.data.adjust_time, &res);
         break;
 #endif
+#ifdef PRIVOPS_SETTIME
       case OP_SETTIME:
         do_set_time(&req.data.set_time, &res);
         break;
-
+#endif
+#ifdef PRIVOPS_BINDSOCKET
       case OP_BINDSOCKET:
         do_bind_socket(&req.data.bind_socket, &res);
         break;
-
+#endif
       case OP_QUIT:
         quit = 1;
         continue;
