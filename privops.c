@@ -520,6 +520,9 @@ PRV_StartHelper(void)
         close(fd);
     }
 
+    /* ignore signals, the process will exit on OP_QUIT request */
+    UTI_SetQuitSignalsHandler(SIG_IGN);
+
     helper_main(sock_pair[1]);
 
   } else {
