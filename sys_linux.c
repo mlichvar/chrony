@@ -403,6 +403,7 @@ SYS_Linux_Finalise(void)
 void
 SYS_Linux_DropRoot(uid_t uid, gid_t gid)
 {
+  const char *cap_text;
   cap_t cap;
 
   if (prctl(PR_SET_KEEPCAPS, 1)) {
@@ -411,7 +412,11 @@ SYS_Linux_DropRoot(uid_t uid, gid_t gid)
   
   UTI_DropRoot(uid, gid);
 
-  if ((cap = cap_from_text("cap_net_bind_service,cap_sys_time=ep")) == NULL) {
+  /* Keep CAP_NET_BIND_SERVICE only if NTP port can be opened */
+  cap_text = CNF_GetNTPPort() ?
+             "cap_net_bind_service,cap_sys_time=ep" : "cap_sys_time=ep";
+
+  if ((cap = cap_from_text(cap_text)) == NULL) {
     LOG_FATAL(LOGF_SysLinux, "cap_from_text() failed");
   }
 
