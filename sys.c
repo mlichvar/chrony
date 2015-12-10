@@ -36,8 +36,6 @@
 #include "sys_linux.h"
 #elif defined(SOLARIS)
 #include "sys_solaris.h"
-#elif defined(SUNOS)
-#include "sys_sunos.h"
 #elif defined(NETBSD) || defined(FREEBSD)
 #include "sys_netbsd.h"
 #elif defined(MACOSX)
@@ -53,8 +51,6 @@ SYS_Initialise(void)
   SYS_Linux_Initialise();
 #elif defined(SOLARIS)
   SYS_Solaris_Initialise();
-#elif defined(SUNOS)
-  SYS_SunOS_Initialise();
 #elif defined(NETBSD) || defined(FREEBSD)
   SYS_NetBSD_Initialise();
 #elif defined(MACOSX)
@@ -73,8 +69,6 @@ SYS_Finalise(void)
   SYS_Linux_Finalise();
 #elif defined(SOLARIS)
   SYS_Solaris_Finalise();
-#elif defined(SUNOS)
-  SYS_SunOS_Finalise();
 #elif defined(NETBSD) || defined(FREEBSD)
   SYS_NetBSD_Finalise();
 #elif defined(MACOSX)

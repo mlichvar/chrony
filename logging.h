@@ -109,7 +109,6 @@ typedef enum {
   LOGF_SysMacOSX,
   LOGF_SysNetBSD,
   LOGF_SysSolaris,
-  LOGF_SysSunOS,
   LOGF_SysTimex,
   LOGF_SysWinnt,
   LOGF_TempComp,
