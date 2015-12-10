@@ -976,15 +976,13 @@ no RTC or the RTC is broken (e.g. it has no battery).
 @item -u <user>
 This option sets the name of the system user to which @code{chronyd} will
 switch after start in order to drop root privileges.  It overrides the
-@code{user} directive (default @code{@DEFAULT_USER@}).  It may be set to a
-non-root user only when @code{chronyd} is compiled with support for Linux
-capabilities (libcap), on NetBSD with the @code{/dev/clockctl} device or on
-Mac OS X.
+@code{user} directive (default @code{@DEFAULT_USER@}).
 
-In the Mac OS X implementation @code{chronyd} forks into two processes.  The
-child process retains root privileges but can only perform a very limited range
-of privileged system calls on behalf of the parent.  The parent process drops
-root privileges to run as the specified system user.
+On Linux, @code{chronyd} needs to be compiled with support for the
+@code{libcap} library.  On Mac OS X, FreeBSD, NetBSD and Solaris @code{chronyd}
+forks into two processes.  The child process retains root privileges, but can
+only perform a very limited range of privileged system calls on behalf of the
+parent.
 @item -F <level>
 This option configures a system call filter when @code{chronyd} is compiled with
 support for the Linux secure computing (seccomp) facility. In level 1 the
@@ -3181,16 +3179,15 @@ Valid measurements with corresponding compensations are logged to the
 @subsection user
 The @code{user} directive sets the name of the system user to which
 @code{chronyd} will switch after start in order to drop root privileges.
-It may be set to a non-root user only when @code{chronyd} is compiled with
-support for Linux capabilities (libcap), on NetBSD with the
-@code{/dev/clockctl} device or on Mac OS X.
 
-In the Mac OS X implementation @code{chronyd} forks into two processes.  The
-child process retains root privileges but can only perform a very limited range
-of privileged system calls on behalf of the parent.  The parent process drops
-root privileges to run as the specified system user.
+On Linux, @code{chronyd} needs to be compiled with support for the
+@code{libcap} library.  On Mac OS X, FreeBSD, NetBSD and Solaris @code{chronyd}
+forks into two processes.  The child process retains root privileges, but can
+only perform a very limited range of privileged system calls on behalf of the
+parent.
 
-The default value is @code{@DEFAULT_USER@}.
+The default value is @code{@DEFAULT_USER@}.  The configure script has a
+@code{--with-user} option, which sets the default value.
 @c }}}
 @c }}}
 @c {{{ S:Running chronyc
