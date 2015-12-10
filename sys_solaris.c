@@ -37,7 +37,8 @@ void
 SYS_Solaris_Initialise(void)
 {
   /* The kernel allows the frequency to be set in the full range off int32_t */
-  SYS_Timex_InitialiseWithFunctions(32500, 1.0 / 100, NULL, NULL, NULL);
+  SYS_Timex_InitialiseWithFunctions(32500, 1.0 / 100, NULL, NULL, NULL,
+                                    0.0, 0.0, NULL, NULL);
 }
 
 /* ================================================== */
