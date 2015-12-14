@@ -249,48 +249,6 @@ expand_hashtable(void)
 
 /* ================================================== */
 
-static int
-update_rate(int rate, uint32_t now, uint32_t last_hit)
-{
-  uint32_t interval;
-  int interval2;
-
-  interval = now - last_hit;
-
-  if (last_hit == INVALID_TS || (int32_t)interval < 0)
-    return rate;
-
-  /* Convert the interval to scaled and rounded log2 */
-  if (interval) {
-    interval += interval >> 1;
-    for (interval2 = -RATE_SCALE * TS_FRAC; interval2 < -MIN_RATE;
-         interval2 += RATE_SCALE) {
-      if (interval <= 1)
-        break;
-      interval >>= 1;
-    }
-  } else {
-    interval2 = -RATE_SCALE * (TS_FRAC + 1);
-  }
-
-  if (rate == INVALID_RATE)
-    return -interval2;
-
-  /* Update the rate in a rough approximation of exponential moving average */
-  if (rate < -interval2) {
-    rate++;
-  } else if (rate > -interval2) {
-    if (rate > RATE_SCALE * 5 / 2 - interval2)
-      rate = RATE_SCALE * 5 / 2 - interval2;
-    else
-      rate = (rate - interval2 - 1) / 2;
-  }
-
-  return rate;
-}
-
-/* ================================================== */
-
 void
 CLG_Initialise(void)
 {
@@ -349,6 +307,53 @@ get_ts_from_timeval(struct timeval *tv)
 
 /* ================================================== */
 
+static void
+update_record(struct timeval *now, uint32_t *last_hit, uint32_t *hits, int8_t *rate)
+{
+  uint32_t interval, now_ts, prev_hit;
+  int interval2;
+
+  now_ts = get_ts_from_timeval(now);
+
+  prev_hit = *last_hit;
+  *last_hit = now_ts;
+  (*hits)++;
+
+  interval = now_ts - prev_hit;
+
+  if (prev_hit == INVALID_TS || (int32_t)interval < 0)
+    return;
+
+  /* Convert the interval to scaled and rounded log2 */
+  if (interval) {
+    interval += interval >> 1;
+    for (interval2 = -RATE_SCALE * TS_FRAC; interval2 < -MIN_RATE;
+         interval2 += RATE_SCALE) {
+      if (interval <= 1)
+        break;
+      interval >>= 1;
+    }
+  } else {
+    interval2 = -RATE_SCALE * (TS_FRAC + 1);
+  }
+
+  /* Update the rate in a rough approximation of exponential moving average */
+  if (*rate == INVALID_RATE) {
+    *rate = -interval2;
+  } else {
+    if (*rate < -interval2) {
+      (*rate)++;
+    } else if (*rate > -interval2) {
+      if (*rate > RATE_SCALE * 5 / 2 - interval2)
+        *rate = RATE_SCALE * 5 / 2 - interval2;
+      else
+        *rate = (*rate - interval2 - 1) / 2;
+    }
+  }
+}
+
+/* ================================================== */
+
 static int
 get_index(Record *record)
 {
@@ -361,7 +366,6 @@ int
 CLG_LogNTPAccess(IPAddr *client, struct timeval *now)
 {
   Record *record;
-  uint32_t now_ts;
 
   if (!active)
     return -1;
@@ -370,18 +374,11 @@ CLG_LogNTPAccess(IPAddr *client, struct timeval *now)
   if (record == NULL)
     return -1;
 
-  now_ts = get_ts_from_timeval(now);
-
   /* Update one of the two rates depending on whether the previous request
      of the client had a reply or it timed out */
-  if (record->flags & FLAG_NTP_DROPPED)
-    record->ntp_timeout_rate = update_rate(record->ntp_timeout_rate,
-                                           now_ts, record->last_ntp_hit);
-  else
-    record->ntp_rate = update_rate(record->ntp_rate, now_ts, record->last_ntp_hit);
-
-  record->ntp_hits++;
-  record->last_ntp_hit = now_ts;
+  update_record(now, &record->last_ntp_hit, &record->ntp_hits,
+                record->flags & FLAG_NTP_DROPPED ?
+                &record->ntp_timeout_rate : &record->ntp_rate);
 
   DEBUG_LOG(LOGF_ClientLog, "NTP hits %"PRIu32" rate %d trate %d burst %d",
             record->ntp_hits, record->ntp_rate, record->ntp_timeout_rate,
@@ -396,7 +393,6 @@ int
 CLG_LogCommandAccess(IPAddr *client, struct timeval *now)
 {
   Record *record;
-  uint32_t now_ts;
 
   if (!active)
     return -1;
@@ -405,11 +401,7 @@ CLG_LogCommandAccess(IPAddr *client, struct timeval *now)
   if (record == NULL)
     return -1;
 
-  now_ts = get_ts_from_timeval(now);
-
-  record->cmd_rate = update_rate(record->cmd_rate, now_ts, record->last_cmd_hit);
-  record->cmd_hits++;
-  record->last_cmd_hit = now_ts;
+  update_record(now, &record->last_cmd_hit, &record->cmd_hits, &record->cmd_rate);
 
   DEBUG_LOG(LOGF_ClientLog, "Cmd hits %"PRIu32" rate %d burst %d",
             record->cmd_hits, record->cmd_rate, record->cmd_burst);
