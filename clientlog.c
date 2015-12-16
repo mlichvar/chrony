@@ -51,13 +51,12 @@ typedef struct {
   uint32_t cmd_hits;
   uint16_t ntp_drops;
   uint16_t cmd_drops;
+  uint16_t ntp_tokens;
+  uint16_t cmd_tokens;
   int8_t ntp_rate;
   int8_t cmd_rate;
   int8_t ntp_timeout_rate;
-  uint8_t ntp_burst;
-  uint8_t cmd_burst;
   uint8_t flags;
-  uint16_t _pad;
 } Record;
 
 /* Hash table of records, there is a fixed number of records per slot */
@@ -89,26 +88,28 @@ static unsigned int max_slots;
 #define MIN_RATE (-14 * RATE_SCALE)
 #define INVALID_RATE -128
 
-/* Thresholds for request rate to activate response rate limiting */
+/* Response rates are controlled by token buckets.  The capacity and
+   number of tokens spent on response are determined from configured
+   minimum inverval between responses (in log2) and burst length. */
 
-#define MIN_THRESHOLD (-10 * RATE_SCALE)
-#define MAX_THRESHOLD (TS_FRAC * RATE_SCALE)
+#define MIN_LIMIT_INTERVAL (-TS_FRAC)
+#define MAX_LIMIT_INTERVAL 12
+#define MIN_LIMIT_BURST 1
+#define MAX_LIMIT_BURST 255
 
-static int ntp_threshold;
-static int cmd_threshold;
+static uint16_t max_ntp_tokens;
+static uint16_t max_cmd_tokens;
+static uint16_t ntp_tokens_per_packet;
+static uint16_t cmd_tokens_per_packet;
 
-/* Numbers of responses after the rate exceeded the threshold before
-   actually dropping requests */
+/* Reduction of token rates to avoid overflow of 16-bit counters */
+static int ntp_token_shift;
+static int cmd_token_shift;
 
-#define MIN_LEAK_BURST 0
-#define MAX_LEAK_BURST 255
-
-static int ntp_leak_burst;
-static int cmd_leak_burst;
-
-/* Rates at which responses are randomly allowed (in log2). This is
-   necessary to prevent an attacker sending requests with spoofed
-   source address from blocking responses to the client completely. */
+/* Rates at which responses are randomly allowed (in log2) when the
+   buckets don't have enough tokens.  This is necessary in order to
+   prevent an attacker sending requests with spoofed source address
+   from blocking responses to the address completely. */
 
 #define MIN_LEAK_RATE 1
 #define MAX_LEAK_RATE 4
@@ -192,9 +193,10 @@ get_record(IPAddr *ip)
   record->last_ntp_hit = record->last_cmd_hit = INVALID_TS;
   record->ntp_hits = record->cmd_hits = 0;
   record->ntp_drops = record->cmd_drops = 0;
+  record->ntp_tokens = max_ntp_tokens;
+  record->cmd_tokens = max_cmd_tokens;
   record->ntp_rate = record->cmd_rate = INVALID_RATE;
   record->ntp_timeout_rate = INVALID_RATE;
-  record->ntp_burst = record->cmd_burst = 0;
   record->flags = 0;
 
   return record;
@@ -249,10 +251,32 @@ expand_hashtable(void)
 
 /* ================================================== */
 
+static void
+set_bucket_params(int interval, int burst, uint16_t *max_tokens,
+                  uint16_t *tokens_per_packet, int *token_shift)
+{
+  interval = CLAMP(MIN_LIMIT_INTERVAL, interval, MAX_LIMIT_INTERVAL);
+  burst = CLAMP(MIN_LIMIT_BURST, burst, MAX_LIMIT_BURST);
+
+  /* Find smallest shift with which the maximum number fits in 16 bits */
+  for (*token_shift = 0; *token_shift <= interval + TS_FRAC; (*token_shift)++) {
+    if (burst << (TS_FRAC + interval - *token_shift) < 1U << 16)
+      break;
+  }
+
+  *tokens_per_packet = 1U << (TS_FRAC + interval - *token_shift);
+  *max_tokens = *tokens_per_packet * burst;
+
+  DEBUG_LOG(LOGF_ClientLog, "Tokens max %d packet %d shift %d",
+            *max_tokens, *tokens_per_packet, *token_shift);
+}
+
+/* ================================================== */
+
 void
 CLG_Initialise(void)
 {
-  int threshold, burst, leak_rate;
+  int interval, burst, leak_rate;
 
   active = !CNF_GetNoClientLog();
   if (!active)
@@ -269,19 +293,22 @@ CLG_Initialise(void)
 
   expand_hashtable();
 
-  if (CNF_GetNTPRateLimit(&threshold, &burst, &leak_rate))
-    ntp_threshold = CLAMP(MIN_THRESHOLD, threshold * -RATE_SCALE, MAX_THRESHOLD);
-  else
-    ntp_threshold = INVALID_RATE;
-  ntp_leak_burst = CLAMP(MIN_LEAK_BURST, burst, MAX_LEAK_BURST);
-  ntp_leak_rate = CLAMP(MIN_LEAK_RATE, leak_rate, MAX_LEAK_RATE);
+  max_ntp_tokens = max_cmd_tokens = 0;
+  ntp_tokens_per_packet = cmd_tokens_per_packet = 0;
+  ntp_token_shift = cmd_token_shift = 0;
+  ntp_leak_rate = cmd_leak_rate = 0;
 
-  if (CNF_GetCommandRateLimit(&threshold, &burst, &leak_rate))
-    cmd_threshold = CLAMP(MIN_THRESHOLD, threshold * -RATE_SCALE, MAX_THRESHOLD);
-  else
-    cmd_threshold = INVALID_RATE;
-  cmd_leak_burst = CLAMP(MIN_LEAK_BURST, burst, MAX_LEAK_BURST);
-  cmd_leak_rate = CLAMP(MIN_LEAK_RATE, leak_rate, MAX_LEAK_RATE);
+  if (CNF_GetNTPRateLimit(&interval, &burst, &leak_rate)) {
+    set_bucket_params(interval, burst, &max_ntp_tokens, &ntp_tokens_per_packet,
+                      &ntp_token_shift);
+    ntp_leak_rate = CLAMP(MIN_LEAK_RATE, leak_rate, MAX_LEAK_RATE);
+  }
+
+  if (CNF_GetCommandRateLimit(&interval, &burst, &leak_rate)) {
+    set_bucket_params(interval, burst, &max_cmd_tokens, &cmd_tokens_per_packet,
+                      &cmd_token_shift);
+    cmd_leak_rate = CLAMP(MIN_LEAK_RATE, leak_rate, MAX_LEAK_RATE);
+  }
 }
 
 /* ================================================== */
@@ -308,9 +335,10 @@ get_ts_from_timeval(struct timeval *tv)
 /* ================================================== */
 
 static void
-update_record(struct timeval *now, uint32_t *last_hit, uint32_t *hits, int8_t *rate)
+update_record(struct timeval *now, uint32_t *last_hit, uint32_t *hits,
+              uint16_t *tokens, uint32_t max_tokens, int token_shift, int8_t *rate)
 {
-  uint32_t interval, now_ts, prev_hit;
+  uint32_t interval, now_ts, prev_hit, new_tokens;
   int interval2;
 
   now_ts = get_ts_from_timeval(now);
@@ -323,6 +351,9 @@ update_record(struct timeval *now, uint32_t *last_hit, uint32_t *hits, int8_t *r
 
   if (prev_hit == INVALID_TS || (int32_t)interval < 0)
     return;
+
+  new_tokens = (now_ts >> token_shift) - (prev_hit >> token_shift);
+  *tokens = MIN(*tokens + new_tokens, max_tokens);
 
   /* Convert the interval to scaled and rounded log2 */
   if (interval) {
@@ -377,12 +408,13 @@ CLG_LogNTPAccess(IPAddr *client, struct timeval *now)
   /* Update one of the two rates depending on whether the previous request
      of the client had a reply or it timed out */
   update_record(now, &record->last_ntp_hit, &record->ntp_hits,
+                &record->ntp_tokens, max_ntp_tokens, ntp_token_shift,
                 record->flags & FLAG_NTP_DROPPED ?
                 &record->ntp_timeout_rate : &record->ntp_rate);
 
-  DEBUG_LOG(LOGF_ClientLog, "NTP hits %"PRIu32" rate %d trate %d burst %d",
+  DEBUG_LOG(LOGF_ClientLog, "NTP hits %"PRIu32" rate %d trate %d tokens %d",
             record->ntp_hits, record->ntp_rate, record->ntp_timeout_rate,
-            record->ntp_burst);
+            record->ntp_tokens);
 
   return get_index(record);
 }
@@ -401,10 +433,12 @@ CLG_LogCommandAccess(IPAddr *client, struct timeval *now)
   if (record == NULL)
     return -1;
 
-  update_record(now, &record->last_cmd_hit, &record->cmd_hits, &record->cmd_rate);
+  update_record(now, &record->last_cmd_hit, &record->cmd_hits,
+                &record->cmd_tokens, max_cmd_tokens, cmd_token_shift,
+                &record->cmd_rate);
 
-  DEBUG_LOG(LOGF_ClientLog, "Cmd hits %"PRIu32" rate %d burst %d",
-            record->cmd_hits, record->cmd_rate, record->cmd_burst);
+  DEBUG_LOG(LOGF_ClientLog, "Cmd hits %"PRIu32" rate %d tokens %d",
+            record->cmd_hits, record->cmd_rate, record->cmd_tokens);
 
   return get_index(record);
 }
@@ -439,20 +473,14 @@ CLG_LimitNTPResponseRate(int index)
   Record *record;
   int drop;
 
+  if (!ntp_tokens_per_packet)
+    return 0;
+
   record = ARR_GetElement(records, index);
   record->flags &= ~FLAG_NTP_DROPPED;
 
-  /* Respond to all requests if the rate doesn't exceed the threshold */
-  if (ntp_threshold == INVALID_RATE ||
-      record->ntp_rate == INVALID_RATE ||
-      record->ntp_rate <= ntp_threshold) {
-    record->ntp_burst = 0;
-    return 0;
-  }
-
-  /* Allow the client to send a burst of requests */
-  if (record->ntp_burst < ntp_leak_burst) {
-    record->ntp_burst++;
+  if (record->ntp_tokens >= ntp_tokens_per_packet) {
+    record->ntp_tokens -= ntp_tokens_per_packet;
     return 0;
   }
 
@@ -467,8 +495,10 @@ CLG_LimitNTPResponseRate(int index)
       record->ntp_timeout_rate > record->ntp_rate + RATE_SCALE)
     drop = !drop;
 
-  if (!drop)
+  if (!drop) {
+    record->ntp_tokens = 0;
     return 0;
+  }
 
   record->flags |= FLAG_NTP_DROPPED;
   record->ntp_drops++;
@@ -483,22 +513,20 @@ CLG_LimitCommandResponseRate(int index)
 {
   Record *record;
 
+  if (!cmd_tokens_per_packet)
+    return 0;
+
   record = ARR_GetElement(records, index);
 
-  if (cmd_threshold == INVALID_RATE ||
-      record->cmd_rate == INVALID_RATE ||
-      record->cmd_rate <= cmd_threshold) {
-    record->cmd_burst = 0;
+  if (record->cmd_tokens >= cmd_tokens_per_packet) {
+    record->cmd_tokens -= cmd_tokens_per_packet;
     return 0;
   }
 
-  if (record->cmd_burst < cmd_leak_burst) {
-    record->cmd_burst++;
+  if (!limit_response_random(cmd_leak_rate)) {
+    record->cmd_tokens = 0;
     return 0;
   }
-
-  if (!limit_response_random(cmd_leak_rate))
-    return 0;
 
   record->cmd_drops++;
 
