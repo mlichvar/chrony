@@ -62,7 +62,7 @@ split_ip6(IPAddr *ip, uint32_t *dst)
   int i;
 
   for (i = 0; i < 4; i++)
-    dst[i] = ip->addr.in6[i * 4 + 0] << 24 |
+    dst[i] = (uint32_t)ip->addr.in6[i * 4 + 0] << 24 |
              ip->addr.in6[i * 4 + 1] << 16 |
              ip->addr.in6[i * 4 + 2] << 8 |
              ip->addr.in6[i * 4 + 3];

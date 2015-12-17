@@ -233,7 +233,7 @@ RCL_AddRefclock(RefclockParameters *params)
     if (index >= 10)
       ref[2] = (index / 10) % 10 + '0';
 
-    inst->ref_id = ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
+    inst->ref_id = (uint32_t)ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
   }
 
   if (inst->driver->poll) {

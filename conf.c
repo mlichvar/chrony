@@ -700,11 +700,11 @@ parse_refclock(char *line)
     if (!strcasecmp(cmd, "refid")) {
       if (sscanf(line, "%4s%n", (char *)ref, &n) != 1)
         break;
-      ref_id = ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
+      ref_id = (uint32_t)ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
     } else if (!strcasecmp(cmd, "lock")) {
       if (sscanf(line, "%4s%n", (char *)ref, &n) != 1)
         break;
-      lock_ref_id = ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
+      lock_ref_id = (uint32_t)ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
     } else if (!strcasecmp(cmd, "poll")) {
       if (sscanf(line, "%d%n", &poll, &n) != 1) {
         break;
