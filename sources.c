@@ -736,16 +736,17 @@ SRC_SelectSource(SRC_Instance updated_inst)
      If we get a case like
 
      <----------------------->
-     <-->
-     <-->
-     <===========>
+         <-->
+                  <-->
+         <===========>
 
      we will build the interval as shown with '=', whereas with an extra source we get
+
      <----------------------->
-     <------->
-     <-->
-     <-->
-     <==>
+        <------->
+         <-->
+                  <-->
+         <==>
 
      The first case is just bad luck - we need extra sources to
      detect the falseticker, so just make an arbitrary choice based
