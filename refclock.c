@@ -372,8 +372,6 @@ RCL_AddSample(RCL_Instance instance, struct timeval *sample_time, double offset,
       !valid_sample_time(instance, sample_time))
     return 0;
 
-  filter_add_sample(&instance->filter, &cooked_time, offset - correction + instance->offset, dispersion);
-
   switch (leap) {
     case LEAP_Normal:
     case LEAP_InsertSecond:
@@ -381,10 +379,11 @@ RCL_AddSample(RCL_Instance instance, struct timeval *sample_time, double offset,
       instance->leap_status = leap;
       break;
     default:
-      instance->leap_status = LEAP_Unsynchronised;
-      break;
+      DEBUG_LOG(LOGF_Refclock, "refclock sample ignored bad leap %d", leap);
+      return 0;
   }
 
+  filter_add_sample(&instance->filter, &cooked_time, offset - correction + instance->offset, dispersion);
   instance->pps_active = 0;
 
   log_sample(instance, &cooked_time, 0, 0, offset, offset - correction + instance->offset, dispersion);
