@@ -653,12 +653,11 @@ parse_ratelimit(char *line, int *enabled, int *interval, int *burst, int *leak)
 static void
 parse_refclock(char *line)
 {
-  int n, poll, dpoll, filter_length, pps_rate, min_samples, max_samples;
+  int n, poll, dpoll, filter_length, pps_rate, min_samples, max_samples, sel_options;
   uint32_t ref_id, lock_ref_id;
   double offset, delay, precision, max_dispersion;
   char *p, *cmd, *name, *param;
   unsigned char ref[5];
-  SRC_SelectOption sel_option;
   RefclockParameters *refclock;
 
   poll = 4;
@@ -667,13 +666,13 @@ parse_refclock(char *line)
   pps_rate = 0;
   min_samples = SRC_DEFAULT_MINSAMPLES;
   max_samples = SRC_DEFAULT_MAXSAMPLES;
+  sel_options = 0;
   offset = 0.0;
   delay = 1e-9;
   precision = 0.0;
   max_dispersion = 0.0;
   ref_id = 0;
   lock_ref_id = 0;
-  sel_option = SRC_SelectNormal;
 
   if (!*line) {
     command_parse_error();
@@ -740,10 +739,10 @@ parse_refclock(char *line)
         break;
     } else if (!strcasecmp(cmd, "noselect")) {
       n = 0;
-      sel_option = SRC_SelectNoselect;
+      sel_options |= SRC_SELECT_NOSELECT;
     } else if (!strcasecmp(cmd, "prefer")) {
       n = 0;
-      sel_option = SRC_SelectPrefer;
+      sel_options |= SRC_SELECT_PREFER;
     } else {
       other_parse_error("Invalid refclock option");
       return;
@@ -765,11 +764,11 @@ parse_refclock(char *line)
   refclock->pps_rate = pps_rate;
   refclock->min_samples = min_samples;
   refclock->max_samples = max_samples;
+  refclock->sel_options = sel_options;
   refclock->offset = offset;
   refclock->delay = delay;
   refclock->precision = precision;
   refclock->max_dispersion = max_dispersion;
-  refclock->sel_option = sel_option;
   refclock->ref_id = ref_id;
   refclock->lock_ref_id = lock_ref_id;
 }

@@ -42,11 +42,11 @@ typedef struct {
   int max_sources;
   int min_samples;
   int max_samples;
+  int sel_options;
   uint32_t authkey;
   double max_delay;
   double max_delay_ratio;
   double max_delay_dev_ratio;
-  SRC_SelectOption sel_option;
 } SourceParameters;
 
 #define SRC_DEFAULT_PORT 123
@@ -62,5 +62,9 @@ typedef struct {
 #define SRC_DEFAULT_MINSAMPLES (-1)
 #define SRC_DEFAULT_MAXSAMPLES (-1)
 #define INACTIVE_AUTHKEY 0
+
+/* Flags for source selection */
+#define SRC_SELECT_NOSELECT 0x1
+#define SRC_SELECT_PREFER 0x2
 
 #endif /* GOT_SRCPARAMS_H */

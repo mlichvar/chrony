@@ -1117,8 +1117,8 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
           (data.params.online ? REQ_ADDSRC_ONLINE : 0) |
           (data.params.auto_offline ? REQ_ADDSRC_AUTOOFFLINE : 0) |
           (data.params.iburst ? REQ_ADDSRC_IBURST : 0) |
-          (data.params.sel_option == SRC_SelectPrefer ? REQ_ADDSRC_PREFER : 0) |
-          (data.params.sel_option == SRC_SelectNoselect ? REQ_ADDSRC_NOSELECT : 0));
+          (data.params.sel_options & SRC_SELECT_PREFER ? REQ_ADDSRC_PREFER : 0) |
+          (data.params.sel_options & SRC_SELECT_NOSELECT ? REQ_ADDSRC_NOSELECT : 0));
       result = 1;
 
       break;

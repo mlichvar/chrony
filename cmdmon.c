@@ -661,17 +661,9 @@ handle_source_data(CMD_Request *rx_message, CMD_Reply *tx_message)
         tx_message->data.source_data.mode    = htons(RPY_SD_MD_REF);
         break;
     }
-    switch (report.sel_option) {
-      case RPT_NORMAL:
-        tx_message->data.source_data.flags = htons(0);
-        break;
-      case RPT_PREFER:
-        tx_message->data.source_data.flags = htons(RPY_SD_FLAG_PREFER);
-        break;
-      case RPT_NOSELECT:
-        tx_message->data.source_data.flags = htons(RPY_SD_FLAG_NOSELECT);
-        break;
-    }
+    tx_message->data.source_data.flags =
+                  htons((report.sel_options & SRC_SELECT_PREFER ? RPY_SD_FLAG_PREFER : 0) |
+                        (report.sel_options & SRC_SELECT_NOSELECT ? RPY_SD_FLAG_NOSELECT : 0));
     tx_message->data.source_data.reachability = htons(report.reachability);
     tx_message->data.source_data.since_sample = htonl(report.latest_meas_ago);
     tx_message->data.source_data.orig_latest_meas = UTI_FloatHostToNetwork(report.orig_latest_meas);
@@ -764,8 +756,9 @@ handle_add_source(NTP_Source_Type type, CMD_Request *rx_message, CMD_Reply *tx_m
   params.online  = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_ONLINE ? 1 : 0;
   params.auto_offline = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_AUTOOFFLINE ? 1 : 0;
   params.iburst = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_IBURST ? 1 : 0;
-  params.sel_option = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_PREFER ? SRC_SelectPrefer :
-                      ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_NOSELECT ? SRC_SelectNoselect : SRC_SelectNormal;
+  params.sel_options =
+    (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_PREFER ? SRC_SELECT_PREFER : 0) |
+    (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_NOSELECT ? SRC_SELECT_NOSELECT : 0);
   params.max_delay = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay);
   params.max_delay_ratio = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_ratio);
 

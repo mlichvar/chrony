@@ -63,7 +63,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   src->params.max_sources = SRC_DEFAULT_MAXSOURCES;
   src->params.min_samples = SRC_DEFAULT_MINSAMPLES;
   src->params.max_samples = SRC_DEFAULT_MAXSAMPLES;
-  src->params.sel_option = SRC_SelectNormal;
+  src->params.sel_options = 0;
 
   result = CPS_Success;
   
@@ -165,10 +165,10 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
           }
 
         } else if (!strcasecmp(cmd, "noselect")) {
-          src->params.sel_option = SRC_SelectNoselect;
+          src->params.sel_options |= SRC_SELECT_NOSELECT;
         
         } else if (!strcasecmp(cmd, "prefer")) {
-          src->params.sel_option = SRC_SelectPrefer;
+          src->params.sel_options |= SRC_SELECT_PREFER;
         
         } else if (!strcasecmp(cmd, "version")) {
           if (sscanf(line, "%d%n", &src->params.version, &n) != 1) {

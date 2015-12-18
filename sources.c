@@ -118,7 +118,7 @@ struct SRC_Instance_Record {
   SRC_Type type;
 
   /* Options used when selecting sources */ 
-  SRC_SelectOption sel_option;
+  int sel_options;
 
   /* Score against currently selected source */
   double sel_score;
@@ -209,7 +209,7 @@ void SRC_Finalise(void)
 /* Function to create a new instance.  This would be called by one of
    the individual source-type instance creation routines. */
 
-SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, SRC_SelectOption sel_option, IPAddr *addr, int min_samples, int max_samples)
+SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, int sel_options, IPAddr *addr, int min_samples, int max_samples)
 {
   SRC_Instance result;
 
@@ -241,7 +241,7 @@ SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, SRC_SelectOpt
 
   result->index = n_sources;
   result->type = type;
-  result->sel_option = sel_option;
+  result->sel_options = sel_options;
 
   SRC_SetRefid(result, ref_id, addr);
   SRC_ResetInstance(result);
@@ -637,7 +637,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     assert(sources[i]->status != SRC_OK);
 
     /* Ignore sources which were added with the noselect option */
-    if (sources[i]->sel_option == SRC_SelectNoselect) {
+    if (sources[i]->sel_options & SRC_SELECT_NOSELECT) {
       sources[i]->status = SRC_UNSELECTABLE;
       continue;
     }
@@ -845,12 +845,12 @@ SRC_SelectSource(SRC_Instance updated_inst)
   /* If there are any sources with prefer option, reduce the list again
      only to the preferred sources */
   for (i = 0; i < n_sel_sources; i++) {
-    if (sources[sel_sources[i]]->sel_option == SRC_SelectPrefer)
+    if (sources[sel_sources[i]]->sel_options & SRC_SELECT_PREFER)
       break;
   }
   if (i < n_sel_sources) {
     for (i = j = 0; i < n_sel_sources; i++) {
-      if (sources[sel_sources[i]]->sel_option != SRC_SelectPrefer)
+      if (!(sources[sel_sources[i]]->sel_options & SRC_SELECT_PREFER))
         sources[sel_sources[i]]->status = SRC_NONPREFERRED;
       else
         sel_sources[j++] = sel_sources[i];
@@ -886,7 +886,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   for (i = 0; i < n_sources; i++) {
     /* Reset score for non-selectable sources */
     if (sources[i]->status != SRC_OK ||
-        (sel_prefer && sources[i]->sel_option != SRC_SelectPrefer)) {
+        (sel_prefer && !(sources[i]->sel_options & SRC_SELECT_PREFER))) {
       sources[i]->sel_score = 1.0;
       sources[i]->distant = DISTANT_PENALTY;
       continue;
@@ -1256,20 +1256,7 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
         break;
     }
 
-    switch (src->sel_option) {
-      case SRC_SelectNormal:
-        report->sel_option = RPT_NORMAL;
-        break;
-      case SRC_SelectPrefer:
-        report->sel_option = RPT_PREFER;
-        break;
-      case SRC_SelectNoselect:
-        report->sel_option = RPT_NOSELECT;
-        break;
-      default:
-        assert(0);
-    }
-
+    report->sel_options = src->sel_options;
     report->reachability = src->reachability;
 
     /* Call stats module to fill out estimates */

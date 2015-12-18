@@ -40,13 +40,13 @@ typedef struct {
   int pps_rate;
   int min_samples;
   int max_samples;
+  int sel_options;
   uint32_t ref_id;
   uint32_t lock_ref_id;
   double offset;
   double delay;
   double precision;
   double max_dispersion;
-  SRC_SelectOption sel_option;
 } RefclockParameters;
 
 typedef struct RCL_Instance_Record *RCL_Instance;
