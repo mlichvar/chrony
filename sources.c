@@ -602,7 +602,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   struct SelectInfo *si;
   struct timeval now, ref_time;
   int i, j, j1, j2, index, sel_prefer, n_endpoints, n_sel_sources;
-  int n_badstats_sources, max_sel_reach, max_badstat_reach;
+  int n_badstats_sources, max_sel_reach, max_badstat_reach, sel_req_source;
   int depth, best_depth, trust_depth, best_trust_depth;
   int combined, stratum, min_stratum, max_score_index;
   double src_offset, src_offset_sd, src_frequency, src_skew;
@@ -631,11 +631,17 @@ SRC_SelectSource(SRC_Instance updated_inst)
   n_endpoints = 0;
   n_sel_sources = 0;
   n_badstats_sources = 0;
+  sel_req_source = 0;
   max_sel_reach = max_badstat_reach = 0;
   max_reach_sample_ago = 0.0;
 
   for (i = 0; i < n_sources; i++) {
     assert(sources[i]->status != SRC_OK);
+
+    /* If some sources are specified with the require option, at least one
+       of them will have to be selectable in order to update the clock */
+    if (sources[i]->sel_options & SRC_SELECT_REQUIRE)
+      sel_req_source = 1;
 
     /* Ignore sources which were added with the noselect option */
     if (sources[i]->sel_options & SRC_SELECT_NOSELECT) {
@@ -825,15 +831,19 @@ SRC_SelectSource(SRC_Instance updated_inst)
          sources[i]->sel_info.hi_limit <= best_hi)) {
 
       sel_sources[n_sel_sources++] = i;
+
+      if (sources[i]->sel_options & SRC_SELECT_REQUIRE)
+        sel_req_source = 0;
     } else {
       sources[i]->status = SRC_FALSETICKER;
     }
   }
 
-  if (n_sel_sources == 0 || n_sel_sources < CNF_GetMinSources()) {
+  if (!n_sel_sources || sel_req_source || n_sel_sources < CNF_GetMinSources()) {
     if (selected_source_index != INVALID_SOURCE) {
       log_selection_message("Can't synchronise: %s selectable sources",
-                            n_sel_sources ? "not enough" : "no");
+                            !n_sel_sources ? "no" :
+                            sel_req_source ? "no required source in" : "not enough");
       selected_source_index = INVALID_SOURCE;
     }
     mark_ok_sources(SRC_WAITS_SOURCES);

@@ -244,6 +244,7 @@ typedef struct {
 #define REQ_ADDSRC_PREFER 0x8
 #define REQ_ADDSRC_NOSELECT 0x10
 #define REQ_ADDSRC_TRUST 0x20
+#define REQ_ADDSRC_REQUIRE 0x40
 
 typedef struct {
   IPAddr ip_addr;
@@ -480,6 +481,7 @@ typedef struct {
 #define RPY_SD_FLAG_NOSELECT 0x1
 #define RPY_SD_FLAG_PREFER 0x2
 #define RPY_SD_FLAG_TRUST 0x4
+#define RPY_SD_FLAG_REQUIRE 0x8
 
 typedef struct {
   IPAddr ip_addr;

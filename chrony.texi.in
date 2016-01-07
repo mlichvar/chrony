@@ -2724,6 +2724,14 @@ which are not very accurate, but are locked with a PPS refclock.
 Assume time from this source is always true.  It can't be rejected as a
 falseticker in the source selection if sources that are specified without this
 option don't agree with it.
+@item require
+Require that at least one of the sources specified with this option is
+selectable (i.e. recently reachable and not a falseticker) before updating the
+clock.  Together with the @code{trust} option this may be useful to allow a
+trusted, but not very precise, reference clock to be safely combined with
+unauthenticated NTP sources in order to improve the accuracy of the clock.
+They can be selected and used for synchronisation only if they agree with
+the trusted and required source.
 @item minsamples
 Set the minimum number of samples kept for this source.  This overrides the
 @code{minsamples} directive (@pxref{minsamples directive}).
@@ -3032,6 +3040,14 @@ Never select this source.  This is particularly useful for monitoring.
 Assume time from this source is always true.  It can't be rejected as a
 falseticker in the source selection if sources that are specified without this
 option don't agree with it.
+
+@item require
+Require that at least one of the sources specified with this option is
+selectable (i.e. recently reachable and not a falseticker) before updating the
+clock.  Together with the @code{trust} option this may be useful to allow a
+trusted authenticated source to be safely combined with unauthenticated sources
+in order to improve the accuracy of the clock.  They can be selected and used
+for synchronisation only if they agree with the trusted and required source.
 
 @item minsamples
 Set the minimum number of samples kept for this source.  This overrides the
