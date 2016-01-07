@@ -35,7 +35,6 @@ base_delay="(+ 1e-3 (equal 0.1 to 2) (equal 0.1 to 3))"
 run_test || test_fail
 check_chronyd_exit || test_fail
 check_source_selection || test_fail
-check_packet_interval || test_fail
 check_sync || test_fail
 
 test_pass
