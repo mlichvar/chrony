@@ -603,7 +603,8 @@ SRC_SelectSource(SRC_Instance updated_inst)
   struct timeval now, ref_time;
   int i, j, j1, j2, index, sel_prefer, n_endpoints, n_sel_sources;
   int n_badstats_sources, max_sel_reach, max_badstat_reach;
-  int depth, best_depth, combined, stratum, min_stratum, max_score_index;
+  int depth, best_depth, trust_depth, best_trust_depth;
+  int combined, stratum, min_stratum, max_score_index;
   double src_offset, src_offset_sd, src_frequency, src_skew;
   double src_root_delay, src_root_dispersion;
   double best_lo, best_hi, distance, sel_src_distance, max_score;
@@ -751,8 +752,12 @@ SRC_SelectSource(SRC_Instance updated_inst)
      The first case is just bad luck - we need extra sources to
      detect the falseticker, so just make an arbitrary choice based
      on stratum & stability etc.
+
+     Intervals from sources specified with the trust option have higher
+     priority in the search.
      */
 
+  trust_depth = best_trust_depth = 0;
   depth = best_depth = 0;
   best_lo = best_hi = 0.0;
 
@@ -760,14 +765,20 @@ SRC_SelectSource(SRC_Instance updated_inst)
     switch (sort_list[i].tag) {
       case LOW:
         depth++;
-        if (depth > best_depth) {
+        if (sources[sort_list[i].index]->sel_options & SRC_SELECT_TRUST)
+          trust_depth++;
+        if (trust_depth > best_trust_depth ||
+            (trust_depth == best_trust_depth && depth > best_depth)) {
+          best_trust_depth = trust_depth;
           best_depth = depth;
           best_lo = sort_list[i].offset;
         }
         break;
       case HIGH:
-        if (depth == best_depth)
+        if (trust_depth == best_trust_depth && depth == best_depth)
           best_hi = sort_list[i].offset;
+        if (sources[sort_list[i].index]->sel_options & SRC_SELECT_TRUST)
+          trust_depth--;
         depth--;
         break;
       default:
@@ -775,9 +786,9 @@ SRC_SelectSource(SRC_Instance updated_inst)
     }
   }
 
-  if (best_depth <= n_sel_sources / 2) {
-    /* Could not even get half the reachable sources to agree -
-       clearly we can't synchronise. */
+  if (best_depth <= n_sel_sources / 2 && !best_trust_depth) {
+    /* Could not even get half the reachable sources to agree and there
+       are no trusted sources - clearly we can't synchronise */
 
     if (selected_source_index != INVALID_SOURCE) {
       log_selection_message("Can't synchronise: no majority", NULL);
@@ -798,14 +809,17 @@ SRC_SelectSource(SRC_Instance updated_inst)
   n_sel_sources = 0;
 
   for (i = 0; i < n_sources; i++) {
+    /* This should be the same condition to get into the endpoint
+       list */
     if (sources[i]->status != SRC_OK)
       continue;
 
-    /* This should be the same condition to get into the endpoint
-       list */
-    /* Check if source's interval contains the best interval, or
-       is wholly contained within it */
-    if ((sources[i]->sel_info.lo_limit <= best_lo &&
+    /* Check if source's interval contains the best interval, or is wholly
+       contained within it.  If there are any trusted sources the first
+       condition is applied only to them to not allow non-trusted sources to
+       move the final offset outside the interval. */
+    if (((!best_trust_depth || sources[i]->sel_options & SRC_SELECT_TRUST) &&
+         sources[i]->sel_info.lo_limit <= best_lo &&
          sources[i]->sel_info.hi_limit >= best_hi) ||
         (sources[i]->sel_info.lo_limit >= best_lo &&
          sources[i]->sel_info.hi_limit <= best_hi)) {

@@ -66,5 +66,6 @@ typedef struct {
 /* Flags for source selection */
 #define SRC_SELECT_NOSELECT 0x1
 #define SRC_SELECT_PREFER 0x2
+#define SRC_SELECT_TRUST 0x4
 
 #endif /* GOT_SRCPARAMS_H */

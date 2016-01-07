@@ -743,6 +743,9 @@ parse_refclock(char *line)
     } else if (!strcasecmp(cmd, "prefer")) {
       n = 0;
       sel_options |= SRC_SELECT_PREFER;
+    } else if (!strcasecmp(cmd, "trust")) {
+      n = 0;
+      sel_options |= SRC_SELECT_TRUST;
     } else {
       other_parse_error("Invalid refclock option");
       return;

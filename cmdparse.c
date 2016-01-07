@@ -170,6 +170,9 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
         } else if (!strcasecmp(cmd, "prefer")) {
           src->params.sel_options |= SRC_SELECT_PREFER;
         
+        } else if (!strcasecmp(cmd, "trust")) {
+          src->params.sel_options |= SRC_SELECT_TRUST;
+
         } else if (!strcasecmp(cmd, "version")) {
           if (sscanf(line, "%d%n", &src->params.version, &n) != 1) {
             result = CPS_BadVersion;
