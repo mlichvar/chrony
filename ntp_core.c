@@ -1140,7 +1140,8 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   if (inst->do_auth) {
     if (auth_len > 0) {
       auth_key_id = ntohl(message->auth_keyid);
-      test5 = check_packet_auth(message, auth_key_id, auth_len);
+      test5 = check_packet_auth(message, auth_key_id, auth_len) &&
+              auth_key_id == inst->auth_key_id;
     } else {
       /* If we expect authenticated info from this peer/server and the packet
          doesn't have it, it's got to fail */
