@@ -1099,7 +1099,7 @@ static int
 receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Instance inst, NTP_Local_Address *local_addr, int length)
 {
   int pkt_leap;
-  uint32_t pkt_refid;
+  uint32_t pkt_refid, pkt_key_id;
   double pkt_root_delay;
   double pkt_root_dispersion;
 
@@ -1190,11 +1190,13 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
      function is called only for known sources. */
 
   /* Test 5 checks for authentication failure.  If we expect authenticated info
-     from this peer/server and the packet doesn't have it or the authentication
-     is bad, it's got to fail.  If the peer or server sends us an authenticated
-     frame, but we're not bothered about whether he authenticates or not, just
-     ignore the test. */
-  test5 = inst->do_auth ? check_packet_auth(message, length, NULL, NULL) : 1;
+     from this peer/server and the packet doesn't have it, the authentication
+     is bad, or it's authenticated with a different key than expected, it's got
+     to fail.  If we don't expect the packet to be authenticated, just ignore
+     the test. */
+  test5 = !inst->do_auth ||
+          (check_packet_auth(message, length, NULL, &pkt_key_id) &&
+           pkt_key_id == inst->auth_key_id);
 
   /* Test 6 checks for unsynchronised server */
   test6 = pkt_leap != LEAP_Unsynchronised &&

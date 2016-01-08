@@ -2508,6 +2508,9 @@ The syntax of this directive is identical to that for the @code{server}
 directive (@pxref{server directive}), except that it is used to specify
 an NTP peer rather than an NTP server.
 
+When a key is specified by the @code{key} option to enable authentication, both
+peers must be configured to use the same key and the same key number.
+
 Please note that NTP peers that are not configured with a key to enable
 authentication are vulnerable to a denial-of-service attack.  An attacker
 knowing that NTP hosts A and B are peering with each other can send a packet
