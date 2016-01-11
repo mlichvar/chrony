@@ -69,7 +69,11 @@ default_client_server_conf=""
 default_server_server_options=""
 default_client_server_options=""
 default_server_peer_options=""
+default_server_lpeer_options=""
+default_server_rpeer_options=""
 default_client_peer_options=""
+default_client_lpeer_options=""
+default_client_rpeer_options=""
 default_server_conf=""
 default_client_conf=""
 default_chronyc_conf=""
@@ -189,7 +193,8 @@ get_chronyd_conf() {
 		done
 		for i in $(seq 1 $peers); do
 			[ $i -eq $peer -o $i -gt $servers ] && continue
-			echo "peer 192.168.123.$[$servers * ($stratum - 1) + $i] $server_peer_options"
+			echo -n "peer 192.168.123.$[$servers * ($stratum - 1) + $i] $server_peer_options "
+			[ $i -lt $peer ] && echo "$server_lpeer_options" || echo "$server_rpeer_options"
 		done
 		echo "$server_conf"
 	else
@@ -202,7 +207,8 @@ get_chronyd_conf() {
 		fi
 		for i in $(seq 1 $peers); do
 			[ $i -eq $peer -o $i -gt $clients ] && continue
-			echo "peer 192.168.123.$[$servers * ($stratum - 1) + $i] $client_peer_options"
+			echo -n "peer 192.168.123.$[$servers * ($stratum - 1) + $i] $client_peer_options "
+			[ $i -lt $peer ] && echo "$client_lpeer_options" || echo "$client_rpeer_options"
 		done
 		echo "$client_conf"
 	fi
