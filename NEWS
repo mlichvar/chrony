@@ -1,3 +1,10 @@
+New in version 1.31.2
+=====================
+
+Security fixes
+--------------
+* Restrict authentication of NTP server/peer to specified key (CVE-2016-1567)
+
 New in version 1.31.1
 =====================
 
