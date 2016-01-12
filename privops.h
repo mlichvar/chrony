@@ -52,6 +52,12 @@ int PRV_BindSocket(int sock, struct sockaddr *address, socklen_t address_len);
 #define PRV_BindSocket bind
 #endif
 
+#ifdef PRIVOPS_NAME2IPADDRESS
+int PRV_Name2IPAddress(const char *name, IPAddr *ip_addrs, int max_addrs);
+#else
+#define PRV_Name2IPAddress DNS_Name2IPAddress
+#endif
+
 #ifdef PRIVOPS_HELPER
 void PRV_Initialise(void);
 void PRV_StartHelper(void);

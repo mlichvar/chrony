@@ -31,6 +31,7 @@
 #include "nameserv_async.h"
 #include "logging.h"
 #include "memory.h"
+#include "privops.h"
 #include "sched.h"
 #include "util.h"
 
@@ -59,7 +60,7 @@ start_resolving(void *anything)
 {
   struct DNS_Async_Instance *inst = (struct DNS_Async_Instance *)anything;
 
-  inst->status = DNS_Name2IPAddress(inst->name, inst->addresses, DNS_MAX_ADDRESSES);
+  inst->status = PRV_Name2IPAddress(inst->name, inst->addresses, DNS_MAX_ADDRESSES);
 
   /* Notify the main thread that the result is ready */
   if (write(inst->pipe[1], "", 1) < 0)

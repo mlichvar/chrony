@@ -29,6 +29,7 @@
 #include "sysincl.h"
 
 #include "conf.h"
+#include "nameserv.h"
 #include "logging.h"
 #include "privops.h"
 #include "util.h"
@@ -37,6 +38,7 @@
 #define OP_ADJUSTTIMEX    1025
 #define OP_SETTIME        1026
 #define OP_BINDSOCKET     1027
+#define OP_NAME2IPADDRESS 1028
 #define OP_QUIT           1099
 
 union sockaddr_in46 {
@@ -70,6 +72,10 @@ typedef struct {
 } ReqBindSocket;
 
 typedef struct {
+  char name[256];
+} ReqName2IPAddress;
+
+typedef struct {
   int op;
   union {
     ReqAdjustTime adjust_time;
@@ -78,6 +84,9 @@ typedef struct {
 #endif
     ReqSetTime set_time;
     ReqBindSocket bind_socket;
+#ifdef PRIVOPS_NAME2IPADDRESS
+    ReqName2IPAddress name_to_ipaddress;
+#endif
   } data;
 } PrvRequest;
 
@@ -94,6 +103,10 @@ typedef struct {
 #endif
 
 typedef struct {
+  IPAddr addresses[DNS_MAX_ADDRESSES];
+} ResName2IPAddress;
+
+typedef struct {
   char msg[256];
 } ResFatalMsg;
 
@@ -106,6 +119,9 @@ typedef struct {
     ResAdjustTime adjust_time;
 #ifdef PRIVOPS_ADJUSTTIMEX
     ResAdjustTimex adjust_timex;
+#endif
+#ifdef PRIVOPS_NAME2IPADDRESS
+    ResName2IPAddress name_to_ipaddress;
 #endif
   } data;
 } PrvResponse;
@@ -267,6 +283,21 @@ do_bind_socket(ReqBindSocket *req, PrvResponse *res)
 
 /* ======================================================================= */
 
+/* HELPER - perform DNS_Name2IPAddress() */
+
+#ifdef PRIVOPS_NAME2IPADDRESS
+static void
+do_name_to_ipaddress(ReqName2IPAddress *req, PrvResponse *res)
+{
+  /* make sure the string is terminated */
+  req->name[sizeof (req->name) - 1] = '\0';
+  res->rc = DNS_Name2IPAddress(req->name, res->data.name_to_ipaddress.addresses,
+                               DNS_MAX_ADDRESSES);
+}
+#endif
+
+/* ======================================================================= */
+
 /* HELPER - main loop - action requests from the daemon */
 
 static void
@@ -302,6 +333,11 @@ helper_main(int fd)
 #ifdef PRIVOPS_BINDSOCKET
       case OP_BINDSOCKET:
         do_bind_socket(&req.data.bind_socket, &res);
+        break;
+#endif
+#ifdef PRIVOPS_NAME2IPADDRESS
+      case OP_NAME2IPADDRESS:
+        do_name_to_ipaddress(&req.data.name_to_ipaddress, &res);
         break;
 #endif
       case OP_QUIT:
@@ -534,6 +570,38 @@ PRV_BindSocket(int sock, struct sockaddr *address, socklen_t address_len)
   memcpy(&req.data.bind_socket.sa.u, address, address_len);
 
   submit_request(&req, &res);
+
+  return res.rc;
+}
+#endif
+
+/* ======================================================================= */
+
+/* DAEMON - request DNS_Name2IPAddress() */
+
+#ifdef PRIVOPS_NAME2IPADDRESS
+int
+PRV_Name2IPAddress(const char *name, IPAddr *ip_addrs, int max_addrs)
+{
+  PrvRequest req;
+  PrvResponse res;
+  int i;
+
+  if (!have_helper())
+    return DNS_Name2IPAddress(name, ip_addrs, max_addrs);
+
+  memset(&req, 0, sizeof (req));
+  req.op = OP_NAME2IPADDRESS;
+  if (snprintf(req.data.name_to_ipaddress.name, sizeof (req.data.name_to_ipaddress.name),
+               "%s", name) >= sizeof (req.data.name_to_ipaddress.name)) {
+    DEBUG_LOG(LOGF_PrivOps, "Name too long");
+    return DNS_Failure;
+  }
+
+  submit_request(&req, &res);
+
+  for (i = 0; i < max_addrs && i < DNS_MAX_ADDRESSES; i++)
+    ip_addrs[i] = res.data.name_to_ipaddress.addresses[i];
 
   return res.rc;
 }

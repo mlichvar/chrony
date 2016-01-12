@@ -38,6 +38,7 @@
 #include "ntp_core.h"
 #include "ntp_io.h"
 #include "ntp_sources.h"
+#include "privops.h"
 #include "refclock.h"
 #include "sched.h"
 
@@ -60,7 +61,7 @@ resolve_name(void *anything)
   int i;
 
   inst = (struct DNS_Async_Instance *)anything;
-  status = DNS_Name2IPAddress(inst->name, addrs, DNS_MAX_ADDRESSES);
+  status = PRV_Name2IPAddress(inst->name, addrs, DNS_MAX_ADDRESSES);
 
   for (i = 0; status == DNS_Success && i < DNS_MAX_ADDRESSES &&
        addrs[i].family != IPADDR_UNSPEC; i++)
