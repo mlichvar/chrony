@@ -43,8 +43,6 @@
 
 #ifndef FEAT_ASYNCDNS
 
-#define MAX_ADDRESSES 16
-
 /* This is a blocking implementation used when asynchronous resolving is not available */
 
 struct DNS_Async_Instance {
@@ -57,14 +55,14 @@ static void
 resolve_name(void *anything)
 {
   struct DNS_Async_Instance *inst;
-  IPAddr addrs[MAX_ADDRESSES];
+  IPAddr addrs[DNS_MAX_ADDRESSES];
   DNS_Status status;
   int i;
 
   inst = (struct DNS_Async_Instance *)anything;
-  status = DNS_Name2IPAddress(inst->name, addrs, MAX_ADDRESSES);
+  status = DNS_Name2IPAddress(inst->name, addrs, DNS_MAX_ADDRESSES);
 
-  for (i = 0; status == DNS_Success && i < MAX_ADDRESSES &&
+  for (i = 0; status == DNS_Success && i < DNS_MAX_ADDRESSES &&
        addrs[i].family != IPADDR_UNSPEC; i++)
     ;
 

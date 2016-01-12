@@ -37,14 +37,12 @@
 #ifdef USE_PTHREAD_ASYNCDNS
 #include <pthread.h>
 
-#define MAX_ADDRESSES 16
-
 /* ================================================== */
 
 struct DNS_Async_Instance {
   const char *name;
   DNS_Status status;
-  IPAddr addresses[MAX_ADDRESSES];
+  IPAddr addresses[DNS_MAX_ADDRESSES];
   DNS_NameResolveHandler handler;
   void *arg;
 
@@ -61,7 +59,7 @@ start_resolving(void *anything)
 {
   struct DNS_Async_Instance *inst = (struct DNS_Async_Instance *)anything;
 
-  inst->status = DNS_Name2IPAddress(inst->name, inst->addresses, MAX_ADDRESSES);
+  inst->status = DNS_Name2IPAddress(inst->name, inst->addresses, DNS_MAX_ADDRESSES);
 
   /* Notify the main thread that the result is ready */
   if (write(inst->pipe[1], "", 1) < 0)
@@ -88,7 +86,7 @@ end_resolving(void *anything)
   close(inst->pipe[0]);
   close(inst->pipe[1]);
 
-  for (i = 0; inst->status == DNS_Success && i < MAX_ADDRESSES &&
+  for (i = 0; inst->status == DNS_Success && i < DNS_MAX_ADDRESSES &&
               inst->addresses[i].family != IPADDR_UNSPEC; i++)
     ;
 

@@ -135,14 +135,12 @@ read_line(void)
 
 /* ================================================== */
 
-#define MAX_ADDRESSES 16
-
 static ARR_Instance
 get_sockaddrs(const char *hostnames, int port)
 {
   ARR_Instance addrs;
   char *hostname, *s1, *s2;
-  IPAddr ip_addrs[MAX_ADDRESSES];
+  IPAddr ip_addrs[DNS_MAX_ADDRESSES];
   union sockaddr_all *addr;
   int i;
 
@@ -163,12 +161,12 @@ get_sockaddrs(const char *hostnames, int port)
         LOG_FATAL(LOGF_Client, "Unix socket path too long");
       addr->un.sun_family = AF_UNIX;
     } else {
-      if (DNS_Name2IPAddress(hostname, ip_addrs, MAX_ADDRESSES) != DNS_Success) {
+      if (DNS_Name2IPAddress(hostname, ip_addrs, DNS_MAX_ADDRESSES) != DNS_Success) {
         DEBUG_LOG(LOGF_Client, "Could not get IP address for %s", hostname);
         break;
       }
 
-      for (i = 0; i < MAX_ADDRESSES && ip_addrs[i].family != IPADDR_UNSPEC; i++) {
+      for (i = 0; i < DNS_MAX_ADDRESSES && ip_addrs[i].family != IPADDR_UNSPEC; i++) {
         addr = (union sockaddr_all *)ARR_GetNewElement(addrs);
         UTI_IPAndPortToSockaddr(&ip_addrs[i], port, (struct sockaddr *)addr);
         DEBUG_LOG(LOGF_Client, "Resolved %s to %s", hostname, UTI_IPToString(&ip_addrs[i]));

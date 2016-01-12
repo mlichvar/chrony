@@ -49,7 +49,9 @@ DNS_Name2IPAddress(const char *name, IPAddr *ip_addrs, int max_addrs)
 #ifdef HAVE_GETADDRINFO
   struct addrinfo hints, *res, *ai;
   int i, result;
-  
+
+  max_addrs = MIN(max_addrs, DNS_MAX_ADDRESSES);
+
   memset(&hints, 0, sizeof (hints));
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
@@ -98,6 +100,8 @@ DNS_Name2IPAddress(const char *name, IPAddr *ip_addrs, int max_addrs)
   
   if (address_family != IPADDR_UNSPEC && address_family != IPADDR_INET4)
     return DNS_Failure;
+
+  max_addrs = MIN(max_addrs, DNS_MAX_ADDRESSES);
 
   host = gethostbyname(name);
 
