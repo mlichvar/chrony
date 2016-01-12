@@ -988,6 +988,13 @@ This option configures a system call filter when @code{chronyd} is compiled with
 support for the Linux secure computing (seccomp) facility. In level 1 the
 process is killed when a forbidden system call is made, in level -1 the SYSSIG
 signal is thrown instead and in level 0 the filter is disabled (default 0).
+
+It's recommended to enable the filter only when it's known to work on the
+version of the system where @code{chrony} is installed as the filter needs to
+allow also system calls made from libraries that @code{chronyd} is using (e.g.
+libc) and different versions or implementations of the libraries may make
+different system calls.  If the filter is missing some system call,
+@code{chronyd} could be killed even in normal operation.
 @item -q
 When run in this mode, @code{chronyd} will set the system clock once
 and exit.  It will not detach from the terminal.

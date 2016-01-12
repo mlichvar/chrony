@@ -139,12 +139,13 @@ a very limited range of privileged system calls on behalf of the parent.
 Also, if +chronyd+ is compiled with support for the Linux secure computing
 (seccomp) facility, you can enable a system call filter with the +-F+ option.
 It will significantly reduce the kernel attack surface and possibly prevent
-kernel exploits from the +chronyd+ process if compromised.  The filter
-shouldn't be enabled without testing that it allows all system calls needed
-with the specific configuration and libraries that +chronyd+ is using (e.g.
-libc and its NSS configuration).  If +chronyd+ is getting killed, some system
-call is missing and the filter has to be disabled until it's patched to allow
-that call.
+kernel exploits from the +chronyd+ process if it's compromised.  It's
+recommended to enable the filter only when it's known to work on the version of
+the system where +chrony+ is installed as the filter needs to allow also system
+calls made from libraries that +chronyd+ is using (e.g. libc) and different
+versions or implementations of the libraries may make different system calls.
+If the filter is missing some system call, +chronyd+ could be killed even in
+normal operation.
 
 === How can I improve the accuracy of the system clock with NTP sources?
 

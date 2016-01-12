@@ -629,6 +629,10 @@ if [ $feat_scfilter = "1" ] && [ $try_seccomp = "1" ] && \
     'seccomp_init(SCMP_ACT_KILL);'
 then
   add_def FEAT_SCFILTER
+  # NAME2IPADDRESS shouldn't be enabled with other operations as the helper
+  # process works on one request at the time and the async resolver could
+  # block the main thread
+  priv_ops="NAME2IPADDRESS"
   EXTRA_LIBS="$EXTRA_LIBS -lseccomp"
 fi
 

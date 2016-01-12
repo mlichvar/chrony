@@ -65,6 +65,7 @@
 #include "sys_timex.h"
 #include "conf.h"
 #include "logging.h"
+#include "privops.h"
 #include "util.h"
 
 /* Frequency scale to convert from ppm to the timex freq */
@@ -455,7 +456,7 @@ SYS_Linux_EnableSystemCallFilter(int level)
     /* Process */
     SCMP_SYS(clone), SCMP_SYS(exit), SCMP_SYS(exit_group), SCMP_SYS(getrlimit),
     SCMP_SYS(rt_sigaction), SCMP_SYS(rt_sigreturn), SCMP_SYS(rt_sigprocmask),
-    SCMP_SYS(set_tid_address), SCMP_SYS(sigreturn),
+    SCMP_SYS(set_tid_address), SCMP_SYS(sigreturn), SCMP_SYS(wait4),
     /* Memory */
     SCMP_SYS(brk), SCMP_SYS(madvise), SCMP_SYS(mmap), SCMP_SYS(mmap2),
     SCMP_SYS(mprotect), SCMP_SYS(mremap), SCMP_SYS(munmap), SCMP_SYS(shmdt),
@@ -514,6 +515,12 @@ SYS_Linux_EnableSystemCallFilter(int level)
 
   /* Check if the chronyd configuration is supported */
   check_seccomp_applicability();
+
+  /* Start the helper process, which will run without any seccomp filter.  It
+     will be used for getaddrinfo(), for which it's difficult to maintain a
+     list of required system calls (with glibc it depends on what NSS modules
+     are installed and enabled on the system). */
+  PRV_StartHelper();
 
   ctx = seccomp_init(level > 0 ? SCMP_ACT_KILL : SCMP_ACT_TRAP);
   if (ctx == NULL)
