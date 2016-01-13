@@ -39,6 +39,8 @@
 #include "local.h"
 #include "logging.h"
 
+/* Consider 80 bits as the absolute minimum for a secure key */
+#define MIN_SECURE_KEY_LENGTH 10
 
 typedef struct {
   uint32_t id;
@@ -195,6 +197,9 @@ KEY_Reload(void)
       LOG(LOGS_WARN, LOGF_Keys, "Could not decode password in key %"PRIu32, key_id);
       continue;
     }
+
+    if (key.len < MIN_SECURE_KEY_LENGTH)
+      LOG(LOGS_WARN, LOGF_Keys, "Key %"PRIu32" is too short", key_id);
 
     key.id = key_id;
     key.val = MallocArray(char, key.len);
