@@ -148,7 +148,12 @@ extern int UTI_CheckDirPermissions(const char *path, mode_t perm, uid_t uid, gid
 /* Set process user/group IDs and drop supplementary groups */
 extern void UTI_DropRoot(uid_t uid, gid_t gid);
 
-/* Fill buffer with random bytes */
+/* Fill buffer with random bytes from /dev/urandom */
+extern void UTI_GetRandomBytesUrandom(void *buf, unsigned int len);
+
+/* Fill buffer with random bytes from /dev/urandom or a faster source if it's
+   available (e.g. arc4random()), which may not necessarily be suitable for
+   generating long-term keys */
 extern void UTI_GetRandomBytes(void *buf, unsigned int len);
 
 /* Macros to get maximum and minimum of two values */
