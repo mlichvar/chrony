@@ -1191,7 +1191,7 @@ give_help(void)
     "makestep\0Correct clock by stepping immediately\0"
     "makestep <threshold> <updates>\0Configure automatic clock stepping\0"
     "maxupdateskew <skew>\0Modify maximum valid skew to update frequency\0"
-    "waitsync [max-tries [max-correction [max-skew [interval]]]]\0"
+    "waitsync [<max-tries> [<max-correction> [<max-skew> [<interval>]]]]\0"
                           "Wait until synchronised in specified limits\0"
     "\0\0"
     "Time sources:\0\0"
