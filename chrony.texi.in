@@ -3373,6 +3373,7 @@ interface.
 * dump command::                Dump measurement histories to files
 * exit command::                Exit from chronyc
 * help command::                Generate help summary
+* keygen command::              Generate key for key file
 * local command::               Let computer be a server when it is unsynchronised
 * makestep command::            Correct the system clock by stepping instead of slewing
 * manual command::              Enable/disable/configure options for settime
@@ -3806,6 +3807,31 @@ The exit command exits from chronyc and returns the user to the shell
 @node help command
 @subsubsection help
 The help command displays a summary of the commands and their arguments.
+@c }}}
+@c {{{ keygen
+@node keygen command
+@subsubsection keygen
+The @code{keygen} command generates a key that can be added to the
+key file (@pxref{keyfile directive}) to allow NTP authentication between
+server and client, or peers.  The key is generated from the @code{/dev/urandom}
+device and it's printed to standard output.
+
+The first argument of the command is the key number, which will be specified
+with the @code{key} option of the @code{server} or @code{peer} directives in
+the configuration file.  The second and third arguments are optional.  They
+specify the hash function (by default SHA1 or MD5 if SHA1 is not available) and
+the number of bits the key should have between 80 and 4096 bits (by default 160
+bits).
+
+An example is
+
+@example
+keygen 73 SHA1 256
+@end example
+
+which generates a 256-bit SHA-1 key with number 73.  The printed line would
+then be securely transferred and added to key files on both server and client,
+or peers.
 @c }}}
 @c {{{ local
 @node local command
