@@ -291,6 +291,9 @@ do_name_to_ipaddress(ReqName2IPAddress *req, PrvResponse *res)
 {
   /* make sure the string is terminated */
   req->name[sizeof (req->name) - 1] = '\0';
+
+  DNS_Reload();
+
   res->rc = DNS_Name2IPAddress(req->name, res->data.name_to_ipaddress.addresses,
                                DNS_MAX_ADDRESSES);
 }
