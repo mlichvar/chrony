@@ -3396,6 +3396,7 @@ interface.
 * reselectdist command::        Set improvement in distance needed to reselect a source
 * retries command::             Set maximum number of retries
 * rtcdata command::             Display RTC parameters
+* serverstats command::         Display statistics of the server
 * settime command::             Provide a manual input of the current time
 * smoothing command::           Display current time smoothing state
 * smoothtime command::          Reset/activate server time smoothing
@@ -4313,6 +4314,24 @@ per million.  So if the value shown was +1, suppose the RTC was exactly
 right when it crosses a particular second boundary.  Then it would be 1
 microsecond fast when it crosses its next second boundary.
 @end table
+@c }}}
+@c {{{ serverstats command
+@node serverstats command
+@subsubsection serverstats command
+The @code{serverstats} command displays how many valid NTP and command requests
+@code{chronyd} as a server received from clients, how many of them were dropped
+to limit the response rate as configured by the @code{ratelimit} and
+@code{cmdratelimit} directives, and how many client log records were dropped
+due to the memory limit configured by the @code{clientloglimit} directive.  An
+example of the output is shown below.
+
+@example
+NTP packets received       : 1598
+NTP packets dropped        : 8
+Command packets received   : 19
+Command packets dropped    : 0
+Client log records dropped : 0
+@end example
 @c }}}
 @c {{{ settime
 @node settime command

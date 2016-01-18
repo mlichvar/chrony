@@ -1225,6 +1225,7 @@ give_help(void)
     "\0\0NTP access:\0\0"
     "accheck <address>\0Check whether address is allowed\0"
     "clients\0Report on clients that have accessed the server\0"
+    "serverstats\0Display statistics of the server\0"
     "allow [<subnet>]\0Allow access to subnet as a default\0"
     "allow all [<subnet>]\0Allow access to subnet and all children\0"
     "deny [<subnet>]\0Deny access to subnet as a default\0"
@@ -1962,6 +1963,29 @@ process_cmd_tracking(char *line)
   }
   return 0;
 }
+
+/* ================================================== */
+
+static int
+process_cmd_serverstats(char *line)
+{
+  CMD_Request request;
+  CMD_Reply reply;
+
+  request.command = htons(REQ_SERVER_STATS);
+
+  if (!request_reply(&request, &reply, RPY_SERVER_STATS, 0))
+    return 0;
+
+  printf("NTP packets received       : %"PRIu32"\n", ntohl(reply.data.server_stats.ntp_hits));
+  printf("NTP packets dropped        : %"PRIu32"\n", ntohl(reply.data.server_stats.ntp_drops));
+  printf("Command packets received   : %"PRIu32"\n", ntohl(reply.data.server_stats.cmd_hits));
+  printf("Command packets dropped    : %"PRIu32"\n", ntohl(reply.data.server_stats.cmd_drops));
+  printf("Client log records dropped : %"PRIu32"\n", ntohl(reply.data.server_stats.log_drops));
+
+  return 1;
+}
+
 /* ================================================== */
 
 static int
@@ -2590,6 +2614,9 @@ process_line(char *line)
   } else if (!strcmp(command, "rtcdata")) {
     do_normal_submit = 0;
     ret = process_cmd_rtcreport(line);
+  } else if (!strcmp(command, "serverstats")) {
+    do_normal_submit = 0;
+    ret = process_cmd_serverstats(line);
   } else if (!strcmp(command, "settime")) {
     do_normal_submit = 0;
     ret = process_cmd_settime(line);
