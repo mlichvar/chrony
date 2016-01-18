@@ -611,3 +611,15 @@ CLG_GetClientAccessReportByIndex(int index, RPT_ClientAccessByIndex_Report *repo
 
   return 1;
 }
+
+/* ================================================== */
+
+void
+CLG_GetServerStatsReport(RPT_ServerStatsReport *report)
+{
+  report->ntp_hits = total_ntp_hits;
+  report->cmd_hits = total_cmd_hits;
+  report->ntp_drops = total_ntp_drops;
+  report->cmd_drops = total_cmd_drops;
+  report->log_drops = total_record_drops;
+}

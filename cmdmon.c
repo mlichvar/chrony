@@ -130,6 +130,7 @@ static const char permissions[] = {
   PERMIT_OPEN, /* SMOOTHING */
   PERMIT_AUTH, /* SMOOTHTIME */
   PERMIT_AUTH, /* REFRESH */
+  PERMIT_AUTH, /* SERVER_STATS */
 };
 
 /* ================================================== */
@@ -1147,6 +1148,22 @@ handle_refresh(CMD_Request *rx_message, CMD_Reply *tx_message)
 }
 
 /* ================================================== */
+
+static void
+handle_server_stats(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  RPT_ServerStatsReport report;
+
+  CLG_GetServerStatsReport(&report);
+  tx_message->reply = htons(RPY_SERVER_STATS);
+  tx_message->data.server_stats.ntp_hits = htonl(report.ntp_hits);
+  tx_message->data.server_stats.cmd_hits = htonl(report.cmd_hits);
+  tx_message->data.server_stats.ntp_drops = htonl(report.ntp_drops);
+  tx_message->data.server_stats.cmd_drops = htonl(report.cmd_drops);
+  tx_message->data.server_stats.log_drops = htonl(report.log_drops);
+}
+
+/* ================================================== */
 /* Read a packet and process it */
 
 static void
@@ -1532,6 +1549,10 @@ read_from_cmd_socket(void *anything)
 
         case REQ_REFRESH:
           handle_refresh(&rx_message, &tx_message);
+          break;
+
+        case REQ_SERVER_STATS:
+          handle_server_stats(&rx_message, &tx_message);
           break;
 
         default:

@@ -42,5 +42,6 @@ extern int CLG_LimitCommandResponseRate(int index);
 
 extern int CLG_GetNumberOfIndices(void);
 extern int CLG_GetClientAccessReportByIndex(int index, RPT_ClientAccessByIndex_Report *report, struct timeval *now);
+extern void CLG_GetServerStatsReport(RPT_ServerStatsReport *report);
 
 #endif /* GOT_CLIENTLOG_H */

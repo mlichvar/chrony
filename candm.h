@@ -91,7 +91,8 @@
 #define REQ_SMOOTHING 51
 #define REQ_SMOOTHTIME 52
 #define REQ_REFRESH 53
-#define N_REQUEST_TYPES 54
+#define REQ_SERVER_STATS 54
+#define N_REQUEST_TYPES 55
 
 /* Special utoken value used to log on with first exchange being the
    password.  (This time value has long since gone by) */
@@ -433,7 +434,8 @@ typedef struct {
 #define RPY_MANUAL_LIST 11
 #define RPY_ACTIVITY 12
 #define RPY_SMOOTHING 13
-#define N_REPLY_TYPES 14
+#define RPY_SERVER_STATS 14
+#define N_REPLY_TYPES 15
 
 /* Status codes */
 #define STT_SUCCESS 0
@@ -569,6 +571,15 @@ typedef struct {
   int32_t EOR;
 } RPY_ClientAccessesByIndex;
 
+typedef struct {
+  uint32_t ntp_hits;
+  uint32_t cmd_hits;
+  uint32_t ntp_drops;
+  uint32_t cmd_drops;
+  uint32_t log_drops;
+  int32_t EOR;
+} RPY_ServerStats;
+
 #define MAX_MANUAL_LIST_SAMPLES 16
 
 typedef struct {
@@ -630,6 +641,7 @@ typedef struct {
     RPY_Sourcestats sourcestats;
     RPY_Rtc rtc;
     RPY_ClientAccessesByIndex client_accesses_by_index;
+    RPY_ServerStats server_stats;
     RPY_ManualList manual_list;
     RPY_Activity activity;
     RPY_Smoothing smoothing;

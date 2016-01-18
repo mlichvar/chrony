@@ -100,6 +100,14 @@ typedef struct {
 } RPT_ClientAccessByIndex_Report;
 
 typedef struct {
+  uint32_t ntp_hits;
+  uint32_t cmd_hits;
+  uint32_t ntp_drops;
+  uint32_t cmd_drops;
+  uint32_t log_drops;
+} RPT_ServerStatsReport;
+
+typedef struct {
   struct timeval when;
   double slewed_offset;
   double orig_offset;

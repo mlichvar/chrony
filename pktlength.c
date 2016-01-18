@@ -152,6 +152,8 @@ command_unpadded_length(CMD_Request *r)
         return offsetof(CMD_Request, data.smoothtime.EOR);
       case REQ_REFRESH:
         return offsetof(CMD_Request, data.null.EOR);
+      case REQ_SERVER_STATS:
+        return offsetof(CMD_Request, data.null.EOR);
       default:
         /* If we fall through the switch, it most likely means we've forgotten to implement a new case */
         assert(0);
@@ -308,6 +310,8 @@ PKL_CommandPaddingLength(CMD_Request *r)
       return PADDING_LENGTH(data.smoothtime.EOR, data.null.EOR);
     case REQ_REFRESH:
       return PADDING_LENGTH(data.null.EOR, data.null.EOR);
+    case REQ_SERVER_STATS:
+      return PADDING_LENGTH(data.null.EOR, data.server_stats.EOR);
     default:
       /* If we fall through the switch, it most likely means we've forgotten to implement a new case */
       assert(0);
@@ -363,6 +367,8 @@ PKL_ReplyLength(CMD_Reply *r)
         return offsetof(CMD_Reply, data.activity.EOR);
       case RPY_SMOOTHING:
         return offsetof(CMD_Reply, data.smoothing.EOR);
+      case RPY_SERVER_STATS:
+        return offsetof(CMD_Reply, data.server_stats.EOR);
       default:
         assert(0);
     }
