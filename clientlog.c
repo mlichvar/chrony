@@ -123,6 +123,13 @@ static int cmd_leak_rate;
 /* Flag indicating whether facility is turned on or not */
 static int active;
 
+/* Global statistics */
+static uint32_t total_ntp_hits;
+static uint32_t total_cmd_hits;
+static uint32_t total_ntp_drops;
+static uint32_t total_cmd_drops;
+static uint32_t total_record_drops;
+
 /* ================================================== */
 
 static int expand_hashtable(void);
@@ -186,6 +193,7 @@ get_record(IPAddr *ip)
 
     /* There is no other option, replace the oldest record */
     record = oldest_record;
+    total_record_drops++;
     break;
   }
 
@@ -398,6 +406,8 @@ CLG_LogNTPAccess(IPAddr *client, struct timeval *now)
 {
   Record *record;
 
+  total_ntp_hits++;
+
   if (!active)
     return -1;
 
@@ -425,6 +435,8 @@ int
 CLG_LogCommandAccess(IPAddr *client, struct timeval *now)
 {
   Record *record;
+
+  total_cmd_hits++;
 
   if (!active)
     return -1;
@@ -502,6 +514,7 @@ CLG_LimitNTPResponseRate(int index)
 
   record->flags |= FLAG_NTP_DROPPED;
   record->ntp_drops++;
+  total_ntp_drops++;
 
   return 1;
 }
@@ -529,6 +542,7 @@ CLG_LimitCommandResponseRate(int index)
   }
 
   record->cmd_drops++;
+  total_cmd_drops++;
 
   return 1;
 }
