@@ -33,147 +33,118 @@
 #include "util.h"
 #include "pktlength.h"
 
+#define PADDING_LENGTH_(request_length, reply_length) \
+  ((request_length) < (reply_length) ? (reply_length) - (request_length) : 0)
+
+#define PADDING_LENGTH(request_data, reply_data) \
+  PADDING_LENGTH_(offsetof(CMD_Request, request_data), offsetof(CMD_Reply, reply_data))
+
+#define REQ_LENGTH_ENTRY(request_data_field, reply_data_field) \
+  { offsetof(CMD_Request, data.request_data_field.EOR), \
+    PADDING_LENGTH(data.request_data_field.EOR, data.reply_data_field.EOR) }
+
+#define RPY_LENGTH_ENTRY(reply_data_field) \
+  offsetof(CMD_Reply, data.reply_data_field.EOR)
+
 /* ================================================== */
 
-static int
-command_unpadded_length(CMD_Request *r)
-{
-  int type;
-  type = ntohs(r->command);
-  if (type < 0 || type >= N_REQUEST_TYPES) {
-    return 0;
-  } else {
-    switch (type) {
-      case REQ_NULL:
-        return offsetof(CMD_Request, data.null.EOR);
-      case REQ_ONLINE:
-        return offsetof(CMD_Request, data.online.EOR);
-      case REQ_OFFLINE:
-        return offsetof(CMD_Request, data.offline.EOR);
-      case REQ_BURST:
-        return offsetof(CMD_Request, data.burst.EOR);
-      case REQ_MODIFY_MINPOLL:
-        return offsetof(CMD_Request, data.modify_minpoll.EOR);
-      case REQ_MODIFY_MAXPOLL:
-        return offsetof(CMD_Request, data.modify_maxpoll.EOR);
-      case REQ_DUMP:
-        return offsetof(CMD_Request, data.dump.EOR);
-      case REQ_MODIFY_MAXDELAY:
-        return offsetof(CMD_Request, data.modify_maxdelay.EOR);
-      case REQ_MODIFY_MAXDELAYRATIO:
-        return offsetof(CMD_Request, data.modify_maxdelayratio.EOR);
-      case REQ_MODIFY_MAXDELAYDEVRATIO:
-        return offsetof(CMD_Request, data.modify_maxdelaydevratio.EOR);
-      case REQ_MODIFY_MAXUPDATESKEW:
-        return offsetof(CMD_Request, data.modify_maxupdateskew.EOR);
-      case REQ_MODIFY_MAKESTEP:
-        return offsetof(CMD_Request, data.modify_makestep.EOR);
-      case REQ_LOGON :
-        return offsetof(CMD_Request, data.logon.EOR);
-      case REQ_SETTIME :
-        return offsetof(CMD_Request, data.settime.EOR);
-      case REQ_LOCAL :
-        return offsetof(CMD_Request, data.local.EOR);
-      case REQ_MANUAL :
-        return offsetof(CMD_Request, data.manual.EOR);
-      case REQ_N_SOURCES :
-        return offsetof(CMD_Request, data.null.EOR);
-      case REQ_SOURCE_DATA :
-        return offsetof(CMD_Request, data.source_data.EOR);
-      case REQ_REKEY :
-        return offsetof(CMD_Request, data.null.EOR);
-      case REQ_ALLOW :
-        return offsetof(CMD_Request, data.allow_deny.EOR);
-      case REQ_ALLOWALL :
-        return offsetof(CMD_Request, data.allow_deny.EOR);
-      case REQ_DENY :
-        return offsetof(CMD_Request, data.allow_deny.EOR);
-      case REQ_DENYALL :
-        return offsetof(CMD_Request, data.allow_deny.EOR);
-      case REQ_CMDALLOW :
-        return offsetof(CMD_Request, data.allow_deny.EOR);
-      case REQ_CMDALLOWALL :
-        return offsetof(CMD_Request, data.allow_deny.EOR);
-      case REQ_CMDDENY :
-        return offsetof(CMD_Request, data.allow_deny.EOR);
-      case REQ_CMDDENYALL :
-        return offsetof(CMD_Request, data.allow_deny.EOR);
-      case REQ_ACCHECK :
-        return offsetof(CMD_Request, data.ac_check.EOR);
-      case REQ_CMDACCHECK :
-        return offsetof(CMD_Request, data.ac_check.EOR);
-      case REQ_ADD_SERVER :
-        return offsetof(CMD_Request, data.ntp_source.EOR);
-      case REQ_ADD_PEER :
-        return offsetof(CMD_Request, data.ntp_source.EOR);
-      case REQ_DEL_SOURCE :
-        return offsetof(CMD_Request, data.del_source.EOR);
-      case REQ_WRITERTC :
-        return offsetof(CMD_Request, data.null.EOR);
-      case REQ_DFREQ :
-        return offsetof(CMD_Request, data.dfreq.EOR);
-      case REQ_DOFFSET :
-        return offsetof(CMD_Request, data.doffset.EOR);
-      case REQ_TRACKING :
-        return offsetof(CMD_Request, data.null.EOR);
-      case REQ_SOURCESTATS :
-        return offsetof(CMD_Request, data.sourcestats.EOR);
-      case REQ_RTCREPORT :
-        return offsetof(CMD_Request, data.null.EOR);
-      case REQ_TRIMRTC :
-        return offsetof(CMD_Request, data.null.EOR);
-      case REQ_CYCLELOGS :
-        return offsetof(CMD_Request, data.null.EOR);
-      case REQ_SUBNETS_ACCESSED :
-      case REQ_CLIENT_ACCESSES:
-        /* No longer supported */
-        return 0;
-      case REQ_CLIENT_ACCESSES_BY_INDEX:
-        return offsetof(CMD_Request, data.client_accesses_by_index.EOR);
-      case REQ_MANUAL_LIST:
-        return offsetof(CMD_Request, data.null.EOR);
-      case REQ_MANUAL_DELETE:
-        return offsetof(CMD_Request, data.manual_delete.EOR);
-      case REQ_MAKESTEP:
-        return offsetof(CMD_Request, data.null.EOR);
-      case REQ_ACTIVITY:
-        return offsetof(CMD_Request, data.null.EOR);
-      case REQ_RESELECT:
-        return offsetof(CMD_Request, data.null.EOR);
-      case REQ_RESELECTDISTANCE:
-        return offsetof(CMD_Request, data.reselect_distance.EOR);
-      case REQ_MODIFY_MINSTRATUM:
-        return offsetof(CMD_Request, data.modify_minstratum.EOR);
-      case REQ_MODIFY_POLLTARGET:
-        return offsetof(CMD_Request, data.modify_polltarget.EOR);
-      case REQ_SMOOTHING:
-        return offsetof(CMD_Request, data.null.EOR);
-      case REQ_SMOOTHTIME:
-        return offsetof(CMD_Request, data.smoothtime.EOR);
-      case REQ_REFRESH:
-        return offsetof(CMD_Request, data.null.EOR);
-      case REQ_SERVER_STATS:
-        return offsetof(CMD_Request, data.null.EOR);
-      default:
-        /* If we fall through the switch, it most likely means we've forgotten to implement a new case */
-        assert(0);
-    }
-  }
+struct request_length {
+  uint16_t command;
+  uint16_t padding;
+};
 
-  /* Catch-all case */
-  return 0;
+static const struct request_length request_lengths[] = {
+  REQ_LENGTH_ENTRY(null, null),                 /* NULL */
+  REQ_LENGTH_ENTRY(online, null),               /* ONLINE */
+  REQ_LENGTH_ENTRY(offline, null),              /* OFFLINE */
+  REQ_LENGTH_ENTRY(burst, null),                /* BURST */
+  REQ_LENGTH_ENTRY(modify_minpoll, null),       /* MODIFY_MINPOLL */
+  REQ_LENGTH_ENTRY(modify_maxpoll, null),       /* MODIFY_MAXPOLL */
+  REQ_LENGTH_ENTRY(dump, null),                 /* DUMP */
+  REQ_LENGTH_ENTRY(modify_maxdelay, null),      /* MODIFY_MAXDELAY */
+  REQ_LENGTH_ENTRY(modify_maxdelayratio, null), /* MODIFY_MAXDELAYRATIO */
+  REQ_LENGTH_ENTRY(modify_maxupdateskew, null), /* MODIFY_MAXUPDATESKEW */
+  REQ_LENGTH_ENTRY(logon, null),                /* LOGON */
+  REQ_LENGTH_ENTRY(settime, manual_timestamp),  /* SETTIME */
+  REQ_LENGTH_ENTRY(local, null),                /* LOCAL */
+  REQ_LENGTH_ENTRY(manual, null),               /* MANUAL */
+  REQ_LENGTH_ENTRY(null, n_sources),            /* N_SOURCES */
+  REQ_LENGTH_ENTRY(source_data, source_data),   /* SOURCE_DATA */
+  REQ_LENGTH_ENTRY(null, null),                 /* REKEY */
+  REQ_LENGTH_ENTRY(allow_deny, null),           /* ALLOW */
+  REQ_LENGTH_ENTRY(allow_deny, null),           /* ALLOWALL */
+  REQ_LENGTH_ENTRY(allow_deny, null),           /* DENY */
+  REQ_LENGTH_ENTRY(allow_deny, null),           /* DENYALL */
+  REQ_LENGTH_ENTRY(allow_deny, null),           /* CMDALLOW */
+  REQ_LENGTH_ENTRY(allow_deny, null),           /* CMDALLOWALL */
+  REQ_LENGTH_ENTRY(allow_deny, null),           /* CMDDENY */
+  REQ_LENGTH_ENTRY(allow_deny, null),           /* CMDDENYALL */
+  REQ_LENGTH_ENTRY(ac_check, null),             /* ACCHECK */
+  REQ_LENGTH_ENTRY(ac_check, null),             /* CMDACCHECK */
+  REQ_LENGTH_ENTRY(ntp_source, null),           /* ADD_SERVER */
+  REQ_LENGTH_ENTRY(ntp_source, null),           /* ADD_PEER */
+  REQ_LENGTH_ENTRY(del_source, null),           /* DEL_SOURCE */
+  REQ_LENGTH_ENTRY(null, null),                 /* WRITERTC */
+  REQ_LENGTH_ENTRY(dfreq, null),                /* DFREQ */
+  REQ_LENGTH_ENTRY(doffset, null),              /* DOFFSET */
+  REQ_LENGTH_ENTRY(null, tracking),             /* TRACKING */
+  REQ_LENGTH_ENTRY(sourcestats, sourcestats),   /* SOURCESTATS */
+  REQ_LENGTH_ENTRY(null, rtc),                  /* RTCREPORT */
+  REQ_LENGTH_ENTRY(null, null),                 /* TRIMRTC */
+  REQ_LENGTH_ENTRY(null, null),                 /* CYCLELOGS */
+  { 0, 0 },                                     /* SUBNETS_ACCESSED - not supported */
+  { 0, 0 },                                     /* CLIENT_ACCESSES - not supported */
+  REQ_LENGTH_ENTRY(client_accesses_by_index,
+                   client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX */
+  REQ_LENGTH_ENTRY(null, manual_list),          /* MANUAL_LIST */
+  REQ_LENGTH_ENTRY(manual_delete, null),        /* MANUAL_DELETE */
+  REQ_LENGTH_ENTRY(null, null),                 /* MAKESTEP */
+  REQ_LENGTH_ENTRY(null, activity),             /* ACTIVITY */
+  REQ_LENGTH_ENTRY(modify_minstratum, null),    /* MODIFY_MINSTRATUM */
+  REQ_LENGTH_ENTRY(modify_polltarget, null),    /* MODIFY_POLLTARGET */
+  REQ_LENGTH_ENTRY(modify_maxdelaydevratio, null), /* MODIFY_MAXDELAYDEVRATIO */
+  REQ_LENGTH_ENTRY(null, null),                 /* RESELECT */
+  REQ_LENGTH_ENTRY(reselect_distance, null),    /* RESELECTDISTANCE */
+  REQ_LENGTH_ENTRY(modify_makestep, null),      /* MODIFY_MAKESTEP */
+  REQ_LENGTH_ENTRY(null, smoothing),            /* SMOOTHING */
+  REQ_LENGTH_ENTRY(smoothtime, null),           /* SMOOTHTIME */
+  REQ_LENGTH_ENTRY(null, null),                 /* REFRESH */
+  REQ_LENGTH_ENTRY(null, server_stats),         /* SERVER_STATS */
+};
 
-}
-
+static const uint16_t reply_lengths[] = {
+  0,                                            /* empty slot */
+  RPY_LENGTH_ENTRY(null),                       /* NULL */
+  RPY_LENGTH_ENTRY(n_sources),                  /* N_SOURCES */
+  RPY_LENGTH_ENTRY(source_data),                /* SOURCE_DATA */
+  RPY_LENGTH_ENTRY(manual_timestamp),           /* MANUAL_TIMESTAMP */
+  RPY_LENGTH_ENTRY(tracking),                   /* TRACKING */
+  RPY_LENGTH_ENTRY(sourcestats),                /* SOURCESTATS */
+  RPY_LENGTH_ENTRY(rtc),                        /* RTC */
+  0,                                            /* SUBNETS_ACCESSED - not supported */
+  0,                                            /* CLIENT_ACCESSES - not supported */
+  RPY_LENGTH_ENTRY(client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX */
+  0,                                            /* MANUAL_LIST - variable length */
+  RPY_LENGTH_ENTRY(activity),                   /* ACTIVITY */
+  RPY_LENGTH_ENTRY(smoothing),                  /* SMOOTHING */
+  RPY_LENGTH_ENTRY(server_stats),               /* SERVER_STATS */
+};
 
 /* ================================================== */
 
 int
 PKL_CommandLength(CMD_Request *r)
 {
+  uint32_t type;
   int command_length;
 
-  command_length = command_unpadded_length(r);
+  assert(sizeof (request_lengths) / sizeof (request_lengths[0]) == N_REQUEST_TYPES);
+
+  type = ntohs(r->command);
+  if (type >= N_REQUEST_TYPES)
+    return 0;
+
+  command_length = request_lengths[type].command;
   if (!command_length)
     return 0;
 
@@ -182,141 +153,20 @@ PKL_CommandLength(CMD_Request *r)
 
 /* ================================================== */
 
-#define PADDING_LENGTH_(request_length, reply_length) \
-  ((request_length) < (reply_length) ? (reply_length) - (request_length) : 0)
-
-#define PADDING_LENGTH(request_data, reply_data) \
-  PADDING_LENGTH_(offsetof(CMD_Request, request_data), offsetof(CMD_Reply, reply_data))
-
 int
 PKL_CommandPaddingLength(CMD_Request *r)
 {
-  int type;
+  uint32_t type;
 
   if (r->version < PROTO_VERSION_PADDING)
     return 0;
 
   type = ntohs(r->command);
 
-  if (type < 0 || type >= N_REQUEST_TYPES)
+  if (type >= N_REQUEST_TYPES)
     return 0;
 
-  switch (type) {
-    case REQ_NULL:
-      return PADDING_LENGTH(data, data.null.EOR);
-    case REQ_ONLINE:
-      return PADDING_LENGTH(data.online.EOR, data.null.EOR);
-    case REQ_OFFLINE:
-      return PADDING_LENGTH(data.offline.EOR, data.null.EOR);
-    case REQ_BURST:
-      return PADDING_LENGTH(data.burst.EOR, data.null.EOR);
-    case REQ_MODIFY_MINPOLL:
-      return PADDING_LENGTH(data.modify_minpoll.EOR, data.null.EOR);
-    case REQ_MODIFY_MAXPOLL:
-      return PADDING_LENGTH(data.modify_maxpoll.EOR, data.null.EOR);
-    case REQ_DUMP:
-      return PADDING_LENGTH(data.dump.EOR, data.null.EOR);
-    case REQ_MODIFY_MAXDELAY:
-      return PADDING_LENGTH(data.modify_maxdelay.EOR, data.null.EOR);
-    case REQ_MODIFY_MAXDELAYRATIO:
-      return PADDING_LENGTH(data.modify_maxdelayratio.EOR, data.null.EOR);
-    case REQ_MODIFY_MAXDELAYDEVRATIO:
-      return PADDING_LENGTH(data.modify_maxdelaydevratio.EOR, data.null.EOR);
-    case REQ_MODIFY_MAXUPDATESKEW:
-      return PADDING_LENGTH(data.modify_maxupdateskew.EOR, data.null.EOR);
-    case REQ_MODIFY_MAKESTEP:
-      return PADDING_LENGTH(data.modify_makestep.EOR, data.null.EOR);
-    case REQ_LOGON:
-      return PADDING_LENGTH(data.logon.EOR, data.null.EOR);
-    case REQ_SETTIME:
-      return PADDING_LENGTH(data.settime.EOR, data.manual_timestamp.EOR);
-    case REQ_LOCAL:
-      return PADDING_LENGTH(data.local.EOR, data.null.EOR);
-    case REQ_MANUAL:
-      return PADDING_LENGTH(data.manual.EOR, data.null.EOR);
-    case REQ_N_SOURCES:
-      return PADDING_LENGTH(data.null.EOR, data.n_sources.EOR);
-    case REQ_SOURCE_DATA:
-      return PADDING_LENGTH(data.source_data.EOR, data.source_data.EOR);
-    case REQ_REKEY:
-      return PADDING_LENGTH(data.null.EOR, data.null.EOR);
-    case REQ_ALLOW:
-      return PADDING_LENGTH(data.allow_deny.EOR, data.null.EOR);
-    case REQ_ALLOWALL:
-      return PADDING_LENGTH(data.allow_deny.EOR, data.null.EOR);
-    case REQ_DENY:
-      return PADDING_LENGTH(data.allow_deny.EOR, data.null.EOR);
-    case REQ_DENYALL:
-      return PADDING_LENGTH(data.allow_deny.EOR, data.null.EOR);
-    case REQ_CMDALLOW:
-      return PADDING_LENGTH(data.allow_deny.EOR, data.null.EOR);
-    case REQ_CMDALLOWALL:
-      return PADDING_LENGTH(data.allow_deny.EOR, data.null.EOR);
-    case REQ_CMDDENY:
-      return PADDING_LENGTH(data.allow_deny.EOR, data.null.EOR);
-    case REQ_CMDDENYALL:
-      return PADDING_LENGTH(data.allow_deny.EOR, data.null.EOR);
-    case REQ_ACCHECK:
-      return PADDING_LENGTH(data.ac_check.EOR, data.null.EOR);
-    case REQ_CMDACCHECK:
-      return PADDING_LENGTH(data.ac_check.EOR, data.null.EOR);
-    case REQ_ADD_SERVER:
-      return PADDING_LENGTH(data.ntp_source.EOR, data.null.EOR);
-    case REQ_ADD_PEER:
-      return PADDING_LENGTH(data.ntp_source.EOR, data.null.EOR);
-    case REQ_DEL_SOURCE:
-      return PADDING_LENGTH(data.del_source.EOR, data.null.EOR);
-    case REQ_WRITERTC:
-      return PADDING_LENGTH(data.null.EOR, data.null.EOR);
-    case REQ_DFREQ:
-      return PADDING_LENGTH(data.dfreq.EOR, data.null.EOR);
-    case REQ_DOFFSET:
-      return PADDING_LENGTH(data.doffset.EOR, data.null.EOR);
-    case REQ_TRACKING:
-      return PADDING_LENGTH(data.null.EOR, data.tracking.EOR);
-    case REQ_SOURCESTATS:
-      return PADDING_LENGTH(data.sourcestats.EOR, data.sourcestats.EOR);
-    case REQ_RTCREPORT:
-      return PADDING_LENGTH(data.null.EOR, data.rtc.EOR);
-    case REQ_TRIMRTC:
-      return PADDING_LENGTH(data.null.EOR, data.null.EOR);
-    case REQ_CYCLELOGS:
-      return PADDING_LENGTH(data.null.EOR, data.null.EOR);
-    case REQ_SUBNETS_ACCESSED:
-    case REQ_CLIENT_ACCESSES:
-      /* No longer supported */
-      return 0;
-    case REQ_CLIENT_ACCESSES_BY_INDEX:
-      return PADDING_LENGTH(data.client_accesses_by_index.EOR, data.client_accesses_by_index.EOR);
-    case REQ_MANUAL_LIST:
-      return PADDING_LENGTH(data.null.EOR, data.manual_list.EOR);
-    case REQ_MANUAL_DELETE:
-      return PADDING_LENGTH(data.manual_delete.EOR, data.null.EOR);
-    case REQ_MAKESTEP:
-      return PADDING_LENGTH(data.null.EOR, data.null.EOR);
-    case REQ_ACTIVITY:
-      return PADDING_LENGTH(data.null.EOR, data.activity.EOR);
-    case REQ_RESELECT:
-      return PADDING_LENGTH(data.null.EOR, data.null.EOR);
-    case REQ_RESELECTDISTANCE:
-      return PADDING_LENGTH(data.reselect_distance.EOR, data.null.EOR);
-    case REQ_MODIFY_MINSTRATUM:
-      return PADDING_LENGTH(data.modify_minstratum.EOR, data.null.EOR);
-    case REQ_MODIFY_POLLTARGET:
-      return PADDING_LENGTH(data.modify_polltarget.EOR, data.null.EOR);
-    case REQ_SMOOTHING:
-      return PADDING_LENGTH(data.null.EOR, data.smoothing.EOR);
-    case REQ_SMOOTHTIME:
-      return PADDING_LENGTH(data.smoothtime.EOR, data.null.EOR);
-    case REQ_REFRESH:
-      return PADDING_LENGTH(data.null.EOR, data.null.EOR);
-    case REQ_SERVER_STATS:
-      return PADDING_LENGTH(data.null.EOR, data.server_stats.EOR);
-    default:
-      /* If we fall through the switch, it most likely means we've forgotten to implement a new case */
-      assert(0);
-      return 0;
-  }
+  return request_lengths[ntohs(r->command)].padding;
 }
 
 /* ================================================== */
@@ -324,57 +174,32 @@ PKL_CommandPaddingLength(CMD_Request *r)
 int
 PKL_ReplyLength(CMD_Reply *r)
 {
-  int type;
+  uint32_t type;
+
+  assert(sizeof (reply_lengths) / sizeof (reply_lengths[0]) == N_REPLY_TYPES);
+
   type = ntohs(r->reply);
+
   /* Note that reply type codes start from 1, not 0 */
-  if (type < 1 || type >= N_REPLY_TYPES) {
+  if (type < 1 || type >= N_REPLY_TYPES)
     return 0;
-  } else {
-    switch (type) {
-      case RPY_NULL:
-        return offsetof(CMD_Reply, data.null.EOR);
-      case RPY_N_SOURCES:
-        return offsetof(CMD_Reply, data.n_sources.EOR);
-      case RPY_SOURCE_DATA:
-        return offsetof(CMD_Reply, data.source_data.EOR);
-      case RPY_MANUAL_TIMESTAMP:
-        return offsetof(CMD_Reply, data.manual_timestamp.EOR);
-      case RPY_TRACKING:
-        return offsetof(CMD_Reply, data.tracking.EOR);
-      case RPY_SOURCESTATS:
-        return offsetof(CMD_Reply, data.sourcestats.EOR);
-      case RPY_RTC:
-        return offsetof(CMD_Reply, data.rtc.EOR);
-      case RPY_SUBNETS_ACCESSED :
-      case RPY_CLIENT_ACCESSES:
-        /* No longer supported */
-        return 0;
-      case RPY_CLIENT_ACCESSES_BY_INDEX:
-        return offsetof(CMD_Reply, data.client_accesses_by_index.EOR);
-      case RPY_MANUAL_LIST:
-        {
-          unsigned long ns = ntohl(r->data.manual_list.n_samples);
-          if (ns > MAX_MANUAL_LIST_SAMPLES)
-            return 0;
-          if (r->status == htons(STT_SUCCESS)) {
-            return (offsetof(CMD_Reply, data.manual_list.samples) +
-                    ns * sizeof(RPY_ManualListSample));
-          } else {
-            return offsetof(CMD_Reply, data);
-          }
-        }
-      case RPY_ACTIVITY:
-        return offsetof(CMD_Reply, data.activity.EOR);
-      case RPY_SMOOTHING:
-        return offsetof(CMD_Reply, data.smoothing.EOR);
-      case RPY_SERVER_STATS:
-        return offsetof(CMD_Reply, data.server_stats.EOR);
-      default:
-        assert(0);
-    }
+
+  /* Length of MANUAL_LIST depends on number of samples stored in it */
+  if (type == RPY_MANUAL_LIST) {
+    uint32_t ns;
+
+    if (r->status != htons(STT_SUCCESS))
+      return offsetof(CMD_Reply, data);
+
+    ns = ntohl(r->data.manual_list.n_samples);
+    if (ns > MAX_MANUAL_LIST_SAMPLES)
+      return 0;
+
+    return offsetof(CMD_Reply, data.manual_list.samples) +
+           ns * sizeof (RPY_ManualListSample);
   }
 
-  return 0;
+  return reply_lengths[type];
 }
 
 /* ================================================== */
