@@ -266,7 +266,20 @@ CAM_Initialise(int family)
     command_length = PKL_CommandLength(&r);
     padding_length = PKL_CommandPaddingLength(&r);
     assert(padding_length <= MAX_PADDING_LENGTH && padding_length <= command_length);
-    assert(command_length == 0 || command_length >= offsetof(CMD_Reply, data));
+    assert((command_length >= offsetof(CMD_Request, data) &&
+            command_length <= sizeof (CMD_Request)) || command_length == 0);
+  }
+
+  for (i = 1; i < N_REPLY_TYPES; i++) {
+    CMD_Reply r;
+    int reply_length;
+
+    r.reply = htons(i);
+    r.status = STT_SUCCESS;
+    r.data.manual_list.n_samples = htonl(MAX_MANUAL_LIST_SAMPLES);
+    reply_length = PKL_ReplyLength(&r);
+    assert((reply_length >= offsetof(CMD_Reply, data) &&
+            reply_length <= sizeof (CMD_Reply)) || reply_length == 0);
   }
 
   sock_fdu = -1;
