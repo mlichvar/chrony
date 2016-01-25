@@ -34,7 +34,7 @@
 #include "pktlength.h"
 
 #define PADDING_LENGTH_(request_length, reply_length) \
-  ((request_length) < (reply_length) ? (reply_length) - (request_length) : 0)
+  (uint16_t)((request_length) < (reply_length) ? (reply_length) - (request_length) : 0)
 
 #define PADDING_LENGTH(request_data, reply_data) \
   PADDING_LENGTH_(offsetof(CMD_Request, request_data), offsetof(CMD_Reply, reply_data))
