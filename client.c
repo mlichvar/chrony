@@ -1256,7 +1256,7 @@ give_help(void)
     "dns -4|-6|-46\0Resolve hostnames only to IPv4/IPv6/both addresses\0"
     "timeout <milliseconds>\0Set initial response timeout\0"
     "retries <retries>\0Set maximum number of retries\0"
-    "keygen <id> [<type> [<bits>]]\0Generate key for key file\0"
+    "keygen [<id> [<type> [<bits>]]]\0Generate key for key file\0"
     "exit|quit\0Leave the program\0"
     "help\0Generate this help\0"
     "\0";
@@ -2443,7 +2443,7 @@ process_cmd_keygen(char *line)
 {
   char hash_name[17];
   unsigned char key[512];
-  unsigned int i, length, id, bits = 160;
+  unsigned int i, length, id = 1, bits = 160;
 
 #ifdef FEAT_SECHASH
   snprintf(hash_name, sizeof (hash_name), "SHA1");
@@ -2451,10 +2451,7 @@ process_cmd_keygen(char *line)
   snprintf(hash_name, sizeof (hash_name), "MD5");
 #endif
 
-  if (sscanf(line, "%u %16s %d", &id, hash_name, &bits) < 1) {
-    LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for keygen command");
-    return 0;
-  }
+  sscanf(line, "%u %16s %d", &id, hash_name, &bits);
 
   length = CLAMP(10, (bits + 7) / 8, sizeof (key));
   if (HSH_GetHashId(hash_name) < 0) {

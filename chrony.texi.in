@@ -3820,12 +3820,12 @@ key file (@pxref{keyfile directive}) to allow NTP authentication between
 server and client, or peers.  The key is generated from the @code{/dev/urandom}
 device and it's printed to standard output.
 
-The first argument of the command is the key number, which will be specified
-with the @code{key} option of the @code{server} or @code{peer} directives in
-the configuration file.  The second and third arguments are optional.  They
-specify the hash function (by default SHA1 or MD5 if SHA1 is not available) and
-the number of bits the key should have between 80 and 4096 bits (by default 160
-bits).
+The command has three optional arguments.  The first argument is the key number
+(by default 1), which will be specified with the @code{key} option of the
+@code{server} or @code{peer} directives in the configuration file.  The second
+argument is the hash function (by default SHA1 or MD5 if SHA1 is not available)
+and the third argument is the number of bits the key should have, between 80
+and 4096 bits (by default 160 bits).
 
 An example is
 
