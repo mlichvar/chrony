@@ -1707,28 +1707,25 @@ pairs.  The format of the file is shown below
  ...
 @end example
 
-Each line consists of an ID, a name of authentication hash function (optional)
+Each line consists of an ID, name of an authentication hash function (optional)
 and a password.  The ID can be any unsigned integer in the range 1 through
-2**32-1.  The hash function is MD5 by default, depending on how was
-@code{chronyd} compiled, other allowed hash functions may be SHA1, SHA256,
-SHA384, SHA512, RMD128, RMD160, RMD256, RMD320, TIGER and WHIRLPOOL.  The
-password can be encoded as a string of characters not containing a space with
-optional @code{ASCII:} prefix or as a hexadecimal number with @code{HEX:}
-prefix.
+2**32-1.  The default hash function is MD5.  Depending on how @code{chronyd}
+was compiled, other supported functions may be SHA1, SHA256, SHA384, SHA512,
+RMD128, RMD160, RMD256, RMD320, TIGER and WHIRLPOOL.  The password can be
+specified as a string of characters not containing white space with an optional
+@code{ASCII:} prefix, or as a hexadecimal number with the @code{HEX:} prefix.
+The maximum length of the line is 2047 characters.
 
 The password is used with the hash function to generate and verify a message
-authentication code (MAC) in NTP packets.
-For maximum security, it's recommended to use SHA1 or stronger hash function.
-The passwords should be random and they should be as long as the output size of
-the configured hash function, e.g. 160 bits with SHA1.
+authentication code (MAC) in NTP packets.  It's recommended to use SHA1 or a
+stronger hash function with random passwords specified in the hexadecimal
+format that have at least 128 bits.  @code{chronyd} will log a warning to
+syslog on start if a source is specified in the configuration file with a key
+that has password shorter than 80 bits.
 
-These shell commands can be used to generate random MD5 and SHA1 keys on
-systems which have the @code{/dev/urandom} device:
-
-@example
-echo "1 MD5 HEX:$(tr -d -c '[:xdigit:]' < /dev/urandom | head -c 32)"
-echo "1 SHA1 HEX:$(tr -d -c '[:xdigit:]' < /dev/urandom | head -c 40)"
-@end example
+The @code{keygen} command of @code{chronyc} (@pxref{keygen command}) can be
+used to generate random keys for the key file.  By default, it generates
+160-bit MD5 or SHA1 keys.
 @c }}}
 @c {{{ leapsecmode
 @node leapsecmode directive
