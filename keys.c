@@ -198,9 +198,6 @@ KEY_Reload(void)
       continue;
     }
 
-    if (key.len < MIN_SECURE_KEY_LENGTH)
-      LOG(LOGS_WARN, LOGF_Keys, "Key %"PRIu32" is too short", key_id);
-
     key.id = key_id;
     key.val = MallocArray(char, key.len);
     memcpy(key.val, keyval, key.len);
@@ -291,6 +288,21 @@ KEY_GetAuthDelay(uint32_t key_id)
     return 0;
 
   return key->auth_delay;
+}
+
+/* ================================================== */
+
+int
+KEY_CheckKeyLength(uint32_t key_id)
+{
+  Key *key;
+
+  key = get_key_by_id(key_id);
+
+  if (!key)
+    return 0;
+
+  return key->len >= MIN_SECURE_KEY_LENGTH;
 }
 
 /* ================================================== */

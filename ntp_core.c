@@ -497,8 +497,13 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
     result->do_auth = 1;
     result->auth_key_id = params->authkey;
     if (!KEY_KeyKnown(result->auth_key_id)) {
-      LOG(LOGS_WARN, LOGF_NtpCore, "Source %s added with unknown key %"PRIu32,
-          UTI_IPToString(&result->remote_addr.ip_addr), result->auth_key_id);
+      LOG(LOGS_WARN, LOGF_NtpCore, "Key %"PRIu32" used by source %s is %s",
+          result->auth_key_id, UTI_IPToString(&result->remote_addr.ip_addr),
+          "missing");
+    } else if (!KEY_CheckKeyLength(result->auth_key_id)) {
+      LOG(LOGS_WARN, LOGF_NtpCore, "Key %"PRIu32" used by source %s is %s",
+          result->auth_key_id, UTI_IPToString(&result->remote_addr.ip_addr),
+          "too short");
     }
   }
 
