@@ -5,22 +5,6 @@
 # want to enable.  The more obscure options are not included.  Refer
 # to the documentation for these.
 #
-# Copyright 2002 Richard P. Curnow
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of version 2 of the GNU General Public License as
-# published by the Free Software Foundation.
-# 
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-# 
-# You should have received a copy of the GNU General Public License along
-# with this program; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-# 
-#
 #######################################################################
 ### COMMENTS
 # Any of the following lines are comments (you have a choice of
@@ -207,6 +191,13 @@ driftfile /var/lib/chrony/drift
 
 ! clientloglimit 4194304
 
+# By default, chronyd tries to respond to all valid NTP requests from
+# allowed addresses.  If you want to limit the response rate for NTP
+# clients that are sending requests too frequently, uncomment and edit
+# the following line.
+
+! limitrate interval 3 burst 8
+
 #######################################################################
 ### REPORTING BIG CLOCK CHANGES
 # Perhaps you want to know if chronyd suddenly detects any large error
@@ -233,6 +224,7 @@ driftfile /var/lib/chrony/drift
 
 # By default chronyd binds to the loopback interface.  Uncomment the
 # following lines to allow receiving command packets from remote hosts.
+
 ! bindcmdaddress 0.0.0.0
 ! bindcmdaddress ::
 
@@ -247,6 +239,11 @@ driftfile /var/lib/chrony/drift
 # You can add as many 'cmdallow' and 'cmddeny' lines as you like.  The
 # syntax and meaning is the same as for 'allow' and 'deny', except that
 # 'cmdallow' and 'cmddeny' control access to the chronyd's command port.
+
+# Rate limiting can be enabled also for command packets.  (Note,
+# commands from localhost are never limited.)
+
+! cmdratelimit interval 1 burst 16
 
 #######################################################################
 ### REAL TIME CLOCK

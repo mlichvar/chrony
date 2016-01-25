@@ -21,12 +21,6 @@ rtcsync
 # Specify file containing keys for NTP authentication.
 #keyfile /etc/chrony.keys
 
-# Disable logging of client accesses.
-noclientlog
-
-# Send message to syslog when clock adjustment is larger than 0.5 seconds.
-logchange 0.5
-
 # Specify directory for log files.
 logdir /var/log/chrony
 
