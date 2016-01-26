@@ -67,7 +67,7 @@ extern int CNF_GetRtcOnUtc(void);
 extern int CNF_GetRtcSync(void);
 extern void CNF_GetMakeStep(int *limit, double *threshold);
 extern void CNF_GetMaxChange(int *delay, int *ignore, double *offset);
-extern void CNF_GetLogChange(int *enabled, double *threshold);
+extern double CNF_GetLogChange(void);
 extern void CNF_GetMailOnChange(int *enabled, double *threshold, char **user);
 extern int CNF_GetNoClientLog(void);
 extern unsigned long CNF_GetClientLogLimit(void);

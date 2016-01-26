@@ -80,8 +80,7 @@ static int max_offset_delay;
 static int max_offset_ignore;
 static double max_offset;
 
-/* Flag and threshold for logging clock changes to syslog */
-static int do_log_change;
+/* Threshold for logging clock changes to syslog */
 static double log_change_threshold;
 
 /* Flag, threshold and user for sending mail notification on large clock changes */
@@ -254,8 +253,8 @@ REF_Initialise(void)
 
   CNF_GetMakeStep(&make_step_limit, &make_step_threshold);
   CNF_GetMaxChange(&max_offset_delay, &max_offset_ignore, &max_offset);
-  CNF_GetLogChange(&do_log_change, &log_change_threshold);
   CNF_GetMailOnChange(&do_mail_change, &mail_change_threshold, &mail_change_user);
+  log_change_threshold = CNF_GetLogChange();
 
   CNF_GetFallbackDrifts(&fb_drift_min, &fb_drift_max);
 
@@ -271,11 +270,6 @@ REF_Initialise(void)
   last_ref_update_interval = 0.0;
 
   LCL_AddParameterChangeHandler(handle_slew, NULL);
-
-  /* And just to prevent anything wierd ... */
-  if (do_log_change) {
-    log_change_threshold = fabs(log_change_threshold);
-  }
 
   /* Make first entry in tracking log */
   REF_SetUnsynchronised();
@@ -536,8 +530,7 @@ maybe_log_offset(double offset, time_t now)
 
   abs_offset = fabs(offset);
 
-  if (do_log_change &&
-      (abs_offset > log_change_threshold)) {
+  if (abs_offset > log_change_threshold) {
     LOG(LOGS_WARN, LOGF_Reference,
         "System clock wrong by %.6f seconds, adjustment started",
         -offset);

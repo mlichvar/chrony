@@ -146,10 +146,8 @@ static double max_offset;
 static int max_samples = 0; /* no limit */
 static int min_samples = 0;
 
-/* Flag set if we should log to syslog when a time adjustment
-   exceeding the threshold is initiated */
-static int do_log_change = 0;
-static double log_change_threshold = 0.0;
+/* Threshold for a time adjustment to be logged to syslog */
+static double log_change_threshold = 1.0;
 
 static char *mail_user_on_change = NULL;
 static double mail_change_threshold = 0.0;
@@ -476,7 +474,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "logbanner")) {
     parse_int(p, &log_banner);
   } else if (!strcasecmp(command, "logchange")) {
-    do_log_change = parse_double(p, &log_change_threshold);
+    parse_double(p, &log_change_threshold);
   } else if (!strcasecmp(command, "logdir")) {
     parse_string(p, &logdir);
   } else if (!strcasecmp(command, "mailonchange")) {
@@ -1607,11 +1605,10 @@ CNF_GetMaxChange(int *delay, int *ignore, double *offset)
 
 /* ================================================== */
 
-void
-CNF_GetLogChange(int *enabled, double *threshold)
+double
+CNF_GetLogChange(void)
 {
-  *enabled = do_log_change;
-  *threshold = log_change_threshold;
+  return log_change_threshold;
 }
 
 /* ================================================== */

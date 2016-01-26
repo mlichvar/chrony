@@ -2251,24 +2251,22 @@ used to disable it entirely.
 @c {{{ logchange
 @node logchange directive
 @subsection logchange
-This directive forces @code{chronyd} to send a message to syslog if it
-makes a system clock adjustment larger than a threshold value.  An
-example of use is
+This directive sets the threshold for the adjustment of the system clock
+that will generate a syslog message.
+
+By default, the threshold is 1 second.
+
+An example of use is
 
 @example
-logchange 0.5
+logchange 0.1
 @end example
 
 which would cause a syslog message to be generated a system clock error
-of over 0.5 seconds starts to be compensated.
+of over 0.1 seconds starts to be compensated.
 
-Clock errors detected either via NTP packets or via timestamps entered
+Clock errors detected via NTP packets, reference clocks, or timestamps entered
 via the @code{settime} command of @code{chronyc} are logged.
-
-This directive assumes that syslog messages are appearing where somebody
-can see them.  This allows that person to see if a large error has
-arisen, e.g. because of a fault, or because of faulty timezone handling,
-for example when summer time (daylight saving) starts or ends.
 @c }}}
 @c {{{ logdir
 @node logdir directive
