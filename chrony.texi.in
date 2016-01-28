@@ -1094,6 +1094,7 @@ the configuration file is ignored.
 * cmdallow directive::          Give monitoring access to chronyc on other computers
 * cmddeny directive::           Deny monitoring access to chronyc on other computers
 * cmdport directive::           Set port to use for runtime monitoring
+* cmdratelimit directive::      Limit command response rate
 * combinelimit directive::      Limit sources included in combining algorithm
 * corrtimeratio directive::     Set correction time ratio
 * deny directive::              Deny access to NTP clients
@@ -1129,6 +1130,7 @@ the configuration file is ignored.
 * pidfile directive::           Specify the file where chronyd's pid is written
 * pool directive::              Specify an NTP pool
 * port directive::              Set NTP server port
+* ratelimit directive::         Limit NTP response rate
 * refclock directive::          Specify a reference clock
 * reselectdist directive::      Set improvement in distance needed to reselect a source
 * rtcautotrim directive::       Specify threshold at which RTC is trimmed automatically
@@ -1424,6 +1426,20 @@ cmdport 257
 This would make @code{chronyd} use 257/udp as its command port.
 (@code{chronyc} would need to be run with the @code{-p 257} switch to
 inter-operate correctly).
+@c }}}
+@c {{{ cmdratelimit
+@node cmdratelimit directive
+@subsection cmdratelimit
+This directive enables response rate limiting for command packets.  It's
+similar to the @code{ratelimit} directive (@pxref{ratelimit directive}), except
+responses to the localhost are never limited and the default interval is 1 (2
+seconds), default burst is 16, and default leak rate is 2.
+
+An example of use of the command is
+
+@example
+cmdratelimit interval 2
+@end example
 @c }}}
 @c {{{ combinelimit
 @node combinelimit directive
@@ -2590,6 +2606,54 @@ port 11123
 
 This would change the NTP port served by @code{chronyd} on the computer to
 udp/11123.
+@c }}}
+@c {{{ ratelimit
+@node ratelimit directive
+@subsection ratelimit
+This directive enables response rate limiting for NTP packets.  Its purpose is
+to reduce network traffic with misconfigured or broken NTP clients that are
+polling the server too frequently.  The limits are applied to individual IP
+addresses.  If multiple clients share one IP address (e.g. multiple hosts
+behind NAT), the sum of their traffic will be limited.  If a client that
+increases its polling rate when it doesn't receive a reply is detected, its
+rate limiting will be temporarily suspended to avoid increasing the overall
+amount of traffic.  The maximum number of IP addresses which can be monitored
+at the same time depends on the memory limit set by the @code{clientloglimit}
+directive.
+
+The @code{ratelimit} directive supports a number of subfields (which
+may be defined in any order):
+
+@table @code
+@item interval
+This option sets the minimum interval between responses.  It is defined as a
+power of 2 in seconds.  The default value is 3 (8 seconds).  The minimum value
+is -4 and the maximum value is 12.
+@item burst
+This option sets the maximum number of responses that can be send in a burst,
+temporarily exceeding the limit specified by the @code{interval} option.  This
+is useful for clients that make rapid measurements on start (e.g.
+@code{chronyd} with the @code{iburst} option).  The default value is 8.  The
+minimum value is 1 and the maximum value is 255.
+@item leak
+This option sets the rate at which responses are randomly allowed even if the
+limits specified by the @code{interval} and @code{burst} options are exceeded.
+This is necessary to prevent an attacker who is sending requests with a spoofed
+source address from completely blocking responses to that address.  The leak
+rate is defined as a power of 1/2 and it is 3 by default, i.e. on average at
+least every eighth request has a response.  The minimum value is 1 and the
+maximum value is 4.
+@end table
+
+An example use of the command is
+
+@example
+ratelimit interval 4 burst 4
+@end example
+
+This would reduce the response rate for IP addresses that send packets on
+average more frequently than once per 16 seconds and/or send packets in bursts
+with more than 4 packets.
 @c }}}
 @c {{{ refclock
 @node refclock directive
