@@ -286,21 +286,6 @@ CLG_Initialise(void)
 {
   int interval, burst, leak_rate;
 
-  active = !CNF_GetNoClientLog();
-  if (!active)
-    return;
-
-  /* Calculate the maximum number of slots that can be allocated in the
-     configured memory limit.  Take into account expanding of the hash
-     table where two copies exist at the same time. */
-  max_slots = CNF_GetClientLogLimit() / (sizeof (Record) * SLOT_SIZE * 3 / 2);
-  max_slots = CLAMP(MIN_SLOTS, max_slots, MAX_SLOTS);
-
-  slots = 0;
-  records = NULL;
-
-  expand_hashtable();
-
   max_ntp_tokens = max_cmd_tokens = 0;
   ntp_tokens_per_packet = cmd_tokens_per_packet = 0;
   ntp_token_shift = cmd_token_shift = 0;
@@ -317,6 +302,24 @@ CLG_Initialise(void)
                       &cmd_token_shift);
     cmd_leak_rate = CLAMP(MIN_LEAK_RATE, leak_rate, MAX_LEAK_RATE);
   }
+
+  active = !CNF_GetNoClientLog();
+  if (!active) {
+    if (ntp_leak_rate || cmd_leak_rate)
+      LOG_FATAL(LOGF_ClientLog, "ratelimit cannot be used with noclientlog");
+    return;
+  }
+
+  /* Calculate the maximum number of slots that can be allocated in the
+     configured memory limit.  Take into account expanding of the hash
+     table where two copies exist at the same time. */
+  max_slots = CNF_GetClientLogLimit() / (sizeof (Record) * SLOT_SIZE * 3 / 2);
+  max_slots = CLAMP(MIN_SLOTS, max_slots, MAX_SLOTS);
+
+  slots = 0;
+  records = NULL;
+
+  expand_hashtable();
 }
 
 /* ================================================== */
