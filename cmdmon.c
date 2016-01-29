@@ -1253,14 +1253,7 @@ read_from_cmd_socket(void *anything)
     return;
   }
 
-  /* Message size sanity check */
-  if (read_length >= offsetof(CMD_Request, data)) {
-    expected_length = PKL_CommandLength(&rx_message);
-  } else {
-    expected_length = 0;
-  }
-
-  if (expected_length < offsetof(CMD_Request, data) ||
+  if (read_length < offsetof(CMD_Request, data) ||
       read_length < offsetof(CMD_Reply, data) ||
       rx_message.pkt_type != PKT_TYPE_CMD_REQUEST ||
       rx_message.res1 != 0 ||
@@ -1272,6 +1265,7 @@ read_from_cmd_socket(void *anything)
     return;
   }
 
+  expected_length = PKL_CommandLength(&rx_message);
   rx_command = ntohs(rx_message.command);
 
   tx_message.version = PROTO_VERSION_NUMBER;
@@ -1299,7 +1293,8 @@ read_from_cmd_socket(void *anything)
     return;
   }
 
-  if (rx_command >= N_REQUEST_TYPES) {
+  if (rx_command >= N_REQUEST_TYPES ||
+      expected_length < (int)offsetof(CMD_Request, data)) {
     DEBUG_LOG(LOGF_CmdMon, "Command packet has invalid command %d", rx_command);
 
     tx_message.status = htons(STT_INVALID);
