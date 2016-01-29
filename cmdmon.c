@@ -1565,7 +1565,8 @@ read_from_cmd_socket(void *anything)
           break;
 
         default:
-          assert(0);
+          DEBUG_LOG(LOGF_CmdMon, "Unhandled command %d", rx_command);
+          tx_message.status = htons(STT_FAILED);
           break;
       }
     } else {
