@@ -339,9 +339,15 @@ typedef struct {
 
    Version 6 : added padding to requests to prevent amplification attack,
    changed maximum number of samples in manual list to 16, new commands: modify
-   makestep, smoothing report, smoothtime command
+   makestep, smoothing, smoothtime
 
-   Authentication was removed later in version 6.
+   Support for authentication was removed later in version 6 of the protocol
+   and commands that required authentication are allowed only locally over Unix
+   domain socket.
+
+   Version 6 (no authentication) : changed format of client accesses by index
+   (using new request/reply types), new flags in NTP source request and report,
+   new commands: refresh, serverstats
  */
 
 #define PROTO_VERSION_NUMBER 6
