@@ -3670,24 +3670,24 @@ burst 2/10 foo.example.net
 @node clients command
 @comment  node-name,  next,  previous,  up
 @subsubsection clients
-This command shows a list of all clients that have accessed the server,
+This command shows a list of clients that have accessed the server,
 through either the NTP or command/monitoring ports.  It doesn't include
-access to the Unix domain comamnd socket.  There are no arguments.
+accesses over the Unix domain comamnd socket.  There are no arguments.
 
 An example of the output is
 
 @example
-Hostname                   Client    Peer CmdAuth CmdNorm  CmdBad  LstN  LstC
-=========================  ======  ======  ======  ======  ======  ====  ====
-localhost                       0       0       0       1       0   29y     0
-aardvark.xxx                    4       0       0       0       0    49   29y
-badger.xxx                      4       0       0       0       0     6   29y
+Hostname                      NTP   Drop Int IntL Last     Cmd   Drop Int  Last
+===============================================================================
+localhost                       2      0   2   -   133      15      0  -1     7
+foo.example.net                12      0   6   -    23       0      0   -     -
 @end example
 
 Each row shows the data for a single host.  Only hosts that have passed
 the host access checks (set with the @code{allow}, @code{deny},
 @code{cmdallow} and @code{cmddeny} commands or configuration file
-directives) are logged.
+directives) are logged.  The intervals are displayed as a power of 2 in
+seconds.
 
 The columns are as follows:
 
@@ -3695,29 +3695,24 @@ The columns are as follows:
 @item
 The hostname of the client
 @item
-The number of times the client has accessed the server using an NTP
-client mode packet.
+The number of NTP packets received from the client.
 @item
-The number of times the client has accessed the server using an NTP
-symmetric active mode packet.
+The number of NTP packets dropped to limit the response rate.
 @item
-The number of authenticated command packets that have been processed from the
-client.  Authentication is no longer supported in command packets, so the
-number should be always zero.
+The average interval between NTP packets.
 @item
-The number of unauthenticated command packets that have been processed
-from the client.
-@item
-The number of bad command packets received from the client (not all
-forms of bad packet are logged).
+The average interval between NTP packets after limiting the response rate.
 @item
 Time since the last NTP packet was received
 @item
-Time since the last command packet was received
+The number of command packets received from the client.
+@item
+The number of command packets dropped to limit the response rate.
+@item
+The average interval between command packets.
+@item
+Time since the last command packet was received.
 @end enumerate
-
-The last two entries will be shown as the time since 1970 if no packet
-of that type has ever been received.
 @c }}}
 @c {{{ cmdaccheck
 @node cmdaccheck command
