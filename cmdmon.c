@@ -1062,8 +1062,8 @@ handle_client_accesses_by_index(CMD_Request *rx_message, CMD_Reply *tx_message)
     UTI_IPHostToNetwork(&report.ip_addr, &client->ip);
     client->ntp_hits = htonl(report.ntp_hits);
     client->cmd_hits = htonl(report.cmd_hits);
-    client->ntp_drops = htons(report.ntp_drops);
-    client->cmd_drops = htons(report.cmd_drops);
+    client->ntp_drops = htonl(report.ntp_drops);
+    client->cmd_drops = htonl(report.cmd_drops);
     client->ntp_interval = report.ntp_interval;
     client->cmd_interval = report.cmd_interval;
     client->ntp_timeout_interval = report.ntp_timeout_interval;

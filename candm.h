@@ -553,8 +553,8 @@ typedef struct {
   IPAddr ip;
   uint32_t ntp_hits;
   uint32_t cmd_hits;
-  uint16_t ntp_drops;
-  uint16_t cmd_drops;
+  uint32_t ntp_drops;
+  uint32_t cmd_drops;
   int8_t ntp_interval;
   int8_t cmd_interval;
   int8_t ntp_timeout_interval;

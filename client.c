@@ -2125,14 +2125,14 @@ process_cmd_clients(char *line)
 
       printf("%-25s", hostname);
       printf("  %6"PRIu32"  %5"PRIu16"  ",
-             ntohl(client->ntp_hits), ntohs(client->ntp_drops));
+             ntohl(client->ntp_hits), ntohl(client->ntp_drops));
       print_clientlog_interval(client->ntp_interval);
       printf("  ");
       print_clientlog_interval(client->ntp_timeout_interval);
       printf("  ");
       print_seconds(ntohl(client->last_ntp_hit_ago));
       printf("  %6"PRIu32"  %5"PRIu16"  ",
-             ntohl(client->cmd_hits), ntohs(client->cmd_drops));
+             ntohl(client->cmd_hits), ntohl(client->cmd_drops));
       print_clientlog_interval(client->cmd_interval);
       printf("  ");
       print_seconds(ntohl(client->last_cmd_hit_ago));
