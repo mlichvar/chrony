@@ -94,8 +94,7 @@ static const struct request_length request_lengths[] = {
   REQ_LENGTH_ENTRY(null, null),                 /* CYCLELOGS */
   { 0, 0 },                                     /* SUBNETS_ACCESSED - not supported */
   { 0, 0 },                                     /* CLIENT_ACCESSES - not supported */
-  REQ_LENGTH_ENTRY(client_accesses_by_index,
-                   client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX */
+  { 0, 0 },                                     /* CLIENT_ACCESSES_BY_INDEX - not supported */
   REQ_LENGTH_ENTRY(null, manual_list),          /* MANUAL_LIST */
   REQ_LENGTH_ENTRY(manual_delete, null),        /* MANUAL_DELETE */
   REQ_LENGTH_ENTRY(null, null),                 /* MAKESTEP */
@@ -110,6 +109,8 @@ static const struct request_length request_lengths[] = {
   REQ_LENGTH_ENTRY(smoothtime, null),           /* SMOOTHTIME */
   REQ_LENGTH_ENTRY(null, null),                 /* REFRESH */
   REQ_LENGTH_ENTRY(null, server_stats),         /* SERVER_STATS */
+  REQ_LENGTH_ENTRY(client_accesses_by_index,
+                   client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX2 */
 };
 
 static const uint16_t reply_lengths[] = {
@@ -123,11 +124,12 @@ static const uint16_t reply_lengths[] = {
   RPY_LENGTH_ENTRY(rtc),                        /* RTC */
   0,                                            /* SUBNETS_ACCESSED - not supported */
   0,                                            /* CLIENT_ACCESSES - not supported */
-  RPY_LENGTH_ENTRY(client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX */
+  0,                                            /* CLIENT_ACCESSES_BY_INDEX - not supported */
   0,                                            /* MANUAL_LIST - variable length */
   RPY_LENGTH_ENTRY(activity),                   /* ACTIVITY */
   RPY_LENGTH_ENTRY(smoothing),                  /* SMOOTHING */
   RPY_LENGTH_ENTRY(server_stats),               /* SERVER_STATS */
+  RPY_LENGTH_ENTRY(client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX2 */
 };
 
 /* ================================================== */

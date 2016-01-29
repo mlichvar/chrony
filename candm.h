@@ -92,7 +92,8 @@
 #define REQ_SMOOTHTIME 52
 #define REQ_REFRESH 53
 #define REQ_SERVER_STATS 54
-#define N_REQUEST_TYPES 55
+#define REQ_CLIENT_ACCESSES_BY_INDEX2 55
+#define N_REQUEST_TYPES 56
 
 /* Special utoken value used to log on with first exchange being the
    password.  (This time value has long since gone by) */
@@ -435,7 +436,8 @@ typedef struct {
 #define RPY_ACTIVITY 12
 #define RPY_SMOOTHING 13
 #define RPY_SERVER_STATS 14
-#define N_REPLY_TYPES 15
+#define RPY_CLIENT_ACCESSES_BY_INDEX2 15
+#define N_REPLY_TYPES 16
 
 /* Status codes */
 #define STT_SUCCESS 0

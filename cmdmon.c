@@ -131,6 +131,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* SMOOTHTIME */
   PERMIT_AUTH, /* REFRESH */
   PERMIT_AUTH, /* SERVER_STATS */
+  PERMIT_AUTH, /* CLIENT_ACCESSES_BY_INDEX2 */
 };
 
 /* ================================================== */
@@ -1047,7 +1048,7 @@ handle_client_accesses_by_index(CMD_Request *rx_message, CMD_Reply *tx_message)
     return;
   }
 
-  tx_message->reply = htons(RPY_CLIENT_ACCESSES_BY_INDEX);
+  tx_message->reply = htons(RPY_CLIENT_ACCESSES_BY_INDEX2);
   tx_message->data.client_accesses_by_index.n_indices = htonl(n_indices);
 
   memset(tx_message->data.client_accesses_by_index.clients, 0,
@@ -1520,7 +1521,7 @@ read_from_cmd_socket(void *anything)
           handle_cyclelogs(&rx_message, &tx_message);
           break;
 
-        case REQ_CLIENT_ACCESSES_BY_INDEX:
+        case REQ_CLIENT_ACCESSES_BY_INDEX2:
           handle_client_accesses_by_index(&rx_message, &tx_message);
           break;
 

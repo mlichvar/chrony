@@ -2098,11 +2098,11 @@ process_cmd_clients(char *line)
          "===============================================================================\n");
 
   while (1) {
-    request.command = htons(REQ_CLIENT_ACCESSES_BY_INDEX);
+    request.command = htons(REQ_CLIENT_ACCESSES_BY_INDEX2);
     request.data.client_accesses_by_index.first_index = htonl(next_index);
     request.data.client_accesses_by_index.n_clients = htonl(MAX_CLIENT_ACCESSES);
 
-    if (!request_reply(&request, &reply, RPY_CLIENT_ACCESSES_BY_INDEX, 0))
+    if (!request_reply(&request, &reply, RPY_CLIENT_ACCESSES_BY_INDEX2, 0))
       return 0;
 
     n_clients = ntohl(reply.data.client_accesses_by_index.n_clients);
