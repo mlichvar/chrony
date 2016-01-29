@@ -1266,7 +1266,9 @@ read_from_cmd_socket(void *anything)
       rx_message.res1 != 0 ||
       rx_message.res2 != 0) {
 
-    /* We don't know how to process anything like this */
+    /* We don't know how to process anything like this or an error reply
+       would be larger than the request */
+    DEBUG_LOG(LOGF_CmdMon, "Command packet dropped");
     return;
   }
 
@@ -1287,8 +1289,8 @@ read_from_cmd_socket(void *anything)
   tx_message.pad5 = 0;
 
   if (rx_message.version != PROTO_VERSION_NUMBER) {
-    DEBUG_LOG(LOGF_CmdMon, "Read command packet with protocol version %d (expected %d) from %s",
-              rx_message.version, PROTO_VERSION_NUMBER, UTI_SockaddrToString(&where_from.sa));
+    DEBUG_LOG(LOGF_CmdMon, "Command packet has invalid version (%d != %d)",
+              rx_message.version, PROTO_VERSION_NUMBER);
 
     if (rx_message.version >= PROTO_VERSION_MISMATCH_COMPAT_SERVER) {
       tx_message.status = htons(STT_BADPKTVERSION);
@@ -1298,8 +1300,7 @@ read_from_cmd_socket(void *anything)
   }
 
   if (rx_command >= N_REQUEST_TYPES) {
-    DEBUG_LOG(LOGF_CmdMon, "Read command packet with invalid command %d from %s",
-              rx_command, UTI_SockaddrToString(&where_from.sa));
+    DEBUG_LOG(LOGF_CmdMon, "Command packet has invalid command %d", rx_command);
 
     tx_message.status = htons(STT_INVALID);
     transmit_reply(&tx_message, &where_from);
@@ -1307,8 +1308,8 @@ read_from_cmd_socket(void *anything)
   }
 
   if (read_length < expected_length) {
-    DEBUG_LOG(LOGF_CmdMon, "Read incorrectly sized command packet from %s",
-              UTI_SockaddrToString(&where_from.sa));
+    DEBUG_LOG(LOGF_CmdMon, "Command packet is too short (%d < %d)", read_length,
+              expected_length);
 
     tx_message.status = htons(STT_BADPKTLENGTH);
     transmit_reply(&tx_message, &where_from);
