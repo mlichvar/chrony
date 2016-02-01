@@ -34,6 +34,7 @@
 #include "local.h"
 #include "localp.h"
 #include "logging.h"
+#include "privops.h"
 #include "sched.h"
 #include "util.h"
 
@@ -329,7 +330,7 @@ apply_step_offset(double offset)
   LCL_ReadRawTime(&old_time);
   UTI_AddDoubleToTimeval(&old_time, -offset, &new_time);
 
-  if (settimeofday(&new_time, NULL) < 0) {
+  if (PRV_SetTime(&new_time, NULL) < 0) {
     DEBUG_LOG(LOGF_SysGeneric, "settimeofday() failed");
     return 0;
   }
