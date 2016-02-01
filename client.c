@@ -2124,14 +2124,14 @@ process_cmd_clients(char *line)
         DNS_IPAddress2Name(&ip, hostname, sizeof (hostname));
 
       printf("%-25s", hostname);
-      printf("  %6"PRIu32"  %5"PRIu16"  ",
+      printf("  %6"PRIu32"  %5"PRIu32"  ",
              ntohl(client->ntp_hits), ntohl(client->ntp_drops));
       print_clientlog_interval(client->ntp_interval);
       printf("  ");
       print_clientlog_interval(client->ntp_timeout_interval);
       printf("  ");
       print_seconds(ntohl(client->last_ntp_hit_ago));
-      printf("  %6"PRIu32"  %5"PRIu16"  ",
+      printf("  %6"PRIu32"  %5"PRIu32"  ",
              ntohl(client->cmd_hits), ntohl(client->cmd_drops));
       print_clientlog_interval(client->cmd_interval);
       printf("  ");
