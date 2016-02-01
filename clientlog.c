@@ -267,7 +267,7 @@ set_bucket_params(int interval, int burst, uint16_t *max_tokens,
   burst = CLAMP(MIN_LIMIT_BURST, burst, MAX_LIMIT_BURST);
 
   /* Find smallest shift with which the maximum number fits in 16 bits */
-  for (*token_shift = 0; *token_shift <= interval + TS_FRAC; (*token_shift)++) {
+  for (*token_shift = 0; *token_shift < interval + TS_FRAC; (*token_shift)++) {
     if (burst << (TS_FRAC + interval - *token_shift) < 1U << 16)
       break;
   }
