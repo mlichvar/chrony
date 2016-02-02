@@ -57,7 +57,8 @@ typedef struct {
                                    sources from the pool respond first */
 } SourceRecord;
 
-/* Hash table of SourceRecord, the size should be a power of two */
+/* Hash table of SourceRecord, its size is a power of two and it's never
+   more than half full */
 static ARR_Instance records;
 
 /* Number of sources in the hash table */
@@ -233,12 +234,12 @@ find_slot(NTP_Remote_Address *remote_addr, int *slot, int *found)
 }
 
 /* ================================================== */
-
 /* Check if hash table of given size is sufficient to contain sources */
+
 static int
 check_hashtable_size(unsigned int sources, unsigned int size)
 {
-  return sources * 2 + 1 < size;
+  return sources * 2 <= size;
 }
 
 /* ================================================== */
@@ -256,7 +257,7 @@ rehash_records(void)
   memcpy(temp_records, ARR_GetElements(records), old_size * sizeof (SourceRecord));
 
   /* The size of the hash table is always a power of two */
-  for (new_size = 4; !check_hashtable_size(n_sources, new_size); new_size *= 2)
+  for (new_size = 1; !check_hashtable_size(n_sources, new_size); new_size *= 2)
     ;
 
   ARR_SetSize(records, new_size);
