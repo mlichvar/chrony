@@ -130,6 +130,7 @@ Erik Bryer <ebryer@spots.ab.ca>
 
 Bryan Christianson <bryan@whatroute.net>
     Support for Mac OS X
+    Support for privilege separation
 
 Juliusz Chroboczek <jch@pps.jussieu.fr>
     Fix install rule in Makefile if chronyd file is in use.
