@@ -1,3 +1,29 @@
+New in version 2.3
+==================
+
+Enhancements
+------------
+* Add support for NTP and command response rate limiting
+* Add support for dropping root privileges on Mac OS X, FreeBSD, Solaris
+* Add require and trust options for source selection
+* Enable logchange by default (1 second threshold)
+* Set RTC on Mac OS X with rtcsync directive
+* Allow binding to NTP port after dropping root privileges on NetBSD
+* Drop CAP_NET_BIND_SERVICE capability on Linux when NTP port is disabled
+* Resolve names in separate process when seccomp filter is enabled
+* Replace old records in client log when memory limit is reached
+* Don't reveal local time and synchronisation state in client packets
+* Don't keep client sockets open for longer than necessary
+* Ignore poll in KoD RATE packets as ntpd doesn't always set it correctly
+* Warn when using keys shorter than 80 bits
+* Add keygen command to generate random keys easily
+* Add serverstats command to report NTP and command packet statistics
+
+Bug fixes
+---------
+* Fix clock correction after making step on Mac OS X
+* Fix building on Solaris
+
 New in version 2.2.1
 ====================
 
