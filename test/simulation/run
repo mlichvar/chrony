@@ -1,7 +1,5 @@
 #!/bin/bash
 
-. test.common
-
 passed=() failed=() skipped=()
 
 [ $# -gt 0 ] && tests=($@) || tests=([0-9]*-*[^_])
