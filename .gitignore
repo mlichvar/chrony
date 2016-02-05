@@ -22,3 +22,6 @@ tags
 /version.h
 /test/simulation/clknetsim
 /test/simulation/tmp
+/test/unit/Makefile
+/test/unit/*.test
+/test/unit/*.o
