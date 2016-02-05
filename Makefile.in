@@ -120,6 +120,7 @@ install: chronyd chronyc
 	$(CC) $(CFLAGS) $(CPPFLAGS) -S $<
 
 check : chronyd chronyc
+	$(MAKE) -C test/unit check
 	cd test/simulation && ./run
 
 install-docs : docs

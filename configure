@@ -848,7 +848,7 @@ fi
 
 add_def CHRONY_VERSION "\"${CHRONY_VERSION}\""
 
-for f in Makefile chrony.conf.5 chrony.texi chronyc.1 chronyd.8
+for f in Makefile test/unit/Makefile chrony.conf.5 chrony.texi chronyc.1 chronyd.8
 do
   echo Creating $f
   sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
