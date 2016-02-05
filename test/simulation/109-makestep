@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. test.common
+. ./test.common
 test_start "makestep directive"
 
 client_conf="makestep 0 -1

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. test.common
+. ./test.common
 test_start "maxdelay options"
 
 max_sync_time=2000

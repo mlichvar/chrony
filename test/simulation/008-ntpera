@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. test.common
+. ./test.common
 test_start "NTP eras"
 
 # Assume NTP_ERA_SPLIT is between years 1960 and 1990

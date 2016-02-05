@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. test.common
+. ./test.common
 test_start "initstepslew directive"
 
 freq_offset=0.0

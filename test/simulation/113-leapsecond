@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. test.common
+. ./test.common
 test_start "leap second"
 
 export CLKNETSIM_START_DATE=$(TZ=UTC date -d 'Dec 30 2008 0:00:00' +'%s')

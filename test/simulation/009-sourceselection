@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. test.common
+. ./test.common
 
 test_start "source selection"
 

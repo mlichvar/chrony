@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. test.common
+. ./test.common
 
 # Test fix in commit 4253075a97141edfa62043ab71bd0673587e6629
 
