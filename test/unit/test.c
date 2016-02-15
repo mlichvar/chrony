@@ -37,6 +37,7 @@ main(int argc, char **argv)
 {
   char *test_name, *s;
   int i, seed = 0;
+  struct timeval tv;
 
   test_name = argv[0];
   s = strrchr(test_name, '.');
@@ -57,7 +58,8 @@ main(int argc, char **argv)
     }
   }
 
-  srandom(seed ? seed : time(NULL));
+  gettimeofday(&tv, NULL);
+  srandom(seed ? seed : tv.tv_sec ^ (tv.tv_usec << 10));
 
   printf("Testing %-30s ", test_name);
   fflush(stdout);
