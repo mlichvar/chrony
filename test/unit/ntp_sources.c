@@ -51,7 +51,7 @@ test_unit(void)
 
     for (j = 0; j < sizeof (addrs) / sizeof (addrs[0]); j++) {
       do {
-        get_random_address(&addrs[j].ip_addr, IPADDR_UNSPEC, -1);
+        TST_GetRandomAddress(&addrs[j].ip_addr, IPADDR_UNSPEC, -1);
       } while (UTI_IPToHash(&addrs[j].ip_addr) % (1U << i) != hash % (1U << i));
 
       addrs[j].port = random() % 1024;

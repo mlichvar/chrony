@@ -25,7 +25,7 @@
 #include "test.h"
 
 void
-test_fail(int line)
+TST_Fail(int line)
 {
   printf("FAIL (on line %d)\n", line);
   exit(1);
@@ -69,7 +69,7 @@ main(int argc, char **argv)
 }
 
 void
-get_random_address(IPAddr *ip, int family, int bits)
+TST_GetRandomAddress(IPAddr *ip, int family, int bits)
 {
   if (family != IPADDR_INET4 && family != IPADDR_INET6)
     family = random() % 2 ? IPADDR_INET4 : IPADDR_INET6;
@@ -104,7 +104,7 @@ get_random_address(IPAddr *ip, int family, int bits)
 }
 
 void
-swap_address_bit(IPAddr *ip, unsigned int b)
+TST_SwapAddressBit(IPAddr *ip, unsigned int b)
 {
   if (ip->family == IPADDR_INET4) {
     assert(b < 32);

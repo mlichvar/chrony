@@ -28,14 +28,14 @@ extern void test_unit(void);
 #define TEST_CHECK(expr) \
   do { \
     if (!(expr)) { \
-      test_fail(__LINE__); \
+      TST_Fail(__LINE__); \
       exit(1); \
     } \
   } while (0)
 
-extern void test_fail(int line);
+extern void TST_Fail(int line);
 
-extern void get_random_address(IPAddr *ip, int family, int bits);
-extern void swap_address_bit(IPAddr *ip, unsigned int b);
+extern void TST_GetRandomAddress(IPAddr *ip, int family, int bits);
+extern void TST_SwapAddressBit(IPAddr *ip, unsigned int b);
 
 #endif

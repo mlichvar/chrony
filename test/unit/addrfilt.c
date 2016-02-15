@@ -36,10 +36,10 @@ test_unit(void)
     for (j = 0; j < 1000; j++) {
       if (j % 2) {
         maxsub = 32;
-        get_random_address(&ip, IPADDR_INET4, -1);
+        TST_GetRandomAddress(&ip, IPADDR_INET4, -1);
       } else {
         maxsub = 128;
-        get_random_address(&ip, IPADDR_INET6, -1);
+        TST_GetRandomAddress(&ip, IPADDR_INET6, -1);
       }
 
       DEBUG_LOG(0, "address %s", UTI_IPToString(&ip));
@@ -51,16 +51,16 @@ test_unit(void)
       TEST_CHECK(ADF_IsAllowed(table, &ip));
 
       if (sub < maxsub) {
-        swap_address_bit(&ip, sub);
+        TST_SwapAddressBit(&ip, sub);
         TEST_CHECK(ADF_IsAllowed(table, &ip));
       }
 
       if (sub > 0) {
-        swap_address_bit(&ip, sub - 1);
+        TST_SwapAddressBit(&ip, sub - 1);
         TEST_CHECK(!ADF_IsAllowed(table, &ip));
         if (sub % 4 != 1) {
           ADF_Deny(table, &ip, sub - 1);
-          swap_address_bit(&ip, sub - 1);
+          TST_SwapAddressBit(&ip, sub - 1);
           TEST_CHECK(!ADF_IsAllowed(table, &ip));
         }
       }

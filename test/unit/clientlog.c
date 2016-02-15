@@ -48,7 +48,7 @@ test_unit(void)
     tv.tv_usec = 0;
 
     for (j = 0; j < 1000; j++) {
-      get_random_address(&ip, IPADDR_UNSPEC, i % 8 ? -1 : i / 8 % 9);
+      TST_GetRandomAddress(&ip, IPADDR_UNSPEC, i % 8 ? -1 : i / 8 % 9);
       DEBUG_LOG(0, "address %s", UTI_IPToString(&ip));
 
       if (random() % 2) {
