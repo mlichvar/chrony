@@ -339,9 +339,16 @@ for C-family shells.
 If the software cannot (yet) be built on your system, an error message
 will be shown.  Otherwise, @file{Makefile} will be generated.
 
-If editline or readline library is available, chronyc will be built with line
-editing support.  If you don't want this, specify the --disable-readline flag
-to configure.  Please refer to @pxref{line editing support} for more information.
+On Linux, if development files for the libcap library are available,
+@code{chronyd} will be built with support for dropping root privileges.
+On other systems no extra library is needed.  The default user which
+@code{chronyd} should run as can be specified with the @code{--with-user}
+option of the configure script.
+
+If development files for the editline or readline library are available,
+@code{chronyc} will be built with line editing support.  If you don't want
+this, specify the --disable-readline flag to configure.  Please refer to
+@pxref{line editing support} for more information.
 
 If a @file{timepps.h} header is available (e.g. from the
 @uref{http://linuxpps.org/, LinuxPPS project}), @code{chronyd} will be built with PPS API
@@ -407,7 +414,11 @@ makestep 1.0 3
 rtcsync
 @end example
 
-Then, @code{chronyd} can be run.
+Then, @code{chronyd} can be run.  For security reasons, it's recommended to
+create an unprivileged user for @code{chronyd} and specify it with the
+@code{-u} command-line option or the @code{user} directive in the configuration
+file, or set the default user with the @code{--with-user} configure option
+before building.
 @c }}}
 @menu
 * line editing support::        If libraries are in a non-standard place
