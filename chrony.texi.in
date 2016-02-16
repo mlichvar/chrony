@@ -2790,9 +2790,9 @@ Prefer this source over sources without prefer option.
 Never select this source.  This is useful for monitoring or with sources
 which are not very accurate, but are locked with a PPS refclock.
 @item trust
-Assume time from this source is always true.  It can't be rejected as a
-falseticker in the source selection if sources that are specified without this
-option don't agree with it.
+Assume time from this source is always true.  It can be rejected as a
+falseticker in the source selection only if another source with this option
+doesn't agree with it.
 @item require
 Require that at least one of the sources specified with this option is
 selectable (i.e. recently reachable and not a falseticker) before updating the
@@ -3106,9 +3106,9 @@ Prefer this source over sources without prefer option.
 Never select this source.  This is particularly useful for monitoring.
 
 @item trust
-Assume time from this source is always true.  It can't be rejected as a
-falseticker in the source selection if sources that are specified without this
-option don't agree with it.
+Assume time from this source is always true.  It can be rejected as a
+falseticker in the source selection only if another source with this option
+doesn't agree with it.
 
 @item require
 Require that at least one of the sources specified with this option is
