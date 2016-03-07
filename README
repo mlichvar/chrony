@@ -84,6 +84,12 @@ chrony-dev-request@chrony.tuxfamily.org
 
 as applicable.
 
+When you are reporting a bug, please send us all the information you can.
+Unfortunately, chrony has proven to be one of those programs where it is very
+difficult to reproduce bugs in a different environment. So we may have to
+interact with you quite a lot to obtain enough extra logging and tracing to
+pin-point the problem in some cases. Please be patient and plan for this!
+
 License
 =======
 
@@ -104,6 +110,10 @@ Miroslav Lichvar <mlichvar@redhat.com>
 
 Acknowledgements
 ================
+
+In writing the chronyd program, extensive use has been made of RFC 1305
+and RFC 5905, written by David Mills. The source code of the NTP reference
+implementation has been used to check the details of the protocol.
 
 The following people have provided patches and other major contributions
 to the program :

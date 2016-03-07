@@ -111,7 +111,6 @@ Fine tuning of the installation directories:
   --bindir=DIR           user executables [EPREFIX/bin]
   --sbindir=DIR          system admin executables [EPREFIX/sbin]
   --datarootdir=DIR      data root [PREFIX/share]
-  --infodir=DIR          info documentation [DATAROOTDIR/info]
   --mandir=DIR           man documentation [DATAROOTDIR/man]
   --docdir=DIR           documentation root [DATAROOTDIR/doc/chrony]
   --localstatedir=DIR    modifiable single-machine data [/var]
@@ -260,9 +259,6 @@ do
     ;;
     --datarootdir=* )
       SETDATAROOTDIR=`echo $option | sed -e 's/^.*=//;'`
-    ;;
-    --infodir=* )
-      SETINFODIR=`echo $option | sed -e 's/^.*=//;'`
     ;;
     --mandir=* )
       SETMANDIR=`echo $option | sed -e 's/^.*=//;'`
@@ -797,11 +793,6 @@ if [ "x$SETDATAROOTDIR" != "x" ]; then
   DATAROOTDIR=$SETDATAROOTDIR
 fi
 
-INFODIR=${DATAROOTDIR}/info
-if [ "x$SETINFODIR" != "x" ]; then
-  INFODIR=$SETINFODIR
-fi
-
 MANDIR=${DATAROOTDIR}/man
 if [ "x$SETMANDIR" != "x" ]; then
   MANDIR=$SETMANDIR
@@ -848,7 +839,7 @@ fi
 
 add_def CHRONY_VERSION "\"${CHRONY_VERSION}\""
 
-for f in Makefile test/unit/Makefile chrony.conf.5 chrony.texi chronyc.1 chronyd.8
+for f in Makefile doc/Makefile test/unit/Makefile
 do
   echo Creating $f
   sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
@@ -867,7 +858,6 @@ do
           s%@SBINDIR@%${SBINDIR}%;\
           s%@DOCDIR@%${DOCDIR}%;\
           s%@MANDIR@%${MANDIR}%;\
-          s%@INFODIR@%${INFODIR}%;\
           s%@LOCALSTATEDIR@%${LOCALSTATEDIR}%;\
           s%@CHRONYSOCKDIR@%${CHRONYSOCKDIR}%;\
           s%@CHRONYVARDIR@%${CHRONYVARDIR}%;\

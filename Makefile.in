@@ -24,9 +24,6 @@
 SYSCONFDIR=@SYSCONFDIR@
 BINDIR=@BINDIR@
 SBINDIR=@SBINDIR@
-MANDIR=@MANDIR@
-INFODIR=@INFODIR@
-DOCDIR=@DOCDIR@
 LOCALSTATEDIR=@LOCALSTATEDIR@
 CHRONYVARDIR=@CHRONYVARDIR@
 
@@ -75,10 +72,10 @@ $(HASH_OBJ) : $(patsubst %.o,%.c,$(HASH_OBJ))
 distclean : clean
 	-rm -f .DS_Store
 	-rm -f Makefile
-	-rm -f chrony.conf.5 chrony.texi chronyc.1 chronyd.8
+	$(MAKE) -C doc distclean
 
 clean :
-	-rm -f *.o *.s chronyc chronyd core *~ chrony.info chrony.html chrony.txt
+	-rm -f *.o *.s chronyc chronyd core *~
 	-rm -rf .deps
 	-rm -rf *.dSYM
 
@@ -96,9 +93,6 @@ install: chronyd chronyc
 	[ -d $(DESTDIR)$(SYSCONFDIR) ] || mkdir -p $(DESTDIR)$(SYSCONFDIR)
 	[ -d $(DESTDIR)$(SBINDIR) ] || mkdir -p $(DESTDIR)$(SBINDIR)
 	[ -d $(DESTDIR)$(BINDIR) ] || mkdir -p $(DESTDIR)$(BINDIR)
-	[ -d $(DESTDIR)$(MANDIR)/man1 ] || mkdir -p $(DESTDIR)$(MANDIR)/man1
-	[ -d $(DESTDIR)$(MANDIR)/man5 ] || mkdir -p $(DESTDIR)$(MANDIR)/man5
-	[ -d $(DESTDIR)$(MANDIR)/man8 ] || mkdir -p $(DESTDIR)$(MANDIR)/man8
 	[ -d $(DESTDIR)$(CHRONYVARDIR) ] || mkdir -p $(DESTDIR)$(CHRONYVARDIR)
 	if [ -f $(DESTDIR)$(SBINDIR)/chronyd ]; then rm -f $(DESTDIR)$(SBINDIR)/chronyd ; fi
 	if [ -f $(DESTDIR)$(BINDIR)/chronyc ]; then rm -f $(DESTDIR)$(BINDIR)/chronyc ; fi
@@ -106,12 +100,13 @@ install: chronyd chronyc
 	chmod 755 $(DESTDIR)$(SBINDIR)/chronyd
 	cp chronyc $(DESTDIR)$(BINDIR)/chronyc
 	chmod 755 $(DESTDIR)$(BINDIR)/chronyc
-	cp chronyc.1 $(DESTDIR)$(MANDIR)/man1
-	chmod 644 $(DESTDIR)$(MANDIR)/man1/chronyc.1
-	cp chronyd.8 $(DESTDIR)$(MANDIR)/man8
-	chmod 644 $(DESTDIR)$(MANDIR)/man8/chronyd.8
-	cp chrony.conf.5 $(DESTDIR)$(MANDIR)/man5
-	chmod 644 $(DESTDIR)$(MANDIR)/man5/chrony.conf.5
+	$(MAKE) -C doc install
+
+docs :
+	$(MAKE) -C doc docs
+
+install-docs :
+	$(MAKE) -C doc install-docs
 
 %.o : %.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c $<
@@ -122,28 +117,6 @@ install: chronyd chronyc
 check : chronyd chronyc
 	$(MAKE) -C test/unit check
 	cd test/simulation && ./run
-
-install-docs : docs
-	[ -d $(DESTDIR)$(DOCDIR) ] || mkdir -p $(DESTDIR)$(DOCDIR)
-	cp chrony.txt $(DESTDIR)$(DOCDIR)/chrony.txt
-	chmod 644 $(DESTDIR)$(DOCDIR)/chrony.txt
-	cp chrony.html $(DESTDIR)$(DOCDIR)/chrony.html
-	chmod 644 $(DESTDIR)$(DOCDIR)/chrony.html
-	[ -d $(DESTDIR)$(INFODIR) ] || mkdir -p $(DESTDIR)$(INFODIR)
-	cp chrony.info* $(DESTDIR)$(INFODIR)
-	chmod 644 $(DESTDIR)$(INFODIR)/chrony.info*
-
-docs : chrony.txt chrony.html chrony.info
-
-chrony.txt : chrony.texi
-	makeinfo --no-headers --number-sections -o chrony.txt chrony.texi
-
-chrony.html : chrony.texi
-	command -v texi2html > /dev/null 2>&1 && texi2html chrony.texi || \
-	  makeinfo --no-split --html --number-sections -o chrony.html chrony.texi
-
-chrony.info : chrony.texi
-	makeinfo chrony.texi
 
 Makefile : Makefile.in configure
 	@echo
