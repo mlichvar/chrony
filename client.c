@@ -1198,6 +1198,7 @@ give_help(void)
     "sources [-v]\0Display information about current sources\0"
     "sourcestats [-v]\0Display statistics about collected measurements\0"
     "reselect\0Force reselecting synchronisation source\0"
+    "reselectdist <dist>\0Modify reselection distance\0"
     "\0\0"
     "NTP sources:\0\0"
     "activity\0Check how many NTP sources are online/offline\0"
