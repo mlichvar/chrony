@@ -179,7 +179,8 @@ SCH_AddInputFileHandler
   /* Don't want to allow the same fd to register a handler more than
      once without deleting a previous association - this suggests
      a bug somewhere else in the program. */
-  assert(!FD_ISSET(fd, &read_fds));
+  if (FD_ISSET(fd, &read_fds))
+    assert(0);
 
   ++n_read_fds;
   
@@ -208,7 +209,8 @@ SCH_RemoveInputFileHandler(int fd)
   assert(initialised);
 
   /* Check that a handler was registered for the fd in question */
-  assert(FD_ISSET(fd, &read_fds));
+  if (!FD_ISSET(fd, &read_fds))
+    assert(0);
 
   --n_read_fds;
 
