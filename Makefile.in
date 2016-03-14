@@ -73,6 +73,7 @@ distclean : clean
 	-rm -f .DS_Store
 	-rm -f Makefile
 	$(MAKE) -C doc distclean
+	$(MAKE) -C test/unit distclean
 
 clean :
 	-rm -f *.o *.s chronyc chronyd core *~

@@ -33,6 +33,9 @@ clean:
 	rm -f *.o $(TESTS)
 	rm -rf .deps
 
+distclean: clean
+	rm -f Makefile
+
 .deps:
 	@mkdir .deps
 
