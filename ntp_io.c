@@ -162,21 +162,21 @@ prepare_socket(int family, int port_number, int client_only)
   /* Make the socket capable of re-using an old address if binding to a specific port */
   if (port_number &&
       setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&on_off, sizeof(on_off)) < 0) {
-    LOG(LOGS_ERR, LOGF_NtpIO, "Could not set reuseaddr socket options");
+    LOG(LOGS_ERR, LOGF_NtpIO, "Could not set %s socket option", "SO_REUSEADDR");
     /* Don't quit - we might survive anyway */
   }
   
   /* Make the socket capable of sending broadcast pkts - needed for NTP broadcast mode */
   if (!client_only &&
       setsockopt(sock_fd, SOL_SOCKET, SO_BROADCAST, (char *)&on_off, sizeof(on_off)) < 0) {
-    LOG(LOGS_ERR, LOGF_NtpIO, "Could not set broadcast socket options");
+    LOG(LOGS_ERR, LOGF_NtpIO, "Could not set %s socket option", "SO_BROADCAST");
     /* Don't quit - we might survive anyway */
   }
 
 #ifdef SO_TIMESTAMP
   /* Enable receiving of timestamp control messages */
   if (setsockopt(sock_fd, SOL_SOCKET, SO_TIMESTAMP, (char *)&on_off, sizeof(on_off)) < 0) {
-    LOG(LOGS_ERR, LOGF_NtpIO, "Could not set timestamp socket options");
+    LOG(LOGS_ERR, LOGF_NtpIO, "Could not set %s socket option", "SO_TIMESTAMP");
     /* Don't quit - we might survive anyway */
   }
 #endif
@@ -185,7 +185,7 @@ prepare_socket(int family, int port_number, int client_only)
   /* Allow binding to address that doesn't exist yet */
   if (my_addr_len > 0 &&
       setsockopt(sock_fd, IPPROTO_IP, IP_FREEBIND, (char *)&on_off, sizeof(on_off)) < 0) {
-    LOG(LOGS_ERR, LOGF_NtpIO, "Could not set free bind socket option");
+    LOG(LOGS_ERR, LOGF_NtpIO, "Could not set %s socket option", "IP_FREEBIND");
   }
 #endif
 
@@ -193,7 +193,7 @@ prepare_socket(int family, int port_number, int client_only)
 #ifdef HAVE_IN_PKTINFO
     /* We want the local IP info on server sockets */
     if (setsockopt(sock_fd, IPPROTO_IP, IP_PKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
-      LOG(LOGS_ERR, LOGF_NtpIO, "Could not set packet info socket option");
+      LOG(LOGS_ERR, LOGF_NtpIO, "Could not set %s socket option", "IP_PKTINFO");
       /* Don't quit - we might survive anyway */
     }
 #endif
@@ -203,18 +203,18 @@ prepare_socket(int family, int port_number, int client_only)
 #ifdef IPV6_V6ONLY
     /* Receive IPv6 packets only */
     if (setsockopt(sock_fd, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&on_off, sizeof(on_off)) < 0) {
-      LOG(LOGS_ERR, LOGF_NtpIO, "Could not set IPV6_V6ONLY socket option");
+      LOG(LOGS_ERR, LOGF_NtpIO, "Could not set %s socket option", "IPV6_V6ONLY");
     }
 #endif
 
 #ifdef HAVE_IN6_PKTINFO
 #ifdef IPV6_RECVPKTINFO
     if (setsockopt(sock_fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
-      LOG(LOGS_ERR, LOGF_NtpIO, "Could not set IPv6 packet info socket option");
+      LOG(LOGS_ERR, LOGF_NtpIO, "Could not set %s socket option", "IPV6_RECVPKTINFO");
     }
 #else
     if (setsockopt(sock_fd, IPPROTO_IPV6, IPV6_PKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
-      LOG(LOGS_ERR, LOGF_NtpIO, "Could not set IPv6 packet info socket option");
+      LOG(LOGS_ERR, LOGF_NtpIO, "Could not set %s socket option", "IPV6_PKTINFO");
     }
 #endif
 #endif
