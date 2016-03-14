@@ -362,6 +362,7 @@ UTI_IPToRefid(IPAddr *ip)
 uint32_t
 UTI_IPToHash(IPAddr *ip)
 {
+  static uint32_t seed = 0;
   unsigned char *addr;
   unsigned int i, len;
   uint32_t hash;
@@ -379,10 +380,15 @@ UTI_IPToHash(IPAddr *ip)
       return 0;
   }
 
-  for (i = 0, hash = 0; i < len; i++)
+  /* Include a random seed in the hash to randomize collisions
+     and order of addresses in hash tables */
+  while (!seed)
+    UTI_GetRandomBytes(&seed, sizeof (seed));
+
+  for (i = 0, hash = seed; i < len; i++)
     hash = 71 * hash + addr[i];
 
-  return hash;
+  return hash + seed;
 }
 
 /* ================================================== */
