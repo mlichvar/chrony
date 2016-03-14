@@ -43,7 +43,7 @@ check_packet_interval || test_fail
 client_conf="keyfile tmp/keys"
 clients=2
 peers=2
-max_sync_time=300
+max_sync_time=500
 base_delay="$default_base_delay (* -1 (equal 0.1 from 3) (equal 0.1 to 1))"
 client_lpeer_options="key 1"
 client_rpeer_options="key 1"
