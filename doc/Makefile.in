@@ -63,8 +63,10 @@ install-docs: $(HTML_FILES)
 	  chmod 644 $(DESTDIR)$(DOCDIR)/$$f; \
 	done
 
-clean: distclean
+clean:
+	rm -f $(MAN_FILES) $(TXT_FILES) $(HTML_FILES)
 	rm -f $(MAN_IN_FILES)
 
 distclean:
 	rm -f $(MAN_FILES) $(TXT_FILES) $(HTML_FILES)
+	rm -f Makefile
