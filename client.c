@@ -1662,6 +1662,203 @@ print_clientlog_interval(int rate)
 
 /* ================================================== */
 
+static void
+print_header(const char *header)
+{
+  int len;
+
+  printf("%s\n", header);
+
+  len = strlen(header);
+  while (len--)
+    printf("=");
+  printf("\n");
+}
+
+/* ================================================== */
+
+#define REPORT_END 0x1234
+
+/* Print a report. The syntax of the format is similar to printf(), but not all
+   specifiers are supported and some are different! */
+
+static void
+print_report(const char *format, ...)
+{
+  char buf[256];
+  va_list ap;
+  int i, sign, width, prec, spec;
+  const char *string;
+  unsigned long long_uinteger;
+  unsigned int uinteger;
+  int integer;
+  struct timeval *tv;
+  struct tm *tm;
+  double dbl;
+
+  va_start(ap, format);
+
+  while (1) {
+    for (i = 0; i < sizeof (buf) && format[i] != '%' && format[i] != '\0'; i++)
+      buf[i] = format[i];
+
+    if (i >= sizeof (buf))
+      break;
+
+    buf[i] = '\0';
+    printf("%s", buf);
+
+    if (format[i] == '\0' || format[i + 1] == '\0')
+      break;
+
+    format += i + 1;
+
+    sign = 0;
+    width = 0;
+    prec = 5;
+
+    if (*format == '+' || *format == '-') {
+      sign = 1;
+      format++;
+    }
+
+    if (isdigit(*format)) {
+      width = atoi(format);
+      while (isdigit(*format))
+        format++;
+    }
+
+    if (*format == '.') {
+      format++;
+      prec = atoi(format);
+      while (isdigit(*format))
+        format++;
+    }
+
+    spec = *format;
+    format++;
+
+    switch (spec) {
+      case 'C': /* clientlog interval */
+        integer = va_arg(ap, int);
+        print_clientlog_interval(integer);
+        break;
+      case 'F': /* absolute frequency in ppm with fast/slow keyword */
+      case 'O': /* absolute offset in seconds with fast/slow keyword */
+        dbl = va_arg(ap, double);
+        printf("%*.*f %s %s", width, prec, fabs(dbl),
+               spec == 'O' ? "seconds" : "ppm",
+               (dbl > 0.0) ^ (spec != 'O') ? "slow" : "fast");
+        break;
+      case 'I': /* interval with unit */
+        long_uinteger = va_arg(ap, unsigned long);
+        print_seconds(long_uinteger);
+        break;
+      case 'P': /* frequency in ppm */
+        dbl = va_arg(ap, double);
+        if (sign)
+          print_signed_freq_ppm(dbl);
+        else
+          print_freq_ppm(dbl);
+        break;
+      case 'R': /* reference ID in quad-dotted notation */
+        long_uinteger = va_arg(ap, unsigned long);
+        printf("%lu.%lu.%lu.%lu", long_uinteger >> 24, (long_uinteger >> 16) & 0xff,
+               (long_uinteger >> 8) & 0xff, long_uinteger & 0xff);
+        break;
+      case 'S': /* offset with unit */
+        dbl = va_arg(ap, double);
+        if (sign)
+          print_signed_nanoseconds(dbl);
+        else
+          print_nanoseconds(dbl);
+        break;
+      case 'T': /* timeval as date and time in UTC */
+        tv = va_arg(ap, struct timeval *);
+        tm = gmtime(&tv->tv_sec);
+        if (!tm)
+          break;
+        strftime(buf, sizeof (buf), "%a %b %d %T %Y", tm);
+        printf("%s", buf);
+        break;
+      case 'U': /* unsigned long in decimal */
+        long_uinteger = va_arg(ap, unsigned long);
+        printf("%*lu", width, long_uinteger);
+        break;
+      case 'V': /* timeval as seconds since epoch */
+        tv = va_arg(ap, struct timeval *);
+        printf("%s", UTI_TimevalToString(tv));
+        break;
+
+      /* Classic printf specifiers */
+      case 'c': /* character */
+        integer = va_arg(ap, int);
+        printf("%c", integer);
+        break;
+      case 'd': /* signed int in decimal */
+        integer = va_arg(ap, int);
+        printf("%*d", width, integer);
+        break;
+      case 'f': /* double */
+        dbl = va_arg(ap, double);
+        printf(sign ? "%+*.*f" : "%*.*f", width, prec, dbl);
+        break;
+      case 'o': /* unsigned int in octal */
+        uinteger = va_arg(ap, unsigned int);
+        printf("%*o", width, uinteger);
+        break;
+      case 's': /* string */
+        string = va_arg(ap, const char *);
+        if (sign)
+          printf("%-*s", width, string);
+        else
+          printf("%*s", width, string);
+        break;
+      case 'u': /* unsigned int in decimal */
+        uinteger = va_arg(ap, unsigned int);
+        printf("%*u", width, uinteger);
+        break;
+    }
+  }
+
+  /* Require terminating argument to catch bad type conversions */
+  if (va_arg(ap, int) != REPORT_END)
+    assert(0);
+
+  va_end(ap);
+}
+
+/* ================================================== */
+
+static void
+print_info_field(const char *format, ...)
+{
+  va_list ap;
+
+  va_start(ap, format);
+  vprintf(format, ap);
+  va_end(ap);
+}
+
+/* ================================================== */
+
+static void
+format_name(char *buf, int size, int trunc_dns, int ref, uint32_t ref_id,
+            IPAddr *ip_addr)
+{
+  if (ref) {
+    snprintf(buf, size, "%s", UTI_RefidToString(ref_id));
+  } else if (no_dns) {
+    snprintf(buf, size, "%s", UTI_IPToString(ip_addr));
+  } else {
+    DNS_IPAddress2Name(ip_addr, buf, size);
+    if (size > trunc_dns)
+      buf[trunc_dns] = '\0';
+  }
+}
+
+/* ================================================== */
+
 static int
 check_for_verbose_flag(char *line)
 {
@@ -1680,113 +1877,102 @@ process_cmd_sources(char *line)
 {
   CMD_Request request;
   CMD_Reply reply;
-  int n_sources, i;
-  int verbose = 0;
-
-  double orig_latest_meas, latest_meas, latest_meas_err;
   IPAddr ip_addr;
-  uint32_t latest_meas_ago;
-  int16_t poll;
-  uint16_t stratum, state, mode, flags, reachability;
-  char hostname_buf[50];
+  uint32_t i, mode, n_sources;
+  char name[50], mode_ch, state_ch;
+  int verbose;
 
   /* Check whether to output verbose headers */
   verbose = check_for_verbose_flag(line);
   
   request.command = htons(REQ_N_SOURCES);
-  if (request_reply(&request, &reply, RPY_N_SOURCES, 0)) {
-    n_sources = ntohl(reply.data.n_sources.n_sources);
-    printf("210 Number of sources = %d\n", n_sources);
-    if (verbose) {
-      printf("\n");
-      printf("  .-- Source mode  '^' = server, '=' = peer, '#' = local clock.\n");
-      printf(" / .- Source state '*' = current synced, '+' = combined , '-' = not combined,\n");
-      printf("| /   '?' = unreachable, 'x' = time may be in error, '~' = time too variable.\n");
-      printf("||                                                 .- xxxx [ yyyy ] +/- zzzz\n");
-      printf("||      Reachability register (octal) -.           |  xxxx = adjusted offset,\n");
-      printf("||      Log2(Polling interval) --.      |          |  yyyy = measured offset,\n");
-      printf("||                                \\     |          |  zzzz = estimated error.\n");
-      printf("||                                 |    |           \\\n");
-    }
-
-    printf("MS Name/IP address         Stratum Poll Reach LastRx Last sample\n");
-    printf("===============================================================================\n");
-
-    /*     "MS NNNNNNNNNNNNNNNNNNNNNNNNNNN  SS  PP   RRR  RRRR  SSSSSSS[SSSSSSS] +/- SSSSSS" */
-
-    for (i=0; i<n_sources; i++) {
-      request.command = htons(REQ_SOURCE_DATA);
-      request.data.source_data.index = htonl(i);
-      if (request_reply(&request, &reply, RPY_SOURCE_DATA, 0)) {
-          UTI_IPNetworkToHost(&reply.data.source_data.ip_addr, &ip_addr);
-          poll = ntohs(reply.data.source_data.poll);
-          stratum = ntohs(reply.data.source_data.stratum);
-          state = ntohs(reply.data.source_data.state);
-          mode = ntohs(reply.data.source_data.mode);
-          flags = ntohs(reply.data.source_data.flags);
-          reachability = ntohs(reply.data.source_data.reachability);
-          latest_meas_ago = ntohl(reply.data.source_data.since_sample);
-          orig_latest_meas = UTI_FloatNetworkToHost(reply.data.source_data.orig_latest_meas);
-          latest_meas = UTI_FloatNetworkToHost(reply.data.source_data.latest_meas);
-          latest_meas_err = UTI_FloatNetworkToHost(reply.data.source_data.latest_meas_err);
-
-          if (mode == RPY_SD_MD_REF) {
-            snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_RefidToString(ip_addr.addr.in4));
-          } else if (no_dns) {
-            snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_IPToString(&ip_addr));
-          } else {
-            DNS_IPAddress2Name(&ip_addr, hostname_buf, sizeof(hostname_buf));
-            hostname_buf[25] = 0;
-          }
-
-          switch (mode) {
-            case RPY_SD_MD_CLIENT:
-              printf("^"); break;
-            case RPY_SD_MD_PEER:
-              printf("="); break;
-            case RPY_SD_MD_REF:
-              printf("#"); break;
-            default:
-              printf(" ");
-          }
-          switch (state) {
-            case RPY_SD_ST_SYNC:
-              printf("*"); break;
-            case RPY_SD_ST_UNREACH:
-              printf("?"); break;
-            case RPY_SD_ST_FALSETICKER:
-              printf("x"); break;
-            case RPY_SD_ST_JITTERY:
-              printf("~"); break;
-            case RPY_SD_ST_CANDIDATE:
-              printf("+"); break;
-            case RPY_SD_ST_OUTLIER:
-              printf("-"); break;
-            default:
-              printf(" ");
-          }
-          switch (flags) {
-            default:
-              break;
-          }
-
-          printf(" %-27s  %2d  %2d   %3o  ", hostname_buf, stratum, poll, reachability);
-          print_seconds(latest_meas_ago);
-          printf("  ");
-          print_signed_nanoseconds(latest_meas);
-          printf("[");
-          print_signed_nanoseconds(orig_latest_meas);
-          printf("]");
-          printf(" +/- ");
-          print_nanoseconds(latest_meas_err);
-          printf("\n");
-      } else {
-        return 0;
-      }
-    }
-  } else {
+  if (!request_reply(&request, &reply, RPY_N_SOURCES, 0))
     return 0;
+
+  n_sources = ntohl(reply.data.n_sources.n_sources);
+  print_info_field("210 Number of sources = %lu\n", (unsigned long)n_sources);
+
+  if (verbose) {
+    printf("\n");
+    printf("  .-- Source mode  '^' = server, '=' = peer, '#' = local clock.\n");
+    printf(" / .- Source state '*' = current synced, '+' = combined , '-' = not combined,\n");
+    printf("| /   '?' = unreachable, 'x' = time may be in error, '~' = time too variable.\n");
+    printf("||                                                 .- xxxx [ yyyy ] +/- zzzz\n");
+    printf("||      Reachability register (octal) -.           |  xxxx = adjusted offset,\n");
+    printf("||      Log2(Polling interval) --.      |          |  yyyy = measured offset,\n");
+    printf("||                                \\     |          |  zzzz = estimated error.\n");
+    printf("||                                 |    |           \\\n");
   }
+
+  print_header("MS Name/IP address         Stratum Poll Reach LastRx Last sample               ");
+
+  /*           "MS NNNNNNNNNNNNNNNNNNNNNNNNNNN  SS  PP   RRR  RRRR  SSSSSSS[SSSSSSS] +/- SSSSSS" */
+
+  for (i = 0; i < n_sources; i++) {
+    request.command = htons(REQ_SOURCE_DATA);
+    request.data.source_data.index = htonl(i);
+    if (!request_reply(&request, &reply, RPY_SOURCE_DATA, 0))
+      return 0;
+
+    mode = ntohs(reply.data.source_data.mode);
+    UTI_IPNetworkToHost(&reply.data.source_data.ip_addr, &ip_addr);
+    format_name(name, sizeof (name), 25, mode == RPY_SD_MD_REF,
+                ip_addr.addr.in4, &ip_addr);
+
+    switch (mode) {
+      case RPY_SD_MD_CLIENT:
+        mode_ch = '^';
+        break;
+      case RPY_SD_MD_PEER:
+        mode_ch = '=';
+        break;
+      case RPY_SD_MD_REF:
+        mode_ch = '#';
+        break;
+      default:
+        mode_ch = ' ';
+    }
+
+    switch (ntohs(reply.data.source_data.state)) {
+      case RPY_SD_ST_SYNC:
+        state_ch = '*';
+        break;
+      case RPY_SD_ST_UNREACH:
+        state_ch = '?';
+        break;
+      case RPY_SD_ST_FALSETICKER:
+        state_ch = 'x';
+        break;
+      case RPY_SD_ST_JITTERY:
+        state_ch = '~';
+        break;
+      case RPY_SD_ST_CANDIDATE:
+        state_ch = '+';
+        break;
+      case RPY_SD_ST_OUTLIER:
+        state_ch = '-';
+        break;
+      default:
+        state_ch = ' ';
+    }
+
+    switch (ntohs(reply.data.source_data.flags)) {
+      default:
+        break;
+    }
+
+    print_report("%c%c %-27s  %2d  %2d   %3o  %I  %+S[%+S] +/- %S\n",
+                 mode_ch, state_ch, name,
+                 ntohs(reply.data.source_data.stratum),
+                 ntohs(reply.data.source_data.poll),
+                 ntohs(reply.data.source_data.reachability),
+                 (unsigned long)ntohl(reply.data.source_data.since_sample),
+                 UTI_FloatNetworkToHost(reply.data.source_data.latest_meas),
+                 UTI_FloatNetworkToHost(reply.data.source_data.orig_latest_meas),
+                 UTI_FloatNetworkToHost(reply.data.source_data.latest_meas_err),
+                 REPORT_END);
+  }
+
   return 1;
 }
 
@@ -1797,80 +1983,58 @@ process_cmd_sourcestats(char *line)
 {
   CMD_Request request;
   CMD_Reply reply;
-  int n_sources, i;
+  uint32_t i, n_sources;
   int verbose = 0;
-
-  char hostname_buf[50];
-  unsigned long n_samples, n_runs, span_seconds;
-  double resid_freq_ppm, skew_ppm, sd, est_offset;
-  uint32_t ref_id;
+  char name[50];
   IPAddr ip_addr;
 
   verbose = check_for_verbose_flag(line);
 
   request.command = htons(REQ_N_SOURCES);
-  if (request_reply(&request, &reply, RPY_N_SOURCES, 0)) {
-    n_sources = ntohl(reply.data.n_sources.n_sources);
-    printf("210 Number of sources = %d\n", n_sources);
-    if (verbose) {
-      printf("                             .- Number of sample points in measurement set.\n");
-      printf("                            /    .- Number of residual runs with same sign.\n");
-      printf("                           |    /    .- Length of measurement set (time).\n");
-      printf("                           |   |    /      .- Est. clock freq error (ppm).\n");
-      printf("                           |   |   |      /           .- Est. error in freq.\n");
-      printf("                           |   |   |     |           /         .- Est. offset.\n");
-      printf("                           |   |   |     |          |          |   On the -.\n");
-      printf("                           |   |   |     |          |          |   samples. \\\n");
-      printf("                           |   |   |     |          |          |             |\n");
-    }
-
-    printf("Name/IP Address            NP  NR  Span  Frequency  Freq Skew  Offset  Std Dev\n");
-    printf("==============================================================================\n");
-
-    /*      NNNNNNNNNNNNNNNNNNNNNNNNN  NP  NR  SSSS FFFFFFFFFF SSSSSSSSSS  SSSSSSS  SSSSSS*/
-
-    for (i=0; i<n_sources; i++) {
-      request.command = htons(REQ_SOURCESTATS);
-      request.data.source_data.index = htonl(i);
-      if (request_reply(&request, &reply, RPY_SOURCESTATS, 0)) {
-          ref_id = ntohl(reply.data.sourcestats.ref_id);
-          UTI_IPNetworkToHost(&reply.data.sourcestats.ip_addr, &ip_addr);
-          n_samples = ntohl(reply.data.sourcestats.n_samples);
-          n_runs = ntohl(reply.data.sourcestats.n_runs);
-          span_seconds = ntohl(reply.data.sourcestats.span_seconds);
-          resid_freq_ppm = UTI_FloatNetworkToHost(reply.data.sourcestats.resid_freq_ppm);
-          skew_ppm = UTI_FloatNetworkToHost(reply.data.sourcestats.skew_ppm);
-          sd = UTI_FloatNetworkToHost(reply.data.sourcestats.sd);
-          est_offset = UTI_FloatNetworkToHost(reply.data.sourcestats.est_offset);
-          /* est_offset_err = UTI_FloatNetworkToHost(reply.data.sourcestats.est_offset_err); */
-
-          if (ip_addr.family == IPADDR_UNSPEC)
-            snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_RefidToString(ref_id));
-          else if (no_dns) {
-            snprintf(hostname_buf, sizeof(hostname_buf), "%s", UTI_IPToString(&ip_addr));
-          } else {
-            DNS_IPAddress2Name(&ip_addr, hostname_buf, sizeof(hostname_buf));
-            hostname_buf[25] = 0;
-          }
-
-          printf("%-25s %3lu %3lu  ", hostname_buf, n_samples, n_runs);
-          print_seconds(span_seconds);
-          printf(" ");
-          print_signed_freq_ppm(resid_freq_ppm);
-          printf(" ");
-          print_freq_ppm(skew_ppm);
-          printf("  ");
-          print_signed_nanoseconds(est_offset);
-          printf("  ");
-          print_nanoseconds(sd);
-          printf("\n");
-      } else {
-        return 0;
-      }
-    }
-  } else {
+  if (!request_reply(&request, &reply, RPY_N_SOURCES, 0))
     return 0;
+
+  n_sources = ntohl(reply.data.n_sources.n_sources);
+  print_info_field("210 Number of sources = %lu\n", (unsigned long)n_sources);
+
+  if (verbose) {
+    printf("                             .- Number of sample points in measurement set.\n");
+    printf("                            /    .- Number of residual runs with same sign.\n");
+    printf("                           |    /    .- Length of measurement set (time).\n");
+    printf("                           |   |    /      .- Est. clock freq error (ppm).\n");
+    printf("                           |   |   |      /           .- Est. error in freq.\n");
+    printf("                           |   |   |     |           /         .- Est. offset.\n");
+    printf("                           |   |   |     |          |          |   On the -.\n");
+    printf("                           |   |   |     |          |          |   samples. \\\n");
+    printf("                           |   |   |     |          |          |             |\n");
   }
+
+  print_header("Name/IP Address            NP  NR  Span  Frequency  Freq Skew  Offset  Std Dev");
+
+  /*           "NNNNNNNNNNNNNNNNNNNNNNNNN  NP  NR  SSSS FFFFFFFFFF SSSSSSSSSS  SSSSSSS  SSSSSS" */
+
+  for (i = 0; i < n_sources; i++) {
+    request.command = htons(REQ_SOURCESTATS);
+    request.data.source_data.index = htonl(i);
+    if (!request_reply(&request, &reply, RPY_SOURCESTATS, 0))
+      return 0;
+
+    UTI_IPNetworkToHost(&reply.data.sourcestats.ip_addr, &ip_addr);
+    format_name(name, sizeof (name), 25, ip_addr.family == IPADDR_UNSPEC,
+                ntohl(reply.data.sourcestats.ref_id), &ip_addr);
+
+    print_report("%-25s %3u %3u  %I %+P %P  %+S  %S\n",
+                 name,
+                 (unsigned long)ntohl(reply.data.sourcestats.n_samples),
+                 (unsigned long)ntohl(reply.data.sourcestats.n_runs),
+                 (unsigned long)ntohl(reply.data.sourcestats.span_seconds),
+                 UTI_FloatNetworkToHost(reply.data.sourcestats.resid_freq_ppm),
+                 UTI_FloatNetworkToHost(reply.data.sourcestats.skew_ppm),
+                 UTI_FloatNetworkToHost(reply.data.sourcestats.est_offset),
+                 UTI_FloatNetworkToHost(reply.data.sourcestats.sd),
+                 REPORT_END);
+  }
+
   return 1;
 }
 
@@ -1883,86 +2047,68 @@ process_cmd_tracking(char *line)
   CMD_Reply reply;
   IPAddr ip_addr;
   uint32_t ref_id;
-  char host[50];
-  char *ref_ip;
+  char name[50];
   struct timeval ref_time;
-  struct tm ref_time_tm;
-  unsigned long a, b, c, d;
-  double correction;
-  double last_offset;
-  double rms_offset;
-  double freq_ppm;
-  double resid_freq_ppm;
-  double skew_ppm;
-  double root_delay;
-  double root_dispersion;
-  double last_update_interval;
   const char *leap_status;
   
   request.command = htons(REQ_TRACKING);
-  if (request_reply(&request, &reply, RPY_TRACKING, 0)) {
-    ref_id = ntohl(reply.data.tracking.ref_id);
-    a = (ref_id >> 24);
-    b = (ref_id >> 16) & 0xff;
-    c = (ref_id >> 8) & 0xff;
-    d = (ref_id) & 0xff;
-    
-    UTI_IPNetworkToHost(&reply.data.tracking.ip_addr, &ip_addr);
-    if (ip_addr.family == IPADDR_UNSPEC) {
-      ref_ip = UTI_RefidToString(ref_id);
-    } else if (no_dns) {
-      ref_ip = UTI_IPToString(&ip_addr);
-    } else {
-      DNS_IPAddress2Name(&ip_addr, host, sizeof (host));
-      ref_ip = host;
-    }
-    
-    switch (ntohs(reply.data.tracking.leap_status)) {
-      case LEAP_Normal:
-        leap_status = "Normal";
-        break;
-      case LEAP_InsertSecond:
-        leap_status = "Insert second";
-        break;
-      case LEAP_DeleteSecond:
-        leap_status = "Delete second";
-        break;
-      case LEAP_Unsynchronised:
-        leap_status = "Not synchronised";
-        break;
-      default:
-        leap_status = "Unknown";
-        break;
-    }
+  if (!request_reply(&request, &reply, RPY_TRACKING, 0))
+    return 0;
 
-    printf("Reference ID    : %lu.%lu.%lu.%lu (%s)\n", a, b, c, d, ref_ip);
-    printf("Stratum         : %lu\n", (unsigned long) ntohs(reply.data.tracking.stratum));
-    UTI_TimevalNetworkToHost(&reply.data.tracking.ref_time, &ref_time);
-    ref_time_tm = *gmtime((time_t *)&ref_time.tv_sec);
-    printf("Ref time (UTC)  : %s", asctime(&ref_time_tm));
-    correction = UTI_FloatNetworkToHost(reply.data.tracking.current_correction);
-    last_offset = UTI_FloatNetworkToHost(reply.data.tracking.last_offset);
-    rms_offset = UTI_FloatNetworkToHost(reply.data.tracking.rms_offset);
-    printf("System time     : %.9f seconds %s of NTP time\n", fabs(correction),
-           (correction > 0.0) ? "slow" : "fast");
-    printf("Last offset     : %+.9f seconds\n", last_offset);
-    printf("RMS offset      : %.9f seconds\n", rms_offset);
-    freq_ppm = UTI_FloatNetworkToHost(reply.data.tracking.freq_ppm);
-    resid_freq_ppm = UTI_FloatNetworkToHost(reply.data.tracking.resid_freq_ppm);
-    skew_ppm = UTI_FloatNetworkToHost(reply.data.tracking.skew_ppm);
-    root_delay = UTI_FloatNetworkToHost(reply.data.tracking.root_delay);
-    root_dispersion = UTI_FloatNetworkToHost(reply.data.tracking.root_dispersion);
-    last_update_interval = UTI_FloatNetworkToHost(reply.data.tracking.last_update_interval);
-    printf("Frequency       : %.3f ppm %s\n", fabs(freq_ppm), (freq_ppm < 0.0) ? "slow" : "fast"); 
-    printf("Residual freq   : %+.3f ppm\n", resid_freq_ppm);
-    printf("Skew            : %.3f ppm\n", skew_ppm);
-    printf("Root delay      : %.6f seconds\n", root_delay);
-    printf("Root dispersion : %.6f seconds\n", root_dispersion);
-    printf("Update interval : %.1f seconds\n", last_update_interval);
-    printf("Leap status     : %s\n", leap_status);
-    return 1;
+  ref_id = ntohl(reply.data.tracking.ref_id);
+
+  UTI_IPNetworkToHost(&reply.data.tracking.ip_addr, &ip_addr);
+  format_name(name, sizeof (name), sizeof (name),
+              ip_addr.family == IPADDR_UNSPEC, ref_id, &ip_addr);
+
+  switch (ntohs(reply.data.tracking.leap_status)) {
+    case LEAP_Normal:
+      leap_status = "Normal";
+      break;
+    case LEAP_InsertSecond:
+      leap_status = "Insert second";
+      break;
+    case LEAP_DeleteSecond:
+      leap_status = "Delete second";
+      break;
+    case LEAP_Unsynchronised:
+      leap_status = "Not synchronised";
+      break;
+    default:
+      leap_status = "Unknown";
+      break;
   }
-  return 0;
+
+  UTI_TimevalNetworkToHost(&reply.data.tracking.ref_time, &ref_time);
+
+  print_report("Reference ID    : %R (%s)\n"
+               "Stratum         : %u\n"
+               "Ref time (UTC)  : %T\n"
+               "System time     : %.9O of NTP time\n"
+               "Last offset     : %+.9f seconds\n"
+               "RMS offset      : %.9f seconds\n"
+               "Frequency       : %.3F\n"
+               "Residual freq   : %+.3f ppm\n"
+               "Skew            : %.3f ppm\n"
+               "Root delay      : %.6f seconds\n"
+               "Root dispersion : %.6f seconds\n"
+               "Update interval : %.1f seconds\n"
+               "Leap status     : %s\n",
+               (unsigned long)ref_id, name,
+               ntohs(reply.data.tracking.stratum),
+               &ref_time,
+               UTI_FloatNetworkToHost(reply.data.tracking.current_correction),
+               UTI_FloatNetworkToHost(reply.data.tracking.last_offset),
+               UTI_FloatNetworkToHost(reply.data.tracking.rms_offset),
+               UTI_FloatNetworkToHost(reply.data.tracking.freq_ppm),
+               UTI_FloatNetworkToHost(reply.data.tracking.resid_freq_ppm),
+               UTI_FloatNetworkToHost(reply.data.tracking.skew_ppm),
+               UTI_FloatNetworkToHost(reply.data.tracking.root_delay),
+               UTI_FloatNetworkToHost(reply.data.tracking.root_dispersion),
+               UTI_FloatNetworkToHost(reply.data.tracking.last_update_interval),
+               leap_status, REPORT_END);
+
+  return 1;
 }
 
 /* ================================================== */
@@ -1974,15 +2120,20 @@ process_cmd_serverstats(char *line)
   CMD_Reply reply;
 
   request.command = htons(REQ_SERVER_STATS);
-
   if (!request_reply(&request, &reply, RPY_SERVER_STATS, 0))
     return 0;
 
-  printf("NTP packets received       : %"PRIu32"\n", ntohl(reply.data.server_stats.ntp_hits));
-  printf("NTP packets dropped        : %"PRIu32"\n", ntohl(reply.data.server_stats.ntp_drops));
-  printf("Command packets received   : %"PRIu32"\n", ntohl(reply.data.server_stats.cmd_hits));
-  printf("Command packets dropped    : %"PRIu32"\n", ntohl(reply.data.server_stats.cmd_drops));
-  printf("Client log records dropped : %"PRIu32"\n", ntohl(reply.data.server_stats.log_drops));
+  print_report("NTP packets received       : %U\n"
+               "NTP packets dropped        : %U\n"
+               "Command packets received   : %U\n"
+               "Command packets dropped    : %U\n"
+               "Client log records dropped : %U\n",
+               (unsigned long)ntohl(reply.data.server_stats.ntp_hits),
+               (unsigned long)ntohl(reply.data.server_stats.ntp_drops),
+               (unsigned long)ntohl(reply.data.server_stats.cmd_hits),
+               (unsigned long)ntohl(reply.data.server_stats.cmd_drops),
+               (unsigned long)ntohl(reply.data.server_stats.log_drops),
+               REPORT_END);
 
   return 1;
 }
@@ -1995,34 +2146,29 @@ process_cmd_smoothing(char *line)
   CMD_Request request;
   CMD_Reply reply;
   uint32_t flags;
-  double offset;
-  double freq_ppm;
-  double wander_ppm;
-  double last_update_ago;
-  double remaining_time;
 
   request.command = htons(REQ_SMOOTHING);
+  if (!request_reply(&request, &reply, RPY_SMOOTHING, 0))
+    return 0;
 
-  if (request_reply(&request, &reply, RPY_SMOOTHING, 0)) {
-    flags = ntohl(reply.data.smoothing.flags);
-    offset = UTI_FloatNetworkToHost(reply.data.smoothing.offset);
-    freq_ppm = UTI_FloatNetworkToHost(reply.data.smoothing.freq_ppm);
-    wander_ppm = UTI_FloatNetworkToHost(reply.data.smoothing.wander_ppm);
-    last_update_ago = UTI_FloatNetworkToHost(reply.data.smoothing.last_update_ago);
-    remaining_time = UTI_FloatNetworkToHost(reply.data.smoothing.remaining_time);
+  flags = ntohl(reply.data.smoothing.flags);
 
-    printf("Active         : %s%s\n",
-           flags & RPY_SMT_FLAG_ACTIVE ? "Yes" : "No",
-           flags & RPY_SMT_FLAG_LEAPONLY ? " (leap second only)" : "");
-    printf("Offset         : %+.9f seconds\n", offset);
-    printf("Frequency      : %+.6f ppm\n", freq_ppm);
-    printf("Wander         : %+.6f ppm per second\n", wander_ppm);
-    printf("Last update    : %.1f seconds ago\n", last_update_ago);
-    printf("Remaining time : %.1f seconds\n", remaining_time);
-    return 1;
-  }
+  print_report("Active         : %s %s\n"
+               "Offset         : %+.9f seconds\n"
+               "Frequency      : %+.6f ppm\n"
+               "Wander         : %+.6f ppm per second\n"
+               "Last update    : %.1f seconds ago\n"
+               "Remaining time : %.1f seconds\n",
+               flags & RPY_SMT_FLAG_ACTIVE ? "Yes" : "No",
+               flags & RPY_SMT_FLAG_LEAPONLY ? "(leap second only)" : "",
+               UTI_FloatNetworkToHost(reply.data.smoothing.offset),
+               UTI_FloatNetworkToHost(reply.data.smoothing.freq_ppm),
+               UTI_FloatNetworkToHost(reply.data.smoothing.wander_ppm),
+               UTI_FloatNetworkToHost(reply.data.smoothing.last_update_ago),
+               UTI_FloatNetworkToHost(reply.data.smoothing.remaining_time),
+               REPORT_END);
 
-  return 0;
+  return 1;
 }
 
 /* ================================================== */
@@ -2052,33 +2198,28 @@ process_cmd_rtcreport(char *line)
   CMD_Request request;
   CMD_Reply reply;
   struct timeval ref_time;
-  struct tm ref_time_tm;
-  unsigned short n_samples;
-  unsigned short n_runs;
-  unsigned long span_seconds;
-  double coef_seconds_fast;
-  double coef_gain_rate_ppm;
   
   request.command = htons(REQ_RTCREPORT);
-  if (request_reply(&request, &reply, RPY_RTC, 0)) {
-    UTI_TimevalNetworkToHost(&reply.data.rtc.ref_time, &ref_time);
-    ref_time_tm = *gmtime(&ref_time.tv_sec);
-    n_samples = ntohs(reply.data.rtc.n_samples);
-    n_runs = ntohs(reply.data.rtc.n_runs);
-    span_seconds = ntohl(reply.data.rtc.span_seconds);
-    coef_seconds_fast = UTI_FloatNetworkToHost(reply.data.rtc.rtc_seconds_fast);
-    coef_gain_rate_ppm = UTI_FloatNetworkToHost(reply.data.rtc.rtc_gain_rate_ppm);
-    printf("RTC ref time (UTC) : %s", asctime(&ref_time_tm));
-    printf("Number of samples  : %d\n", n_samples);
-    printf("Number of runs     : %d\n", n_runs);
-    printf("Sample span period : ");
-    print_seconds(span_seconds);
-    printf("\n");
-    printf("RTC is fast by     : %12.6f seconds\n", coef_seconds_fast);
-    printf("RTC gains time at  : %9.3f ppm\n", coef_gain_rate_ppm);
-    return 1;
-  }
-  return 0;
+  if (!request_reply(&request, &reply, RPY_RTC, 0))
+    return 0;
+
+  UTI_TimevalNetworkToHost(&reply.data.rtc.ref_time, &ref_time);
+
+  print_report("RTC ref time (UTC) : %T\n"
+               "Number of samples  : %u\n"
+               "Number of runs     : %u\n"
+               "Sample span period : %I\n"
+               "RTC is fast by     : %12.6f seconds\n"
+               "RTC gains time at  : %9.3f ppm\n",
+               &ref_time,
+               ntohs(reply.data.rtc.n_samples),
+               ntohs(reply.data.rtc.n_runs),
+               (unsigned long)ntohl(reply.data.rtc.span_seconds),
+               UTI_FloatNetworkToHost(reply.data.rtc.rtc_seconds_fast),
+               UTI_FloatNetworkToHost(reply.data.rtc.rtc_gain_rate_ppm),
+               REPORT_END);
+
+  return 1;
 }
 
 /* ================================================== */
@@ -2091,12 +2232,11 @@ process_cmd_clients(char *line)
   IPAddr ip;
   uint32_t i, n_clients, next_index, n_indices;
   RPY_ClientAccesses_Client *client;
-  char hostname[26];
+  char name[50];
 
   next_index = 0;
 
-  printf("Hostname                      NTP   Drop Int IntL Last     Cmd   Drop Int  Last\n"
-         "===============================================================================\n");
+  print_header("Hostname                      NTP   Drop Int IntL Last     Cmd   Drop Int  Last");
 
   while (1) {
     request.command = htons(REQ_CLIENT_ACCESSES_BY_INDEX2);
@@ -2119,25 +2259,20 @@ process_cmd_clients(char *line)
       if (ip.family == IPADDR_UNSPEC)
         continue;
 
-      if (no_dns)
-        snprintf(hostname, sizeof (hostname), "%s", UTI_IPToString(&ip));
-      else
-        DNS_IPAddress2Name(&ip, hostname, sizeof (hostname));
+      format_name(name, sizeof (name), sizeof (name), 0, 0, &ip);
 
-      printf("%-25s", hostname);
-      printf("  %6"PRIu32"  %5"PRIu32"  ",
-             ntohl(client->ntp_hits), ntohl(client->ntp_drops));
-      print_clientlog_interval(client->ntp_interval);
-      printf("  ");
-      print_clientlog_interval(client->ntp_timeout_interval);
-      printf("  ");
-      print_seconds(ntohl(client->last_ntp_hit_ago));
-      printf("  %6"PRIu32"  %5"PRIu32"  ",
-             ntohl(client->cmd_hits), ntohl(client->cmd_drops));
-      print_clientlog_interval(client->cmd_interval);
-      printf("  ");
-      print_seconds(ntohl(client->last_cmd_hit_ago));
-      printf("\n");
+      print_report("%-25s  %6U  %5U  %C  %C  %I  %6U  %5U  %C  %I\n",
+                   name,
+                   (unsigned long)ntohl(client->ntp_hits),
+                   (unsigned long)ntohl(client->ntp_drops),
+                   client->ntp_interval,
+                   client->ntp_timeout_interval,
+                   (unsigned long)ntohl(client->last_ntp_hit_ago),
+                   (unsigned long)ntohl(client->cmd_hits),
+                   (unsigned long)ntohl(client->cmd_drops),
+                   client->cmd_interval,
+                   (unsigned long)ntohl(client->last_cmd_hit_ago),
+                   REPORT_END);
     }
 
     /* Set the next index to probe based on what the server tells us */
@@ -2158,29 +2293,32 @@ process_cmd_manual_list(const char *line)
 {
   CMD_Request request;
   CMD_Reply reply;
-  int n_samples;
+  uint32_t i, n_samples;
   RPY_ManualListSample *sample;
-  int i;
   struct timeval when;
-  double slewed_offset, orig_offset, residual;
 
   request.command = htons(REQ_MANUAL_LIST);
-  if (request_reply(&request, &reply, RPY_MANUAL_LIST, 0)) {
-          n_samples = ntohl(reply.data.manual_list.n_samples);
-          printf("210 n_samples = %d\n", n_samples);
-          printf("#    Date     Time(UTC)    Slewed   Original   Residual\n"
-                 "=======================================================\n");
-          for (i=0; i<n_samples; i++) {
-            sample = &reply.data.manual_list.samples[i];
-            UTI_TimevalNetworkToHost(&sample->when, &when);
-            slewed_offset = UTI_FloatNetworkToHost(sample->slewed_offset);
-            orig_offset = UTI_FloatNetworkToHost(sample->orig_offset);
-            residual = UTI_FloatNetworkToHost(sample->residual);
-            printf("%2d %s %10.2f %10.2f %10.2f\n", i, UTI_TimeToLogForm(when.tv_sec), slewed_offset, orig_offset, residual);
-          }
-          return 1;
+  if (!request_reply(&request, &reply, RPY_MANUAL_LIST, 0))
+    return 0;
+
+  n_samples = ntohl(reply.data.manual_list.n_samples);
+  print_info_field("210 n_samples = %lu\n", (unsigned long)n_samples);
+
+  print_header("#    Date     Time(UTC)    Slewed   Original   Residual");
+
+  for (i = 0; i < n_samples; i++) {
+    sample = &reply.data.manual_list.samples[i];
+    UTI_TimevalNetworkToHost(&sample->when, &when);
+
+    print_report("%2d %s %10.2f %10.2f %10.2f\n",
+                 i, UTI_TimeToLogForm(when.tv_sec),
+                 UTI_FloatNetworkToHost(sample->slewed_offset),
+                 UTI_FloatNetworkToHost(sample->orig_offset),
+                 UTI_FloatNetworkToHost(sample->residual),
+                 REPORT_END);
   }
-  return 0;
+
+  return 1;
 }
 
 /* ================================================== */
@@ -2274,22 +2412,26 @@ process_cmd_activity(const char *line)
 {
   CMD_Request request;
   CMD_Reply reply;
+
   request.command = htons(REQ_ACTIVITY);
-  if (request_reply(&request, &reply, RPY_ACTIVITY, 1)) {
-        printf(
-               "%ld sources online\n"
-               "%ld sources offline\n"
-               "%ld sources doing burst (return to online)\n"
-               "%ld sources doing burst (return to offline)\n"
-               "%ld sources with unknown address\n",
-                (long) ntohl(reply.data.activity.online),
-                (long) ntohl(reply.data.activity.offline),
-                (long) ntohl(reply.data.activity.burst_online),
-                (long) ntohl(reply.data.activity.burst_offline),
-                (long) ntohl(reply.data.activity.unresolved));
-        return 1;
-  }
-  return 0;
+  if (!request_reply(&request, &reply, RPY_ACTIVITY, 0))
+    return 0;
+
+  print_info_field("200 OK\n");
+
+  print_report("%U sources online\n"
+               "%U sources offline\n"
+               "%U sources doing burst (return to online)\n"
+               "%U sources doing burst (return to offline)\n"
+               "%U sources with unknown address\n",
+               (unsigned long)ntohl(reply.data.activity.online),
+               (unsigned long)ntohl(reply.data.activity.offline),
+               (unsigned long)ntohl(reply.data.activity.burst_online),
+               (unsigned long)ntohl(reply.data.activity.burst_offline),
+               (unsigned long)ntohl(reply.data.activity.unresolved),
+               REPORT_END);
+
+  return 1;
 }
 
 /* ================================================== */
@@ -2332,7 +2474,7 @@ process_cmd_waitsync(char *line)
 {
   CMD_Request request;
   CMD_Reply reply;
-  uint32_t ref_id, a, b, c, d;
+  uint32_t ref_id;
   double correction, skew_ppm, max_correction, max_skew_ppm, interval;
   int ret = 0, max_tries, i;
   struct timeval timeout;
@@ -2353,17 +2495,13 @@ process_cmd_waitsync(char *line)
   for (i = 1; ; i++) {
     if (request_reply(&request, &reply, RPY_TRACKING, 0)) {
       ref_id = ntohl(reply.data.tracking.ref_id);
-      a = (ref_id >> 24);
-      b = (ref_id >> 16) & 0xff;
-      c = (ref_id >> 8) & 0xff;
-      d = (ref_id) & 0xff;
 
       correction = UTI_FloatNetworkToHost(reply.data.tracking.current_correction);
       correction = fabs(correction);
       skew_ppm = UTI_FloatNetworkToHost(reply.data.tracking.skew_ppm);
 
-      printf("try: %d, refid: %d.%d.%d.%d, correction: %.9f, skew: %.3f\n",
-          i, a, b, c, d, correction, skew_ppm);
+      print_report("try: %d, refid: %R, correction: %.9f, skew: %.3f\n",
+                   i, (unsigned long)ref_id, correction, skew_ppm, REPORT_END);
 
       if (ref_id != 0 && ref_id != 0x7f7f0101L /* LOCAL refid */ &&
           (max_correction == 0.0 || correction <= max_correction) &&

@@ -13,7 +13,7 @@ check_chronyd_exit || test_fail
 
 check_chronyc_output "^Reference ID    : 192\.168\.123\.1 \(192\.168\.123\.1\)
 Stratum         : 2
-Ref time \(UTC\)  : Fri Jan  1 00:1.:.. 2010
+Ref time \(UTC\)  : Fri Jan 01 00:1.:.. 2010
 System time     : 0\.0000..... seconds (slow|fast) of NTP time
 Last offset     : [+-]0\.000...... seconds
 RMS offset      : 0\.000...... seconds
@@ -25,7 +25,7 @@ Root dispersion : 0\.000... seconds
 Update interval : [0-9]+\.. seconds
 Leap status     : Normal
 210 Number of sources = 1
-MS Name/IP address         Stratum Poll Reach LastRx Last sample
+MS Name/IP address         Stratum Poll Reach LastRx Last sample               
 ===============================================================================
 \^\* 192\.168\.123\.1                 1   [67]   377    [0-9]+ [0-9 +-]+[un]s\[[0-9 +-]+[un]s\] \+/-[ 0-9]+[un]s
 210 Number of sources = 1

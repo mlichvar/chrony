@@ -14,7 +14,7 @@ chronyc_start="0.5"
 chronyc_conf="tracking"
 
 for year in `seq 1850 100 2300`; do
-	date="Jan  1 00:00:00 $year"
+	date="Jan 01 00:00:00 $year"
 	export CLKNETSIM_START_DATE=$(date -d "$date UTC" +'%s')
 	run_test || test_fail
 	check_chronyd_exit || test_fail
