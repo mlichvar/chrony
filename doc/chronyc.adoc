@@ -77,6 +77,12 @@ With this option hostnames will be resolved only to IPv6 addresses.
 This option disables resolving of IP addresses to hostnames (e.g. to avoid slow
 DNS lookups).
 
+*-c*::
+This option enables printing of reports in a column-separated values (CSV)
+format. IP addresses will not be resolved to hostnames, time will be printed as
+number of seconds since the epoch and values in seconds will not be converted
+to other units.
+
 *-d*::
 This option enables printing of debugging messages if *chronyc* was compiled
 with debugging support).

@@ -70,6 +70,8 @@ static int on_terminal = 0;
 
 static int no_dns = 0;
 
+static int csv_mode = 0;
+
 /* ================================================== */
 /* Log a message. This is a minimalistic replacement of the logging.c
    implementation to avoid linking with it and other modules. */
@@ -1667,6 +1669,9 @@ print_header(const char *header)
 {
   int len;
 
+  if (csv_mode)
+    return;
+
   printf("%s\n", header);
 
   len = strlen(header);
@@ -1687,7 +1692,7 @@ print_report(const char *format, ...)
 {
   char buf[256];
   va_list ap;
-  int i, sign, width, prec, spec;
+  int i, field, sign, width, prec, spec;
   const char *string;
   unsigned long long_uinteger;
   unsigned int uinteger;
@@ -1698,7 +1703,9 @@ print_report(const char *format, ...)
 
   va_start(ap, format);
 
-  while (1) {
+  for (field = 0; ; field++) {
+    /* Search for text between format specifiers and print it
+       if not in the CSV mode */
     for (i = 0; i < sizeof (buf) && format[i] != '%' && format[i] != '\0'; i++)
       buf[i] = format[i];
 
@@ -1706,7 +1713,9 @@ print_report(const char *format, ...)
       break;
 
     buf[i] = '\0';
-    printf("%s", buf);
+
+    if (!csv_mode)
+      printf("%s", buf);
 
     if (format[i] == '\0' || format[i + 1] == '\0')
       break;
@@ -1737,6 +1746,36 @@ print_report(const char *format, ...)
 
     spec = *format;
     format++;
+
+    /* Disable human-readable formatting in the CSV mode */
+    if (csv_mode) {
+      sign = width = 0;
+
+      if (field > 0)
+        printf(",");
+
+      switch (spec) {
+        case 'C':
+          spec = 'd';
+          break;
+        case 'F':
+        case 'P':
+          prec = 3;
+          spec = 'f';
+          break;
+        case 'O':
+        case 'S':
+          prec = 9;
+          spec = 'f';
+          break;
+        case 'I':
+          spec = 'U';
+          break;
+        case 'T':
+          spec = 'V';
+          break;
+      }
+    }
 
     switch (spec) {
       case 'C': /* clientlog interval */
@@ -1826,6 +1865,9 @@ print_report(const char *format, ...)
     assert(0);
 
   va_end(ap);
+
+  if (csv_mode)
+    printf("\n");
 }
 
 /* ================================================== */
@@ -1834,6 +1876,9 @@ static void
 print_info_field(const char *format, ...)
 {
   va_list ap;
+
+  if (csv_mode)
+    return;
 
   va_start(ap, format);
   vprintf(format, ap);
@@ -1848,7 +1893,7 @@ format_name(char *buf, int size, int trunc_dns, int ref, uint32_t ref_id,
 {
   if (ref) {
     snprintf(buf, size, "%s", UTI_RefidToString(ref_id));
-  } else if (no_dns) {
+  } else if (no_dns || csv_mode) {
     snprintf(buf, size, "%s", UTI_IPToString(ip_addr));
   } else {
     DNS_IPAddress2Name(ip_addr, buf, size);
@@ -2885,6 +2930,8 @@ main(int argc, char **argv)
       /* For compatibility */
     } else if (!strcmp(*argv, "-a")) {
       /* For compatibility */
+    } else if (!strcmp(*argv, "-c")) {
+      csv_mode = 1;
     } else if (!strcmp(*argv, "-d")) {
       log_debug_enabled = 1;
     } else if (!strcmp(*argv, "-m")) {
@@ -2900,7 +2947,7 @@ main(int argc, char **argv)
       return 0;
     } else if (!strncmp(*argv, "-", 1)) {
       LOG(LOGS_ERR, LOGF_Client,
-          "Usage: %s [-h HOST] [-p PORT] [-n] [-d] [-4|-6] [-m] [COMMAND]",
+          "Usage: %s [-h HOST] [-p PORT] [-n] [-c] [-d] [-4|-6] [-m] [COMMAND]",
           progname);
       return 1;
     } else {
