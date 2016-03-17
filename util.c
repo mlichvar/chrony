@@ -807,9 +807,10 @@ UTI_FloatNetworkToHost(Float f)
 
   x = ntohl(f.f);
 
-  exp = (x >> FLOAT_COEF_BITS) - FLOAT_COEF_BITS;
+  exp = x >> FLOAT_COEF_BITS;
   if (exp >= 1 << (FLOAT_EXP_BITS - 1))
       exp -= 1 << FLOAT_EXP_BITS;
+  exp -= FLOAT_COEF_BITS;
 
   coef = x % (1U << FLOAT_COEF_BITS);
   if (coef >= 1 << (FLOAT_COEF_BITS - 1))
