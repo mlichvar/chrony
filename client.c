@@ -1907,12 +1907,9 @@ format_name(char *buf, int size, int trunc_dns, int ref, uint32_t ref_id,
 static int
 check_for_verbose_flag(char *line)
 {
-  char *p = line;
-  if (!strcmp(p, "-v")) {
+  if (!csv_mode && !strcmp(line, "-v"))
     return 1;
-  } else {
-    return 0;
-  }
+  return 0;
 }
 
 /* ================================================== */
