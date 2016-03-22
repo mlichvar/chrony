@@ -429,9 +429,11 @@ SRC_UpdateReachability(SRC_Instance inst, int reachable)
     REF_SetUnsynchronised();
   }
 
-  /* Try to replace NTP sources that are unreachable or falsetickers */
-  if (inst->type == SRC_NTP && (inst->status == SRC_FALSETICKER ||
-      (!inst->reachability && inst->reachability_size == SOURCE_REACH_BITS))) {
+  /* Try to replace NTP sources that are unreachable, falsetickers, or
+     have root distance larger than the allowed maximum */
+  if (inst->type == SRC_NTP &&
+      ((!inst->reachability && inst->reachability_size == SOURCE_REACH_BITS) ||
+       inst->status == SRC_FALSETICKER || inst->status == SRC_BAD_DISTANCE)) {
     NSR_HandleBadSource(inst->ip_addr);
   }
 }

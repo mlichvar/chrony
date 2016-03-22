@@ -204,10 +204,11 @@ the default value is 4.
 +
 On start, when the pool name is resolved, *chronyd* will add up to 16 sources,
 one for each resolved address. When the number of sources from which at least
-one valid reply was received reaches *maxsources*, the other sources will be
-removed. When a pool source is unreachable or marked as a falseticker,
-*chronyd* will try to replace the source with a newly resolved address of the
-pool.
+one valid reply was received reaches the number specified by the *maxsources*
+option, the other sources will be removed. When a pool source is unreachable,
+marked as a falseticker, or has a distance larger than the limit set by the
+<<maxdistance,*maxdistance*>> directive, *chronyd* will try to replace the
+source with a newly resolved address from the pool.
 +
 An example of the *pool* directive is
 +
