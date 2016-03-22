@@ -85,6 +85,7 @@ static char *rtc_file = NULL;
 static double max_update_skew = 1000.0;
 static double correction_time_ratio = 3.0;
 static double max_clock_error = 1.0; /* in ppm */
+static double max_drift = 500000.0; /* in ppm */
 static double max_slew_rate = 1e6 / 12.0; /* in ppm */
 
 static double max_distance = 3.0;
@@ -489,6 +490,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_double(p, &max_clock_error);
   } else if (!strcasecmp(command, "maxdistance")) {
     parse_double(p, &max_distance);
+  } else if (!strcasecmp(command, "maxdrift")) {
+    parse_double(p, &max_drift);
   } else if (!strcasecmp(command, "maxsamples")) {
     parse_int(p, &max_samples);
   } else if (!strcasecmp(command, "maxslewrate")) {
@@ -1482,6 +1485,14 @@ double
 CNF_GetMaxUpdateSkew(void)
 {
   return max_update_skew;
+}
+
+/* ================================================== */
+
+double
+CNF_GetMaxDrift(void)
+{
+  return max_drift;
 }
 
 /* ================================================== */

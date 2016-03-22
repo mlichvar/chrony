@@ -83,6 +83,7 @@ extern char *CNF_GetLeapSecTimezone(void);
 /* Value returned in ppm, as read from file */
 extern double CNF_GetMaxUpdateSkew(void);
 extern double CNF_GetMaxClockError(void);
+extern double CNF_GetMaxDrift(void);
 extern double CNF_GetCorrectionTimeRatio(void);
 extern double CNF_GetMaxSlewRate(void);
 

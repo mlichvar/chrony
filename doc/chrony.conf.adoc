@@ -805,6 +805,16 @@ By default, the maximum error is 1 ppm.
 Typical values for _error-in-ppm_ might be 10 for a low quality clock and 0.1
 for a high quality clock using a temperature compensated crystal oscillator.
 
+[[maxdrift]]*maxdrift* _drift-in-ppm_::
+This directive specifies the maximum assumed drift (frequency error) of the
+system clock. It limits the frequency adjustment that *chronyd* is allowed to
+use to correct the measured drift. It is an additional limit to the maximum
+adjustment that can be set by the system driver (100000 ppm on Linux, 500 ppm
+on FreeBSD and NetBSD, 32500 ppm on Solaris).
++
+By default, the maximum assumed drift is 500000 ppm, i.e. the adjustment is
+limited by the system driver rather than this directive.
+
 [[maxupdateskew]]*maxupdateskew* _skew-in-ppm_::
 One of *chronyd*'s tasks is to work out how fast or slow the computer's clock
 runs relative to its reference sources. In addition, it computes an estimate of

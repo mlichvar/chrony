@@ -42,12 +42,11 @@
 
 /* ================================================== */
 
-/* Maximum allowed frequency offset in ppm, the time must not stop
-   or run backwards */
-#define MAX_FREQ 500000.0
-
 /* Variable to store the current frequency, in ppm */
 static double current_freq_ppm;
+
+/* Maximum allowed frequency, in ppm */
+static double max_freq_ppm;
 
 /* Temperature compensation, in ppm */
 static double temp_comp_ppm;
@@ -165,6 +164,11 @@ LCL_Initialise(void)
   temp_comp_ppm = 0.0;
 
   calculate_sys_precision();
+
+  /* This is the maximum allowed frequency offset in ppm, the time must
+     never stop or run backwards */
+  max_freq_ppm = CNF_GetMaxDrift();
+  max_freq_ppm = CLAMP(0.0, max_freq_ppm, 500000.0);
 
   max_clock_error = CNF_GetMaxClockError() * 1e-6;
 }
@@ -406,12 +410,12 @@ LCL_ReadAbsoluteFrequency(void)
 static double
 clamp_freq(double freq)
 {
-  if (freq <= MAX_FREQ && freq >= -MAX_FREQ)
+  if (freq <= max_freq_ppm && freq >= -max_freq_ppm)
     return freq;
 
   LOG(LOGS_WARN, LOGF_Local, "Frequency %.1f ppm exceeds allowed maximum", freq);
 
-  return freq >= MAX_FREQ ? MAX_FREQ : -MAX_FREQ;
+  return CLAMP(-max_freq_ppm, freq, max_freq_ppm);
 }
 
 /* ================================================== */
