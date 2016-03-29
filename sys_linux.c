@@ -50,6 +50,7 @@
 #ifdef FEAT_SCFILTER
 #include <sys/prctl.h>
 #include <seccomp.h>
+#include <termios.h>
 #ifdef FEAT_PHC
 #include <linux/ptp_clock.h>
 #endif
