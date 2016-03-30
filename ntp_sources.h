@@ -83,6 +83,9 @@ extern void NSR_HandleBadSource(IPAddr *address);
 /* Procedure to resolve all names again */
 extern void NSR_RefreshAddresses(void);
 
+/* Procedure to get local reference ID corresponding to a source */
+extern uint32_t NSR_GetLocalRefid(IPAddr *address);
+
 /* This routine is called by ntp_io when a new packet arrives off the network */
 extern void NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length);
 

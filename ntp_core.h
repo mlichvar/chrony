@@ -105,6 +105,8 @@ extern void NCR_IncrementActivityCounters(NCR_Instance inst, int *online, int *o
 
 extern NTP_Remote_Address *NCR_GetRemoteAddress(NCR_Instance instance);
 
+extern uint32_t NCR_GetLocalRefid(NCR_Instance inst);
+
 extern int NCR_IsSyncPeer(NCR_Instance instance);
 
 extern void NCR_AddBroadcastDestination(IPAddr *addr, unsigned short port, int interval);

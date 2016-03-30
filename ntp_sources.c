@@ -733,6 +733,26 @@ static void remove_tentative_pool_sources(int pool)
     rehash_records();
 }
 
+/* ================================================== */
+
+uint32_t
+NSR_GetLocalRefid(IPAddr *address)
+{
+  NTP_Remote_Address remote_addr;
+  int slot, found;
+
+  remote_addr.ip_addr = *address;
+  remote_addr.port = 0;
+
+  find_slot(&remote_addr, &slot, &found);
+  if (!found)
+    return 0;
+
+  return NCR_GetLocalRefid(get_record(slot)->data);
+}
+
+/* ================================================== */
+
 /* This routine is called by ntp_io when a new packet arrives off the network,
    possibly with an authentication tail */
 void

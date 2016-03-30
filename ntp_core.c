@@ -602,6 +602,7 @@ NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remote_addr)
     close_client_socket(inst);
   else {
     NIO_CloseServerSocket(inst->local_addr.sock_fd);
+    inst->local_addr.ip_addr.family = IPADDR_UNSPEC;
     inst->local_addr.sock_fd = NIO_OpenServerSocket(remote_addr);
   }
 
@@ -961,6 +962,7 @@ static void
 transmit_timeout(void *arg)
 {
   NCR_Instance inst = (NCR_Instance) arg;
+  NTP_Local_Address local_addr;
   int sent;
 
   inst->tx_timeout_id = 0;
@@ -996,6 +998,10 @@ transmit_timeout(void *arg)
     inst->local_addr.sock_fd = NIO_OpenClientSocket(&inst->remote_addr);
   }
 
+  /* Don't require the packet to be sent from the same address as before */
+  local_addr.ip_addr.family = IPADDR_UNSPEC;
+  local_addr.sock_fd = inst->local_addr.sock_fd;
+
   /* Check whether we need to 'warm up' the link to the other end by
      sending an NTP exchange to ensure both ends' ARP caches are
      primed.  On loaded systems this might also help ensure that bits
@@ -1009,7 +1015,7 @@ transmit_timeout(void *arg)
        as the reply will be ignored */
     transmit_packet(MODE_CLIENT, inst->local_poll, inst->version, 0, 0,
                     &inst->remote_orig, &inst->local_rx, NULL, NULL,
-                    &inst->remote_addr, &inst->local_addr);
+                    &inst->remote_addr, &local_addr);
 
     inst->presend_done = 1;
 
@@ -1027,7 +1033,7 @@ transmit_timeout(void *arg)
                          &inst->remote_orig,
                          &inst->local_rx, &inst->local_tx, &inst->local_ntp_tx,
                          &inst->remote_addr,
-                         &inst->local_addr);
+                         &local_addr);
 
   ++inst->tx_count;
 
@@ -1449,6 +1455,9 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     /* If in client mode, no more packets are expected to be coming from the
        server and the socket can be closed */
     close_client_socket(inst);
+
+    /* Update the local address */
+    inst->local_addr.ip_addr = local_addr->ip_addr;
 
     requeue_transmit = 1;
   }
@@ -2004,6 +2013,14 @@ NTP_Remote_Address *
 NCR_GetRemoteAddress(NCR_Instance inst) 
 {
   return &inst->remote_addr;
+}
+
+/* ================================================== */
+
+uint32_t
+NCR_GetLocalRefid(NCR_Instance inst)
+{
+  return UTI_IPToRefid(&inst->local_addr.ip_addr);
 }
 
 /* ================================================== */
