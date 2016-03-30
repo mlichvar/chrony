@@ -45,6 +45,7 @@
 static int are_we_synchronised;
 static int enable_local_stratum;
 static int local_stratum;
+static int local_orphan;
 static double local_distance;
 static NTP_Leap our_leap_status;
 static int our_leap_sec;
@@ -236,7 +237,7 @@ REF_Initialise(void)
 
   correction_time_ratio = CNF_GetCorrectionTimeRatio();
 
-  enable_local_stratum = CNF_AllowLocalReference(&local_stratum, &local_distance);
+  enable_local_stratum = CNF_AllowLocalReference(&local_stratum, &local_orphan, &local_distance);
   local_timeout_id = 0;
 
   leap_timeout_id = 0;
@@ -1270,6 +1271,16 @@ REF_GetOurStratum(void)
   } else {
     return NTP_MAX_STRATUM;
   }
+}
+
+/* ================================================== */
+
+int
+REF_GetOrphanStratum(void)
+{
+  if (!enable_local_stratum || !local_orphan)
+    return NTP_MAX_STRATUM;
+  return local_stratum;
 }
 
 /* ================================================== */

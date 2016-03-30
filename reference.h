@@ -165,6 +165,9 @@ REF_SetUnsynchronised(void);
    synchronised */
 extern int REF_GetOurStratum(void);
 
+/* Return stratum of the local reference if orphan mode is enabled */
+extern int REF_GetOrphanStratum(void);
+
 /* Return the current skew */
 extern double REF_GetSkew(void);
 
