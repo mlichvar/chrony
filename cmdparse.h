@@ -60,7 +60,7 @@ typedef struct {
 extern CPS_Status CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src);
   
 /* Parse a command to enable local reference */
-extern int CPS_ParseLocal(char *line, int *stratum);
+extern int CPS_ParseLocal(char *line, int *stratum, double *distance);
 
 /* Get a string describing error status */
 extern void CPS_StatusToString(CPS_Status status, char *dest, int len);

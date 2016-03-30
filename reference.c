@@ -45,6 +45,7 @@
 static int are_we_synchronised;
 static int enable_local_stratum;
 static int local_stratum;
+static double local_distance;
 static NTP_Leap our_leap_status;
 static int our_leap_sec;
 static int our_stratum;
@@ -111,6 +112,11 @@ static SCH_TimeoutID leap_timeout_id;
 static char *leap_tzname;
 static time_t last_tz_leap_check;
 static NTP_Leap tz_leap;
+
+#define MAX_LOCAL_TIMEOUT (30 * 24 * 3600.0)
+
+/* Timer for local reference */
+static SCH_TimeoutID local_timeout_id;
 
 /* ================================================== */
 
@@ -230,7 +236,8 @@ REF_Initialise(void)
 
   correction_time_ratio = CNF_GetCorrectionTimeRatio();
 
-  enable_local_stratum = CNF_AllowLocalReference(&local_stratum);
+  enable_local_stratum = CNF_AllowLocalReference(&local_stratum, &local_distance);
+  local_timeout_id = 0;
 
   leap_timeout_id = 0;
   leap_in_progress = 0;
@@ -802,6 +809,38 @@ update_leap_status(NTP_Leap leap, time_t now, int reset)
 /* ================================================== */
 
 static void
+local_timeout(void *arg)
+{
+  local_timeout_id = 0;
+  REF_SetUnsynchronised();
+}
+
+/* ================================================== */
+
+static void
+update_local_timeout(void)
+{
+  double delay;
+
+  SCH_RemoveTimeout(local_timeout_id);
+  local_timeout_id = 0;
+
+  if (!enable_local_stratum || !are_we_synchronised)
+    return;
+
+  /* Add a timer that will activate the local reference approximately at the
+     point when our root distance reaches the configured root distance */
+  delay = (local_distance - (our_root_delay / 2.0 + our_root_dispersion)) /
+          (our_skew + fabs(our_residual_freq) + LCL_GetMaxClockError());
+  delay = CLAMP(0.0, delay, MAX_LOCAL_TIMEOUT);
+  local_timeout_id = SCH_AddTimeoutByDelay(delay, local_timeout, NULL);
+
+  DEBUG_LOG(LOGF_Reference, "Local reference timeout %f", delay);
+}
+
+/* ================================================== */
+
+static void
 write_log(struct timeval *ref_time, char *ref, int stratum, NTP_Leap leap,
     double freq, double skew, double offset, int combined_sources,
     double offset_sd, double uncorrected_offset)
@@ -1063,6 +1102,9 @@ REF_SetReference(int stratum,
     }
   }
 
+  /* Update timer that activates the local reference */
+  update_local_timeout();
+
   /* Update fallback drifts */
   if (fb_drifts) {
     update_fb_drifts(abs_freq_ppm, update_interval);
@@ -1127,6 +1169,7 @@ REF_SetUnsynchronised(void)
 
   update_leap_status(LEAP_Unsynchronised, 0, 0);
   are_we_synchronised = 0;
+  update_local_timeout();
 
   LCL_SetSyncStatus(0, 0.0, 0.0);
 

@@ -108,6 +108,7 @@ static char *dumpdir;
 
 static int enable_local=0;
 static int local_stratum;
+static double local_distance;
 
 /* Threshold (in seconds) - if absolute value of initial error is less
    than this, slew instead of stepping */
@@ -817,7 +818,7 @@ parse_log(char *line)
 static void
 parse_local(char *line)
 {
-  if (!CPS_ParseLocal(line, &local_stratum))
+  if (!CPS_ParseLocal(line, &local_stratum, &local_distance))
     command_parse_error();
   enable_local = 1;
 }
@@ -1565,10 +1566,11 @@ CNF_GetCommandPort(void) {
 /* ================================================== */
 
 int
-CNF_AllowLocalReference(int *stratum)
+CNF_AllowLocalReference(int *stratum, double *distance)
 {
   if (enable_local) {
     *stratum = local_stratum;
+    *distance = local_distance;
     return 1;
   } else {
     return 0;

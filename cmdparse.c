@@ -224,12 +224,13 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
 /* ================================================== */
 
 int
-CPS_ParseLocal(char *line, int *stratum)
+CPS_ParseLocal(char *line, int *stratum, double *distance)
 {
   int n;
   char *cmd;
 
   *stratum = 10;
+  *distance = 1.0;
 
   while (*line) {
     cmd = line;
@@ -237,6 +238,9 @@ CPS_ParseLocal(char *line, int *stratum)
 
     if (!strcasecmp(cmd, "stratum")) {
       if (sscanf(line, "%d%n", stratum, &n) != 1)
+        return 0;
+    } else if (!strcasecmp(cmd, "distance")) {
+      if (sscanf(line, "%lf%n", distance, &n) != 1)
         return 0;
     } else {
       return 0;
