@@ -59,6 +59,9 @@ typedef struct {
 /* Parse a command to add an NTP server or peer */
 extern CPS_Status CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src);
   
+/* Parse a command to enable local reference */
+extern int CPS_ParseLocal(char *line, int *stratum);
+
 /* Get a string describing error status */
 extern void CPS_StatusToString(CPS_Status status, char *dest, int len);
 

@@ -223,6 +223,32 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
 
 /* ================================================== */
 
+int
+CPS_ParseLocal(char *line, int *stratum)
+{
+  int n;
+  char *cmd;
+
+  *stratum = 10;
+
+  while (*line) {
+    cmd = line;
+    line = CPS_SplitWord(line);
+
+    if (!strcasecmp(cmd, "stratum")) {
+      if (sscanf(line, "%d%n", stratum, &n) != 1)
+        return 0;
+    } else {
+      return 0;
+    }
+
+    line += n;
+  }
+
+  return 1;
+}
+/* ================================================== */
+
 void
 CPS_StatusToString(CPS_Status status, char *dest, int len)
 {

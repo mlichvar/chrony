@@ -817,13 +817,9 @@ parse_log(char *line)
 static void
 parse_local(char *line)
 {
-  int stratum;
-  if (sscanf(line, "stratum%d", &stratum) == 1) {
-    local_stratum = stratum;
-    enable_local = 1;
-  } else {
+  if (!CPS_ParseLocal(line, &local_stratum))
     command_parse_error();
-  }
+  enable_local = 1;
 }
 
 /* ================================================== */
