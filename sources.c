@@ -73,6 +73,7 @@ typedef enum {
   SRC_BAD_DISTANCE,     /* Has root distance longer than allowed maximum */
   SRC_WAITS_STATS,      /* Others have bad stats, selection postponed */
   SRC_STALE,            /* Has older samples than others */
+  SRC_ORPHAN,           /* Has stratum equal or larger than orphan stratum */
   SRC_FALSETICKER,      /* Doesn't agree with others */
   SRC_JITTERY,          /* Scatter worse than other's dispersion (not used) */
   SRC_WAITS_SOURCES,    /* Not enough sources, selection postponed */
@@ -607,6 +608,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   int n_badstats_sources, max_sel_reach, max_badstat_reach, sel_req_source;
   int depth, best_depth, trust_depth, best_trust_depth;
   int combined, stratum, min_stratum, max_score_index;
+  int orphan_stratum, orphan_source;
   double src_offset, src_offset_sd, src_frequency, src_skew;
   double src_root_delay, src_root_dispersion;
   double best_lo, best_hi, distance, sel_src_distance, max_score;
@@ -680,6 +682,9 @@ SRC_SelectSource(SRC_Instance updated_inst)
       max_sel_reach = sources[i]->reachability;
   }
 
+  orphan_stratum = REF_GetOrphanStratum();
+  orphan_source = INVALID_SOURCE;
+
   for (i = 0; i < n_sources; i++) {
     if (sources[i]->status != SRC_OK)
       continue;
@@ -694,7 +699,52 @@ SRC_SelectSource(SRC_Instance updated_inst)
       continue;
     }
 
+    /* When the local reference is configured with the orphan option, NTP
+       sources that have stratum equal to the configured local stratum are
+       considered to be orphans (i.e. serving local time while not being
+       synchronised with real time) and are excluded from the normal source
+       selection.  Sources with stratum larger than the local stratum are
+       considered to be directly on indirectly synchronised to an orphan and
+       are always ignored.
+
+       If no selectable source is available and all orphan sources have
+       reference IDs larger than the local ID, no source will be selected and
+       the local reference mode will be activated at some point, i.e. this host
+       will become an orphan.  Otherwise, the orphan source with the smallest
+       reference ID will be selected.  This ensures a group of servers polling
+       each other (with the same orphan configuration) which have no external
+       source can settle down to a state where only one server is serving its
+       local unsychronised time and others are synchronised to it. */
+
+    if (si->stratum >= orphan_stratum && sources[i]->type == SRC_NTP) {
+      sources[i]->status = SRC_ORPHAN;
+
+      if (si->stratum == orphan_stratum &&
+          (orphan_source == INVALID_SOURCE ||
+           sources[i]->ref_id < sources[orphan_source]->ref_id))
+        orphan_source = i;
+
+      continue;
+    }
+
     ++n_sel_sources;
+  }
+
+  /* If no selectable source is available, consider the orphan source */
+  if (!n_sel_sources && orphan_source != INVALID_SOURCE &&
+      sources[orphan_source]->ref_id <
+        NSR_GetLocalRefid(sources[orphan_source]->ip_addr)) {
+    sources[orphan_source]->status = SRC_OK;
+    n_sel_sources = 1;
+    DEBUG_LOG(LOGF_Sources, "selecting orphan refid=%"PRIx32,
+              sources[orphan_source]->ref_id);
+  }
+
+  for (i = 0; i < n_sources; i++) {
+    if (sources[i]->status != SRC_OK)
+      continue;
+
+    si = &sources[i]->sel_info;
 
     j1 = n_endpoints;
     j2 = j1 + 1;
@@ -1254,6 +1304,7 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
       case SRC_BAD_STATS:
       case SRC_BAD_DISTANCE:
       case SRC_STALE:
+      case SRC_ORPHAN:
       case SRC_WAITS_STATS:
         report->state = RPT_UNREACH;
         break;
