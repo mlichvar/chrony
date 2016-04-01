@@ -1079,34 +1079,65 @@ This directive, which takes no arguments, specifies that client accesses are
 not to be logged. Normally they are logged, allowing statistics to be reported
 using the <<chronyc.adoc#clients,*clients*>> command in *chronyc*.
 
-[[local]]*local* *stratum* _stratum_::
-The *local* directive is used to allow *chronyd* to appear synchronised to real
-time (from the viewpoint of clients polling it), even if it has no current
-synchronisation source.
+[[local]]*local* [_option_]...::
+The *local* directive enables a local reference mode, which allows *chronyd*
+operating as an NTP server to appear synchronised to real time (from the
+viewpoint of clients polling it), even when it was never synchronised or
+the last update of the clock happened long time ago.
 +
-This directive is normally used on computers in an isolated network, where
-several computers are required to synchronise to one other, this being the
-'`master`' which is kept vaguely in line with real time by manual input.
+This directive is normally used in an isolated network, where computers are
+required to be synchronised to one another, but not necessarily to real time.
+The server may be kept vaguely in line with real time by manual input.
++
+The *local* directive has the following options:
++
+*stratum* _stratum_:::
+This option sets the stratum of the server which will be reported to clients
+when the local reference is active. The specified value is in the range 1
+through 15, and the default value is 10. It should be larger than the maximum
+expected stratum in the network when external NTP servers are accessible.
++
+Stratum 1 indicates a computer that has a true real-time reference directly
+connected to it (e.g. GPS, atomic clock, etc), such computers are expected to
+be very close to real time. Stratum 2 computers are those which have a stratum
+1 server; stratum 3 computers have a stratum 2 server and so on. A large value
+of 10 indicates that the clock is so many hops away from a reference clock that
+its time is fairly unreliable.
+*distance* _distance_:::
+This option sets the threshold for root distance which will activate the local
+reference. If *chronyd* was synchronised to some source, the local reference
+will not be actived until its root distance reaches the specified value (the
+rate at which the distance is increasing depends on how well the clock was
+tracking the source). The default value is 1 second.
++
+The current root distance can be calculated from root delay and root dispersion
+(reported by the <<chronyc.adoc#tracking,*tracking*>> command in *chronyc*) as
++
+----
+distance = delay / 2 + dispersion
+----
+*orphan*:::
+This option enables a special '`orphan`' mode, where sources with stratum equal
+to the local _stratum_ are assumed to not serve real time. They are ignored
+unless no other source is selectable and their reference IDs are smaller than
+the local reference ID.
++
+This allows multiple servers in the network to use the same *local*
+configuration and be synchronised to one another, without confusing clients
+that poll more than one server. Each server needs to be configured to poll all
+other servers with the *local* directive. This ensures only the server with the
+smallest reference ID has the local reference active and others are
+synchronised to it. When that server fails, another will take over.
++
+The *orphan* mode is compatible with the *ntpd*'s orphan mode (enabled by the
+*tos orphan* command).
+::
 +
 An example of the directive is
 +
 ----
-local stratum 10
+local stratum 10 orphan
 ----
-+
-The value 10 may be substituted with other values in the range 1 through 15.
-Stratum 1 indicates a computer that has a true real-time reference directly
-connected to it (e.g. GPS, atomic clock etc), such computers are expected to be
-very close to real time. Stratum 2 computers are those which have a stratum 1
-server; stratum 3 computers have a stratum 2 server and so on.
-+
-A large value of 10 indicates that the clock is so many hops away from a
-reference clock that its time is fairly unreliable. Put another way, if the
-computer ever has access to another computer which is ultimately synchronised
-to a reference clock, it will almost certainly be at a stratum less than 10.
-Therefore, the choice of a high value like 10 for the *local* directive
-prevents the machine's own time from ever being confused with real time, were
-it ever to leak out to clients that have visibility of real servers.
 
 [[port]]*port* _port_::
 This option allows you to configure the port on which *chronyd* will listen for
