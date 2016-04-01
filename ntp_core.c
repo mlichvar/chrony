@@ -1190,7 +1190,6 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   /* These are the timeval equivalents of the remote epochs */  
   struct timeval remote_receive_tv, remote_transmit_tv;
-  struct timeval remote_reference_tv;
   struct timeval local_average, remote_average;
   double local_interval, remote_interval;
 
@@ -1229,7 +1228,6 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   UTI_Int64ToTimeval(&message->receive_ts, &remote_receive_tv);
   UTI_Int64ToTimeval(&message->transmit_ts, &remote_transmit_tv);
-  UTI_Int64ToTimeval(&message->reference_ts, &remote_reference_tv);
 
   /* Check if the packet is valid per RFC 5905, section 8.
      The test values are 1 when passed and 0 when failed. */
@@ -1247,7 +1245,6 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
      association if not properly 'up'. */
   test3 = (message->originate_ts.hi || message->originate_ts.lo) &&
           (message->receive_ts.hi || message->receive_ts.lo) &&
-          (message->reference_ts.hi || message->reference_ts.lo) &&
           (message->transmit_ts.hi || message->transmit_ts.lo);
 
   /* Test 4 would check for denied access.  It would always pass as this
@@ -1268,10 +1265,8 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
           message->stratum != NTP_INVALID_STRATUM; 
 
   /* Test 7 checks for bad data.  The root distance must be smaller than a
-     defined maximum and the transmit time must not be before the time of
-     the last synchronisation update. */
-  test7 = pkt_root_delay / 2.0 + pkt_root_dispersion < NTP_MAX_DISPERSION &&
-          UTI_CompareTimevals(&remote_reference_tv, &remote_transmit_tv) < 1;
+     defined maximum. */
+  test7 = pkt_root_delay / 2.0 + pkt_root_dispersion < NTP_MAX_DISPERSION;
 
   /* The packet is considered valid if the tests above passed */
   valid_packet = test1 && test2 && test3 && test5 && test6 && test7;
