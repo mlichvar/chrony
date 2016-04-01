@@ -731,13 +731,17 @@ SRC_SelectSource(SRC_Instance updated_inst)
   }
 
   /* If no selectable source is available, consider the orphan source */
-  if (!n_sel_sources && orphan_source != INVALID_SOURCE &&
-      sources[orphan_source]->ref_id <
-        NSR_GetLocalRefid(sources[orphan_source]->ip_addr)) {
-    sources[orphan_source]->status = SRC_OK;
-    n_sel_sources = 1;
-    DEBUG_LOG(LOGF_Sources, "selecting orphan refid=%"PRIx32,
-              sources[orphan_source]->ref_id);
+  if (!n_sel_sources && orphan_source != INVALID_SOURCE) {
+    uint32_t local_ref_id = NSR_GetLocalRefid(sources[orphan_source]->ip_addr);
+
+    if (!local_ref_id) {
+      LOG(LOGS_ERR, LOGF_Sources, "Unknown local refid in orphan mode");
+    } else if (sources[orphan_source]->ref_id < local_ref_id) {
+      sources[orphan_source]->status = SRC_OK;
+      n_sel_sources = 1;
+      DEBUG_LOG(LOGF_Sources, "selecting orphan refid=%"PRIx32,
+                sources[orphan_source]->ref_id);
+    }
   }
 
   for (i = 0; i < n_sources; i++) {
