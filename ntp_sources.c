@@ -53,8 +53,7 @@ typedef struct {
   int pool;                     /* Number of the pool from which was this source
                                    added or INVALID_POOL */
   int tentative;                /* Flag indicating there was no valid response
-                                   yet and the source may be removed if other
-                                   sources from the pool respond first */
+                                   received from the source yet */
 } SourceRecord;
 
 /* Hash table of SourceRecord, its size is a power of two and it's never
@@ -311,7 +310,7 @@ add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type, So
       record->remote_addr = NCR_GetRemoteAddress(record->data);
       record->name = name ? Strdup(name) : NULL;
       record->pool = pool;
-      record->tentative = pool != INVALID_POOL ? 1 : 0;
+      record->tentative = 1;
 
       if (auto_start_sources)
         NCR_StartInstance(record->data);
@@ -328,6 +327,7 @@ replace_source(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr)
 {
   int slot1, slot2, found;
   SourceRecord *record;
+  struct SourcePool *pool;
 
   find_slot(old_addr, &slot1, &found);
   if (!found)
@@ -340,6 +340,15 @@ replace_source(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr)
   record = get_record(slot1);
   NCR_ChangeRemoteAddress(record->data, new_addr);
   record->remote_addr = NCR_GetRemoteAddress(record->data);
+
+  if (!record->tentative) {
+    record->tentative = 1;
+
+    if (record->pool != INVALID_POOL) {
+      pool = ARR_GetElement(pools, record->pool);
+      pool->sources--;
+    }
+  }
 
   /* The hash table must be rebuilt for the new address */
   rehash_records();
@@ -772,20 +781,21 @@ NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP
       return;
 
     if (record->tentative) {
-      /* First reply from a pool source */
+      /* This was the first valid reply from the source */
       record->tentative = 0;
 
-      assert(record->pool != INVALID_POOL);
-      pool = (struct SourcePool *)ARR_GetElement(pools, record->pool);
-      pool->sources++;
+      if (record->pool != INVALID_POOL) {
+        pool = ARR_GetElement(pools, record->pool);
+        pool->sources++;
 
-      DEBUG_LOG(LOGF_NtpSources, "pool %s has %d confirmed sources",
-                record->name, pool->sources);
+        DEBUG_LOG(LOGF_NtpSources, "pool %s has %d confirmed sources",
+                  record->name, pool->sources);
 
-      /* If the number of sources reached the configured maximum, remove
-         the tentative sources added from this pool */
-      if (pool->sources >= pool->max_sources)
-        remove_tentative_pool_sources(record->pool);
+        /* If the number of sources from the pool reached the configured
+           maximum, remove the remaining tentative sources */
+        if (pool->sources >= pool->max_sources)
+          remove_tentative_pool_sources(record->pool);
+      }
     }
   } else {
     NCR_ProcessUnknown(message, now, now_err, remote_addr, local_addr, length);
