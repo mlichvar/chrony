@@ -70,6 +70,7 @@ static int auto_start_sources = 0;
 struct UnresolvedSource {
   char *name;
   int port;
+  int random_order;
   int replacement;
   union {
     struct {
@@ -367,12 +368,16 @@ process_resolved_name(struct UnresolvedSource *us, IPAddr *ip_addrs, int n_addrs
 {
   NTP_Remote_Address address;
   int i, added;
+  unsigned short first = 0;
+
+  if (us->random_order)
+    UTI_GetRandomBytes(&first, sizeof (first));
 
   for (i = added = 0; i < n_addrs; i++) {
-    DEBUG_LOG(LOGF_NtpSources, "(%d) %s", i + 1, UTI_IPToString(&ip_addrs[i]));
-
-    address.ip_addr = ip_addrs[i];
+    address.ip_addr = ip_addrs[((unsigned int)i + first) % n_addrs];
     address.port = us->port;
+
+    DEBUG_LOG(LOGF_NtpSources, "(%d) %s", i + 1, UTI_IPToString(&address.ip_addr));
 
     if (us->replacement) {
       if (replace_source(&us->replace_source, &address) != NSR_AlreadyInUse)
@@ -516,6 +521,7 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type, Source
   us = MallocNew(struct UnresolvedSource);
   us->name = Strdup(name);
   us->port = port;
+  us->random_order = 0;
   us->replacement = 0;
   us->new_source.type = type;
   us->new_source.params = *params;
@@ -657,6 +663,11 @@ resolve_source_replacement(SourceRecord *record)
   us = MallocNew(struct UnresolvedSource);
   us->name = Strdup(record->name);
   us->port = record->remote_addr->port;
+  /* If there never was a valid reply from this source (e.g. it was a bad
+     replacement), ignore the order of addresses from the resolver to not get
+     stuck to a pair of addresses if the order doesn't change, or a group of
+     IPv4/IPv6 addresses if the resolver prefers inaccessible IP family */
+  us->random_order = record->tentative;
   us->replacement = 1;
   us->replace_source = *record->remote_addr;
 
