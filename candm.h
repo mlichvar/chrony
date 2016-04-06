@@ -95,10 +95,6 @@
 #define REQ_CLIENT_ACCESSES_BY_INDEX2 55
 #define N_REQUEST_TYPES 56
 
-/* Special utoken value used to log on with first exchange being the
-   password.  (This time value has long since gone by) */
-#define SPECIAL_UTOKEN 0x10101010
-
 /* Structure used to exchange timevals independent on size of time_t */
 typedef struct {
   uint32_t tv_sec_high;
