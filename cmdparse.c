@@ -238,7 +238,8 @@ CPS_ParseLocal(char *line, int *stratum, int *orphan, double *distance)
     line = CPS_SplitWord(line);
 
     if (!strcasecmp(cmd, "stratum")) {
-      if (sscanf(line, "%d%n", stratum, &n) != 1)
+      if (sscanf(line, "%d%n", stratum, &n) != 1 ||
+          *stratum >= NTP_MAX_STRATUM || *stratum <= 0)
         return 0;
     } else if (!strcasecmp(cmd, "orphan")) {
       *orphan = 1;
