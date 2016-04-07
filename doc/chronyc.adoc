@@ -845,17 +845,16 @@ deny all
 ----
 
 [[local]]
-*local* *stratum* _stratum_::
+*local* [_option_]...::
 *local* *off*::
 The *local* command allows *chronyd* to be told that it is to appear as a
 reference source, even if it is not itself properly synchronised to an external
 source. (This can be used on isolated networks, to allow one computer to be a
-master time server with the other computers slaving to it.)  The *local*
-command is somewhat equivalent to the <<chrony.conf.adoc#local,*local*>>
-directive in the configuration file.
+master time server with the other computers slaving to it.)
 +
-The first form enables the local reference mode on the host, and sets the
-stratum at which it should claim to be synchronised.
+The first form enables the local reference mode on the host. The syntax is
+identical to the <<chrony.conf.adoc#local,*local*>> directive in the
+configuration file.
 +
 The second form disables the local reference mode.
 

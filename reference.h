@@ -177,7 +177,7 @@ extern void REF_ModifyMaxupdateskew(double new_max_update_skew);
 /* Modify makestep settings */
 extern void REF_ModifyMakestep(int limit, double threshold);
 
-extern void REF_EnableLocal(int stratum);
+extern void REF_EnableLocal(int stratum, double distance, int orphan);
 extern void REF_DisableLocal(void);
 extern int REF_IsLocalActive(void);
 

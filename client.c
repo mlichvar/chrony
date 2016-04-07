@@ -717,25 +717,26 @@ process_cmd_burst(CMD_Request *msg, char *line)
 /* ================================================== */
 
 static int
-process_cmd_local(CMD_Request *msg, const char *line)
+process_cmd_local(CMD_Request *msg, char *line)
 {
-  const char *p;
-  int stratum;
+  int on_off, stratum, orphan;
+  double distance;
 
-  p = line;
-  
-  if (!strcmp(p, "off")) {
-    msg->data.local.on_off = htonl(0);
-    msg->data.local.stratum = htonl(0);
-  } else if (sscanf(p, "stratum%d", &stratum) == 1) {
-    msg->data.local.on_off = htonl(1);
-    msg->data.local.stratum = htonl(stratum);
+  if (!strcmp(line, "off")) {
+    on_off = 0;
+  } else if (CPS_ParseLocal(line, &stratum, &orphan, &distance)) {
+    on_off = 1;
   } else {
     LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for local command");
     return 0;
   }
 
-  msg->command = htons(REQ_LOCAL);
+  msg->command = htons(REQ_LOCAL2);
+  msg->data.local.on_off = htonl(on_off);
+  msg->data.local.stratum = htonl(stratum);
+  msg->data.local.distance = UTI_FloatHostToNetwork(distance);
+  msg->data.local.orphan = htonl(orphan);
+
   return 1;
 }
 
@@ -1233,7 +1234,7 @@ give_help(void)
     "allow all [<subnet>]\0Allow access to subnet and all children\0"
     "deny [<subnet>]\0Deny access to subnet as a default\0"
     "deny all [<subnet>]\0Deny access to subnet and all children\0"
-    "local stratum <stratum>\0Serve time at stratum when not synchronised\0"
+    "local [options]\0Serve time even when not synchronised\0"
     "local off\0Don't serve time when not synchronised\0"
     "smoothtime reset|activate\0Reset/activate time smoothing\0"
     "smoothing\0Display current time smoothing state\0"

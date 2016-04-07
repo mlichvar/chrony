@@ -1311,10 +1311,14 @@ REF_ModifyMakestep(int limit, double threshold)
 /* ================================================== */
 
 void
-REF_EnableLocal(int stratum)
+REF_EnableLocal(int stratum, double distance, int orphan)
 {
   enable_local_stratum = 1;
   local_stratum = CLAMP(1, stratum, NTP_MAX_STRATUM - 1);
+  local_distance = distance;
+  local_orphan = !!orphan;
+
+  update_local_timeout();
 }
 
 /* ================================================== */

@@ -67,7 +67,7 @@ static const struct request_length request_lengths[] = {
   REQ_LENGTH_ENTRY(modify_maxupdateskew, null), /* MODIFY_MAXUPDATESKEW */
   REQ_LENGTH_ENTRY(logon, null),                /* LOGON */
   REQ_LENGTH_ENTRY(settime, manual_timestamp),  /* SETTIME */
-  REQ_LENGTH_ENTRY(local, null),                /* LOCAL */
+  { 0, 0 },                                     /* LOCAL */
   REQ_LENGTH_ENTRY(manual, null),               /* MANUAL */
   REQ_LENGTH_ENTRY(null, n_sources),            /* N_SOURCES */
   REQ_LENGTH_ENTRY(source_data, source_data),   /* SOURCE_DATA */
@@ -112,6 +112,7 @@ static const struct request_length request_lengths[] = {
   REQ_LENGTH_ENTRY(null, server_stats),         /* SERVER_STATS */
   REQ_LENGTH_ENTRY(client_accesses_by_index,
                    client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX2 */
+  REQ_LENGTH_ENTRY(local, null),                /* LOCAL2 */
 };
 
 static const uint16_t reply_lengths[] = {
