@@ -10,7 +10,7 @@ grep -q 'HAVE_LONG_TIME_T 1' ../../config.h || test_skip
 limit=2
 client_server_options="noselect"
 client_conf="local stratum 1"
-chronyc_start="0.5"
+chronyc_start="1.5"
 chronyc_conf="tracking"
 
 for year in `seq 1850 100 2300`; do

@@ -1367,52 +1367,34 @@ int REF_IsLeapSecondClose(void)
 void
 REF_GetTrackingReport(RPT_TrackingReport *rep)
 {
-  double elapsed;
-  double extra_dispersion;
   struct timeval now_raw, now_cooked;
   double correction;
+  int synchronised;
 
   LCL_ReadRawTime(&now_raw);
   LCL_GetOffsetCorrection(&now_raw, &correction, NULL);
   UTI_AddDoubleToTimeval(&now_raw, correction, &now_cooked);
 
-  rep->ref_id = NTP_REFID_UNSYNC;
+  REF_GetReferenceParams(&now_cooked, &synchronised,
+                         &rep->leap_status, &rep->stratum,
+                         &rep->ref_id, &rep->ref_time,
+                         &rep->root_delay, &rep->root_dispersion);
+
+  if (rep->stratum == NTP_MAX_STRATUM)
+    rep->stratum = 0;
+
   rep->ip_addr.family = IPADDR_UNSPEC;
-  rep->stratum = 0;
-  rep->leap_status = our_leap_status;
-  rep->ref_time.tv_sec = 0;
-  rep->ref_time.tv_usec = 0;
   rep->current_correction = correction;
   rep->freq_ppm = LCL_ReadAbsoluteFrequency();
   rep->resid_freq_ppm = 0.0;
   rep->skew_ppm = 0.0;
-  rep->root_delay = 0.0;
-  rep->root_dispersion = 0.0;
   rep->last_update_interval = last_ref_update_interval;
   rep->last_offset = last_offset;
   rep->rms_offset = sqrt(avg2_offset);
 
   if (are_we_synchronised) {
-    
-    UTI_DiffTimevalsToDouble(&elapsed, &now_cooked, &our_ref_time);
-    extra_dispersion = (our_skew + fabs(our_residual_freq) + LCL_GetMaxClockError()) * elapsed;
-    
-    rep->ref_id = our_ref_id;
     rep->ip_addr = our_ref_ip;
-    rep->stratum = our_stratum;
-    rep->ref_time = our_ref_time;
     rep->resid_freq_ppm = 1.0e6 * our_residual_freq;
     rep->skew_ppm = 1.0e6 * our_skew;
-    rep->root_delay = our_root_delay;
-    rep->root_dispersion = our_root_dispersion + extra_dispersion;
-
-  } else if (enable_local_stratum) {
-
-    rep->ref_id = NTP_REFID_LOCAL;
-    rep->ip_addr.family = IPADDR_UNSPEC;
-    rep->stratum = local_stratum;
-    rep->ref_time = now_cooked;
-    rep->root_dispersion = LCL_GetSysPrecisionAsQuantum();
   }
-
 }

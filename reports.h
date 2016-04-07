@@ -29,6 +29,7 @@
 
 #include "sysincl.h"
 #include "addressing.h"
+#include "ntp.h"
 
 #define REPORT_INVALID_OFFSET 0x80000000
 
@@ -50,8 +51,8 @@ typedef struct {
 typedef struct {
   uint32_t ref_id;
   IPAddr ip_addr;
-  unsigned long stratum;
-  unsigned long leap_status;
+  int stratum;
+  NTP_Leap leap_status;
   struct timeval ref_time;
   double current_correction;
   double last_offset;
