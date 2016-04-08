@@ -230,6 +230,12 @@ NSR_InitiateSampleBurst(int n_good_samples, int n_total_samples,
   return 0;
 }
 
+uint32_t
+NSR_GetLocalRefid(IPAddr *address)
+{
+  return 0;
+}
+
 int
 NSR_TakeSourcesOnline(IPAddr *mask, IPAddr *address)
 {
