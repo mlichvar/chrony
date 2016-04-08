@@ -1223,7 +1223,7 @@ REF_GetReferenceParams
 
   } else if (enable_local_stratum) {
 
-    *is_synchronised = 1;
+    *is_synchronised = 0;
 
     *stratum = local_stratum;
     *ref_id = NTP_REFID_LOCAL;
@@ -1327,14 +1327,6 @@ void
 REF_DisableLocal(void)
 {
   enable_local_stratum = 0;
-}
-
-/* ================================================== */
-
-int
-REF_IsLocalActive(void)
-{
-  return !are_we_synchronised && enable_local_stratum;
 }
 
 /* ================================================== */

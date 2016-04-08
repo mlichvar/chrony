@@ -179,7 +179,6 @@ extern void REF_ModifyMakestep(int limit, double threshold);
 
 extern void REF_EnableLocal(int stratum, double distance, int orphan);
 extern void REF_DisableLocal(void);
-extern int REF_IsLocalActive(void);
 
 /* Check if current raw or cooked time is close to a leap second
    and is better to discard any measurements */

@@ -801,7 +801,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 )
 {
   NTP_Packet message;
-  int leap, auth_len, length, ret, precision;
+  int auth_len, length, ret, precision;
   struct timeval local_receive, local_transmit;
   NTP_int64 ts_fuzz;
 
@@ -823,7 +823,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   if (my_mode == MODE_CLIENT) {
     /* Don't reveal local time or state of the clock in client packets */
     precision = 32;
-    are_we_synchronised = leap_status = our_stratum = our_ref_id = 0;
+    leap_status = our_stratum = our_ref_id = 0;
     our_ref_time.tv_sec = our_ref_time.tv_usec = 0;
     our_root_delay = our_root_dispersion = 0.0;
   } else {
@@ -859,14 +859,8 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     local_receive = *local_rx;
   }
 
-  if (are_we_synchronised) {
-    leap = (int) leap_status;
-  } else {
-    leap = LEAP_Unsynchronised;
-  }
-
   /* Generate transmit packet */
-  message.lvm = NTP_LVM(leap, version, my_mode);
+  message.lvm = NTP_LVM(leap_status, version, my_mode);
   /* Stratum 16 and larger are invalid */
   if (our_stratum < NTP_MAX_STRATUM) {
     message.stratum = our_stratum;
