@@ -1314,7 +1314,7 @@ void
 REF_EnableLocal(int stratum)
 {
   enable_local_stratum = 1;
-  local_stratum = stratum;
+  local_stratum = CLAMP(1, stratum, NTP_MAX_STRATUM - 1);
 }
 
 /* ================================================== */
