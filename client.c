@@ -719,8 +719,8 @@ process_cmd_burst(CMD_Request *msg, char *line)
 static int
 process_cmd_local(CMD_Request *msg, char *line)
 {
-  int on_off, stratum, orphan;
-  double distance;
+  int on_off, stratum = 0, orphan = 0;
+  double distance = 0.0;
 
   if (!strcmp(line, "off")) {
     on_off = 0;
