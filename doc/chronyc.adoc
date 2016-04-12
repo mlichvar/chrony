@@ -78,7 +78,7 @@ This option disables resolving of IP addresses to hostnames (e.g. to avoid slow
 DNS lookups).
 
 *-c*::
-This option enables printing of reports in a column-separated values (CSV)
+This option enables printing of reports in a comma-separated values (CSV)
 format. IP addresses will not be resolved to hostnames, time will be printed as
 number of seconds since the epoch and values in seconds will not be converted
 to other units.
@@ -177,11 +177,11 @@ This is the estimated local offset on the last clock update.
 *RMS offset*:::
 This is a long-term average of the offset value.
 *Frequency*:::
-The '`frequency`' is the rate by which the system's clock would be would be
-wrong if *chronyd* was not correcting it. It is expressed in ppm (parts per
-million). For example, a value of 1 ppm would mean that when the system's
-clock thinks it has advanced 1 second, it has actually advanced by 1.000001
-seconds relative to true time.
+The '`frequency`' is the rate by which the system's clock would be wrong if
+*chronyd* was not correcting it. It is expressed in ppm (parts per million).
+For example, a value of 1 ppm would mean that when the system's clock thinks it
+has advanced 1 second, it has actually advanced by 1.000001 seconds relative to
+true time.
 +
 As you can see in the example, the clock in the computer is not a very
 good one - it would gain about 30 seconds per day if it wasn't corrected!

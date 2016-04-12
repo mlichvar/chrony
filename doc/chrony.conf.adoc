@@ -191,7 +191,7 @@ This option sets the NTP version number used in packets sent to the server.
 This can be useful when the server runs an old NTP implementation that doesn't
 respond to newer versions. The default version number is 4.
 
-[[pool]]*pool* _hostname_ [_option_]...::
+[[pool]]*pool* _name_ [_option_]...::
 The syntax of this directive is similar to that for the <<server,*server*>>
 directive, except that it is used to specify a pool of NTP servers rather than
 a single NTP server. The pool name is expected to resolve to multiple addresses
@@ -1465,7 +1465,7 @@ from the example line above):
 . The estimated local clock error (_theta_ in RFC 5905). Positive indicates
   that the local clock is slow of the remote source. [-4.966e-03]
 . The peer delay (_delta_ in RFC 5905). [2.296e-01]
-. The peer dispersion (`epsilon' in RFC 5905). [1.577e-05]
+. The peer dispersion (_epsilon_ in RFC 5905). [1.577e-05]
 . The root delay (_DELTA_ in RFC 5905). [1.615e-01]
 . The root dispersion (_EPSILON_ in RFC 5905). [7.446e-03]
 +
