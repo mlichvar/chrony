@@ -271,8 +271,14 @@ Perhaps you have a firewall set up in a way that blocks packets on port
 === I keep getting the error +501 Not authorised+
 
 Since version 2.2, the +password+ command doesn't do anything and +chronyc+
-needs to run under the root or chrony user, which are allowed to access the
-Unix domain command socket.
+needs to run locally under the root or _chrony_ user, which are allowed to
+access the +chronyd+'s Unix domain command socket.
+
+With older versions, you need to authenticate with the +password+ command or
+use the +-a+ option to authenticate automatically.  The configuration file
+needs to specify a file which contains keys (+keyfile+ directive) and which key
+in the key file should be used for +chronyc+ authentication (+commandkey+
+directive).
 
 === Is the +chronyc+ / +chronyd+ protocol documented anywhere?
 
