@@ -1119,7 +1119,7 @@ The *help* command displays a summary of the commands and their arguments.
 == BUGS
 
 For instructions on how to report bugs, please visit
-http://chrony.tuxfamily.org/.
+https://chrony.tuxfamily.org/.
 
 == AUTHORS
 

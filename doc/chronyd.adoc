@@ -157,7 +157,7 @@ _@SYSCONFDIR@/chrony.conf_
 == BUGS
 
 For instructions on how to report bugs, please visit
-http://chrony.tuxfamily.org/.
+https://chrony.tuxfamily.org/.
 
 == AUTHORS
 

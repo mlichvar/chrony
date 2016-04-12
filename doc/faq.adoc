@@ -14,9 +14,9 @@ doesn't implement some of the less useful NTP modes like broadcast client or
 multicast server/client.
 
 For a more detailed comparison of features and performance, see the
-http://chrony.tuxfamily.org/comparison.html[comparison page] on the +chrony+
+https://chrony.tuxfamily.org/comparison.html[comparison page] on the +chrony+
 website and the
-http://chrony.tuxfamily.org/manual.html#Comparison-with-ntpd[Comparison with
+https://chrony.tuxfamily.org/manual.html#Comparison-with-ntpd[Comparison with
 ntpd] section in the manual.
 
 If your computer is connected to the internet only for few minutes at a time,
