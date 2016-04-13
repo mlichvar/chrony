@@ -719,7 +719,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     if (si->stratum >= orphan_stratum && sources[i]->type == SRC_NTP) {
       sources[i]->status = SRC_ORPHAN;
 
-      if (si->stratum == orphan_stratum &&
+      if (si->stratum == orphan_stratum && sources[i]->reachability &&
           (orphan_source == INVALID_SOURCE ||
            sources[i]->ref_id < sources[orphan_source]->ref_id))
         orphan_source = i;
