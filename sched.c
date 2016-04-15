@@ -719,7 +719,6 @@ SCH_MainLoop(void)
 void
 SCH_QuitProgram(void)
 {
-  assert(initialised);
   need_to_exit = 1;
 }
 
