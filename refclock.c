@@ -87,7 +87,7 @@ struct RCL_Instance_Record {
   SRC_Instance source;
 };
 
-/* Array of RCL_Instance_Record */
+/* Array of pointers to RCL_Instance_Record */
 static ARR_Instance refclocks;
 
 static LOG_FileID logfileid;
@@ -114,13 +114,13 @@ static void filter_add_dispersion(struct MedianFilter *filter, double dispersion
 static RCL_Instance
 get_refclock(unsigned int index)
 {
-  return (RCL_Instance)ARR_GetElement(refclocks, index);
+  return *(RCL_Instance *)ARR_GetElement(refclocks, index);
 }
 
 void
 RCL_Initialise(void)
 {
-  refclocks = ARR_CreateInstance(sizeof (struct RCL_Instance_Record));
+  refclocks = ARR_CreateInstance(sizeof (RCL_Instance));
 
   CNF_AddRefclocks();
 
@@ -148,6 +148,7 @@ RCL_Finalise(void)
     filter_fini(&inst->filter);
     Free(inst->driver_parameter);
     SRC_DestroyInstance(inst->source);
+    Free(inst);
   }
 
   if (ARR_GetSize(refclocks) > 0) {
@@ -162,8 +163,10 @@ int
 RCL_AddRefclock(RefclockParameters *params)
 {
   int pps_source = 0;
+  RCL_Instance inst;
 
-  RCL_Instance inst = ARR_GetNewElement(refclocks);
+  inst = MallocNew(struct RCL_Instance_Record);
+  *(RCL_Instance *)ARR_GetNewElement(refclocks) = inst;
 
   if (strcmp(params->driver_name, "SHM") == 0) {
     inst->driver = &RCL_SHM_driver;
