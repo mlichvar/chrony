@@ -1348,7 +1348,8 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
     /* Test D requires that the remote peer is not synchronised to us to
        prevent a synchronisation loop */
-    testD = message->stratum <= 1 || pkt_refid != UTI_IPToRefid(&local_addr->ip_addr);
+    testD = message->stratum <= 1 || REF_GetMode() != REF_ModeNormal ||
+            pkt_refid != UTI_IPToRefid(&local_addr->ip_addr);
   } else {
     offset = delay = dispersion = 0.0;
     sample_time = *now;
