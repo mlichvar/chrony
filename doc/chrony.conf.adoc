@@ -1906,10 +1906,19 @@ reference clock.
 In this situation, one computer is selected to be the master timeserver. The
 other computers are either direct clients of the master, or clients of clients.
 
+The <<local,*local*>> directive enables a local reference mode, which allows
+*chronyd* to appear synchronised even when it's not.
+
 The rate value in the master's drift file needs to be set to the average rate
 at which the master gains or loses time. *chronyd* includes support for this,
 in the form of the <<manual,*manual*>> directive and the
 <<chronyc.adoc#settime,*settime*>> command in the *chronyc* program.
+
+If the master is rebooted, *chronyd* can re-read the drift rate from the drift
+file. However, the master has no accurate estimate of the current time. To get
+around this, the system can be configured so that the master can initially set
+itself to a '`majority-vote`' of selected clients' times; this allows the
+clients to '`flywheel`' the master across its outage.
 
 The <<smoothtime,*smoothtime*>> directive is useful when the clocks of the
 clients need to stay close together when the local time is adjusted by the
@@ -1918,25 +1927,59 @@ activated by the <<chronyc.adoc#smoothtime,*smoothtime activate*>> command when
 the local time is ready to be served. After that point, any adjustments will be
 smoothed out.
 
-A typical configuration file for the master (called *master*) might be
-(assuming the clients are in the 192.168.165.x subnet)
+A typical configuration file for the master (called _master_) might be
+(assuming the clients and the master are in the _192.168.165.x_ subnet)
 
 ----
+initstepslew 1 client1 client3 client6
 driftfile @CHRONYVARDIR@/drift
 local stratum 8
 manual
 allow 192.168.165.0/24
 smoothtime 400 0.01
+rtcsync
 ----
 
-The configuration file on clients might be
+For the clients that have to resynchronise the master when it restarts,
+the configuration file might be
 
 ----
 server master iburst
 driftfile @CHRONYVARDIR@/drift
-logdir /var/log/chrony
-log measurements statistics tracking
+allow 192.168.165.0/24
+makestep 1.0 3
+rtcsync
 ----
+
+The rest of the clients would be the same, except that the *allow* directive is
+not required.
+
+If there is no suitable computer to be designated as the master, or there is a
+requirement to keep the clients synchronised even when it fails, the *orphan*
+option of the *local* directive enables a special mode where the master is
+selected from multiple computers automatically. They all need to use the same
+*local* configuration and poll one another. The server with the smallest
+reference ID (which is based on its IP address) will take the role of the
+master and others will be synchronised to it. When it fails, the server with
+the second smallest reference ID will take over and so on.
+
+A configuration file for the first server might be (assuming there are three
+servers called _master1_, _master2_, and _master3_)
+
+----
+initstepslew 1 master2 master3
+server master2
+server master3
+driftfile @CHRONYVARDIR@/drift
+local stratum 8 orphan
+manual
+allow 192.168.165.0/24
+rtcsync
+----
+
+The other servers would be the same, except the hostnames in the *initstepslew*
+and *server* directives would be modified to specify the other servers. Their
+clients might be configured to poll all three servers.
 
 === RTC tracking
 
