@@ -153,7 +153,7 @@ sum of the address.
 If it is _127.127.1.1_ it means the computer is not synchronised to any
 external source and that you have the _local_ mode operating (via the
 <<local,*local*>> command in *chronyc*, or the
-<<chrony.conf.adoc#local,*local*>> directive in the configuration file.
+<<chrony.conf.adoc#local,*local*>> directive in the configuration file).
 *Stratum*:::
 The stratum indicates how many hops away from a computer with an attached
 reference clock we are. Such a computer is a stratum-1 computer, so the
