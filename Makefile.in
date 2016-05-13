@@ -71,7 +71,7 @@ $(HASH_OBJ) : $(patsubst %.o,%.c,$(HASH_OBJ))
 
 distclean : clean
 	-rm -f .DS_Store
-	-rm -f Makefile
+	-rm -f Makefile config.h config.log
 	$(MAKE) -C doc distclean
 	$(MAKE) -C test/unit distclean
 
