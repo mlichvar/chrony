@@ -1,6 +1,6 @@
 #!/bin/sh
 
-LANG=C
+LANG=C.UTF-8
 export LANG
 
 if [ $# -ne 1 ]; then
@@ -11,7 +11,6 @@ fi
 version=$1
 tag=$version
 subdir=chrony-${version}
-mandate=$(date +'%B %Y')
 
 umask 022
 
@@ -39,29 +38,13 @@ echo $version > version.txt
 
 sed -i -e "s%@@VERSION@@%${version}%" examples/chrony.spec
 
-for m in chronyc.1.in chrony.conf.5.in chronyd.8.in; do
-  sed -e "s%@VERSION@%${version}%;s%@MAN_DATE@%${mandate}%" \
-    < $m > ${m}_
-  mv -f ${m}_ $m
-done
+./configure && make -C doc man txt || exit 1
 
-./configure && make chrony.txt getdate.c || exit 1
-
-awk '/^[1-9] Installation$/{p=1}
-     /^[1-9]\.. Support for line editing/{exit}; p' chrony.txt | \
-  tail -n +4 > INSTALL
-
-if [ $(wc -l < INSTALL) -gt 120 -o $(wc -l < INSTALL) -lt 85 ]; then
-  echo "INSTALL generated incorrectly?"
-  exit 3
-fi
-
-a2x --lynx -f text doc/faq.adoc || exit 1
-mv doc/faq.text FAQ
-rm -rf doc
+iconv -f utf-8 -t ascii//TRANSLIT < doc/installation.txt > INSTALL
+iconv -f utf-8 -t ascii//TRANSLIT < doc/faq.txt > FAQ
 
 make distclean
-rm -f config.h config.log make_release .gitignore
+rm -f make_release .gitignore
 
 cd ..
 tar cv --owner root --group root $subdir | gzip -9 > ${subdir}.tar.gz
