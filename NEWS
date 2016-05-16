@@ -1,3 +1,31 @@
+New in version 2.4
+==================
+
+Enhancements
+------------
+* Add orphan option to local directive for orphan mode compatible with ntpd
+* Add distance option to local directive to set activation threshold
+  (1 second by default)
+* Add maxdrift directive to set maximum allowed drift of system clock
+* Try to replace NTP sources exceeding maximum distance
+* Randomise source replacement to avoid getting stuck with bad sources
+* Randomise selection of sources from pools on start
+* Ignore reference timestamp as ntpd doesn't always set it correctly
+* Modify tracking report to use same values as seen by NTP clients
+* Add -c option to chronyc to write reports in CSV format
+* Provide detailed manual pages
+
+Bug fixes
+---------
+* Fix SOCK refclock to work correctly when not specified as last refclock
+* Fix initstepslew and -q/-Q options to accept time from own NTP clients
+* Fix crash on exit when multiple signals are received
+* Fix conversion of very small floating-point numbers in command packets
+
+Removed features
+----------------
+* Drop documentation in Texinfo format
+
 New in version 2.3
 ==================
 
