@@ -10,7 +10,6 @@ Source: chrony-%{version}%{?prerelease:-%{prerelease}}.tar.gz
 License: GPLv2
 Group: Applications/Utilities
 BuildRoot: %{_tmppath}/%{name}-%{version}-root-%(id -u -n)
-Requires: info
 
 %description
 chrony is a client and server for the Network Time Protocol (NTP).
@@ -28,29 +27,20 @@ manual input as time references.
 	--prefix=%{_prefix} \
 	--bindir=%{_bindir} \
 	--sbindir=%{_sbindir} \
-	--infodir=%{_infodir} \
 	--mandir=%{_mandir}
 make
-make chrony.txt
-make chrony.info
 
 %install
 rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
-rm -rf $RPM_BUILD_ROOT%{_docdir}
-mkdir -p $RPM_BUILD_ROOT%{_infodir}
-cp chrony.info* $RPM_BUILD_ROOT%{_infodir}
 
 %files
 %{_sbindir}/chronyd
 %{_bindir}/chronyc
-%{_infodir}/chrony.info*
 %{_mandir}/man1/chronyc.1.gz
 %{_mandir}/man5/chrony.conf.5.gz
 %{_mandir}/man8/chronyd.8.gz
-%doc README
-%doc chrony.txt
-%doc COPYING
+%doc README FAQ NEWS COPYING
 %doc examples/chrony.conf.example*
 %doc examples/chrony.keys.example
 
