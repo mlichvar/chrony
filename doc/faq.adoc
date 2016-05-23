@@ -205,13 +205,24 @@ following questions.
 
 === Behind a firewall?
 
-If there is a firewall between you and the NTP server you're trying to use, the
-packets may be blocked. Try using a tool like `wireshark` or `tcpdump` to see if
-you're getting responses from the server. If you have an external modem, see
-if the receive light blinks straight after the transmit light (when the link is
-quiet apart from the NTP traffic). Try adding `log measurements` to the
-_chrony.conf_ file and look in the _measurements.log_ file after `chronyd` has
-been running for a short period. See if any measurements appear.
+Check the `Reach` value printed by the ``chronyc``'s `sources` command. If it's
+zero, it means `chronyd` did not get any valid responses from the NTP server
+you are trying to use. If there is a firewall between you and the server, the
+packets may be blocked. Try using a tool like `wireshark` or `tcpdump` to see
+if you're getting any responses from the server.
+
+When `chronyd` is receiving responses from the servers, the output of the
+`sources` command issued few minutes after `chronyd` start might look like
+this:
+
+----
+210 Number of sources = 3
+MS Name/IP address         Stratum Poll Reach LastRx Last sample
+===============================================================================
+^* foo.example.net               2   6   377    34   +484us[ -157us] +/-   30ms
+^- bar.example.net               2   6   377    34    +33ms[  +32ms] +/-   47ms
+^+ baz.example.net               3   6   377    35  -1397us[-2033us] +/-   60ms
+----
 
 === Are NTP servers specified with the `offline` option?
 
