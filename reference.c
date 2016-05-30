@@ -1248,7 +1248,7 @@ REF_GetOurStratum(void)
 int
 REF_GetOrphanStratum(void)
 {
-  if (!enable_local_stratum || !local_orphan)
+  if (!enable_local_stratum || !local_orphan || mode != REF_ModeNormal)
     return NTP_MAX_STRATUM;
   return local_stratum;
 }
