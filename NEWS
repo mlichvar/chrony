@@ -19,6 +19,7 @@ Bug fixes
 ---------
 * Fix SOCK refclock to work correctly when not specified as last refclock
 * Fix initstepslew and -q/-Q options to accept time from own NTP clients
+* Fix authentication with keys using 512-bit hash functions
 * Fix crash on exit when multiple signals are received
 * Fix conversion of very small floating-point numbers in command packets
 
