@@ -141,6 +141,7 @@ Erik Bryer <ebryer@spots.ab.ca>
 Bryan Christianson <bryan@whatroute.net>
     Support for Mac OS X
     Support for privilege separation
+    Entries in contrib directory
 
 Juliusz Chroboczek <jch@pps.jussieu.fr>
     Fix install rule in Makefile if chronyd file is in use.
@@ -226,6 +227,9 @@ Andreas Piesk <apiesk@virbus.de>
 
 Timo Teras <timo.teras@iki.fi>
     Patch to reply correctly on multihomed hosts
+
+Stephen Wadeley <swadeley@redhat.com>
+    Improvements to man pages
 
 Wolfgang Weisselberg <weissel@netcologne.de>
     Entries in contrib directory
