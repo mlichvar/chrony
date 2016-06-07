@@ -285,6 +285,19 @@ configuration file needs to specify a file which contains keys (`keyfile`
 directive) and which key in the key file should be used for `chronyc`
 authentication (`commandkey` directive).
 
+=== Why does `chronyc tracking` always print an IPv4 address as reference ID?
+
+The reference ID is a 32-bit value and is always printed in quad-dotted
+notation, even if the reference source doesn't have an IPv4 address. For IPv4
+addresses, the reference ID is equal to the address, but for IPv6 addresses it
+is the first 32 bits of the MD5 sum of the address. For reference clocks, the
+reference ID is the value specified with the `refid` option in the `refclock`
+directive.
+
+If you need to get the IP address of the current reference source, use the `-n`
+option to disable resolving of IP addresses and read the second field (printed
+in parentheses) on the `Reference ID` line.
+
 === Is the `chronyc` / `chronyd` protocol documented anywhere?
 
 Only by the source code. See _cmdmon.c_ (`chronyd` side) and _client.c_
