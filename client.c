@@ -1732,16 +1732,16 @@ print_report(const char *format, ...)
       format++;
     }
 
-    if (isdigit(*format)) {
+    if (isdigit((unsigned char)*format)) {
       width = atoi(format);
-      while (isdigit(*format))
+      while (isdigit((unsigned char)*format))
         format++;
     }
 
     if (*format == '.') {
       format++;
       prec = atoi(format);
-      while (isdigit(*format))
+      while (isdigit((unsigned char)*format))
         format++;
     }
 
