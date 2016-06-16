@@ -143,7 +143,7 @@ static ADF_AuthTable access_auth_table;
 
 /* ================================================== */
 /* Forward prototypes */
-static void read_from_cmd_socket(void *anything);
+static void read_from_cmd_socket(int sock_fd, int event, void *anything);
 
 /* ================================================== */
 
@@ -242,7 +242,7 @@ prepare_socket(int family, int port_number)
   }
 
   /* Register handler for read events on the socket */
-  SCH_AddInputFileHandler(sock_fd, read_from_cmd_socket, (void *)(long)sock_fd);
+  SCH_AddFileHandler(sock_fd, SCH_FILE_INPUT, read_from_cmd_socket, NULL);
 
   return sock_fd;
 }
@@ -325,19 +325,19 @@ void
 CAM_Finalise(void)
 {
   if (sock_fdu >= 0) {
-    SCH_RemoveInputFileHandler(sock_fdu);
+    SCH_RemoveFileHandler(sock_fdu);
     close(sock_fdu);
     unlink(CNF_GetBindCommandPath());
   }
   sock_fdu = -1;
   if (sock_fd4 >= 0) {
-    SCH_RemoveInputFileHandler(sock_fd4);
+    SCH_RemoveFileHandler(sock_fd4);
     close(sock_fd4);
   }
   sock_fd4 = -1;
 #ifdef FEAT_IPV6
   if (sock_fd6 >= 0) {
-    SCH_RemoveInputFileHandler(sock_fd6);
+    SCH_RemoveFileHandler(sock_fd6);
     close(sock_fd6);
   }
   sock_fd6 = -1;
@@ -1189,12 +1189,12 @@ handle_server_stats(CMD_Request *rx_message, CMD_Reply *tx_message)
 /* Read a packet and process it */
 
 static void
-read_from_cmd_socket(void *anything)
+read_from_cmd_socket(int sock_fd, int event, void *anything)
 {
   CMD_Request rx_message;
   CMD_Reply tx_message;
   int status, read_length, expected_length, rx_message_length;
-  int localhost, allowed, sock_fd, log_index;
+  int localhost, allowed, log_index;
   union sockaddr_all where_from;
   socklen_t from_length;
   IPAddr remote_ip;
@@ -1204,7 +1204,6 @@ read_from_cmd_socket(void *anything)
   rx_message_length = sizeof(rx_message);
   from_length = sizeof(where_from);
 
-  sock_fd = (long)anything;
   status = recvfrom(sock_fd, (char *)&rx_message, rx_message_length, 0,
                     &where_from.sa, &from_length);
 

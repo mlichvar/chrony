@@ -80,7 +80,7 @@ static int initialised=0;
 /* ================================================== */
 
 /* Forward prototypes */
-static void read_from_socket(void *anything);
+static void read_from_socket(int sock_fd, int event, void *anything);
 
 /* ================================================== */
 
@@ -230,7 +230,7 @@ prepare_socket(int family, int port_number, int client_only)
   }
 
   /* Register handler for read events on the socket */
-  SCH_AddInputFileHandler(sock_fd, read_from_socket, (void *)(long)sock_fd);
+  SCH_AddFileHandler(sock_fd, SCH_FILE_INPUT, read_from_socket, NULL);
 
   return sock_fd;
 }
@@ -282,7 +282,7 @@ close_socket(int sock_fd)
   if (sock_fd == INVALID_SOCK_FD)
     return;
 
-  SCH_RemoveInputFileHandler(sock_fd);
+  SCH_RemoveFileHandler(sock_fd);
   close(sock_fd);
 }
 
@@ -482,12 +482,12 @@ NIO_IsServerSocket(int sock_fd)
 /* ================================================== */
 
 static void
-read_from_socket(void *anything)
+read_from_socket(int sock_fd, int event, void *anything)
 {
   /* This should only be called when there is something
      to read, otherwise it will block. */
 
-  int status, sock_fd;
+  int status;
   NTP_Receive_Buffer message;
   union sockaddr_in46 where_from;
   unsigned int flags = 0;
@@ -514,7 +514,6 @@ read_from_socket(void *anything)
   msg.msg_controllen = sizeof(cmsgbuf);
   msg.msg_flags = 0;
 
-  sock_fd = (long)anything;
   status = recvmsg(sock_fd, &msg, flags);
 
   /* Don't bother checking if read failed or why if it did.  More

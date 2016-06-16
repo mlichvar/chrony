@@ -50,7 +50,7 @@
 
 static void measurement_timeout(void *any);
 
-static void read_from_device(void *any);
+static void read_from_device(int fd_, int event, void *any);
 
 /* ================================================== */
 
@@ -564,7 +564,7 @@ RTC_Linux_Initialise(void)
   operating_mode = OM_NORMAL;
 
   /* Register file handler */
-  SCH_AddInputFileHandler(fd, read_from_device, NULL);
+  SCH_AddFileHandler(fd, SCH_FILE_INPUT, read_from_device, NULL);
 
   /* Register slew handler */
   LCL_AddParameterChangeHandler(slew_samples, NULL);
@@ -585,7 +585,7 @@ RTC_Linux_Finalise(void)
 
   /* Remove input file handler */
   if (fd >= 0) {
-    SCH_RemoveInputFileHandler(fd);
+    SCH_RemoveFileHandler(fd);
     close(fd);
 
     /* Save the RTC data */
@@ -805,7 +805,7 @@ process_reading(time_t rtc_time, struct timeval *system_time)
 /* ================================================== */
 
 static void
-read_from_device(void *any)
+read_from_device(int fd_, int event, void *any)
 {
   int status;
   unsigned long data;
@@ -821,7 +821,7 @@ read_from_device(void *any)
     /* This looks like a bad error : the file descriptor was indicating it was
      * ready to read but we couldn't read anything.  Give up. */
     LOG(LOGS_ERR, LOGF_RtcLinux, "Could not read flags %s : %s", CNF_GetRtcDevice(), strerror(errno));
-    SCH_RemoveInputFileHandler(fd);
+    SCH_RemoveFileHandler(fd);
     switch_interrupts(0); /* Likely to raise error too, but just to be sure... */
     close(fd);
     fd = -1;

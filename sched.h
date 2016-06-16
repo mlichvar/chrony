@@ -40,7 +40,7 @@ typedef enum {
 } SCH_TimeoutClass;
 
 typedef void* SCH_ArbitraryArgument;
-typedef void (*SCH_FileHandler)(SCH_ArbitraryArgument);
+typedef void (*SCH_FileHandler)(int fd, int event, SCH_ArbitraryArgument);
 typedef void (*SCH_TimeoutHandler)(SCH_ArbitraryArgument);
 
 /* Exported functions */
@@ -51,13 +51,13 @@ extern void SCH_Initialise(void);
 /* Finalisation function for the module */
 extern void SCH_Finalise(void);
 
+/* File events */
+#define SCH_FILE_INPUT 1
+
 /* Register a handler for when select goes true on a file descriptor */
-extern void SCH_AddInputFileHandler
-(int fd,                        /* The file descriptor */
- SCH_FileHandler,               /* The handler routine */
- SCH_ArbitraryArgument          /* An arbitrary passthrough argument to the handler */
-);
-extern void SCH_RemoveInputFileHandler(int fd);
+extern void SCH_AddFileHandler(int fd, int events, SCH_FileHandler handler, SCH_ArbitraryArgument arg);
+extern void SCH_RemoveFileHandler(int fd);
+extern void SCH_SetFileHandlerEvents(int fd, int events);
 
 /* Get the time stamp taken after a file descriptor became ready or a timeout expired */
 extern void SCH_GetLastEventTime(struct timeval *cooked, double *err, struct timeval *raw);

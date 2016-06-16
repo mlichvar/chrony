@@ -166,12 +166,14 @@ SCH_Finalise(void) {
 /* ================================================== */
 
 void
-SCH_AddInputFileHandler
-(int fd, SCH_FileHandler handler, SCH_ArbitraryArgument arg)
+SCH_AddFileHandler
+(int fd, int events, SCH_FileHandler handler, SCH_ArbitraryArgument arg)
 {
   FileHandlerEntry *ptr;
 
   assert(initialised);
+  assert(events);
+  assert(fd >= 0);
   
   if (fd >= FD_SETSIZE)
     LOG_FATAL(LOGF_Scheduler, "Too many file descriptors");
@@ -202,7 +204,7 @@ SCH_AddInputFileHandler
 /* ================================================== */
 
 void
-SCH_RemoveInputFileHandler(int fd)
+SCH_RemoveFileHandler(int fd)
 {
   int fds_left, fd_to_check;
 
@@ -227,6 +229,18 @@ SCH_RemoveInputFileHandler(int fd)
   }
 
   one_highest_fd = fd_to_check;
+}
+
+/* ================================================== */
+
+void
+SCH_SetFileHandlerEvents(int fd, int events)
+{
+  FileHandlerEntry *ptr;
+
+  assert(events);
+  ptr = ARR_GetElement(file_handlers, fd);
+  ptr->events = events;
 }
 
 /* ================================================== */
@@ -533,7 +547,7 @@ dispatch_filehandlers(int nfh, fd_set *fhs)
 
       /* This descriptor can be read from, dispatch its handler */
       ptr = (FileHandlerEntry *)ARR_GetElement(file_handlers, fh);
-      (ptr->handler)(ptr->arg);
+      (ptr->handler)(fh, SCH_FILE_INPUT, ptr->arg);
 
       /* Decrement number of readable files still to find */
       --nfh;

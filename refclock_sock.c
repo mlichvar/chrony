@@ -57,14 +57,13 @@ struct sock_sample {
   int magic;
 };
 
-static void read_sample(void *anything)
+static void read_sample(int sockfd, int event, void *anything)
 {
   struct sock_sample sample;
   RCL_Instance instance;
-  int sockfd, s;
+  int s;
 
   instance = (RCL_Instance)anything;
-  sockfd = (long)RCL_GetDriverData(instance);
 
   s = recv(sockfd, &sample, sizeof (sample), 0);
 
@@ -122,7 +121,7 @@ static int sock_initialise(RCL_Instance instance)
   }
 
   RCL_SetDriverData(instance, (void *)(long)sockfd);
-  SCH_AddInputFileHandler(sockfd, read_sample, instance);
+  SCH_AddFileHandler(sockfd, SCH_FILE_INPUT, read_sample, instance);
   return 1;
 }
 
@@ -131,7 +130,7 @@ static void sock_finalise(RCL_Instance instance)
   int sockfd;
 
   sockfd = (long)RCL_GetDriverData(instance);
-  SCH_RemoveInputFileHandler(sockfd);
+  SCH_RemoveFileHandler(sockfd);
   close(sockfd);
 }
 

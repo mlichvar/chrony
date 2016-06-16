@@ -72,7 +72,7 @@ start_resolving(void *anything)
 /* ================================================== */
 
 static void
-end_resolving(void *anything)
+end_resolving(int fd, int event, void *anything)
 {
   struct DNS_Async_Instance *inst = (struct DNS_Async_Instance *)anything;
   int i;
@@ -83,7 +83,7 @@ end_resolving(void *anything)
 
   resolving_threads--;
 
-  SCH_RemoveInputFileHandler(inst->pipe[0]);
+  SCH_RemoveFileHandler(inst->pipe[0]);
   close(inst->pipe[0]);
   close(inst->pipe[1]);
 
@@ -120,7 +120,7 @@ DNS_Name2IPAddressAsync(const char *name, DNS_NameResolveHandler handler, void *
     LOG_FATAL(LOGF_Nameserv, "pthread_create() failed");
   }
 
-  SCH_AddInputFileHandler(inst->pipe[0], end_resolving, inst);
+  SCH_AddFileHandler(inst->pipe[0], SCH_FILE_INPUT, end_resolving, inst);
 }
 
 /* ================================================== */
