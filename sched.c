@@ -44,17 +44,6 @@ static int initialised = 0;
 
 /* ================================================== */
 
-/* Variables to handle the capability to dispatch on particular file
-   handles becoming readable */
-
-/* Each bit set in this fd set corresponds to a read descriptor that
-   we are watching and with which we have a handler associated in the
-   file_handlers array */
-static fd_set read_fds;
-
-/* This is the number of bits that we have set in read_fds */
-static unsigned int n_read_fds;
-
 /* One more than the highest file descriptor that is registered */
 static unsigned int one_highest_fd;
 
@@ -67,6 +56,7 @@ static unsigned int one_highest_fd;
 typedef struct {
   SCH_FileHandler       handler;
   SCH_ArbitraryArgument arg;
+  int                   events;
 } FileHandlerEntry;
 
 static ARR_Instance file_handlers;
@@ -132,9 +122,6 @@ handle_slew(struct timeval *raw,
 void
 SCH_Initialise(void)
 {
-  FD_ZERO(&read_fds);
-  n_read_fds = 0;
-
   file_handlers = ARR_CreateInstance(sizeof (FileHandlerEntry));
 
   n_timer_queue_entries = 0;
@@ -178,26 +165,27 @@ SCH_AddFileHandler
   if (fd >= FD_SETSIZE)
     LOG_FATAL(LOGF_Scheduler, "Too many file descriptors");
 
+  /* Resize the array if the descriptor is highest so far */
+  while (ARR_GetSize(file_handlers) <= fd) {
+    ptr = ARR_GetNewElement(file_handlers);
+    ptr->handler = NULL;
+    ptr->arg = NULL;
+    ptr->events = 0;
+  }
+
+  ptr = ARR_GetElement(file_handlers, fd);
+
   /* Don't want to allow the same fd to register a handler more than
      once without deleting a previous association - this suggests
      a bug somewhere else in the program. */
-  if (FD_ISSET(fd, &read_fds))
-    assert(0);
+  assert(!ptr->handler);
 
-  ++n_read_fds;
-  
-  if (ARR_GetSize(file_handlers) < fd + 1)
-    ARR_SetSize(file_handlers, fd + 1);
-
-  ptr = (FileHandlerEntry *)ARR_GetElement(file_handlers, fd);
   ptr->handler = handler;
   ptr->arg = arg;
+  ptr->events = events;
 
-  FD_SET(fd, &read_fds);
-
-  if ((fd + 1) > one_highest_fd) {
+  if (one_highest_fd < fd + 1)
     one_highest_fd = fd + 1;
-  }
 }
 
 
@@ -206,29 +194,26 @@ SCH_AddFileHandler
 void
 SCH_RemoveFileHandler(int fd)
 {
-  int fds_left, fd_to_check;
+  FileHandlerEntry *ptr;
 
   assert(initialised);
 
+  ptr = ARR_GetElement(file_handlers, fd);
+
   /* Check that a handler was registered for the fd in question */
-  if (!FD_ISSET(fd, &read_fds))
-    assert(0);
+  assert(ptr->handler);
 
-  --n_read_fds;
-
-  FD_CLR(fd, &read_fds);
+  ptr->handler = NULL;
+  ptr->arg = NULL;
+  ptr->events = 0;
 
   /* Find new highest file descriptor */
-  fds_left = n_read_fds;
-  fd_to_check = 0;
-  while (fds_left > 0) {
-    if (FD_ISSET(fd_to_check, &read_fds)) {
-      --fds_left;
-    }
-    ++fd_to_check;
+  while (one_highest_fd > 0) {
+    ptr = ARR_GetElement(file_handlers, one_highest_fd - 1);
+    if (ptr->handler)
+      break;
+    one_highest_fd--;
   }
-
-  one_highest_fd = fd_to_check;
 }
 
 /* ================================================== */
@@ -595,6 +580,38 @@ handle_slew(struct timeval *raw,
 
 /* ================================================== */
 
+static void
+fill_fd_sets(fd_set **read_fds)
+{
+  FileHandlerEntry *handlers;
+  fd_set *rd;
+  int i, n, events;
+
+  n = ARR_GetSize(file_handlers);
+  handlers = ARR_GetElements(file_handlers);
+  rd = NULL;
+
+  for (i = 0; i < n; i++) {
+    events = handlers[i].events;
+
+    if (!events)
+      continue;
+
+    if (events & SCH_FILE_INPUT) {
+      if (!rd) {
+        rd = *read_fds;
+        FD_ZERO(rd);
+      }
+      FD_SET(i, rd);
+    }
+  }
+
+  if (!rd)
+    *read_fds = NULL;
+}
+
+/* ================================================== */
+
 #define JUMP_DETECT_THRESHOLD 10
 
 static int
@@ -650,7 +667,7 @@ check_current_time(struct timeval *prev_raw, struct timeval *raw, int timeout,
 void
 SCH_MainLoop(void)
 {
-  fd_set rd;
+  fd_set read_fds, *p_read_fds;
   int status, errsv;
   struct timeval tv, saved_tv, *ptv;
   struct timeval now, saved_now, cooked;
@@ -681,16 +698,15 @@ SCH_MainLoop(void)
       saved_tv.tv_sec = 0;
     }
 
+    p_read_fds = &read_fds;
+    fill_fd_sets(&p_read_fds);
+
     /* if there are no file descriptors being waited on and no
        timeout set, this is clearly ridiculous, so stop the run */
-    if (!ptv && !n_read_fds) {
+    if (!ptv && !p_read_fds)
       LOG_FATAL(LOGF_Scheduler, "Nothing to do");
-    }
 
-    /* Copy current set of read file descriptors */
-    memcpy((void *) &rd, (void *) &read_fds, sizeof(fd_set));
-
-    status = select(one_highest_fd, &rd, NULL, NULL, ptv);
+    status = select(one_highest_fd, p_read_fds, NULL, NULL, ptv);
     errsv = errno;
 
     LCL_ReadRawTime(&now);
@@ -713,7 +729,7 @@ SCH_MainLoop(void)
     } else if (status > 0) {
       /* A file descriptor is ready to read */
 
-      dispatch_filehandlers(status, &rd);
+      dispatch_filehandlers(status, &read_fds);
 
     } else {
       /* No descriptors readable, timeout must have elapsed.
