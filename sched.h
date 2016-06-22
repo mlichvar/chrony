@@ -53,6 +53,7 @@ extern void SCH_Finalise(void);
 
 /* File events */
 #define SCH_FILE_INPUT 1
+#define SCH_FILE_OUTPUT 2
 
 /* Register a handler for when select goes true on a file descriptor */
 extern void SCH_AddFileHandler(int fd, int events, SCH_FileHandler handler, SCH_ArbitraryArgument arg);

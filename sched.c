@@ -519,28 +519,29 @@ dispatch_timeouts(struct timeval *now) {
 
 /* ================================================== */
 
-/* nfh is the number of bits set in fhs */
+/* nfd is the number of bits set in all fd_sets */
 
 static void
-dispatch_filehandlers(int nfh, fd_set *fhs)
+dispatch_filehandlers(int nfd, fd_set *read_fds, fd_set *write_fds)
 {
   FileHandlerEntry *ptr;
-  int fh = 0;
+  int fd;
   
-  while (nfh > 0) {
-    if (FD_ISSET(fh, fhs)) {
-
+  for (fd = 0; nfd && fd < one_highest_fd; fd++) {
+    if (read_fds && FD_ISSET(fd, read_fds)) {
       /* This descriptor can be read from, dispatch its handler */
-      ptr = (FileHandlerEntry *)ARR_GetElement(file_handlers, fh);
-      (ptr->handler)(fh, SCH_FILE_INPUT, ptr->arg);
-
-      /* Decrement number of readable files still to find */
-      --nfh;
+      ptr = (FileHandlerEntry *)ARR_GetElement(file_handlers, fd);
+      (ptr->handler)(fd, SCH_FILE_INPUT, ptr->arg);
+      nfd--;
     }
 
-    ++fh;
+    if (write_fds && FD_ISSET(fd, write_fds)) {
+      /* This descriptor can be written to, dispatch its handler */
+      ptr = (FileHandlerEntry *)ARR_GetElement(file_handlers, fd);
+      (ptr->handler)(fd, SCH_FILE_OUTPUT, ptr->arg);
+      nfd--;
+    }
   }
-
 }
 
 /* ================================================== */
@@ -581,15 +582,15 @@ handle_slew(struct timeval *raw,
 /* ================================================== */
 
 static void
-fill_fd_sets(fd_set **read_fds)
+fill_fd_sets(fd_set **read_fds, fd_set **write_fds)
 {
   FileHandlerEntry *handlers;
-  fd_set *rd;
+  fd_set *rd, *wr;
   int i, n, events;
 
   n = ARR_GetSize(file_handlers);
   handlers = ARR_GetElements(file_handlers);
-  rd = NULL;
+  rd = wr = NULL;
 
   for (i = 0; i < n; i++) {
     events = handlers[i].events;
@@ -604,10 +605,20 @@ fill_fd_sets(fd_set **read_fds)
       }
       FD_SET(i, rd);
     }
+
+    if (events & SCH_FILE_OUTPUT) {
+      if (!wr) {
+        wr = *write_fds;
+        FD_ZERO(wr);
+      }
+      FD_SET(i, wr);
+    }
   }
 
   if (!rd)
     *read_fds = NULL;
+  if (!wr)
+    *write_fds = NULL;
 }
 
 /* ================================================== */
@@ -667,7 +678,7 @@ check_current_time(struct timeval *prev_raw, struct timeval *raw, int timeout,
 void
 SCH_MainLoop(void)
 {
-  fd_set read_fds, *p_read_fds;
+  fd_set read_fds, write_fds, *p_read_fds, *p_write_fds;
   int status, errsv;
   struct timeval tv, saved_tv, *ptv;
   struct timeval now, saved_now, cooked;
@@ -699,14 +710,15 @@ SCH_MainLoop(void)
     }
 
     p_read_fds = &read_fds;
-    fill_fd_sets(&p_read_fds);
+    p_write_fds = &write_fds;
+    fill_fd_sets(&p_read_fds, &p_write_fds);
 
     /* if there are no file descriptors being waited on and no
        timeout set, this is clearly ridiculous, so stop the run */
-    if (!ptv && !p_read_fds)
+    if (!ptv && !p_read_fds && !p_write_fds)
       LOG_FATAL(LOGF_Scheduler, "Nothing to do");
 
-    status = select(one_highest_fd, p_read_fds, NULL, NULL, ptv);
+    status = select(one_highest_fd, p_read_fds, p_write_fds, NULL, ptv);
     errsv = errno;
 
     LCL_ReadRawTime(&now);
@@ -727,10 +739,8 @@ SCH_MainLoop(void)
         LOG_FATAL(LOGF_Scheduler, "select() failed : %s", strerror(errsv));
       }
     } else if (status > 0) {
-      /* A file descriptor is ready to read */
-
-      dispatch_filehandlers(status, &read_fds);
-
+      /* A file descriptor is ready for input or output */
+      dispatch_filehandlers(status, p_read_fds, p_write_fds);
     } else {
       /* No descriptors readable, timeout must have elapsed.
        Therefore, tv must be non-null */
