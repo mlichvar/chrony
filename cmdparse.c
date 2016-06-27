@@ -43,19 +43,14 @@ CPS_Status
 CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
 {
   char *hostname, *cmd;
-  int n, done;
-  CPS_Status result;
+  int n;
   
   src->port = SRC_DEFAULT_PORT;
   src->params.minpoll = SRC_DEFAULT_MINPOLL;
   src->params.maxpoll = SRC_DEFAULT_MAXPOLL;
-  src->params.presend_minpoll = SRC_DEFAULT_PRESEND_MINPOLL;
-  src->params.authkey = INACTIVE_AUTHKEY;
-  src->params.max_delay = SRC_DEFAULT_MAXDELAY;
-  src->params.max_delay_ratio = SRC_DEFAULT_MAXDELAYRATIO;
-  src->params.max_delay_dev_ratio = SRC_DEFAULT_MAXDELAYDEVRATIO;
   src->params.online = 1;
   src->params.auto_offline = 0;
+  src->params.presend_minpoll = SRC_DEFAULT_PRESEND_MINPOLL;
   src->params.iburst = 0;
   src->params.min_stratum = SRC_DEFAULT_MINSTRATUM;
   src->params.poll_target = SRC_DEFAULT_POLLTARGET;
@@ -64,161 +59,88 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   src->params.min_samples = SRC_DEFAULT_MINSAMPLES;
   src->params.max_samples = SRC_DEFAULT_MAXSAMPLES;
   src->params.sel_options = 0;
+  src->params.authkey = INACTIVE_AUTHKEY;
+  src->params.max_delay = SRC_DEFAULT_MAXDELAY;
+  src->params.max_delay_ratio = SRC_DEFAULT_MAXDELAYRATIO;
+  src->params.max_delay_dev_ratio = SRC_DEFAULT_MAXDELAYDEVRATIO;
 
-  result = CPS_Success;
-  
   hostname = line;
   line = CPS_SplitWord(line);
 
-  if (!*hostname) {
-    result = CPS_BadHost;
-  } else {
-    src->name = hostname;
+  if (!*hostname)
+    return CPS_BadHost;
 
-    /* Parse subfields */
-    done = 0;
-    do {
-      cmd = line;
-      line = CPS_SplitWord(line);
+  src->name = hostname;
 
-      if (*cmd) {
-        if (!strcasecmp(cmd, "port")) {
-          if (sscanf(line, "%hu%n", &src->port, &n) != 1) {
-            result = CPS_BadPort;
-            done = 1;
-          } else {
-            line += n;
-          }
-        } else if (!strcasecmp(cmd, "minpoll")) {
-          if (sscanf(line, "%d%n", &src->params.minpoll, &n) != 1) {
-            result = CPS_BadMinpoll;
-            done = 1;
-          } else {
-            line += n;
-          }
-        } else if (!strcasecmp(cmd, "maxpoll")) {
-          if (sscanf(line, "%d%n", &src->params.maxpoll, &n) != 1) {
-            result = CPS_BadMaxpoll;
-            done = 1;
-          } else {
-            line += n;
-          }
-        } else if (!strcasecmp(cmd, "presend")) {
-          if (sscanf(line, "%d%n", &src->params.presend_minpoll, &n) != 1) {
-            result = CPS_BadPresend;
-            done = 1;
-          } else {
-            line += n;
-          }
-        } else if (!strcasecmp(cmd, "maxdelaydevratio")) {
-          if (sscanf(line, "%lf%n", &src->params.max_delay_dev_ratio, &n) != 1) {
-            result = CPS_BadMaxdelaydevratio;
-            done = 1;
-          } else {
-            line += n;
-          }
-        } else if (!strcasecmp(cmd, "maxdelayratio")) {
-          if (sscanf(line, "%lf%n", &src->params.max_delay_ratio, &n) != 1) {
-            result = CPS_BadMaxdelayratio;
-            done = 1;
-          } else {
-            line += n;
-          }
-        } else if (!strcasecmp(cmd, "maxdelay")) {
-          if (sscanf(line, "%lf%n", &src->params.max_delay, &n) != 1) {
-            result = CPS_BadMaxdelay;
-            done = 1;
-          } else {
-            line += n;
-          }
-        } else if (!strcasecmp(cmd, "key")) {
-          if (sscanf(line, "%"SCNu32"%n", &src->params.authkey, &n) != 1 ||
-              src->params.authkey == INACTIVE_AUTHKEY) {
-            result = CPS_BadKey;
-            done = 1;
-          } else {
-            line += n;
-          }
-        } else if (!strcasecmp(cmd, "offline")) {
-          src->params.online = 0;
+  /* Parse options */
+  for (; *line; line += n) {
+    cmd = line;
+    line = CPS_SplitWord(line);
+    n = 0;
 
-        } else if (!strcasecmp(cmd, "auto_offline")) {
-          src->params.auto_offline = 1;
-        
-        } else if (!strcasecmp(cmd, "iburst")) {
-          src->params.iburst = 1;
-
-        } else if (!strcasecmp(cmd, "minstratum")) {
-          if (sscanf(line, "%d%n", &src->params.min_stratum, &n) != 1) {
-            result = CPS_BadMinstratum;
-            done = 1;
-          } else {
-            line += n;
-          }
-
-        } else if (!strcasecmp(cmd, "polltarget")) {
-          if (sscanf(line, "%d%n", &src->params.poll_target, &n) != 1) {
-            result = CPS_BadPolltarget;
-            done = 1;
-          } else {
-            line += n;
-          }
-
-        } else if (!strcasecmp(cmd, "noselect")) {
-          src->params.sel_options |= SRC_SELECT_NOSELECT;
-        
-        } else if (!strcasecmp(cmd, "prefer")) {
-          src->params.sel_options |= SRC_SELECT_PREFER;
-        
-        } else if (!strcasecmp(cmd, "trust")) {
-          src->params.sel_options |= SRC_SELECT_TRUST;
-
-        } else if (!strcasecmp(cmd, "require")) {
-          src->params.sel_options |= SRC_SELECT_REQUIRE;
-
-        } else if (!strcasecmp(cmd, "version")) {
-          if (sscanf(line, "%d%n", &src->params.version, &n) != 1) {
-            result = CPS_BadVersion;
-            done = 1;
-          } else {
-            line += n;
-          }
-
-        } else if (!strcasecmp(cmd, "maxsources")) {
-          if (sscanf(line, "%d%n", &src->params.max_sources, &n) != 1) {
-            result = CPS_BadMaxsources;
-            done = 1;
-          } else {
-            line += n;
-          }
-
-        } else if (!strcasecmp(cmd, "minsamples")) {
-          if (sscanf(line, "%d%n", &src->params.min_samples, &n) != 1) {
-            result = CPS_BadMinsamples;
-            done = 1;
-          } else {
-            line += n;
-          }
-
-        } else if (!strcasecmp(cmd, "maxsamples")) {
-          if (sscanf(line, "%d%n", &src->params.max_samples, &n) != 1) {
-            result = CPS_BadMaxsamples;
-            done = 1;
-          } else {
-            line += n;
-          }
-
-        } else {
-          result = CPS_BadOption;
-          done = 1;
-        }
-      } else {
-        done = 1;
-      }
-    } while (!done);
+    if (!strcasecmp(cmd, "auto_offline")) {
+      src->params.auto_offline = 1;
+    } else if (!strcasecmp(cmd, "iburst")) {
+      src->params.iburst = 1;
+    } else if (!strcasecmp(cmd, "offline")) {
+      src->params.online = 0;
+    } else if (!strcasecmp(cmd, "noselect")) {
+      src->params.sel_options |= SRC_SELECT_NOSELECT;
+    } else if (!strcasecmp(cmd, "prefer")) {
+      src->params.sel_options |= SRC_SELECT_PREFER;
+    } else if (!strcasecmp(cmd, "require")) {
+      src->params.sel_options |= SRC_SELECT_REQUIRE;
+    } else if (!strcasecmp(cmd, "trust")) {
+      src->params.sel_options |= SRC_SELECT_TRUST;
+    } else if (!strcasecmp(cmd, "key")) {
+      if (sscanf(line, "%"SCNu32"%n", &src->params.authkey, &n) != 1 ||
+          src->params.authkey == INACTIVE_AUTHKEY)
+        return CPS_BadKey;
+    } else if (!strcasecmp(cmd, "maxdelay")) {
+      if (sscanf(line, "%lf%n", &src->params.max_delay, &n) != 1)
+        return CPS_BadMaxdelay;
+    } else if (!strcasecmp(cmd, "maxdelayratio")) {
+      if (sscanf(line, "%lf%n", &src->params.max_delay_ratio, &n) != 1)
+        return CPS_BadMaxdelayratio;
+    } else if (!strcasecmp(cmd, "maxdelaydevratio")) {
+      if (sscanf(line, "%lf%n", &src->params.max_delay_dev_ratio, &n) != 1)
+        return CPS_BadMaxdelaydevratio;
+    } else if (!strcasecmp(cmd, "maxpoll")) {
+      if (sscanf(line, "%d%n", &src->params.maxpoll, &n) != 1)
+        return CPS_BadMaxpoll;
+    } else if (!strcasecmp(cmd, "maxsamples")) {
+      if (sscanf(line, "%d%n", &src->params.max_samples, &n) != 1)
+        return CPS_BadMaxsamples;
+    } else if (!strcasecmp(cmd, "maxsources")) {
+      if (sscanf(line, "%d%n", &src->params.max_sources, &n) != 1)
+        return CPS_BadMaxsources;
+    } else if (!strcasecmp(cmd, "minpoll")) {
+      if (sscanf(line, "%d%n", &src->params.minpoll, &n) != 1)
+        return CPS_BadMinpoll;
+    } else if (!strcasecmp(cmd, "minsamples")) {
+      if (sscanf(line, "%d%n", &src->params.min_samples, &n) != 1)
+        return CPS_BadMinsamples;
+    } else if (!strcasecmp(cmd, "minstratum")) {
+      if (sscanf(line, "%d%n", &src->params.min_stratum, &n) != 1)
+        return CPS_BadMinstratum;
+    } else if (!strcasecmp(cmd, "port")) {
+      if (sscanf(line, "%hu%n", &src->port, &n) != 1)
+        return CPS_BadPort;
+    } else if (!strcasecmp(cmd, "polltarget")) {
+      if (sscanf(line, "%d%n", &src->params.poll_target, &n) != 1)
+        return CPS_BadPolltarget;
+    } else if (!strcasecmp(cmd, "presend")) {
+      if (sscanf(line, "%d%n", &src->params.presend_minpoll, &n) != 1)
+        return CPS_BadPresend;
+    } else if (!strcasecmp(cmd, "version")) {
+      if (sscanf(line, "%d%n", &src->params.version, &n) != 1)
+        return CPS_BadVersion;
+    } else {
+      return CPS_BadOption;
+    }
   }
 
-  return result;
+  return CPS_Success;
 }
 
 /* ================================================== */
