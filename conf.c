@@ -696,9 +696,9 @@ parse_refclock(char *line)
   line = CPS_SplitWord(line);
   param = Strdup(p);
 
-  while (*line) {
-    cmd = line;
+  for (cmd = line; *cmd; line += n, cmd = line) {
     line = CPS_SplitWord(line);
+
     if (!strcasecmp(cmd, "refid")) {
       if (sscanf(line, "%4s%n", (char *)ref, &n) != 1)
         break;
@@ -756,10 +756,9 @@ parse_refclock(char *line)
       other_parse_error("Invalid refclock option");
       return;
     }
-    line += n;
   }
 
-  if (*line) {
+  if (*cmd) {
     command_parse_error();
     return;
   }
