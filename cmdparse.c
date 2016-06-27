@@ -39,7 +39,7 @@
 
 /* ================================================== */
 
-CPS_Status
+int
 CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
 {
   char *hostname, *cmd;
@@ -68,7 +68,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   line = CPS_SplitWord(line);
 
   if (!*hostname)
-    return CPS_BadHost;
+    return 0;
 
   src->name = hostname;
 
@@ -95,52 +95,52 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
     } else if (!strcasecmp(cmd, "key")) {
       if (sscanf(line, "%"SCNu32"%n", &src->params.authkey, &n) != 1 ||
           src->params.authkey == INACTIVE_AUTHKEY)
-        return CPS_BadKey;
+        return 0;
     } else if (!strcasecmp(cmd, "maxdelay")) {
       if (sscanf(line, "%lf%n", &src->params.max_delay, &n) != 1)
-        return CPS_BadMaxdelay;
+        return 0;
     } else if (!strcasecmp(cmd, "maxdelayratio")) {
       if (sscanf(line, "%lf%n", &src->params.max_delay_ratio, &n) != 1)
-        return CPS_BadMaxdelayratio;
+        return 0;
     } else if (!strcasecmp(cmd, "maxdelaydevratio")) {
       if (sscanf(line, "%lf%n", &src->params.max_delay_dev_ratio, &n) != 1)
-        return CPS_BadMaxdelaydevratio;
+        return 0;
     } else if (!strcasecmp(cmd, "maxpoll")) {
       if (sscanf(line, "%d%n", &src->params.maxpoll, &n) != 1)
-        return CPS_BadMaxpoll;
+        return 0;
     } else if (!strcasecmp(cmd, "maxsamples")) {
       if (sscanf(line, "%d%n", &src->params.max_samples, &n) != 1)
-        return CPS_BadMaxsamples;
+        return 0;
     } else if (!strcasecmp(cmd, "maxsources")) {
       if (sscanf(line, "%d%n", &src->params.max_sources, &n) != 1)
-        return CPS_BadMaxsources;
+        return 0;
     } else if (!strcasecmp(cmd, "minpoll")) {
       if (sscanf(line, "%d%n", &src->params.minpoll, &n) != 1)
-        return CPS_BadMinpoll;
+        return 0;
     } else if (!strcasecmp(cmd, "minsamples")) {
       if (sscanf(line, "%d%n", &src->params.min_samples, &n) != 1)
-        return CPS_BadMinsamples;
+        return 0;
     } else if (!strcasecmp(cmd, "minstratum")) {
       if (sscanf(line, "%d%n", &src->params.min_stratum, &n) != 1)
-        return CPS_BadMinstratum;
+        return 0;
     } else if (!strcasecmp(cmd, "port")) {
       if (sscanf(line, "%hu%n", &src->port, &n) != 1)
-        return CPS_BadPort;
+        return 0;
     } else if (!strcasecmp(cmd, "polltarget")) {
       if (sscanf(line, "%d%n", &src->params.poll_target, &n) != 1)
-        return CPS_BadPolltarget;
+        return 0;
     } else if (!strcasecmp(cmd, "presend")) {
       if (sscanf(line, "%d%n", &src->params.presend_minpoll, &n) != 1)
-        return CPS_BadPresend;
+        return 0;
     } else if (!strcasecmp(cmd, "version")) {
       if (sscanf(line, "%d%n", &src->params.version, &n) != 1)
-        return CPS_BadVersion;
+        return 0;
     } else {
-      return CPS_BadOption;
+      return 0;
     }
   }
 
-  return CPS_Success;
+  return 1;
 }
 
 /* ================================================== */
@@ -177,71 +177,6 @@ CPS_ParseLocal(char *line, int *stratum, int *orphan, double *distance)
   }
 
   return 1;
-}
-/* ================================================== */
-
-void
-CPS_StatusToString(CPS_Status status, char *dest, int len)
-{
-  const char *s = NULL;
-
-  if (len > 0)
-    dest[0] = '\0';
-
-  switch (status) {
-    case CPS_Success:
-      return;
-    case CPS_BadOption:
-      s = "server/peer/pool option";
-      break;
-    case CPS_BadHost:
-      s = "address";
-      break;
-    case CPS_BadPort:
-      s = "port";
-      break;
-    case CPS_BadMinpoll:
-      s = "minpoll";
-      break;
-    case CPS_BadMaxpoll:
-      s = "maxpoll";
-      break;
-    case CPS_BadPresend:
-      s = "presend";
-      break;
-    case CPS_BadMaxdelaydevratio:
-      s = "maxdelaydevratio";
-      break;
-    case CPS_BadMaxdelayratio:
-      s = "maxdelayratio";
-      break;
-    case CPS_BadMaxdelay:
-      s = "maxdelay";
-      break;
-    case CPS_BadKey:
-      s = "key";
-      break;
-    case CPS_BadMinstratum:
-      s = "minstratum";
-      break;
-    case CPS_BadPolltarget:
-      s = "polltarget";
-      break;
-    case CPS_BadVersion:
-      s = "version";
-      break;
-    case CPS_BadMaxsources:
-      s = "maxsources";
-      break;
-    case CPS_BadMinsamples:
-      s = "minsamples";
-      break;
-    case CPS_BadMaxsamples:
-      s = "maxsamples";
-      break;
-  }
-
-  snprintf(dest, len, "Invalid %s", s);
 }
 
 /* ================================================== */

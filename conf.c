@@ -604,17 +604,13 @@ parse_null(char *line)
 static void
 parse_source(char *line, NTP_Source_Type type, int pool)
 {
-  CPS_Status status;
   NTP_Source source;
-  char str[64];
 
   source.type = type;
   source.pool = pool;
-  status = CPS_ParseNTPSourceAdd(line, &source.params);
 
-  if (status != CPS_Success) {
-    CPS_StatusToString(status, str, sizeof (str));
-    other_parse_error(str);
+  if (!CPS_ParseNTPSourceAdd(line, &source.params)) {
+    command_parse_error();
     return;
   }
 

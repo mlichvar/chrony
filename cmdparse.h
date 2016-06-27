@@ -30,26 +30,6 @@
 #include "srcparams.h"
 #include "addressing.h"
 
-typedef enum {
-  CPS_Success,
-  CPS_BadOption,
-  CPS_BadHost,
-  CPS_BadPort,
-  CPS_BadMinpoll,
-  CPS_BadMaxpoll,
-  CPS_BadPresend,
-  CPS_BadMaxdelaydevratio,
-  CPS_BadMaxdelayratio,
-  CPS_BadMaxdelay,
-  CPS_BadKey,
-  CPS_BadMinstratum,
-  CPS_BadPolltarget,
-  CPS_BadVersion,
-  CPS_BadMaxsources,
-  CPS_BadMinsamples,
-  CPS_BadMaxsamples,
-} CPS_Status;
-
 typedef struct {
   char *name;
   unsigned short port;
@@ -57,13 +37,10 @@ typedef struct {
 } CPS_NTP_Source;
 
 /* Parse a command to add an NTP server or peer */
-extern CPS_Status CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src);
+extern int CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src);
   
 /* Parse a command to enable local reference */
 extern int CPS_ParseLocal(char *line, int *stratum, int *orphan, double *distance);
-
-/* Get a string describing error status */
-extern void CPS_StatusToString(CPS_Status status, char *dest, int len);
 
 /* Remove extra white-space and comments */
 extern void CPS_NormalizeLine(char *line);

@@ -1058,14 +1058,15 @@ static int
 process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
 {
   CPS_NTP_Source data;
-  CPS_Status status;
   IPAddr ip_addr;
-  char str[64];
-  int result = 0;
+  int result = 0, status;
   
   status = CPS_ParseNTPSourceAdd(line, &data);
   switch (status) {
-    case CPS_Success:
+    case 0:
+      LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for add command");
+      break;
+    default:
       if (DNS_Name2IPAddress(data.name, &ip_addr, 1) != DNS_Success) {
         LOG(LOGS_ERR, LOGF_Client, "Invalid host/IP address");
         break;
@@ -1124,10 +1125,6 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
           (data.params.sel_options & SRC_SELECT_REQUIRE ? REQ_ADDSRC_REQUIRE : 0));
       result = 1;
 
-      break;
-    default:
-      CPS_StatusToString(status, str, sizeof (str));
-      LOG(LOGS_ERR, LOGF_Client, "%s", str);
       break;
   }
 
