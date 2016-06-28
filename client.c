@@ -1083,6 +1083,8 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
         opt_name = "maxsources";
       else if (data.params.min_stratum != SRC_DEFAULT_MINSTRATUM)
         opt_name = "minstratum";
+      else if (data.params.offset != 0.0)
+        opt_name = "offset";
       else if (data.params.poll_target != SRC_DEFAULT_POLLTARGET)
         opt_name = "polltarget";
       else if (data.params.version != NTP_VERSION)

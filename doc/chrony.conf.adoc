@@ -116,6 +116,13 @@ If a measurement has a ratio of the increase in the round-trip delay from the
 minimum delay amongst the previous measurements to the standard deviation of
 the previous measurements that is greater than the specified ratio, it will be
 rejected. The default is 10.0.
+*offset* _offset_:::
+This option specifies a correction (in seconds) which will be applied to
+offsets measured with this source. It's particularly useful to compensate for a
+known asymmetry in network delay or timestamping errors. For example, if
+packets sent to the source were on average delayed by 100 microseconds more
+than packets sent from the source back, the correction would be -0.00005 (-50
+microseconds). The default is 0.0.
 *minsamples* _samples_:::
 Set the minimum number of samples kept for this source. This overrides the
 <<minsamples,*minsamples*>> directive.

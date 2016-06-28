@@ -47,6 +47,7 @@ typedef struct {
   double max_delay;
   double max_delay_ratio;
   double max_delay_dev_ratio;
+  double offset;
 } SourceParameters;
 
 #define SRC_DEFAULT_PORT 123

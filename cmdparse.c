@@ -63,6 +63,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   src->params.max_delay = SRC_DEFAULT_MAXDELAY;
   src->params.max_delay_ratio = SRC_DEFAULT_MAXDELAYRATIO;
   src->params.max_delay_dev_ratio = SRC_DEFAULT_MAXDELAYDEVRATIO;
+  src->params.offset = 0.0;
 
   hostname = line;
   line = CPS_SplitWord(line);
@@ -122,6 +123,9 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
         return 0;
     } else if (!strcasecmp(cmd, "minstratum")) {
       if (sscanf(line, "%d%n", &src->params.min_stratum, &n) != 1)
+        return 0;
+    } else if (!strcasecmp(cmd, "offset")) {
+      if (sscanf(line, "%lf%n", &src->params.offset, &n) != 1)
         return 0;
     } else if (!strcasecmp(cmd, "port")) {
       if (sscanf(line, "%hu%n", &src->port, &n) != 1)

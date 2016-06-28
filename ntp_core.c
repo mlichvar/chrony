@@ -119,6 +119,9 @@ struct NCR_Instance_Record {
 
   double max_delay_dev_ratio;   /* Maximum ratio of increase in delay / stddev */
 
+  double offset_correction;     /* Correction applied to measured offset
+                                   (e.g. for asymmetry in network delay) */
+
   int do_auth;                  /* Flag indicating whether we
                                    authenticate packets we send to
                                    this machine (if it's serving us or
@@ -481,6 +484,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->max_delay = params->max_delay;
   result->max_delay_ratio = params->max_delay_ratio;
   result->max_delay_dev_ratio = params->max_delay_dev_ratio;
+  result->offset_correction = params->offset;
   result->auto_offline = params->auto_offline;
   result->poll_target = params->poll_target;
 
@@ -1310,7 +1314,10 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     /* Calculate offset.  Following the NTP definition, this is negative
        if we are fast of the remote source. */
     UTI_DiffTimevalsToDouble(&offset, &remote_average, &local_average);
-    
+
+    /* Apply configured correction */
+    offset += inst->offset_correction;
+
     /* We treat the time of the sample as being midway through the local
        measurement period.  An analysis assuming constant relative
        frequency and zero network delay shows this is the only possible
