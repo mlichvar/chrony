@@ -1060,6 +1060,7 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
   CPS_NTP_Source data;
   IPAddr ip_addr;
   int result = 0, status;
+  const char *opt_name;
   
   status = CPS_ParseNTPSourceAdd(line, &data);
   switch (status) {
@@ -1072,38 +1073,25 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
         break;
       }
 
-      if (data.params.min_stratum != SRC_DEFAULT_MINSTRATUM) {
-        LOG(LOGS_WARN, LOGF_Client, "Option minstratum not supported");
-        break;
-      }
+      if (data.params.max_delay_dev_ratio != SRC_DEFAULT_MAXDELAYDEVRATIO)
+        opt_name = "maxdelaydevratio";
+      else if (data.params.max_samples != SRC_DEFAULT_MAXSAMPLES)
+        opt_name = "maxsamples";
+      else if (data.params.min_samples != SRC_DEFAULT_MINSAMPLES)
+        opt_name = "minsamples";
+      else if (data.params.max_sources != SRC_DEFAULT_MAXSOURCES)
+        opt_name = "maxsources";
+      else if (data.params.min_stratum != SRC_DEFAULT_MINSTRATUM)
+        opt_name = "minstratum";
+      else if (data.params.poll_target != SRC_DEFAULT_POLLTARGET)
+        opt_name = "polltarget";
+      else if (data.params.version != NTP_VERSION)
+        opt_name = "version";
+      else
+        opt_name = NULL;
 
-      if (data.params.poll_target != SRC_DEFAULT_POLLTARGET) {
-        LOG(LOGS_WARN, LOGF_Client, "Option polltarget not supported");
-        break;
-      }
-
-      if (data.params.max_delay_dev_ratio != SRC_DEFAULT_MAXDELAYDEVRATIO) {
-        LOG(LOGS_WARN, LOGF_Client, "Option maxdelaydevratio not supported");
-        break;
-      }
-
-      if (data.params.version != NTP_VERSION) {
-        LOG(LOGS_WARN, LOGF_Client, "Option version not supported");
-        break;
-      }
-
-      if (data.params.max_sources != SRC_DEFAULT_MAXSOURCES) {
-        LOG(LOGS_WARN, LOGF_Client, "Option maxsources not supported");
-        break;
-      }
-
-      if (data.params.min_samples != SRC_DEFAULT_MINSAMPLES) {
-        LOG(LOGS_WARN, LOGF_Client, "Option minsamples not supported");
-        break;
-      }
-
-      if (data.params.max_samples != SRC_DEFAULT_MAXSAMPLES) {
-        LOG(LOGS_WARN, LOGF_Client, "Option maxsamples not supported");
+      if (opt_name) {
+        LOG(LOGS_ERR, LOGF_Client, "%s can't be set in chronyc", opt_name);
         break;
       }
 
