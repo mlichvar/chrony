@@ -42,6 +42,7 @@ typedef struct {
     uint8_t in6[16];
   } addr;
   uint16_t family;
+  uint16_t _pad;
 } IPAddr;
 
 typedef struct {
