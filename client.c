@@ -1540,7 +1540,7 @@ print_seconds(unsigned long s)
 
   if (s == (uint32_t)-1) {
     printf("   -");
-  } else if (s <= 1024) {
+  } else if (s < 1200) {
     printf("%4ld", s);
   } else if (s < 36000) {
     printf("%3ldm", s / 60);
