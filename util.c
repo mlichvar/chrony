@@ -632,11 +632,22 @@ UTI_Int32ToDouble(NTP_int32 x)
 NTP_int32
 UTI_DoubleToInt32(double x)
 {
-  if (x > MAX_NTP_INT32)
-    x = MAX_NTP_INT32;
-  else if (x < 0)
-    x = 0.0;
-  return htonl((NTP_int32)(0.5 + 65536.0 * x));
+  NTP_int32 r;
+
+  if (x >= MAX_NTP_INT32) {
+    r = 0xffffffff;
+  } else if (x <= 0.0) {
+    r = 0;
+  } else {
+    x *= 65536.0;
+    r = x;
+
+    /* Round up */
+    if (r < x)
+      r++;
+  }
+
+  return htonl(r);
 }
 
 /* ================================================== */
