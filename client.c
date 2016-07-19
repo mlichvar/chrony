@@ -2289,7 +2289,7 @@ process_cmd_clients(char *line)
       if (ip.family == IPADDR_UNSPEC)
         continue;
 
-      format_name(name, sizeof (name), sizeof (name), 0, 0, &ip);
+      format_name(name, sizeof (name), 25, 0, 0, &ip);
 
       print_report("%-25s  %6U  %5U  %C  %C  %I  %6U  %5U  %C  %I\n",
                    name,
