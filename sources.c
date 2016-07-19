@@ -1294,7 +1294,6 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
   } else {
     src = sources[index];
 
-    memset(&report->ip_addr, 0, sizeof (report->ip_addr));
     if (src->ip_addr)
       report->ip_addr = *src->ip_addr;
     else {
@@ -1304,14 +1303,6 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
     }
 
     switch (src->status) {
-      case SRC_UNSELECTABLE:
-      case SRC_BAD_STATS:
-      case SRC_BAD_DISTANCE:
-      case SRC_STALE:
-      case SRC_ORPHAN:
-      case SRC_WAITS_STATS:
-        report->state = RPT_UNREACH;
-        break;
       case SRC_FALSETICKER:
         report->state = RPT_FALSETICKER;
         break;
@@ -1331,9 +1322,8 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
       case SRC_SELECTED:
         report->state = RPT_SYNC;
         break;
-      case SRC_OK:
       default:
-        assert(0);
+        report->state = RPT_UNREACH;
         break;
     }
 
