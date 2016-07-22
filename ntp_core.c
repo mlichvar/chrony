@@ -61,6 +61,15 @@ typedef enum {
 } OperatingMode;
 
 /* ================================================== */
+/* Enumeration for authentication modes of NTP packets */
+
+typedef enum {
+  AUTH_NONE = 0,                /* No authentication */
+  AUTH_CRYPTO_NAK,              /* Empty MAC indicating authentication error */
+  AUTH_SYMMETRIC,               /* MAC using symmetric key (RFC 1305, RFC 5905) */
+} AuthenticationMode;
+
+/* ================================================== */
 /* Structure used for holding a single peer/server's
    protocol machine */
 
@@ -122,12 +131,7 @@ struct NCR_Instance_Record {
   double offset_correction;     /* Correction applied to measured offset
                                    (e.g. for asymmetry in network delay) */
 
-  int do_auth;                  /* Flag indicating whether we
-                                   authenticate packets we send to
-                                   this machine (if it's serving us or
-                                   the association is symmetric). Note
-                                   : we don't authenticate if we can't
-                                   find the key in our database. */
+  AuthenticationMode auth_mode; /* Authentication mode of our requests */
   uint32_t auth_key_id;          /* The ID of the authentication key to
                                    use. */
 
@@ -495,10 +499,10 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
     result->version = NTP_VERSION;
 
   if (params->authkey == INACTIVE_AUTHKEY) {
-    result->do_auth = 0;
+    result->auth_mode = AUTH_NONE;
     result->auth_key_id = 0;
   } else {
-    result->do_auth = 1;
+    result->auth_mode = AUTH_SYMMETRIC;
     result->auth_key_id = params->authkey;
     if (!KEY_KeyKnown(result->auth_key_id)) {
       LOG(LOGS_WARN, LOGF_NtpCore, "Key %"PRIu32" used by source %s is %s",
@@ -787,7 +791,7 @@ static int
 transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 int my_poll, /* The log2 of the local poll interval */
                 int version, /* The NTP version to be set in the packet */
-                int do_auth, /* Boolean indicating whether to authenticate the packet or not */
+                int auth_mode, /* The authentication mode */
                 uint32_t key_id, /* The authentication key ID */
                 NTP_int64 *orig_ts, /* Originate timestamp (from received packet) */
                 struct timeval *local_rx, /* Local time request packet was received */
@@ -911,8 +915,9 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
 
   length = NTP_NORMAL_PACKET_LENGTH;
 
-  /* Authenticate */
-  if (do_auth && key_id) {
+  /* Authenticate the packet if needed */
+
+  if (auth_mode == AUTH_SYMMETRIC) {
     /* Pre-compensate the transmit time by approx. how long it will
        take to generate the authentication data. */
     local_transmit.tv_usec += KEY_GetAuthDelay(key_id);
@@ -932,8 +937,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
       return 0;
     }
   } else {
-    if (do_auth) {
-      /* Zero key ID means crypto-NAK, append only the ID without any data */
+    if (auth_mode == AUTH_CRYPTO_NAK) {
       message.auth_keyid = 0;
       length += sizeof (message.auth_keyid);
     }
@@ -1011,7 +1015,7 @@ transmit_timeout(void *arg)
     
     /* Send a client packet, don't store the local tx values
        as the reply will be ignored */
-    transmit_packet(MODE_CLIENT, inst->local_poll, inst->version, 0, 0,
+    transmit_packet(MODE_CLIENT, inst->local_poll, inst->version, AUTH_NONE, 0,
                     &inst->remote_orig, &inst->local_rx, NULL, NULL,
                     &inst->remote_addr, &local_addr);
 
@@ -1027,7 +1031,7 @@ transmit_timeout(void *arg)
 
   sent = transmit_packet(inst->mode, inst->local_poll,
                          inst->version,
-                         inst->do_auth, inst->auth_key_id,
+                         inst->auth_mode, inst->auth_key_id,
                          &inst->remote_orig,
                          &inst->local_rx, &inst->local_tx, &inst->local_ntp_tx,
                          &inst->remote_addr,
@@ -1102,7 +1106,8 @@ check_packet_format(NTP_Packet *message, int length)
 /* ================================================== */
 
 static int
-check_packet_auth(NTP_Packet *pkt, int length, int *has_auth, uint32_t *key_id)
+check_packet_auth(NTP_Packet *pkt, int length,
+                  AuthenticationMode *auth_mode, uint32_t *key_id)
 {
   int i, version, remainder, ext_length;
   unsigned char *data;
@@ -1124,10 +1129,8 @@ check_packet_auth(NTP_Packet *pkt, int length, int *has_auth, uint32_t *key_id)
       id = ntohl(*(uint32_t *)(data + i));
       if (KEY_CheckAuth(id, (void *)pkt, i, (void *)(data + i + 4),
                         remainder - 4)) {
-        if (key_id)
-          *key_id = id;
-        if (has_auth)
-          *has_auth = 1;
+        *auth_mode = AUTH_SYMMETRIC;
+        *key_id = id;
         return 1;
       }
     }
@@ -1150,8 +1153,13 @@ check_packet_auth(NTP_Packet *pkt, int length, int *has_auth, uint32_t *key_id)
   /* This is not 100% reliable as a MAC could fail to authenticate and could
      pass as an extension field, leaving reminder smaller than the minimum MAC
      length.  Not a big problem, at worst we won't reply with a crypto-NAK. */
-  if (has_auth)
-    *has_auth = remainder >= NTP_MIN_MAC_LENGTH;
+  if (remainder >= NTP_MIN_MAC_LENGTH) {
+    *auth_mode = AUTH_SYMMETRIC;
+    *key_id = ntohl(*(uint32_t *)(data + i));
+  } else {
+    *auth_mode = AUTH_NONE;
+    *key_id = 0;
+  }
 
   return 0;
 }
@@ -1165,6 +1173,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   uint32_t pkt_refid, pkt_key_id;
   double pkt_root_delay;
   double pkt_root_dispersion;
+  AuthenticationMode pkt_auth_mode;
 
   /* The local time to which the (offset, delay, dispersion) triple will
      be taken to relate.  For client/server operation this is practically
@@ -1254,9 +1263,9 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
      is bad, or it's authenticated with a different key than expected, it's got
      to fail.  If we don't expect the packet to be authenticated, just ignore
      the test. */
-  test5 = !inst->do_auth ||
-          (check_packet_auth(message, length, NULL, &pkt_key_id) &&
-           pkt_key_id == inst->auth_key_id);
+  test5 = inst->auth_mode == AUTH_NONE ||
+          (check_packet_auth(message, length, &pkt_auth_mode, &pkt_key_id) &&
+           pkt_auth_mode == inst->auth_mode && pkt_key_id == inst->auth_key_id);
 
   /* Test 6 checks for unsynchronised server */
   test6 = pkt_leap != LEAP_Unsynchronised &&
@@ -1663,7 +1672,8 @@ NCR_ProcessUnknown
  )
 {
   NTP_Mode pkt_mode, my_mode;
-  int has_auth, valid_auth, log_index;
+  int valid_auth, log_index;
+  AuthenticationMode auth_mode;
   uint32_t key_id;
 
   /* Ignore the packet if it wasn't received by server socket */
@@ -1709,21 +1719,33 @@ NCR_ProcessUnknown
   }
 
   /* Check if the packet includes MAC that authenticates properly */
-  valid_auth = check_packet_auth(message, length, &has_auth, &key_id);
+  valid_auth = check_packet_auth(message, length, &auth_mode, &key_id);
 
-  /* If authentication failed, reply with crypto-NAK */
-  if (!valid_auth)
-    key_id = 0;
+  /* If authentication failed, select whether and how we should respond */
+  if (!valid_auth) {
+    switch (auth_mode) {
+      case AUTH_NONE:
+        /* Reply with no MAC */
+        break;
+      case AUTH_SYMMETRIC:
+        /* Reply with crypto-NAK */
+        auth_mode = AUTH_CRYPTO_NAK;
+        break;
+      default:
+        /* Discard packets in other modes */
+        DEBUG_LOG(LOGF_NtpCore, "NTP packet discarded auth_mode=%d", auth_mode);
+        return;
+    }
+  }
 
   /* Send a reply.
      - copy the poll value as the client may use it to control its polling
        interval
-     - authenticate the packet if the request was authenticated
      - originate timestamp is the client's transmit time
      - don't save our transmit timestamp as we aren't maintaining state about
        this client */
   transmit_packet(my_mode, message->poll, NTP_LVM_TO_VERSION(message->lvm),
-                  has_auth, key_id, &message->transmit_ts, now, NULL, NULL,
+                  auth_mode, key_id, &message->transmit_ts, now, NULL, NULL,
                   remote_addr, local_addr);
 }
 
