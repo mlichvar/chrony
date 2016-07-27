@@ -67,6 +67,8 @@ typedef enum {
   AUTH_NONE = 0,                /* No authentication */
   AUTH_CRYPTO_NAK,              /* Empty MAC indicating authentication error */
   AUTH_SYMMETRIC,               /* MAC using symmetric key (RFC 1305, RFC 5905) */
+  AUTH_MSSNTP,                  /* MS-SNTP authenticator field */
+  AUTH_MSSNTP_EXT,              /* MS-SNTP extended authenticator field */
 } AuthenticationMode;
 
 /* ================================================== */
@@ -1106,6 +1108,19 @@ check_packet_format(NTP_Packet *message, int length)
 /* ================================================== */
 
 static int
+is_zero_data(unsigned char *data, int length)
+{
+  int i;
+
+  for (i = 0; i < length; i++)
+    if (data[i])
+      return 0;
+  return 1;
+}
+
+/* ================================================== */
+
+static int
 check_packet_auth(NTP_Packet *pkt, int length,
                   AuthenticationMode *auth_mode, uint32_t *key_id)
 {
@@ -1156,6 +1171,15 @@ check_packet_auth(NTP_Packet *pkt, int length,
   if (remainder >= NTP_MIN_MAC_LENGTH) {
     *auth_mode = AUTH_SYMMETRIC;
     *key_id = ntohl(*(uint32_t *)(data + i));
+
+    /* Check if it is an MS-SNTP authenticator field or extended authenticator
+       field with zeroes as digest */
+    if (version == 3 && *key_id) {
+      if (remainder == 20 && is_zero_data(data + i + 4, remainder - 4))
+        *auth_mode = AUTH_MSSNTP;
+      else if (remainder == 72 && is_zero_data(data + i + 8, remainder - 8))
+        *auth_mode = AUTH_MSSNTP_EXT;
+    }
   } else {
     *auth_mode = AUTH_NONE;
     *key_id = 0;
