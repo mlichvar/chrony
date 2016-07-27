@@ -32,6 +32,7 @@
 #include "array.h"
 #include "ntp_core.h"
 #include "ntp_io.h"
+#include "ntp_signd.h"
 #include "memory.h"
 #include "sched.h"
 #include "reference.h"
@@ -919,24 +920,28 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
 
   /* Authenticate the packet if needed */
 
-  if (auth_mode == AUTH_SYMMETRIC) {
+  if (auth_mode == AUTH_SYMMETRIC || auth_mode == AUTH_MSSNTP) {
     /* Pre-compensate the transmit time by approx. how long it will
        take to generate the authentication data. */
-    local_transmit.tv_usec += KEY_GetAuthDelay(key_id);
+    local_transmit.tv_usec += auth_mode == AUTH_SYMMETRIC ?
+                              KEY_GetAuthDelay(key_id) : NSD_GetAuthDelay(key_id);
     UTI_NormaliseTimeval(&local_transmit);
     UTI_TimevalToInt64(&local_transmit, &message.transmit_ts, &ts_fuzz);
 
-    auth_len = KEY_GenerateAuth(key_id, (unsigned char *) &message,
-        offsetof(NTP_Packet, auth_keyid),
-        (unsigned char *)&message.auth_data, sizeof (message.auth_data));
-    if (auth_len > 0) {
+    if (auth_mode == AUTH_SYMMETRIC) {
+      auth_len = KEY_GenerateAuth(key_id, (unsigned char *) &message,
+                                  offsetof(NTP_Packet, auth_keyid),
+                                  (unsigned char *)&message.auth_data,
+                                  sizeof (message.auth_data));
+      if (!auth_len) {
+        DEBUG_LOG(LOGF_NtpCore, "Could not generate auth data with key %"PRIu32, key_id);
+        return 0;
+      }
       message.auth_keyid = htonl(key_id);
       length += sizeof (message.auth_keyid) + auth_len;
-    } else {
-      DEBUG_LOG(LOGF_NtpCore,
-                "Could not generate auth data with key %"PRIu32" to send packet",
-                key_id);
-      return 0;
+    } else if (auth_mode == AUTH_MSSNTP) {
+      /* MS-SNTP packets are signed (asynchronously) by ntp_signd */
+      return NSD_SignAndSendPacket(key_id, &message, where_to, from, length);
     }
   } else {
     if (auth_mode == AUTH_CRYPTO_NAK) {
@@ -1754,6 +1759,9 @@ NCR_ProcessUnknown
       case AUTH_SYMMETRIC:
         /* Reply with crypto-NAK */
         auth_mode = AUTH_CRYPTO_NAK;
+        break;
+      case AUTH_MSSNTP:
+        /* Ignore the failure (MS-SNTP servers don't check client MAC) */
         break;
       default:
         /* Discard packets in other modes */

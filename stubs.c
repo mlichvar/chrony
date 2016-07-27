@@ -38,6 +38,7 @@
 #include "ntp_core.h"
 #include "ntp_io.h"
 #include "ntp_sources.h"
+#include "ntp_signd.h"
 #include "privops.h"
 #include "refclock.h"
 #include "sched.h"
@@ -367,3 +368,29 @@ RCL_ReportSource(RPT_SourceReport *report, struct timeval *now)
 }
 
 #endif /* !FEAT_REFCLOCK */
+
+#ifndef FEAT_SIGND
+
+void
+NSD_Initialise(void)
+{
+}
+
+void
+NSD_Finalise(void)
+{
+}
+
+int
+NSD_GetAuthDelay(uint32_t key_id)
+{
+  return 0;
+}
+
+int
+NSD_SignAndSendPacket(uint32_t key_id, NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length)
+{
+  return 0;
+}
+
+#endif /* !FEAT_SIGND */

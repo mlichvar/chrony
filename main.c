@@ -35,6 +35,7 @@
 #include "local.h"
 #include "sys.h"
 #include "ntp_io.h"
+#include "ntp_signd.h"
 #include "ntp_sources.h"
 #include "ntp_core.h"
 #include "sources.h"
@@ -107,6 +108,7 @@ MAI_CleanupAndExit(void)
   TMC_Finalise();
   MNL_Finalise();
   CLG_Finalise();
+  NSD_Finalise();
   NSR_Finalise();
   SST_Finalise();
   NCR_Finalise();
@@ -523,6 +525,7 @@ int main
   REF_Initialise();
   SST_Initialise();
   NSR_Initialise();
+  NSD_Initialise();
   CLG_Initialise();
   MNL_Initialise();
   TMC_Initialise();

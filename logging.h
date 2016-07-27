@@ -83,6 +83,7 @@ typedef enum {
   LOGF_Reference,
   LOGF_NtpIO,
   LOGF_NtpCore,
+  LOGF_NtpSignd,
   LOGF_NtpSources,
   LOGF_Scheduler,
   LOGF_SourceStats,

@@ -1760,6 +1760,20 @@ should result in lower and more consistent latency. It should not have
 significant impact on performance as *chronyd's* memory usage is modest. The
 *mlockall(2)* man page has more details.
 
+[[ntpsigndsocket]]*ntpsigndsocket* _directory_::
+This directive specifies the location of the Samba *ntp_signd* socket when it
+is running as a Domain Controller (DC). If *chronyd* is compiled with this
+feature, responses to MS-SNTP clients will be signed by the *smbd* daemon. Note
+that MS-SNTP requests are not authenticated, so any NTP client can get
+responses authenticated with passwords of users in the domain. Access to the
+server should be carefully controlled.
++
+An example of the directive is:
++
+----
+ntpsigndsocket /var/lib/samba/ntp_signd
+----
+
 [[pidfile]]*pidfile* _file_::
 *chronyd* always writes its process ID (PID) to a file, and checks this file on
 startup to see if another *chronyd* may already be running on the system. By

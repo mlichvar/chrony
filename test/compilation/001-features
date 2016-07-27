@@ -6,6 +6,7 @@ cd ../..
 
 for opts in \
 	"--enable-debug" \
+	"--enable-ntp-signd" \
 	"--enable-scfilter" \
 	"--disable-asyncdns" \
 	"--disable-ipv6" \

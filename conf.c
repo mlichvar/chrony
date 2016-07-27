@@ -181,6 +181,9 @@ static IPAddr bind_cmd_address4, bind_cmd_address6;
 /* Path to the Unix domain command socket. */
 static char *bind_cmd_path;
 
+/* Path to Samba (ntp_signd) socket. */
+static char *ntp_signd_socket = NULL;
+
 /* Filename to use for storing pid of running chronyd, to prevent multiple
  * chronyds being started. */
 static char *pidfile;
@@ -361,6 +364,7 @@ CNF_Finalise(void)
   Free(leapsec_tz);
   Free(logdir);
   Free(bind_cmd_path);
+  Free(ntp_signd_socket);
   Free(pidfile);
   Free(rtc_device);
   Free(rtc_file);
@@ -506,6 +510,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_int(p, &min_sources);
   } else if (!strcasecmp(command, "noclientlog")) {
     no_client_log = parse_null(p);
+  } else if (!strcasecmp(command, "ntpsigndsocket")) {
+    parse_string(p, &ntp_signd_socket);
   } else if (!strcasecmp(command, "peer")) {
     parse_source(p, NTP_PEER, 0);
   } else if (!strcasecmp(command, "pidfile")) {
@@ -1732,6 +1738,14 @@ CNF_GetBindCommandAddress(int family, IPAddr *addr)
     *addr = bind_cmd_address6;
   else
     addr->family = IPADDR_UNSPEC;
+}
+
+/* ================================================== */
+
+char *
+CNF_GetNtpSigndSocket(void)
+{
+  return ntp_signd_socket;
 }
 
 /* ================================================== */
