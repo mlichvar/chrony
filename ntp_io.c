@@ -41,6 +41,7 @@
 #include "util.h"
 
 #define INVALID_SOCK_FD -1
+#define CMSGBUF_SIZE 256
 
 union sockaddr_in46 {
   struct sockaddr_in in4;
@@ -495,7 +496,7 @@ read_from_socket(int sock_fd, int event, void *anything)
   double now_err;
   NTP_Remote_Address remote_addr;
   NTP_Local_Address local_addr;
-  char cmsgbuf[256];
+  struct cmsghdr cmsgbuf[CMSGBUF_SIZE / sizeof (struct cmsghdr)];
   struct msghdr msg;
   struct iovec iov;
   struct cmsghdr *cmsg;
@@ -590,7 +591,7 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
   union sockaddr_in46 remote;
   struct msghdr msg;
   struct iovec iov;
-  char cmsgbuf[256];
+  struct cmsghdr cmsgbuf[CMSGBUF_SIZE / sizeof (struct cmsghdr)];
   int cmsglen;
   socklen_t addrlen = 0;
 
