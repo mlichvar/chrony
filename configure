@@ -24,6 +24,7 @@ test_code () {
   printf "%s" "Checking for $name : "
 
   (
+    echo "#include \"config.h\""
     for h in $headers; do
       echo "#include <$h>"
     done
