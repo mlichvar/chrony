@@ -468,8 +468,8 @@ SYS_Linux_EnableSystemCallFilter(int level)
     SCMP_SYS(unlink),
     /* Socket */
     SCMP_SYS(bind), SCMP_SYS(connect), SCMP_SYS(getsockname),
-    SCMP_SYS(recvfrom), SCMP_SYS(recvmsg), SCMP_SYS(sendmmsg),
-    SCMP_SYS(sendmsg), SCMP_SYS(sendto),
+    SCMP_SYS(recvfrom), SCMP_SYS(recvmmsg), SCMP_SYS(recvmsg),
+    SCMP_SYS(sendmmsg), SCMP_SYS(sendmsg), SCMP_SYS(sendto),
     /* TODO: check socketcall arguments */
     SCMP_SYS(socketcall),
     /* General I/O */

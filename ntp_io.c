@@ -60,12 +60,18 @@ struct Message {
   struct cmsghdr cmsgbuf[CMSGBUF_SIZE / sizeof (struct cmsghdr)];
 };
 
+#ifdef HAVE_RECVMMSG
+#define MAX_RECV_MESSAGES 4
+#define MessageHeader mmsghdr
+#else
+/* Compatible with mmsghdr */
 struct MessageHeader {
   struct msghdr msg_hdr;
   unsigned int msg_len;
 };
 
 #define MAX_RECV_MESSAGES 1
+#endif
 
 /* Arrays of Message and MessageHeader */
 static ARR_Instance recv_messages;
@@ -609,7 +615,7 @@ static void
 read_from_socket(int sock_fd, int event, void *anything)
 {
   /* This should only be called when there is something
-     to read, otherwise it will block */
+     to read, otherwise it may block */
 
   struct MessageHeader *hdr;
   unsigned int i, n;
@@ -619,10 +625,16 @@ read_from_socket(int sock_fd, int event, void *anything)
   n = ARR_GetSize(recv_headers);
   assert(n >= 1);
 
+#ifdef HAVE_RECVMMSG
+  status = recvmmsg(sock_fd, hdr, n, MSG_DONTWAIT, NULL);
+  if (status >= 0)
+    n = status;
+#else
   n = 1;
   status = recvmsg(sock_fd, &hdr[0].msg_hdr, 0);
   if (status >= 0)
     hdr[0].msg_len = status;
+#endif
 
   if (status < 0) {
     DEBUG_LOG(LOGF_NtpIO, "Could not receive from fd %d : %s", sock_fd,
