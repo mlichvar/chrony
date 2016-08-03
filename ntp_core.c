@@ -1519,7 +1519,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
             pkt_root_delay, pkt_root_dispersion);
   }            
 
-  return valid_packet;
+  return good_packet;
 }
 
 /* ================================================== */

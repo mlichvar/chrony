@@ -792,7 +792,7 @@ NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP
       return;
 
     if (record->tentative) {
-      /* This was the first valid reply from the source */
+      /* This was the first good reply from the source */
       record->tentative = 0;
 
       if (record->pool != INVALID_POOL) {
