@@ -1232,7 +1232,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
 
   /* RFC 5905 packet tests */
   int test1, test2, test3, test5, test6, test7;
-  int valid_packet;
+  int valid_packet, synced_packet;
 
   /* Additional tests */
   int testA, testB, testC, testD;
@@ -1254,7 +1254,6 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   double error_in_estimate;
 
   double delay_time, precision;
-  int requeue_transmit;
 
   /* ==================== */
 
@@ -1305,8 +1304,10 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
      defined maximum. */
   test7 = pkt_root_delay / 2.0 + pkt_root_dispersion < NTP_MAX_DISPERSION;
 
-  /* The packet is considered valid if the tests above passed */
-  valid_packet = test1 && test2 && test3 && test5 && test6 && test7;
+  /* The packet is considered valid if the tests 1-5 passed.  The timestamps
+     can be used for synchronisation if the tests 6 and 7 passed too. */
+  valid_packet = test1 && test2 && test3 && test5;
+  synced_packet = valid_packet && test6 && test7;
 
   /* Check for Kiss-o'-Death codes */
   kod_rate = 0;
@@ -1328,7 +1329,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
   if (test2)
     inst->local_ntp_tx.hi = inst->local_ntp_tx.lo = 0;
 
-  if (valid_packet) {
+  if (synced_packet) {
     precision = LCL_GetSysPrecisionAsQuantum() +
                 UTI_Log2ToDouble(message->precision);
 
@@ -1425,25 +1426,13 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
             test1, test2, test3, test5, test6, test7, testA, testB, testC, testD,
             kod_rate, valid_packet, good_packet);
 
-  requeue_transmit = 0;
-
-  /* Reduce polling rate if KoD RATE was received */
-  if (kod_rate) {
-    /* Stop ongoing burst */
-    if (inst->opmode == MD_BURST_WAS_OFFLINE || inst->opmode == MD_BURST_WAS_ONLINE) {
-      inst->burst_good_samples_to_go = 0;
-      LOG(LOGS_WARN, LOGF_NtpCore, "Received KoD RATE from %s, burst sampling stopped",
-          UTI_IPToString(&inst->remote_addr.ip_addr));
-    }
-
-    requeue_transmit = 1;
-  }
-
   if (valid_packet) {
-    inst->remote_poll = message->poll;
-    inst->remote_stratum = message->stratum;
-    inst->tx_count = 0;
-    SRC_UpdateReachability(inst->source, 1);
+    if (synced_packet) {
+      inst->remote_poll = message->poll;
+      inst->remote_stratum = message->stratum;
+      inst->tx_count = 0;
+      SRC_UpdateReachability(inst->source, 1);
+    }
 
     if (good_packet) {
       /* Do this before we accumulate a new sample into the stats registers, obviously */
@@ -1483,7 +1472,7 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
         default:
           break;
       }
-    } else {
+    } else if (synced_packet) {
       /* Slowly increase the polling interval if we can't get good packet */
       adjust_poll(inst, 0.1);
     }
@@ -1495,21 +1484,25 @@ receive_packet(NTP_Packet *message, struct timeval *now, double now_err, NCR_Ins
     /* Update the local address */
     inst->local_addr.ip_addr = local_addr->ip_addr;
 
-    requeue_transmit = 1;
-  }
+    /* And now, requeue the timer */
+    if (inst->opmode != MD_OFFLINE) {
+      delay_time = get_transmit_delay(inst, 0, local_interval);
 
-  /* And now, requeue the timer. */
-  if (requeue_transmit && inst->opmode != MD_OFFLINE) {
-    delay_time = get_transmit_delay(inst, 0, local_interval);
+      if (kod_rate) {
+        /* Back off for a while and stop ongoing burst */
+        delay_time += 4 * (1UL << inst->minpoll);
 
-    if (kod_rate) {
-      /* Back off for a while */
-      delay_time += (double) (4 * (1UL << inst->minpoll));
+        if (inst->opmode == MD_BURST_WAS_OFFLINE || inst->opmode == MD_BURST_WAS_ONLINE) {
+          inst->burst_good_samples_to_go = 0;
+          LOG(LOGS_WARN, LOGF_NtpCore, "Received KoD RATE from %s, burst sampling stopped",
+              UTI_IPToString(&inst->remote_addr.ip_addr));
+        }
+      }
+
+      /* Get rid of old timeout and start a new one */
+      assert(inst->tx_timeout_id);
+      restart_timeout(inst, delay_time);
     }
-
-    /* Get rid of old timeout and start a new one */
-    assert(inst->tx_timeout_id);
-    restart_timeout(inst, delay_time);
   }
 
   /* Do measurement logging */
