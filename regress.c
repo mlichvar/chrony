@@ -109,7 +109,7 @@ double
 RGR_GetTCoef(int dof)
 {
   /* Assuming now the 99.95% quantile */
-  static double coefs[] =
+  static const float coefs[] =
   { 636.6, 31.6, 12.92, 8.61, 6.869,
     5.959, 5.408, 5.041, 4.781, 4.587,
     4.437, 4.318, 4.221, 4.140, 4.073,
@@ -132,7 +132,7 @@ RGR_GetTCoef(int dof)
 double
 RGR_GetChi2Coef(int dof)
 {
-  static double coefs[] = {
+  static const float coefs[] = {
     2.706, 4.605, 6.251, 7.779, 9.236, 10.645, 12.017, 13.362,
     14.684, 15.987, 17.275, 18.549, 19.812, 21.064, 22.307, 23.542,
     24.769, 25.989, 27.204, 28.412, 29.615, 30.813, 32.007, 33.196,
