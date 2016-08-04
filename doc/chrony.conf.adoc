@@ -1428,7 +1428,7 @@ cannot be used with the <<rtcfile,*rtcfile*>> directive.
 +
 On Linux, the RTC copy is performed by the kernel every 11 minutes.
 +
-On Mac OS X, <<chronyd,*chronyd*>> will perform the RTC copy every 60 minutes
+On macOS, <<chronyd,*chronyd*>> will perform the RTC copy every 60 minutes
 when the system clock is in a synchronised state.
 +
 On other systems this directive does nothing.
@@ -1786,8 +1786,8 @@ pidfile /run/chronyd.pid
 
 [[sched_priority]]*sched_priority* _priority_::
 On Linux, the *sched_priority* directive will select the SCHED_FIFO real-time
-scheduler at the specified priority (which must be between 0 and 100). On Mac
-OS X, this option must have either a value of 0 (the default) to disable the
+scheduler at the specified priority (which must be between 0 and 100). On
+macOS, this option must have either a value of 0 (the default) to disable the
 thread time constraint policy or 1 for the policy to be enabled. Other systems
 do not support this option.
 +
@@ -1802,7 +1802,7 @@ wait for the scheduler to get around to running it. You should not use this
 unless you really need it. The *sched_setscheduler(2)* man page has more
 details.
 +
-On Mac OS X, this directive uses the *thread_policy_set()* kernel call to
+On macOS, this directive uses the *thread_policy_set()* kernel call to
 specify real-time scheduling. As noted for Linux, you should not use this
 directive unless you really need it.
 
@@ -1811,7 +1811,7 @@ The *user* directive sets the name of the system user to which *chronyd* will
 switch after start in order to drop root privileges.
 +
 On Linux, *chronyd* needs to be compiled with support for the *libcap* library.
-On Mac OS X, FreeBSD, NetBSD and Solaris *chronyd* forks into two processes.
+On macOS, FreeBSD, NetBSD and Solaris *chronyd* forks into two processes.
 The child process retains root privileges, but can only perform a very limited
 range of privileged system calls on behalf of the parent.
 +

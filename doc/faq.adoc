@@ -61,8 +61,8 @@ that.
 In order to keep the real-time clock (RTC) close to the true time, so the
 system time is reasonably close to the true time when it's initialized on the
 next boot from the RTC, the `rtcsync` directive enables a mode in which the
-system time is periodically copied to the RTC. It is supported on Linux and Mac
-OS X.
+system time is periodically copied to the RTC. It is supported on Linux and
+macOS.
 
 If you want to use public NTP servers from the
 http://www.pool.ntp.org/[pool.ntp.org] project, the minimal _chrony.conf_ file

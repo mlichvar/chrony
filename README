@@ -27,7 +27,7 @@ operating parameters whilst it is running.
 What will chrony run on?
 ========================
 
-The software is known to work on Linux, FreeBSD, NetBSD, Mac OS X and
+The software is known to work on Linux, FreeBSD, NetBSD, macOS and
 Solaris.  Closely related systems may work too.  Any other system will
 likely require a porting exercise.  You would need to start from one
 of the existing system-specific drivers and look into the quirks of
@@ -139,7 +139,7 @@ Erik Bryer <ebryer@spots.ab.ca>
     Entries in contrib directory
 
 Bryan Christianson <bryan@whatroute.net>
-    Support for Mac OS X
+    Support for macOS
     Support for privilege separation
     Entries in contrib directory
 

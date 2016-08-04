@@ -23,7 +23,7 @@
 
   =======================================================================
 
-  Driver file for the MacOS X operating system.
+  Driver file for the macOS operating system.
 
   */
 

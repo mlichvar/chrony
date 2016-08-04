@@ -402,7 +402,7 @@ case $OPERATINGSYSTEM in
           add_def FEAT_PRIVDROP
           priv_ops="ADJUSTTIME SETTIME BINDSOCKET"
         fi
-        echo "Configuring for MacOS X (" $SYSTEM "MacOS X version" $VERSION ")"
+        echo "Configuring for macOS (" $SYSTEM "macOS version" $VERSION ")"
     ;;
     SunOS)
         EXTRA_OBJECTS="sys_generic.o sys_solaris.o sys_timex.o"

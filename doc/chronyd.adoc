@@ -115,7 +115,7 @@ after start in order to drop root privileges. It overrides the
 <<chrony.conf.adoc#user,*user*>> directive (default _@DEFAULT_USER@_).
 +
 On Linux, *chronyd* needs to be compiled with support for the *libcap* library.
-On Mac OS X, FreeBSD, NetBSD and Solaris *chronyd* forks into two processes.
+On macOS, FreeBSD, NetBSD and Solaris *chronyd* forks into two processes.
 The child process retains root privileges, but can only perform a very limited
 range of privileged system calls on behalf of the parent.
 
@@ -134,7 +134,7 @@ killed even in normal operation.
 
 *-P* _priority_::
 On Linux, this option will select the SCHED_FIFO real-time scheduler at the
-specified priority (which must be between 0 and 100). On Mac OS X, this option
+specified priority (which must be between 0 and 100). On macOS, this option
 must have either a value of 0 (the default) to disable the thread time
 constraint policy or 1 for the policy to be enabled. Other systems do not
 support this option.

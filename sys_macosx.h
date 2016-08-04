@@ -23,7 +23,7 @@
 
   =======================================================================
 
-  Header file for MacOS X driver
+  Header file for macOS driver
 
   */
 

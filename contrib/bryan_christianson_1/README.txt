@@ -1,16 +1,16 @@
-Notes for installing chrony on MacOS X
+Notes for installing chrony on macOS
 Author: Bryan Christianson (bryan@whatroute.net)
 ------------------------------------------------
 
 These files are for those admins/users who would prefer to install chrony
 from the source distribution and are intended as guidelines rather than
 being definitive. They can be edited with a plain text editor, such as
-vi, emacs or your favourite IDE (xcode)
+vi, emacs or your favourite IDE (Xcode)
 
 It is assumed you are comfortable with installing software from the
 terminal command line and know how to use sudo to acquire root access.
 
-If you are not familiar with the MacOS X command line then
+If you are not familiar with the macOS command line then
 please consider using ChronyControl from http://whatroute.net/chronycontrol.html
 
 ChronyControl provides a gui wrapper for installing these files and sets the
@@ -72,7 +72,7 @@ Installing the support files
 
 1. chronylogrotate.sh
 This is a simple shell script that deletes old log files. Unfortunately because
-of the need to run chronyc, the standard MacOS X logrotation does not work with
+of the need to run chronyc, the standard macOS logrotation does not work with
 chrony logs.
 
 This script runs on a daily basis under control of launchd and should be
