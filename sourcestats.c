@@ -72,8 +72,8 @@ struct SST_Stats_Record {
      buffer. */
   int n_samples;
 
-  /* Number of extra samples stored in sample_times and offsets arrays that are
-     used to extend runs test */
+  /* Number of extra samples stored in sample_times, offsets and peer_delays
+     arrays that are used to extend the runs test */
   int runs_samples;
 
   /* The index of the newest sample */
@@ -131,7 +131,7 @@ struct SST_Stats_Record {
 
   /* This is an array of peer delays, in seconds, being the roundtrip
      measurement delay to the peer */
-  double peer_delays[MAX_SAMPLES];
+  double peer_delays[MAX_SAMPLES * REGRESS_RUNS_RATIO];
 
   /* This is an array of peer dispersions, being the skew and local
      precision dispersion terms from sampling the peer */
@@ -282,14 +282,14 @@ SST_AccumulateSample(SST_Stats inst, struct timeval *sample_time,
   inst->sample_times[n] = *sample_time;
   inst->offsets[n] = offset;
   inst->orig_offsets[m] = offset;
-  inst->peer_delays[m] = peer_delay;
+  inst->peer_delays[n] = peer_delay;
   inst->peer_dispersions[m] = peer_dispersion;
   inst->root_delays[m] = root_delay;
   inst->root_dispersions[m] = root_dispersion;
   inst->strata[m] = stratum;
  
-  if (!inst->n_samples || inst->peer_delays[m] < inst->peer_delays[inst->min_delay_sample])
-    inst->min_delay_sample = m;
+  if (!inst->n_samples || inst->peer_delays[n] < inst->peer_delays[inst->min_delay_sample])
+    inst->min_delay_sample = n;
 
   ++inst->n_samples;
 }
@@ -376,10 +376,10 @@ find_min_delay_sample(SST_Stats inst)
 {
   int i, index;
 
-  inst->min_delay_sample = get_buf_index(inst, 0);
+  inst->min_delay_sample = get_runsbuf_index(inst, -inst->runs_samples);
 
-  for (i = 1; i < inst->n_samples; i++) {
-    index = get_buf_index(inst, i);
+  for (i = -inst->runs_samples + 1; i < inst->n_samples; i++) {
+    index = get_runsbuf_index(inst, i);
     if (inst->peer_delays[index] < inst->peer_delays[inst->min_delay_sample])
       inst->min_delay_sample = index;
   }
@@ -425,7 +425,8 @@ SST_DoNewRegression(SST_Stats inst)
   
     for (i = 0, mean_distance = 0.0, min_distance = DBL_MAX; i < inst->n_samples; i++) {
       j = get_buf_index(inst, i);
-      peer_distances[i] = 0.5 * inst->peer_delays[j] + inst->peer_dispersions[j];
+      peer_distances[i] = 0.5 * inst->peer_delays[get_runsbuf_index(inst, i)] +
+                          inst->peer_dispersions[j];
       mean_distance += peer_distances[i];
       if (peer_distances[i] < min_distance) {
         min_distance = peer_distances[i];
@@ -563,7 +564,7 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
   UTI_DiffTimevalsToDouble(&elapsed, now, &(inst->offset_time));
   average_offset = inst->estimated_offset + inst->estimated_frequency * elapsed;
   if (fabs(average_offset - offset) <=
-      inst->peer_dispersions[j] + 0.5 * inst->peer_delays[j]) {
+      inst->peer_dispersions[j] + 0.5 * inst->peer_delays[i]) {
     average_ok = 1;
   } else {
     average_ok = 0;
@@ -755,7 +756,7 @@ SST_SaveToFile(SST_Stats inst, FILE *out)
             (unsigned long) inst->sample_times[i].tv_usec,
             inst->offsets[i],
             inst->orig_offsets[j],
-            inst->peer_delays[j],
+            inst->peer_delays[i],
             inst->peer_dispersions[j],
             inst->root_delays[j],
             inst->root_dispersions[j],
