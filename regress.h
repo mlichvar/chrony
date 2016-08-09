@@ -119,4 +119,16 @@ RGR_FindBestRobustRegression
  int *n_runs,
  int *best_start);
 
+int
+RGR_MultipleRegress
+(double *x1,                    /* first independent variable */
+ double *x2,                    /* second independent variable */
+ double *y,                     /* measured data */
+
+ int n,                         /* number of data points */
+
+ /* The results */
+ double *b2                     /* estimated second slope */
+);
+
 #endif /* GOT_REGRESS_H */
