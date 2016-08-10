@@ -50,6 +50,19 @@
 /* The minimum allowed skew */
 #define MIN_SKEW 1.0e-12
 
+/* The asymmetry of network jitter when all jitter is in one direction */
+#define MAX_ASYMMETRY 0.5
+
+/* The minimum estimated asymmetry that can activate the offset correction */
+#define MIN_ASYMMETRY 0.45
+
+/* The minimum number of consecutive asymmetries with the same sign needed
+   to activate the offset correction */
+#define MIN_ASYMMETRY_RUN 10
+
+/* The maximum value of the counter */
+#define MAX_ASYMMETRY_RUN 1000
+
 /* ================================================== */
 
 static LOG_FileID logfileid;
@@ -96,6 +109,13 @@ struct SST_Stats_Record {
 
   /* Number of runs of the same sign amongst the residuals */
   int nruns;
+
+  /* Number of consecutive estimated asymmetries with the same sign.
+     The sign of the number encodes the sign of the asymmetry. */
+  int asymmetry_run;
+
+  /* This is the latest estimated asymmetry of network jitter */
+  double asymmetry;
 
   /* This value contains the estimated frequency.  This is the number
      of seconds that the local clock gains relative to the reference
@@ -218,6 +238,8 @@ SST_ResetInstance(SST_Stats inst)
   inst->offset_time.tv_usec = 0;
   inst->variance = 16.0;
   inst->nruns = 0;
+  inst->asymmetry_run = 0;
+  inst->asymmetry = 0.0;
 }
 
 /* ================================================== */
@@ -386,6 +408,56 @@ find_min_delay_sample(SST_Stats inst)
 }
 
 /* ================================================== */
+/* This function estimates asymmetry of network jitter on the path to the
+   source as a slope of offset against network delay in multiple linear
+   regression.  If the asymmetry is significant and its sign doesn't change
+   frequently, the measured offsets (which are used later to estimate the
+   offset and frequency of the clock) are corrected to correspond to the
+   minimum network delay.  This can significantly improve the accuracy and
+   stability of the estimated offset and frequency. */
+
+static void
+correct_asymmetry(SST_Stats inst, double *times_back, double *offsets)
+{
+  double asymmetry, delays[MAX_SAMPLES * REGRESS_RUNS_RATIO];
+  int i, n;
+
+  /* Don't try to estimate the asymmetry with reference clocks */
+  if (!inst->ip_addr)
+    return;
+
+  n = inst->runs_samples + inst->n_samples;
+
+  for (i = 0; i < n; i++)
+    delays[i] = inst->peer_delays[get_runsbuf_index(inst, i - inst->runs_samples)] -
+                inst->peer_delays[inst->min_delay_sample];
+
+  /* Reset the counter when the regression fails or the sign changes */
+  if (!RGR_MultipleRegress(times_back, delays, offsets, n, &asymmetry) ||
+      asymmetry * inst->asymmetry_run < 0.0) {
+    inst->asymmetry_run = 0;
+    inst->asymmetry = 0.0;
+    return;
+  }
+
+  asymmetry = CLAMP(-MAX_ASYMMETRY, asymmetry, MAX_ASYMMETRY);
+
+  if (asymmetry <= -MIN_ASYMMETRY && inst->asymmetry_run > -MAX_ASYMMETRY_RUN)
+    inst->asymmetry_run--;
+  else if (asymmetry >= MIN_ASYMMETRY && inst->asymmetry_run < MAX_ASYMMETRY_RUN)
+    inst->asymmetry_run++;
+
+  if (abs(inst->asymmetry_run) < MIN_ASYMMETRY_RUN)
+    return;
+
+  /* Correct the offsets */
+  for (i = 0; i < n; i++)
+    offsets[i] -= asymmetry * delays[i];
+
+  inst->asymmetry = asymmetry;
+}
+
+/* ================================================== */
 
 /* This defines the assumed ratio between the standard deviation of
    the samples and the peer distance as measured from the round trip
@@ -446,6 +518,8 @@ SST_DoNewRegression(SST_Stats inst)
     }
   }
 
+  correct_asymmetry(inst, times_back, offsets);
+
   inst->regression_ok = RGR_FindBestRegression(times_back + inst->runs_samples,
                                          offsets + inst->runs_samples, weights,
                                          inst->n_samples, inst->runs_samples,
@@ -472,9 +546,10 @@ SST_DoNewRegression(SST_Stats inst)
 
     stress = fabs(old_freq - inst->estimated_frequency) / old_skew;
 
-    DEBUG_LOG(LOGF_SourceStats, "off=%e freq=%e skew=%e n=%d bs=%d runs=%d",
+    DEBUG_LOG(LOGF_SourceStats, "off=%e freq=%e skew=%e n=%d bs=%d runs=%d asym=%f arun=%d",
               inst->estimated_offset, inst->estimated_frequency, inst->skew,
-              inst->n_samples, best_start, inst->nruns);
+              inst->n_samples, best_start, inst->nruns,
+              inst->asymmetry, inst->asymmetry_run);
 
     if (logfileid != -1) {
       LOG_FileWrite(logfileid, "%s %-15s %10.3e %10.3e %10.3e %10.3e %10.3e %7.1e %3d %3d %3d",
