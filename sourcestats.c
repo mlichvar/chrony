@@ -181,7 +181,7 @@ void
 SST_Initialise(void)
 {
   logfileid = CNF_GetLogStatistics() ? LOG_FileOpen("statistics",
-      "   Date (UTC) Time     IP Address    Std dev'n Est offset  Offset sd  Diff freq   Est skew  Stress  Ns  Bs  Nr")
+      "   Date (UTC) Time     IP Address    Std dev'n Est offset  Offset sd  Diff freq   Est skew  Stress  Ns  Bs  Nr  Asym")
     : -1;
 }
 
@@ -552,17 +552,14 @@ SST_DoNewRegression(SST_Stats inst)
               inst->asymmetry, inst->asymmetry_run);
 
     if (logfileid != -1) {
-      LOG_FileWrite(logfileid, "%s %-15s %10.3e %10.3e %10.3e %10.3e %10.3e %7.1e %3d %3d %3d",
+      LOG_FileWrite(logfileid, "%s %-15s %10.3e %10.3e %10.3e %10.3e %10.3e %7.1e %3d %3d %3d %5.2f",
               UTI_TimeToLogForm(inst->offset_time.tv_sec),
               inst->ip_addr ? UTI_IPToString(inst->ip_addr) : UTI_RefidToString(inst->refid),
               sqrt(inst->variance),
-              inst->estimated_offset,
-              inst->estimated_offset_sd,
-              inst->estimated_frequency,
-              inst->skew,
-              stress,
-              inst->n_samples,
-              best_start, nruns);
+              inst->estimated_offset, inst->estimated_offset_sd,
+              inst->estimated_frequency, inst->skew, stress,
+              inst->n_samples, best_start, inst->nruns,
+              inst->asymmetry);
     }
 
     times_back_start = inst->runs_samples + best_start;

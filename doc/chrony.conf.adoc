@@ -1485,8 +1485,8 @@ _statistics.log_. An example line (which actually appears as a single line in
 the file) from the log file is shown below.
 +
 ----
-2015-07-22 05:40:50 203.0.113.15     6.261e-03 -3.247e-03 \
-     2.220e-03  1.874e-06  1.080e-06 7.8e-02  16   0   8
+2016-08-10 05:40:50 203.0.113.15     6.261e-03 -3.247e-03 \
+     2.220e-03  1.874e-06  1.080e-06 7.8e-02  16   0   8  0.00
 ----
 +
 The columns are as follows (the quantities in square brackets are the values
@@ -1521,6 +1521,11 @@ from the example line above):
   to be discarded. The number of runs for the data that is being retained is
   tabulated. Values of approximately half the number of samples are expected.
   [8]
+. The estimated asymmetry of network jitter on the path to the source which was
+  used to correct the measured offsets. The asymmetry can be between -0.5 and
+  0.5. A negative value means the delay of packets sent to the source is
+  more variable than the delay of packets sent from the source back. [0.00,
+  i.e. no correction for asymmetry]
 +
 *tracking*:::
 This option logs changes to the estimate of the system's gain or loss rate, and
