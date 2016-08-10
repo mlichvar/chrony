@@ -472,6 +472,10 @@ SST_DoNewRegression(SST_Stats inst)
 
     stress = fabs(old_freq - inst->estimated_frequency) / old_skew;
 
+    DEBUG_LOG(LOGF_SourceStats, "off=%e freq=%e skew=%e n=%d bs=%d runs=%d",
+              inst->estimated_offset, inst->estimated_frequency, inst->skew,
+              inst->n_samples, best_start, inst->nruns);
+
     if (logfileid != -1) {
       LOG_FileWrite(logfileid, "%s %-15s %10.3e %10.3e %10.3e %10.3e %10.3e %7.1e %3d %3d %3d",
               UTI_TimeToLogForm(inst->offset_time.tv_sec),
