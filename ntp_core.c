@@ -66,7 +66,6 @@ typedef enum {
 
 typedef enum {
   AUTH_NONE = 0,                /* No authentication */
-  AUTH_CRYPTO_NAK,              /* Empty MAC indicating authentication error */
   AUTH_SYMMETRIC,               /* MAC using symmetric key (RFC 1305, RFC 5905) */
   AUTH_MSSNTP,                  /* MS-SNTP authenticator field */
   AUTH_MSSNTP_EXT,              /* MS-SNTP extended authenticator field */
@@ -944,10 +943,6 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
       return NSD_SignAndSendPacket(key_id, &message, where_to, from, length);
     }
   } else {
-    if (auth_mode == AUTH_CRYPTO_NAK) {
-      message.auth_keyid = 0;
-      length += sizeof (message.auth_keyid);
-    }
     UTI_TimevalToInt64(&local_transmit, &message.transmit_ts, &ts_fuzz);
   }
 
@@ -1172,7 +1167,7 @@ check_packet_auth(NTP_Packet *pkt, int length,
 
   /* This is not 100% reliable as a MAC could fail to authenticate and could
      pass as an extension field, leaving reminder smaller than the minimum MAC
-     length.  Not a big problem, at worst we won't reply with a crypto-NAK. */
+     length */
   if (remainder >= NTP_MIN_MAC_LENGTH) {
     *auth_mode = AUTH_SYMMETRIC;
     *key_id = ntohl(*(uint32_t *)(data + i));
@@ -1748,10 +1743,6 @@ NCR_ProcessUnknown
     switch (auth_mode) {
       case AUTH_NONE:
         /* Reply with no MAC */
-        break;
-      case AUTH_SYMMETRIC:
-        /* Reply with crypto-NAK */
-        auth_mode = AUTH_CRYPTO_NAK;
         break;
       case AUTH_MSSNTP:
         /* Ignore the failure (MS-SNTP servers don't check client MAC) */
