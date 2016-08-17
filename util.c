@@ -709,6 +709,8 @@ UTI_Int64ToTimeval(NTP_int64 *src,
   
   /* Until I invent a slick way to do this, just do it the obvious way */
   dest->tv_usec = (int)(0.5 + (double)(ntp_frac) / 4294.967296);
+
+  UTI_NormaliseTimeval(dest);
 }
 
 /* ================================================== */
@@ -785,6 +787,8 @@ UTI_TimevalNetworkToHost(Timeval *src, struct timeval *dest)
 #else
   dest->tv_sec = sec_low;
 #endif
+
+  UTI_NormaliseTimeval(dest);
 }
 
 /* ================================================== */
