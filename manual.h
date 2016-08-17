@@ -33,7 +33,7 @@
 
 extern void MNL_Initialise(void);
 extern void MNL_Finalise(void);
-extern int MNL_AcceptTimestamp(struct timeval *ts, long *offset_cs, double *dfreq_ppm, double *new_afreq_ppm);
+extern int MNL_AcceptTimestamp(struct timespec *ts, long *offset_cs, double *dfreq_ppm, double *new_afreq_ppm);
 
 extern void MNL_Enable(void);
 extern void MNL_Disable(void);

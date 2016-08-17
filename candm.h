@@ -96,12 +96,12 @@
 #define REQ_LOCAL2 56
 #define N_REQUEST_TYPES 57
 
-/* Structure used to exchange timevals independent on size of time_t */
+/* Structure used to exchange timespecs independent of time_t size */
 typedef struct {
   uint32_t tv_sec_high;
   uint32_t tv_sec_low;
   uint32_t tv_nsec;
-} Timeval;
+} Timespec;
 
 /* This is used in tv_sec_high for 32-bit timestamps */
 #define TV_NOHIGHSEC 0x7fffffff
@@ -200,12 +200,12 @@ typedef struct {
 } REQ_Modify_Makestep;
 
 typedef struct {
-  Timeval ts;
+  Timespec ts;
   int32_t EOR;
 } REQ_Logon;
 
 typedef struct {
-  Timeval ts;
+  Timespec ts;
   int32_t EOR;
 } REQ_Settime;
 
@@ -512,7 +512,7 @@ typedef struct {
   IPAddr ip_addr;
   uint16_t stratum;
   uint16_t leap_status;
-  Timeval ref_time;
+  Timespec ref_time;
   Float current_correction;
   Float last_offset;
   Float rms_offset;
@@ -540,7 +540,7 @@ typedef struct {
 } RPY_Sourcestats;
 
 typedef struct {
-  Timeval ref_time;
+  Timespec ref_time;
   uint16_t n_samples;
   uint16_t n_runs;
   uint32_t span_seconds;
@@ -590,7 +590,7 @@ typedef struct {
 #define MAX_MANUAL_LIST_SAMPLES 16
 
 typedef struct {
-  Timeval when;
+  Timespec when;
   Float slewed_offset;
   Float orig_offset;
   Float residual;

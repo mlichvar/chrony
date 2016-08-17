@@ -1685,7 +1685,7 @@ print_report(const char *format, ...)
   unsigned long long_uinteger;
   unsigned int uinteger;
   int integer;
-  struct timeval *tv;
+  struct timespec *ts;
   struct tm *tm;
   double dbl;
 
@@ -1800,9 +1800,9 @@ print_report(const char *format, ...)
         else
           print_nanoseconds(dbl);
         break;
-      case 'T': /* timeval as date and time in UTC */
-        tv = va_arg(ap, struct timeval *);
-        tm = gmtime(&tv->tv_sec);
+      case 'T': /* timespec as date and time in UTC */
+        ts = va_arg(ap, struct timespec *);
+        tm = gmtime(&ts->tv_sec);
         if (!tm)
           break;
         strftime(buf, sizeof (buf), "%a %b %d %T %Y", tm);
@@ -1812,9 +1812,9 @@ print_report(const char *format, ...)
         long_uinteger = va_arg(ap, unsigned long);
         printf("%*lu", width, long_uinteger);
         break;
-      case 'V': /* timeval as seconds since epoch */
-        tv = va_arg(ap, struct timeval *);
-        printf("%s", UTI_TimevalToString(tv));
+      case 'V': /* timespec as seconds since epoch */
+        ts = va_arg(ap, struct timespec *);
+        printf("%s", UTI_TimespecToString(ts));
         break;
 
       /* Classic printf specifiers */
@@ -2081,7 +2081,7 @@ process_cmd_tracking(char *line)
   IPAddr ip_addr;
   uint32_t ref_id;
   char name[50];
-  struct timeval ref_time;
+  struct timespec ref_time;
   const char *leap_status;
   
   request.command = htons(REQ_TRACKING);
@@ -2112,7 +2112,7 @@ process_cmd_tracking(char *line)
       break;
   }
 
-  UTI_TimevalNetworkToHost(&reply.data.tracking.ref_time, &ref_time);
+  UTI_TimespecNetworkToHost(&reply.data.tracking.ref_time, &ref_time);
 
   print_report("Reference ID    : %R (%s)\n"
                "Stratum         : %u\n"
@@ -2230,13 +2230,13 @@ process_cmd_rtcreport(char *line)
 {
   CMD_Request request;
   CMD_Reply reply;
-  struct timeval ref_time;
+  struct timespec ref_time;
   
   request.command = htons(REQ_RTCREPORT);
   if (!request_reply(&request, &reply, RPY_RTC, 0))
     return 0;
 
-  UTI_TimevalNetworkToHost(&reply.data.rtc.ref_time, &ref_time);
+  UTI_TimespecNetworkToHost(&reply.data.rtc.ref_time, &ref_time);
 
   print_report("RTC ref time (UTC) : %T\n"
                "Number of samples  : %u\n"
@@ -2328,7 +2328,7 @@ process_cmd_manual_list(const char *line)
   CMD_Reply reply;
   uint32_t i, n_samples;
   RPY_ManualListSample *sample;
-  struct timeval when;
+  struct timespec when;
 
   request.command = htons(REQ_MANUAL_LIST);
   if (!request_reply(&request, &reply, RPY_MANUAL_LIST, 0))
@@ -2341,7 +2341,7 @@ process_cmd_manual_list(const char *line)
 
   for (i = 0; i < n_samples; i++) {
     sample = &reply.data.manual_list.samples[i];
-    UTI_TimevalNetworkToHost(&sample->when, &when);
+    UTI_TimespecNetworkToHost(&sample->when, &when);
 
     print_report("%2d %s %10.2f %10.2f %10.2f\n",
                  i, UTI_TimeToLogForm(when.tv_sec),
@@ -2376,7 +2376,7 @@ process_cmd_manual_delete(CMD_Request *msg, const char *line)
 static int
 process_cmd_settime(char *line)
 {
-  struct timeval ts;
+  struct timespec ts;
   time_t now, new_time;
   CMD_Request request;
   CMD_Reply reply;
@@ -2391,8 +2391,8 @@ process_cmd_settime(char *line)
     printf("510 - Could not parse date string\n");
   } else {
     ts.tv_sec = new_time;
-    ts.tv_usec = 0;
-    UTI_TimevalHostToNetwork(&ts, &request.data.settime.ts);
+    ts.tv_nsec = 0;
+    UTI_TimespecHostToNetwork(&ts, &request.data.settime.ts);
     request.command = htons(REQ_SETTIME);
     if (request_reply(&request, &reply, RPY_MANUAL_TIMESTAMP, 1)) {
           offset_cs = ntohl(reply.data.manual_timestamp.centiseconds);

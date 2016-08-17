@@ -35,14 +35,14 @@ extern void SMT_Finalise(void);
 
 extern int SMT_IsEnabled(void);
 
-extern double SMT_GetOffset(struct timeval *now);
+extern double SMT_GetOffset(struct timespec *now);
 
-extern void SMT_Activate(struct timeval *now);
+extern void SMT_Activate(struct timespec *now);
 
-extern void SMT_Reset(struct timeval *now);
+extern void SMT_Reset(struct timespec *now);
 
-extern void SMT_Leap(struct timeval *now, int leap);
+extern void SMT_Leap(struct timespec *now, int leap);
 
-extern int SMT_GetSmoothingReport(RPT_SmoothingReport *report, struct timeval *now);
+extern int SMT_GetSmoothingReport(RPT_SmoothingReport *report, struct timespec *now);
 
 #endif

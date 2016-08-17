@@ -63,14 +63,14 @@ extern void NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remot
 
 /* This routine is called when a new packet arrives off the network,
    and it relates to a source we have an ongoing protocol exchange with */
-extern int NCR_ProcessKnown(NTP_Packet *message, struct timeval *now, double now_err, NCR_Instance data, NTP_Local_Address *local_addr, int length);
+extern int NCR_ProcessKnown(NTP_Packet *message, struct timespec *now, double now_err, NCR_Instance data, NTP_Local_Address *local_addr, int length);
 
 /* This routine is called when a new packet arrives off the network,
    and we do not recognize its source */
-extern void NCR_ProcessUnknown(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length);
+extern void NCR_ProcessUnknown(NTP_Packet *message, struct timespec *now, double now_err, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length);
 
 /* Slew receive and transmit times in instance records */
-extern void NCR_SlewTimes(NCR_Instance inst, struct timeval *when, double dfreq, double doffset);
+extern void NCR_SlewTimes(NCR_Instance inst, struct timespec *when, double dfreq, double doffset);
 
 /* Take a particular source online (i.e. start sampling it) */
 extern void NCR_TakeSourceOnline(NCR_Instance inst);
@@ -95,7 +95,7 @@ extern void NCR_ModifyPolltarget(NCR_Instance inst, int new_poll_target);
 
 extern void NCR_InitiateSampleBurst(NCR_Instance inst, int n_good_samples, int n_total_samples);
 
-extern void NCR_ReportSource(NCR_Instance inst, RPT_SourceReport *report, struct timeval *now);
+extern void NCR_ReportSource(NCR_Instance inst, RPT_SourceReport *report, struct timespec *now);
 
 extern int NCR_AddAccessRestriction(IPAddr *ip_addr, int subnet_bits, int allow, int all);
 extern int NCR_CheckAccessRestriction(IPAddr *ip_addr);

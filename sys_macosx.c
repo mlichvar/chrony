@@ -39,6 +39,7 @@
 
 #include "sys_macosx.h"
 #include "conf.h"
+#include "local.h"
 #include "localp.h"
 #include "logging.h"
 #include "sched.h"
@@ -49,13 +50,13 @@
 
 /* This register contains the number of seconds by which the local
    clock was estimated to be fast of reference time at the epoch when
-   gettimeofday() returned T0 */
+   LCL_ReadRawTime() returned T0 */
 
 static double offset_register;
 
 /* This register contains the epoch to which the offset is referenced */
 
-static struct timeval T0;
+static struct timespec T0;
 
 /* This register contains the current estimate of the system
    frequency, in absolute (NOT ppm) */
@@ -79,7 +80,7 @@ static double adjustment_requested;
 
 static double drift_removal_interval;
 static double current_drift_removal_interval;
-static struct timeval Tdrift;
+static struct timespec Tdrift;
 
 /* weighting applied to error in calculating drift_removal_interval */
 #define ERROR_WEIGHT (0.5)
@@ -91,7 +92,7 @@ static struct timeval Tdrift;
 
 /* RTC synchronisation - once an hour */
 
-static struct timeval last_rtc_sync;
+static struct timespec last_rtc_sync;
 #define RTC_SYNC_INTERVAL (60 * 60.0)
 
 /* ================================================== */
@@ -107,9 +108,7 @@ clock_initialise(void)
   drift_removal_interval = DRIFT_REMOVAL_INTERVAL;
   current_drift_removal_interval = DRIFT_REMOVAL_INTERVAL;
 
-  if (gettimeofday(&T0, NULL) < 0) {
-    LOG_FATAL(LOGF_SysMacOSX, "gettimeofday() failed");
-  }
+  LCL_ReadRawTime(&T0);
   Tdrift = T0;
   last_rtc_sync = T0;
 
@@ -135,21 +134,19 @@ static void
 start_adjust(void)
 {
   struct timeval newadj, oldadj;
-  struct timeval T1;
+  struct timespec T1;
   double elapsed, accrued_error, predicted_error, drift_removal_elapsed;
   double adjust_required;
   double rounding_error;
   double old_adjust_remaining;
 
   /* Determine the amount of error built up since the last adjustment */
-  if (gettimeofday(&T1, NULL) < 0) {
-    LOG_FATAL(LOGF_SysMacOSX, "gettimeofday() failed");
-  }
+  LCL_ReadRawTime(&T1);
 
-  UTI_DiffTimevalsToDouble(&elapsed, &T1, &T0);
+  UTI_DiffTimespecsToDouble(&elapsed, &T1, &T0);
   accrued_error = elapsed * current_freq;
 
-  UTI_DiffTimevalsToDouble(&drift_removal_elapsed, &T1, &Tdrift);
+  UTI_DiffTimespecsToDouble(&drift_removal_elapsed, &T1, &Tdrift);
 
   /* To allow for the clock being stepped either forward or backwards, clamp
      the elapsed time to bounds [ 0.0, current_drift_removal_interval ] */
@@ -184,7 +181,7 @@ start_adjust(void)
 static void
 stop_adjust(void)
 {
-  struct timeval T1;
+  struct timespec T1;
   struct timeval zeroadj, remadj;
   double adjustment_remaining, adjustment_achieved;
   double elapsed, elapsed_plus_adjust;
@@ -196,11 +193,9 @@ stop_adjust(void)
     LOG_FATAL(LOGF_SysMacOSX, "adjtime() failed");
   }
 
-  if (gettimeofday(&T1, NULL) < 0) {
-    LOG_FATAL(LOGF_SysMacOSX, "gettimeofday() failed");
-  }
+  LCL_ReadRawTime(&T1);
 
-  UTI_DiffTimevalsToDouble(&elapsed, &T1, &T0);
+  UTI_DiffTimespecsToDouble(&elapsed, &T1, &T0);
   UTI_TimevalToDouble(&remadj, &adjustment_remaining);
 
   adjustment_achieved = adjustment_requested - adjustment_remaining;
@@ -233,22 +228,22 @@ accrue_offset(double offset, double corr_rate)
 static int
 apply_step_offset(double offset)
 {
-  struct timeval old_time, new_time, T1;
+  struct timespec old_time, new_time, T1;
+  struct timeval new_time_tv;
 
   stop_adjust();
 
-  if (gettimeofday(&old_time, NULL) < 0) {
-    LOG_FATAL(LOGF_SysMacOSX, "gettimeofday() failed");
-  }
+  LCL_ReadRawTime(&old_time);
 
-  UTI_AddDoubleToTimeval(&old_time, -offset, &new_time);
+  UTI_AddDoubleToTimespec(&old_time, -offset, &new_time);
+  UTI_TimespecToTimeval(&new_time, &new_time_tv);
 
-  if (PRV_SetTime(&new_time, NULL) < 0) {
+  if (PRV_SetTime(&new_time_tv, NULL) < 0) {
     DEBUG_LOG(LOGF_SysMacOSX, "settimeofday() failed");
     return 0;
   }
 
-  UTI_AddDoubleToTimeval(&T0, -offset, &T1);
+  UTI_AddDoubleToTimespec(&T0, -offset, &T1);
   T0 = T1;
 
   start_adjust();
@@ -279,7 +274,7 @@ read_frequency(void)
 /* ================================================== */
 
 static void
-get_offset_correction(struct timeval *raw,
+get_offset_correction(struct timespec *raw,
                       double *corr, double *err)
 {
   stop_adjust();
@@ -311,9 +306,7 @@ drift_removal_timeout(SCH_ArbitraryArgument not_used)
 
   stop_adjust();
 
-  if (gettimeofday(&Tdrift, NULL) < 0) {
-    LOG_FATAL(LOGF_SysMacOSX, "gettimeofday() failed");
-  }
+  LCL_ReadRawTime(&Tdrift);
 
   current_drift_removal_interval = drift_removal_interval;
 
@@ -336,11 +329,11 @@ set_sync_status(int synchronised, double est_error, double max_error)
     drift_removal_interval = MAX(drift_removal_interval, DRIFT_REMOVAL_INTERVAL);
   } else {
     if (CNF_GetRtcSync()) {
-      struct timeval now;
+      struct timespec now;
       double rtc_sync_elapsed;
 
       SCH_GetLastEventTime(NULL, NULL, &now);
-      UTI_DiffTimevalsToDouble(&rtc_sync_elapsed, &now, &last_rtc_sync);
+      UTI_DiffTimespecsToDouble(&rtc_sync_elapsed, &now, &last_rtc_sync);
       if (fabs(rtc_sync_elapsed) >= RTC_SYNC_INTERVAL) {
         /* update the RTC by applying a step of 0.0 secs */
         apply_step_offset(0.0);

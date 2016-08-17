@@ -124,7 +124,6 @@ static int pps_poll(RCL_Instance instance)
 {
   struct pps_instance *pps; 
   struct timespec ts;
-  struct timeval tv;
   pps_info_t pps_info;
   pps_seq_t seq;
 
@@ -153,10 +152,8 @@ static int pps_poll(RCL_Instance instance)
   }
 
   pps->last_seq = seq;
-  tv.tv_sec = ts.tv_sec;
-  tv.tv_usec = ts.tv_nsec / 1000;
 
-  return RCL_AddPulse(instance, &tv, ts.tv_nsec / 1e9);
+  return RCL_AddPulse(instance, &ts, 1.0e-9 * ts.tv_nsec);
 }
 
 RefclockDriver RCL_PPS_driver = {

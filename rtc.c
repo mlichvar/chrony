@@ -98,7 +98,7 @@ get_driftfile_time(void)
 static void
 apply_driftfile_time(time_t t)
 {
-  struct timeval now;
+  struct timespec now;
 
   LCL_ReadCookedTime(&now, NULL);
 

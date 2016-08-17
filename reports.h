@@ -53,7 +53,7 @@ typedef struct {
   IPAddr ip_addr;
   int stratum;
   NTP_Leap leap_status;
-  struct timeval ref_time;
+  struct timespec ref_time;
   double current_correction;
   double last_offset;
   double rms_offset;
@@ -79,7 +79,7 @@ typedef struct {
 } RPT_SourcestatsReport;
 
 typedef struct {
-  struct timeval ref_time;
+  struct timespec ref_time;
   unsigned short n_samples;
   unsigned short n_runs;
   unsigned long span_seconds;
@@ -109,7 +109,7 @@ typedef struct {
 } RPT_ServerStatsReport;
 
 typedef struct {
-  struct timeval when;
+  struct timespec when;
   double slewed_offset;
   double orig_offset;
   double residual;

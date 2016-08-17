@@ -61,7 +61,7 @@ extern void SST_SetRefid(SST_Stats inst, uint32_t refid, IPAddr *addr);
    stratum is the stratum of the source from which the sample came.
   */
 
-extern void SST_AccumulateSample(SST_Stats inst, struct timeval *sample_time, double offset, double peer_delay, double peer_dispersion, double root_delay, double root_dispersion, int stratum);
+extern void SST_AccumulateSample(SST_Stats inst, struct timespec *sample_time, double offset, double peer_delay, double peer_dispersion, double root_delay, double root_dispersion, int stratum);
 
 /* This function runs the linear regression operation on the data.  It
    finds the set of most recent samples that give the tightest
@@ -77,7 +77,7 @@ extern void SST_GetFrequencyRange(SST_Stats inst, double *lo, double *hi);
 
 /* Get data needed for selection */
 extern void
-SST_GetSelectionData(SST_Stats inst, struct timeval *now,
+SST_GetSelectionData(SST_Stats inst, struct timespec *now,
                      int *stratum,
                      double *offset_lo_limit,
                      double *offset_hi_limit,
@@ -89,7 +89,7 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
 
 /* Get data needed when setting up tracking on this source */
 extern void
-SST_GetTrackingData(SST_Stats inst, struct timeval *ref_time,
+SST_GetTrackingData(SST_Stats inst, struct timespec *ref_time,
                     double *average_offset, double *offset_sd,
                     double *frequency, double *skew,
                     double *root_delay, double *root_dispersion);
@@ -110,7 +110,7 @@ SST_GetTrackingData(SST_Stats inst, struct timeval *ref_time,
 
 */
 
-extern void SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffset);
+extern void SST_SlewSamples(SST_Stats inst, struct timespec *when, double dfreq, double doffset);
 
 /* This routine is called when an indeterminate offset is introduced
    into the local time. */
@@ -119,7 +119,7 @@ extern void SST_AddDispersion(SST_Stats inst, double dispersion);
 /* Predict the offset of the local clock relative to a given source at
    a given local cooked time. Positive indicates local clock is FAST
    relative to reference. */
-extern double SST_PredictOffset(SST_Stats inst, struct timeval *when);
+extern double SST_PredictOffset(SST_Stats inst, struct timespec *when);
 
 /* Find the minimum round trip delay in the register */
 extern double SST_MinRoundTripDelay(SST_Stats inst);
@@ -127,15 +127,15 @@ extern double SST_MinRoundTripDelay(SST_Stats inst);
 /* This routine determines if a new sample is good enough that it should be
    accumulated */
 extern int SST_IsGoodSample(SST_Stats inst, double offset, double delay,
-   double max_delay_dev_ratio, double clock_error, struct timeval *when);
+   double max_delay_dev_ratio, double clock_error, struct timespec *when);
 
 extern void SST_SaveToFile(SST_Stats inst, FILE *out);
 
 extern int SST_LoadFromFile(SST_Stats inst, FILE *in);
 
-extern void SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timeval *now);
+extern void SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timespec *now);
 
-extern void SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report, struct timeval *now);
+extern void SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report, struct timespec *now);
 
 extern int SST_Samples(SST_Stats inst);
 

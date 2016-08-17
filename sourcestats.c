@@ -105,7 +105,7 @@ struct SST_Stats_Record {
   /* This is the estimated offset (+ve => local fast) at a particular time */
   double estimated_offset;
   double estimated_offset_sd;
-  struct timeval offset_time;
+  struct timespec offset_time;
 
   /* Number of runs of the same sign amongst the residuals */
   int nruns;
@@ -133,7 +133,7 @@ struct SST_Stats_Record {
 
   /* This array contains the sample epochs, in terms of the local
      clock. */
-  struct timeval sample_times[MAX_SAMPLES * REGRESS_RUNS_RATIO];
+  struct timespec sample_times[MAX_SAMPLES * REGRESS_RUNS_RATIO];
 
   /* This is an array of offsets, in seconds, corresponding to the
      sample times.  In this module, we use the convention that
@@ -234,8 +234,7 @@ SST_ResetInstance(SST_Stats inst)
   inst->skew = 2000.0e-6;
   inst->estimated_offset = 0.0;
   inst->estimated_offset_sd = 86400.0; /* Assume it's at least within a day! */
-  inst->offset_time.tv_sec = 0;
-  inst->offset_time.tv_usec = 0;
+  UTI_ZeroTimespec(&inst->offset_time);
   inst->variance = 16.0;
   inst->nruns = 0;
   inst->asymmetry_run = 0;
@@ -275,7 +274,7 @@ prune_register(SST_Stats inst, int new_oldest)
 /* ================================================== */
 
 void
-SST_AccumulateSample(SST_Stats inst, struct timeval *sample_time,
+SST_AccumulateSample(SST_Stats inst, struct timespec *sample_time,
                      double offset,
                      double peer_delay, double peer_dispersion,
                      double root_delay, double root_dispersion,
@@ -291,7 +290,7 @@ SST_AccumulateSample(SST_Stats inst, struct timeval *sample_time,
 
   /* Make sure it's newer than the last sample */
   if (inst->n_samples &&
-      UTI_CompareTimevals(&inst->sample_times[inst->last_sample], sample_time) >= 0) {
+      UTI_CompareTimespecs(&inst->sample_times[inst->last_sample], sample_time) >= 0) {
     LOG(LOGS_WARN, LOGF_SourceStats, "Out of order sample detected, discarding history for %s",
         inst->ip_addr ? UTI_IPToString(inst->ip_addr) : UTI_RefidToString(inst->refid));
     SST_ResetInstance(inst);
@@ -345,14 +344,14 @@ get_buf_index(SST_Stats inst, int i)
 static void
 convert_to_intervals(SST_Stats inst, double *times_back)
 {
-  struct timeval *newest_tv;
+  struct timespec *ts;
   int i;
 
-  newest_tv = &(inst->sample_times[inst->last_sample]);
+  ts = &inst->sample_times[inst->last_sample];
   for (i = -inst->runs_samples; i < inst->n_samples; i++) {
     /* The entries in times_back[] should end up negative */
-    UTI_DiffTimevalsToDouble(&times_back[i],
-        &inst->sample_times[get_runsbuf_index(inst, i)], newest_tv);
+    UTI_DiffTimespecsToDouble(&times_back[i],
+        &inst->sample_times[get_runsbuf_index(inst, i)], ts);
   }
 }
 
@@ -601,7 +600,7 @@ SST_GetFrequencyRange(SST_Stats inst,
 /* ================================================== */
 
 void
-SST_GetSelectionData(SST_Stats inst, struct timeval *now,
+SST_GetSelectionData(SST_Stats inst, struct timespec *now,
                      int *stratum,
                      double *offset_lo_limit,
                      double *offset_hi_limit,
@@ -625,7 +624,7 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
   *stratum = inst->strata[get_buf_index(inst, inst->n_samples - 1)];
   *variance = inst->variance;
 
-  UTI_DiffTimevalsToDouble(&sample_elapsed, now, &inst->sample_times[i]);
+  UTI_DiffTimespecsToDouble(&sample_elapsed, now, &inst->sample_times[i]);
   offset = inst->offsets[i] + sample_elapsed * inst->estimated_frequency;
   *root_distance = 0.5 * inst->root_delays[j] +
     inst->root_dispersions[j] + sample_elapsed * inst->skew;
@@ -637,7 +636,7 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
   double average_offset, elapsed;
   int average_ok;
   /* average_ok ignored for now */
-  UTI_DiffTimevalsToDouble(&elapsed, now, &(inst->offset_time));
+  UTI_DiffTimespecsToDouble(&elapsed, now, &(inst->offset_time));
   average_offset = inst->estimated_offset + inst->estimated_frequency * elapsed;
   if (fabs(average_offset - offset) <=
       inst->peer_dispersions[j] + 0.5 * inst->peer_delays[i]) {
@@ -648,9 +647,9 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
 #endif
 
   i = get_runsbuf_index(inst, 0);
-  UTI_DiffTimevalsToDouble(first_sample_ago, now, &inst->sample_times[i]);
+  UTI_DiffTimespecsToDouble(first_sample_ago, now, &inst->sample_times[i]);
   i = get_runsbuf_index(inst, inst->n_samples - 1);
-  UTI_DiffTimevalsToDouble(last_sample_ago, now, &inst->sample_times[i]);
+  UTI_DiffTimespecsToDouble(last_sample_ago, now, &inst->sample_times[i]);
 
   *select_ok = inst->regression_ok;
 
@@ -662,7 +661,7 @@ SST_GetSelectionData(SST_Stats inst, struct timeval *now,
 /* ================================================== */
 
 void
-SST_GetTrackingData(SST_Stats inst, struct timeval *ref_time,
+SST_GetTrackingData(SST_Stats inst, struct timespec *ref_time,
                     double *average_offset, double *offset_sd,
                     double *frequency, double *skew,
                     double *root_delay, double *root_dispersion)
@@ -682,7 +681,7 @@ SST_GetTrackingData(SST_Stats inst, struct timeval *ref_time,
   *skew = inst->skew;
   *root_delay = inst->root_delays[j];
 
-  UTI_DiffTimevalsToDouble(&elapsed_sample, &inst->offset_time, &inst->sample_times[i]);
+  UTI_DiffTimespecsToDouble(&elapsed_sample, &inst->offset_time, &inst->sample_times[i]);
   *root_dispersion = inst->root_dispersions[j] + inst->skew * elapsed_sample;
 
   DEBUG_LOG(LOGF_SourceStats, "n=%d freq=%f (%.3fppm) skew=%f (%.3fppm) avoff=%f offsd=%f disp=%f",
@@ -693,11 +692,11 @@ SST_GetTrackingData(SST_Stats inst, struct timeval *ref_time,
 /* ================================================== */
 
 void
-SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffset)
+SST_SlewSamples(SST_Stats inst, struct timespec *when, double dfreq, double doffset)
 {
   int m, i;
   double delta_time;
-  struct timeval *sample, prev;
+  struct timespec *sample, prev;
   double prev_offset, prev_freq;
 
   if (!inst->n_samples)
@@ -705,9 +704,9 @@ SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffs
 
   for (m = -inst->runs_samples; m < inst->n_samples; m++) {
     i = get_runsbuf_index(inst, m);
-    sample = &(inst->sample_times[i]);
+    sample = &inst->sample_times[i];
     prev = *sample;
-    UTI_AdjustTimeval(sample, when, sample, &delta_time, dfreq, doffset);
+    UTI_AdjustTimespec(sample, when, sample, &delta_time, dfreq, doffset);
     inst->offsets[i] += delta_time;
   }
 
@@ -715,14 +714,14 @@ SST_SlewSamples(SST_Stats inst, struct timeval *when, double dfreq, double doffs
   prev = inst->offset_time;
   prev_offset = inst->estimated_offset;
   prev_freq = inst->estimated_frequency;
-  UTI_AdjustTimeval(&(inst->offset_time), when, &(inst->offset_time),
+  UTI_AdjustTimespec(&inst->offset_time, when, &inst->offset_time,
       &delta_time, dfreq, doffset);
   inst->estimated_offset += delta_time;
   inst->estimated_frequency = (inst->estimated_frequency - dfreq) / (1.0 - dfreq);
 
   DEBUG_LOG(LOGF_SourceStats, "n=%d m=%d old_off_time=%s new=%s old_off=%f new_off=%f old_freq=%.3f new_freq=%.3f",
             inst->n_samples, inst->runs_samples,
-            UTI_TimevalToString(&prev), UTI_TimevalToString(&(inst->offset_time)),
+            UTI_TimespecToString(&prev), UTI_TimespecToString(&inst->offset_time),
             prev_offset, inst->estimated_offset,
             1.0e6 * prev_freq, 1.0e6 * inst->estimated_frequency);
 }
@@ -744,7 +743,7 @@ SST_AddDispersion(SST_Stats inst, double dispersion)
 /* ================================================== */
 
 double
-SST_PredictOffset(SST_Stats inst, struct timeval *when)
+SST_PredictOffset(SST_Stats inst, struct timespec *when)
 {
   double elapsed;
   
@@ -758,7 +757,7 @@ SST_PredictOffset(SST_Stats inst, struct timeval *when)
       return 0.0;
     }
   } else {
-    UTI_DiffTimevalsToDouble(&elapsed, when, &inst->offset_time);
+    UTI_DiffTimespecsToDouble(&elapsed, when, &inst->offset_time);
     return inst->estimated_offset + elapsed * inst->estimated_frequency;
   }
 
@@ -778,14 +777,14 @@ SST_MinRoundTripDelay(SST_Stats inst)
 
 int
 SST_IsGoodSample(SST_Stats inst, double offset, double delay,
-    double max_delay_dev_ratio, double clock_error, struct timeval *when)
+    double max_delay_dev_ratio, double clock_error, struct timespec *when)
 {
   double elapsed, allowed_increase, delay_increase;
 
   if (inst->n_samples < 3)
     return 1;
 
-  UTI_DiffTimevalsToDouble(&elapsed, when, &inst->offset_time);
+  UTI_DiffTimespecsToDouble(&elapsed, when, &inst->offset_time);
 
   /* Require that the ratio of the increase in delay from the minimum to the
      standard deviation is less than max_delay_dev_ratio. In the allowed
@@ -829,7 +828,7 @@ SST_SaveToFile(SST_Stats inst, FILE *out)
 
     fprintf(out, "%08lx %08lx %.6e %.6e %.6e %.6e %.6e %.6e %.6e %d\n",
             (unsigned long) inst->sample_times[i].tv_sec,
-            (unsigned long) inst->sample_times[i].tv_usec,
+            (unsigned long)inst->sample_times[i].tv_nsec / 1000,
             inst->offsets[i],
             inst->orig_offsets[j],
             inst->peer_delays[i],
@@ -883,7 +882,8 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
 
         /* This is the branch taken if the read is SUCCESSFUL */
         inst->sample_times[i].tv_sec = sec;
-        inst->sample_times[i].tv_usec = usec;
+        inst->sample_times[i].tv_nsec = 1000 * usec;
+        UTI_NormaliseTimespec(&inst->sample_times[i]);
 
         line_number++;
       }
@@ -906,10 +906,10 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
 /* ================================================== */
 
 void
-SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timeval *now)
+SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timespec *now)
 {
   int i, j;
-  struct timeval ago;
+  struct timespec ago;
 
   if (inst->n_samples > 0) {
     i = get_runsbuf_index(inst, inst->n_samples - 1);
@@ -919,7 +919,7 @@ SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timeval *now
     report->latest_meas_err = 0.5*inst->root_delays[j] + inst->root_dispersions[j];
     report->stratum = inst->strata[j];
 
-    UTI_DiffTimevals(&ago, now, &inst->sample_times[i]);
+    UTI_DiffTimespecs(&ago, now, &inst->sample_times[i]);
     report->latest_meas_ago = ago.tv_sec;
   } else {
     report->latest_meas_ago = (uint32_t)-1;
@@ -941,7 +941,7 @@ SST_Samples(SST_Stats inst)
 /* ================================================== */
 
 void
-SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report, struct timeval *now)
+SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report, struct timespec *now)
 {
   double dspan;
   double elapsed, sample_elapsed;
@@ -953,15 +953,15 @@ SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report, struct ti
   if (inst->n_samples > 1) {
     li = get_runsbuf_index(inst, inst->n_samples - 1);
     lj = get_buf_index(inst, inst->n_samples - 1);
-    UTI_DiffTimevalsToDouble(&dspan, &inst->sample_times[li],
+    UTI_DiffTimespecsToDouble(&dspan, &inst->sample_times[li],
         &inst->sample_times[get_runsbuf_index(inst, 0)]);
     report->span_seconds = (unsigned long) (dspan + 0.5);
 
     if (inst->n_samples > 3) {
-      UTI_DiffTimevalsToDouble(&elapsed, now, &inst->offset_time);
+      UTI_DiffTimespecsToDouble(&elapsed, now, &inst->offset_time);
       bi = get_runsbuf_index(inst, inst->best_single_sample);
       bj = get_buf_index(inst, inst->best_single_sample);
-      UTI_DiffTimevalsToDouble(&sample_elapsed, now, &inst->sample_times[bi]);
+      UTI_DiffTimespecsToDouble(&sample_elapsed, now, &inst->sample_times[bi]);
       report->est_offset = inst->estimated_offset + elapsed * inst->estimated_frequency;
       report->est_offset_err = (inst->estimated_offset_sd +
                  sample_elapsed * inst->skew +

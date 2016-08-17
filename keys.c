@@ -103,9 +103,9 @@ static int
 determine_hash_delay(uint32_t key_id)
 {
   NTP_Packet pkt;
-  struct timeval before, after;
-  unsigned long usecs, min_usecs=0;
-  int i;
+  struct timespec before, after;
+  double diff, min_diff;
+  int i, nsecs;
 
   for (i = 0; i < 10; i++) {
     LCL_ReadRawTime(&before);
@@ -113,19 +113,18 @@ determine_hash_delay(uint32_t key_id)
         (unsigned char *)&pkt.auth_data, sizeof (pkt.auth_data));
     LCL_ReadRawTime(&after);
 
-    usecs = (after.tv_sec - before.tv_sec) * 1000000 + (after.tv_usec - before.tv_usec);
+    UTI_DiffTimespecsToDouble(&diff, &after, &before);
 
-    if (i == 0 || usecs < min_usecs) {
-      min_usecs = usecs;
-    }
+    if (i == 0 || min_diff > diff)
+      min_diff = diff;
   }
 
   /* Add on a bit extra to allow for copying, conversions etc */
-  min_usecs += min_usecs >> 4;
+  nsecs = 1.0625e9 * min_diff;
 
-  DEBUG_LOG(LOGF_Keys, "authentication delay for key %"PRIu32": %ld useconds", key_id, min_usecs);
+  DEBUG_LOG(LOGF_Keys, "authentication delay for key %"PRIu32": %d nsecs", key_id, nsecs);
 
-  return min_usecs;
+  return nsecs;
 }
 
 /* ================================================== */

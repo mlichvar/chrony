@@ -99,12 +99,12 @@ extern REF_LeapMode REF_GetLeapMode(void);
 
 extern void REF_GetReferenceParams
 (
- struct timeval *local_time,
+ struct timespec *local_time,
  int *is_synchronised,
  NTP_Leap *leap,
  int *stratum,
  uint32_t *ref_id,
- struct timeval *ref_time,
+ struct timespec *ref_time,
  double *root_delay,
  double *root_dispersion
 );
@@ -140,7 +140,7 @@ extern void REF_SetReference
  int combined_sources,
  uint32_t ref_id,
  IPAddr *ref_ip,
- struct timeval *ref_time,
+ struct timespec *ref_time,
  double offset,
  double offset_sd,
  double frequency,
@@ -151,7 +151,7 @@ extern void REF_SetReference
 
 extern void REF_SetManualReference
 (
- struct timeval *ref_time,
+ struct timespec *ref_time,
  double offset,
  double frequency,
  double skew

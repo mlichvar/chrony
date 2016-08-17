@@ -95,7 +95,7 @@ read_timeout(void *arg)
       DEBUG_LOG(LOGF_TempComp, "tempcomp updated to %f for %f", comp, temp);
 
       if (logfileid != -1) {
-        struct timeval now;
+        struct timespec now;
 
         LCL_ReadCookedTime(&now, NULL);
         LOG_FileWrite(logfileid, "%s %11.4e %11.4e",

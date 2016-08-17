@@ -71,7 +71,7 @@ static double offset_register;
 static double slew_freq;
 
 /* Time (raw) of last update of slewing frequency and offset */
-static struct timeval slew_start;
+static struct timespec slew_start;
 
 /* Limits for the slew timeout */
 #define MIN_SLEW_TIMEOUT 1.0
@@ -106,7 +106,7 @@ static void update_slew(void);
 /* Adjust slew_start on clock step */
 
 static void
-handle_step(struct timeval *raw, struct timeval *cooked, double dfreq,
+handle_step(struct timespec *raw, struct timespec *cooked, double dfreq,
             double doffset, LCL_ChangeType change_type, void *anything)
 {
   if (change_type == LCL_ChangeUnknownStep) {
@@ -115,7 +115,7 @@ handle_step(struct timeval *raw, struct timeval *cooked, double dfreq,
     offset_register = 0.0;
     update_slew();
   } else if (change_type == LCL_ChangeStep) {
-    UTI_AddDoubleToTimeval(&slew_start, -doffset, &slew_start);
+    UTI_AddDoubleToTimespec(&slew_start, -doffset, &slew_start);
   }
 }
 
@@ -138,7 +138,7 @@ start_fastslew(void)
 /* ================================================== */
 
 static void
-stop_fastslew(struct timeval *now)
+stop_fastslew(struct timespec *now)
 {
   double corr;
 
@@ -169,7 +169,7 @@ clamp_freq(double freq)
 static void
 update_slew(void)
 {
-  struct timeval now, end_of_slew;
+  struct timespec now, end_of_slew;
   double old_slew_freq, total_freq, corr_freq, duration;
 
   /* Remove currently running timeout */
@@ -178,7 +178,7 @@ update_slew(void)
   LCL_ReadRawTime(&now);
 
   /* Adjust the offset register by achieved slew */
-  UTI_DiffTimevalsToDouble(&duration, &now, &slew_start);
+  UTI_DiffTimespecsToDouble(&duration, &now, &slew_start);
   offset_register -= slew_freq * duration;
 
   stop_fastslew(&now);
@@ -242,7 +242,7 @@ update_slew(void)
   }
 
   /* Restart timer for the next update */
-  UTI_AddDoubleToTimeval(&now, duration, &end_of_slew);
+  UTI_AddDoubleToTimespec(&now, duration, &end_of_slew);
   slew_timeout_id = SCH_AddTimeout(&end_of_slew, handle_end_of_slew, NULL);
   slew_start = now;
 
@@ -294,12 +294,12 @@ accrue_offset(double offset, double corr_rate)
 /* Determine the correction to generate the cooked time for given raw time */
 
 static void
-offset_convert(struct timeval *raw,
+offset_convert(struct timespec *raw,
                double *corr, double *err)
 {
   double duration, fastslew_corr, fastslew_err;
 
-  UTI_DiffTimevalsToDouble(&duration, raw, &slew_start);
+  UTI_DiffTimespecsToDouble(&duration, raw, &slew_start);
 
   if (drv_get_offset_correction && fastslew_active) {
     drv_get_offset_correction(raw, &fastslew_corr, &fastslew_err);
@@ -324,19 +324,21 @@ offset_convert(struct timeval *raw,
 static int
 apply_step_offset(double offset)
 {
-  struct timeval old_time, new_time;
+  struct timespec old_time, new_time;
+  struct timeval new_time_tv;
   double err;
 
   LCL_ReadRawTime(&old_time);
-  UTI_AddDoubleToTimeval(&old_time, -offset, &new_time);
+  UTI_AddDoubleToTimespec(&old_time, -offset, &new_time);
+  UTI_TimespecToTimeval(&new_time, &new_time_tv);
 
-  if (PRV_SetTime(&new_time, NULL) < 0) {
+  if (PRV_SetTime(&new_time_tv, NULL) < 0) {
     DEBUG_LOG(LOGF_SysGeneric, "settimeofday() failed");
     return 0;
   }
 
   LCL_ReadRawTime(&old_time);
-  UTI_DiffTimevalsToDouble(&err, &old_time, &new_time);
+  UTI_DiffTimespecsToDouble(&err, &old_time, &new_time);
 
   lcl_InvokeDispersionNotifyHandlers(fabs(err));
 
@@ -403,7 +405,7 @@ SYS_Generic_CompleteFreqDriver(double max_set_freq_ppm, double max_set_freq_dela
 void
 SYS_Generic_Finalise(void)
 {
-  struct timeval now;
+  struct timespec now;
 
   /* Must *NOT* leave a slew running - clock could drift way off
      if the daemon is not restarted */

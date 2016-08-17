@@ -73,7 +73,7 @@ typedef struct {
   int sent;
   int received;
   int request_length;
-  struct timeval request_tv;
+  struct timespec request_ts;
   SigndRequest request;
   SigndResponse response;
 } SignInstance;
@@ -166,7 +166,7 @@ open_socket(void)
 static void
 process_response(SignInstance *inst)
 {
-  struct timeval tv;
+  struct timespec ts;
   double delay;
 
   if (ntohs(inst->request.packet_id) != ntohl(inst->response.packet_id)) {
@@ -185,8 +185,8 @@ process_response(SignInstance *inst)
     return;
   }
 
-  SCH_GetLastEventTime(NULL, NULL, &tv);
-  UTI_DiffTimevalsToDouble(&delay, &tv, &inst->request_tv);
+  SCH_GetLastEventTime(NULL, NULL, &ts);
+  UTI_DiffTimespecsToDouble(&delay, &ts, &inst->request_ts);
 
   DEBUG_LOG(LOGF_NtpSignd, "Signing succeeded (delay %f)", delay);
 
@@ -216,7 +216,7 @@ read_write_socket(int sock_fd, int event, void *anything)
     assert(inst->sent < inst->request_length);
 
     if (!inst->sent)
-      SCH_GetLastEventTime(NULL, NULL, &inst->request_tv);
+      SCH_GetLastEventTime(NULL, NULL, &inst->request_ts);
 
     s = send(sock_fd, (char *)&inst->request + inst->sent,
              inst->request_length - inst->sent, 0);
@@ -322,7 +322,7 @@ NSD_Finalise()
 
 extern int NSD_GetAuthDelay(uint32_t key_id)
 {
-  return auth_delay * 1.0e6;
+  return 1.0e9 * auth_delay;
 }
 
 /* ================================================== */

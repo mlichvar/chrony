@@ -117,8 +117,8 @@ static void rehash_records(void);
 static void clean_source_record(SourceRecord *record);
 
 static void
-slew_sources(struct timeval *raw,
-             struct timeval *cooked,
+slew_sources(struct timespec *raw,
+             struct timespec *cooked,
              double dfreq,
              double doffset,
              LCL_ChangeType change_type,
@@ -680,8 +680,8 @@ resolve_source_replacement(SourceRecord *record)
 void
 NSR_HandleBadSource(IPAddr *address)
 {
-  static struct timeval last_replacement;
-  struct timeval now;
+  static struct timespec last_replacement;
+  struct timespec now;
   NTP_Remote_Address remote_addr;
   SourceRecord *record;
   int slot, found;
@@ -702,7 +702,7 @@ NSR_HandleBadSource(IPAddr *address)
 
   /* Don't resolve names too frequently */
   SCH_GetLastEventTime(NULL, NULL, &now);
-  UTI_DiffTimevalsToDouble(&diff, &now, &last_replacement);
+  UTI_DiffTimespecsToDouble(&diff, &now, &last_replacement);
   if (fabs(diff) < RESOLVE_INTERVAL_UNIT * (1 << MIN_REPLACEMENT_INTERVAL)) {
     DEBUG_LOG(LOGF_NtpSources, "replacement postponed");
     return;
@@ -776,7 +776,7 @@ NSR_GetLocalRefid(IPAddr *address)
 /* This routine is called by ntp_io when a new packet arrives off the network,
    possibly with an authentication tail */
 void
-NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length)
+NSR_ProcessReceive(NTP_Packet *message, struct timespec *now, double now_err, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length)
 {
   SourceRecord *record;
   struct SourcePool *pool;
@@ -816,8 +816,8 @@ NSR_ProcessReceive(NTP_Packet *message, struct timeval *now, double now_err, NTP
 /* ================================================== */
 
 static void
-slew_sources(struct timeval *raw,
-             struct timeval *cooked,
+slew_sources(struct timespec *raw,
+             struct timespec *cooked,
              double dfreq,
              double doffset,
              LCL_ChangeType change_type,
@@ -1083,7 +1083,7 @@ NSR_InitiateSampleBurst(int n_good_samples, int n_total_samples,
    identify the source record. */
 
 void
-NSR_ReportSource(RPT_SourceReport *report, struct timeval *now)
+NSR_ReportSource(RPT_SourceReport *report, struct timespec *now)
 {
   NTP_Remote_Address rem_addr;
   int slot, found;

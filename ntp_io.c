@@ -549,7 +549,7 @@ process_receive(struct msghdr *hdr, int length, int sock_fd)
   NTP_Remote_Address remote_addr;
   NTP_Local_Address local_addr;
   struct cmsghdr *cmsg;
-  struct timeval now;
+  struct timespec now;
   double now_err;
 
   SCH_GetLastEventTime(&now, &now_err, NULL);
@@ -590,9 +590,11 @@ process_receive(struct msghdr *hdr, int length, int sock_fd)
 #ifdef SO_TIMESTAMP
     if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SO_TIMESTAMP) {
       struct timeval tv;
+      struct timespec ts;
 
       memcpy(&tv, CMSG_DATA(cmsg), sizeof(tv));
-      LCL_CookTime(&tv, &now, &now_err);
+      UTI_TimevalToTimespec(&tv, &ts);
+      LCL_CookTime(&ts, &now, &now_err);
     }
 #endif
   }

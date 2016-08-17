@@ -106,37 +106,42 @@ static double max_clock_error;
    under 1s of busy waiting. */
 #define NITERS 100
 
+#define NSEC_PER_SEC 1000000000
+
 static void
 calculate_sys_precision(void)
 {
-  struct timeval tv, old_tv;
-  int dusec, best_dusec;
-  int iters;
+  struct timespec ts, old_ts;
+  int iters, diff, best;
 
-  gettimeofday(&old_tv, NULL);
-  best_dusec = 1000000; /* Assume we must be better than a second */
+  LCL_ReadRawTime(&old_ts);
+
+  /* Assume we must be better than a second */
+  best = NSEC_PER_SEC;
   iters = 0;
+
   do {
-    gettimeofday(&tv, NULL);
-    dusec = 1000000*(tv.tv_sec - old_tv.tv_sec) + (tv.tv_usec - old_tv.tv_usec);
-    old_tv = tv;
-    if (dusec > 0)  {
-      if (dusec < best_dusec) {
-        best_dusec = dusec;
-      }
+    LCL_ReadRawTime(&ts);
+
+    diff = NSEC_PER_SEC * (ts.tv_sec - old_ts.tv_sec) + (ts.tv_nsec - old_ts.tv_nsec);
+
+    old_ts = ts;
+    if (diff > 0) {
+      if (diff < best)
+        best = diff;
       iters++;
     }
   } while (iters < NITERS);
 
-  assert(best_dusec > 0);
+  assert(best > 0);
 
-  precision_quantum = best_dusec * 1.0e-6;
+  precision_quantum = 1.0e-9 * best;
 
   /* Get rounded log2 value of the measured precision */
   precision_log = 0;
-  while (best_dusec < 707107) {
+  while (best < 707106781) {
     precision_log--;
-    best_dusec *= 2;
+    best *= 2;
   }
 
   DEBUG_LOG(LOGF_Local, "Clock precision %.9f (%d)", precision_quantum, precision_log);
@@ -278,7 +283,7 @@ LCL_IsFirstParameterChangeHandler(LCL_ParameterChangeHandler handler)
 /* ================================================== */
 
 static void
-invoke_parameter_change_handlers(struct timeval *raw, struct timeval *cooked,
+invoke_parameter_change_handlers(struct timespec *raw, struct timespec *cooked,
                                  double dfreq, double doffset,
                                  LCL_ChangeType change_type)
 {
@@ -349,19 +354,23 @@ void LCL_RemoveDispersionNotifyHandler(LCL_DispersionNotifyHandler handler, void
    I can't think of a Unix system where it would not be */
 
 void
-LCL_ReadRawTime(struct timeval *result)
+LCL_ReadRawTime(struct timespec *ts)
 {
-  if (gettimeofday(result, NULL) < 0) {
+  struct timeval tv;
+
+  if (gettimeofday(&tv, NULL) < 0) {
     LOG_FATAL(LOGF_Local, "gettimeofday() failed");
   }
+
+  UTI_TimevalToTimespec(&tv, ts);
 }
 
 /* ================================================== */
 
 void
-LCL_ReadCookedTime(struct timeval *result, double *err)
+LCL_ReadCookedTime(struct timespec *result, double *err)
 {
-  struct timeval raw;
+  struct timespec raw;
 
   LCL_ReadRawTime(&raw);
   LCL_CookTime(&raw, result, err);
@@ -370,18 +379,18 @@ LCL_ReadCookedTime(struct timeval *result, double *err)
 /* ================================================== */
 
 void
-LCL_CookTime(struct timeval *raw, struct timeval *cooked, double *err)
+LCL_CookTime(struct timespec *raw, struct timespec *cooked, double *err)
 {
   double correction;
 
   LCL_GetOffsetCorrection(raw, &correction, err);
-  UTI_AddDoubleToTimeval(raw, correction, cooked);
+  UTI_AddDoubleToTimespec(raw, correction, cooked);
 }
 
 /* ================================================== */
 
 void
-LCL_GetOffsetCorrection(struct timeval *raw, double *correction, double *err)
+LCL_GetOffsetCorrection(struct timespec *raw, double *correction, double *err)
 {
   /* Call system specific driver to get correction */
   (*drv_offset_convert)(raw, correction, err);
@@ -421,7 +430,7 @@ clamp_freq(double freq)
 /* ================================================== */
 
 static int
-check_offset(struct timeval *now, double offset)
+check_offset(struct timespec *now, double offset)
 {
   /* Check if the time will be still sane with accumulated offset */
   if (UTI_IsTimeOffsetSane(now, -offset))
@@ -439,7 +448,7 @@ check_offset(struct timeval *now, double offset)
 void
 LCL_SetAbsoluteFrequency(double afreq_ppm)
 {
-  struct timeval raw, cooked;
+  struct timespec raw, cooked;
   double dfreq;
   
   afreq_ppm = clamp_freq(afreq_ppm);
@@ -470,7 +479,7 @@ LCL_SetAbsoluteFrequency(double afreq_ppm)
 void
 LCL_AccumulateDeltaFrequency(double dfreq)
 {
-  struct timeval raw, cooked;
+  struct timespec raw, cooked;
   double old_freq_ppm;
 
   old_freq_ppm = current_freq_ppm;
@@ -499,7 +508,7 @@ LCL_AccumulateDeltaFrequency(double dfreq)
 void
 LCL_AccumulateOffset(double offset, double corr_rate)
 {
-  struct timeval raw, cooked;
+  struct timespec raw, cooked;
 
   /* In this case, the cooked time to be passed to the notify clients
      has to be the cooked time BEFORE the change was made */
@@ -521,7 +530,7 @@ LCL_AccumulateOffset(double offset, double corr_rate)
 int
 LCL_ApplyStepOffset(double offset)
 {
-  struct timeval raw, cooked;
+  struct timespec raw, cooked;
 
   /* In this case, the cooked time to be passed to the notify clients
      has to be the cooked time BEFORE the change was made */
@@ -549,7 +558,7 @@ LCL_ApplyStepOffset(double offset)
 /* ================================================== */
 
 void
-LCL_NotifyExternalTimeStep(struct timeval *raw, struct timeval *cooked,
+LCL_NotifyExternalTimeStep(struct timespec *raw, struct timespec *cooked,
     double offset, double dispersion)
 {
   /* Dispatch to all handlers */
@@ -563,7 +572,7 @@ LCL_NotifyExternalTimeStep(struct timeval *raw, struct timeval *cooked,
 void
 LCL_NotifyLeap(int leap)
 {
-  struct timeval raw, cooked;
+  struct timespec raw, cooked;
 
   LCL_ReadRawTime(&raw);
   LCL_CookTime(&raw, &cooked, NULL);
@@ -580,7 +589,7 @@ LCL_NotifyLeap(int leap)
 void
 LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate)
 {
-  struct timeval raw, cooked;
+  struct timespec raw, cooked;
   double old_freq_ppm;
 
   LCL_ReadRawTime(&raw);
@@ -657,7 +666,7 @@ lcl_RegisterSystemDrivers(lcl_ReadFrequencyDriver read_freq,
 int
 LCL_MakeStep(void)
 {
-  struct timeval raw;
+  struct timespec raw;
   double correction;
 
   LCL_ReadRawTime(&raw);

@@ -33,7 +33,7 @@
 
 /* Read the system clock.  This is analogous to gettimeofday(),
    but with the timezone information ignored */
-extern void LCL_ReadRawTime(struct timeval *);
+extern void LCL_ReadRawTime(struct timespec *ts);
 
 /* Read the system clock, corrected according to all accumulated
    drifts and uncompensated offsets.
@@ -44,15 +44,15 @@ extern void LCL_ReadRawTime(struct timeval *);
    adjtime()-like interface to correct offsets, and to adjust the
    frequency), we must correct the raw time to get this value */
 
-extern void LCL_ReadCookedTime(struct timeval *t, double *err);
+extern void LCL_ReadCookedTime(struct timespec *ts, double *err);
 
 /* Convert raw time to cooked. */
-extern void LCL_CookTime(struct timeval *raw, struct timeval *cooked, double *err);
+extern void LCL_CookTime(struct timespec *raw, struct timespec *cooked, double *err);
 
 /* Read the current offset between the system clock and true time
    (i.e. 'cooked' - 'raw') (in seconds). */
 
-extern void LCL_GetOffsetCorrection(struct timeval *raw, double *correction, double *err);
+extern void LCL_GetOffsetCorrection(struct timespec *raw, double *correction, double *err);
 
 /* Type of routines that may be invoked as callbacks when there is a
    change to the frequency or offset.
@@ -79,7 +79,7 @@ typedef enum {
 } LCL_ChangeType;
 
 typedef void (*LCL_ParameterChangeHandler)
-     (struct timeval *raw, struct timeval *cooked,
+     (struct timespec *raw, struct timespec *cooked,
       double dfreq,
       double doffset,
       LCL_ChangeType change_type,
@@ -163,7 +163,7 @@ extern int LCL_ApplyStepOffset(double offset);
 
 /* Routine to invoke notify handlers on an unexpected time jump
    in system clock */
-extern void LCL_NotifyExternalTimeStep(struct timeval *raw, struct timeval *cooked,
+extern void LCL_NotifyExternalTimeStep(struct timespec *raw, struct timespec *cooked,
     double offset, double dispersion);
 
 /* Routine to invoke notify handlers on leap second when the system clock

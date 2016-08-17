@@ -60,6 +60,7 @@ static void
 accrue_offset(double offset, double corr_rate)
 {
   struct timeval newadj, oldadj;
+  double doldadj;
 
   UTI_DoubleToTimeval(-offset, &newadj);
 
@@ -67,9 +68,9 @@ accrue_offset(double offset, double corr_rate)
     LOG_FATAL(LOGF_SysNetBSD, "adjtime() failed");
 
   /* Add the old remaining adjustment if not zero */
-  UTI_TimevalToDouble(&oldadj, &offset);
-  if (offset != 0.0) {
-    UTI_AddDoubleToTimeval(&newadj, offset, &newadj);
+  UTI_TimevalToDouble(&oldadj, &doldadj);
+  if (doldadj != 0.0) {
+    UTI_DoubleToTimeval(-offset + doldadj, &newadj);
     if (PRV_AdjustTime(&newadj, NULL) < 0)
       LOG_FATAL(LOGF_SysNetBSD, "adjtime() failed");
   }
@@ -78,7 +79,7 @@ accrue_offset(double offset, double corr_rate)
 /* ================================================== */
 
 static void
-get_offset_correction(struct timeval *raw,
+get_offset_correction(struct timespec *raw,
                       double *corr, double *err)
 {
   struct timeval remadj;

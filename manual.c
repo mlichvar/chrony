@@ -47,7 +47,7 @@ static int enabled = 0;
 
 /* More recent samples at highest indices */
 typedef struct {
-  struct timeval when; /* This is our 'cooked' time */
+  struct timespec when; /* This is our 'cooked' time */
   double orig_offset; /*+ Not modified by slew samples */
   double offset; /*+ if we are fast of the supplied reference */
   double residual; /*+ regression residual (sign convention given by
@@ -64,8 +64,8 @@ static int n_samples;
 /* ================================================== */
 
 static void
-slew_samples(struct timeval *raw,
-             struct timeval *cooked, 
+slew_samples(struct timespec *raw,
+             struct timespec *cooked,
              double dfreq,
              double doffset,
              LCL_ChangeType change_type,
@@ -97,7 +97,7 @@ MNL_Finalise(void)
 /* ================================================== */
 
 static void
-estimate_and_set_system(struct timeval *now, int offset_provided, double offset, long *offset_cs, double *dfreq_ppm, double *new_afreq_ppm)
+estimate_and_set_system(struct timespec *now, int offset_provided, double offset, long *offset_cs, double *dfreq_ppm, double *new_afreq_ppm)
 {
   double agos[MAX_SAMPLES], offsets[MAX_SAMPLES];
   double b0, b1;
@@ -110,7 +110,7 @@ estimate_and_set_system(struct timeval *now, int offset_provided, double offset,
 
   if (n_samples > 1) {
     for (i=0; i<n_samples; i++) {
-      UTI_DiffTimevalsToDouble(&agos[i], &samples[n_samples-1].when, &samples[i].when);
+      UTI_DiffTimespecsToDouble(&agos[i], &samples[n_samples - 1].when, &samples[i].when);
       offsets[i] = samples[i].offset;
     }
     
@@ -173,9 +173,9 @@ estimate_and_set_system(struct timeval *now, int offset_provided, double offset,
 /* ================================================== */
 
 int
-MNL_AcceptTimestamp(struct timeval *ts, long *offset_cs, double *dfreq_ppm, double *new_afreq_ppm)
+MNL_AcceptTimestamp(struct timespec *ts, long *offset_cs, double *dfreq_ppm, double *new_afreq_ppm)
 {
-  struct timeval now;
+  struct timespec now;
   double offset, diff;
   int i;
 
@@ -189,12 +189,12 @@ MNL_AcceptTimestamp(struct timeval *ts, long *offset_cs, double *dfreq_ppm, doub
      return 0;
 
     if (n_samples) {
-      UTI_DiffTimevalsToDouble(&diff, &now, &samples[n_samples - 1].when);
+      UTI_DiffTimespecsToDouble(&diff, &now, &samples[n_samples - 1].when);
       if (diff < MIN_SAMPLE_SEPARATION)
         return 0;
     }
 
-    UTI_DiffTimevalsToDouble(&offset, &now, ts);
+    UTI_DiffTimespecsToDouble(&offset, &now, ts);
 
     /* Check if buffer full up */
     if (n_samples == MAX_SAMPLES) {
@@ -224,8 +224,8 @@ MNL_AcceptTimestamp(struct timeval *ts, long *offset_cs, double *dfreq_ppm, doub
 /* ================================================== */
 
 static void
-slew_samples(struct timeval *raw,
-             struct timeval *cooked, 
+slew_samples(struct timespec *raw,
+             struct timespec *cooked,
              double dfreq,
              double doffset,
              LCL_ChangeType change_type,
@@ -239,7 +239,7 @@ slew_samples(struct timeval *raw,
   }
 
   for (i=0; i<n_samples; i++) {
-    UTI_AdjustTimeval(&samples[i].when, cooked, &samples[i].when, &delta_time,
+    UTI_AdjustTimespec(&samples[i].when, cooked, &samples[i].when, &delta_time,
         dfreq, doffset);
     samples[i].offset += delta_time;
   }
@@ -309,7 +309,7 @@ int
 MNL_DeleteSample(int index)
 {
   int i;
-  struct timeval now;
+  struct timespec now;
 
   if ((index < 0) || (index >= n_samples)) {
     return 0;

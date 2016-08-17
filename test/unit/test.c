@@ -150,7 +150,7 @@ apply_step_offset(double offset)
 }
 
 static void
-offset_convert(struct timeval *raw, double *corr, double *err)
+offset_convert(struct timespec *raw, double *corr, double *err)
 {
   *corr = 0.0;
   if (err)

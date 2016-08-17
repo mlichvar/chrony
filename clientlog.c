@@ -336,23 +336,24 @@ CLG_Finalise(void)
 /* ================================================== */
 
 static uint32_t
-get_ts_from_timeval(struct timeval *tv)
+get_ts_from_timespec(struct timespec *ts)
 {
-  uint32_t sec = tv->tv_sec, usec = tv->tv_usec;
+  uint32_t sec = ts->tv_sec, nsec = ts->tv_nsec;
 
-  return sec << TS_FRAC | (4295U * usec - (usec >> 5)) >> (32 - TS_FRAC);
+  /* This is fast and accurate enough */
+  return sec << TS_FRAC | (140740U * (nsec >> 15)) >> (32 - TS_FRAC);
 }
 
 /* ================================================== */
 
 static void
-update_record(struct timeval *now, uint32_t *last_hit, uint32_t *hits,
+update_record(struct timespec *now, uint32_t *last_hit, uint32_t *hits,
               uint16_t *tokens, uint32_t max_tokens, int token_shift, int8_t *rate)
 {
   uint32_t interval, now_ts, prev_hit, new_tokens;
   int interval2;
 
-  now_ts = get_ts_from_timeval(now);
+  now_ts = get_ts_from_timespec(now);
 
   prev_hit = *last_hit;
   *last_hit = now_ts;
@@ -405,7 +406,7 @@ get_index(Record *record)
 /* ================================================== */
 
 int
-CLG_LogNTPAccess(IPAddr *client, struct timeval *now)
+CLG_LogNTPAccess(IPAddr *client, struct timespec *now)
 {
   Record *record;
 
@@ -435,7 +436,7 @@ CLG_LogNTPAccess(IPAddr *client, struct timeval *now)
 /* ================================================== */
 
 int
-CLG_LogCommandAccess(IPAddr *client, struct timeval *now)
+CLG_LogCommandAccess(IPAddr *client, struct timespec *now)
 {
   Record *record;
 
@@ -586,7 +587,7 @@ static uint32_t get_last_ago(uint32_t x, uint32_t y)
 /* ================================================== */
 
 int
-CLG_GetClientAccessReportByIndex(int index, RPT_ClientAccessByIndex_Report *report, struct timeval *now)
+CLG_GetClientAccessReportByIndex(int index, RPT_ClientAccessByIndex_Report *report, struct timespec *now)
 {
   Record *record;
   uint32_t now_ts;
@@ -599,7 +600,7 @@ CLG_GetClientAccessReportByIndex(int index, RPT_ClientAccessByIndex_Report *repo
   if (record->ip_addr.family == IPADDR_UNSPEC)
     return 0;
 
-  now_ts = get_ts_from_timeval(now);
+  now_ts = get_ts_from_timespec(now);
 
   report->ip_addr = record->ip_addr;
   report->ntp_hits = record->ntp_hits;

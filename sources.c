@@ -166,7 +166,7 @@ static double combine_limit;
 /* Forward prototype */
 
 static void
-slew_sources(struct timeval *raw, struct timeval *cooked, double dfreq,
+slew_sources(struct timespec *raw, struct timespec *cooked, double dfreq,
              double doffset, LCL_ChangeType change_type, void *anything);
 static void
 add_dispersion(double dispersion, void *anything);
@@ -341,7 +341,7 @@ void SRC_GetFrequencyRange(SRC_Instance instance, double *lo, double *hi)
 
 void SRC_AccumulateSample
 (SRC_Instance inst, 
- struct timeval *sample_time, 
+ struct timespec *sample_time,
  double offset, 
  double peer_delay,
  double peer_dispersion,
@@ -356,7 +356,8 @@ void SRC_AccumulateSample
   inst->leap_status = leap_status;
 
   DEBUG_LOG(LOGF_Sources, "ip=[%s] t=%s ofs=%f del=%f disp=%f str=%d",
-      source_to_string(inst), UTI_TimevalToString(sample_time), -offset, root_delay, root_dispersion, stratum);
+            source_to_string(inst), UTI_TimespecToString(sample_time), -offset,
+            root_delay, root_dispersion, stratum);
 
   if (REF_IsLeapSecondClose()) {
     LOG(LOGS_INFO, LOGF_Sources, "Dropping sample around leap second");
@@ -513,10 +514,10 @@ mark_ok_sources(SRC_Status status)
 /* ================================================== */
 
 static int
-combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
+combine_sources(int n_sel_sources, struct timespec *ref_time, double *offset,
                 double *offset_sd, double *frequency, double *skew)
 {
-  struct timeval src_ref_time;
+  struct timespec src_ref_time;
   double src_offset, src_offset_sd, src_frequency, src_skew;
   double src_root_delay, src_root_dispersion, sel_src_distance, elapsed;
   double offset_weight, sum_offset_weight, sum_offset, sum2_offset_sd;
@@ -563,7 +564,7 @@ combine_sources(int n_sel_sources, struct timeval *ref_time, double *offset,
     if (sources[index]->status == SRC_OK)
       sources[index]->status = SRC_UNSELECTED;
 
-    UTI_DiffTimevalsToDouble(&elapsed, ref_time, &src_ref_time);
+    UTI_DiffTimespecsToDouble(&elapsed, ref_time, &src_ref_time);
     src_offset += elapsed * src_frequency;
     offset_weight = 1.0 / sources[index]->sel_info.root_distance;
     frequency_weight = 1.0 / src_skew;
@@ -603,7 +604,7 @@ void
 SRC_SelectSource(SRC_Instance updated_inst)
 {
   struct SelectInfo *si;
-  struct timeval now, ref_time;
+  struct timespec now, ref_time;
   int i, j, j1, j2, index, sel_prefer, n_endpoints, n_sel_sources;
   int n_badstats_sources, max_sel_reach, max_badstat_reach, sel_req_source;
   int depth, best_depth, trust_depth, best_trust_depth;
@@ -1097,7 +1098,7 @@ SRC_SetReselectDistance(double distance)
 /* ================================================== */
 
 double
-SRC_PredictOffset(SRC_Instance inst, struct timeval *when)
+SRC_PredictOffset(SRC_Instance inst, struct timespec *when)
 {
   return SST_PredictOffset(inst->stats, when);
 }
@@ -1114,7 +1115,7 @@ SRC_MinRoundTripDelay(SRC_Instance inst)
 
 int
 SRC_IsGoodSample(SRC_Instance inst, double offset, double delay,
-   double max_delay_dev_ratio, double clock_error, struct timeval *when)
+   double max_delay_dev_ratio, double clock_error, struct timespec *when)
 {
   return SST_IsGoodSample(inst->stats, offset, delay, max_delay_dev_ratio,
       clock_error, when);
@@ -1128,12 +1129,8 @@ SRC_IsGoodSample(SRC_Instance inst, double offset, double delay,
    the new regime. */
 
 static void
-slew_sources(struct timeval *raw,
-             struct timeval *cooked,
-             double dfreq,
-             double doffset,
-             LCL_ChangeType change_type,
-             void *anything)
+slew_sources(struct timespec *raw, struct timespec *cooked, double dfreq,
+             double doffset, LCL_ChangeType change_type, void *anything)
 {
   int i;
 
@@ -1286,7 +1283,7 @@ SRC_ActiveSources(void)
 /* ================================================== */
 
 int
-SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
+SRC_ReportSource(int index, RPT_SourceReport *report, struct timespec *now)
 {
   SRC_Instance src;
   if ((index >= n_sources) || (index < 0)) {
@@ -1341,7 +1338,7 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now)
 /* ================================================== */
 
 int
-SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report, struct timeval *now)
+SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report, struct timespec *now)
 { 
   SRC_Instance src;
 

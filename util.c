@@ -34,6 +34,70 @@
 #include "util.h"
 #include "hash.h"
 
+#define NSEC_PER_SEC 1000000000
+
+/* ================================================== */
+
+void
+UTI_ZeroTimespec(struct timespec *ts)
+{
+  ts->tv_sec = 0;
+  ts->tv_nsec = 0;
+}
+
+/* ================================================== */
+
+void
+UTI_TimevalToTimespec(struct timeval *tv, struct timespec *ts)
+{
+  ts->tv_sec = tv->tv_sec;
+  ts->tv_nsec = 1000 * tv->tv_usec;
+}
+
+/* ================================================== */
+
+void
+UTI_TimespecToTimeval(struct timespec *ts, struct timeval *tv)
+{
+  tv->tv_sec = ts->tv_sec;
+  tv->tv_usec = ts->tv_nsec / 1000;
+}
+
+/* ================================================== */
+
+void
+UTI_TimespecToDouble(struct timespec *ts, double *d)
+{
+  *d = ts->tv_sec + 1.0e-9 * ts->tv_nsec;
+}
+
+/* ================================================== */
+
+void
+UTI_DoubleToTimespec(double d, struct timespec *ts)
+{
+  ts->tv_sec = d;
+  ts->tv_nsec = 1.0e9 * (d - ts->tv_sec);
+  UTI_NormaliseTimespec(ts);
+}
+
+/* ================================================== */
+
+void
+UTI_NormaliseTimespec(struct timespec *ts)
+{
+  if (ts->tv_nsec >= NSEC_PER_SEC || ts->tv_nsec < 0) {
+    ts->tv_sec += ts->tv_nsec / NSEC_PER_SEC;
+    ts->tv_nsec = ts->tv_nsec % NSEC_PER_SEC;
+
+    /* If seconds are negative nanoseconds would end up negative too */
+    if (ts->tv_nsec < 0) {
+      ts->tv_sec--;
+      ts->tv_nsec += NSEC_PER_SEC;
+    }
+  }
+}
+
 /* ================================================== */
 
 void
@@ -60,26 +124,6 @@ UTI_DoubleToTimeval(double a, struct timeval *b)
 
 /* ================================================== */
 
-int
-UTI_CompareTimevals(struct timeval *a, struct timeval *b)
-{
-  if (a->tv_sec < b->tv_sec) {
-    return -1;
-  } else if (a->tv_sec > b->tv_sec) {
-    return +1;
-  } else {
-    if (a->tv_usec < b->tv_usec) {
-      return -1;
-    } else if (a->tv_usec > b->tv_usec) {
-      return +1;
-    } else {
-      return 0;
-    }
-  }
-}
-
-/* ================================================== */
-
 void
 UTI_NormaliseTimeval(struct timeval *x)
 {
@@ -99,100 +143,73 @@ UTI_NormaliseTimeval(struct timeval *x)
 
 /* ================================================== */
 
-void
-UTI_DiffTimevals(struct timeval *result,
-                 struct timeval *a,
-                 struct timeval *b)
+int
+UTI_CompareTimespecs(struct timespec *a, struct timespec *b)
 {
-  result->tv_sec  = a->tv_sec  - b->tv_sec;
-  result->tv_usec = a->tv_usec - b->tv_usec;
+  if (a->tv_sec < b->tv_sec)
+    return -1;
+  if (a->tv_sec > b->tv_sec)
+    return 1;
+  if (a->tv_nsec < b->tv_nsec)
+    return -1;
+  if (a->tv_nsec > b->tv_nsec)
+    return 1;
+  return 0;
+}
 
-  /* Correct microseconds field to bring it into the range
-     (0,1000000) */
+/* ================================================== */
 
-  UTI_NormaliseTimeval(result); /* JGH */
+void
+UTI_DiffTimespecs(struct timespec *result, struct timespec *a, struct timespec *b)
+{
+  result->tv_sec = a->tv_sec - b->tv_sec;
+  result->tv_nsec = a->tv_nsec - b->tv_nsec;
+  UTI_NormaliseTimespec(result);
 }
 
 /* ================================================== */
 
 /* Calculate result = a - b and return as a double */
 void
-UTI_DiffTimevalsToDouble(double *result, 
-                         struct timeval *a,
-                         struct timeval *b)
+UTI_DiffTimespecsToDouble(double *result, struct timespec *a, struct timespec *b)
 {
-  *result = (double)(a->tv_sec - b->tv_sec) +
-    (double)(a->tv_usec - b->tv_usec) * 1.0e-6;
+  *result = (a->tv_sec - b->tv_sec) + 1.0e-9 * (a->tv_nsec - b->tv_nsec);
 }
 
 /* ================================================== */
 
 void
-UTI_AddDoubleToTimeval(struct timeval *start,
-                       double increment,
-                       struct timeval *end)
+UTI_AddDoubleToTimespec(struct timespec *start, double increment, struct timespec *end)
 {
-  long int_part, frac_part;
+  time_t int_part;
 
-  /* Don't want to do this by using (long)(1000000 * increment), since
-     that will only cope with increments up to +/- 2148 seconds, which
-     is too marginal here. */
-
-  int_part = (long) increment;
-  increment = (increment - int_part) * 1.0e6;
-  frac_part = (long) (increment > 0.0 ? increment + 0.5 : increment - 0.5);
-
-  end->tv_sec  = int_part  + start->tv_sec;
-  end->tv_usec = frac_part + start->tv_usec;
-
-  UTI_NormaliseTimeval(end);
+  int_part = increment;
+  end->tv_sec = start->tv_sec + int_part;
+  end->tv_nsec = start->tv_nsec + 1.0e9 * (increment - int_part);
+  UTI_NormaliseTimespec(end);
 }
 
 /* ================================================== */
 
-/* Calculate the average and difference (as a double) of two timevals */
+/* Calculate the average and difference (as a double) of two timespecs */
 void
-UTI_AverageDiffTimevals (struct timeval *earlier,
-                         struct timeval *later,
-                         struct timeval *average,
-                         double *diff)
+UTI_AverageDiffTimespecs(struct timespec *earlier, struct timespec *later,
+                         struct timespec *average, double *diff)
 {
-  struct timeval tvdiff;
-  struct timeval tvhalf;
-
-  UTI_DiffTimevals(&tvdiff, later, earlier);
-  *diff = (double)tvdiff.tv_sec + 1.0e-6 * (double)tvdiff.tv_usec;
-
-  if (*diff < 0.0) {
-    /* Either there's a bug elsewhere causing 'earlier' and 'later' to
-       be backwards, or something wierd has happened.  Maybe when we
-       change the frequency on Linux? */
-
-    /* Assume the required behaviour is to treat it as zero */
-    *diff = 0.0;
-  }
-
-  tvhalf.tv_sec = tvdiff.tv_sec / 2;
-  tvhalf.tv_usec = tvdiff.tv_usec / 2 + (tvdiff.tv_sec % 2) * 500000; /* JGH */
-  
-  average->tv_sec  = earlier->tv_sec  + tvhalf.tv_sec;
-  average->tv_usec = earlier->tv_usec + tvhalf.tv_usec;
-  
-  /* Bring into range */
-  UTI_NormaliseTimeval(average);
-
- }
+  UTI_DiffTimespecsToDouble(diff, later, earlier);
+  UTI_AddDoubleToTimespec(earlier, *diff / 2.0, average);
+}
 
 /* ================================================== */
 
 void
-UTI_AddDiffToTimeval(struct timeval *a, struct timeval *b,
-                     struct timeval *c, struct timeval *result)
+UTI_AddDiffToTimespec(struct timespec *a, struct timespec *b,
+                      struct timespec *c, struct timespec *result)
 {
   double diff;
 
-  UTI_DiffTimevalsToDouble(&diff, a, b);
-  UTI_AddDoubleToTimeval(c, diff, result);
+  UTI_DiffTimespecsToDouble(&diff, a, b);
+  UTI_AddDoubleToTimespec(c, diff, result);
 }
 
 /* ================================================== */
@@ -205,21 +222,20 @@ static int  pool_ptr = 0;
 #define NEXT_BUFFER (buffer_pool[pool_ptr = ((pool_ptr + 1) % POOL_ENTRIES)])
 
 /* ================================================== */
-/* Convert a timeval into a temporary string, largely for diagnostic
-   display */
+/* Convert a timespec into a temporary string, largely for diagnostic display */
 
 char *
-UTI_TimevalToString(struct timeval *tv)
+UTI_TimespecToString(struct timespec *ts)
 {
   char *result;
 
   result = NEXT_BUFFER;
 #ifdef HAVE_LONG_TIME_T
-  snprintf(result, BUFFER_LENGTH, "%"PRId64".%06lu",
-      (int64_t)tv->tv_sec, (unsigned long)tv->tv_usec);
+  snprintf(result, BUFFER_LENGTH, "%"PRId64".%09lu",
+           (int64_t)ts->tv_sec, (unsigned long)ts->tv_nsec);
 #else
-  snprintf(result, BUFFER_LENGTH, "%ld.%06lu",
-      (long)tv->tv_sec, (unsigned long)tv->tv_usec);
+  snprintf(result, BUFFER_LENGTH, "%ld.%09lu",
+           (long)ts->tv_sec, (unsigned long)ts->tv_nsec);
 #endif
   return result;
 }
@@ -229,11 +245,11 @@ UTI_TimevalToString(struct timeval *tv)
    for diagnostic display */
 
 char *
-UTI_TimestampToString(NTP_int64 *ts)
+UTI_TimestampToString(NTP_int64 *ntp_ts)
 {
-  struct timeval tv;
-  UTI_Int64ToTimeval(ts, &tv);
-  return UTI_TimevalToString(&tv);
+  struct timespec ts;
+  UTI_Int64ToTimespec(ntp_ts, &ts);
+  return UTI_TimespecToString(&ts);
 }
 
 /* ================================================== */
@@ -589,13 +605,13 @@ UTI_TimeToLogForm(time_t t)
 /* ================================================== */
 
 void
-UTI_AdjustTimeval(struct timeval *old_tv, struct timeval *when, struct timeval *new_tv, double *delta_time, double dfreq, double doffset)
+UTI_AdjustTimespec(struct timespec *old_ts, struct timespec *when, struct timespec *new_ts, double *delta_time, double dfreq, double doffset)
 {
   double elapsed;
 
-  UTI_DiffTimevalsToDouble(&elapsed, when, old_tv);
+  UTI_DiffTimespecsToDouble(&elapsed, when, old_ts);
   *delta_time = elapsed * dfreq - doffset;
-  UTI_AddDoubleToTimeval(old_tv, *delta_time, new_tv);
+  UTI_AddDoubleToTimespec(old_ts, *delta_time, new_ts);
 }
 
 /* ================================================== */
@@ -652,28 +668,26 @@ UTI_DoubleToInt32(double x)
 
 /* ================================================== */
 
-/* Seconds part of NTP timestamp correponding to the origin of the
-   struct timeval format. */
+/* Seconds part of NTP timestamp correponding to the origin of the time_t format */
 #define JAN_1970 0x83aa7e80UL
 
+#define NSEC_PER_NTP64 4.294967296
+
 void
-UTI_TimevalToInt64(struct timeval *src,
-                   NTP_int64 *dest, NTP_int64 *fuzz)
+UTI_TimespecToInt64(struct timespec *src, NTP_int64 *dest, NTP_int64 *fuzz)
 {
-  uint32_t hi, lo, sec, usec;
+  uint32_t hi, lo, sec, nsec;
 
   sec = (uint32_t)src->tv_sec;
-  usec = (uint32_t)src->tv_usec;
+  nsec = (uint32_t)src->tv_nsec;
 
   /* Recognize zero as a special case - it always signifies
      an 'unknown' value */
-  if (!usec && !sec) {
+  if (!nsec && !sec) {
     hi = lo = 0;
   } else {
     hi = htonl(sec + JAN_1970);
-
-    /* This formula gives an error of about 0.1us worst case */
-    lo = htonl(4295 * usec - (usec >> 5) - (usec >> 9));
+    lo = htonl(NSEC_PER_NTP64 * nsec);
 
     /* Add the fuzz */
     if (fuzz) {
@@ -689,8 +703,7 @@ UTI_TimevalToInt64(struct timeval *src,
 /* ================================================== */
 
 void
-UTI_Int64ToTimeval(NTP_int64 *src,
-                   struct timeval *dest)
+UTI_Int64ToTimespec(NTP_int64 *src, struct timespec *dest)
 {
   uint32_t ntp_sec, ntp_frac;
 
@@ -706,11 +719,10 @@ UTI_Int64ToTimeval(NTP_int64 *src,
 #else
   dest->tv_sec = ntp_sec - JAN_1970;
 #endif
-  
-  /* Until I invent a slick way to do this, just do it the obvious way */
-  dest->tv_usec = (int)(0.5 + (double)(ntp_frac) / 4294.967296);
 
-  UTI_NormaliseTimeval(dest);
+  dest->tv_nsec = ntp_frac / NSEC_PER_NTP64 + 0.5;
+
+  UTI_NormaliseTimespec(dest);
 }
 
 /* ================================================== */
@@ -722,7 +734,7 @@ UTI_Int64ToTimeval(NTP_int64 *src,
 #define MIN_ENDOFTIME_DISTANCE (365 * 24 * 3600)
 
 int
-UTI_IsTimeOffsetSane(struct timeval *tv, double offset)
+UTI_IsTimeOffsetSane(struct timespec *ts, double offset)
 {
   double t;
 
@@ -730,7 +742,7 @@ UTI_IsTimeOffsetSane(struct timeval *tv, double offset)
   if (!(offset > -MAX_OFFSET && offset < MAX_OFFSET))
     return 0;
 
-  UTI_TimevalToDouble(tv, &t);
+  UTI_TimespecToDouble(ts, &t);
   t += offset;
 
   /* Time before 1970 is not considered valid */
@@ -769,14 +781,14 @@ UTI_Log2ToDouble(int l)
 /* ================================================== */
 
 void
-UTI_TimevalNetworkToHost(Timeval *src, struct timeval *dest)
+UTI_TimespecNetworkToHost(Timespec *src, struct timespec *dest)
 {
   uint32_t sec_low;
 #ifdef HAVE_LONG_TIME_T
   uint32_t sec_high;
 #endif
 
-  dest->tv_usec = ntohl(src->tv_nsec) / 1000;
+  dest->tv_nsec = ntohl(src->tv_nsec);
   sec_low = ntohl(src->tv_sec_low);
 #ifdef HAVE_LONG_TIME_T
   sec_high = ntohl(src->tv_sec_high);
@@ -788,15 +800,15 @@ UTI_TimevalNetworkToHost(Timeval *src, struct timeval *dest)
   dest->tv_sec = sec_low;
 #endif
 
-  UTI_NormaliseTimeval(dest);
+  UTI_NormaliseTimespec(dest);
 }
 
 /* ================================================== */
 
 void
-UTI_TimevalHostToNetwork(struct timeval *src, Timeval *dest)
+UTI_TimespecHostToNetwork(struct timespec *src, Timespec *dest)
 {
-  dest->tv_nsec = htonl(src->tv_usec * 1000);
+  dest->tv_nsec = htonl(src->tv_nsec);
 #ifdef HAVE_LONG_TIME_T
   dest->tv_sec_high = htonl((uint64_t)src->tv_sec >> 32);
 #else

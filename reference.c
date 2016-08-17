@@ -52,7 +52,7 @@ static int our_leap_sec;
 static int our_stratum;
 static uint32_t our_ref_id;
 static IPAddr our_ref_ip;
-struct timeval our_ref_time;
+struct timespec our_ref_time;
 static double our_skew;
 static double our_residual_freq;
 static double our_root_delay;
@@ -136,7 +136,7 @@ static int next_fb_drift;
 static SCH_TimeoutID fb_drift_timeout_id;
 
 /* Timestamp of last reference update */
-static struct timeval last_ref_update;
+static struct timespec last_ref_update;
 static double last_ref_update_interval;
 
 /* ================================================== */
@@ -147,23 +147,22 @@ static void update_leap_status(NTP_Leap leap, time_t now, int reset);
 /* ================================================== */
 
 static void
-handle_slew(struct timeval *raw,
-            struct timeval *cooked,
+handle_slew(struct timespec *raw,
+            struct timespec *cooked,
             double dfreq,
             double doffset,
             LCL_ChangeType change_type,
             void *anything)
 {
   double delta;
-  struct timeval now;
+  struct timespec now;
 
-  UTI_AdjustTimeval(&our_ref_time, cooked, &our_ref_time, &delta, dfreq, doffset);
+  UTI_AdjustTimespec(&our_ref_time, cooked, &our_ref_time, &delta, dfreq, doffset);
 
   if (change_type == LCL_ChangeUnknownStep) {
-    last_ref_update.tv_sec = 0;
-    last_ref_update.tv_usec = 0;
+    UTI_ZeroTimespec(&last_ref_update);
   } else if (last_ref_update.tv_sec) {
-    UTI_AdjustTimeval(&last_ref_update, cooked, &last_ref_update, &delta, dfreq, doffset);
+    UTI_AdjustTimespec(&last_ref_update, cooked, &last_ref_update, &delta, dfreq, doffset);
   }
 
   /* When the clock was stepped, check if that doesn't change our leap status
@@ -267,8 +266,7 @@ REF_Initialise(void)
     fb_drift_timeout_id = 0;
   }
 
-  last_ref_update.tv_sec = 0;
-  last_ref_update.tv_usec = 0;
+  UTI_ZeroTimespec(&last_ref_update);
   last_ref_update_interval = 0.0;
 
   LCL_AddParameterChangeHandler(handle_slew, NULL);
@@ -468,16 +466,16 @@ fb_drift_timeout(void *arg)
 /* ================================================== */
 
 static void
-schedule_fb_drift(struct timeval *now)
+schedule_fb_drift(struct timespec *now)
 {
   int i, c, secs;
   double unsynchronised;
-  struct timeval when;
+  struct timespec when;
 
   if (fb_drift_timeout_id)
     return; /* already scheduled */
 
-  UTI_DiffTimevalsToDouble(&unsynchronised, now, &last_ref_update);
+  UTI_DiffTimespecsToDouble(&unsynchronised, now, &last_ref_update);
 
   for (c = secs = 0, i = fb_drift_min; i <= fb_drift_max; i++) {
     secs = 1 << i;
@@ -499,7 +497,7 @@ schedule_fb_drift(struct timeval *now)
 
   if (i <= fb_drift_max) {
     next_fb_drift = i;
-    UTI_AddDoubleToTimeval(now, secs - unsynchronised, &when);
+    UTI_AddDoubleToTimespec(now, secs - unsynchronised, &when);
     fb_drift_timeout_id = SCH_AddTimeout(&when, fb_drift_timeout, NULL);
     DEBUG_LOG(LOGF_Reference, "Fallback drift %d scheduled", i);
   }
@@ -727,7 +725,7 @@ leap_start_timeout(void *arg)
 static void
 set_leap_timeout(time_t now)
 {
-  struct timeval when;
+  struct timespec when;
 
   /* Stop old timer if there is one */
   SCH_RemoveTimeout(leap_timeout_id);
@@ -741,12 +739,12 @@ set_leap_timeout(time_t now)
      will be corrected by the system, timeout slightly sooner to be sure it
      will happen before the system correction. */
   when.tv_sec = (now / (24 * 3600) + 1) * (24 * 3600);
-  when.tv_usec = 0;
+  when.tv_nsec = 0;
   if (our_leap_sec < 0)
     when.tv_sec--;
   if (leap_mode == REF_LeapModeSystem) {
     when.tv_sec--;
-    when.tv_usec = 500000;
+    when.tv_nsec = 500000000;
   }
 
   leap_timeout_id = SCH_AddTimeout(&when, leap_start_timeout, NULL);
@@ -804,7 +802,7 @@ update_leap_status(NTP_Leap leap, time_t now, int reset)
 /* ================================================== */
 
 static void
-write_log(struct timeval *ref_time, char *ref, int stratum, NTP_Leap leap,
+write_log(struct timespec *ref_time, char *ref, int stratum, NTP_Leap leap,
     double freq, double skew, double offset, int combined_sources,
     double offset_sd, double uncorrected_offset)
 {
@@ -881,7 +879,7 @@ REF_SetReference(int stratum,
                  int combined_sources,
                  uint32_t ref_id,
                  IPAddr *ref_ip,
-                 struct timeval *ref_time,
+                 struct timespec *ref_time,
                  double offset,
                  double offset_sd,
                  double frequency,
@@ -902,7 +900,7 @@ REF_SetReference(int stratum,
   double elapsed;
   double correction_rate;
   double uncorrected_offset, accumulate_offset, step_offset;
-  struct timeval now, raw_now;
+  struct timespec now, raw_now;
 
   assert(initialised);
 
@@ -936,9 +934,9 @@ REF_SetReference(int stratum,
     
   LCL_ReadRawTime(&raw_now);
   LCL_GetOffsetCorrection(&raw_now, &uncorrected_offset, NULL);
-  UTI_AddDoubleToTimeval(&raw_now, uncorrected_offset, &now);
+  UTI_AddDoubleToTimespec(&raw_now, uncorrected_offset, &now);
 
-  UTI_DiffTimevalsToDouble(&elapsed, &now, ref_time);
+  UTI_DiffTimespecsToDouble(&elapsed, &now, ref_time);
   our_offset = offset + elapsed * frequency;
 
   if (!is_offset_ok(our_offset))
@@ -956,7 +954,7 @@ REF_SetReference(int stratum,
   our_root_dispersion = root_dispersion;
 
   if (last_ref_update.tv_sec) {
-    UTI_DiffTimevalsToDouble(&update_interval, &now, &last_ref_update);
+    UTI_DiffTimespecsToDouble(&update_interval, &now, &last_ref_update);
     if (update_interval < 0.0)
       update_interval = 0.0;
   } else {
@@ -1089,7 +1087,7 @@ REF_SetReference(int stratum,
 void
 REF_SetManualReference
 (
- struct timeval *ref_time,
+ struct timespec *ref_time,
  double offset,
  double frequency,
  double skew
@@ -1108,7 +1106,7 @@ void
 REF_SetUnsynchronised(void)
 {
   /* Variables required for logging to statistics log */
-  struct timeval now, now_raw;
+  struct timespec now, now_raw;
   double uncorrected_offset;
 
   assert(initialised);
@@ -1121,7 +1119,7 @@ REF_SetUnsynchronised(void)
 
   LCL_ReadRawTime(&now_raw);
   LCL_GetOffsetCorrection(&now_raw, &uncorrected_offset, NULL);
-  UTI_AddDoubleToTimeval(&now_raw, uncorrected_offset, &now);
+  UTI_AddDoubleToTimespec(&now_raw, uncorrected_offset, &now);
 
   if (fb_drifts) {
     schedule_fb_drift(&now);
@@ -1149,12 +1147,12 @@ REF_SetUnsynchronised(void)
 void
 REF_GetReferenceParams
 (
- struct timeval *local_time,
+ struct timespec *local_time,
  int *is_synchronised,
  NTP_Leap *leap_status,
  int *stratum,
  uint32_t *ref_id,
- struct timeval *ref_time,
+ struct timespec *ref_time,
  double *root_delay,
  double *root_dispersion
 )
@@ -1164,7 +1162,7 @@ REF_GetReferenceParams
   assert(initialised);
 
   if (are_we_synchronised) {
-    UTI_DiffTimevalsToDouble(&elapsed, local_time, &our_ref_time);
+    UTI_DiffTimespecsToDouble(&elapsed, local_time, &our_ref_time);
     dispersion = our_root_dispersion +
       (our_skew + fabs(our_residual_freq) + LCL_GetMaxClockError()) * elapsed;
   } else {
@@ -1215,7 +1213,7 @@ REF_GetReferenceParams
     *leap_status = LEAP_Unsynchronised;
     *stratum = NTP_MAX_STRATUM;
     *ref_id = NTP_REFID_UNSYNC;
-    ref_time->tv_sec = ref_time->tv_usec = 0;
+    UTI_ZeroTimespec(ref_time);
     /* These values seem to be standard for a client, and
        any peer or client of ours will ignore them anyway because
        we don't claim to be synchronised */
@@ -1230,7 +1228,7 @@ REF_GetReferenceParams
 int
 REF_GetOurStratum(void)
 {
-  struct timeval now_cooked, ref_time;
+  struct timespec now_cooked, ref_time;
   int synchronised, stratum;
   NTP_Leap leap_status;
   uint32_t ref_id;
@@ -1303,7 +1301,7 @@ REF_DisableLocal(void)
 
 int REF_IsLeapSecondClose(void)
 {
-  struct timeval now, now_raw;
+  struct timespec now, now_raw;
   time_t t;
 
   if (!our_leap_sec)
@@ -1327,13 +1325,13 @@ int REF_IsLeapSecondClose(void)
 void
 REF_GetTrackingReport(RPT_TrackingReport *rep)
 {
-  struct timeval now_raw, now_cooked;
+  struct timespec now_raw, now_cooked;
   double correction;
   int synchronised;
 
   LCL_ReadRawTime(&now_raw);
   LCL_GetOffsetCorrection(&now_raw, &correction, NULL);
-  UTI_AddDoubleToTimeval(&now_raw, correction, &now_cooked);
+  UTI_AddDoubleToTimespec(&now_raw, correction, &now_cooked);
 
   REF_GetReferenceParams(&now_cooked, &synchronised,
                          &rep->leap_status, &rep->stratum,

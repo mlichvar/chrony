@@ -292,7 +292,7 @@ NSR_ModifyPolltarget(IPAddr *address, int new_poll_target)
 }
 
 void
-NSR_ReportSource(RPT_SourceReport *report, struct timeval *now)
+NSR_ReportSource(RPT_SourceReport *report, struct timespec *now)
 {
   memset(report, 0, sizeof (*report));
 }
@@ -362,7 +362,7 @@ RCL_StartRefclocks(void)
 }
 
 void
-RCL_ReportSource(RPT_SourceReport *report, struct timeval *now)
+RCL_ReportSource(RPT_SourceReport *report, struct timespec *now)
 {
   memset(report, 0, sizeof (*report));
 }

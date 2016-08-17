@@ -29,7 +29,7 @@ test_unit(void)
   IPAddr addr;
   int i, j, k, l, samples, sel_options;
   double offset, delay, disp;
-  struct timeval tv;
+  struct timespec ts;
 
   CNF_Initialise(0);
   LCL_Initialise();
@@ -61,8 +61,8 @@ test_unit(void)
       offset = TST_GetRandomDouble(-1.0, 1.0);
 
       for (k = 0; k < samples; k++) {
-        SCH_GetLastEventTime(&tv, NULL, NULL);
-        UTI_AddDoubleToTimeval(&tv, TST_GetRandomDouble(k - samples, k - samples + 1), &tv);
+        SCH_GetLastEventTime(&ts, NULL, NULL);
+        UTI_AddDoubleToTimespec(&ts, TST_GetRandomDouble(k - samples, k - samples + 1), &ts);
 
         offset += TST_GetRandomDouble(-1.0e-2, 1.0e-2);
         delay = TST_GetRandomDouble(1.0e-6, 1.0e-1);
@@ -71,7 +71,7 @@ test_unit(void)
         DEBUG_LOG(0, "source %d sample %d offset %f delay %f disp %f", j, k,
                   offset, delay, disp);
 
-        SRC_AccumulateSample(srcs[j], &tv, offset, delay, disp, delay, disp,
+        SRC_AccumulateSample(srcs[j], &ts, offset, delay, disp, delay, disp,
                              1, LEAP_Normal);
       }
 
@@ -124,7 +124,7 @@ test_unit(void)
     }
 
     for (j = 0; j < sizeof (srcs) / sizeof (srcs[0]); j++) {
-      SRC_ReportSource(j, &report, &tv);
+      SRC_ReportSource(j, &report, &ts);
       SRC_DestroyInstance(srcs[j]);
     }
   }

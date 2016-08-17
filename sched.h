@@ -61,10 +61,10 @@ extern void SCH_RemoveFileHandler(int fd);
 extern void SCH_SetFileHandlerEvents(int fd, int events);
 
 /* Get the time stamp taken after a file descriptor became ready or a timeout expired */
-extern void SCH_GetLastEventTime(struct timeval *cooked, double *err, struct timeval *raw);
+extern void SCH_GetLastEventTime(struct timespec *cooked, double *err, struct timespec *raw);
 
 /* This queues a timeout to elapse at a given (raw) local time */
-extern SCH_TimeoutID SCH_AddTimeout(struct timeval *tv, SCH_TimeoutHandler, SCH_ArbitraryArgument);
+extern SCH_TimeoutID SCH_AddTimeout(struct timespec *ts, SCH_TimeoutHandler handler, SCH_ArbitraryArgument arg);
 
 /* This queues a timeout to elapse at a given delta time relative to the current (raw) time */
 extern SCH_TimeoutID SCH_AddTimeoutByDelay(double delay, SCH_TimeoutHandler, SCH_ArbitraryArgument);

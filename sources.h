@@ -114,7 +114,7 @@ extern void SRC_GetFrequencyRange(SRC_Instance instance, double *lo, double *hi)
 
    */
 
-extern void SRC_AccumulateSample(SRC_Instance instance, struct timeval *sample_time, double offset, double peer_delay, double peer_dispersion, double root_delay, double root_dispersion, int stratum, NTP_Leap leap_status);
+extern void SRC_AccumulateSample(SRC_Instance instance, struct timespec *sample_time, double offset, double peer_delay, double peer_dispersion, double root_delay, double root_dispersion, int stratum, NTP_Leap leap_status);
 
 /* This routine sets the source as receiving reachability updates */
 extern void SRC_SetActive(SRC_Instance inst);
@@ -146,7 +146,7 @@ extern void SRC_SetReselectDistance(double distance);
 /* Predict the offset of the local clock relative to a given source at
    a given local cooked time. Positive indicates local clock is FAST
    relative to reference. */
-extern double SRC_PredictOffset(SRC_Instance inst, struct timeval *when);
+extern double SRC_PredictOffset(SRC_Instance inst, struct timespec *when);
 
 /* Return the minimum peer delay amongst the previous samples
    currently held in the register */
@@ -154,7 +154,7 @@ extern double SRC_MinRoundTripDelay(SRC_Instance inst);
 
 /* This routine determines if a new sample is good enough that it should be
    accumulated */
-extern int SRC_IsGoodSample(SRC_Instance inst, double offset, double delay, double max_delay_dev_ratio, double clock_error, struct timeval *when);
+extern int SRC_IsGoodSample(SRC_Instance inst, double offset, double delay, double max_delay_dev_ratio, double clock_error, struct timespec *when);
 
 extern void SRC_DumpSources(void);
 
@@ -164,9 +164,9 @@ extern int SRC_IsSyncPeer(SRC_Instance inst);
 extern int SRC_IsReachable(SRC_Instance inst);
 extern int SRC_ReadNumberOfSources(void);
 extern int SRC_ActiveSources(void);
-extern int SRC_ReportSource(int index, RPT_SourceReport *report, struct timeval *now);
+extern int SRC_ReportSource(int index, RPT_SourceReport *report, struct timespec *now);
 
-extern int SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report, struct timeval *now);
+extern int SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report, struct timespec *now);
 
 extern SRC_Type SRC_GetType(int index);
 

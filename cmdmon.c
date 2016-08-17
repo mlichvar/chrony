@@ -564,10 +564,10 @@ handle_modify_makestep(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_settime(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  struct timeval ts;
+  struct timespec ts;
   long offset_cs;
   double dfreq_ppm, new_afreq_ppm;
-  UTI_TimevalNetworkToHost(&rx_message->data.settime.ts, &ts);
+  UTI_TimespecNetworkToHost(&rx_message->data.settime.ts, &ts);
   if (!MNL_IsEnabled()) {
     tx_message->status = htons(STT_NOTENABLED);
   } else if (MNL_AcceptTimestamp(&ts, &offset_cs, &dfreq_ppm, &new_afreq_ppm)) {
@@ -634,7 +634,7 @@ static void
 handle_source_data(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   RPT_SourceReport report;
-  struct timeval now_corr;
+  struct timespec now_corr;
 
   /* Get data */
   SCH_GetLastEventTime(&now_corr, NULL, NULL);
@@ -898,7 +898,7 @@ handle_tracking(CMD_Request *rx_message, CMD_Reply *tx_message)
   UTI_IPHostToNetwork(&rpt.ip_addr, &tx_message->data.tracking.ip_addr);
   tx_message->data.tracking.stratum = htons(rpt.stratum);
   tx_message->data.tracking.leap_status = htons(rpt.leap_status);
-  UTI_TimevalHostToNetwork(&rpt.ref_time, &tx_message->data.tracking.ref_time);
+  UTI_TimespecHostToNetwork(&rpt.ref_time, &tx_message->data.tracking.ref_time);
   tx_message->data.tracking.current_correction = UTI_FloatHostToNetwork(rpt.current_correction);
   tx_message->data.tracking.last_offset = UTI_FloatHostToNetwork(rpt.last_offset);
   tx_message->data.tracking.rms_offset = UTI_FloatHostToNetwork(rpt.rms_offset);
@@ -916,7 +916,7 @@ static void
 handle_smoothing(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   RPT_SmoothingReport report;
-  struct timeval now;
+  struct timespec now;
 
   SCH_GetLastEventTime(&now, NULL, NULL);
 
@@ -940,7 +940,7 @@ handle_smoothing(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_smoothtime(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  struct timeval now;
+  struct timespec now;
   int option;
 
   if (!SMT_IsEnabled()) {
@@ -971,7 +971,7 @@ handle_sourcestats(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   int status;
   RPT_SourcestatsReport report;
-  struct timeval now_corr;
+  struct timespec now_corr;
 
   SCH_GetLastEventTime(&now_corr, NULL, NULL);
   status = SRC_ReportSourcestats(ntohl(rx_message->data.sourcestats.index),
@@ -1004,7 +1004,7 @@ handle_rtcreport(CMD_Request *rx_message, CMD_Reply *tx_message)
   status = RTC_GetReport(&report);
   if (status) {
     tx_message->reply  = htons(RPY_RTC);
-    UTI_TimevalHostToNetwork(&report.ref_time, &tx_message->data.rtc.ref_time);
+    UTI_TimespecHostToNetwork(&report.ref_time, &tx_message->data.rtc.ref_time);
     tx_message->data.rtc.n_samples = htons(report.n_samples);
     tx_message->data.rtc.n_runs = htons(report.n_runs);
     tx_message->data.rtc.span_seconds = htonl(report.span_seconds);
@@ -1041,7 +1041,7 @@ handle_client_accesses_by_index(CMD_Request *rx_message, CMD_Reply *tx_message)
   RPY_ClientAccesses_Client *client;
   int n_indices;
   uint32_t i, j, req_first_index, req_n_clients;
-  struct timeval now;
+  struct timespec now;
 
   SCH_GetLastEventTime(&now, NULL, NULL);
 
@@ -1100,7 +1100,7 @@ handle_manual_list(CMD_Request *rx_message, CMD_Reply *tx_message)
   tx_message->data.manual_list.n_samples = htonl(n_samples);
   for (i=0; i<n_samples; i++) {
     sample = &tx_message->data.manual_list.samples[i];
-    UTI_TimevalHostToNetwork(&report[i].when, &sample->when);
+    UTI_TimespecHostToNetwork(&report[i].when, &sample->when);
     sample->slewed_offset = UTI_FloatHostToNetwork(report[i].slewed_offset);
     sample->orig_offset = UTI_FloatHostToNetwork(report[i].orig_offset);
     sample->residual = UTI_FloatHostToNetwork(report[i].residual);
@@ -1199,7 +1199,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
   socklen_t from_length;
   IPAddr remote_ip;
   unsigned short remote_port, rx_command;
-  struct timeval now, cooked_now;
+  struct timespec now, cooked_now;
 
   rx_message_length = sizeof(rx_message);
   from_length = sizeof(where_from);

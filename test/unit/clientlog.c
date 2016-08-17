@@ -25,7 +25,7 @@ void
 test_unit(void)
 {
   int i, j, index;
-  struct timeval tv;
+  struct timespec ts;
   IPAddr ip;
   char conf[][100] = {
     "clientloglimit 10000",
@@ -44,24 +44,24 @@ test_unit(void)
   for (i = 0; i < 500; i++) {
     DEBUG_LOG(0, "iteration %d", i);
 
-    tv.tv_sec = (time_t)random() & 0x0fffffff;
-    tv.tv_usec = 0;
+    ts.tv_sec = (time_t)random() & 0x0fffffff;
+    ts.tv_nsec = 0;
 
     for (j = 0; j < 1000; j++) {
       TST_GetRandomAddress(&ip, IPADDR_UNSPEC, i % 8 ? -1 : i / 8 % 9);
       DEBUG_LOG(0, "address %s", UTI_IPToString(&ip));
 
       if (random() % 2) {
-        index = CLG_LogNTPAccess(&ip, &tv);
+        index = CLG_LogNTPAccess(&ip, &ts);
         TEST_CHECK(index >= 0);
         CLG_LimitNTPResponseRate(index);
       } else {
-        index = CLG_LogCommandAccess(&ip, &tv);
+        index = CLG_LogCommandAccess(&ip, &ts);
         TEST_CHECK(index >= 0);
         CLG_LimitCommandResponseRate(index);
       }
 
-      UTI_AddDoubleToTimeval(&tv, (1 << random() % 14) / 100.0, &tv);
+      UTI_AddDoubleToTimespec(&ts, (1 << random() % 14) / 100.0, &ts);
     }
   }
 
@@ -69,8 +69,8 @@ test_unit(void)
   TEST_CHECK(ARR_GetSize(records) == 128);
 
   for (i = j = 0; i < 10000; i++) {
-    tv.tv_sec += 1;
-    index = CLG_LogNTPAccess(&ip, &tv);
+    ts.tv_sec += 1;
+    index = CLG_LogNTPAccess(&ip, &ts);
     TEST_CHECK(index >= 0);
     if (!CLG_LimitNTPResponseRate(index))
       j++;

@@ -56,11 +56,6 @@ struct phc_reading {
   struct timespec sys_ts2;
 };
 
-static double diff_ts(struct timespec *ts1, struct timespec *ts2)
-{
-  return (ts1->tv_sec - ts2->tv_sec) + (ts1->tv_nsec - ts2->tv_nsec) / 1e9;
-}
-
 static int read_phc_ioctl(struct phc_reading *readings, int phc_fd, int n)
 {
 #if defined(PTP_SYS_OFFSET) && NUM_READINGS <= PTP_MAX_SAMPLES
@@ -145,7 +140,6 @@ static void phc_finalise(RCL_Instance instance)
 static int phc_poll(RCL_Instance instance)
 {
   struct phc_reading readings[NUM_READINGS];
-  struct timeval tv;
   double offset = 0.0, delay, best_delay = 0.0;
   int i, phc_fd, best;
  
@@ -163,7 +157,7 @@ static int phc_poll(RCL_Instance instance)
 
   /* Find the fastest reading */
   for (i = 0; i < NUM_READINGS; i++) {
-    delay = diff_ts(&readings[i].sys_ts2, &readings[i].sys_ts1);
+    UTI_DiffTimespecsToDouble(&delay, &readings[i].sys_ts2, &readings[i].sys_ts1);
 
     if (!i || best_delay > delay) {
       best = i;
@@ -171,13 +165,12 @@ static int phc_poll(RCL_Instance instance)
     }
   }
 
-  offset = diff_ts(&readings[best].phc_ts, &readings[best].sys_ts2) + best_delay / 2.0;
-  tv.tv_sec = readings[best].sys_ts2.tv_sec;
-  tv.tv_usec = readings[best].sys_ts2.tv_nsec / 1000;
+  UTI_DiffTimespecsToDouble(&offset, &readings[best].phc_ts, &readings[best].sys_ts2);
+  offset += best_delay / 2.0;
 
   DEBUG_LOG(LOGF_Refclock, "PHC offset: %+.9f delay: %.9f", offset, best_delay);
 
-  return RCL_AddSample(instance, &tv, offset, LEAP_Normal);
+  return RCL_AddSample(instance, &readings[best].sys_ts2, offset, LEAP_Normal);
 }
 
 RefclockDriver RCL_PHC_driver = {
