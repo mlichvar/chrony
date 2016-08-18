@@ -569,6 +569,21 @@ then
   fi
 fi
 
+if test_code 'clock_gettime()' 'time.h' '' '' \
+  'clock_gettime(CLOCK_REALTIME, NULL);'
+then
+  add_def HAVE_CLOCK_GETTIME
+else
+  if test_code 'clock_gettime() in -lrt' 'time.h' '' '-lrt' \
+    'clock_gettime(CLOCK_REALTIME, NULL);'
+  then
+    add_def HAVE_CLOCK_GETTIME
+    EXTRA_LIBS="$EXTRA_LIBS -lrt"
+  else
+    try_phc=0
+  fi
+fi
+
 if test_code 'getaddrinfo()' 'sys/types.h sys/socket.h netdb.h' '' "$EXTRA_LIBS" \
   'return getaddrinfo(0, 0, 0, 0);'
 then
@@ -676,16 +691,7 @@ if [ $feat_refclock = "1" ] && [ $feat_phc = "1" ] && [ $try_phc = "1" ] && \
   test_code '<linux/ptp_clock.h>' 'sys/ioctl.h linux/ptp_clock.h' '' '' \
     'ioctl(1, PTP_CLOCK_GETCAPS, 0);'
 then
-  if test_code 'clock_gettime()' 'time.h' '' '' 'clock_gettime(0, NULL);'; then
-    add_def FEAT_PHC
-  else
-    if test_code 'clock_gettime() in -lrt' 'time.h' '' '-lrt' \
-      'clock_gettime(0, NULL);'
-    then
-      EXTRA_LIBS="$EXTRA_LIBS -lrt"
-      add_def FEAT_PHC
-    fi
-  fi
+  add_def FEAT_PHC
 fi
 
 if [ $try_setsched = "1" ] && \

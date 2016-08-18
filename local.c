@@ -350,19 +350,21 @@ void LCL_RemoveDispersionNotifyHandler(LCL_DispersionNotifyHandler handler, void
 }
 
 /* ================================================== */
-/* At the moment, this is just gettimeofday(), because
-   I can't think of a Unix system where it would not be */
 
 void
 LCL_ReadRawTime(struct timespec *ts)
 {
+#if HAVE_CLOCK_GETTIME
+  if (clock_gettime(CLOCK_REALTIME, ts) < 0)
+    LOG_FATAL(LOGF_Local, "clock_gettime() failed : %s", strerror(errno));
+#else
   struct timeval tv;
 
-  if (gettimeofday(&tv, NULL) < 0) {
-    LOG_FATAL(LOGF_Local, "gettimeofday() failed");
-  }
+  if (gettimeofday(&tv, NULL) < 0)
+    LOG_FATAL(LOGF_Local, "gettimeofday() failed : %s", stderror(errno));
 
   UTI_TimevalToTimespec(&tv, ts);
+#endif
 }
 
 /* ================================================== */

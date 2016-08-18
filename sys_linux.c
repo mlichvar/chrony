@@ -452,8 +452,8 @@ SYS_Linux_EnableSystemCallFilter(int level)
 {
   const int syscalls[] = {
     /* Clock */
-    SCMP_SYS(adjtimex), SCMP_SYS(gettimeofday), SCMP_SYS(settimeofday),
-    SCMP_SYS(time),
+    SCMP_SYS(adjtimex), SCMP_SYS(clock_gettime), SCMP_SYS(gettimeofday),
+    SCMP_SYS(settimeofday), SCMP_SYS(time),
     /* Process */
     SCMP_SYS(clone), SCMP_SYS(exit), SCMP_SYS(exit_group), SCMP_SYS(getrlimit),
     SCMP_SYS(rt_sigaction), SCMP_SYS(rt_sigreturn), SCMP_SYS(rt_sigprocmask),

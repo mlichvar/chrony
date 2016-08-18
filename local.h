@@ -31,8 +31,7 @@
 
 #include "sysincl.h"
 
-/* Read the system clock.  This is analogous to gettimeofday(),
-   but with the timezone information ignored */
+/* Read the system clock */
 extern void LCL_ReadRawTime(struct timespec *ts);
 
 /* Read the system clock, corrected according to all accumulated
