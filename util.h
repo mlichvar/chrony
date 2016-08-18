@@ -92,7 +92,7 @@ extern char *UTI_TimespecToString(struct timespec *ts);
 
 /* Convert an NTP timestamp into a temporary string, largely for
    diagnostic display */
-extern char *UTI_TimestampToString(NTP_int64 *ts);
+extern char *UTI_Ntp64ToString(NTP_int64 *ts);
 
 /* Convert ref_id into a temporary string, for diagnostics */
 extern char *UTI_RefidToString(uint32_t ref_id);
@@ -118,14 +118,14 @@ extern char *UTI_TimeToLogForm(time_t t);
 extern void UTI_AdjustTimespec(struct timespec *old_ts, struct timespec *when, struct timespec *new_ts, double *delta_time, double dfreq, double doffset);
 
 /* Get zero NTP timestamp with random bits below precision */
-extern void UTI_GetInt64Fuzz(NTP_int64 *ts, int precision);
+extern void UTI_GetNtp64Fuzz(NTP_int64 *ts, int precision);
 
-extern double UTI_Int32ToDouble(NTP_int32 x);
-extern NTP_int32 UTI_DoubleToInt32(double x);
+extern double UTI_Ntp32ToDouble(NTP_int32 x);
+extern NTP_int32 UTI_DoubleToNtp32(double x);
 
-extern void UTI_TimespecToInt64(struct timespec *src, NTP_int64 *dest, NTP_int64 *fuzz);
+extern void UTI_TimespecToNtp64(struct timespec *src, NTP_int64 *dest, NTP_int64 *fuzz);
 
-extern void UTI_Int64ToTimespec(NTP_int64 *src, struct timespec *dest);
+extern void UTI_Ntp64ToTimespec(NTP_int64 *src, struct timespec *dest);
 
 /* Check if time + offset is sane */
 extern int UTI_IsTimeOffsetSane(struct timespec *ts, double offset);

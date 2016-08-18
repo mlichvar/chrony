@@ -245,10 +245,10 @@ UTI_TimespecToString(struct timespec *ts)
    for diagnostic display */
 
 char *
-UTI_TimestampToString(NTP_int64 *ntp_ts)
+UTI_Ntp64ToString(NTP_int64 *ntp_ts)
 {
   struct timespec ts;
-  UTI_Int64ToTimespec(ntp_ts, &ts);
+  UTI_Ntp64ToTimespec(ntp_ts, &ts);
   return UTI_TimespecToString(&ts);
 }
 
@@ -617,7 +617,7 @@ UTI_AdjustTimespec(struct timespec *old_ts, struct timespec *when, struct timesp
 /* ================================================== */
 
 void
-UTI_GetInt64Fuzz(NTP_int64 *ts, int precision)
+UTI_GetNtp64Fuzz(NTP_int64 *ts, int precision)
 {
   int start, bits;
 
@@ -636,7 +636,7 @@ UTI_GetInt64Fuzz(NTP_int64 *ts, int precision)
 /* ================================================== */
 
 double
-UTI_Int32ToDouble(NTP_int32 x)
+UTI_Ntp32ToDouble(NTP_int32 x)
 {
   return (double) ntohl(x) / 65536.0;
 }
@@ -646,7 +646,7 @@ UTI_Int32ToDouble(NTP_int32 x)
 #define MAX_NTP_INT32 (4294967295.0 / 65536.0)
 
 NTP_int32
-UTI_DoubleToInt32(double x)
+UTI_DoubleToNtp32(double x)
 {
   NTP_int32 r;
 
@@ -674,7 +674,7 @@ UTI_DoubleToInt32(double x)
 #define NSEC_PER_NTP64 4.294967296
 
 void
-UTI_TimespecToInt64(struct timespec *src, NTP_int64 *dest, NTP_int64 *fuzz)
+UTI_TimespecToNtp64(struct timespec *src, NTP_int64 *dest, NTP_int64 *fuzz)
 {
   uint32_t hi, lo, sec, nsec;
 
@@ -703,7 +703,7 @@ UTI_TimespecToInt64(struct timespec *src, NTP_int64 *dest, NTP_int64 *fuzz)
 /* ================================================== */
 
 void
-UTI_Int64ToTimespec(NTP_int64 *src, struct timespec *dest)
+UTI_Ntp64ToTimespec(NTP_int64 *src, struct timespec *dest)
 {
   uint32_t ntp_sec, ntp_frac;
 

@@ -295,10 +295,10 @@ do_time_checks(void)
   NTP_int64 nts1, nts2;
   int r;
 
-  UTI_TimespecToInt64(&ts1, &nts1, NULL);
-  UTI_TimespecToInt64(&ts2, &nts2, NULL);
-  UTI_Int64ToTimespec(&nts1, &ts1);
-  UTI_Int64ToTimespec(&nts2, &ts2);
+  UTI_TimespecToNtp64(&ts1, &nts1, NULL);
+  UTI_TimespecToNtp64(&ts2, &nts2, NULL);
+  UTI_Ntp64ToTimespec(&nts1, &ts1);
+  UTI_Ntp64ToTimespec(&nts2, &ts2);
 
   r = ts1.tv_sec == NTP_ERA_SPLIT &&
       ts1.tv_sec + (1ULL << 32) - 1 == ts2.tv_sec;
@@ -881,29 +881,29 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
 
   /* If we're sending a client mode packet and we aren't synchronized yet, 
      we might have to set up artificial values for some of these parameters */
-  message.root_delay = UTI_DoubleToInt32(our_root_delay);
-  message.root_dispersion = UTI_DoubleToInt32(our_root_dispersion);
+  message.root_delay = UTI_DoubleToNtp32(our_root_delay);
+  message.root_dispersion = UTI_DoubleToNtp32(our_root_dispersion);
 
   message.reference_id = htonl(our_ref_id);
 
   /* Now fill in timestamps */
 
-  UTI_TimespecToInt64(&our_ref_time, &message.reference_ts, NULL);
+  UTI_TimespecToNtp64(&our_ref_time, &message.reference_ts, NULL);
 
   /* Originate - this comes from the last packet the source sent us */
   message.originate_ts = *orig_ts;
 
   /* Prepare random bits which will be added to the receive timestamp */
-  UTI_GetInt64Fuzz(&ts_fuzz, precision);
+  UTI_GetNtp64Fuzz(&ts_fuzz, precision);
 
   /* Receive - this is when we received the last packet from the source.
      This timestamp will have been adjusted so that it will now look to
      the source like we have been running on our latest estimate of
      frequency all along */
-  UTI_TimespecToInt64(&local_receive, &message.receive_ts, &ts_fuzz);
+  UTI_TimespecToNtp64(&local_receive, &message.receive_ts, &ts_fuzz);
 
   /* Prepare random bits which will be added to the transmit timestamp. */
-  UTI_GetInt64Fuzz(&ts_fuzz, precision);
+  UTI_GetNtp64Fuzz(&ts_fuzz, precision);
 
   /* Transmit - this our local time right now!  Also, we might need to
      store this for our own use later, next time we receive a message
@@ -923,7 +923,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     local_transmit.tv_nsec += auth_mode == AUTH_SYMMETRIC ?
                               KEY_GetAuthDelay(key_id) : NSD_GetAuthDelay(key_id);
     UTI_NormaliseTimespec(&local_transmit);
-    UTI_TimespecToInt64(&local_transmit, &message.transmit_ts, &ts_fuzz);
+    UTI_TimespecToNtp64(&local_transmit, &message.transmit_ts, &ts_fuzz);
 
     if (auth_mode == AUTH_SYMMETRIC) {
       auth_len = KEY_GenerateAuth(key_id, (unsigned char *) &message,
@@ -941,7 +941,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
       return NSD_SignAndSendPacket(key_id, &message, where_to, from, length);
     }
   } else {
-    UTI_TimespecToInt64(&local_transmit, &message.transmit_ts, &ts_fuzz);
+    UTI_TimespecToNtp64(&local_transmit, &message.transmit_ts, &ts_fuzz);
   }
 
   ret = NIO_SendPacket(&message, where_to, from, length);
@@ -1252,11 +1252,11 @@ receive_packet(NTP_Packet *message, struct timespec *now, double now_err, NCR_In
 
   pkt_leap = NTP_LVM_TO_LEAP(message->lvm);
   pkt_refid = ntohl(message->reference_id);
-  pkt_root_delay = UTI_Int32ToDouble(message->root_delay);
-  pkt_root_dispersion = UTI_Int32ToDouble(message->root_dispersion);
+  pkt_root_delay = UTI_Ntp32ToDouble(message->root_delay);
+  pkt_root_dispersion = UTI_Ntp32ToDouble(message->root_dispersion);
 
-  UTI_Int64ToTimespec(&message->receive_ts, &remote_receive);
-  UTI_Int64ToTimespec(&message->transmit_ts, &remote_transmit);
+  UTI_Ntp64ToTimespec(&message->receive_ts, &remote_receive);
+  UTI_Ntp64ToTimespec(&message->transmit_ts, &remote_transmit);
 
   /* Check if the packet is valid per RFC 5905, section 8.
      The test values are 1 when passed and 0 when failed. */
@@ -1409,10 +1409,10 @@ receive_packet(NTP_Packet *message, struct timespec *now, double now_err, NCR_In
             pkt_root_delay, pkt_root_dispersion, pkt_refid,
             message->stratum == NTP_INVALID_STRATUM ? UTI_RefidToString(pkt_refid) : "");
   DEBUG_LOG(LOGF_NtpCore, "reference=%s origin=%s receive=%s transmit=%s",
-            UTI_TimestampToString(&message->reference_ts),
-            UTI_TimestampToString(&message->originate_ts),
-            UTI_TimestampToString(&message->receive_ts),
-            UTI_TimestampToString(&message->transmit_ts));
+            UTI_Ntp64ToString(&message->reference_ts),
+            UTI_Ntp64ToString(&message->originate_ts),
+            UTI_Ntp64ToString(&message->receive_ts),
+            UTI_Ntp64ToString(&message->transmit_ts));
   DEBUG_LOG(LOGF_NtpCore, "offset=%f delay=%f dispersion=%f root_delay=%f root_dispersion=%f",
             offset, delay, dispersion, root_delay, root_dispersion);
   DEBUG_LOG(LOGF_NtpCore, "test123=%d%d%d test567=%d%d%d testABCD=%d%d%d%d kod_rate=%d valid=%d good=%d",
