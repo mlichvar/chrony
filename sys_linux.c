@@ -493,7 +493,7 @@ SYS_Linux_EnableSystemCallFilter(int level)
     { SOL_IPV6, IPV6_V6ONLY }, { SOL_IPV6, IPV6_RECVPKTINFO },
 #endif
     { SOL_SOCKET, SO_BROADCAST }, { SOL_SOCKET, SO_REUSEADDR },
-    { SOL_SOCKET, SO_TIMESTAMP },
+    { SOL_SOCKET, SO_TIMESTAMP }, { SOL_SOCKET, SO_TIMESTAMPNS },
   };
 
   const static int fcntls[] = { F_GETFD, F_SETFD };

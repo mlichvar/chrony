@@ -202,6 +202,10 @@ prepare_socket(int family, int port_number, int client_only)
 
 #ifdef SO_TIMESTAMP
   /* Enable receiving of timestamp control messages */
+#ifdef SO_TIMESTAMPNS
+  /* Try nanosecond resolution first */
+  if (setsockopt(sock_fd, SOL_SOCKET, SO_TIMESTAMPNS, (char *)&on_off, sizeof(on_off)) < 0)
+#endif
   if (setsockopt(sock_fd, SOL_SOCKET, SO_TIMESTAMP, (char *)&on_off, sizeof(on_off)) < 0) {
     LOG(LOGS_ERR, LOGF_NtpIO, "Could not set %s socket option", "SO_TIMESTAMP");
     /* Don't quit - we might survive anyway */
@@ -594,6 +598,15 @@ process_receive(struct msghdr *hdr, int length, int sock_fd)
 
       memcpy(&tv, CMSG_DATA(cmsg), sizeof(tv));
       UTI_TimevalToTimespec(&tv, &ts);
+      LCL_CookTime(&ts, &now, &now_err);
+    }
+#endif
+
+#ifdef SO_TIMESTAMPNS
+    if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SO_TIMESTAMPNS) {
+      struct timespec ts;
+
+      memcpy(&ts, CMSG_DATA(cmsg), sizeof (ts));
       LCL_CookTime(&ts, &now, &now_err);
     }
 #endif
