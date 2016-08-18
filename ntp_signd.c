@@ -186,7 +186,7 @@ process_response(SignInstance *inst)
   }
 
   SCH_GetLastEventTime(NULL, NULL, &ts);
-  UTI_DiffTimespecsToDouble(&delay, &ts, &inst->request_ts);
+  delay = UTI_DiffTimespecsToDouble(&ts, &inst->request_ts);
 
   DEBUG_LOG(LOGF_NtpSignd, "Signing succeeded (delay %f)", delay);
 

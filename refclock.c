@@ -442,7 +442,7 @@ RCL_AddPulse(RCL_Instance instance, struct timespec *pulse_time, double second)
 
     ref_dispersion += filter_get_avg_sample_dispersion(&lock_refclock->filter);
 
-    UTI_DiffTimespecsToDouble(&sample_diff, &cooked_time, &ref_sample_time);
+    sample_diff = UTI_DiffTimespecsToDouble(&cooked_time, &ref_sample_time);
     if (fabs(sample_diff) >= 2.0 / rate) {
       DEBUG_LOG(LOGF_Refclock, "refclock pulse ignored samplediff=%.9f",
           sample_diff);
@@ -509,7 +509,7 @@ valid_sample_time(RCL_Instance instance, struct timespec *ts)
   double diff;
 
   LCL_ReadRawTime(&raw_time);
-  UTI_DiffTimespecsToDouble(&diff, &raw_time, ts);
+  diff = UTI_DiffTimespecsToDouble(&raw_time, ts);
   if (diff < 0.0 || diff > UTI_Log2ToDouble(instance->poll + 1)) {
     DEBUG_LOG(LOGF_Refclock, "%s refclock sample not valid age=%.6f ts=%s",
         UTI_RefidToString(instance->ref_id), diff, UTI_TimespecToString(ts));
@@ -838,7 +838,7 @@ filter_get_sample(struct MedianFilter *filter, struct timespec *sample_time, dou
   for (i = 0; i < n; i++) {
     s = &filter->samples[filter->selected[i]];
 
-    UTI_DiffTimespecsToDouble(&filter->x_data[i], &s->sample_time, &ls->sample_time);
+    filter->x_data[i] = UTI_DiffTimespecsToDouble(&s->sample_time, &ls->sample_time);
     filter->y_data[i] = s->offset;
     filter->w_data[i] = s->dispersion;
   }

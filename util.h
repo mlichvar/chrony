@@ -44,7 +44,7 @@ extern void UTI_TimevalToTimespec(struct timeval *tv, struct timespec *ts);
 extern void UTI_TimespecToTimeval(struct timespec *ts, struct timeval *tv);
 
 /* Convert a timespec into a floating point number of seconds */
-extern void UTI_TimespecToDouble(struct timespec *ts, double *d);
+extern double UTI_TimespecToDouble(struct timespec *ts);
 
 /* Convert a number of seconds expressed in floating point into a
    timespec */
@@ -55,7 +55,7 @@ extern void UTI_DoubleToTimespec(double d, struct timespec *ts);
 extern void UTI_NormaliseTimespec(struct timespec *ts);
 
 /* Convert a timeval into a floating point number of seconds */
-extern void UTI_TimevalToDouble(struct timeval *a, double *b);
+extern double UTI_TimevalToDouble(struct timeval *tv);
 
 /* Convert a number of seconds expressed in floating point into a
    timeval */
@@ -73,7 +73,7 @@ extern int UTI_CompareTimespecs(struct timespec *a, struct timespec *b);
 extern void UTI_DiffTimespecs(struct timespec *result, struct timespec *a, struct timespec *b);
 
 /* Calculate result = a - b and return as a double */
-extern void UTI_DiffTimespecsToDouble(double *result, struct timespec *a, struct timespec *b);
+extern double UTI_DiffTimespecsToDouble(struct timespec *a, struct timespec *b);
 
 /* Add a double increment to a timespec to get a new one. 'start' is
    the starting time, 'end' is the result that we return.  This is

@@ -1040,7 +1040,7 @@ RTC_Linux_TimePreInit(time_t driftfile_time)
         return 0;
       }
 
-      UTI_DiffTimespecsToDouble(&sys_offset, &old_sys_time, &new_sys_time);
+      sys_offset = UTI_DiffTimespecsToDouble(&old_sys_time, &new_sys_time);
 
       /* Set system time only if the step is larger than 1 second */
       if (fabs(sys_offset) >= 1.0) {

@@ -110,7 +110,7 @@ estimate_and_set_system(struct timespec *now, int offset_provided, double offset
 
   if (n_samples > 1) {
     for (i=0; i<n_samples; i++) {
-      UTI_DiffTimespecsToDouble(&agos[i], &samples[n_samples - 1].when, &samples[i].when);
+      agos[i] = UTI_DiffTimespecsToDouble(&samples[n_samples - 1].when, &samples[i].when);
       offsets[i] = samples[i].offset;
     }
     
@@ -189,12 +189,12 @@ MNL_AcceptTimestamp(struct timespec *ts, long *offset_cs, double *dfreq_ppm, dou
      return 0;
 
     if (n_samples) {
-      UTI_DiffTimespecsToDouble(&diff, &now, &samples[n_samples - 1].when);
+      diff = UTI_DiffTimespecsToDouble(&now, &samples[n_samples - 1].when);
       if (diff < MIN_SAMPLE_SEPARATION)
         return 0;
     }
 
-    UTI_DiffTimespecsToDouble(&offset, &now, ts);
+    offset = UTI_DiffTimespecsToDouble(&now, ts);
 
     /* Check if buffer full up */
     if (n_samples == MAX_SAMPLES) {

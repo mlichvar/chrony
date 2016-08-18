@@ -564,7 +564,7 @@ combine_sources(int n_sel_sources, struct timespec *ref_time, double *offset,
     if (sources[index]->status == SRC_OK)
       sources[index]->status = SRC_UNSELECTED;
 
-    UTI_DiffTimespecsToDouble(&elapsed, ref_time, &src_ref_time);
+    elapsed = UTI_DiffTimespecsToDouble(ref_time, &src_ref_time);
     src_offset += elapsed * src_frequency;
     offset_weight = 1.0 / sources[index]->sel_info.root_distance;
     frequency_weight = 1.0 / src_skew;

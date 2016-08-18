@@ -65,10 +65,10 @@ UTI_TimespecToTimeval(struct timespec *ts, struct timeval *tv)
 
 /* ================================================== */
 
-void
-UTI_TimespecToDouble(struct timespec *ts, double *d)
+double
+UTI_TimespecToDouble(struct timespec *ts)
 {
-  *d = ts->tv_sec + 1.0e-9 * ts->tv_nsec;
+  return ts->tv_sec + 1.0e-9 * ts->tv_nsec;
 }
 
 /* ================================================== */
@@ -100,11 +100,10 @@ UTI_NormaliseTimespec(struct timespec *ts)
 
 /* ================================================== */
 
-void
-UTI_TimevalToDouble(struct timeval *a, double *b)
+double
+UTI_TimevalToDouble(struct timeval *tv)
 {
-  *b = (double)(a->tv_sec) + 1.0e-6 * (double)(a->tv_usec);
-
+  return tv->tv_sec + 1.0e-6 * tv->tv_usec;
 }
 
 /* ================================================== */
@@ -170,10 +169,10 @@ UTI_DiffTimespecs(struct timespec *result, struct timespec *a, struct timespec *
 /* ================================================== */
 
 /* Calculate result = a - b and return as a double */
-void
-UTI_DiffTimespecsToDouble(double *result, struct timespec *a, struct timespec *b)
+double
+UTI_DiffTimespecsToDouble(struct timespec *a, struct timespec *b)
 {
-  *result = (a->tv_sec - b->tv_sec) + 1.0e-9 * (a->tv_nsec - b->tv_nsec);
+  return (a->tv_sec - b->tv_sec) + 1.0e-9 * (a->tv_nsec - b->tv_nsec);
 }
 
 /* ================================================== */
@@ -196,7 +195,7 @@ void
 UTI_AverageDiffTimespecs(struct timespec *earlier, struct timespec *later,
                          struct timespec *average, double *diff)
 {
-  UTI_DiffTimespecsToDouble(diff, later, earlier);
+  *diff = UTI_DiffTimespecsToDouble(later, earlier);
   UTI_AddDoubleToTimespec(earlier, *diff / 2.0, average);
 }
 
@@ -208,7 +207,7 @@ UTI_AddDiffToTimespec(struct timespec *a, struct timespec *b,
 {
   double diff;
 
-  UTI_DiffTimespecsToDouble(&diff, a, b);
+  diff = UTI_DiffTimespecsToDouble(a, b);
   UTI_AddDoubleToTimespec(c, diff, result);
 }
 
@@ -609,7 +608,7 @@ UTI_AdjustTimespec(struct timespec *old_ts, struct timespec *when, struct timesp
 {
   double elapsed;
 
-  UTI_DiffTimespecsToDouble(&elapsed, when, old_ts);
+  elapsed = UTI_DiffTimespecsToDouble(when, old_ts);
   *delta_time = elapsed * dfreq - doffset;
   UTI_AddDoubleToTimespec(old_ts, *delta_time, new_ts);
 }
@@ -742,8 +741,7 @@ UTI_IsTimeOffsetSane(struct timespec *ts, double offset)
   if (!(offset > -MAX_OFFSET && offset < MAX_OFFSET))
     return 0;
 
-  UTI_TimespecToDouble(ts, &t);
-  t += offset;
+  t = UTI_TimespecToDouble(ts) + offset;
 
   /* Time before 1970 is not considered valid */
   if (t < 0.0)

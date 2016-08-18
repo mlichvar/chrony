@@ -113,7 +113,7 @@ determine_hash_delay(uint32_t key_id)
         (unsigned char *)&pkt.auth_data, sizeof (pkt.auth_data));
     LCL_ReadRawTime(&after);
 
-    UTI_DiffTimespecsToDouble(&diff, &after, &before);
+    diff = UTI_DiffTimespecsToDouble(&after, &before);
 
     if (i == 0 || min_diff > diff)
       min_diff = diff;

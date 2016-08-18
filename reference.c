@@ -475,7 +475,7 @@ schedule_fb_drift(struct timespec *now)
   if (fb_drift_timeout_id)
     return; /* already scheduled */
 
-  UTI_DiffTimespecsToDouble(&unsynchronised, now, &last_ref_update);
+  unsynchronised = UTI_DiffTimespecsToDouble(now, &last_ref_update);
 
   for (c = secs = 0, i = fb_drift_min; i <= fb_drift_max; i++) {
     secs = 1 << i;
@@ -936,7 +936,7 @@ REF_SetReference(int stratum,
   LCL_GetOffsetCorrection(&raw_now, &uncorrected_offset, NULL);
   UTI_AddDoubleToTimespec(&raw_now, uncorrected_offset, &now);
 
-  UTI_DiffTimespecsToDouble(&elapsed, &now, ref_time);
+  elapsed = UTI_DiffTimespecsToDouble(&now, ref_time);
   our_offset = offset + elapsed * frequency;
 
   if (!is_offset_ok(our_offset))
@@ -954,7 +954,7 @@ REF_SetReference(int stratum,
   our_root_dispersion = root_dispersion;
 
   if (last_ref_update.tv_sec) {
-    UTI_DiffTimespecsToDouble(&update_interval, &now, &last_ref_update);
+    update_interval = UTI_DiffTimespecsToDouble(&now, &last_ref_update);
     if (update_interval < 0.0)
       update_interval = 0.0;
   } else {
@@ -1162,7 +1162,7 @@ REF_GetReferenceParams
   assert(initialised);
 
   if (are_we_synchronised) {
-    UTI_DiffTimespecsToDouble(&elapsed, local_time, &our_ref_time);
+    elapsed = UTI_DiffTimespecsToDouble(local_time, &our_ref_time);
     dispersion = our_root_dispersion +
       (our_skew + fabs(our_residual_freq) + LCL_GetMaxClockError()) * elapsed;
   } else {

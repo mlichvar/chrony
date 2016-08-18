@@ -103,7 +103,7 @@ get_smoothing(struct timespec *now, double *poffset, double *pfreq,
   double elapsed, length, offset, freq, wander;
   int i;
 
-  UTI_DiffTimespecsToDouble(&elapsed, now, &last_update);
+  elapsed = UTI_DiffTimespecsToDouble(now, &last_update);
 
   offset = smooth_offset;
   freq = smooth_freq;
@@ -327,7 +327,7 @@ SMT_GetSmoothingReport(RPT_SmoothingReport *report, struct timespec *now)
   report->freq_ppm *= -1.0e6;
   report->wander_ppm *= -1.0e6;
 
-  UTI_DiffTimespecsToDouble(&elapsed, now, &last_update);
+  elapsed = UTI_DiffTimespecsToDouble(now, &last_update);
   if (!locked && elapsed >= 0.0) {
     for (i = 0, length = 0.0; i < NUM_STAGES; i++)
       length += stages[i].length;

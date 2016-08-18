@@ -143,10 +143,10 @@ start_adjust(void)
   /* Determine the amount of error built up since the last adjustment */
   LCL_ReadRawTime(&T1);
 
-  UTI_DiffTimespecsToDouble(&elapsed, &T1, &T0);
+  elapsed = UTI_DiffTimespecsToDouble(&T1, &T0);
   accrued_error = elapsed * current_freq;
 
-  UTI_DiffTimespecsToDouble(&drift_removal_elapsed, &T1, &Tdrift);
+  drift_removal_elapsed = UTI_DiffTimespecsToDouble(&T1, &Tdrift);
 
   /* To allow for the clock being stepped either forward or backwards, clamp
      the elapsed time to bounds [ 0.0, current_drift_removal_interval ] */
@@ -162,14 +162,14 @@ start_adjust(void)
   adjust_required = - (accrued_error + offset_register + predicted_error);
 
   UTI_DoubleToTimeval(adjust_required, &newadj);
-  UTI_TimevalToDouble(&newadj, &adjustment_requested);
+  adjustment_requested = UTI_TimevalToDouble(&newadj);
   rounding_error = adjust_required - adjustment_requested;
 
   if (PRV_AdjustTime(&newadj, &oldadj) < 0) {
     LOG_FATAL(LOGF_SysMacOSX, "adjtime() failed");
   }
 
-  UTI_TimevalToDouble(&oldadj, &old_adjust_remaining);
+  old_adjust_remaining = UTI_TimevalToDouble(&oldadj);
 
   offset_register = rounding_error - old_adjust_remaining - predicted_error;
 
@@ -195,8 +195,8 @@ stop_adjust(void)
 
   LCL_ReadRawTime(&T1);
 
-  UTI_DiffTimespecsToDouble(&elapsed, &T1, &T0);
-  UTI_TimevalToDouble(&remadj, &adjustment_remaining);
+  elapsed = UTI_DiffTimespecsToDouble(&T1, &T0);
+  adjustment_remaining = UTI_TimevalToDouble(&remadj);
 
   adjustment_achieved = adjustment_requested - adjustment_remaining;
   elapsed_plus_adjust = elapsed - adjustment_achieved;
@@ -333,7 +333,7 @@ set_sync_status(int synchronised, double est_error, double max_error)
       double rtc_sync_elapsed;
 
       SCH_GetLastEventTime(NULL, NULL, &now);
-      UTI_DiffTimespecsToDouble(&rtc_sync_elapsed, &now, &last_rtc_sync);
+      rtc_sync_elapsed = UTI_DiffTimespecsToDouble(&now, &last_rtc_sync);
       if (fabs(rtc_sync_elapsed) >= RTC_SYNC_INTERVAL) {
         /* update the RTC by applying a step of 0.0 secs */
         apply_step_offset(0.0);

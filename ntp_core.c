@@ -398,7 +398,7 @@ start_initial_timeout(NCR_Instance inst)
      the interval between packets at least as long as the current polling
      interval */
   SCH_GetLastEventTime(&now, NULL, NULL);
-  UTI_DiffTimespecsToDouble(&last_tx, &now, &inst->local_tx);
+  last_tx = UTI_DiffTimespecsToDouble(&now, &inst->local_tx);
   if (last_tx < 0.0)
     last_tx = 0.0;
   delay = get_transmit_delay(inst, 0, 0.0) - last_tx;
@@ -1346,7 +1346,7 @@ receive_packet(NTP_Packet *message, struct timespec *now, double now_err, NCR_In
     
     /* Calculate offset.  Following the NTP definition, this is negative
        if we are fast of the remote source. */
-    UTI_DiffTimespecsToDouble(&offset, &remote_average, &local_average);
+    offset = UTI_DiffTimespecsToDouble(&remote_average, &local_average);
 
     /* Apply configured correction */
     offset += inst->offset_correction;

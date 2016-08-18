@@ -387,7 +387,7 @@ SCH_AddTimeoutInClass(double min_delay, double separation, double randomness,
   new_min_delay = min_delay;
 
   /* Check the separation from the last dispatched timeout */
-  UTI_DiffTimespecsToDouble(&diff, &now, &last_class_dispatch[class]);
+  diff = UTI_DiffTimespecsToDouble(&now, &last_class_dispatch[class]);
   if (diff < separation && diff >= 0.0 && diff + new_min_delay < separation) {
     new_min_delay = separation - diff;
   }
@@ -396,7 +396,7 @@ SCH_AddTimeoutInClass(double min_delay, double separation, double randomness,
      if necessary to keep at least the separation away */
   for (ptr = timer_queue.next; ptr != &timer_queue; ptr = ptr->next) {
     if (ptr->class == class) {
-      UTI_DiffTimespecsToDouble(&diff, &ptr->ts, &now);
+      diff = UTI_DiffTimespecsToDouble(&ptr->ts, &now);
       if (new_min_delay > diff) {
         if (new_min_delay - diff < separation) {
           new_min_delay = diff + separation;
@@ -410,7 +410,7 @@ SCH_AddTimeoutInClass(double min_delay, double separation, double randomness,
   }
 
   for (ptr = timer_queue.next; ptr != &timer_queue; ptr = ptr->next) {
-    UTI_DiffTimespecsToDouble(&diff, &ptr->ts, &now);
+    diff = UTI_DiffTimespecsToDouble(&ptr->ts, &now);
     if (diff > new_min_delay) {
       break;
     }
@@ -665,8 +665,8 @@ check_current_time(struct timespec *prev_raw, struct timespec *raw, int timeout,
     return 1;
   }
 
-  UTI_DiffTimespecsToDouble(&step, &last_select_ts_raw, raw);
-  UTI_TimespecToDouble(&elapsed_min, &elapsed);
+  step = UTI_DiffTimespecsToDouble(&last_select_ts_raw, raw);
+  elapsed = UTI_TimespecToDouble(&elapsed_min);
   step += elapsed;
 
   /* Cooked time may no longer be valid after dispatching the handlers */

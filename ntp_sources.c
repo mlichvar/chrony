@@ -702,7 +702,7 @@ NSR_HandleBadSource(IPAddr *address)
 
   /* Don't resolve names too frequently */
   SCH_GetLastEventTime(NULL, NULL, &now);
-  UTI_DiffTimespecsToDouble(&diff, &now, &last_replacement);
+  diff = UTI_DiffTimespecsToDouble(&now, &last_replacement);
   if (fabs(diff) < RESOLVE_INTERVAL_UNIT * (1 << MIN_REPLACEMENT_INTERVAL)) {
     DEBUG_LOG(LOGF_NtpSources, "replacement postponed");
     return;

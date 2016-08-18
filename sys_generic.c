@@ -178,7 +178,7 @@ update_slew(void)
   LCL_ReadRawTime(&now);
 
   /* Adjust the offset register by achieved slew */
-  UTI_DiffTimespecsToDouble(&duration, &now, &slew_start);
+  duration = UTI_DiffTimespecsToDouble(&now, &slew_start);
   offset_register -= slew_freq * duration;
 
   stop_fastslew(&now);
@@ -299,7 +299,7 @@ offset_convert(struct timespec *raw,
 {
   double duration, fastslew_corr, fastslew_err;
 
-  UTI_DiffTimespecsToDouble(&duration, raw, &slew_start);
+  duration = UTI_DiffTimespecsToDouble(raw, &slew_start);
 
   if (drv_get_offset_correction && fastslew_active) {
     drv_get_offset_correction(raw, &fastslew_corr, &fastslew_err);
@@ -338,7 +338,7 @@ apply_step_offset(double offset)
   }
 
   LCL_ReadRawTime(&old_time);
-  UTI_DiffTimespecsToDouble(&err, &old_time, &new_time);
+  err = UTI_DiffTimespecsToDouble(&old_time, &new_time);
 
   lcl_InvokeDispersionNotifyHandlers(fabs(err));
 

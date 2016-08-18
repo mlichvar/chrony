@@ -157,7 +157,7 @@ static int phc_poll(RCL_Instance instance)
 
   /* Find the fastest reading */
   for (i = 0; i < NUM_READINGS; i++) {
-    UTI_DiffTimespecsToDouble(&delay, &readings[i].sys_ts2, &readings[i].sys_ts1);
+    delay = UTI_DiffTimespecsToDouble(&readings[i].sys_ts2, &readings[i].sys_ts1);
 
     if (!i || best_delay > delay) {
       best = i;
@@ -165,8 +165,8 @@ static int phc_poll(RCL_Instance instance)
     }
   }
 
-  UTI_DiffTimespecsToDouble(&offset, &readings[best].phc_ts, &readings[best].sys_ts2);
-  offset += best_delay / 2.0;
+  offset = UTI_DiffTimespecsToDouble(&readings[best].phc_ts, &readings[best].sys_ts2) +
+           best_delay / 2.0;
 
   DEBUG_LOG(LOGF_Refclock, "PHC offset: %+.9f delay: %.9f", offset, best_delay);
 

@@ -350,8 +350,7 @@ convert_to_intervals(SST_Stats inst, double *times_back)
   ts = &inst->sample_times[inst->last_sample];
   for (i = -inst->runs_samples; i < inst->n_samples; i++) {
     /* The entries in times_back[] should end up negative */
-    UTI_DiffTimespecsToDouble(&times_back[i],
-        &inst->sample_times[get_runsbuf_index(inst, i)], ts);
+    times_back[i] = UTI_DiffTimespecsToDouble(&inst->sample_times[get_runsbuf_index(inst, i)], ts);
   }
 }
 
@@ -624,7 +623,7 @@ SST_GetSelectionData(SST_Stats inst, struct timespec *now,
   *stratum = inst->strata[get_buf_index(inst, inst->n_samples - 1)];
   *variance = inst->variance;
 
-  UTI_DiffTimespecsToDouble(&sample_elapsed, now, &inst->sample_times[i]);
+  sample_elapsed = UTI_DiffTimespecsToDouble(now, &inst->sample_times[i]);
   offset = inst->offsets[i] + sample_elapsed * inst->estimated_frequency;
   *root_distance = 0.5 * inst->root_delays[j] +
     inst->root_dispersions[j] + sample_elapsed * inst->skew;
@@ -636,7 +635,7 @@ SST_GetSelectionData(SST_Stats inst, struct timespec *now,
   double average_offset, elapsed;
   int average_ok;
   /* average_ok ignored for now */
-  UTI_DiffTimespecsToDouble(&elapsed, now, &(inst->offset_time));
+  elapsed = UTI_DiffTimespecsToDouble(now, &inst->offset_time);
   average_offset = inst->estimated_offset + inst->estimated_frequency * elapsed;
   if (fabs(average_offset - offset) <=
       inst->peer_dispersions[j] + 0.5 * inst->peer_delays[i]) {
@@ -647,9 +646,9 @@ SST_GetSelectionData(SST_Stats inst, struct timespec *now,
 #endif
 
   i = get_runsbuf_index(inst, 0);
-  UTI_DiffTimespecsToDouble(first_sample_ago, now, &inst->sample_times[i]);
+  *first_sample_ago = UTI_DiffTimespecsToDouble(now, &inst->sample_times[i]);
   i = get_runsbuf_index(inst, inst->n_samples - 1);
-  UTI_DiffTimespecsToDouble(last_sample_ago, now, &inst->sample_times[i]);
+  *last_sample_ago = UTI_DiffTimespecsToDouble(now, &inst->sample_times[i]);
 
   *select_ok = inst->regression_ok;
 
@@ -681,7 +680,7 @@ SST_GetTrackingData(SST_Stats inst, struct timespec *ref_time,
   *skew = inst->skew;
   *root_delay = inst->root_delays[j];
 
-  UTI_DiffTimespecsToDouble(&elapsed_sample, &inst->offset_time, &inst->sample_times[i]);
+  elapsed_sample = UTI_DiffTimespecsToDouble(&inst->offset_time, &inst->sample_times[i]);
   *root_dispersion = inst->root_dispersions[j] + inst->skew * elapsed_sample;
 
   DEBUG_LOG(LOGF_SourceStats, "n=%d freq=%f (%.3fppm) skew=%f (%.3fppm) avoff=%f offsd=%f disp=%f",
@@ -757,7 +756,7 @@ SST_PredictOffset(SST_Stats inst, struct timespec *when)
       return 0.0;
     }
   } else {
-    UTI_DiffTimespecsToDouble(&elapsed, when, &inst->offset_time);
+    elapsed = UTI_DiffTimespecsToDouble(when, &inst->offset_time);
     return inst->estimated_offset + elapsed * inst->estimated_frequency;
   }
 
@@ -784,7 +783,7 @@ SST_IsGoodSample(SST_Stats inst, double offset, double delay,
   if (inst->n_samples < 3)
     return 1;
 
-  UTI_DiffTimespecsToDouble(&elapsed, when, &inst->offset_time);
+  elapsed = UTI_DiffTimespecsToDouble(when, &inst->offset_time);
 
   /* Require that the ratio of the increase in delay from the minimum to the
      standard deviation is less than max_delay_dev_ratio. In the allowed
@@ -953,15 +952,15 @@ SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report, struct ti
   if (inst->n_samples > 1) {
     li = get_runsbuf_index(inst, inst->n_samples - 1);
     lj = get_buf_index(inst, inst->n_samples - 1);
-    UTI_DiffTimespecsToDouble(&dspan, &inst->sample_times[li],
+    dspan = UTI_DiffTimespecsToDouble(&inst->sample_times[li],
         &inst->sample_times[get_runsbuf_index(inst, 0)]);
     report->span_seconds = (unsigned long) (dspan + 0.5);
 
     if (inst->n_samples > 3) {
-      UTI_DiffTimespecsToDouble(&elapsed, now, &inst->offset_time);
+      elapsed = UTI_DiffTimespecsToDouble(now, &inst->offset_time);
       bi = get_runsbuf_index(inst, inst->best_single_sample);
       bj = get_buf_index(inst, inst->best_single_sample);
-      UTI_DiffTimespecsToDouble(&sample_elapsed, now, &inst->sample_times[bi]);
+      sample_elapsed = UTI_DiffTimespecsToDouble(now, &inst->sample_times[bi]);
       report->est_offset = inst->estimated_offset + elapsed * inst->estimated_frequency;
       report->est_offset_err = (inst->estimated_offset_sd +
                  sample_elapsed * inst->skew +
