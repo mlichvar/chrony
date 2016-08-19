@@ -897,9 +897,9 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
   inst->runs_samples = 0;
 
   find_min_delay_sample(inst);
+  SST_DoNewRegression(inst);
 
   return 1;
-
 }
 
 /* ================================================== */

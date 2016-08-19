@@ -1227,7 +1227,6 @@ SRC_ReloadSources(void)
       LOG(LOGS_WARN, LOGF_Sources, "Could not open dump file %s", filename);
     } else {
       if (SST_LoadFromFile(sources[i]->stats, in)) {
-        SST_DoNewRegression(sources[i]->stats);
       } else {
         LOG(LOGS_WARN, LOGF_Sources, "Problem loading from file %s", filename);
       }
