@@ -858,7 +858,7 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
   unsigned long sec;
 #endif
   unsigned long usec;
-  int i, line_number;
+  int i;
   char line[1024];
   double weight;
 
@@ -867,8 +867,6 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
   if (fgets(line, sizeof(line), in) &&
       sscanf(line, "%d", &inst->n_samples) == 1 &&
       inst->n_samples > 0 && inst->n_samples <= MAX_SAMPLES) {
-
-    line_number = 2;
 
     for (i=0; i<inst->n_samples; i++) {
       if (!fgets(line, sizeof(line), in) ||
@@ -890,7 +888,6 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
 
         /* This is the branch taken if the read FAILED */
 
-        LOG(LOGS_WARN, LOGF_SourceStats, "Failed to read data from line %d of dump file", line_number);
         inst->n_samples = 0; /* Load abandoned if any sign of corruption */
         return 0;
       } else {
@@ -899,12 +896,9 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
         inst->sample_times[i].tv_sec = sec;
         inst->sample_times[i].tv_nsec = 1000 * usec;
         UTI_NormaliseTimespec(&inst->sample_times[i]);
-
-        line_number++;
       }
     }
   } else {
-    LOG(LOGS_WARN, LOGF_SourceStats, "Could not read number of samples from dump file");
     inst->n_samples = 0; /* Load abandoned if any sign of corruption */
     return 0;
   }
