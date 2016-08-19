@@ -361,7 +361,7 @@ LCL_ReadRawTime(struct timespec *ts)
   struct timeval tv;
 
   if (gettimeofday(&tv, NULL) < 0)
-    LOG_FATAL(LOGF_Local, "gettimeofday() failed : %s", stderror(errno));
+    LOG_FATAL(LOGF_Local, "gettimeofday() failed : %s", strerror(errno));
 
   UTI_TimevalToTimespec(&tv, ts);
 #endif
