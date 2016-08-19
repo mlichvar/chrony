@@ -866,7 +866,7 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
 
   if (fgets(line, sizeof(line), in) &&
       sscanf(line, "%d", &inst->n_samples) == 1 &&
-      inst->n_samples > 0 && inst->n_samples <= MAX_SAMPLES) {
+      inst->n_samples >= 0 && inst->n_samples <= MAX_SAMPLES) {
 
     for (i=0; i<inst->n_samples; i++) {
       if (!fgets(line, sizeof(line), in) ||
@@ -902,6 +902,9 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
     inst->n_samples = 0; /* Load abandoned if any sign of corruption */
     return 0;
   }
+
+  if (!inst->n_samples)
+    return 1;
 
   inst->last_sample = inst->n_samples - 1;
   inst->runs_samples = 0;
