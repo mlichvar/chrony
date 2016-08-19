@@ -825,8 +825,14 @@ SST_SaveToFile(SST_Stats inst, FILE *out)
     i = get_runsbuf_index(inst, m);
     j = get_buf_index(inst, m);
 
-    fprintf(out, "%08lx %08lx %.6e %.6e %.6e %.6e %.6e %.6e %.6e %d\n",
-            (unsigned long) inst->sample_times[i].tv_sec,
+    fprintf(out,
+#ifdef HAVE_LONG_TIME_T
+            "%08"PRIx64" %08lx %.6e %.6e %.6e %.6e %.6e %.6e %.6e %d\n",
+            (uint64_t)inst->sample_times[i].tv_sec,
+#else
+            "%08lx %08lx %.6e %.6e %.6e %.6e %.6e %.6e %.6e %d\n",
+            (unsigned long)inst->sample_times[i].tv_sec,
+#endif
             (unsigned long)inst->sample_times[i].tv_nsec / 1000,
             inst->offsets[i],
             inst->orig_offsets[j],
@@ -846,9 +852,14 @@ SST_SaveToFile(SST_Stats inst, FILE *out)
 int
 SST_LoadFromFile(SST_Stats inst, FILE *in)
 {
+#ifdef HAVE_LONG_TIME_T
+  uint64_t sec;
+#else
+  unsigned long sec;
+#endif
+  unsigned long usec;
   int i, line_number;
   char line[1024];
-  unsigned long sec, usec;
   double weight;
 
   assert(!inst->n_samples);
@@ -861,7 +872,12 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
 
     for (i=0; i<inst->n_samples; i++) {
       if (!fgets(line, sizeof(line), in) ||
-          (sscanf(line, "%lx%lx%lf%lf%lf%lf%lf%lf%lf%d\n",
+          (sscanf(line,
+#ifdef HAVE_LONG_TIME_T
+                  "%"SCNx64"%lx%lf%lf%lf%lf%lf%lf%lf%d\n",
+#else
+                  "%lx%lx%lf%lf%lf%lf%lf%lf%lf%d\n",
+#endif
                   &(sec), &(usec),
                   &(inst->offsets[i]),
                   &(inst->orig_offsets[i]),
