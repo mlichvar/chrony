@@ -1163,40 +1163,48 @@ add_dispersion(double dispersion, void *anything)
 }
 
 /* ================================================== */
+
+static
+FILE *open_dumpfile(SRC_Instance inst, const char *mode)
+{
+  FILE *f;
+  char filename[1024];
+
+  /* Include IP address in the name for NTP sources, or reference ID in hex */
+  if ((inst->type == SRC_NTP &&
+       snprintf(filename, sizeof (filename), "%s/%s.dat", CNF_GetDumpDir(),
+                source_to_string(inst)) >= sizeof (filename)) ||
+      (inst->type != SRC_NTP &&
+       snprintf(filename, sizeof (filename), "%s/refid:%08"PRIx32".dat",
+                CNF_GetDumpDir(), inst->ref_id) >= sizeof (filename))) {
+    LOG(LOGS_WARN, LOGF_Sources, "dumpdir too long");
+    return NULL;
+  }
+
+  f = fopen(filename, mode);
+  if (!f)
+    LOG(LOGS_WARN, LOGF_Sources, "Could not open dump file for %s",
+        source_to_string(inst));
+
+  return f;
+}
+
+/* ================================================== */
 /* This is called to dump out the source measurement registers */
 
 void
 SRC_DumpSources(void)
 {
   FILE *out;
-  int direc_len, file_len;
-  char *filename;
-  unsigned int a, b, c, d;
   int i;
-  char *direc;
-
-  direc = CNF_GetDumpDir();
-  direc_len = strlen(direc);
-  file_len = direc_len + 24;
-  filename = MallocArray(char, file_len); /* a bit of slack */
 
   for (i = 0; i < n_sources; i++) {
-    a = (sources[i]->ref_id) >> 24;
-    b = ((sources[i]->ref_id) >> 16) & 0xff;
-    c = ((sources[i]->ref_id) >> 8) & 0xff;
-    d = ((sources[i]->ref_id)) & 0xff;
-
-    snprintf(filename, file_len - 1, "%s/%d.%d.%d.%d.dat", direc, a, b, c, d);
-    out = fopen(filename, "w");
-    if (!out) {
-      LOG(LOGS_WARN, LOGF_Sources, "Could not open dump file %s", filename);
-    } else {
-      SST_SaveToFile(sources[i]->stats, out);
-      fclose(out);
-    }
+    out = open_dumpfile(sources[i], "w");
+    if (!out)
+      continue;
+    SST_SaveToFile(sources[i]->stats, out);
+    fclose(out);
   }
-
-  Free(filename);
 }
 
 /* ================================================== */
@@ -1205,34 +1213,16 @@ void
 SRC_ReloadSources(void)
 {
   FILE *in;
-  char *filename;
-  unsigned int a, b, c, d;
   int i;
-  char *dumpdir;
-  int dumpdirlen, filelen;
 
-  for (i=0; i<n_sources; i++) {
-    a = (sources[i]->ref_id) >> 24;
-    b = ((sources[i]->ref_id) >> 16) & 0xff;
-    c = ((sources[i]->ref_id) >> 8) & 0xff;
-    d = ((sources[i]->ref_id)) & 0xff;
-
-    dumpdir = CNF_GetDumpDir();
-    dumpdirlen = strlen(dumpdir);
-    filelen = dumpdirlen + 24;
-    filename = MallocArray(char, filelen);
-    snprintf(filename, filelen-1, "%s/%d.%d.%d.%d.dat", dumpdir, a, b, c, d);
-    in = fopen(filename, "r");
-    if (!in) {
-      LOG(LOGS_WARN, LOGF_Sources, "Could not open dump file %s", filename);
-    } else {
-      if (SST_LoadFromFile(sources[i]->stats, in)) {
-      } else {
-        LOG(LOGS_WARN, LOGF_Sources, "Problem loading from file %s", filename);
-      }
-      fclose(in);
-    }
-    Free(filename);
+  for (i = 0; i < n_sources; i++) {
+    in = open_dumpfile(sources[i], "r");
+    if (!in)
+      continue;
+    if (!SST_LoadFromFile(sources[i]->stats, in))
+      LOG(LOGS_WARN, LOGF_Sources, "Could not load dump file for %s",
+          source_to_string(sources[i]));
+    fclose(in);
   }
 }
 
