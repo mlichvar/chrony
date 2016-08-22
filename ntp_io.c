@@ -556,7 +556,7 @@ read_from_socket(void *anything)
 #endif
 
 #ifdef SO_TIMESTAMP
-      if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SO_TIMESTAMP) {
+      if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_TIMESTAMP) {
         struct timeval tv;
 
         memcpy(&tv, CMSG_DATA(cmsg), sizeof(tv));
