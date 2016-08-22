@@ -333,8 +333,8 @@ CNF_Initialise(int r)
   dumpdir = Strdup(".");
   logdir = Strdup(".");
   bind_cmd_path = Strdup(DEFAULT_COMMAND_SOCKET);
-  pidfile = Strdup("/var/run/chronyd.pid");
-  rtc_device = Strdup("/dev/rtc");
+  pidfile = Strdup(DEFAULT_PID_FILE);
+  rtc_device = Strdup(DEFAULT_RTC_DEVICE);
   hwclock_file = Strdup(DEFAULT_HWCLOCK_FILE);
   user = Strdup(DEFAULT_USER);
 }

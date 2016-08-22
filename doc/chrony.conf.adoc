@@ -1375,7 +1375,7 @@ This would set the threshold error to 30 seconds.
 
 [[rtcdevice]]*rtcdevice* _device_::
 The *rtcdevice* directive sets the path to the device file for accessing the
-RTC. The default path is _/dev/rtc_.
+RTC. The default path is _@DEFAULT_RTC_DEVICE@_.
 
 [[rtcfile]]*rtcfile* _file_::
 The *rtcfile* directive defines the name of the file in which *chronyd* can
@@ -1782,7 +1782,7 @@ ntpsigndsocket /var/lib/samba/ntp_signd
 [[pidfile]]*pidfile* _file_::
 *chronyd* always writes its process ID (PID) to a file, and checks this file on
 startup to see if another *chronyd* may already be running on the system. By
-default, the file used is _/var/run/chronyd.pid_. The *pidfile* directive
+default, the file used is _@DEFAULT_PID_FILE@_. The *pidfile* directive
 allows the name to be changed, e.g.:
 +
 ----

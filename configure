@@ -106,6 +106,8 @@ For better control, use the options below.
                          since 1970-01-01 [50*365 days ago]
   --with-user=USER       Specify default chronyd user [root]
   --with-hwclockfile=PATH Specify default path to hwclock(8) adjtime file
+  --with-pidfile=PATH    Specify default pidfile [/var/run/chronyd.pid]
+  --with-rtcdevice=PATH  Specify default path to RTC device [/dev/rtc]
   --with-sendmail=PATH   Path to sendmail binary [/usr/lib/sendmail]
   --enable-debug         Enable debugging support
 
@@ -221,6 +223,8 @@ feat_ntp_signd=0
 ntp_era_split=""
 default_user="root"
 default_hwclockfile=""
+default_pidfile="/var/run/chronyd.pid"
+default_rtcdevice="/dev/rtc"
 mail_program="/usr/lib/sendmail"
 
 for option
@@ -336,6 +340,12 @@ do
     ;;
     --with-hwclockfile=* )
       default_hwclockfile=`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --with-pidfile=* )
+      default_pidfile=`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --with-rtcdevice=* )
+      default_rtcdevice=`echo $option | sed -e 's/^.*=//;'`
     ;;
     --with-sendmail=* )
       mail_program=`echo $option | sed -e 's/^.*=//;'`
@@ -856,6 +866,8 @@ fi
 
 add_def DEFAULT_CONF_FILE "\"$SYSCONFDIR/chrony.conf\""
 add_def DEFAULT_HWCLOCK_FILE "\"$default_hwclockfile\""
+add_def DEFAULT_PID_FILE "\"$default_pidfile\""
+add_def DEFAULT_RTC_DEVICE "\"$default_rtcdevice\""
 add_def DEFAULT_USER "\"$default_user\""
 add_def DEFAULT_COMMAND_SOCKET "\"$CHRONYSOCKDIR/chronyd.sock\""
 add_def MAIL_PROGRAM "\"$mail_program\""
@@ -898,6 +910,8 @@ do
           s%@CHRONYSOCKDIR@%${CHRONYSOCKDIR}%;\
           s%@CHRONYVARDIR@%${CHRONYVARDIR}%;\
           s%@DEFAULT_HWCLOCK_FILE@%${default_hwclockfile}%;\
+          s%@DEFAULT_PID_FILE@%${default_pidfile}%;\
+          s%@DEFAULT_RTC_DEVICE@%${default_rtcdevice}%;\
           s%@DEFAULT_USER@%${default_user}%;\
           s%@CHRONY_VERSION@%${CHRONY_VERSION}%;" \
           < ${f}.in > $f
