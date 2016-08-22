@@ -553,10 +553,12 @@ process_receive(struct msghdr *hdr, int length, int sock_fd)
   NTP_Remote_Address remote_addr;
   NTP_Local_Address local_addr;
   struct cmsghdr *cmsg;
-  struct timespec now;
-  double now_err;
+  struct timespec sch_ts, rx_ts;
+  double sch_err, rx_err;
 
-  SCH_GetLastEventTime(&now, &now_err, NULL);
+  SCH_GetLastEventTime(&sch_ts, &sch_err, NULL);
+  rx_ts = sch_ts;
+  rx_err = sch_err;
 
   if (hdr->msg_namelen > sizeof (union sockaddr_in46)) {
     DEBUG_LOG(LOGF_NtpIO, "Truncated source address");
@@ -598,7 +600,7 @@ process_receive(struct msghdr *hdr, int length, int sock_fd)
 
       memcpy(&tv, CMSG_DATA(cmsg), sizeof(tv));
       UTI_TimevalToTimespec(&tv, &ts);
-      LCL_CookTime(&ts, &now, &now_err);
+      LCL_CookTime(&ts, &rx_ts, &rx_err);
     }
 #endif
 
@@ -607,20 +609,22 @@ process_receive(struct msghdr *hdr, int length, int sock_fd)
       struct timespec ts;
 
       memcpy(&ts, CMSG_DATA(cmsg), sizeof (ts));
-      LCL_CookTime(&ts, &now, &now_err);
+      LCL_CookTime(&ts, &rx_ts, &rx_err);
     }
 #endif
   }
 
-  DEBUG_LOG(LOGF_NtpIO, "Received %d bytes from %s:%d to %s fd %d",
+  DEBUG_LOG(LOGF_NtpIO, "Received %d bytes from %s:%d to %s fd %d delay %.9f",
             length, UTI_IPToString(&remote_addr.ip_addr), remote_addr.port,
-            UTI_IPToString(&local_addr.ip_addr), local_addr.sock_fd);
+            UTI_IPToString(&local_addr.ip_addr), local_addr.sock_fd,
+            UTI_DiffTimespecsToDouble(&sch_ts, &rx_ts));
+
 
   /* Just ignore the packet if it's not of a recognized length */
   if (length < NTP_NORMAL_PACKET_LENGTH || length > sizeof (NTP_Receive_Buffer))
     return;
 
-  NSR_ProcessReceive((NTP_Packet *)hdr->msg_iov[0].iov_base, &now, now_err,
+  NSR_ProcessReceive((NTP_Packet *)hdr->msg_iov[0].iov_base, &rx_ts, rx_err,
                      &remote_addr, &local_addr, length);
 }
 
