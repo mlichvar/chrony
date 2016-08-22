@@ -593,8 +593,8 @@ process_receive(struct msghdr *hdr, int length, int sock_fd)
     }
 #endif
 
-#ifdef SO_TIMESTAMP
-    if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SO_TIMESTAMP) {
+#ifdef SCM_TIMESTAMP
+    if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_TIMESTAMP) {
       struct timeval tv;
       struct timespec ts;
 
@@ -604,8 +604,8 @@ process_receive(struct msghdr *hdr, int length, int sock_fd)
     }
 #endif
 
-#ifdef SO_TIMESTAMPNS
-    if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SO_TIMESTAMPNS) {
+#ifdef SCM_TIMESTAMPNS
+    if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_TIMESTAMPNS) {
       struct timespec ts;
 
       memcpy(&ts, CMSG_DATA(cmsg), sizeof (ts));
