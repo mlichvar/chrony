@@ -609,7 +609,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   int n_badstats_sources, max_sel_reach, max_badstat_reach, sel_req_source;
   int depth, best_depth, trust_depth, best_trust_depth;
   int combined, stratum, min_stratum, max_score_index;
-  int orphan_stratum, orphan_source;
+  int orphan_stratum, orphan_source, leap_votes, leap_ins, leap_del;
   double src_offset, src_offset_sd, src_frequency, src_skew;
   double src_root_delay, src_root_dispersion;
   double best_lo, best_hi, distance, sel_src_distance, max_score;
@@ -907,18 +907,22 @@ SRC_SelectSource(SRC_Instance updated_inst)
     return;
   }
 
-  /* Accept leap second status if more than half of selectable sources agree */
-  for (i = j1 = j2 = 0; i < n_sel_sources; i++) {
+  /* Accept leap second status if more than half of selectable (and trusted
+     if there are any) sources agree */
+  for (i = leap_ins = leap_del = leap_votes = 0; i < n_sel_sources; i++) {
     index = sel_sources[i];
+    if (best_trust_depth && !(sources[index]->sel_options & SRC_SELECT_TRUST))
+      continue;
+    leap_votes++;
     if (sources[index]->leap_status == LEAP_InsertSecond)
-      j1++;
+      leap_ins++;
     else if (sources[index]->leap_status == LEAP_DeleteSecond)
-      j2++;
+      leap_del++;
   }
 
-  if (j1 > n_sel_sources / 2)
+  if (leap_ins > leap_votes / 2)
     leap_status = LEAP_InsertSecond;
-  else if (j2 > n_sel_sources / 2)
+  else if (leap_del > leap_votes / 2)
     leap_status = LEAP_DeleteSecond;
   else
     leap_status = LEAP_Normal;
