@@ -31,6 +31,7 @@ default_time_offset=1e-1
 default_freq_offset=1e-4
 default_base_delay=1e-4
 default_jitter=1e-4
+default_jitter_asymmetry=0.0
 default_wander=1e-9
 default_refclock_jitter=""
 default_refclock_offset=0.0
@@ -154,7 +155,16 @@ get_wander_expr() {
 
 
 get_delay_expr() {
-	echo "(+ $base_delay (* $jitter (exponential)))"
+	local direction=$1 asym
+
+	if [ $jitter_asymmetry == "0.0" ]; then
+		asym=""
+	elif [ $direction = "up" ]; then
+		asym=$(awk "BEGIN {print 1 - 2 * $jitter_asymmetry}")
+	elif [ $direction = "down" ]; then
+		asym=$(awk "BEGIN {print 1 + 2 * $jitter_asymmetry}")
+	fi
+	echo "(+ $base_delay (* $asym $jitter (exponential)))"
 }
 
 get_refclock_expr() {
@@ -378,8 +388,8 @@ run_test() {
 		echo "node${i}_shift_pll = $shift_pll"
 		for j in $(seq 1 $nodes); do
 			[ $i -eq $j ] && continue
-			echo "node${i}_delay${j} = $(get_delay_expr)"
-			echo "node${j}_delay${i} = $(get_delay_expr)"
+			echo "node${i}_delay${j} = $(get_delay_expr up)"
+			echo "node${j}_delay${i} = $(get_delay_expr down)"
 		done
 	done > tmp/conf
 
