@@ -7,6 +7,7 @@ export CLKNETSIM_START_DATE=$(TZ=UTC date -d 'Dec 30 2008 0:00:00' +'%s')
 
 leap=$[2 * 24 * 3600]
 limit=$[4 * 24 * 3600]
+client_start=$[2 * 3600]
 server_conf="refclock SHM 0 dpoll 10 poll 10
 leapsectz right/UTC"
 refclock_jitter=1e-9
@@ -27,14 +28,25 @@ for leapmode in system step slew; do
 	check_sync || test_fail
 done
 
+client_server_options="trust"
+client_conf="refclock SHM 0 dpoll 10 poll 10 delay 1e-3"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_source_selection || test_fail
+check_packet_interval || test_fail
+check_sync || test_fail
+
+client_server_options=""
+client_conf="leapsecmode system"
+min_sync_time=230000
+max_sync_time=240000
+
 for smoothmode in "" "leaponly"; do
 	server_conf="refclock SHM 0 dpoll 10 poll 10
 	leapsectz right/UTC
 	leapsecmode slew
 	smoothtime 400 0.001 $smoothmode"
-	client_conf="leapsecmode system"
-	min_sync_time=230000
-	max_sync_time=240000
 
 	run_test || test_fail
 	check_chronyd_exit || test_fail
