@@ -124,6 +124,7 @@ read_line(void)
     return( line );
 #else
     printf("%s", prompt);
+    fflush(stdout);
 #endif
   }
   if (fgets(line, sizeof(line), stdin)) {
