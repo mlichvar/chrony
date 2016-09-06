@@ -2007,7 +2007,7 @@ process_cmd_sources(char *line)
     print_report("%c%c %-27s  %2d  %2d   %3o  %I  %+S[%+S] +/- %S\n",
                  mode_ch, state_ch, name,
                  ntohs(reply.data.source_data.stratum),
-                 ntohs(reply.data.source_data.poll),
+                 (int16_t)ntohs(reply.data.source_data.poll),
                  ntohs(reply.data.source_data.reachability),
                  (unsigned long)ntohl(reply.data.source_data.since_sample),
                  UTI_FloatNetworkToHost(reply.data.source_data.latest_meas),
