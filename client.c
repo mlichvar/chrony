@@ -94,8 +94,7 @@ void LOG_Message(LOG_Severity severity,
 }
 
 /* ================================================== */
-/* Read a single line of commands from standard input.  Eventually we
-   might want to use the GNU readline library. */
+/* Read a single line of commands from standard input */
 
 static char *
 read_line(void)
