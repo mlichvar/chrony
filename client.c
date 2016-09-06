@@ -2507,6 +2507,7 @@ process_cmd_waitsync(char *line)
 {
   CMD_Request request;
   CMD_Reply reply;
+  IPAddr ip_addr;
   uint32_t ref_id;
   double correction, skew_ppm, max_correction, max_skew_ppm, interval;
   int ret = 0, max_tries, i;
@@ -2528,6 +2529,7 @@ process_cmd_waitsync(char *line)
   for (i = 1; ; i++) {
     if (request_reply(&request, &reply, RPY_TRACKING, 0)) {
       ref_id = ntohl(reply.data.tracking.ref_id);
+      UTI_IPNetworkToHost(&reply.data.tracking.ip_addr, &ip_addr);
 
       correction = UTI_FloatNetworkToHost(reply.data.tracking.current_correction);
       correction = fabs(correction);
@@ -2536,7 +2538,8 @@ process_cmd_waitsync(char *line)
       print_report("try: %d, refid: %R, correction: %.9f, skew: %.3f\n",
                    i, (unsigned long)ref_id, correction, skew_ppm, REPORT_END);
 
-      if (ref_id != 0 && ref_id != 0x7f7f0101L /* LOCAL refid */ &&
+      if ((ip_addr.family != IPADDR_UNSPEC ||
+           (ref_id != 0 && ref_id != 0x7f7f0101L /* LOCAL refid */)) &&
           (max_correction == 0.0 || correction <= max_correction) &&
           (max_skew_ppm == 0.0 || skew_ppm <= max_skew_ppm)) {
         ret = 1;
