@@ -238,10 +238,16 @@ LOG_FileWrite(LOG_FileID id, const char *format, ...)
     return;
 
   if (!logfiles[id].file) {
-    char filename[512];
+    char filename[512], *logdir = CNF_GetLogDir();
+
+    if (logdir[0] == '\0') {
+      LOG(LOGS_WARN, LOGF_Logging, "logdir not specified");
+      logfiles[id].name = NULL;
+      return;
+    }
 
     if (snprintf(filename, sizeof(filename), "%s/%s.log",
-          CNF_GetLogDir(), logfiles[id].name) >= sizeof(filename) ||
+                 logdir, logfiles[id].name) >= sizeof (filename) ||
         !(logfiles[id].file = fopen(filename, "a"))) {
       LOG(LOGS_WARN, LOGF_Refclock, "Couldn't open logfile %s for update", filename);
       logfiles[id].name = NULL;

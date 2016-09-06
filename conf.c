@@ -330,8 +330,8 @@ CNF_Initialise(int r)
   ntp_restrictions = ARR_CreateInstance(sizeof (AllowDeny));
   cmd_restrictions = ARR_CreateInstance(sizeof (AllowDeny));
 
-  dumpdir = Strdup(".");
-  logdir = Strdup(".");
+  dumpdir = Strdup("");
+  logdir = Strdup("");
   bind_cmd_path = Strdup(DEFAULT_COMMAND_SOCKET);
   pidfile = Strdup(DEFAULT_PID_FILE);
   rtc_device = Strdup(DEFAULT_RTC_DEVICE);
@@ -1247,8 +1247,10 @@ CNF_CreateDirs(uid_t uid, gid_t gid)
 {
   char *dir;
 
-  UTI_CreateDirAndParents(logdir, 0755, uid, gid);
-  UTI_CreateDirAndParents(dumpdir, 0755, uid, gid);
+  if (logdir[0])
+    UTI_CreateDirAndParents(logdir, 0755, uid, gid);
+  if (dumpdir[0])
+    UTI_CreateDirAndParents(dumpdir, 0755, uid, gid);
 
   /* Create a directory for the Unix domain command socket */
   if (bind_cmd_path[0]) {
