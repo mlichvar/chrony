@@ -423,6 +423,8 @@ UTI_IPHostToNetwork(IPAddr *src, IPAddr *dest)
     case IPADDR_INET6:
       memcpy(dest->addr.in6, src->addr.in6, sizeof (dest->addr.in6));
       break;
+    default:
+      dest->family = htons(IPADDR_UNSPEC);
   }
 }
 
@@ -440,6 +442,8 @@ UTI_IPNetworkToHost(IPAddr *src, IPAddr *dest)
     case IPADDR_INET6:
       memcpy(dest->addr.in6, src->addr.in6, sizeof (dest->addr.in6));
       break;
+    default:
+      dest->family = IPADDR_UNSPEC;
   }
 }
 
