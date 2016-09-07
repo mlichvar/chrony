@@ -157,8 +157,8 @@ extern double SRC_MinRoundTripDelay(SRC_Instance inst);
 extern int SRC_IsGoodSample(SRC_Instance inst, double offset, double delay, double max_delay_dev_ratio, double clock_error, struct timespec *when);
 
 extern void SRC_DumpSources(void);
-
 extern void SRC_ReloadSources(void);
+extern void SRC_RemoveDumpFiles(void);
 
 extern int SRC_IsSyncPeer(SRC_Instance inst);
 extern int SRC_IsReachable(SRC_Instance inst);

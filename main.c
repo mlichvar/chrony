@@ -158,6 +158,7 @@ ntp_source_resolving_end(void)
     SRC_ReloadSources();
   }
 
+  SRC_RemoveDumpFiles();
   RTC_StartMeasurements();
   RCL_StartRefclocks();
   NSR_StartSources();
