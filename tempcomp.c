@@ -135,7 +135,7 @@ read_points(const char *filename)
   while (fgets(line, sizeof (line), f)) {
     p = (struct Point *)ARR_GetNewElement(points);
     if (sscanf(line, "%lf %lf", &p->temp, &p->comp) != 2) {
-      LOG_FATAL(LOGF_Configure, "Could not read tempcomp point from %s", filename);
+      LOG_FATAL(LOGF_TempComp, "Could not read tempcomp point from %s", filename);
       break;
     }
   }
@@ -143,7 +143,7 @@ read_points(const char *filename)
   fclose(f);
 
   if (ARR_GetSize(points) < 2)
-    LOG_FATAL(LOGF_Configure, "Not enough points in %s", filename);
+    LOG_FATAL(LOGF_TempComp, "Not enough points in %s", filename);
 }
 
 void

@@ -249,7 +249,7 @@ LOG_FileWrite(LOG_FileID id, const char *format, ...)
     if (snprintf(filename, sizeof(filename), "%s/%s.log",
                  logdir, logfiles[id].name) >= sizeof (filename) ||
         !(logfiles[id].file = fopen(filename, "a"))) {
-      LOG(LOGS_WARN, LOGF_Refclock, "Couldn't open logfile %s for update", filename);
+      LOG(LOGS_WARN, LOGF_Logging, "Could not open log file %s", filename);
       logfiles[id].name = NULL;
       return;
     }
