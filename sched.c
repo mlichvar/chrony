@@ -707,8 +707,7 @@ SCH_MainLoop(void)
       saved_tv = tv;
     } else {
       ptv = NULL;
-      /* This is needed to fix a compiler warning */
-      saved_tv.tv_sec = 0;
+      saved_tv.tv_sec = saved_tv.tv_usec = 0;
     }
 
     p_read_fds = &read_fds;
