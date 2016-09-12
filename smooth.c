@@ -137,7 +137,7 @@ get_smoothing(struct timeval *now, double *poffset, double *pfreq,
 static void
 update_stages(void)
 {
-  double s1, s2, s, l1, l2, l3, lc, f, f2;
+  double s1, s2, s, l1, l2, l3, lc, f, f2, l1t[2], l3t[2], err[2];
   int i, dir;
 
   /* Prepare the three stages so that the integral of the frequency offset
@@ -146,22 +146,41 @@ update_stages(void)
   s1 = smooth_offset / max_wander;
   s2 = smooth_freq * smooth_freq / (2.0 * max_wander * max_wander);
   
-  l1 = l2 = l3 = 0.0;
-
   /* Calculate the lengths of the 1st and 3rd stage assuming there is no
-     frequency limit.  If length of the 1st stage comes out negative, switch
-     its direction. */
-  for (dir = -1; dir <= 1; dir += 2) {
+     frequency limit.  The direction of the 1st stage is selected so that
+     the lengths will not be negative.  With extremely small offsets both
+     directions may give a negative length due to numerical errors, so select
+     the one which gives a smaller error. */
+
+  for (i = 0, dir = -1; i <= 1; i++, dir += 2) {
+    err[i] = 0.0;
     s = dir * s1 + s2;
-    if (s >= 0.0) {
-      l3 = sqrt(s);
-      l1 = l3 - dir * smooth_freq / max_wander;
-      if (l1 >= 0.0)
-        break;
+
+    if (s < 0.0) {
+      err[i] += -s;
+      s = 0.0;
+    }
+
+    l3t[i] = sqrt(s);
+    l1t[i] = l3t[i] - dir * smooth_freq / max_wander;
+
+    if (l1t[i] < 0.0) {
+      err[i] += l1t[i] * l1t[i];
+      l1t[i] = 0.0;
     }
   }
 
-  assert(dir <= 1 && l1 >= 0.0 && l3 >= 0.0);
+  if (err[0] < err[1]) {
+    l1 = l1t[0];
+    l3 = l3t[0];
+    dir = -1;
+  } else {
+    l1 = l1t[1];
+    l3 = l3t[1];
+    dir = 1;
+  }
+
+  l2 = 0.0;
 
   /* If the limit was reached, shorten 1st+3rd stages and set a 2nd stage */
   f = dir * smooth_freq + l1 * max_wander - max_freq;
