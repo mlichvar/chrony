@@ -145,7 +145,7 @@ static int pps_poll(RCL_Instance instance)
     ts = pps_info.clear_timestamp;
   }
 
-  if (seq == pps->last_seq || (ts.tv_sec == 0 && ts.tv_nsec == 0)) { 
+  if (seq == pps->last_seq || UTI_IsZeroTimespec(&ts)) {
     DEBUG_LOG(LOGF_Refclock, "PPS sample ignored seq=%lu ts=%lu.%09lu",
         seq, ts.tv_sec, ts.tv_nsec);
     return 0;

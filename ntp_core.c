@@ -1770,9 +1770,9 @@ NCR_SlewTimes(NCR_Instance inst, struct timespec *when, double dfreq, double dof
 {
   double delta;
 
-  if (inst->local_rx.tv_sec || inst->local_rx.tv_nsec)
+  if (!UTI_IsZeroTimespec(&inst->local_rx))
     UTI_AdjustTimespec(&inst->local_rx, when, &inst->local_rx, &delta, dfreq, doffset);
-  if (inst->local_tx.tv_sec || inst->local_tx.tv_nsec)
+  if (!UTI_IsZeroTimespec(&inst->local_tx))
     UTI_AdjustTimespec(&inst->local_tx, when, &inst->local_tx, &delta, dfreq, doffset);
 }
 

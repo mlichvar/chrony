@@ -37,6 +37,9 @@
 /* Zero a timespec */
 extern void UTI_ZeroTimespec(struct timespec *ts);
 
+/* Check if a timespec is zero */
+extern int UTI_IsZeroTimespec(struct timespec *ts);
+
 /* Convert a timeval into a timespec */
 extern void UTI_TimevalToTimespec(struct timeval *tv, struct timespec *ts);
 

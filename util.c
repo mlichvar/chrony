@@ -47,6 +47,14 @@ UTI_ZeroTimespec(struct timespec *ts)
 
 /* ================================================== */
 
+int
+UTI_IsZeroTimespec(struct timespec *ts)
+{
+  return !ts->tv_sec && !ts->tv_nsec;
+}
+
+/* ================================================== */
+
 void
 UTI_TimevalToTimespec(struct timeval *tv, struct timespec *ts)
 {
