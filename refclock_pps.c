@@ -146,8 +146,8 @@ static int pps_poll(RCL_Instance instance)
   }
 
   if (seq == pps->last_seq || UTI_IsZeroTimespec(&ts)) {
-    DEBUG_LOG(LOGF_Refclock, "PPS sample ignored seq=%lu ts=%lu.%09lu",
-        seq, ts.tv_sec, ts.tv_nsec);
+    DEBUG_LOG(LOGF_Refclock, "PPS sample ignored seq=%lu ts=%s",
+              seq, UTI_TimespecToString(&ts));
     return 0;
   }
 
