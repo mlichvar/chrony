@@ -463,9 +463,9 @@ SYS_Linux_EnableSystemCallFilter(int level)
     SCMP_SYS(mprotect), SCMP_SYS(mremap), SCMP_SYS(munmap), SCMP_SYS(shmdt),
     /* Filesystem */
     SCMP_SYS(access), SCMP_SYS(chmod), SCMP_SYS(chown), SCMP_SYS(chown32),
-    SCMP_SYS(fstat), SCMP_SYS(fstat64), SCMP_SYS(lseek), SCMP_SYS(rename),
-    SCMP_SYS(stat), SCMP_SYS(stat64), SCMP_SYS(statfs), SCMP_SYS(statfs64),
-    SCMP_SYS(unlink),
+    SCMP_SYS(fstat), SCMP_SYS(fstat64), SCMP_SYS(getdents), SCMP_SYS(getdents64),
+    SCMP_SYS(lseek), SCMP_SYS(rename), SCMP_SYS(stat), SCMP_SYS(stat64),
+    SCMP_SYS(statfs), SCMP_SYS(statfs64), SCMP_SYS(unlink),
     /* Socket */
     SCMP_SYS(bind), SCMP_SYS(connect), SCMP_SYS(getsockname),
     SCMP_SYS(recvfrom), SCMP_SYS(recvmmsg), SCMP_SYS(recvmsg),
