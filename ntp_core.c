@@ -1479,7 +1479,8 @@ receive_packet(NTP_Packet *message, struct timespec *now, double now_err, NCR_In
 
     /* And now, requeue the timer */
     if (inst->opmode != MD_OFFLINE) {
-      delay_time = get_transmit_delay(inst, 0, local_interval);
+      delay_time = get_transmit_delay(inst, 0,
+                     UTI_DiffTimespecsToDouble(&inst->local_rx, &inst->local_tx));
 
       if (kod_rate) {
         /* Back off for a while and stop ongoing burst */
