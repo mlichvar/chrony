@@ -582,7 +582,7 @@ process_receive(struct msghdr *hdr, int length, int sock_fd)
       struct in_pktinfo ipi;
 
       memcpy(&ipi, CMSG_DATA(cmsg), sizeof(ipi));
-      local_addr.ip_addr.addr.in4 = ntohl(ipi.ipi_spec_dst.s_addr);
+      local_addr.ip_addr.addr.in4 = ntohl(ipi.ipi_addr.s_addr);
       local_addr.ip_addr.family = IPADDR_INET4;
     }
 #endif
