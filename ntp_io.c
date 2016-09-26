@@ -565,8 +565,13 @@ process_receive(struct msghdr *hdr, int length, int sock_fd)
     return;
   }
 
-  UTI_SockaddrToIPAndPort((struct sockaddr *)hdr->msg_name,
-                          &remote_addr.ip_addr, &remote_addr.port);
+  if (hdr->msg_namelen >= sizeof (((struct sockaddr *)hdr->msg_name)->sa_family)) {
+    UTI_SockaddrToIPAndPort((struct sockaddr *)hdr->msg_name,
+                            &remote_addr.ip_addr, &remote_addr.port);
+  } else {
+    remote_addr.ip_addr.family = IPADDR_UNSPEC;
+    remote_addr.port = 0;
+  }
 
   local_addr.ip_addr.family = IPADDR_UNSPEC;
   local_addr.sock_fd = sock_fd;
