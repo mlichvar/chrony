@@ -678,8 +678,9 @@ read_from_socket(int sock_fd, int event, void *anything)
 /* ================================================== */
 /* Send a packet to remote address from local address */
 
-static int
-send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr)
+int
+NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,
+               NTP_Local_Address *local_addr, int length)
 {
   union sockaddr_in46 remote;
   struct msghdr msg;
@@ -697,11 +698,7 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
   }
 
   /* Don't set address with connected socket */
-  if (local_addr->sock_fd == server_sock_fd4 ||
-#ifdef FEAT_IPV6
-      local_addr->sock_fd == server_sock_fd6 ||
-#endif
-      !separate_client_sockets) {
+  if (NIO_IsServerSocket(local_addr->sock_fd) || !separate_client_sockets) {
     addrlen = UTI_IPAndPortToSockaddr(&remote_addr->ip_addr, remote_addr->port,
                                       &remote.u);
     if (!addrlen)
@@ -717,7 +714,7 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
   }
 
   iov.iov_base = packet;
-  iov.iov_len = packetlen;
+  iov.iov_len = length;
   msg.msg_iov = &iov;
   msg.msg_iovlen = 1;
   msg.msg_control = cmsgbuf;
@@ -775,18 +772,9 @@ send_packet(void *packet, int packetlen, NTP_Remote_Address *remote_addr, NTP_Lo
     return 0;
   }
 
-  DEBUG_LOG(LOGF_NtpIO, "Sent %d bytes to %s:%d from %s fd %d", packetlen,
+  DEBUG_LOG(LOGF_NtpIO, "Sent %d bytes to %s:%d from %s fd %d", length,
       UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
       UTI_IPToString(&local_addr->ip_addr), local_addr->sock_fd);
 
   return 1;
-}
-
-/* ================================================== */
-/* Send a packet to a given address */
-
-int
-NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length)
-{
-  return send_packet((void *) packet, length, remote_addr, local_addr);
 }
