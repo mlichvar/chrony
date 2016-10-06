@@ -505,16 +505,22 @@ RCL_AddPulse(RCL_Instance instance, struct timeval *pulse_time, double second)
 static int
 valid_sample_time(RCL_Instance instance, struct timeval *tv)
 {
-  struct timeval raw_time;
-  double diff;
+  struct timeval raw_time, last_sample_time;
+  double diff, last_offset, last_dispersion;
 
   LCL_ReadRawTime(&raw_time);
   UTI_DiffTimevalsToDouble(&diff, &raw_time, tv);
-  if (diff < 0.0 || diff > UTI_Log2ToDouble(instance->poll + 1)) {
-    DEBUG_LOG(LOGF_Refclock, "%s refclock sample not valid age=%.6f tv=%s",
-        UTI_RefidToString(instance->ref_id), diff, UTI_TimevalToString(tv));
+
+  if (diff < 0.0 || diff > UTI_Log2ToDouble(instance->poll + 1) ||
+      (filter_get_last_sample(&instance->filter, &last_sample_time,
+                              &last_offset, &last_dispersion) &&
+       UTI_CompareTimevals(&last_sample_time, tv) >= 0)) {
+    DEBUG_LOG(LOGF_Refclock, "%s refclock sample not valid age=%.6f ts=%s lastts=%s",
+              UTI_RefidToString(instance->ref_id), diff,
+              UTI_TimevalToString(tv), UTI_TimevalToString(&last_sample_time));
     return 0;
   }
+
   return 1;
 }
 
