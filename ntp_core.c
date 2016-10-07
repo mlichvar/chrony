@@ -227,6 +227,9 @@ static ARR_Instance broadcasts;
 /* Maximum allowed time for server to process client packet */
 #define MAX_SERVER_INTERVAL 4.0
 
+/* Maximum acceptable delay in transmission for timestamp correction */
+#define MAX_TX_DELAY 1.0
+
 /* Minimum and maximum allowed poll interval */
 #define MIN_POLL 0
 #define MAX_POLL 24
@@ -944,7 +947,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     UTI_TimespecToNtp64(&local_transmit, &message.transmit_ts, &ts_fuzz);
   }
 
-  ret = NIO_SendPacket(&message, where_to, from, length);
+  ret = NIO_SendPacket(&message, where_to, from, length, local_tx != NULL);
 
   if (local_tx) {
     *local_tx = local_transmit;
@@ -1189,7 +1192,8 @@ check_packet_auth(NTP_Packet *pkt, int length,
 /* ================================================== */
 
 static int
-receive_packet(NTP_Packet *message, struct timespec *now, double now_err, NCR_Instance inst, NTP_Local_Address *local_addr, int length)
+receive_packet(NTP_Packet *message, struct timespec *rx_ts, double rx_ts_err,
+               NCR_Instance inst, NTP_Local_Address *local_addr, int length)
 {
   int pkt_leap;
   uint32_t pkt_refid, pkt_key_id;
@@ -1315,7 +1319,7 @@ receive_packet(NTP_Packet *message, struct timespec *now, double now_err, NCR_In
      symmetric associations using authentication */
   if (test5) {
     inst->remote_orig = message->transmit_ts;
-    inst->local_rx = *now;
+    inst->local_rx = *rx_ts;
   }
 
   /* This protects against replay of the last packet we sent */
@@ -1331,7 +1335,7 @@ receive_packet(NTP_Packet *message, struct timespec *now, double now_err, NCR_In
     UTI_AverageDiffTimespecs(&remote_receive, &remote_transmit,
                              &remote_average, &remote_interval);
 
-    UTI_AverageDiffTimespecs(&inst->local_tx, now,
+    UTI_AverageDiffTimespecs(&inst->local_tx, rx_ts,
                              &local_average, &local_interval);
 
     /* In our case, we work out 'delay' as the worst case delay,
@@ -1362,7 +1366,7 @@ receive_packet(NTP_Packet *message, struct timespec *now, double now_err, NCR_In
     skew = (source_freq_hi - source_freq_lo) / 2.0;
     
     /* and then calculate peer dispersion */
-    dispersion = precision + now_err + skew * fabs(local_interval);
+    dispersion = precision + rx_ts_err + skew * fabs(local_interval);
     
     /* Additional tests required to pass before accumulating the sample */
 
@@ -1392,7 +1396,7 @@ receive_packet(NTP_Packet *message, struct timespec *now, double now_err, NCR_In
             pkt_refid != UTI_IPToRefid(&local_addr->ip_addr);
   } else {
     offset = delay = dispersion = 0.0;
-    sample_time = *now;
+    sample_time = *rx_ts;
     testA = testB = testC = testD = 0;
   }
   
@@ -1534,8 +1538,8 @@ receive_packet(NTP_Packet *message, struct timespec *now, double now_err, NCR_In
    | Bcast Client   6 | DSCRD | DSCRD | DSCRD | DSCRD | PROC  |
    +------------------+-------+-------+-------+-------+-------+
 
-   Association mode 0 is implemented in NCR_ProcessUnknown(), other modes
-   in NCR_ProcessKnown().
+   Association mode 0 is implemented in NCR_ProcessRxUnknown(), other modes
+   in NCR_ProcessRxKnown().
 
    Broadcast, manycast and ephemeral symmetric passive associations are not
    supported yet.
@@ -1546,10 +1550,10 @@ receive_packet(NTP_Packet *message, struct timespec *now, double now_err, NCR_In
    and it relates to a source we have an ongoing protocol exchange with */
 
 int
-NCR_ProcessKnown
+NCR_ProcessRxKnown
 (NTP_Packet *message,           /* the received message */
- struct timespec *now,          /* timestamp at time of receipt */
- double now_err,
+ struct timespec *rx_ts,        /* timestamp at time of receipt */
+ double rx_ts_err,
  NCR_Instance inst,             /* the instance record for this peer/server */
  NTP_Local_Address *local_addr, /* the receiving address */
  int length                     /* the length of the received packet */
@@ -1660,10 +1664,10 @@ NCR_ProcessKnown
       return 0;
     }
 
-    return receive_packet(message, now, now_err, inst, local_addr, length);
+    return receive_packet(message, rx_ts, rx_ts_err, inst, local_addr, length);
   } else if (proc_as_unknown) {
-    NCR_ProcessUnknown(message, now, now_err, &inst->remote_addr,
-                       local_addr, length);
+    NCR_ProcessRxUnknown(message, rx_ts, rx_ts_err, &inst->remote_addr,
+                         local_addr, length);
     /* It's not a reply to our request, don't return success */
     return 0;
   } else {
@@ -1678,10 +1682,10 @@ NCR_ProcessKnown
    and it relates to a source we don't know (not our server or peer) */
 
 void
-NCR_ProcessUnknown
+NCR_ProcessRxUnknown
 (NTP_Packet *message,           /* the received message */
- struct timespec *now,          /* timestamp at time of receipt */
- double now_err,                /* assumed error in the timestamp */
+ struct timespec *rx_ts,        /* timestamp at time of receipt */
+ double rx_ts_err,              /* assumed error in the timestamp */
  NTP_Remote_Address *remote_addr,
  NTP_Local_Address *local_addr,
  int length                     /* the length of the received packet */
@@ -1726,7 +1730,7 @@ NCR_ProcessUnknown
       return;
   }
 
-  log_index = CLG_LogNTPAccess(&remote_addr->ip_addr, now);
+  log_index = CLG_LogNTPAccess(&remote_addr->ip_addr, rx_ts);
 
   /* Don't reply to all requests if the rate is excessive */
   if (log_index >= 0 && CLG_LimitNTPResponseRate(log_index)) {
@@ -1760,8 +1764,73 @@ NCR_ProcessUnknown
      - don't save our transmit timestamp as we aren't maintaining state about
        this client */
   transmit_packet(my_mode, message->poll, NTP_LVM_TO_VERSION(message->lvm),
-                  auth_mode, key_id, &message->transmit_ts, now, NULL, NULL,
+                  auth_mode, key_id, &message->transmit_ts, rx_ts, NULL, NULL,
                   remote_addr, local_addr);
+}
+
+/* ================================================== */
+
+static void
+update_tx_timestamp(struct timespec *tx_ts, struct timespec *new_tx_ts,
+                    NTP_int64 *local_ntp_tx, NTP_Packet *message)
+{
+  double delay;
+
+  if (UTI_IsZeroTimespec(tx_ts)) {
+    DEBUG_LOG(LOGF_NtpCore, "Unexpected TX update");
+    return;
+  }
+
+  /* Check if this is the last packet that was sent */
+  if (message->transmit_ts.hi != local_ntp_tx->hi ||
+      message->transmit_ts.lo != local_ntp_tx->lo) {
+    DEBUG_LOG(LOGF_NtpCore, "TX timestamp mismatch");
+    return;
+  }
+
+  delay = UTI_DiffTimespecsToDouble(new_tx_ts, tx_ts);
+
+  if (delay < 0.0 || delay > MAX_TX_DELAY) {
+    DEBUG_LOG(LOGF_NtpCore, "Unacceptable TX delay %.9f", delay);
+    return;
+  }
+
+  *tx_ts = *new_tx_ts;
+
+  DEBUG_LOG(LOGF_NtpCore, "Updated TX timestamp delay=%.9f", delay);
+}
+
+/* ================================================== */
+
+void
+NCR_ProcessTxKnown(NTP_Packet *message, struct timespec *tx_ts, double tx_ts_err,
+                   NCR_Instance inst, NTP_Local_Address *local_addr, int length)
+{
+  NTP_Mode pkt_mode;
+
+  if (!check_packet_format(message, length))
+    return;
+
+  pkt_mode = NTP_LVM_TO_MODE(message->lvm);
+
+  /* Server and passive mode packets are responses to unknown sources */
+  if (pkt_mode != MODE_CLIENT && pkt_mode != MODE_ACTIVE) {
+    NCR_ProcessTxUnknown(message, tx_ts, tx_ts_err, &inst->remote_addr,
+                         local_addr, length);
+    return;
+  }
+
+  update_tx_timestamp(&inst->local_tx, tx_ts, &inst->local_ntp_tx, message);
+}
+
+/* ================================================== */
+
+void
+NCR_ProcessTxUnknown(NTP_Packet *message, struct timespec *tx_ts, double tx_ts_err,
+                     NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length)
+{
+  /* Nothing to do yet */
+  DEBUG_LOG(LOGF_NtpCore, "Process TX unknown");
 }
 
 /* ================================================== */

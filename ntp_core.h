@@ -63,11 +63,25 @@ extern void NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remot
 
 /* This routine is called when a new packet arrives off the network,
    and it relates to a source we have an ongoing protocol exchange with */
-extern int NCR_ProcessKnown(NTP_Packet *message, struct timespec *now, double now_err, NCR_Instance data, NTP_Local_Address *local_addr, int length);
+extern int NCR_ProcessRxKnown(NTP_Packet *message, struct timespec *rx_ts, double rx_ts_err,
+                              NCR_Instance inst, NTP_Local_Address *local_addr, int length);
 
 /* This routine is called when a new packet arrives off the network,
    and we do not recognize its source */
-extern void NCR_ProcessUnknown(NTP_Packet *message, struct timespec *now, double now_err, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length);
+extern void NCR_ProcessRxUnknown(NTP_Packet *message, struct timespec *rx_ts, double rx_ts_err,
+                                 NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
+                                 int length);
+
+/* This routine is called when a packet is sent to a source we have
+   an ongoing protocol exchange with */
+extern void NCR_ProcessTxKnown(NTP_Packet *message, struct timespec *tx_ts, double tx_ts_err,
+                               NCR_Instance inst, NTP_Local_Address *local_addr, int length);
+
+/* This routine is called when a packet is sent to a destination we
+   do not recognize */
+extern void NCR_ProcessTxUnknown(NTP_Packet *message, struct timespec *tx_ts, double tx_ts_err,
+                                 NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
+                                 int length);
 
 /* Slew receive and transmit times in instance records */
 extern void NCR_SlewTimes(NCR_Instance inst, struct timespec *when, double dfreq, double doffset);

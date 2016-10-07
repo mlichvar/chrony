@@ -776,7 +776,8 @@ NSR_GetLocalRefid(IPAddr *address)
 /* This routine is called by ntp_io when a new packet arrives off the network,
    possibly with an authentication tail */
 void
-NSR_ProcessReceive(NTP_Packet *message, struct timespec *now, double now_err, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length)
+NSR_ProcessRx(NTP_Packet *message, struct timespec *rx_ts, double rx_ts_err,
+              NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length)
 {
   SourceRecord *record;
   struct SourcePool *pool;
@@ -788,7 +789,7 @@ NSR_ProcessReceive(NTP_Packet *message, struct timespec *now, double now_err, NT
   if (found == 2) { /* Must match IP address AND port number */
     record = get_record(slot);
 
-    if (!NCR_ProcessKnown(message, now, now_err, record->data, local_addr, length))
+    if (!NCR_ProcessRxKnown(message, rx_ts, rx_ts_err, record->data, local_addr, length))
       return;
 
     if (record->tentative) {
@@ -809,7 +810,26 @@ NSR_ProcessReceive(NTP_Packet *message, struct timespec *now, double now_err, NT
       }
     }
   } else {
-    NCR_ProcessUnknown(message, now, now_err, remote_addr, local_addr, length);
+    NCR_ProcessRxUnknown(message, rx_ts, rx_ts_err, remote_addr, local_addr, length);
+  }
+}
+
+/* ================================================== */
+
+void
+NSR_ProcessTx(NTP_Packet *message, struct timespec *tx_ts, double tx_ts_err,
+              NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length)
+{
+  SourceRecord *record;
+  int slot, found;
+
+  find_slot(remote_addr, &slot, &found);
+
+  if (found == 2) { /* Must match IP address AND port number */
+    record = get_record(slot);
+    NCR_ProcessTxKnown(message, tx_ts, tx_ts_err, record->data, local_addr, length);
+  } else {
+    NCR_ProcessTxUnknown(message, tx_ts, tx_ts_err, remote_addr, local_addr, length);
   }
 }
 

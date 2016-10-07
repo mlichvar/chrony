@@ -193,7 +193,7 @@ process_response(SignInstance *inst)
   /* Send the signed NTP packet */
   NIO_SendPacket(&inst->response.signed_packet, &inst->remote_addr, &inst->local_addr,
                  ntohl(inst->response.length) + sizeof (inst->response.length) -
-                 offsetof(SigndResponse, signed_packet));
+                 offsetof(SigndResponse, signed_packet), 0);
 
   /* Update exponential moving average of the authentication delay */
   delay = CLAMP(MIN_AUTH_DELAY, delay, MAX_AUTH_DELAY);

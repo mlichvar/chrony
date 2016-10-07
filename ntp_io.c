@@ -548,17 +548,16 @@ NIO_IsServerSocket(int sock_fd)
 /* ================================================== */
 
 static void
-process_receive(struct msghdr *hdr, int length, int sock_fd)
+process_message(struct msghdr *hdr, int length, int sock_fd)
 {
   NTP_Remote_Address remote_addr;
   NTP_Local_Address local_addr;
   struct cmsghdr *cmsg;
-  struct timespec sch_ts, rx_ts;
-  double sch_err, rx_err;
+  struct timespec local_ts, sched_ts;
+  double local_ts_err;
 
-  SCH_GetLastEventTime(&sch_ts, &sch_err, NULL);
-  rx_ts = sch_ts;
-  rx_err = sch_err;
+  SCH_GetLastEventTime(&local_ts, &local_ts_err, NULL);
+  sched_ts = local_ts;
 
   if (hdr->msg_namelen > sizeof (union sockaddr_in46)) {
     DEBUG_LOG(LOGF_NtpIO, "Truncated source address");
@@ -605,7 +604,7 @@ process_receive(struct msghdr *hdr, int length, int sock_fd)
 
       memcpy(&tv, CMSG_DATA(cmsg), sizeof(tv));
       UTI_TimevalToTimespec(&tv, &ts);
-      LCL_CookTime(&ts, &rx_ts, &rx_err);
+      LCL_CookTime(&ts, &local_ts, &local_ts_err);
     }
 #endif
 
@@ -614,23 +613,22 @@ process_receive(struct msghdr *hdr, int length, int sock_fd)
       struct timespec ts;
 
       memcpy(&ts, CMSG_DATA(cmsg), sizeof (ts));
-      LCL_CookTime(&ts, &rx_ts, &rx_err);
+      LCL_CookTime(&ts, &local_ts, &local_ts_err);
     }
 #endif
   }
 
-  DEBUG_LOG(LOGF_NtpIO, "Received %d bytes from %s:%d to %s fd %d delay %.9f",
+  DEBUG_LOG(LOGF_NtpIO, "Received %d bytes from %s:%d to %s fd=%d delay=%.9f",
             length, UTI_IPToString(&remote_addr.ip_addr), remote_addr.port,
             UTI_IPToString(&local_addr.ip_addr), local_addr.sock_fd,
-            UTI_DiffTimespecsToDouble(&sch_ts, &rx_ts));
-
+            UTI_DiffTimespecsToDouble(&sched_ts, &local_ts));
 
   /* Just ignore the packet if it's not of a recognized length */
   if (length < NTP_NORMAL_PACKET_LENGTH || length > sizeof (NTP_Receive_Buffer))
     return;
 
-  NSR_ProcessReceive((NTP_Packet *)hdr->msg_iov[0].iov_base, &rx_ts, rx_err,
-                     &remote_addr, &local_addr, length);
+  NSR_ProcessRx((NTP_Packet *)hdr->msg_iov[0].iov_base, &local_ts, local_ts_err,
+                &remote_addr, &local_addr, length);
 }
 
 /* ================================================== */
@@ -668,7 +666,7 @@ read_from_socket(int sock_fd, int event, void *anything)
 
   for (i = 0; i < n; i++) {
     hdr = ARR_GetElement(recv_headers, i);
-    process_receive(&hdr->msg_hdr, hdr->msg_len, sock_fd);
+    process_message(&hdr->msg_hdr, hdr->msg_len, sock_fd);
   }
 
   /* Restore the buffers to their original state */
@@ -680,7 +678,7 @@ read_from_socket(int sock_fd, int event, void *anything)
 
 int
 NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,
-               NTP_Local_Address *local_addr, int length)
+               NTP_Local_Address *local_addr, int length, int process_tx)
 {
   union sockaddr_in46 remote;
   struct msghdr msg;
