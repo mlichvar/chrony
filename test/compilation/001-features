@@ -17,6 +17,8 @@ for opts in \
 	"--disable-cmdmon" \
 	"--disable-ntp" \
 	"--disable-refclock" \
+	"--disable-timestamping" \
+	"--disable-timestamping --disable-ntp" \
 	"--disable-cmdmon --disable-ntp" \
 	"--disable-cmdmon --disable-refclock" \
 	"--disable-cmdmon --disable-ntp --disable-refclock"

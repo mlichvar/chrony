@@ -82,6 +82,7 @@ typedef enum {
 typedef enum {
   LOGF_Reference,
   LOGF_NtpIO,
+  LOGF_NtpIOLinux,
   LOGF_NtpCore,
   LOGF_NtpSignd,
   LOGF_NtpSources,

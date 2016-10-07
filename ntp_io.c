@@ -41,6 +41,10 @@
 #include "privops.h"
 #include "util.h"
 
+#ifdef HAVE_LINUX_TIMESTAMPING
+#include "ntp_io_linux.h"
+#endif
+
 #define INVALID_SOCK_FD -1
 #define CMSGBUF_SIZE 256
 
@@ -118,8 +122,8 @@ prepare_socket(int family, int port_number, int client_only)
   socklen_t my_addr_len;
   int sock_fd;
   IPAddr bind_address;
-  int on_off = 1;
-  
+  int events = SCH_FILE_INPUT, on_off = 1;
+
   /* Open Internet domain UDP socket for NTP message transmissions */
 
   sock_fd = socket(family, SOCK_DGRAM, 0);
@@ -212,6 +216,10 @@ prepare_socket(int family, int port_number, int client_only)
   }
 #endif
 
+#ifdef HAVE_LINUX_TIMESTAMPING
+  NIO_Linux_SetTimestampSocketOptions(sock_fd, client_only, &events);
+#endif
+
 #ifdef IP_FREEBIND
   /* Allow binding to address that doesn't exist yet */
   if (my_addr_len > 0 &&
@@ -260,8 +268,8 @@ prepare_socket(int family, int port_number, int client_only)
     return INVALID_SOCK_FD;
   }
 
-  /* Register handler for read events on the socket */
-  SCH_AddFileHandler(sock_fd, SCH_FILE_INPUT, read_from_socket, NULL);
+  /* Register handler for read and possibly exception events on the socket */
+  SCH_AddFileHandler(sock_fd, events, read_from_socket, NULL);
 
   return sock_fd;
 }
@@ -353,6 +361,10 @@ NIO_Initialise(int family)
   assert(!initialised);
   initialised = 1;
 
+#ifdef HAVE_LINUX_TIMESTAMPING
+  NIO_Linux_Initialise();
+#endif
+
   recv_messages = ARR_CreateInstance(sizeof (struct Message));
   ARR_SetSize(recv_messages, MAX_RECV_MESSAGES);
   recv_headers = ARR_CreateInstance(sizeof (struct MessageHeader));
@@ -433,6 +445,11 @@ NIO_Finalise(void)
 #endif
   ARR_DestroyInstance(recv_headers);
   ARR_DestroyInstance(recv_messages);
+
+#ifdef HAVE_LINUX_TIMESTAMPING
+  NIO_Linux_Finalise();
+#endif
+
   initialised = 0;
 }
 
@@ -621,6 +638,12 @@ process_message(struct msghdr *hdr, int length, int sock_fd)
 #endif
   }
 
+#ifdef HAVE_LINUX_TIMESTAMPING
+  if (NIO_Linux_ProcessMessage(&remote_addr, &local_addr, &local_ts,
+                               hdr, length, sock_fd))
+    return;
+#endif
+
   DEBUG_LOG(LOGF_NtpIO, "Received %d bytes from %s:%d to %s fd=%d tss=%d delay=%.9f",
             length, UTI_IPToString(&remote_addr.ip_addr), remote_addr.port,
             UTI_IPToString(&local_addr.ip_addr), local_addr.sock_fd, local_ts.source,
@@ -644,19 +667,27 @@ read_from_socket(int sock_fd, int event, void *anything)
 
   struct MessageHeader *hdr;
   unsigned int i, n;
-  int status;
+  int status, flags = 0;
 
   hdr = ARR_GetElements(recv_headers);
   n = ARR_GetSize(recv_headers);
   assert(n >= 1);
 
+  if (event == SCH_FILE_EXCEPTION) {
+#ifdef HAVE_LINUX_TIMESTAMPING
+    flags |= MSG_ERRQUEUE;
+#else
+    assert(0);
+#endif
+  }
+
 #ifdef HAVE_RECVMMSG
-  status = recvmmsg(sock_fd, hdr, n, MSG_DONTWAIT, NULL);
+  status = recvmmsg(sock_fd, hdr, n, flags | MSG_DONTWAIT, NULL);
   if (status >= 0)
     n = status;
 #else
   n = 1;
-  status = recvmsg(sock_fd, &hdr[0].msg_hdr, 0);
+  status = recvmsg(sock_fd, &hdr[0].msg_hdr, flags);
   if (status >= 0)
     hdr[0].msg_len = status;
 #endif
@@ -686,7 +717,7 @@ NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,
   union sockaddr_in46 remote;
   struct msghdr msg;
   struct iovec iov;
-  struct cmsghdr cmsgbuf[CMSGBUF_SIZE / sizeof (struct cmsghdr)];
+  struct cmsghdr *cmsg, cmsgbuf[CMSGBUF_SIZE / sizeof (struct cmsghdr)];
   int cmsglen;
   socklen_t addrlen = 0;
 
@@ -725,7 +756,6 @@ NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,
 
 #ifdef HAVE_IN_PKTINFO
   if (local_addr->ip_addr.family == IPADDR_INET4) {
-    struct cmsghdr *cmsg;
     struct in_pktinfo *ipi;
 
     cmsg = CMSG_FIRSTHDR(&msg);
@@ -743,7 +773,6 @@ NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,
 
 #ifdef HAVE_IN6_PKTINFO
   if (local_addr->ip_addr.family == IPADDR_INET6) {
-    struct cmsghdr *cmsg;
     struct in6_pktinfo *ipi;
 
     cmsg = CMSG_FIRSTHDR(&msg);
@@ -758,6 +787,11 @@ NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,
     memcpy(&ipi->ipi6_addr.s6_addr, &local_addr->ip_addr.addr.in6,
         sizeof(ipi->ipi6_addr.s6_addr));
   }
+#endif
+
+#ifdef HAVE_LINUX_TIMESTAMPING
+  if (process_tx)
+   cmsglen = NIO_Linux_RequestTxTimestamp(&msg, cmsglen, local_addr->sock_fd);
 #endif
 
   msg.msg_controllen = cmsglen;

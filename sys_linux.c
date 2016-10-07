@@ -501,6 +501,9 @@ SYS_Linux_EnableSystemCallFilter(int level)
 #endif
     { SOL_SOCKET, SO_BROADCAST }, { SOL_SOCKET, SO_REUSEADDR },
     { SOL_SOCKET, SO_TIMESTAMP }, { SOL_SOCKET, SO_TIMESTAMPNS },
+#ifdef HAVE_LINUX_TIMESTAMPING
+    { SOL_SOCKET, SO_SELECT_ERR_QUEUE }, { SOL_SOCKET, SO_TIMESTAMPING },
+#endif
   };
 
   const static int fcntls[] = { F_GETFD, F_SETFD };
