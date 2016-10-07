@@ -552,12 +552,13 @@ process_message(struct msghdr *hdr, int length, int sock_fd)
 {
   NTP_Remote_Address remote_addr;
   NTP_Local_Address local_addr;
+  NTP_Local_Timestamp local_ts;
+  struct timespec sched_ts;
   struct cmsghdr *cmsg;
-  struct timespec local_ts, sched_ts;
-  double local_ts_err;
 
-  SCH_GetLastEventTime(&local_ts, &local_ts_err, NULL);
-  sched_ts = local_ts;
+  SCH_GetLastEventTime(&local_ts.ts, &local_ts.err, NULL);
+  local_ts.source = NTP_TS_DAEMON;
+  sched_ts = local_ts.ts;
 
   if (hdr->msg_namelen > sizeof (union sockaddr_in46)) {
     DEBUG_LOG(LOGF_NtpIO, "Truncated source address");
@@ -604,7 +605,8 @@ process_message(struct msghdr *hdr, int length, int sock_fd)
 
       memcpy(&tv, CMSG_DATA(cmsg), sizeof(tv));
       UTI_TimevalToTimespec(&tv, &ts);
-      LCL_CookTime(&ts, &local_ts, &local_ts_err);
+      LCL_CookTime(&ts, &local_ts.ts, &local_ts.err);
+      local_ts.source = NTP_TS_KERNEL;
     }
 #endif
 
@@ -613,22 +615,23 @@ process_message(struct msghdr *hdr, int length, int sock_fd)
       struct timespec ts;
 
       memcpy(&ts, CMSG_DATA(cmsg), sizeof (ts));
-      LCL_CookTime(&ts, &local_ts, &local_ts_err);
+      LCL_CookTime(&ts, &local_ts.ts, &local_ts.err);
+      local_ts.source = NTP_TS_KERNEL;
     }
 #endif
   }
 
-  DEBUG_LOG(LOGF_NtpIO, "Received %d bytes from %s:%d to %s fd=%d delay=%.9f",
+  DEBUG_LOG(LOGF_NtpIO, "Received %d bytes from %s:%d to %s fd=%d tss=%d delay=%.9f",
             length, UTI_IPToString(&remote_addr.ip_addr), remote_addr.port,
-            UTI_IPToString(&local_addr.ip_addr), local_addr.sock_fd,
-            UTI_DiffTimespecsToDouble(&sched_ts, &local_ts));
+            UTI_IPToString(&local_addr.ip_addr), local_addr.sock_fd, local_ts.source,
+            UTI_DiffTimespecsToDouble(&sched_ts, &local_ts.ts));
 
   /* Just ignore the packet if it's not of a recognized length */
   if (length < NTP_NORMAL_PACKET_LENGTH || length > sizeof (NTP_Receive_Buffer))
     return;
 
-  NSR_ProcessRx((NTP_Packet *)hdr->msg_iov[0].iov_base, &local_ts, local_ts_err,
-                &remote_addr, &local_addr, length);
+  NSR_ProcessRx(&remote_addr, &local_addr, &local_ts,
+                (NTP_Packet *)hdr->msg_iov[0].iov_base, length);
 }
 
 /* ================================================== */

@@ -154,7 +154,7 @@ struct NCR_Instance_Record {
      parameters for the current reference.  (It must be stored
      relative to local time to permit frequency and offset adjustments
      to be made when we trim the local clock). */
-  struct timespec local_rx;
+  NTP_Local_Timestamp local_rx;
 
   /* Local timestamp when we last transmitted a packet to the source.
      We store two versions.  The first is in NTP format, and is used
@@ -165,7 +165,7 @@ struct NCR_Instance_Record {
      local clock frequency/offset changes, and use this for computing
      statistics about the source when a return packet arrives. */
   NTP_int64 local_ntp_tx;
-  struct timespec local_tx;
+  NTP_Local_Timestamp local_tx;
 
   /* The instance record in the main source management module.  This
      performs the statistical analysis on the samples we generate */
@@ -401,7 +401,7 @@ start_initial_timeout(NCR_Instance inst)
      the interval between packets at least as long as the current polling
      interval */
   SCH_GetLastEventTime(&now, NULL, NULL);
-  last_tx = UTI_DiffTimespecsToDouble(&now, &inst->local_tx);
+  last_tx = UTI_DiffTimespecsToDouble(&now, &inst->local_tx.ts);
   if (last_tx < 0.0)
     last_tx = 0.0;
   delay = get_transmit_delay(inst, 0, 0.0) - last_tx;
@@ -531,7 +531,9 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->tx_suspended = 1;
   result->opmode = params->online ? MD_ONLINE : MD_OFFLINE;
   result->local_poll = result->minpoll;
-  UTI_ZeroTimespec(&result->local_tx);
+  UTI_ZeroTimespec(&result->local_tx.ts);
+  result->local_tx.err = 0.0;
+  result->local_tx.source = NTP_TS_DAEMON;
   
   NCR_ResetInstance(result);
 
@@ -589,7 +591,9 @@ NCR_ResetInstance(NCR_Instance instance)
   instance->remote_orig.lo = 0;
   instance->local_ntp_tx.hi = 0;
   instance->local_ntp_tx.lo = 0;
-  UTI_ZeroTimespec(&instance->local_rx);
+  UTI_ZeroTimespec(&instance->local_rx.ts);
+  instance->local_rx.err = 0.0;
+  instance->local_rx.source = NTP_TS_DAEMON;
 
   if (instance->local_poll != instance->minpoll) {
     instance->local_poll = instance->minpoll;
@@ -797,11 +801,10 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 int auth_mode, /* The authentication mode */
                 uint32_t key_id, /* The authentication key ID */
                 NTP_int64 *orig_ts, /* Originate timestamp (from received packet) */
-                struct timespec *local_rx, /* Local time request packet was received */
-                struct timespec *local_tx, /* RESULT : Time this reply
-                                             is sent as local time, or
-                                             NULL if don't want to
-                                             know */
+                NTP_Local_Timestamp *local_rx, /* Local time request packet was received */
+                NTP_Local_Timestamp *local_tx, /* RESULT : Time this reply is sent as
+                                                  local time, or NULL if don't want to
+                                                  know */
                 NTP_int64 *local_ntp_tx, /* RESULT : Time reply sent
                                             as NTP timestamp
                                             (including adjustment to
@@ -865,9 +868,9 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   if (smooth_time) {
     our_ref_id = NTP_REFID_SMOOTH;
     UTI_AddDoubleToTimespec(&our_ref_time, smooth_offset, &our_ref_time);
-    UTI_AddDoubleToTimespec(local_rx, smooth_offset, &local_receive);
+    UTI_AddDoubleToTimespec(&local_rx->ts, smooth_offset, &local_receive);
   } else {
-    local_receive = *local_rx;
+    local_receive = local_rx->ts;
   }
 
   /* Generate transmit packet */
@@ -950,7 +953,9 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   ret = NIO_SendPacket(&message, where_to, from, length, local_tx != NULL);
 
   if (local_tx) {
-    *local_tx = local_transmit;
+    local_tx->ts = local_transmit;
+    local_tx->err = 0.0;
+    local_tx->source = NTP_TS_DAEMON;
   }
 
   if (local_ntp_tx) {
@@ -1192,8 +1197,8 @@ check_packet_auth(NTP_Packet *pkt, int length,
 /* ================================================== */
 
 static int
-receive_packet(NTP_Packet *message, struct timespec *rx_ts, double rx_ts_err,
-               NCR_Instance inst, NTP_Local_Address *local_addr, int length)
+receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
+               NTP_Local_Timestamp *rx_ts, NTP_Packet *message, int length)
 {
   int pkt_leap;
   uint32_t pkt_refid, pkt_key_id;
@@ -1335,7 +1340,7 @@ receive_packet(NTP_Packet *message, struct timespec *rx_ts, double rx_ts_err,
     UTI_AverageDiffTimespecs(&remote_receive, &remote_transmit,
                              &remote_average, &remote_interval);
 
-    UTI_AverageDiffTimespecs(&inst->local_tx, rx_ts,
+    UTI_AverageDiffTimespecs(&inst->local_tx.ts, &rx_ts->ts,
                              &local_average, &local_interval);
 
     /* In our case, we work out 'delay' as the worst case delay,
@@ -1366,7 +1371,7 @@ receive_packet(NTP_Packet *message, struct timespec *rx_ts, double rx_ts_err,
     skew = (source_freq_hi - source_freq_lo) / 2.0;
     
     /* and then calculate peer dispersion */
-    dispersion = precision + rx_ts_err + skew * fabs(local_interval);
+    dispersion = precision + rx_ts->err + skew * fabs(local_interval);
     
     /* Additional tests required to pass before accumulating the sample */
 
@@ -1396,7 +1401,7 @@ receive_packet(NTP_Packet *message, struct timespec *rx_ts, double rx_ts_err,
             pkt_refid != UTI_IPToRefid(&local_addr->ip_addr);
   } else {
     offset = delay = dispersion = 0.0;
-    sample_time = *rx_ts;
+    sample_time = rx_ts->ts;
     testA = testB = testC = testD = 0;
   }
   
@@ -1484,7 +1489,7 @@ receive_packet(NTP_Packet *message, struct timespec *rx_ts, double rx_ts_err,
     /* And now, requeue the timer */
     if (inst->opmode != MD_OFFLINE) {
       delay_time = get_transmit_delay(inst, 0,
-                     UTI_DiffTimespecsToDouble(&inst->local_rx, &inst->local_tx));
+                     UTI_DiffTimespecsToDouble(&inst->local_rx.ts, &inst->local_tx.ts));
 
       if (kod_rate) {
         /* Back off for a while and stop ongoing burst */
@@ -1550,14 +1555,8 @@ receive_packet(NTP_Packet *message, struct timespec *rx_ts, double rx_ts_err,
    and it relates to a source we have an ongoing protocol exchange with */
 
 int
-NCR_ProcessRxKnown
-(NTP_Packet *message,           /* the received message */
- struct timespec *rx_ts,        /* timestamp at time of receipt */
- double rx_ts_err,
- NCR_Instance inst,             /* the instance record for this peer/server */
- NTP_Local_Address *local_addr, /* the receiving address */
- int length                     /* the length of the received packet */
- )
+NCR_ProcessRxKnown(NCR_Instance inst, NTP_Local_Address *local_addr,
+                   NTP_Local_Timestamp *rx_ts, NTP_Packet *message, int length)
 {
   int pkt_mode, proc_packet, proc_as_unknown;
 
@@ -1664,10 +1663,9 @@ NCR_ProcessRxKnown
       return 0;
     }
 
-    return receive_packet(message, rx_ts, rx_ts_err, inst, local_addr, length);
+    return receive_packet(inst, local_addr, rx_ts, message, length);
   } else if (proc_as_unknown) {
-    NCR_ProcessRxUnknown(message, rx_ts, rx_ts_err, &inst->remote_addr,
-                         local_addr, length);
+    NCR_ProcessRxUnknown(&inst->remote_addr, local_addr, rx_ts, message, length);
     /* It's not a reply to our request, don't return success */
     return 0;
   } else {
@@ -1682,14 +1680,8 @@ NCR_ProcessRxKnown
    and it relates to a source we don't know (not our server or peer) */
 
 void
-NCR_ProcessRxUnknown
-(NTP_Packet *message,           /* the received message */
- struct timespec *rx_ts,        /* timestamp at time of receipt */
- double rx_ts_err,              /* assumed error in the timestamp */
- NTP_Remote_Address *remote_addr,
- NTP_Local_Address *local_addr,
- int length                     /* the length of the received packet */
- )
+NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
+                     NTP_Local_Timestamp *rx_ts, NTP_Packet *message, int length)
 {
   NTP_Mode pkt_mode, my_mode;
   int valid_auth, log_index;
@@ -1730,7 +1722,7 @@ NCR_ProcessRxUnknown
       return;
   }
 
-  log_index = CLG_LogNTPAccess(&remote_addr->ip_addr, rx_ts);
+  log_index = CLG_LogNTPAccess(&remote_addr->ip_addr, &rx_ts->ts);
 
   /* Don't reply to all requests if the rate is excessive */
   if (log_index >= 0 && CLG_LimitNTPResponseRate(log_index)) {
@@ -1771,12 +1763,12 @@ NCR_ProcessRxUnknown
 /* ================================================== */
 
 static void
-update_tx_timestamp(struct timespec *tx_ts, struct timespec *new_tx_ts,
+update_tx_timestamp(NTP_Local_Timestamp *tx_ts, NTP_Local_Timestamp *new_tx_ts,
                     NTP_int64 *local_ntp_tx, NTP_Packet *message)
 {
   double delay;
 
-  if (UTI_IsZeroTimespec(tx_ts)) {
+  if (UTI_IsZeroTimespec(&tx_ts->ts)) {
     DEBUG_LOG(LOGF_NtpCore, "Unexpected TX update");
     return;
   }
@@ -1788,7 +1780,7 @@ update_tx_timestamp(struct timespec *tx_ts, struct timespec *new_tx_ts,
     return;
   }
 
-  delay = UTI_DiffTimespecsToDouble(new_tx_ts, tx_ts);
+  delay = UTI_DiffTimespecsToDouble(&new_tx_ts->ts, &tx_ts->ts);
 
   if (delay < 0.0 || delay > MAX_TX_DELAY) {
     DEBUG_LOG(LOGF_NtpCore, "Unacceptable TX delay %.9f", delay);
@@ -1803,8 +1795,8 @@ update_tx_timestamp(struct timespec *tx_ts, struct timespec *new_tx_ts,
 /* ================================================== */
 
 void
-NCR_ProcessTxKnown(NTP_Packet *message, struct timespec *tx_ts, double tx_ts_err,
-                   NCR_Instance inst, NTP_Local_Address *local_addr, int length)
+NCR_ProcessTxKnown(NCR_Instance inst, NTP_Local_Address *local_addr,
+                   NTP_Local_Timestamp *tx_ts, NTP_Packet *message, int length)
 {
   NTP_Mode pkt_mode;
 
@@ -1815,8 +1807,7 @@ NCR_ProcessTxKnown(NTP_Packet *message, struct timespec *tx_ts, double tx_ts_err
 
   /* Server and passive mode packets are responses to unknown sources */
   if (pkt_mode != MODE_CLIENT && pkt_mode != MODE_ACTIVE) {
-    NCR_ProcessTxUnknown(message, tx_ts, tx_ts_err, &inst->remote_addr,
-                         local_addr, length);
+    NCR_ProcessTxUnknown(&inst->remote_addr, local_addr, tx_ts, message, length);
     return;
   }
 
@@ -1826,8 +1817,8 @@ NCR_ProcessTxKnown(NTP_Packet *message, struct timespec *tx_ts, double tx_ts_err
 /* ================================================== */
 
 void
-NCR_ProcessTxUnknown(NTP_Packet *message, struct timespec *tx_ts, double tx_ts_err,
-                     NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length)
+NCR_ProcessTxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
+                     NTP_Local_Timestamp *tx_ts, NTP_Packet *message, int length)
 {
   /* Nothing to do yet */
   DEBUG_LOG(LOGF_NtpCore, "Process TX unknown");
@@ -1840,10 +1831,10 @@ NCR_SlewTimes(NCR_Instance inst, struct timespec *when, double dfreq, double dof
 {
   double delta;
 
-  if (!UTI_IsZeroTimespec(&inst->local_rx))
-    UTI_AdjustTimespec(&inst->local_rx, when, &inst->local_rx, &delta, dfreq, doffset);
-  if (!UTI_IsZeroTimespec(&inst->local_tx))
-    UTI_AdjustTimespec(&inst->local_tx, when, &inst->local_tx, &delta, dfreq, doffset);
+  if (!UTI_IsZeroTimespec(&inst->local_rx.ts))
+    UTI_AdjustTimespec(&inst->local_rx.ts, when, &inst->local_rx.ts, &delta, dfreq, doffset);
+  if (!UTI_IsZeroTimespec(&inst->local_tx.ts))
+    UTI_AdjustTimespec(&inst->local_tx.ts, when, &inst->local_tx.ts, &delta, dfreq, doffset);
 }
 
 /* ================================================== */
@@ -2141,13 +2132,15 @@ broadcast_timeout(void *arg)
 {
   BroadcastDestination *destination;
   NTP_int64 orig_ts;
-  struct timespec recv_ts;
+  NTP_Local_Timestamp recv_ts;
 
   destination = ARR_GetElement(broadcasts, (long)arg);
 
   orig_ts.hi = 0;
   orig_ts.lo = 0;
-  UTI_ZeroTimespec(&recv_ts);
+  UTI_ZeroTimespec(&recv_ts.ts);
+  recv_ts.source = NTP_TS_DAEMON;
+  recv_ts.err = 0.0;
 
   transmit_packet(MODE_BROADCAST, 6 /* FIXME: should this be log2(interval)? */,
                   NTP_VERSION, 0, 0, &orig_ts, &recv_ts, NULL, NULL,

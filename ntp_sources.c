@@ -776,8 +776,8 @@ NSR_GetLocalRefid(IPAddr *address)
 /* This routine is called by ntp_io when a new packet arrives off the network,
    possibly with an authentication tail */
 void
-NSR_ProcessRx(NTP_Packet *message, struct timespec *rx_ts, double rx_ts_err,
-              NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length)
+NSR_ProcessRx(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
+              NTP_Local_Timestamp *rx_ts, NTP_Packet *message, int length)
 {
   SourceRecord *record;
   struct SourcePool *pool;
@@ -789,7 +789,7 @@ NSR_ProcessRx(NTP_Packet *message, struct timespec *rx_ts, double rx_ts_err,
   if (found == 2) { /* Must match IP address AND port number */
     record = get_record(slot);
 
-    if (!NCR_ProcessRxKnown(message, rx_ts, rx_ts_err, record->data, local_addr, length))
+    if (!NCR_ProcessRxKnown(record->data, local_addr, rx_ts, message, length))
       return;
 
     if (record->tentative) {
@@ -810,15 +810,15 @@ NSR_ProcessRx(NTP_Packet *message, struct timespec *rx_ts, double rx_ts_err,
       }
     }
   } else {
-    NCR_ProcessRxUnknown(message, rx_ts, rx_ts_err, remote_addr, local_addr, length);
+    NCR_ProcessRxUnknown(remote_addr, local_addr, rx_ts, message, length);
   }
 }
 
 /* ================================================== */
 
 void
-NSR_ProcessTx(NTP_Packet *message, struct timespec *tx_ts, double tx_ts_err,
-              NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length)
+NSR_ProcessTx(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
+              NTP_Local_Timestamp *tx_ts, NTP_Packet *message, int length)
 {
   SourceRecord *record;
   int slot, found;
@@ -827,9 +827,9 @@ NSR_ProcessTx(NTP_Packet *message, struct timespec *tx_ts, double tx_ts_err,
 
   if (found == 2) { /* Must match IP address AND port number */
     record = get_record(slot);
-    NCR_ProcessTxKnown(message, tx_ts, tx_ts_err, record->data, local_addr, length);
+    NCR_ProcessTxKnown(record->data, local_addr, tx_ts, message, length);
   } else {
-    NCR_ProcessTxUnknown(message, tx_ts, tx_ts_err, remote_addr, local_addr, length);
+    NCR_ProcessTxUnknown(remote_addr, local_addr, tx_ts, message, length);
   }
 }
 
