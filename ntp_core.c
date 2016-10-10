@@ -80,6 +80,7 @@ struct NCR_Instance_Record {
   NTP_Local_Address local_addr; /* Local address/socket used to send packets */
   NTP_Mode mode;                /* The source's NTP mode
                                    (client/server or symmetric active peer) */
+  int interleaved;              /* Boolean enabling interleaved NTP mode */
   OperatingMode opmode;         /* Whether we are sampling this source
                                    or not and in what way */
   SCH_TimeoutID rx_timeout_id;  /* Timeout ID for latest received response */
@@ -141,10 +142,16 @@ struct NCR_Instance_Record {
      receive from this peer */
   int tx_count;
 
-  /* Timestamp in tx field of last received packet.  We have to
-     reproduce this exactly as the orig field or our outgoing
-     packet. */
-  NTP_int64 remote_orig;     
+  /* Flag indicating a valid response was received since last request */
+  int valid_rx;
+
+  /* Flag indicating the timestamps below are from a valid packet and may
+     be used for synchronisation */
+  int valid_timestamps;
+
+  /* Receive and transmit timestamps from the last received packet */
+  NTP_int64 remote_ntp_rx;
+  NTP_int64 remote_ntp_tx;
 
   /* Local timestamp when the last packet was received from the
      source.  We have to be prepared to tinker with this if the local
@@ -154,6 +161,7 @@ struct NCR_Instance_Record {
      parameters for the current reference.  (It must be stored
      relative to local time to permit frequency and offset adjustments
      to be made when we trim the local clock). */
+  NTP_int64 local_ntp_rx;
   NTP_Local_Timestamp local_rx;
 
   /* Local timestamp when we last transmitted a packet to the source.
@@ -463,10 +471,12 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
       /* Client socket will be obtained when sending request */
       result->local_addr.sock_fd = INVALID_SOCK_FD;
       result->mode = MODE_CLIENT;
+      result->interleaved = 0;
       break;
     case NTP_PEER:
       result->local_addr.sock_fd = NIO_OpenServerSocket(remote_addr);
       result->mode = MODE_ACTIVE;
+      result->interleaved = params->interleaved;
       break;
     default:
       assert(0);
@@ -587,8 +597,14 @@ NCR_ResetInstance(NCR_Instance instance)
   instance->remote_poll = 0;
   instance->remote_stratum = 0;
 
-  instance->remote_orig.hi = 0;
-  instance->remote_orig.lo = 0;
+  instance->valid_rx = 0;
+  instance->valid_timestamps = 0;
+  instance->remote_ntp_rx.hi = 0;
+  instance->remote_ntp_rx.lo = 0;
+  instance->remote_ntp_tx.hi = 0;
+  instance->remote_ntp_tx.lo = 0;
+  instance->local_ntp_rx.hi = 0;
+  instance->local_ntp_rx.lo = 0;
   instance->local_ntp_tx.hi = 0;
   instance->local_ntp_tx.lo = 0;
   UTI_ZeroTimespec(&instance->local_rx.ts);
@@ -796,20 +812,18 @@ receive_timeout(void *arg)
 
 static int
 transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
+                int interleaved, /* Flag enabling interleaved mode */
                 int my_poll, /* The log2 of the local poll interval */
                 int version, /* The NTP version to be set in the packet */
                 int auth_mode, /* The authentication mode */
                 uint32_t key_id, /* The authentication key ID */
-                NTP_int64 *orig_ts, /* Originate timestamp (from received packet) */
-                NTP_Local_Timestamp *local_rx, /* Local time request packet was received */
-                NTP_Local_Timestamp *local_tx, /* RESULT : Time this reply is sent as
-                                                  local time, or NULL if don't want to
-                                                  know */
-                NTP_int64 *local_ntp_tx, /* RESULT : Time reply sent
-                                            as NTP timestamp
-                                            (including adjustment to
-                                            reference), ignored if
-                                            NULL */
+                NTP_int64 *remote_ntp_rx, /* The receive timestamp from received packet */
+                NTP_int64 *remote_ntp_tx, /* The transmit timestamp from received packet */
+                NTP_Local_Timestamp *local_rx, /* The RX time of the received packet */
+                NTP_Local_Timestamp *local_tx, /* The TX time of the previous packet
+                                                  RESULT : TX time of this packet */
+                NTP_int64 *local_ntp_rx, /* RESULT : receive timestamp from this packet */
+                NTP_int64 *local_ntp_tx, /* RESULT : transmit timestamp from this packet */
                 NTP_Remote_Address *where_to, /* Where to address the reponse to */
                 NTP_Local_Address *from /* From what address to send it */
                 )
@@ -830,6 +844,10 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   if (version > NTP_VERSION) {
     version = NTP_VERSION;
   }
+
+  /* Allow interleaved mode only if there was a prior transmission */
+  if (interleaved && (!local_tx || UTI_IsZeroTimespec(&local_tx->ts)))
+    interleaved = 0;
 
   smooth_time = 0;
   smooth_offset = 0.0;
@@ -865,7 +883,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     precision = LCL_GetSysPrecisionAsLog();
   }
 
-  if (smooth_time) {
+  if (smooth_time && !UTI_IsZeroTimespec(&local_rx->ts)) {
     our_ref_id = NTP_REFID_SMOOTH;
     UTI_AddDoubleToTimespec(&our_ref_time, smooth_offset, &our_ref_time);
     UTI_AddDoubleToTimespec(&local_rx->ts, smooth_offset, &local_receive);
@@ -897,7 +915,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   UTI_TimespecToNtp64(&our_ref_time, &message.reference_ts, NULL);
 
   /* Originate - this comes from the last packet the source sent us */
-  message.originate_ts = *orig_ts;
+  message.originate_ts = interleaved ? *remote_ntp_rx : *remote_ntp_tx;
 
   /* Prepare random bits which will be added to the receive timestamp */
   UTI_GetNtp64Fuzz(&ts_fuzz, precision);
@@ -929,7 +947,8 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     local_transmit.tv_nsec += auth_mode == AUTH_SYMMETRIC ?
                               KEY_GetAuthDelay(key_id) : NSD_GetAuthDelay(key_id);
     UTI_NormaliseTimespec(&local_transmit);
-    UTI_TimespecToNtp64(&local_transmit, &message.transmit_ts, &ts_fuzz);
+    UTI_TimespecToNtp64(interleaved ? &local_tx->ts : &local_transmit,
+                        &message.transmit_ts, &ts_fuzz);
 
     if (auth_mode == AUTH_SYMMETRIC) {
       auth_len = KEY_GenerateAuth(key_id, (unsigned char *) &message,
@@ -947,7 +966,8 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
       return NSD_SignAndSendPacket(key_id, &message, where_to, from, length);
     }
   } else {
-    UTI_TimespecToNtp64(&local_transmit, &message.transmit_ts, &ts_fuzz);
+    UTI_TimespecToNtp64(interleaved ? &local_tx->ts : &local_transmit,
+                        &message.transmit_ts, &ts_fuzz);
   }
 
   ret = NIO_SendPacket(&message, where_to, from, length, local_tx != NULL);
@@ -958,9 +978,10 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     local_tx->source = NTP_TS_DAEMON;
   }
 
-  if (local_ntp_tx) {
+  if (local_ntp_rx)
+    *local_ntp_rx = message.receive_ts;
+  if (local_ntp_tx)
     *local_ntp_tx = message.transmit_ts;
-  }
 
   return ret;
 }
@@ -1023,9 +1044,9 @@ transmit_timeout(void *arg)
     
     /* Send a client packet, don't store the local tx values
        as the reply will be ignored */
-    transmit_packet(MODE_CLIENT, inst->local_poll, inst->version, AUTH_NONE, 0,
-                    &inst->remote_orig, &inst->local_rx, NULL, NULL,
-                    &inst->remote_addr, &local_addr);
+    transmit_packet(MODE_CLIENT, 0, inst->local_poll, inst->version, AUTH_NONE, 0,
+                    &inst->remote_ntp_rx, &inst->remote_ntp_tx, &inst->local_rx, NULL,
+                    NULL, NULL, &inst->remote_addr, &local_addr);
 
     inst->presend_done = 1;
 
@@ -1037,15 +1058,17 @@ transmit_timeout(void *arg)
 
   inst->presend_done = 0; /* Reset for next time */
 
-  sent = transmit_packet(inst->mode, inst->local_poll,
+  sent = transmit_packet(inst->mode, inst->interleaved, inst->local_poll,
                          inst->version,
                          inst->auth_mode, inst->auth_key_id,
-                         &inst->remote_orig,
-                         &inst->local_rx, &inst->local_tx, &inst->local_ntp_tx,
+                         &inst->remote_ntp_rx, &inst->remote_ntp_tx,
+                         &inst->local_rx, &inst->local_tx,
+                         &inst->local_ntp_rx, &inst->local_ntp_tx,
                          &inst->remote_addr,
                          &local_addr);
 
   ++inst->tx_count;
+  inst->valid_rx = 0;
 
   /* If the source loses connectivity and our packets are still being sent,
      back off the sampling rate to reduce the network traffic.  If it's the
@@ -1227,14 +1250,9 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
   /* The skew and estimated frequency offset relative to the remote source */
   double skew, source_freq_lo, source_freq_hi;
 
-  /* These are the timespec equivalents of the remote epochs */
-  struct timespec remote_receive, remote_transmit;
-  struct timespec local_average, remote_average;
-  double local_interval, remote_interval;
-
   /* RFC 5905 packet tests */
-  int test1, test2, test3, test5, test6, test7;
-  int valid_packet, synced_packet;
+  int test1, test2n, test2i, test2, test3, test5, test6, test7;
+  int interleaved_packet, valid_packet, synced_packet;
 
   /* Additional tests */
   int testA, testB, testC, testD;
@@ -1264,20 +1282,22 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
   pkt_root_delay = UTI_Ntp32ToDouble(message->root_delay);
   pkt_root_dispersion = UTI_Ntp32ToDouble(message->root_dispersion);
 
-  UTI_Ntp64ToTimespec(&message->receive_ts, &remote_receive);
-  UTI_Ntp64ToTimespec(&message->transmit_ts, &remote_transmit);
-
   /* Check if the packet is valid per RFC 5905, section 8.
      The test values are 1 when passed and 0 when failed. */
   
   /* Test 1 checks for duplicate packet */
-  test1 = message->transmit_ts.hi != inst->remote_orig.hi ||
-          message->transmit_ts.lo != inst->remote_orig.lo;
+  test1 = message->transmit_ts.hi != inst->remote_ntp_tx.hi ||
+          message->transmit_ts.lo != inst->remote_ntp_tx.lo;
 
-  /* Test 2 checks for bogus packet.  This ensures the source is responding to
-     the latest packet we sent to it. */
-  test2 = message->originate_ts.hi == inst->local_ntp_tx.hi &&
-          message->originate_ts.lo == inst->local_ntp_tx.lo;
+  /* Test 2 checks for bogus packet in the basic and interleaved modes.  This
+     ensures the source is responding to the latest packet we sent to it. */
+  test2n = message->originate_ts.hi == inst->local_ntp_tx.hi &&
+           message->originate_ts.lo == inst->local_ntp_tx.lo;
+  test2i = inst->interleaved &&
+           message->originate_ts.hi == inst->local_ntp_rx.hi &&
+           message->originate_ts.lo == inst->local_ntp_rx.lo;
+  test2 = test2n || test2i;
+  interleaved_packet = !test2n && test2i;
   
   /* Test 3 checks for invalid timestamps.  This can happen when the
      association if not properly 'up'. */
@@ -1319,29 +1339,36 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
       kod_rate = 1;
   }
 
-  /* The transmit timestamp and local receive timestamp must not be saved when
-     the authentication test failed to prevent denial-of-service attacks on
-     symmetric associations using authentication */
-  if (test5) {
-    inst->remote_orig = message->transmit_ts;
-    inst->local_rx = *rx_ts;
-  }
+  if (synced_packet && (!interleaved_packet || inst->valid_timestamps)) {
+    /* These are the timespec equivalents of the remote and local epochs */
+    struct timespec remote_receive, remote_transmit, prev_remote_receive;
+    struct timespec local_average, remote_average;
+    double remote_interval, local_interval, server_interval;
 
-  /* This protects against replay of the last packet we sent */
-  if (test2)
-    inst->local_ntp_tx.hi = inst->local_ntp_tx.lo = 0;
-
-  if (synced_packet) {
     precision = LCL_GetSysPrecisionAsQuantum() +
                 UTI_Log2ToDouble(message->precision);
 
     SRC_GetFrequencyRange(inst->source, &source_freq_lo, &source_freq_hi);
     
-    UTI_AverageDiffTimespecs(&remote_receive, &remote_transmit,
-                             &remote_average, &remote_interval);
+    UTI_Ntp64ToTimespec(&message->receive_ts, &remote_receive);
+    UTI_Ntp64ToTimespec(&message->transmit_ts, &remote_transmit);
 
-    UTI_AverageDiffTimespecs(&inst->local_tx.ts, &rx_ts->ts,
-                             &local_average, &local_interval);
+    /* Calculate intervals between remote and local timestamps */
+    if (interleaved_packet) {
+      UTI_Ntp64ToTimespec(&inst->remote_ntp_rx, &prev_remote_receive);
+      UTI_AverageDiffTimespecs(&remote_transmit, &remote_receive,
+                               &remote_average, &remote_interval);
+      UTI_AverageDiffTimespecs(&inst->local_rx.ts, &inst->local_tx.ts,
+                               &local_average, &local_interval);
+      server_interval = UTI_DiffTimespecsToDouble(&remote_transmit,
+                                                  &prev_remote_receive);
+    } else {
+      UTI_AverageDiffTimespecs(&remote_receive, &remote_transmit,
+                               &remote_average, &remote_interval);
+      UTI_AverageDiffTimespecs(&inst->local_tx.ts, &rx_ts->ts,
+                               &local_average, &local_interval);
+      server_interval = remote_interval;
+    }
 
     /* In our case, we work out 'delay' as the worst case delay,
        assuming worst case frequency error between us and the other
@@ -1376,9 +1403,13 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     /* Additional tests required to pass before accumulating the sample */
 
     /* Test A requires that the peer delay is not larger than the configured
-       maximum and in client mode also that the server processing time is sane */
+       maximum, in client mode that the server processing time is sane, and in
+       interleaved symmetric mode that the delay is not longer than half of the
+       remote polling interval to detect missed packets */
     testA = delay <= inst->max_delay &&
-            (inst->mode != MODE_CLIENT || remote_interval <= MAX_SERVER_INTERVAL);
+            !(inst->mode == MODE_CLIENT && server_interval > MAX_SERVER_INTERVAL) &&
+            !(inst->mode == MODE_ACTIVE && interleaved_packet &&
+              delay > UTI_Log2ToDouble(message->poll - 1));
 
     /* Test B requires that the ratio of the round trip delay to the
        minimum one currently in the stats data register is less than an
@@ -1413,6 +1444,28 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
   root_dispersion = pkt_root_dispersion + dispersion;
   distance = dispersion + 0.5 * delay;
 
+  /* Update the NTP timestamps.  If it's a valid packet from a synchronised
+     source, the timestamps may be used later when processing a packet in the
+     interleaved mode.  The authentication test (test5) is required to prevent
+     denial-of-service attacks using unauthenticated packets on authenticated
+     symmetric associations. */
+  if (test5) {
+    inst->remote_ntp_rx = message->receive_ts;
+    inst->remote_ntp_tx = message->transmit_ts;
+    inst->local_rx = *rx_ts;
+    inst->valid_timestamps = synced_packet;
+  }
+
+  /* Accept at most one response per request.  The NTP specification recommends
+     resetting local_ntp_tx to make the following packets fail test2 or test3,
+     but we use a separate variable. */
+  if (inst->valid_rx) {
+    test2 = test3 = 0;
+    valid_packet = synced_packet = good_packet = 0;
+  } else if (valid_packet) {
+    inst->valid_rx = 1;
+  }
+
   DEBUG_LOG(LOGF_NtpCore, "NTP packet lvm=%o stratum=%d poll=%d prec=%d root_delay=%f root_disp=%f refid=%"PRIx32" [%s]",
             message->lvm, message->stratum, message->poll, message->precision,
             pkt_root_delay, pkt_root_dispersion, pkt_refid,
@@ -1424,9 +1477,10 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
             UTI_Ntp64ToString(&message->transmit_ts));
   DEBUG_LOG(LOGF_NtpCore, "offset=%f delay=%f dispersion=%f root_delay=%f root_dispersion=%f",
             offset, delay, dispersion, root_delay, root_dispersion);
-  DEBUG_LOG(LOGF_NtpCore, "test123=%d%d%d test567=%d%d%d testABCD=%d%d%d%d kod_rate=%d valid=%d good=%d",
+  DEBUG_LOG(LOGF_NtpCore, "test123=%d%d%d test567=%d%d%d testABCD=%d%d%d%d kod_rate=%d interleaved=%d valid=%d good=%d updated=%d",
             test1, test2, test3, test5, test6, test7, testA, testB, testC, testD,
-            kod_rate, valid_packet, good_packet);
+            kod_rate, interleaved_packet, valid_packet, good_packet,
+            !UTI_CompareTimespecs(&inst->local_rx.ts, &rx_ts->ts));
 
   if (valid_packet) {
     if (synced_packet) {
@@ -1755,9 +1809,9 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
      - originate timestamp is the client's transmit time
      - don't save our transmit timestamp as we aren't maintaining state about
        this client */
-  transmit_packet(my_mode, message->poll, NTP_LVM_TO_VERSION(message->lvm),
-                  auth_mode, key_id, &message->transmit_ts, rx_ts, NULL, NULL,
-                  remote_addr, local_addr);
+  transmit_packet(my_mode, 0, message->poll, NTP_LVM_TO_VERSION(message->lvm),
+                  auth_mode, key_id, &message->receive_ts, &message->transmit_ts,
+                  rx_ts, NULL, NULL, NULL, remote_addr, local_addr);
 }
 
 /* ================================================== */
@@ -2142,8 +2196,8 @@ broadcast_timeout(void *arg)
   recv_ts.source = NTP_TS_DAEMON;
   recv_ts.err = 0.0;
 
-  transmit_packet(MODE_BROADCAST, 6 /* FIXME: should this be log2(interval)? */,
-                  NTP_VERSION, 0, 0, &orig_ts, &recv_ts, NULL, NULL,
+  transmit_packet(MODE_BROADCAST, 0, 6 /* FIXME: should this be log2(interval)? */,
+                  NTP_VERSION, 0, 0, &orig_ts, &orig_ts, &recv_ts, NULL, NULL, NULL,
                   &destination->addr, &destination->local_addr);
 
   /* Requeue timeout.  We don't care if interval drifts gradually. */

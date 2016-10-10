@@ -58,6 +58,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   src->params.max_sources = SRC_DEFAULT_MAXSOURCES;
   src->params.min_samples = SRC_DEFAULT_MINSAMPLES;
   src->params.max_samples = SRC_DEFAULT_MAXSAMPLES;
+  src->params.interleaved = 0;
   src->params.sel_options = 0;
   src->params.authkey = INACTIVE_AUTHKEY;
   src->params.max_delay = SRC_DEFAULT_MAXDELAY;
@@ -139,6 +140,8 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
     } else if (!strcasecmp(cmd, "version")) {
       if (sscanf(line, "%d%n", &src->params.version, &n) != 1)
         return 0;
+    } else if (!strcasecmp(cmd, "xleave")) {
+      src->params.interleaved = 1;
     } else {
       return 0;
     }

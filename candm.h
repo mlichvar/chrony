@@ -246,6 +246,7 @@ typedef struct {
 #define REQ_ADDSRC_NOSELECT 0x10
 #define REQ_ADDSRC_TRUST 0x20
 #define REQ_ADDSRC_REQUIRE 0x40
+#define REQ_ADDSRC_INTERLEAVED 0x80
 
 typedef struct {
   IPAddr ip_addr;
