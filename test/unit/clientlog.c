@@ -66,7 +66,7 @@ test_unit(void)
   }
 
   DEBUG_LOG(0, "records %d", ARR_GetSize(records));
-  TEST_CHECK(ARR_GetSize(records) == 128);
+  TEST_CHECK(ARR_GetSize(records) == 64);
 
   for (i = j = 0; i < 10000; i++) {
     ts.tv_sec += 1;

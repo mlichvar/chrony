@@ -33,10 +33,12 @@
 
 extern void CLG_Initialise(void);
 extern void CLG_Finalise(void);
+extern int CLG_GetClientIndex(IPAddr *client);
 extern int CLG_LogNTPAccess(IPAddr *client, struct timespec *now);
 extern int CLG_LogCommandAccess(IPAddr *client, struct timespec *now);
 extern int CLG_LimitNTPResponseRate(int index);
 extern int CLG_LimitCommandResponseRate(int index);
+extern void CLG_GetNtpTimestamps(int index, NTP_int64 **rx_ts, NTP_int64 **tx_ts);
 
 /* And some reporting functions, for use by chronyc. */
 

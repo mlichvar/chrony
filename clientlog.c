@@ -39,6 +39,7 @@
 #include "clientlog.h"
 #include "conf.h"
 #include "memory.h"
+#include "ntp.h"
 #include "reports.h"
 #include "util.h"
 #include "logging.h"
@@ -57,6 +58,8 @@ typedef struct {
   int8_t cmd_rate;
   int8_t ntp_timeout_rate;
   uint8_t flags;
+  NTP_int64 ntp_rx_ts;
+  NTP_int64 ntp_tx_ts;
 } Record;
 
 /* Hash table of records, there is a fixed number of records per slot */
@@ -206,6 +209,8 @@ get_record(IPAddr *ip)
   record->ntp_rate = record->cmd_rate = INVALID_RATE;
   record->ntp_timeout_rate = INVALID_RATE;
   record->flags = 0;
+  record->ntp_rx_ts.hi = record->ntp_rx_ts.lo = 0;
+  record->ntp_tx_ts.hi = record->ntp_tx_ts.lo = 0;
 
   return record;
 }
@@ -406,6 +411,23 @@ get_index(Record *record)
 /* ================================================== */
 
 int
+CLG_GetClientIndex(IPAddr *client)
+{
+  Record *record;
+
+  if (!active)
+    return -1;
+
+  record = get_record(client);
+  if (record == NULL)
+    return -1;
+
+  return get_index(record);
+}
+
+/* ================================================== */
+
+int
 CLG_LogNTPAccess(IPAddr *client, struct timespec *now)
 {
   Record *record;
@@ -553,7 +575,19 @@ CLG_LimitCommandResponseRate(int index)
 
 /* ================================================== */
 
-extern int
+void CLG_GetNtpTimestamps(int index, NTP_int64 **rx_ts, NTP_int64 **tx_ts)
+{
+  Record *record;
+
+  record = ARR_GetElement(records, index);
+
+  *rx_ts = &record->ntp_rx_ts;
+  *tx_ts = &record->ntp_tx_ts;
+}
+
+/* ================================================== */
+
+int
 CLG_GetNumberOfIndices(void)
 {
   if (!active)

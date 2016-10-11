@@ -471,16 +471,16 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
       /* Client socket will be obtained when sending request */
       result->local_addr.sock_fd = INVALID_SOCK_FD;
       result->mode = MODE_CLIENT;
-      result->interleaved = 0;
       break;
     case NTP_PEER:
       result->local_addr.sock_fd = NIO_OpenServerSocket(remote_addr);
       result->mode = MODE_ACTIVE;
-      result->interleaved = params->interleaved;
       break;
     default:
       assert(0);
   }
+
+  result->interleaved = params->interleaved;
 
   result->minpoll = params->minpoll;
   if (result->minpoll < MIN_POLL)
@@ -1446,10 +1446,11 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
 
   /* Update the NTP timestamps.  If it's a valid packet from a synchronised
      source, the timestamps may be used later when processing a packet in the
-     interleaved mode.  The authentication test (test5) is required to prevent
-     denial-of-service attacks using unauthenticated packets on authenticated
-     symmetric associations. */
-  if (test5) {
+     interleaved mode.  Protect the timestamps against replay attacks in client
+     mode.  The authentication test (test5) is required to prevent DoS attacks
+     using unauthenticated packets on authenticated symmetric associations. */
+  if ((inst->mode == MODE_CLIENT && valid_packet && !inst->valid_rx) ||
+      (inst->mode == MODE_ACTIVE && test5)) {
     inst->remote_ntp_rx = message->receive_ts;
     inst->remote_ntp_tx = message->transmit_ts;
     inst->local_rx = *rx_ts;
@@ -1738,7 +1739,9 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
                      NTP_Local_Timestamp *rx_ts, NTP_Packet *message, int length)
 {
   NTP_Mode pkt_mode, my_mode;
-  int valid_auth, log_index;
+  NTP_int64 *local_ntp_rx, *local_ntp_tx;
+  NTP_Local_Timestamp local_tx, *tx_ts;
+  int valid_auth, log_index, interleaved;
   AuthenticationMode auth_mode;
   uint32_t key_id;
 
@@ -1803,15 +1806,41 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
     }
   }
 
-  /* Send a reply.
-     - copy the poll value as the client may use it to control its polling
-       interval
-     - originate timestamp is the client's transmit time
-     - don't save our transmit timestamp as we aren't maintaining state about
-       this client */
-  transmit_packet(my_mode, 0, message->poll, NTP_LVM_TO_VERSION(message->lvm),
+  local_ntp_rx = local_ntp_tx = NULL;
+  tx_ts = NULL;
+  interleaved = 0;
+
+  /* Check if the client is using the interleaved mode.  If it is, save the
+     new transmit timestamp and if the old transmit timestamp is valid, respond
+     in the interleaved mode.  This means the third reply to a new client is
+     the earliest one that can be interleaved.  We don't want to waste time
+     on clients that are not using the interleaved mode. */
+  if (log_index >= 0) {
+    CLG_GetNtpTimestamps(log_index, &local_ntp_rx, &local_ntp_tx);
+    interleaved = (local_ntp_rx->hi || local_ntp_rx->lo) &&
+                  message->originate_ts.hi == local_ntp_rx->hi &&
+                  message->originate_ts.lo == local_ntp_rx->lo;
+
+    if (interleaved) {
+      if (local_ntp_tx->hi || local_ntp_tx->lo)
+        UTI_Ntp64ToTimespec(local_ntp_tx, &local_tx.ts);
+      else
+        interleaved = 0;
+      tx_ts = &local_tx;
+    } else {
+      local_ntp_tx->hi = local_ntp_tx->lo = 0;
+      local_ntp_tx = NULL;
+    }
+  }
+
+  /* Send a reply */
+  transmit_packet(my_mode, interleaved, message->poll, NTP_LVM_TO_VERSION(message->lvm),
                   auth_mode, key_id, &message->receive_ts, &message->transmit_ts,
-                  rx_ts, NULL, NULL, NULL, remote_addr, local_addr);
+                  rx_ts, tx_ts, local_ntp_rx, NULL, remote_addr, local_addr);
+
+  /* Save the transmit timestamp */
+  if (tx_ts)
+    UTI_TimespecToNtp64(&tx_ts->ts, local_ntp_tx, NULL);
 }
 
 /* ================================================== */
@@ -1877,8 +1906,22 @@ void
 NCR_ProcessTxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
                      NTP_Local_Timestamp *tx_ts, NTP_Packet *message, int length)
 {
-  /* Nothing to do yet */
-  DEBUG_LOG(LOGF_NtpCore, "Process TX unknown");
+  NTP_int64 *local_ntp_rx, *local_ntp_tx;
+  NTP_Local_Timestamp local_tx;
+  int log_index;
+
+  if (!check_packet_format(message, length))
+    return;
+
+  log_index = CLG_GetClientIndex(&remote_addr->ip_addr);
+  if (log_index < 0)
+    return;
+
+  CLG_GetNtpTimestamps(log_index, &local_ntp_rx, &local_ntp_tx);
+
+  UTI_Ntp64ToTimespec(local_ntp_tx, &local_tx.ts);
+  update_tx_timestamp(&local_tx, tx_ts, local_ntp_rx, NULL, message);
+  UTI_TimespecToNtp64(&local_tx.ts, local_ntp_tx, NULL);
 }
 
 /* ================================================== */
