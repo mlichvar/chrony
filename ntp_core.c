@@ -1818,7 +1818,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
 
 static void
 update_tx_timestamp(NTP_Local_Timestamp *tx_ts, NTP_Local_Timestamp *new_tx_ts,
-                    NTP_int64 *local_ntp_tx, NTP_Packet *message)
+                    NTP_int64 *local_ntp_rx, NTP_int64 *local_ntp_tx, NTP_Packet *message)
 {
   double delay;
 
@@ -1828,9 +1828,11 @@ update_tx_timestamp(NTP_Local_Timestamp *tx_ts, NTP_Local_Timestamp *new_tx_ts,
   }
 
   /* Check if this is the last packet that was sent */
-  if (message->transmit_ts.hi != local_ntp_tx->hi ||
-      message->transmit_ts.lo != local_ntp_tx->lo) {
-    DEBUG_LOG(LOGF_NtpCore, "TX timestamp mismatch");
+  if ((local_ntp_rx && (message->receive_ts.hi != local_ntp_rx->hi ||
+                        message->receive_ts.lo != local_ntp_rx->lo)) ||
+      (local_ntp_tx && (message->transmit_ts.hi != local_ntp_tx->hi ||
+                        message->transmit_ts.lo != local_ntp_tx->lo))) {
+    DEBUG_LOG(LOGF_NtpCore, "RX/TX timestamp mismatch");
     return;
   }
 
@@ -1865,7 +1867,8 @@ NCR_ProcessTxKnown(NCR_Instance inst, NTP_Local_Address *local_addr,
     return;
   }
 
-  update_tx_timestamp(&inst->local_tx, tx_ts, &inst->local_ntp_tx, message);
+  update_tx_timestamp(&inst->local_tx, tx_ts, &inst->local_ntp_rx, &inst->local_ntp_tx,
+                      message);
 }
 
 /* ================================================== */
