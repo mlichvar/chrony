@@ -158,7 +158,7 @@ get_record(IPAddr *ip)
   time_t last_hit, oldest_hit = 0;
   Record *record, *oldest_record;
 
-  if (ip->family != IPADDR_INET4 && ip->family != IPADDR_INET6)
+  if (!active || (ip->family != IPADDR_INET4 && ip->family != IPADDR_INET6))
     return NULL;
 
   while (1) {
@@ -415,9 +415,6 @@ CLG_GetClientIndex(IPAddr *client)
 {
   Record *record;
 
-  if (!active)
-    return -1;
-
   record = get_record(client);
   if (record == NULL)
     return -1;
@@ -433,9 +430,6 @@ CLG_LogNTPAccess(IPAddr *client, struct timespec *now)
   Record *record;
 
   total_ntp_hits++;
-
-  if (!active)
-    return -1;
 
   record = get_record(client);
   if (record == NULL)
@@ -463,9 +457,6 @@ CLG_LogCommandAccess(IPAddr *client, struct timespec *now)
   Record *record;
 
   total_cmd_hits++;
-
-  if (!active)
-    return -1;
 
   record = get_record(client);
   if (record == NULL)
