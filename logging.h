@@ -116,6 +116,7 @@ typedef enum {
   LOGF_TempComp,
   LOGF_RtcLinux,
   LOGF_Refclock,
+  LOGF_HwClocks,
   LOGF_Smooth,
 } LOG_Facility;
 
