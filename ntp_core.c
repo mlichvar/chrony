@@ -2242,7 +2242,7 @@ broadcast_timeout(void *arg)
   recv_ts.source = NTP_TS_DAEMON;
   recv_ts.err = 0.0;
 
-  transmit_packet(MODE_BROADCAST, 0, 6 /* FIXME: should this be log2(interval)? */,
+  transmit_packet(MODE_BROADCAST, 0, log(destination->interval) / log(2.0) + 0.5,
                   NTP_VERSION, 0, 0, &orig_ts, &orig_ts, &recv_ts, NULL, NULL, NULL,
                   &destination->addr, &destination->local_addr);
 
@@ -2264,7 +2264,7 @@ NCR_AddBroadcastDestination(IPAddr *addr, unsigned short port, int interval)
   destination->addr.port = port;
   destination->local_addr.ip_addr.family = IPADDR_UNSPEC;
   destination->local_addr.sock_fd = NIO_OpenServerSocket(&destination->addr);
-  destination->interval = interval;
+  destination->interval = CLAMP(1 << MIN_POLL, interval, 1 << MAX_POLL);
 
   SCH_AddTimeoutInClass(destination->interval, SAMPLING_SEPARATION, SAMPLING_RANDOMNESS,
                         SCH_NtpBroadcastClass, broadcast_timeout,
