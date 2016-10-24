@@ -156,6 +156,22 @@ clock. Together with the *trust* option this might be useful to allow a trusted
 authenticated source to be safely combined with unauthenticated sources in
 order to improve the accuracy of the clock. They can be selected and used for
 synchronisation only if they agree with the trusted and required source.
+*xleave*:::
+This option enables an interleaved mode which allows the server or the peer to
+send transmit timestamps captured after the actual transmission (e.g. when the
+server or the peer is running *chronyd* with HW timestamping enabled by the
+<<hwtimestamp,*hwtimestamp*>> directive). This can significantly improve the
+accuracy of the measurements.
++
+The interleaved mode is compatible with servers that support only the basic
+mode, but peers must both support and have enabled the interleaved mode,
+otherwise the synchronisation will work only in one direction. Note that even
+servers that support the interleaved mode may respond in the basic mode as the
+interleaved mode requires the servers to keep some state for each client and
+the state can be dropped when there are too many clients (e.g.
+<<clientloglimit,*clientloglimit*>> is too small), or it can be overwritten by
+other clients that have the same IP address (e.g. computers behind NAT or
+someone sending requests with a spoofed source address).
 *polltarget* _target_:::
 Target number of measurements to use for the regression algorithm which
 *chronyd* will try to maintain by adjusting the polling interval between
@@ -1072,8 +1088,10 @@ directive.
 
 [[clientloglimit]]*clientloglimit* _limit_::
 This directive specifies the maximum amount of memory that *chronyd* is allowed
-to allocate for logging of client accesses. The default limit is 524288 bytes,
-which allows monitoring of several thousands of addresses at the same time.
+to allocate for logging of client accesses and the state that *chronyd* as an
+NTP server needs to support the interleaved mode for its clients. The default
+limit is 524288 bytes, which is sufficient for monitoring about four thousand
+clients at the same time.
 +
 In older *chrony* versions if the limit was set to 0, the memory allocation was
 unlimited.
@@ -1087,7 +1105,8 @@ clientloglimit 1048576
 [[noclientlog]]*noclientlog*::
 This directive, which takes no arguments, specifies that client accesses are
 not to be logged. Normally they are logged, allowing statistics to be reported
-using the <<chronyc.adoc#clients,*clients*>> command in *chronyc*.
+using the <<chronyc.adoc#clients,*clients*>> command in *chronyc*. This option
+also effectively disables server support for the NTP interleaved mode.
 
 [[local]]*local* [_option_]...::
 The *local* directive enables a local reference mode, which allows *chronyd*
@@ -1704,6 +1723,32 @@ option as the *chronyd* process will not be allowed to fork and execute the
 sendmail binary.
 
 === Miscellaneous
+
+[[hwtimestamp]]*hwtimestamp* _interface_::
+This directive enables hardware timestamping of NTP packets sent to and
+received from the specified network interface. The network interface controller
+(NIC) uses its own clock to accurately timestamp the actual transmissions and
+receptions, avoiding processing and queueing delays in the kernel, network
+driver, and hardware. This can significantly improve the accuracy of the
+timestamps and the measured offset, which is used for synchronisation of the
+system clock. In order to get best results, it is necessary to enable HW
+timestamping on both sides receiving and sending the packets (i.e. server and
+client, or both peers), and also enable the interleaved mode with the *xleave*
+option in the <<server,*server*>> or the <<peer,*peer*>> directive.
++
+This directive is supported on Linux 3.19 and newer. The NIC must support HW
+timestamping, which can be verified with the *ethtool -T* command. The list of
+capabilities should include _SOF_TIMESTAMPING_RAW_HARDWARE_,
+_SOF_TIMESTAMPING_TX_HARDWARE_, _SOF_TIMESTAMPING_RX_HARDWARE_, and the filter
+modes should have _HWTSTAMP_FILTER_ALL_. When *chronyd* is running, no other
+process should be working with the clock on the NIC. If no *hwtimestamp*
+directive is specified, *chronyd* will try to enable software timestamping.
++
+An example of the directive is:
++
+----
+hwtimestamp eth0
+----
 
 [[include]]*include* _pattern_::
 The *include* directive includes a configuration file or multiple configuration
