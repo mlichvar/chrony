@@ -29,6 +29,7 @@
 #define GOT_CONF_H
 
 #include "addressing.h"
+#include "array.h"
 #include "reference.h"
 
 extern void CNF_Initialise(int restarted);
@@ -117,5 +118,7 @@ extern char *CNF_GetHwclockFile(void);
 
 extern int CNF_GetInitSources(void);
 extern double CNF_GetInitStepThreshold(void);
+
+extern ARR_Instance CNF_GetHwTsInterfaces(void);
 
 #endif /* GOT_CONF_H */

@@ -101,7 +101,7 @@ For better control, use the options below.
   --disable-asyncdns     Disable asynchronous name resolving
   --disable-forcednsretry Don't retry on permanent DNS error
   --without-clock-gettime Don't use clock_gettime() even if it is available
-  --disable-timestamping Disable support for SW timestamping
+  --disable-timestamping Disable support for SW/HW timestamping
   --enable-ntp-signd     Enable support for MS-SNTP authentication in Samba
   --with-ntp-era=SECONDS Specify earliest assumed NTP time in seconds
                          since 1970-01-01 [50*365 days ago]
@@ -642,16 +642,16 @@ else
 fi
 
 if [ $feat_timestamping = "1" ] && [ $try_timestamping = "1" ] &&
-  test_code 'SW timestamping' 'sys/types.h sys/socket.h linux/net_tstamp.h
-                               linux/errqueue.h' '' '' '
+  test_code 'SW/HW timestamping' 'sys/types.h sys/socket.h linux/net_tstamp.h
+                                  linux/errqueue.h linux/ptp_clock.h' '' '' '
     int val = SOF_TIMESTAMPING_SOFTWARE | SOF_TIMESTAMPING_RX_SOFTWARE |
-              SOF_TIMESTAMPING_OPT_CMSG;
-    return sizeof (struct scm_timestamping) + SCM_TSTAMP_SND +
+              SOF_TIMESTAMPING_RAW_HARDWARE | SOF_TIMESTAMPING_OPT_CMSG;
+    return sizeof (struct scm_timestamping) + SCM_TSTAMP_SND + PTP_SYS_OFFSET +
            setsockopt(0, SOL_SOCKET, SO_SELECT_ERR_QUEUE + SO_TIMESTAMPING,
                       &val, sizeof (val));'
 then
   add_def HAVE_LINUX_TIMESTAMPING
-  EXTRA_OBJECTS="$EXTRA_OBJECTS ntp_io_linux.o"
+  EXTRA_OBJECTS="$EXTRA_OBJECTS hwclock.o ntp_io_linux.o"
 fi
 
 timepps_h=""

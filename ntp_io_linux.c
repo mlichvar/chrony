@@ -31,10 +31,13 @@
 #include <linux/errqueue.h>
 #include <linux/ethtool.h>
 #include <linux/net_tstamp.h>
+#include <linux/ptp_clock.h>
 #include <linux/sockios.h>
+#include <net/if.h>
 
 #include "array.h"
 #include "conf.h"
+#include "hwclock.h"
 #include "local.h"
 #include "logging.h"
 #include "ntp_core.h"
@@ -53,6 +56,18 @@ union sockaddr_in46 {
   struct sockaddr u;
 };
 
+struct Interface {
+  int if_index;
+  int phc_fd;
+  HCL_Instance clock;
+};
+
+/* Number of PHC readings per HW clock sample */
+#define PHC_READINGS 10
+
+/* Array of Interfaces */
+static ARR_Instance interfaces;
+
 /* RX/TX and TX-specific timestamping socket options */
 static int ts_flags;
 static int ts_tx_flags;
@@ -62,11 +77,105 @@ static int permanent_ts_options;
 
 /* ================================================== */
 
+static int
+add_interface(const char *name)
+{
+  struct ethtool_ts_info ts_info;
+  struct hwtstamp_config ts_config;
+  struct ifreq req;
+  int sock_fd, if_index, phc_index, phc_fd;
+  struct Interface *iface;
+  char phc_path[64];
+
+  sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (sock_fd < 0)
+    return 0;
+
+  memset(&req, 0, sizeof (req));
+  memset(&ts_info, 0, sizeof (ts_info));
+
+  if (snprintf(req.ifr_name, sizeof (req.ifr_name), "%s", name) >= sizeof (req.ifr_name)) {
+    close(sock_fd);
+    return 0;
+  }
+
+  if (ioctl(sock_fd, SIOCGIFINDEX, &req)) {
+    DEBUG_LOG(LOGF_NtpIOLinux, "ioctl(%s) failed : %s", "SIOCGIFINDEX", strerror(errno));
+    close(sock_fd);
+    return 0;
+  }
+
+  if_index = req.ifr_ifindex;
+
+  ts_info.cmd = ETHTOOL_GET_TS_INFO;
+  req.ifr_data = (char *)&ts_info;
+
+  if (ioctl(sock_fd, SIOCETHTOOL, &req)) {
+    DEBUG_LOG(LOGF_NtpIOLinux, "ioctl(%s) failed : %s", "SIOCETHTOOL", strerror(errno));
+    close(sock_fd);
+    return 0;
+  }
+
+  ts_config.flags = 0;
+  ts_config.tx_type = HWTSTAMP_TX_ON;
+  ts_config.rx_filter = HWTSTAMP_FILTER_ALL;
+  req.ifr_data = (char *)&ts_config;
+
+  if (ioctl(sock_fd, SIOCSHWTSTAMP, &req)) {
+    DEBUG_LOG(LOGF_NtpIOLinux, "ioctl(%s) failed : %s", "SIOCSHWTSTAMP", strerror(errno));
+    close(sock_fd);
+    return 0;
+  }
+
+  close(sock_fd);
+  phc_index = ts_info.phc_index;
+
+  if (snprintf(phc_path, sizeof (phc_path), "/dev/ptp%d", phc_index) >= sizeof (phc_path))
+    return 0;
+
+  phc_fd = open(phc_path, O_RDONLY);
+  if (phc_fd < 0) {
+    LOG(LOGS_ERR, LOGF_NtpIOLinux, "Could not open %s : %s", phc_path, strerror(errno));
+    return 0;
+  }
+
+  UTI_FdSetCloexec(phc_fd);
+
+  iface = ARR_GetNewElement(interfaces);
+  iface->if_index = if_index;
+  iface->phc_fd = phc_fd;
+  iface->clock = HCL_CreateInstance();
+
+  return 1;
+}
+
+/* ================================================== */
+
 void
 NIO_Linux_Initialise(void)
 {
-  ts_flags = SOF_TIMESTAMPING_SOFTWARE | SOF_TIMESTAMPING_RX_SOFTWARE;
-  ts_tx_flags = SOF_TIMESTAMPING_TX_SOFTWARE;
+  ARR_Instance config_hwts_ifaces;
+  char *if_name;
+  unsigned int i;
+
+  interfaces = ARR_CreateInstance(sizeof (struct Interface));
+
+  config_hwts_ifaces = CNF_GetHwTsInterfaces();
+
+  /* Enable HW timestamping on all specified interfaces.  If no interface was
+     specified, use SW timestamping. */
+  if (ARR_GetSize(config_hwts_ifaces)) {
+    for (i = 0; i < ARR_GetSize(config_hwts_ifaces); i++) {
+      if_name = *(char **)ARR_GetElement(config_hwts_ifaces, i);
+      if (!add_interface(if_name))
+        LOG_FATAL(LOGF_NtpIO, "Could not enable HW timestamping on %s", if_name);
+    }
+    ts_flags = SOF_TIMESTAMPING_RAW_HARDWARE | SOF_TIMESTAMPING_RX_HARDWARE;
+    ts_tx_flags = SOF_TIMESTAMPING_TX_HARDWARE;
+  } else {
+    ts_flags = SOF_TIMESTAMPING_SOFTWARE | SOF_TIMESTAMPING_RX_SOFTWARE;
+    ts_tx_flags = SOF_TIMESTAMPING_TX_SOFTWARE;
+  }
 
   /* Enable IP_PKTINFO in messages looped back to the error queue */
   ts_flags |= SOF_TIMESTAMPING_OPT_CMSG;
@@ -80,6 +189,16 @@ NIO_Linux_Initialise(void)
 void
 NIO_Linux_Finalise(void)
 {
+  struct Interface *iface;
+  unsigned int i;
+
+  for (i = 0; i < ARR_GetSize(interfaces); i++) {
+    iface = ARR_GetElement(interfaces, i);
+    HCL_DestroyInstance(iface->clock);
+    close(iface->phc_fd);
+  }
+
+  ARR_DestroyInstance(interfaces);
 }
 
 /* ================================================== */
@@ -115,6 +234,99 @@ NIO_Linux_SetTimestampSocketOptions(int sock_fd, int client_only, int *events)
 
   *events |= SCH_FILE_EXCEPTION;
   return 1;
+}
+
+/* ================================================== */
+
+static int
+get_phc_sample(int phc_fd, struct timespec *phc_ts, struct timespec *local_ts, double *p_delay)
+{
+  struct ptp_sys_offset sys_off;
+  struct timespec ts1, ts2, ts3, phc_tss[PHC_READINGS], sys_tss[PHC_READINGS];
+  double min_delay = 0.0, delays[PHC_READINGS], phc_sum, local_sum, local_prec;
+  int i, n;
+
+  /* Silence valgrind */
+  memset(&sys_off, 0, sizeof (sys_off));
+
+  sys_off.n_samples = PHC_READINGS;
+
+  if (ioctl(phc_fd, PTP_SYS_OFFSET, &sys_off)) {
+    DEBUG_LOG(LOGF_NtpIOLinux, "ioctl(%s) failed : %s", "PTP_SYS_OFFSET", strerror(errno));
+    return 0;
+  }
+
+  for (i = 0; i < PHC_READINGS; i++) {
+    ts1.tv_sec = sys_off.ts[i * 2].sec;
+    ts1.tv_nsec = sys_off.ts[i * 2].nsec;
+    ts2.tv_sec = sys_off.ts[i * 2 + 1].sec;
+    ts2.tv_nsec = sys_off.ts[i * 2 + 1].nsec;
+    ts3.tv_sec = sys_off.ts[i * 2 + 2].sec;
+    ts3.tv_nsec = sys_off.ts[i * 2 + 2].nsec;
+
+    sys_tss[i] = ts1;
+    phc_tss[i] = ts2;
+    delays[i] = UTI_DiffTimespecsToDouble(&ts3, &ts1);
+
+    if (delays[i] <= 0.0)
+      /* Step in the middle of a PHC reading? */
+      return 0;
+
+    if (!i || delays[i] < min_delay)
+      min_delay = delays[i];
+  }
+
+  local_prec = LCL_GetSysPrecisionAsQuantum();
+
+  /* Combine best readings */
+  for (i = n = 0, phc_sum = local_sum = 0.0; i < PHC_READINGS; i++) {
+    if (delays[i] > min_delay + local_prec)
+      continue;
+
+    phc_sum += UTI_DiffTimespecsToDouble(&phc_tss[i], &phc_tss[0]);
+    local_sum += UTI_DiffTimespecsToDouble(&sys_tss[i], &sys_tss[0]) + delays[i] / 2.0;
+    n++;
+  }
+
+  assert(n);
+
+  UTI_AddDoubleToTimespec(&phc_tss[0], phc_sum / n, phc_ts);
+  UTI_AddDoubleToTimespec(&sys_tss[0], phc_sum / n, &ts1);
+  LCL_CookTime(&ts1, local_ts, NULL);
+  *p_delay = min_delay;
+
+  return 1;
+}
+
+/* ================================================== */
+
+static int
+process_hw_timestamp(int if_index, struct timespec *hw_ts, NTP_Local_Timestamp *local_ts)
+{
+  struct timespec sample_phc_ts, sample_local_ts;
+  double sample_delay;
+  struct Interface *iface;
+  unsigned int i;
+
+  for (i = 0; i < ARR_GetSize(interfaces); i++) {
+    iface = ARR_GetElement(interfaces, i);
+    if (iface->if_index != if_index)
+      continue;
+
+    if (HCL_NeedsNewSample(iface->clock, &local_ts->ts)) {
+      if (!get_phc_sample(iface->phc_fd, &sample_phc_ts, &sample_local_ts, &sample_delay))
+        return 0;
+
+      HCL_AccumulateSample(iface->clock, &sample_phc_ts, &sample_local_ts,
+                           sample_delay / 2.0);
+    }
+
+    return HCL_CookTime(iface->clock, hw_ts, &local_ts->ts, &local_ts->err);
+  }
+
+  DEBUG_LOG(LOGF_NtpIOLinux, "HW clock not found for interface %d", if_index);
+
+  return 0;
 }
 
 /* ================================================== */
@@ -198,6 +410,8 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
       if (!UTI_IsZeroTimespec(&ts3.ts[0])) {
         LCL_CookTime(&ts3.ts[0], &local_ts->ts, &local_ts->err);
         local_ts->source = NTP_TS_KERNEL;
+      } else if (process_hw_timestamp(if_index, &ts3.ts[2], local_ts)) {
+        local_ts->source = NTP_TS_HARDWARE;
       }
     }
 
@@ -228,6 +442,12 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
   DEBUG_LOG(LOGF_NtpIOLinux, "Received %d bytes from error queue for %s:%d fd=%d if=%d tss=%d",
             length, UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
             sock_fd, if_index, local_ts->source);
+
+  /* Drop the message if HW timestamp is missing or its processing failed */
+  if ((ts_flags & SOF_TIMESTAMPING_RAW_HARDWARE) && local_ts->source != NTP_TS_HARDWARE) {
+    DEBUG_LOG(LOGF_NtpIOLinux, "Missing HW timestamp");
+    return 1;
+  }
 
   if (length < NTP_NORMAL_PACKET_LENGTH)
     return 1;

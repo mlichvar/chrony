@@ -57,6 +57,7 @@ static void parse_bindcmdaddress(char *);
 static void parse_broadcast(char *);
 static void parse_clientloglimit(char *);
 static void parse_fallbackdrift(char *);
+static void parse_hwtimestamp(char *);
 static void parse_include(char *);
 static void parse_initstepslew(char *);
 static void parse_leapsecmode(char *);
@@ -221,6 +222,9 @@ static char *leapsec_tz = NULL;
 /* Name of the user to which will be dropped root privileges. */
 static char *user;
 
+/* Array of strings for interfaces with HW timestamping */
+static ARR_Instance hwts_interfaces;
+
 typedef struct {
   NTP_Source_Type type;
   int pool;
@@ -322,6 +326,8 @@ CNF_Initialise(int r)
 {
   restarted = r;
 
+  hwts_interfaces = ARR_CreateInstance(sizeof (char *));
+
   init_sources = ARR_CreateInstance(sizeof (IPAddr));
   ntp_sources = ARR_CreateInstance(sizeof (NTP_Source));
   refclock_sources = ARR_CreateInstance(sizeof (RefclockParameters));
@@ -345,6 +351,10 @@ void
 CNF_Finalise(void)
 {
   unsigned int i;
+
+  for (i = 0; i < ARR_GetSize(hwts_interfaces); i++)
+    Free(*(char **)ARR_GetElement(hwts_interfaces, i));
+  ARR_DestroyInstance(hwts_interfaces);
 
   for (i = 0; i < ARR_GetSize(ntp_sources); i++)
     Free(((NTP_Source *)ARR_GetElement(ntp_sources, i))->params.name);
@@ -462,6 +472,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_fallbackdrift(p);
   } else if (!strcasecmp(command, "hwclockfile")) {
     parse_string(p, &hwclock_file);
+  } else if (!strcasecmp(command, "hwtimestamp")) {
+    parse_hwtimestamp(p);
   } else if (!strcasecmp(command, "include")) {
     parse_include(p);
   } else if (!strcasecmp(command, "initstepslew")) {
@@ -1222,6 +1234,15 @@ parse_tempcomp(char *line)
 /* ================================================== */
 
 static void
+parse_hwtimestamp(char *line)
+{
+  check_number_of_args(line, 1);
+  *(char **)ARR_GetNewElement(hwts_interfaces) = Strdup(line);
+}
+
+/* ================================================== */
+
+static void
 parse_include(char *line)
 {
   glob_t gl;
@@ -1888,4 +1909,12 @@ double
 CNF_GetInitStepThreshold(void)
 {
   return init_slew_threshold;
+}
+
+/* ================================================== */
+
+ARR_Instance
+CNF_GetHwTsInterfaces(void)
+{
+  return hwts_interfaces;
 }
