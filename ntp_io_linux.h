@@ -32,6 +32,6 @@ extern int NIO_Linux_SetTimestampSocketOptions(int sock_fd, int client_only, int
 
 extern int NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
                                     NTP_Local_Timestamp *local_ts, struct msghdr *hdr, int length,
-                                    int sock_fd);
+                                    int sock_fd, int if_index);
 
 extern int NIO_Linux_RequestTxTimestamp(struct msghdr *msg, int cmsglen, int sock_fd);

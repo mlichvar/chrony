@@ -572,6 +572,7 @@ process_message(struct msghdr *hdr, int length, int sock_fd)
   NTP_Local_Timestamp local_ts;
   struct timespec sched_ts;
   struct cmsghdr *cmsg;
+  int if_index;
 
   SCH_GetLastEventTime(&local_ts.ts, &local_ts.err, NULL);
   local_ts.source = NTP_TS_DAEMON;
@@ -592,6 +593,7 @@ process_message(struct msghdr *hdr, int length, int sock_fd)
 
   local_addr.ip_addr.family = IPADDR_UNSPEC;
   local_addr.sock_fd = sock_fd;
+  if_index = -1;
 
   for (cmsg = CMSG_FIRSTHDR(hdr); cmsg; cmsg = CMSG_NXTHDR(hdr, cmsg)) {
 #ifdef HAVE_IN_PKTINFO
@@ -601,6 +603,7 @@ process_message(struct msghdr *hdr, int length, int sock_fd)
       memcpy(&ipi, CMSG_DATA(cmsg), sizeof(ipi));
       local_addr.ip_addr.addr.in4 = ntohl(ipi.ipi_addr.s_addr);
       local_addr.ip_addr.family = IPADDR_INET4;
+      if_index = ipi.ipi_ifindex;
     }
 #endif
 
@@ -612,6 +615,7 @@ process_message(struct msghdr *hdr, int length, int sock_fd)
       memcpy(&local_addr.ip_addr.addr.in6, &ipi.ipi6_addr.s6_addr,
              sizeof (local_addr.ip_addr.addr.in6));
       local_addr.ip_addr.family = IPADDR_INET6;
+      if_index = ipi.ipi6_ifindex;
     }
 #endif
 
@@ -640,14 +644,14 @@ process_message(struct msghdr *hdr, int length, int sock_fd)
 
 #ifdef HAVE_LINUX_TIMESTAMPING
   if (NIO_Linux_ProcessMessage(&remote_addr, &local_addr, &local_ts,
-                               hdr, length, sock_fd))
+                               hdr, length, sock_fd, if_index))
     return;
 #endif
 
-  DEBUG_LOG(LOGF_NtpIO, "Received %d bytes from %s:%d to %s fd=%d tss=%d delay=%.9f",
+  DEBUG_LOG(LOGF_NtpIO, "Received %d bytes from %s:%d to %s fd=%d if=%d tss=%d delay=%.9f",
             length, UTI_IPToString(&remote_addr.ip_addr), remote_addr.port,
-            UTI_IPToString(&local_addr.ip_addr), local_addr.sock_fd, local_ts.source,
-            UTI_DiffTimespecsToDouble(&sched_ts, &local_ts.ts));
+            UTI_IPToString(&local_addr.ip_addr), local_addr.sock_fd, if_index,
+            local_ts.source, UTI_DiffTimespecsToDouble(&sched_ts, &local_ts.ts));
 
   /* Just ignore the packet if it's not of a recognized length */
   if (length < NTP_NORMAL_PACKET_LENGTH || length > sizeof (NTP_Receive_Buffer))

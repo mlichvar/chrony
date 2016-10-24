@@ -185,7 +185,7 @@ extract_udp_data(unsigned char *msg, NTP_Remote_Address *remote_addr, int len)
 int
 NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
                          NTP_Local_Timestamp *local_ts, struct msghdr *hdr,
-                         int length, int sock_fd)
+                         int length, int sock_fd, int if_index)
 {
   struct cmsghdr *cmsg;
 
@@ -225,9 +225,9 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
      currently doesn't seem to be a better way to get them both. */
   length = extract_udp_data(hdr->msg_iov[0].iov_base, remote_addr, length);
 
-  DEBUG_LOG(LOGF_NtpIOLinux, "Received %d bytes from error queue for %s:%d fd=%d tss=%d",
+  DEBUG_LOG(LOGF_NtpIOLinux, "Received %d bytes from error queue for %s:%d fd=%d if=%d tss=%d",
             length, UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
-            sock_fd, local_ts->source);
+            sock_fd, if_index, local_ts->source);
 
   if (length < NTP_NORMAL_PACKET_LENGTH)
     return 1;
