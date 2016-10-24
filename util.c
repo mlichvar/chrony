@@ -679,6 +679,42 @@ UTI_DoubleToNtp32(double x)
 
 /* ================================================== */
 
+void
+UTI_ZeroNtp64(NTP_int64 *ts)
+{
+  ts->hi = ts->lo = htonl(0);
+}
+
+/* ================================================== */
+
+int
+UTI_IsZeroNtp64(NTP_int64 *ts)
+{
+  return !ts->hi && !ts->lo;
+}
+
+/* ================================================== */
+
+int
+UTI_CompareNtp64(NTP_int64 *a, NTP_int64 *b)
+{
+  int32_t diff;
+
+  if (a->hi == b->hi && a->lo == b->lo)
+    return 0;
+
+  diff = ntohl(a->hi) - ntohl(b->hi);
+
+  if (diff < 0)
+    return -1;
+  if (diff > 0)
+    return 1;
+
+  return ntohl(a->lo) < ntohl(b->lo) ? -1 : 1;
+}
+
+/* ================================================== */
+
 /* Seconds part of NTP timestamp correponding to the origin of the time_t format */
 #define JAN_1970 0x83aa7e80UL
 

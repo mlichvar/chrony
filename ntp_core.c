@@ -599,14 +599,10 @@ NCR_ResetInstance(NCR_Instance instance)
 
   instance->valid_rx = 0;
   instance->valid_timestamps = 0;
-  instance->remote_ntp_rx.hi = 0;
-  instance->remote_ntp_rx.lo = 0;
-  instance->remote_ntp_tx.hi = 0;
-  instance->remote_ntp_tx.lo = 0;
-  instance->local_ntp_rx.hi = 0;
-  instance->local_ntp_rx.lo = 0;
-  instance->local_ntp_tx.hi = 0;
-  instance->local_ntp_tx.lo = 0;
+  UTI_ZeroNtp64(&instance->remote_ntp_rx);
+  UTI_ZeroNtp64(&instance->remote_ntp_tx);
+  UTI_ZeroNtp64(&instance->local_ntp_rx);
+  UTI_ZeroNtp64(&instance->local_ntp_tx);
   UTI_ZeroTimespec(&instance->local_rx.ts);
   instance->local_rx.err = 0.0;
   instance->local_rx.source = NTP_TS_DAEMON;
@@ -1286,24 +1282,21 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
      The test values are 1 when passed and 0 when failed. */
   
   /* Test 1 checks for duplicate packet */
-  test1 = message->transmit_ts.hi != inst->remote_ntp_tx.hi ||
-          message->transmit_ts.lo != inst->remote_ntp_tx.lo;
+  test1 = !!UTI_CompareNtp64(&message->transmit_ts, &inst->remote_ntp_tx);
 
   /* Test 2 checks for bogus packet in the basic and interleaved modes.  This
      ensures the source is responding to the latest packet we sent to it. */
-  test2n = message->originate_ts.hi == inst->local_ntp_tx.hi &&
-           message->originate_ts.lo == inst->local_ntp_tx.lo;
+  test2n = !UTI_CompareNtp64(&message->originate_ts, &inst->local_ntp_tx);
   test2i = inst->interleaved &&
-           message->originate_ts.hi == inst->local_ntp_rx.hi &&
-           message->originate_ts.lo == inst->local_ntp_rx.lo;
+           !UTI_CompareNtp64(&message->originate_ts, &inst->local_ntp_rx);
   test2 = test2n || test2i;
   interleaved_packet = !test2n && test2i;
   
   /* Test 3 checks for invalid timestamps.  This can happen when the
      association if not properly 'up'. */
-  test3 = (message->originate_ts.hi || message->originate_ts.lo) &&
-          (message->receive_ts.hi || message->receive_ts.lo) &&
-          (message->transmit_ts.hi || message->transmit_ts.lo);
+  test3 = !UTI_IsZeroNtp64(&message->originate_ts) &&
+          !UTI_IsZeroNtp64(&message->receive_ts) &&
+          !UTI_IsZeroNtp64(&message->transmit_ts);
 
   /* Test 4 would check for denied access.  It would always pass as this
      function is called only for known sources. */
@@ -1817,18 +1810,17 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
      on clients that are not using the interleaved mode. */
   if (log_index >= 0) {
     CLG_GetNtpTimestamps(log_index, &local_ntp_rx, &local_ntp_tx);
-    interleaved = (local_ntp_rx->hi || local_ntp_rx->lo) &&
-                  message->originate_ts.hi == local_ntp_rx->hi &&
-                  message->originate_ts.lo == local_ntp_rx->lo;
+    interleaved = !UTI_IsZeroNtp64(local_ntp_rx) &&
+                  !UTI_CompareNtp64(&message->originate_ts, local_ntp_rx);
 
     if (interleaved) {
-      if (local_ntp_tx->hi || local_ntp_tx->lo)
+      if (!UTI_IsZeroNtp64(local_ntp_tx))
         UTI_Ntp64ToTimespec(local_ntp_tx, &local_tx.ts);
       else
         interleaved = 0;
       tx_ts = &local_tx;
     } else {
-      local_ntp_tx->hi = local_ntp_tx->lo = 0;
+      UTI_ZeroNtp64(local_ntp_tx);
       local_ntp_tx = NULL;
     }
   }
@@ -1857,10 +1849,8 @@ update_tx_timestamp(NTP_Local_Timestamp *tx_ts, NTP_Local_Timestamp *new_tx_ts,
   }
 
   /* Check if this is the last packet that was sent */
-  if ((local_ntp_rx && (message->receive_ts.hi != local_ntp_rx->hi ||
-                        message->receive_ts.lo != local_ntp_rx->lo)) ||
-      (local_ntp_tx && (message->transmit_ts.hi != local_ntp_tx->hi ||
-                        message->transmit_ts.lo != local_ntp_tx->lo))) {
+  if ((local_ntp_rx && UTI_CompareNtp64(&message->receive_ts, local_ntp_rx)) ||
+      (local_ntp_tx && UTI_CompareNtp64(&message->transmit_ts, local_ntp_tx))) {
     DEBUG_LOG(LOGF_NtpCore, "RX/TX timestamp mismatch");
     return;
   }
@@ -2236,8 +2226,7 @@ broadcast_timeout(void *arg)
 
   destination = ARR_GetElement(broadcasts, (long)arg);
 
-  orig_ts.hi = 0;
-  orig_ts.lo = 0;
+  UTI_ZeroNtp64(&orig_ts);
   UTI_ZeroTimespec(&recv_ts.ts);
   recv_ts.source = NTP_TS_DAEMON;
   recv_ts.err = 0.0;

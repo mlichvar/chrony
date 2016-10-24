@@ -209,8 +209,8 @@ get_record(IPAddr *ip)
   record->ntp_rate = record->cmd_rate = INVALID_RATE;
   record->ntp_timeout_rate = INVALID_RATE;
   record->flags = 0;
-  record->ntp_rx_ts.hi = record->ntp_rx_ts.lo = 0;
-  record->ntp_tx_ts.hi = record->ntp_tx_ts.lo = 0;
+  UTI_ZeroNtp64(&record->ntp_rx_ts);
+  UTI_ZeroNtp64(&record->ntp_tx_ts);
 
   return record;
 }

@@ -126,8 +126,20 @@ extern void UTI_GetNtp64Fuzz(NTP_int64 *ts, int precision);
 extern double UTI_Ntp32ToDouble(NTP_int32 x);
 extern NTP_int32 UTI_DoubleToNtp32(double x);
 
+/* Zero an NTP timestamp */
+extern void UTI_ZeroNtp64(NTP_int64 *ts);
+
+/* Check if an NTP timestamp is zero */
+extern int UTI_IsZeroNtp64(NTP_int64 *ts);
+
+/* Compare two NTP timestamps.  Returns -1 if a is before b, 0 if a is equal to
+   b, and 1 if a is after b. */
+extern int UTI_CompareNtp64(NTP_int64 *a, NTP_int64 *b);
+
+/* Convert a timespec into an NTP timestamp */
 extern void UTI_TimespecToNtp64(struct timespec *src, NTP_int64 *dest, NTP_int64 *fuzz);
 
+/* Convert an NTP timestamp into a timespec */
 extern void UTI_Ntp64ToTimespec(NTP_int64 *src, struct timespec *dest);
 
 /* Check if time + offset is sane */
