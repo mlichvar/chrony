@@ -271,6 +271,22 @@ kernelvercmp(int major1, int minor1, int patch1,
 }
 
 /* ================================================== */
+
+static void
+get_kernel_version(int *major, int *minor, int *patch)
+{
+  struct utsname uts;
+
+  if (uname(&uts) < 0)
+    LOG_FATAL(LOGF_SysLinux, "uname() failed");
+
+  *patch = 0;
+  if (sscanf(uts.release, "%d.%d.%d", major, minor, patch) < 2)
+    LOG_FATAL(LOGF_SysLinux, "Could not parse kernel version");
+}
+
+/* ================================================== */
+
 /* Compute the scaling to use on any frequency we set, according to
    the vintage of the Linux kernel being used. */
 
@@ -278,7 +294,6 @@ static void
 get_version_specific_details(void)
 {
   int major, minor, patch;
-  struct utsname uts;
   
   hz = get_hz();
 
@@ -293,15 +308,7 @@ get_version_specific_details(void)
      (CONFIG_NO_HZ aka tickless), assume the lowest commonly used fixed rate */
   tick_update_hz = 100;
 
-  if (uname(&uts) < 0) {
-    LOG_FATAL(LOGF_SysLinux, "Cannot uname(2) to get kernel version, sorry.");
-  }
-
-  patch = 0;
-  if (sscanf(uts.release, "%d.%d.%d", &major, &minor, &patch) < 2) {
-    LOG_FATAL(LOGF_SysLinux, "Cannot read information from uname, sorry");
-  }
-
+  get_kernel_version(&major, &minor, &patch);
   DEBUG_LOG(LOGF_SysLinux, "Linux kernel major=%d minor=%d patch=%d", major, minor, patch);
 
   if (kernelvercmp(major, minor, patch, 2, 2, 0) < 0) {
@@ -633,3 +640,15 @@ void SYS_Linux_MemLockAll(int LockAll)
   }
 }
 #endif /* HAVE_MLOCKALL */
+
+/* ================================================== */
+
+int
+SYS_Linux_CheckKernelVersion(int req_major, int req_minor)
+{
+  int major, minor, patch;
+
+  get_kernel_version(&major, &minor, &patch);
+
+  return kernelvercmp(req_major, req_minor, 0, major, minor, patch) <= 0;
+}

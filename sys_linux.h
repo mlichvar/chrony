@@ -39,4 +39,6 @@ extern void SYS_Linux_MemLockAll(int LockAll);
 
 extern void SYS_Linux_SetScheduler(int SchedPriority);
 
+extern int SYS_Linux_CheckKernelVersion(int req_major, int req_minor);
+
 #endif  /* GOT_SYS_LINUX_H */
