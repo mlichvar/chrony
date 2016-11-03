@@ -498,7 +498,12 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->min_stratum = params->min_stratum;
   if (result->min_stratum >= NTP_MAX_STRATUM)
     result->min_stratum = NTP_MAX_STRATUM - 1;
+
+  /* Presend doesn't work in symmetric and interleaved modes */
   result->presend_minpoll = params->presend_minpoll;
+  if (result->presend_minpoll &&
+      (result->mode != MODE_CLIENT || result->interleaved))
+    result->presend_minpoll = 0;
 
   result->max_delay = params->max_delay;
   result->max_delay_ratio = params->max_delay_ratio;
