@@ -149,6 +149,9 @@ struct NCR_Instance_Record {
      be used for synchronisation */
   int valid_timestamps;
 
+  /* Flag indicating the timestamps below were updated since last request */
+  int updated_timestamps;
+
   /* Receive and transmit timestamps from the last received packet */
   NTP_int64 remote_ntp_rx;
   NTP_int64 remote_ntp_tx;
@@ -604,6 +607,7 @@ NCR_ResetInstance(NCR_Instance instance)
 
   instance->valid_rx = 0;
   instance->valid_timestamps = 0;
+  instance->updated_timestamps = 0;
   UTI_ZeroNtp64(&instance->remote_ntp_rx);
   UTI_ZeroNtp64(&instance->remote_ntp_tx);
   UTI_ZeroNtp64(&instance->local_ntp_rx);
@@ -1070,6 +1074,7 @@ transmit_timeout(void *arg)
 
   ++inst->tx_count;
   inst->valid_rx = 0;
+  inst->updated_timestamps = 0;
 
   /* If the source loses connectivity and our packets are still being sent,
      back off the sampling rate to reduce the network traffic.  If it's the
@@ -1445,19 +1450,26 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
   /* Update the NTP timestamps.  If it's a valid packet from a synchronised
      source, the timestamps may be used later when processing a packet in the
      interleaved mode.  Protect the timestamps against replay attacks in client
-     mode.  The authentication test (test5) is required to prevent DoS attacks
-     using unauthenticated packets on authenticated symmetric associations. */
+     mode, and also in symmetric mode as long as the peers use the same polling
+     interval and never start with clocks in future or very distant past.
+     The authentication test (test5) is required to prevent DoS attacks using
+     unauthenticated packets on authenticated symmetric associations. */
   if ((inst->mode == MODE_CLIENT && valid_packet && !inst->valid_rx) ||
-      (inst->mode == MODE_ACTIVE && test5)) {
+      (inst->mode == MODE_ACTIVE && (valid_packet || !inst->valid_rx) &&
+       test5 && !UTI_IsZeroNtp64(&message->transmit_ts) &&
+       (!inst->updated_timestamps ||
+        UTI_CompareNtp64(&inst->remote_ntp_tx, &message->transmit_ts) < 0))) {
     inst->remote_ntp_rx = message->receive_ts;
     inst->remote_ntp_tx = message->transmit_ts;
     inst->local_rx = *rx_ts;
     inst->valid_timestamps = synced_packet;
+    inst->updated_timestamps = 1;
   }
 
   /* Accept at most one response per request.  The NTP specification recommends
      resetting local_ntp_tx to make the following packets fail test2 or test3,
-     but we use a separate variable. */
+     but that would not allow the code above to make multiple updates of the
+     timestamps in symmetric mode. */
   if (inst->valid_rx) {
     test2 = test3 = 0;
     valid_packet = synced_packet = good_packet = 0;
