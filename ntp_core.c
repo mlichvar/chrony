@@ -262,6 +262,10 @@ static int server_sock_fd6;
 
 static ADF_AuthTable access_auth_table;
 
+/* Characters for printing synchronisation status and timestamping source */
+static const char leap_chars[4] = {'N', '+', '-', '?'};
+static const char tss_chars[3] = {'D', 'K', 'H'};
+
 /* ================================================== */
 /* Forward prototypes */
 
@@ -340,7 +344,7 @@ NCR_Initialise(void)
   do_time_checks();
 
   logfileid = CNF_GetLogMeasurements() ? LOG_FileOpen("measurements",
-      "   Date (UTC) Time     IP Address   L St 123 567 ABCD  LP RP Score    Offset  Peer del. Peer disp.  Root del. Root disp.")
+      "   Date (UTC) Time     IP Address   L St 123 567 ABCD  LP RP Score    Offset  Peer del. Peer disp.  Root del. Root disp. Refid     MTxRx")
     : -1;
 
   access_auth_table = ADF_CreateTable();
@@ -1267,9 +1271,6 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
   /* Kiss-o'-Death codes */
   int kod_rate;
 
-  /* Characters used to print synchronisation status */
-  static const char sync_stats[4] = {'N', '+', '-', '?'};
-
   /* The estimated offset predicted from previous samples.  The
      convention here is that positive means local clock FAST of
      reference, i.e. backwards to the way that 'offset' is defined. */
@@ -1575,16 +1576,19 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
 
   /* Do measurement logging */
   if (logfileid != -1) {
-    LOG_FileWrite(logfileid, "%s %-15s %1c %2d %1d%1d%1d %1d%1d%1d %1d%1d%1d%d  %2d %2d %4.2f %10.3e %10.3e %10.3e %10.3e %10.3e",
+    LOG_FileWrite(logfileid, "%s %-15s %1c %2d %1d%1d%1d %1d%1d%1d %1d%1d%1d%d  %2d %2d %4.2f %10.3e %10.3e %10.3e %10.3e %10.3e %08X %1d%1c %1c %1c",
             UTI_TimeToLogForm(sample_time.tv_sec),
             UTI_IPToString(&inst->remote_addr.ip_addr),
-            sync_stats[pkt_leap],
+            leap_chars[pkt_leap],
             message->stratum,
             test1, test2, test3, test5, test6, test7, testA, testB, testC, testD,
             inst->local_poll, inst->remote_poll,
             inst->poll_score,
             offset, delay, dispersion,
-            pkt_root_delay, pkt_root_dispersion);
+            pkt_root_delay, pkt_root_dispersion, pkt_refid,
+            NTP_LVM_TO_MODE(message->lvm), interleaved_packet ? 'I' : 'B',
+            tss_chars[CLAMP(0, inst->local_tx.source, sizeof (tss_chars))],
+            tss_chars[CLAMP(0, rx_ts->source, sizeof (tss_chars))]);
   }            
 
   return good_packet;

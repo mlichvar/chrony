@@ -1469,8 +1469,8 @@ called _measurements.log_. An example line (which actually appears as a single
 line in the file) from the log file is shown below.
 +
 ----
-2015-10-13 05:40:50 203.0.113.15    N  2 111 111 1111  10 10 1.0 \
-   -4.966e-03  2.296e-01  1.577e-05  1.615e-01  7.446e-03
+2016-11-09 05:40:50 203.0.113.15    N  2 111 111 1111  10 10 1.0 \
+   -4.966e-03  2.296e-01  1.577e-05  1.615e-01  7.446e-03 CB00717B 4B D K
 ----
 +
 The columns are as follows (the quantities in square brackets are the values
@@ -1500,6 +1500,13 @@ from the example line above):
 . The peer dispersion (_epsilon_ in RFC 5905). [1.577e-05]
 . The root delay (_DELTA_ in RFC 5905). [1.615e-01]
 . The root dispersion (_EPSILON_ in RFC 5905). [7.446e-03]
+. Reference ID of the server's source as a hexadecimal number. [CB00717B]
+. NTP mode of the received packet (_1_=active peer, _2_=passive peer,
+  _3_=server, _B_=basic, _I_=interleaved). [4B]
+. Source of the local transmit timestamp
+  (_D_=daemon, _K_=kernel, _H_=hardware). [D]
+. Source of the local receive timestamp
+  (_D_=daemon, _K_=kernel, _H_=hardware). [K]
 +
 *statistics*:::
 This option logs information about the regression processing to a file called
@@ -1746,6 +1753,8 @@ _SOF_TIMESTAMPING_TX_HARDWARE_, _SOF_TIMESTAMPING_RX_HARDWARE_, and the filter
 modes should have _HWTSTAMP_FILTER_ALL_. When *chronyd* is running, no other
 process should be working with the clock on the NIC. If no *hwtimestamp*
 directive is specified, *chronyd* will try to enable software timestamping.
+The source of the timestamps is indicated in the _measurements.log_ file if
+enabled by the <<log,*log measurements*>> directive.
 +
 An example of the directive is:
 +
