@@ -1487,7 +1487,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
             UTI_Ntp64ToString(&message->originate_ts),
             UTI_Ntp64ToString(&message->receive_ts),
             UTI_Ntp64ToString(&message->transmit_ts));
-  DEBUG_LOG(LOGF_NtpCore, "offset=%f delay=%f dispersion=%f root_delay=%f root_dispersion=%f",
+  DEBUG_LOG(LOGF_NtpCore, "offset=%.9f delay=%.9f dispersion=%f root_delay=%f root_dispersion=%f",
             offset, delay, dispersion, root_delay, root_dispersion);
   DEBUG_LOG(LOGF_NtpCore, "test123=%d%d%d test567=%d%d%d testABCD=%d%d%d%d kod_rate=%d interleaved=%d valid=%d good=%d updated=%d",
             test1, test2, test3, test5, test6, test7, testA, testB, testC, testD,
