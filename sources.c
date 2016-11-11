@@ -74,6 +74,7 @@ typedef enum {
   SRC_WAITS_STATS,      /* Others have bad stats, selection postponed */
   SRC_STALE,            /* Has older samples than others */
   SRC_ORPHAN,           /* Has stratum equal or larger than orphan stratum */
+  SRC_UNTRUSTED,        /* Overlaps trusted sources */
   SRC_FALSETICKER,      /* Doesn't agree with others */
   SRC_JITTERY,          /* Scatter worse than other's dispersion (not used) */
   SRC_WAITS_SOURCES,    /* Not enough sources, selection postponed */
@@ -891,6 +892,9 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
       if (sources[i]->sel_options & SRC_SELECT_REQUIRE)
         sel_req_source = 0;
+    } else if (sources[i]->sel_info.lo_limit <= best_lo &&
+               sources[i]->sel_info.hi_limit >= best_hi) {
+      sources[i]->status = SRC_UNTRUSTED;
     } else {
       sources[i]->status = SRC_FALSETICKER;
     }
@@ -1347,6 +1351,7 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timespec *now)
       case SRC_JITTERY:
         report->state = RPT_JITTERY;
         break;
+      case SRC_UNTRUSTED:
       case SRC_WAITS_SOURCES:
       case SRC_NONPREFERRED:
       case SRC_WAITS_UPDATE:
