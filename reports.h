@@ -31,8 +31,6 @@
 #include "addressing.h"
 #include "ntp.h"
 
-#define REPORT_INVALID_OFFSET 0x80000000
-
 typedef struct {
   IPAddr ip_addr;
   int stratum;
