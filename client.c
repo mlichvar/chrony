@@ -1263,7 +1263,6 @@ give_help(void)
 
 /* ================================================== */
 
-static unsigned long sequence = 0;
 static int max_retries = 2;
 static int initial_timeout = 1000;
 static int proto_version = PROTO_VERSION_NUMBER;
@@ -1276,7 +1275,6 @@ static int proto_version = PROTO_VERSION_NUMBER;
 static int
 submit_request(CMD_Request *request, CMD_Reply *reply)
 {
-  unsigned long tx_sequence;
   int bad_length, bad_sequence, bad_header;
   int select_status;
   int recv_status;
@@ -1284,49 +1282,72 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
   int expected_length;
   int command_length;
   int padding_length;
+  struct timespec ts_now, ts_start;
   struct timeval tv;
-  int timeout;
-  int n_attempts;
+  int n_attempts, new_attempt;
+  double timeout;
   fd_set rdfd, wrfd, exfd;
 
   request->pkt_type = PKT_TYPE_CMD_REQUEST;
   request->res1 = 0;
   request->res2 = 0;
-  tx_sequence = sequence++;
-  request->sequence = htonl(tx_sequence);
   request->pad1 = 0;
   request->pad2 = 0;
 
-  timeout = initial_timeout;
-
   n_attempts = 0;
+  new_attempt = 1;
 
   do {
-    request->version = proto_version;
-    request->attempt = htons(n_attempts);
-    command_length = PKL_CommandLength(request);
-    padding_length = PKL_CommandPaddingLength(request);
-    assert(command_length > 0 && command_length > padding_length);
+    if (new_attempt) {
+      new_attempt = 0;
 
-    /* Zero the padding to avoid sending uninitialized data */
-    memset(((char *)request) + command_length - padding_length, 0, padding_length);
+      if (n_attempts > max_retries)
+        return 0;
 
-    if (sock_fd < 0) {
-      DEBUG_LOG(LOGF_Client, "No socket to send request");
-      return 0;
+      if (gettimeofday(&tv, NULL))
+        return 0;
+
+      UTI_TimevalToTimespec(&tv, &ts_start);
+
+      UTI_GetRandomBytes(&request->sequence, sizeof (request->sequence));
+      request->attempt = htons(n_attempts);
+      request->version = proto_version;
+      command_length = PKL_CommandLength(request);
+      padding_length = PKL_CommandPaddingLength(request);
+      assert(command_length > 0 && command_length > padding_length);
+
+      n_attempts++;
+
+      /* Zero the padding to not send any uninitialized data */
+      memset(((char *)request) + command_length - padding_length, 0, padding_length);
+
+      if (sock_fd < 0) {
+        DEBUG_LOG(LOGF_Client, "No socket to send request");
+        return 0;
+      }
+
+      if (send(sock_fd, (void *)request, command_length, 0) < 0) {
+        DEBUG_LOG(LOGF_Client, "Could not send %d bytes : %s",
+                  command_length, strerror(errno));
+        return 0;
+      }
+
+      DEBUG_LOG(LOGF_Client, "Sent %d bytes", command_length);
     }
 
-    if (send(sock_fd, (void *)request, command_length, 0) < 0) {
-      DEBUG_LOG(LOGF_Client, "Could not send %d bytes : %s",
-                command_length, strerror(errno));
+    if (gettimeofday(&tv, NULL))
       return 0;
-    }
 
-    DEBUG_LOG(LOGF_Client, "Sent %d bytes", command_length);
+    UTI_TimevalToTimespec(&tv, &ts_now);
 
-    tv.tv_sec = timeout / 1000;
-    tv.tv_usec = timeout % 1000 * 1000;
-    timeout *= 2;
+    /* Check if the clock wasn't stepped back */
+    if (UTI_CompareTimespecs(&ts_now, &ts_start) < 0)
+      ts_start = ts_now;
+
+    timeout = initial_timeout / 1000.0 * (1U << (n_attempts - 1)) -
+              UTI_DiffTimespecsToDouble(&ts_now, &ts_start);
+    UTI_DoubleToTimeval(timeout, &tv);
+    DEBUG_LOG(LOGF_Client, "Timeout %f seconds", timeout);
 
     FD_ZERO(&rdfd);
     FD_ZERO(&wrfd);
@@ -1343,14 +1364,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
       DEBUG_LOG(LOGF_Client, "select failed : %s", strerror(errno));
     } else if (select_status == 0) {
       /* Timeout must have elapsed, try a resend? */
-      n_attempts ++;
-      if (n_attempts > max_retries) {
-        return 0;
-      }
-
-      /* Back to top of loop to do resend */
-      continue;
-      
+      new_attempt = 1;
     } else {
       recv_status = recv(sock_fd, (void *)reply, sizeof(CMD_Reply), 0);
       
@@ -1358,11 +1372,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
         /* If we get connrefused here, it suggests the sendto is
            going to a dead port */
         DEBUG_LOG(LOGF_Client, "Could not receive : %s", strerror(errno));
-
-        n_attempts++;
-        if (n_attempts > max_retries) {
-          return 0;
-        }
+        new_attempt = 1;
       } else {
         DEBUG_LOG(LOGF_Client, "Received %d bytes", recv_status);
         
@@ -1377,16 +1387,12 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
                       expected_length < offsetof(CMD_Reply, data));
         
         if (!bad_length) {
-          bad_sequence = (ntohl(reply->sequence) != tx_sequence);
+          bad_sequence = reply->sequence != request->sequence;
         } else {
           bad_sequence = 0;
         }
         
         if (bad_length || bad_sequence) {
-          n_attempts++;
-          if (n_attempts > max_retries) {
-            return 0;
-          }
           continue;
         }
         
@@ -1399,10 +1405,6 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
                       (reply->command != request->command));
         
         if (bad_header) {
-          n_attempts++;
-          if (n_attempts > max_retries) {
-            return 0;
-          }
           continue;
         }
         
@@ -1413,6 +1415,8 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
         if (proto_version == PROTO_VERSION_NUMBER &&
             reply->version == PROTO_VERSION_NUMBER - 1) {
           proto_version = PROTO_VERSION_NUMBER - 1;
+          n_attempts--;
+          new_attempt = 1;
           continue;
         }
 #else
@@ -1420,9 +1424,8 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
 #endif
 
         /* Good packet received, print out results */
-        DEBUG_LOG(LOGF_Client, "Reply cmd=%d reply=%d stat=%d seq=%d",
-                  ntohs(reply->command), ntohs(reply->reply), ntohs(reply->status),
-                  ntohl(reply->sequence));
+        DEBUG_LOG(LOGF_Client, "Reply cmd=%d reply=%d stat=%d",
+                  ntohs(reply->command), ntohs(reply->reply), ntohs(reply->status));
         break;
       }
     }
