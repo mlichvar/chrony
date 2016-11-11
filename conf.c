@@ -1268,11 +1268,6 @@ CNF_CreateDirs(uid_t uid, gid_t gid)
 {
   char *dir;
 
-  if (logdir[0])
-    UTI_CreateDirAndParents(logdir, 0755, uid, gid);
-  if (dumpdir[0])
-    UTI_CreateDirAndParents(dumpdir, 0755, uid, gid);
-
   /* Create a directory for the Unix domain command socket */
   if (bind_cmd_path[0]) {
     dir = UTI_PathToDir(bind_cmd_path);
@@ -1288,6 +1283,11 @@ CNF_CreateDirs(uid_t uid, gid_t gid)
 
     Free(dir);
   }
+
+  if (logdir[0])
+    UTI_CreateDirAndParents(logdir, 0755, uid, gid);
+  if (dumpdir[0])
+    UTI_CreateDirAndParents(dumpdir, 0755, uid, gid);
 }
 
 /* ================================================== */
