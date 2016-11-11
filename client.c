@@ -1294,7 +1294,6 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
   request->res2 = 0;
   tx_sequence = sequence++;
   request->sequence = htonl(tx_sequence);
-  request->attempt = 0;
   request->pad1 = 0;
   request->pad2 = 0;
 
@@ -1304,6 +1303,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
 
   do {
     request->version = proto_version;
+    request->attempt = htons(n_attempts);
     command_length = PKL_CommandLength(request);
     padding_length = PKL_CommandPaddingLength(request);
     assert(command_length > 0 && command_length > padding_length);
@@ -1324,9 +1324,6 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
 
     DEBUG_LOG(LOGF_Client, "Sent %d bytes", command_length);
 
-    /* Increment this for next time */
-    ++ request->attempt;
-      
     tv.tv_sec = timeout / 1000;
     tv.tv_usec = timeout % 1000 * 1000;
     timeout *= 2;
