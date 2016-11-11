@@ -1192,7 +1192,7 @@ FILE *open_dumpfile(SRC_Instance inst, const char *mode)
   }
 
   f = fopen(filename, mode);
-  if (!f)
+  if (!f && mode[0] != 'r')
     LOG(LOGS_WARN, LOGF_Sources, "Could not open dump file for %s",
         source_to_string(inst));
 
@@ -1231,6 +1231,9 @@ SRC_ReloadSources(void)
       continue;
     if (!SST_LoadFromFile(sources[i]->stats, in))
       LOG(LOGS_WARN, LOGF_Sources, "Could not load dump file for %s",
+          source_to_string(sources[i]));
+    else
+      LOG(LOGS_INFO, LOGF_Sources, "Loaded dump file for %s",
           source_to_string(sources[i]));
     fclose(in);
   }
