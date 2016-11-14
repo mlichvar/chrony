@@ -1458,7 +1458,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
   if ((inst->mode == MODE_CLIENT && valid_packet && !inst->valid_rx) ||
       (inst->mode == MODE_ACTIVE && (valid_packet || !inst->valid_rx) &&
        test5 && !UTI_IsZeroNtp64(&message->transmit_ts) &&
-       (!inst->updated_timestamps ||
+       (!inst->updated_timestamps || (valid_packet && !inst->valid_rx) ||
         UTI_CompareNtp64(&inst->remote_ntp_tx, &message->transmit_ts) < 0))) {
     inst->remote_ntp_rx = message->receive_ts;
     inst->remote_ntp_tx = message->transmit_ts;
