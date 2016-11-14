@@ -375,10 +375,10 @@ SCH_AddTimeoutInClass(double min_delay, double separation, double randomness,
   assert(class < SCH_NumberOfClasses);
 
   if (randomness > 0.0) {
-    uint16_t rnd;
+    uint32_t rnd;
 
     UTI_GetRandomBytes(&rnd, sizeof (rnd));
-    r = rnd / (double)0xffff * randomness + 1.0;
+    r = rnd * (randomness / (uint32_t)-1) + 1.0;
     min_delay *= r;
     separation *= r;
   }
