@@ -1930,6 +1930,9 @@ NCR_ProcessTxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
 
   CLG_GetNtpTimestamps(log_index, &local_ntp_rx, &local_ntp_tx);
 
+  if (UTI_IsZeroNtp64(local_ntp_tx))
+    return;
+
   UTI_Ntp64ToTimespec(local_ntp_tx, &local_tx.ts);
   update_tx_timestamp(&local_tx, tx_ts, local_ntp_rx, NULL, message);
   UTI_TimespecToNtp64(&local_tx.ts, local_ntp_tx, NULL);
