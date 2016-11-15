@@ -604,6 +604,11 @@ process_message(struct msghdr *hdr, int length, int sock_fd)
     return;
   }
 
+  if (hdr->msg_flags & MSG_CTRUNC) {
+    DEBUG_LOG(LOGF_NtpIO, "Truncated control message");
+    /* Continue */
+  }
+
   for (cmsg = CMSG_FIRSTHDR(hdr); cmsg; cmsg = CMSG_NXTHDR(hdr, cmsg)) {
 #ifdef HAVE_IN_PKTINFO
     if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_PKTINFO) {
