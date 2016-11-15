@@ -88,8 +88,8 @@ HCL_CreateInstance(void)
   HCL_Instance clock;
 
   clock = MallocNew(struct HCL_Instance_Record);
-  clock->x_data[0] = 0.0;
-  clock->y_data[0] = 0.0;
+  clock->x_data[MAX_SAMPLES - 1] = 0.0;
+  clock->y_data[MAX_SAMPLES - 1] = 0.0;
   clock->n_samples = 0;
   clock->valid_coefs = 0;
 
@@ -142,9 +142,9 @@ HCL_AccumulateSample(HCL_Instance clock, struct timespec *hw_ts,
       DEBUG_LOG(LOGF_HwClocks, "HW clock reset interval=%f", local_delta);
     }
 
-    for (i = clock->n_samples; i > 0; i--) {
-      clock->y_data[i] = clock->y_data[i - 1] - hw_delta;
-      clock->x_data[i] = clock->x_data[i - 1] - local_delta;
+    for (i = MAX_SAMPLES - clock->n_samples; i < MAX_SAMPLES; i++) {
+      clock->y_data[i - 1] = clock->y_data[i] - hw_delta;
+      clock->x_data[i - 1] = clock->x_data[i] - local_delta;
     }
   }
 
@@ -154,8 +154,10 @@ HCL_AccumulateSample(HCL_Instance clock, struct timespec *hw_ts,
 
   /* Get new coefficients */
   clock->valid_coefs =
-    RGR_FindBestRobustRegression(clock->x_data, clock->y_data, clock->n_samples,
-                                 1.0e-9, &clock->offset, &raw_freq, &n_runs, &best_start);
+    RGR_FindBestRobustRegression(clock->x_data + MAX_SAMPLES - clock->n_samples,
+                                 clock->y_data + MAX_SAMPLES - clock->n_samples,
+                                 clock->n_samples, 1.0e-9, &clock->offset, &raw_freq,
+                                 &n_runs, &best_start);
 
   if (!clock->valid_coefs) {
     DEBUG_LOG(LOGF_HwClocks, "HW clock needs more samples");
