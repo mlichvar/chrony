@@ -598,6 +598,12 @@ process_message(struct msghdr *hdr, int length, int sock_fd)
   local_addr.sock_fd = sock_fd;
   if_index = -1;
 
+  if (hdr->msg_flags & MSG_TRUNC) {
+    DEBUG_LOG(LOGF_NtpIO, "Received truncated message from %s:%d",
+              UTI_IPToString(&remote_addr.ip_addr), remote_addr.port);
+    return;
+  }
+
   for (cmsg = CMSG_FIRSTHDR(hdr); cmsg; cmsg = CMSG_NXTHDR(hdr, cmsg)) {
 #ifdef HAVE_IN_PKTINFO
     if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_PKTINFO) {
