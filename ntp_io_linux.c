@@ -57,8 +57,14 @@ union sockaddr_in46 {
 };
 
 struct Interface {
+  char name[IF_NAMESIZE];
   int if_index;
   int phc_fd;
+  /* Link speed in mbit/s */
+  int link_speed;
+  /* Start of UDP data at layer 2 for IPv4 and IPv6 */
+  int l2_udp4_ntp_start;
+  int l2_udp6_ntp_start;
   HCL_Instance clock;
 };
 
@@ -142,11 +148,50 @@ add_interface(const char *name)
   UTI_FdSetCloexec(phc_fd);
 
   iface = ARR_GetNewElement(interfaces);
+
+  snprintf(iface->name, sizeof (iface->name), "%s", name);
   iface->if_index = if_index;
   iface->phc_fd = phc_fd;
+
+  /* Start with 1 gbit and no VLANs or IPv4/IPv6 options */
+  iface->link_speed = 1000;
+  iface->l2_udp4_ntp_start = 42;
+  iface->l2_udp6_ntp_start = 62;
+
   iface->clock = HCL_CreateInstance();
 
   return 1;
+}
+
+/* ================================================== */
+
+static void
+update_interface_speed(struct Interface *iface)
+{
+  struct ethtool_cmd cmd;
+  struct ifreq req;
+  int sock_fd;
+
+  sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+  if (sock_fd < 0)
+    return;
+
+  memset(&req, 0, sizeof (req));
+  memset(&cmd, 0, sizeof (cmd));
+
+  snprintf(req.ifr_name, sizeof (req.ifr_name), "%s", iface->name);
+  cmd.cmd = ETHTOOL_GSET;
+  req.ifr_data = (char *)&cmd;
+
+  if (ioctl(sock_fd, SIOCETHTOOL, &req)) {
+    DEBUG_LOG(LOGF_NtpIOLinux, "ioctl(%s) failed : %s", "SIOCETHTOOL", strerror(errno));
+    close(sock_fd);
+    return;
+  }
+
+  close(sock_fd);
+
+  iface->link_speed = ethtool_cmd_speed(&cmd);
 }
 
 /* ================================================== */
@@ -300,11 +345,9 @@ get_phc_sample(int phc_fd, struct timespec *phc_ts, struct timespec *local_ts, d
 
 /* ================================================== */
 
-static int
-process_hw_timestamp(int if_index, struct timespec *hw_ts, NTP_Local_Timestamp *local_ts)
+static struct Interface *
+get_interface(int if_index)
 {
-  struct timespec sample_phc_ts, sample_local_ts;
-  double sample_delay;
   struct Interface *iface;
   unsigned int i;
 
@@ -313,20 +356,49 @@ process_hw_timestamp(int if_index, struct timespec *hw_ts, NTP_Local_Timestamp *
     if (iface->if_index != if_index)
       continue;
 
-    if (HCL_NeedsNewSample(iface->clock, &local_ts->ts)) {
-      if (!get_phc_sample(iface->phc_fd, &sample_phc_ts, &sample_local_ts, &sample_delay))
-        return 0;
-
-      HCL_AccumulateSample(iface->clock, &sample_phc_ts, &sample_local_ts,
-                           sample_delay / 2.0);
-    }
-
-    return HCL_CookTime(iface->clock, hw_ts, &local_ts->ts, &local_ts->err);
+    return iface;
   }
 
-  DEBUG_LOG(LOGF_NtpIOLinux, "HW clock not found for interface %d", if_index);
+  return NULL;
+}
 
-  return 0;
+/* ================================================== */
+
+static void
+process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
+                     NTP_Local_Timestamp *local_ts, int rx_ntp_length, int family)
+{
+  struct timespec sample_phc_ts, sample_local_ts;
+  double sample_delay, rx_correction;
+  int l2_length;
+
+  if (HCL_NeedsNewSample(iface->clock, &local_ts->ts)) {
+    if (!get_phc_sample(iface->phc_fd, &sample_phc_ts, &sample_local_ts, &sample_delay))
+      return;
+
+    HCL_AccumulateSample(iface->clock, &sample_phc_ts, &sample_local_ts,
+                         sample_delay / 2.0);
+
+    update_interface_speed(iface);
+  }
+
+  /* We need to transpose RX timestamps as hardware timestamps are normally
+     preamble timestamps and RX timestamps in NTP are supposed to be trailer
+     timestamps.  Without raw sockets we don't know the length of the packet
+     at layer 2, so we make an assumption that UDP data start at the same
+     position as in the last transmitted packet which had a HW TX timestamp. */
+  if (rx_ntp_length && iface->link_speed) {
+    l2_length = (family == IPADDR_INET4 ? iface->l2_udp4_ntp_start :
+                 iface->l2_udp6_ntp_start) + rx_ntp_length + 4;
+    rx_correction = l2_length / (1.0e6 / 8 * iface->link_speed);
+
+    UTI_AddDoubleToTimespec(hw_ts, rx_correction, hw_ts);
+  }
+
+  if (!HCL_CookTime(iface->clock, hw_ts, &local_ts->ts, &local_ts->err))
+    return;
+
+  local_ts->source = NTP_TS_HARDWARE;
 }
 
 /* ================================================== */
@@ -399,7 +471,12 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
                          NTP_Local_Timestamp *local_ts, struct msghdr *hdr,
                          int length, int sock_fd, int if_index)
 {
+  struct Interface *iface;
   struct cmsghdr *cmsg;
+  int is_tx, l2_length;
+
+  is_tx = hdr->msg_flags & MSG_ERRQUEUE;
+  iface = NULL;
 
   for (cmsg = CMSG_FIRSTHDR(hdr); cmsg; cmsg = CMSG_NXTHDR(hdr, cmsg)) {
     if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_TIMESTAMPING) {
@@ -410,8 +487,14 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
       if (!UTI_IsZeroTimespec(&ts3.ts[0])) {
         LCL_CookTime(&ts3.ts[0], &local_ts->ts, &local_ts->err);
         local_ts->source = NTP_TS_KERNEL;
-      } else if (process_hw_timestamp(if_index, &ts3.ts[2], local_ts)) {
-        local_ts->source = NTP_TS_HARDWARE;
+      } else {
+        iface = get_interface(if_index);
+        if (iface) {
+          process_hw_timestamp(iface, &ts3.ts[2], local_ts, !is_tx ? length : 0,
+                               remote_addr->ip_addr.family);
+        } else {
+          DEBUG_LOG(LOGF_NtpIOLinux, "HW clock not found for interface %d", if_index);
+        }
       }
     }
 
@@ -431,17 +514,26 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
   }
 
   /* Return the message if it's not received from the error queue */
-  if (!(hdr->msg_flags & MSG_ERRQUEUE))
+  if (!is_tx)
     return 0;
 
   /* The data from the error queue includes all layers up to UDP.  We have to
      extract the UDP data and also the destination address with port as there
      currently doesn't seem to be a better way to get them both. */
+  l2_length = length;
   length = extract_udp_data(hdr->msg_iov[0].iov_base, remote_addr, length);
 
-  DEBUG_LOG(LOGF_NtpIOLinux, "Received %d bytes from error queue for %s:%d fd=%d if=%d tss=%d",
-            length, UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
+  DEBUG_LOG(LOGF_NtpIOLinux, "Received %d (%d) bytes from error queue for %s:%d fd=%d if=%d tss=%d",
+            l2_length, length, UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
             sock_fd, if_index, local_ts->source);
+
+  /* Update assumed position of UDP data at layer 2 for next received packet */
+  if (iface && length) {
+    if (remote_addr->ip_addr.family == IPADDR_INET4)
+      iface->l2_udp4_ntp_start = l2_length - length;
+    else if (remote_addr->ip_addr.family == IPADDR_INET6)
+      iface->l2_udp6_ntp_start = l2_length - length;
+  }
 
   /* Drop the message if HW timestamp is missing or its processing failed */
   if ((ts_flags & SOF_TIMESTAMPING_RAW_HARDWARE) && local_ts->source != NTP_TS_HARDWARE) {
