@@ -106,6 +106,7 @@ static void filter_reset(struct MedianFilter *filter);
 static double filter_get_avg_sample_dispersion(struct MedianFilter *filter);
 static void filter_add_sample(struct MedianFilter *filter, struct timeval *sample_time, double offset, double dispersion);
 static int filter_get_last_sample(struct MedianFilter *filter, struct timeval *sample_time, double *offset, double *dispersion);
+static int filter_get_samples(struct MedianFilter *filter);
 static int filter_select_samples(struct MedianFilter *filter);
 static int filter_get_sample(struct MedianFilter *filter, struct timeval *sample_time, double *offset, double *dispersion);
 static void filter_slew_samples(struct MedianFilter *filter, struct timeval *when, double dfreq, double doffset);
@@ -512,7 +513,8 @@ valid_sample_time(RCL_Instance instance, struct timeval *raw, struct timeval *co
   UTI_DiffTimevalsToDouble(&diff, &raw_time, raw);
 
   if (diff < 0.0 || diff > UTI_Log2ToDouble(instance->poll + 1) ||
-      (filter_get_last_sample(&instance->filter, &last_sample_time,
+      (filter_get_samples(&instance->filter) > 0 &&
+       filter_get_last_sample(&instance->filter, &last_sample_time,
                               &last_offset, &last_dispersion) &&
        UTI_CompareTimevals(&last_sample_time, cooked) >= 0)) {
     DEBUG_LOG(LOGF_Refclock, "%s refclock sample not valid age=%.6f raw=%s cooked=%s",
@@ -723,6 +725,12 @@ filter_get_last_sample(struct MedianFilter *filter, struct timeval *sample_time,
   *offset = filter->samples[filter->last].offset;
   *dispersion = filter->samples[filter->last].dispersion;
   return 1;
+}
+
+static int
+filter_get_samples(struct MedianFilter *filter)
+{
+  return filter->used;
 }
 
 static const struct FilterSample *tmp_sorted_array;
