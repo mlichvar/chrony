@@ -1,3 +1,13 @@
+New in version 2.4.1
+====================
+
+Bug fixes
+---------
+* Fix processing of kernel timestamps on non-Linux systems
+* Fix crash with smoothtime directive
+* Fix validation of refclock sample times
+* Fix parsing of refclock directive
+
 New in version 2.4
 ==================
 
