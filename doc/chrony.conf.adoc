@@ -171,7 +171,9 @@ interleaved mode requires the servers to keep some state for each client and
 the state can be dropped when there are too many clients (e.g.
 <<clientloglimit,*clientloglimit*>> is too small), or it can be overwritten by
 other clients that have the same IP address (e.g. computers behind NAT or
-someone sending requests with a spoofed source address).
+someone sending requests with a spoofed source address). The *presend* option
+can be used to shorten the interval in which the server has to keep the state
+for this computer and be able to respond in the interleaved mode.
 *polltarget* _target_:::
 Target number of measurements to use for the regression algorithm which
 *chronyd* will try to maintain by adjusting the polling interval between
@@ -203,7 +205,8 @@ when the polling interval is 512 seconds or more, an extra NTP client packet
 will be sent to the server a short time (2 seconds) before making the actual
 measurement.
 +
-The *presend* option cannot be used in the *peer* directive.
+The *presend* option cannot be used in the *peer* directive. If it is used
+with the *xleave* option, *chronyd* will send two extra packets instead of one.
 *minstratum* _stratum_:::
 When the synchronisation source is selected from available sources, sources
 with lower stratum are normally slightly preferred. This option can be used to

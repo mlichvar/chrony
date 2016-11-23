@@ -1050,16 +1050,14 @@ transmit_timeout(void *arg)
 
   /* Check whether we need to 'warm up' the link to the other end by
      sending an NTP exchange to ensure both ends' ARP caches are
-     primed.  On loaded systems this might also help ensure that bits
-     of the program are paged in properly before we start. */
-
+     primed or whether we need to send two packets first to ensure a
+     server in the interleaved mode has a fresh timestamp for us. */
   if ((inst->presend_minpoll > 0) &&
       (inst->presend_minpoll <= inst->local_poll) &&
       !inst->presend_done) {
-    inst->presend_done = 1;
-  } else {
-    /* Reset for next time */
-    inst->presend_done = 0;
+    inst->presend_done = inst->interleaved ? 2 : 1;
+  } else if (inst->presend_done > 0) {
+    inst->presend_done--;
   }
 
   sent = transmit_packet(inst->mode, inst->interleaved, inst->local_poll,
