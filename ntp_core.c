@@ -508,8 +508,8 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
 
   /* Presend doesn't work in symmetric mode */
   result->presend_minpoll = params->presend_minpoll;
-  if (result->presend_minpoll && result->mode != MODE_CLIENT)
-    result->presend_minpoll = 0;
+  if (result->presend_minpoll <= MAX_POLL && result->mode != MODE_CLIENT)
+    result->presend_minpoll = MAX_POLL + 1;
 
   result->max_delay = params->max_delay;
   result->max_delay_ratio = params->max_delay_ratio;
@@ -1052,9 +1052,7 @@ transmit_timeout(void *arg)
      sending an NTP exchange to ensure both ends' ARP caches are
      primed or whether we need to send two packets first to ensure a
      server in the interleaved mode has a fresh timestamp for us. */
-  if ((inst->presend_minpoll > 0) &&
-      (inst->presend_minpoll <= inst->local_poll) &&
-      !inst->presend_done) {
+  if (inst->presend_minpoll <= inst->local_poll && !inst->presend_done) {
     inst->presend_done = inst->interleaved ? 2 : 1;
   } else if (inst->presend_done > 0) {
     inst->presend_done--;
