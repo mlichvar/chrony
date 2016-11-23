@@ -70,6 +70,9 @@ extern void NCR_StartInstance(NCR_Instance instance);
 /* Reset an instance */
 extern void NCR_ResetInstance(NCR_Instance inst);
 
+/* Reset polling interval of an instance */
+extern void NCR_ResetPoll(NCR_Instance instance);
+
 /* Change the remote address of an instance */
 extern void NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remote_addr);
 

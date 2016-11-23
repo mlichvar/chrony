@@ -553,6 +553,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->tx_suspended = 1;
   result->opmode = params->online ? MD_ONLINE : MD_OFFLINE;
   result->local_poll = result->minpoll;
+  result->poll_score = 0.0;
   UTI_ZeroTimespec(&result->local_tx.ts);
   result->local_tx.err = 0.0;
   result->local_tx.source = NTP_TS_DAEMON;
@@ -605,7 +606,6 @@ NCR_ResetInstance(NCR_Instance instance)
   instance->tx_count = 0;
   instance->presend_done = 0;
 
-  instance->poll_score = 0.0;
   instance->remote_poll = 0;
   instance->remote_stratum = 0;
 
@@ -619,7 +619,13 @@ NCR_ResetInstance(NCR_Instance instance)
   UTI_ZeroTimespec(&instance->local_rx.ts);
   instance->local_rx.err = 0.0;
   instance->local_rx.source = NTP_TS_DAEMON;
+}
 
+/* ================================================== */
+
+void
+NCR_ResetPoll(NCR_Instance instance)
+{
   if (instance->local_poll != instance->minpoll) {
     instance->local_poll = instance->minpoll;
 
@@ -634,9 +640,8 @@ NCR_ResetInstance(NCR_Instance instance)
 void
 NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remote_addr)
 {
+  NCR_ResetInstance(inst);
   inst->remote_addr = *remote_addr;
-  inst->tx_count = 0;
-  inst->presend_done = 0;
 
   if (inst->mode == MODE_CLIENT)
     close_client_socket(inst);

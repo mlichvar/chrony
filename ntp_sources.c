@@ -851,6 +851,7 @@ slew_sources(struct timespec *raw,
     if (record->remote_addr) {
       if (change_type == LCL_ChangeUnknownStep) {
         NCR_ResetInstance(record->data);
+        NCR_ResetPoll(record->data);
       } else {
         NCR_SlewTimes(record->data, cooked, dfreq, doffset);
       }
