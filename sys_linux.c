@@ -51,7 +51,7 @@
 #include <sys/prctl.h>
 #include <seccomp.h>
 #include <termios.h>
-#ifdef FEAT_PHC
+#if defined(FEAT_PHC) || defined(HAVE_LINUX_TIMESTAMPING)
 #include <linux/ptp_clock.h>
 #endif
 #ifdef FEAT_PPS
@@ -59,6 +59,9 @@
 #endif
 #ifdef FEAT_RTC
 #include <linux/rtc.h>
+#endif
+#ifdef HAVE_LINUX_TIMESTAMPING
+#include <linux/sockios.h>
 #endif
 #endif
 
@@ -510,7 +513,7 @@ SYS_Linux_EnableSystemCallFilter(int level)
 
   const static unsigned long ioctls[] = {
     FIONREAD, TCGETS,
-#ifdef FEAT_PPS
+#if defined(FEAT_PHC) || defined(HAVE_LINUX_TIMESTAMPING)
     PTP_SYS_OFFSET,
 #endif
 #ifdef FEAT_PPS
@@ -518,6 +521,9 @@ SYS_Linux_EnableSystemCallFilter(int level)
 #endif
 #ifdef FEAT_RTC
     RTC_RD_TIME, RTC_SET_TIME, RTC_UIE_ON, RTC_UIE_OFF,
+#endif
+#ifdef HAVE_LINUX_TIMESTAMPING
+    SIOCETHTOOL,
 #endif
   };
 
