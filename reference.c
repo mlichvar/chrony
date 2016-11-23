@@ -52,7 +52,7 @@ static int our_leap_sec;
 static int our_stratum;
 static uint32_t our_ref_id;
 static IPAddr our_ref_ip;
-struct timespec our_ref_time;
+static struct timespec our_ref_time;
 static double our_skew;
 static double our_residual_freq;
 static double our_root_delay;
@@ -901,6 +901,7 @@ REF_SetReference(int stratum,
   double correction_rate;
   double uncorrected_offset, accumulate_offset, step_offset;
   struct timespec now, raw_now;
+  NTP_int64 ref_fuzz;
 
   assert(initialised);
 
@@ -1040,6 +1041,15 @@ REF_SetReference(int stratum,
   }
 
   LCL_SetSyncStatus(are_we_synchronised, offset_sd, offset_sd + root_delay / 2.0 + root_dispersion);
+
+  /* Add a random error of up to one second to the reference time to make it
+     less useful when disclosed to NTP and cmdmon clients for estimating
+     receive timestamps in the interleaved symmetric NTP mode */
+  UTI_GetNtp64Fuzz(&ref_fuzz, 0);
+  UTI_TimespecToNtp64(&our_ref_time, &ref_fuzz, &ref_fuzz);
+  UTI_Ntp64ToTimespec(&ref_fuzz, &our_ref_time);
+  if (UTI_CompareTimespecs(&our_ref_time, ref_time) >= 0)
+    our_ref_time.tv_sec--;
 
   abs_freq_ppm = LCL_ReadAbsoluteFrequency();
 
