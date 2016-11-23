@@ -223,7 +223,7 @@ static ARR_Instance broadcasts;
 #define IBURST_TOTAL_SAMPLES SOURCE_REACH_BITS
 
 /* Time to wait after sending packet to 'warm up' link */
-#define WARM_UP_DELAY 4.0
+#define WARM_UP_DELAY 2.0
 
 /* Compatible NTP protocol versions */
 #define NTP_MAX_COMPAT_VERSION NTP_VERSION
