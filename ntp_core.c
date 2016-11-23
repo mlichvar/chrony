@@ -506,10 +506,9 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   if (result->min_stratum >= NTP_MAX_STRATUM)
     result->min_stratum = NTP_MAX_STRATUM - 1;
 
-  /* Presend doesn't work in symmetric and interleaved modes */
+  /* Presend doesn't work in symmetric mode */
   result->presend_minpoll = params->presend_minpoll;
-  if (result->presend_minpoll &&
-      (result->mode != MODE_CLIENT || result->interleaved))
+  if (result->presend_minpoll && result->mode != MODE_CLIENT)
     result->presend_minpoll = 0;
 
   result->max_delay = params->max_delay;
@@ -752,6 +751,8 @@ get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx)
           poll_to_use = inst->local_poll;
 
           delay_time = (double) (1UL<<poll_to_use);
+          if (inst->presend_done)
+            delay_time = WARM_UP_DELAY;
 
           break;
 
@@ -1055,22 +1056,11 @@ transmit_timeout(void *arg)
   if ((inst->presend_minpoll > 0) &&
       (inst->presend_minpoll <= inst->local_poll) &&
       !inst->presend_done) {
-    
-    /* Send a client packet, don't store the local tx values
-       as the reply will be ignored */
-    transmit_packet(MODE_CLIENT, 0, inst->local_poll, inst->version, AUTH_NONE, 0,
-                    &inst->remote_ntp_rx, &inst->remote_ntp_tx, &inst->local_rx, NULL,
-                    NULL, NULL, &inst->remote_addr, &local_addr);
-
     inst->presend_done = 1;
-
-    /* Requeue timeout */
-    restart_timeout(inst, WARM_UP_DELAY);
-
-    return;
+  } else {
+    /* Reset for next time */
+    inst->presend_done = 0;
   }
-
-  inst->presend_done = 0; /* Reset for next time */
 
   sent = transmit_packet(inst->mode, inst->interleaved, inst->local_poll,
                          inst->version,
@@ -1475,11 +1465,15 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
   /* Accept at most one response per request.  The NTP specification recommends
      resetting local_ntp_tx to make the following packets fail test2 or test3,
      but that would not allow the code above to make multiple updates of the
-     timestamps in symmetric mode. */
+     timestamps in symmetric mode.  Also, ignore presend responses. */
   if (inst->valid_rx) {
     test2 = test3 = 0;
     valid_packet = synced_packet = good_packet = 0;
   } else if (valid_packet) {
+    if (inst->presend_done) {
+      testA = 0;
+      good_packet = 0;
+    }
     inst->valid_rx = 1;
   }
 
@@ -1494,9 +1488,9 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
             UTI_Ntp64ToString(&message->transmit_ts));
   DEBUG_LOG(LOGF_NtpCore, "offset=%.9f delay=%.9f dispersion=%f root_delay=%f root_dispersion=%f",
             offset, delay, dispersion, root_delay, root_dispersion);
-  DEBUG_LOG(LOGF_NtpCore, "test123=%d%d%d test567=%d%d%d testABCD=%d%d%d%d kod_rate=%d interleaved=%d valid=%d good=%d updated=%d",
+  DEBUG_LOG(LOGF_NtpCore, "test123=%d%d%d test567=%d%d%d testABCD=%d%d%d%d kod_rate=%d interleaved=%d presend=%d valid=%d good=%d updated=%d",
             test1, test2, test3, test5, test6, test7, testA, testB, testC, testD,
-            kod_rate, interleaved_packet, valid_packet, good_packet,
+            kod_rate, interleaved_packet, inst->presend_done, valid_packet, good_packet,
             !UTI_CompareTimespecs(&inst->local_rx.ts, &rx_ts->ts));
 
   if (valid_packet) {
@@ -1698,10 +1692,6 @@ NCR_ProcessRxKnown(NCR_Instance inst, NTP_Local_Address *local_addr,
       break;
 
     case MODE_SERVER:
-      /* Ignore presend reply */
-      if (inst->presend_done)
-        break;
-
       switch (inst->mode) {
         case MODE_CLIENT:
           /* Standard case where he's a server and we're the client */
