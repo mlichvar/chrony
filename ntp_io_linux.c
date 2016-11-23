@@ -336,7 +336,7 @@ get_phc_sample(int phc_fd, struct timespec *phc_ts, struct timespec *local_ts, d
   assert(n);
 
   UTI_AddDoubleToTimespec(&phc_tss[0], phc_sum / n, phc_ts);
-  UTI_AddDoubleToTimespec(&sys_tss[0], phc_sum / n, &ts1);
+  UTI_AddDoubleToTimespec(&sys_tss[0], local_sum / n, &ts1);
   LCL_CookTime(&ts1, local_ts, NULL);
   *p_delay = min_delay;
 
