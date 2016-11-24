@@ -556,6 +556,8 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   UTI_ZeroTimespec(&result->local_tx.ts);
   result->local_tx.err = 0.0;
   result->local_tx.source = NTP_TS_DAEMON;
+  result->burst_good_samples_to_go = 0;
+  result->burst_total_samples_to_go = 0;
   
   NCR_ResetInstance(result);
 
@@ -1052,7 +1054,8 @@ transmit_timeout(void *arg)
      sending an NTP exchange to ensure both ends' ARP caches are
      primed or whether we need to send two packets first to ensure a
      server in the interleaved mode has a fresh timestamp for us. */
-  if (inst->presend_minpoll <= inst->local_poll && !inst->presend_done) {
+  if (inst->presend_minpoll <= inst->local_poll && !inst->presend_done &&
+      !inst->burst_total_samples_to_go) {
     inst->presend_done = inst->interleaved ? 2 : 1;
   } else if (inst->presend_done > 0) {
     inst->presend_done--;
