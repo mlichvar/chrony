@@ -1276,6 +1276,8 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
 
   double delay_time, precision;
 
+  NTP_Timestamp_Source sample_rx_tss;
+
   /* ==================== */
 
   pkt_leap = NTP_LVM_TO_LEAP(message->lvm);
@@ -1360,12 +1362,14 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
                                &local_average, &local_interval);
       server_interval = UTI_DiffTimespecsToDouble(&remote_transmit,
                                                   &prev_remote_receive);
+      sample_rx_tss = inst->local_rx.source;
     } else {
       UTI_AverageDiffTimespecs(&remote_receive, &remote_transmit,
                                &remote_average, &remote_interval);
       UTI_AverageDiffTimespecs(&inst->local_tx.ts, &rx_ts->ts,
                                &local_average, &local_interval);
       server_interval = remote_interval;
+      sample_rx_tss = rx_ts->source;
     }
 
     /* In our case, we work out 'delay' as the worst case delay,
@@ -1431,6 +1435,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
   } else {
     offset = delay = dispersion = 0.0;
     sample_time = rx_ts->ts;
+    sample_rx_tss = rx_ts->source;
     testA = testB = testC = testD = 0;
   }
   
@@ -1475,6 +1480,10 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     }
     inst->valid_rx = 1;
   }
+
+  if (sample_rx_tss < 0 || sample_rx_tss >= sizeof (tss_chars) ||
+      inst->local_tx.source < 0 || inst->local_tx.source >= sizeof (tss_chars))
+    assert(0);
 
   DEBUG_LOG(LOGF_NtpCore, "NTP packet lvm=%o stratum=%d poll=%d prec=%d root_delay=%f root_disp=%f refid=%"PRIx32" [%s]",
             message->lvm, message->stratum, message->poll, message->precision,
@@ -1585,8 +1594,8 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
             offset, delay, dispersion,
             pkt_root_delay, pkt_root_dispersion, pkt_refid,
             NTP_LVM_TO_MODE(message->lvm), interleaved_packet ? 'I' : 'B',
-            tss_chars[CLAMP(0, inst->local_tx.source, sizeof (tss_chars))],
-            tss_chars[CLAMP(0, rx_ts->source, sizeof (tss_chars))]);
+            tss_chars[inst->local_tx.source],
+            tss_chars[sample_rx_tss]);
   }            
 
   return good_packet;
