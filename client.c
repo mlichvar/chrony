@@ -2122,7 +2122,7 @@ process_cmd_sourcestats(char *line)
     format_name(name, sizeof (name), 25, ip_addr.family == IPADDR_UNSPEC,
                 ntohl(reply.data.sourcestats.ref_id), &ip_addr);
 
-    print_report("%-25s %3u %3u  %I %+P %P  %+S  %S\n",
+    print_report("%-25s %3U %3U  %I %+P %P  %+S  %S\n",
                  name,
                  (unsigned long)ntohl(reply.data.sourcestats.n_samples),
                  (unsigned long)ntohl(reply.data.sourcestats.n_runs),
