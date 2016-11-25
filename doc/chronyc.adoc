@@ -441,6 +441,91 @@ the offline state.
 the name of the server or peer was not resolved to an address yet; this source is
 not visible in the *sources* and *sourcestats* reports.
 
+[[ntpdata]]*ntpdata* _address_::
+The *ntpdata* command displays the last valid measurement and other
+NTP-specific information about the NTP source. An example of the output is
+shown below.
++
+----
+Remote address  : 203.0.113.15
+Remote port     : 123
+Local address   : 203.0.113.74
+Leap status     : Normal
+Version         : 4
+Mode            : Server
+Stratum         : 1
+Poll            : 10
+Precision       : 0.000000060 seconds
+Root delay      : 0.000015 seconds
+Root dispersion : 0.000015 seconds
+Reference ID    : 50505331
+Reference time  : Fri Nov 25 15:22:12 2016
+Offset          : -0.000060878 seconds
+Peer delay      : 0.000175634 seconds
+Peer dispersion : 0.000000681 seconds
+Response time   : 0.000053050 seconds
+Jitter asymmetry: +0.00
+NTP tests       : 111 111 1111
+Interleaved     : No
+Authenticated   : No
+TX timestamping : Kernel
+RX timestamping : Kernel
+Total TX        : 24
+Total RX        : 24
+Total valid RX  : 24
+----
++
+The fields are explained as follows:
++
+*Remote address*:::
+The IP address of the NTP server or peer.
+*Remote port*:::
+The UDP port number to which the request was sent. The standard NTP port is
+123.
+*Local address*:::
+The local IP address which received the response.
+*Leap status*:::
+*Version*:::
+*Mode*:::
+*Stratum*:::
+*Poll*:::
+*Precision*:::
+*Root delay*:::
+*Root dispersion*:::
+*Reference ID*:::
+*Reference time*:::
+The NTP values from the last valid response.
+*Offset*:::
+*Peer delay*:::
+*Peer dispersion*:::
+The measured values.
+*Response time*:::
+The time the server or peer spent in processing of the request and waiting
+before sending the response.
+*Jitter asymmetry*:::
+The estimated asymmetry of network jitter on the path to the source. The
+asymmetry can be between -0.5 and 0.5. A negative value means the delay of
+packets sent to the source is more variable than the delay of packets sent
+from the source back.
+*NTP tests*:::
+Results of RFC 5905 tests 1 through 3, 5 through 7, and tests for maximum
+delay, delay ratio, delay dev ratio, and synchronisation loop.
+*Interleaved*:::
+This shows if the response was in the interleaved mode.
+*Authenticated*:::
+This shows if the response was authenticated.
+*TX timestamping*:::
+The source of the local transmit timestamp. Valid values are _Daemon_,
+_Kernel_, and _Hardware_.
+*RX timestamping*:::
+The source of the local receive timestamp.
+*Total TX*:::
+The number of packets sent to the source.
+*Total RX*:::
+The number of all packets received from the source.
+*Total valid RX*:::
+The number of valid packets received from the source.
+
 [[add_peer]]*add peer* _address_ [_option_]...::
 The *add peer* command allows a new NTP peer to be added whilst
 *chronyd* is running.
