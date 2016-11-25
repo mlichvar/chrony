@@ -1121,6 +1121,26 @@ NSR_ReportSource(RPT_SourceReport *report, struct timespec *now)
 }
 
 /* ================================================== */
+/* The ip address is assumed to be completed on input, that is how we
+   identify the source record. */
+
+int
+NSR_GetNTPReport(RPT_NTPReport *report)
+{
+  NTP_Remote_Address rem_addr;
+  int slot, found;
+
+  rem_addr.ip_addr = report->remote_addr;
+  rem_addr.port = 0;
+  find_slot(&rem_addr, &slot, &found);
+  if (!found)
+    return 0;
+
+  NCR_GetNTPReport(get_record(slot)->data, report);
+  return 1;
+}
+
+/* ================================================== */
 
 void
 NSR_GetActivityReport(RPT_ActivityReport *report)

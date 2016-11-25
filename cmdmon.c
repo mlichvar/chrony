@@ -133,6 +133,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* SERVER_STATS */
   PERMIT_AUTH, /* CLIENT_ACCESSES_BY_INDEX2 */
   PERMIT_AUTH, /* LOCAL2 */
+  PERMIT_AUTH, /* NTP_DATA */
 };
 
 /* ================================================== */
@@ -1187,6 +1188,49 @@ handle_server_stats(CMD_Request *rx_message, CMD_Reply *tx_message)
 }
 
 /* ================================================== */
+
+static void
+handle_ntp_data(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  RPT_NTPReport report;
+
+  UTI_IPNetworkToHost(&rx_message->data.ntp_data.ip_addr, &report.remote_addr);
+
+  if (!NSR_GetNTPReport(&report)) {
+    tx_message->status = htons(STT_NOSUCHSOURCE);
+    return;
+  }
+
+  tx_message->reply = htons(RPY_NTP_DATA);
+  UTI_IPHostToNetwork(&report.remote_addr, &tx_message->data.ntp_data.remote_addr);
+  UTI_IPHostToNetwork(&report.local_addr, &tx_message->data.ntp_data.local_addr);
+  tx_message->data.ntp_data.remote_port = htons(report.remote_port);
+  tx_message->data.ntp_data.leap = report.leap;
+  tx_message->data.ntp_data.version = report.version;
+  tx_message->data.ntp_data.mode = report.mode;
+  tx_message->data.ntp_data.stratum = report.stratum;
+  tx_message->data.ntp_data.poll = report.poll;
+  tx_message->data.ntp_data.precision = report.precision;
+  tx_message->data.ntp_data.root_delay = UTI_FloatHostToNetwork(report.root_delay);
+  tx_message->data.ntp_data.root_dispersion = UTI_FloatHostToNetwork(report.root_dispersion);
+  tx_message->data.ntp_data.ref_id = htonl(report.ref_id);
+  UTI_TimespecHostToNetwork(&report.ref_time, &tx_message->data.ntp_data.ref_time);
+  tx_message->data.ntp_data.offset = UTI_FloatHostToNetwork(report.offset);
+  tx_message->data.ntp_data.peer_delay = UTI_FloatHostToNetwork(report.peer_delay);
+  tx_message->data.ntp_data.peer_dispersion = UTI_FloatHostToNetwork(report.peer_dispersion);
+  tx_message->data.ntp_data.response_time = UTI_FloatHostToNetwork(report.response_time);
+  tx_message->data.ntp_data.jitter_asymmetry = UTI_FloatHostToNetwork(report.jitter_asymmetry);
+  tx_message->data.ntp_data.flags = htons((report.tests & RPY_NTP_FLAGS_TESTS) |
+                                          (report.interleaved ? RPY_NTP_FLAG_INTERLEAVED : 0) |
+                                          (report.authenticated ? RPY_NTP_FLAG_AUTHENTICATED : 0));
+  tx_message->data.ntp_data.tx_tss_char = report.tx_tss_char;
+  tx_message->data.ntp_data.rx_tss_char = report.rx_tss_char;
+  tx_message->data.ntp_data.total_tx_count = htonl(report.total_tx_count);
+  tx_message->data.ntp_data.total_rx_count = htonl(report.total_rx_count);
+  tx_message->data.ntp_data.total_valid_count = htonl(report.total_valid_count);
+}
+
+/* ================================================== */
 /* Read a packet and process it */
 
 static void
@@ -1571,6 +1615,10 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
         case REQ_SERVER_STATS:
           handle_server_stats(&rx_message, &tx_message);
+          break;
+
+        case REQ_NTP_DATA:
+          handle_ntp_data(&rx_message, &tx_message);
           break;
 
         default:

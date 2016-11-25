@@ -94,7 +94,8 @@
 #define REQ_SERVER_STATS 54
 #define REQ_CLIENT_ACCESSES_BY_INDEX2 55
 #define REQ_LOCAL2 56
-#define N_REQUEST_TYPES 57
+#define REQ_NTP_DATA 57
+#define N_REQUEST_TYPES 58
 
 /* Structure used to exchange timespecs independent of time_t size */
 typedef struct {
@@ -310,6 +311,11 @@ typedef struct {
   int32_t EOR;
 } REQ_SmoothTime;
 
+typedef struct {
+  IPAddr ip_addr;
+  int32_t EOR;
+} REQ_NTPData;
+
 /* ================================================== */
 
 #define PKT_TYPE_CMD_REQUEST 1
@@ -410,6 +416,7 @@ typedef struct {
     REQ_ManualDelete manual_delete;
     REQ_ReselectDistance reselect_distance;
     REQ_SmoothTime smoothtime;
+    REQ_NTPData ntp_data;
   } data; /* Command specific parameters */
 
   /* Padding used to prevent traffic amplification.  It only defines the
@@ -443,7 +450,8 @@ typedef struct {
 #define RPY_SMOOTHING 13
 #define RPY_SERVER_STATS 14
 #define RPY_CLIENT_ACCESSES_BY_INDEX2 15
-#define N_REPLY_TYPES 16
+#define RPY_NTP_DATA 16
+#define N_REPLY_TYPES 17
 
 /* Status codes */
 #define STT_SUCCESS 0
@@ -625,6 +633,38 @@ typedef struct {
   int32_t EOR;
 } RPY_Smoothing;
 
+#define RPY_NTP_FLAGS_TESTS 0x3ff
+#define RPY_NTP_FLAG_INTERLEAVED 0x4000
+#define RPY_NTP_FLAG_AUTHENTICATED 0x8000
+
+typedef struct {
+  IPAddr remote_addr;
+  IPAddr local_addr;
+  uint16_t remote_port;
+  uint8_t leap;
+  uint8_t version;
+  uint8_t mode;
+  uint8_t stratum;
+  int8_t poll;
+  int8_t precision;
+  Float root_delay;
+  Float root_dispersion;
+  uint32_t ref_id;
+  Timespec ref_time;
+  Float offset;
+  Float peer_delay;
+  Float peer_dispersion;
+  Float response_time;
+  Float jitter_asymmetry;
+  uint16_t flags;
+  uint8_t tx_tss_char;
+  uint8_t rx_tss_char;
+  uint32_t total_tx_count;
+  uint32_t total_rx_count;
+  uint32_t total_valid_count;
+  int32_t EOR;
+} RPY_NTPData;
+
 typedef struct {
   uint8_t version;
   uint8_t pkt_type;
@@ -653,6 +693,7 @@ typedef struct {
     RPY_ManualList manual_list;
     RPY_Activity activity;
     RPY_Smoothing smoothing;
+    RPY_NTPData ntp_data;
   } data; /* Reply specific parameters */
 
 } CMD_Reply;

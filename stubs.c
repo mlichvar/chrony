@@ -297,6 +297,12 @@ NSR_ReportSource(RPT_SourceReport *report, struct timespec *now)
   memset(report, 0, sizeof (*report));
 }
   
+int
+NSR_GetNTPReport(RPT_NTPReport *report)
+{
+  return 0;
+}
+
 void
 NSR_GetActivityReport(RPT_ActivityReport *report)
 {

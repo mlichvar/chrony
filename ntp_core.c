@@ -186,6 +186,8 @@ struct NCR_Instance_Record {
   int burst_good_samples_to_go;
   int burst_total_samples_to_go;
 
+  /* Report from last valid response */
+  RPT_NTPReport report;
 };
 
 typedef struct {
@@ -558,6 +560,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->local_tx.source = NTP_TS_DAEMON;
   result->burst_good_samples_to_go = 0;
   result->burst_total_samples_to_go = 0;
+  memset(&result->report, 0, sizeof (result->report));
   
   NCR_ResetInstance(result);
 
@@ -1073,6 +1076,8 @@ transmit_timeout(void *arg)
   ++inst->tx_count;
   inst->valid_rx = 0;
   inst->updated_timestamps = 0;
+  if (sent)
+    inst->report.total_tx_count++;
 
   /* If the source loses connectivity and our packets are still being sent,
      back off the sampling rate to reduce the network traffic.  If it's the
@@ -1283,6 +1288,8 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
   /* ==================== */
 
   stats = SRC_GetSourcestats(inst->source);
+
+  inst->report.total_rx_count++;
 
   pkt_leap = NTP_LVM_TO_LEAP(message->lvm);
   pkt_refid = ntohl(message->reference_id);
@@ -1585,6 +1592,35 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
       assert(inst->tx_timeout_id);
       restart_timeout(inst, delay_time);
     }
+
+    /* Update the NTP report */
+    inst->report.remote_addr = inst->remote_addr.ip_addr;
+    inst->report.local_addr = inst->local_addr.ip_addr;
+    inst->report.remote_port = inst->remote_addr.port;
+    inst->report.leap = NTP_LVM_TO_LEAP(message->lvm);
+    inst->report.version = NTP_LVM_TO_VERSION(message->lvm);
+    inst->report.mode = NTP_LVM_TO_MODE(message->lvm);
+    inst->report.stratum = message->stratum;
+    inst->report.poll = message->poll;
+    inst->report.precision = message->precision;
+    inst->report.root_delay = pkt_root_delay;
+    inst->report.root_dispersion = pkt_root_dispersion;
+    inst->report.ref_id = pkt_refid;
+    UTI_Ntp64ToTimespec(&message->reference_ts, &inst->report.ref_time);
+    inst->report.offset = offset;
+    inst->report.peer_delay = delay;
+    inst->report.peer_dispersion = dispersion;
+    inst->report.response_time = server_interval;
+    inst->report.jitter_asymmetry = SST_GetJitterAsymmetry(stats);
+    inst->report.tests = ((((((((test1 << 1 | test2) << 1 | test3) << 1 |
+                               test5) << 1 | test6) << 1 | test7) << 1 |
+                            testA) << 1 | testB) << 1 | testC) << 1 | testD;
+    inst->report.interleaved = interleaved_packet;
+    inst->report.authenticated = inst->auth_mode != AUTH_NONE;
+    inst->report.tx_tss_char = tss_chars[inst->local_tx.source];
+    inst->report.rx_tss_char = tss_chars[sample_rx_tss];
+
+    inst->report.total_valid_count++;
   }
 
   /* Do measurement logging */
@@ -2136,6 +2172,14 @@ NCR_ReportSource(NCR_Instance inst, RPT_SourceReport *report, struct timespec *n
     default:
       assert(0);
   }
+}
+
+/* ================================================== */
+
+void
+NCR_GetNTPReport(NCR_Instance inst, RPT_NTPReport *report)
+{
+  *report = inst->report;
 }
 
 /* ================================================== */

@@ -113,6 +113,7 @@ static const struct request_length request_lengths[] = {
   REQ_LENGTH_ENTRY(client_accesses_by_index,
                    client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX2 */
   REQ_LENGTH_ENTRY(local, null),                /* LOCAL2 */
+  REQ_LENGTH_ENTRY(ntp_data, ntp_data),         /* NTP_DATA */
 };
 
 static const uint16_t reply_lengths[] = {
@@ -132,6 +133,7 @@ static const uint16_t reply_lengths[] = {
   RPY_LENGTH_ENTRY(smoothing),                  /* SMOOTHING */
   RPY_LENGTH_ENTRY(server_stats),               /* SERVER_STATS */
   RPY_LENGTH_ENTRY(client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX2 */
+  RPY_LENGTH_ENTRY(ntp_data),                   /* NTP_DATA */
 };
 
 /* ================================================== */

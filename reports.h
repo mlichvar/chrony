@@ -131,4 +131,33 @@ typedef struct {
   double remaining_time;
 } RPT_SmoothingReport;
 
+typedef struct {
+  IPAddr remote_addr;
+  IPAddr local_addr;
+  uint16_t remote_port;
+  uint8_t leap;
+  uint8_t version;
+  uint8_t mode;
+  uint8_t stratum;
+  int8_t poll;
+  int8_t precision;
+  double root_delay;
+  double root_dispersion;
+  uint32_t ref_id;
+  struct timespec ref_time;
+  double offset;
+  double peer_delay;
+  double peer_dispersion;
+  double response_time;
+  double jitter_asymmetry;
+  uint16_t tests;
+  int interleaved;
+  int authenticated;
+  char tx_tss_char;
+  char rx_tss_char;
+  uint32_t total_tx_count;
+  uint32_t total_rx_count;
+  uint32_t total_valid_count;
+} RPT_NTPReport;
+
 #endif /* GOT_REPORTS_H */

@@ -994,3 +994,11 @@ SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report, struct ti
 }
 
 /* ================================================== */
+
+double
+SST_GetJitterAsymmetry(SST_Stats inst)
+{
+  return inst->asymmetry;
+}
+
+/* ================================================== */
