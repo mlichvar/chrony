@@ -1767,6 +1767,10 @@ print_report(const char *format, ...)
     }
 
     switch (spec) {
+      case 'B': /* boolean */
+        integer = va_arg(ap, int);
+        printf("%s", integer ? "Yes" : "No");
+        break;
       case 'C': /* clientlog interval */
         integer = va_arg(ap, int);
         print_clientlog_interval(integer);
@@ -1781,6 +1785,63 @@ print_report(const char *format, ...)
       case 'I': /* interval with unit */
         long_uinteger = va_arg(ap, unsigned long);
         print_seconds(long_uinteger);
+        break;
+      case 'L': /* leap status */
+        integer = va_arg(ap, int);
+        switch (integer) {
+          case LEAP_Normal:
+            string = "Normal";
+            break;
+          case LEAP_InsertSecond:
+            string = "Insert second";
+            break;
+          case LEAP_DeleteSecond:
+            string = "Delete second";
+            break;
+          case LEAP_Unsynchronised:
+            string = "Not synchronised";
+            break;
+          default:
+            string = "Invalid";
+            break;
+        }
+        printf("%s", string);
+        break;
+      case 'M': /* NTP mode */
+        integer = va_arg(ap, int);
+        switch (integer) {
+          case MODE_ACTIVE:
+            string = "Symmetric active";
+            break;
+          case MODE_PASSIVE:
+            string = "Symmetric passive";
+            break;
+          case MODE_SERVER:
+            string = "Server";
+            break;
+          default:
+            string = "Invalid";
+            break;
+        }
+        printf("%s", string);
+        break;
+      case 'N': /* Timestamp source */
+        integer = va_arg(ap, int);
+        switch (integer) {
+          case 'D':
+            string = "Daemon";
+            break;
+          case 'K':
+            string = "Kernel";
+            break;
+          case 'H':
+            string = "Hardware";
+            break;
+          default:
+            string = "Invalid";
+            break;
+        }
+        printf("%s", string);
         break;
       case 'P': /* frequency in ppm */
         dbl = va_arg(ap, double);
@@ -1815,6 +1876,11 @@ print_report(const char *format, ...)
       case 'V': /* timespec as seconds since epoch */
         ts = va_arg(ap, struct timespec *);
         printf("%s", UTI_TimespecToString(ts));
+        break;
+      case 'b': /* unsigned int in binary */
+        uinteger = va_arg(ap, unsigned int);
+        for (i = prec - 1; i >= 0; i--)
+          printf("%c", uinteger & 1U << i ? '1' : '0');
         break;
 
       /* Classic printf specifiers */
@@ -2082,7 +2148,6 @@ process_cmd_tracking(char *line)
   uint32_t ref_id;
   char name[50];
   struct timespec ref_time;
-  const char *leap_status;
   
   request.command = htons(REQ_TRACKING);
   if (!request_reply(&request, &reply, RPY_TRACKING, 0))
@@ -2093,24 +2158,6 @@ process_cmd_tracking(char *line)
   UTI_IPNetworkToHost(&reply.data.tracking.ip_addr, &ip_addr);
   format_name(name, sizeof (name), sizeof (name),
               ip_addr.family == IPADDR_UNSPEC, ref_id, &ip_addr);
-
-  switch (ntohs(reply.data.tracking.leap_status)) {
-    case LEAP_Normal:
-      leap_status = "Normal";
-      break;
-    case LEAP_InsertSecond:
-      leap_status = "Insert second";
-      break;
-    case LEAP_DeleteSecond:
-      leap_status = "Delete second";
-      break;
-    case LEAP_Unsynchronised:
-      leap_status = "Not synchronised";
-      break;
-    default:
-      leap_status = "Unknown";
-      break;
-  }
 
   UTI_TimespecNetworkToHost(&reply.data.tracking.ref_time, &ref_time);
 
@@ -2126,7 +2173,7 @@ process_cmd_tracking(char *line)
                "Root delay      : %.6f seconds\n"
                "Root dispersion : %.6f seconds\n"
                "Update interval : %.1f seconds\n"
-               "Leap status     : %s\n",
+               "Leap status     : %L\n",
                (unsigned long)ref_id, name,
                ntohs(reply.data.tracking.stratum),
                &ref_time,
@@ -2139,7 +2186,7 @@ process_cmd_tracking(char *line)
                UTI_FloatNetworkToHost(reply.data.tracking.root_delay),
                UTI_FloatNetworkToHost(reply.data.tracking.root_dispersion),
                UTI_FloatNetworkToHost(reply.data.tracking.last_update_interval),
-               leap_status, REPORT_END);
+               ntohs(reply.data.tracking.leap_status), REPORT_END);
 
   return 1;
 }
@@ -2186,13 +2233,13 @@ process_cmd_smoothing(char *line)
 
   flags = ntohl(reply.data.smoothing.flags);
 
-  print_report("Active         : %s %s\n"
+  print_report("Active         : %B %s\n"
                "Offset         : %+.9f seconds\n"
                "Frequency      : %+.6f ppm\n"
                "Wander         : %+.6f ppm per second\n"
                "Last update    : %.1f seconds ago\n"
                "Remaining time : %.1f seconds\n",
-               flags & RPY_SMT_FLAG_ACTIVE ? "Yes" : "No",
+               !!(flags & RPY_SMT_FLAG_ACTIVE),
                flags & RPY_SMT_FLAG_LEAPONLY ? "(leap second only)" : "",
                UTI_FloatNetworkToHost(reply.data.smoothing.offset),
                UTI_FloatNetworkToHost(reply.data.smoothing.freq_ppm),
