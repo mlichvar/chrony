@@ -703,7 +703,7 @@ get_poll_adj(NCR_Instance inst, double error_in_estimate, double peer_distance)
     poll_adj = -shift - inst->poll_score + 0.5;
 
   } else {
-    int samples = SRC_Samples(inst->source);
+    int samples = SST_Samples(SRC_GetSourcestats(inst->source));
 
     /* Adjust polling interval so that the number of sourcestats samples
        remains close to the target value */
@@ -1227,6 +1227,8 @@ static int
 receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
                NTP_Local_Timestamp *rx_ts, NTP_Packet *message, int length)
 {
+  SST_Stats stats;
+
   int pkt_leap;
   uint32_t pkt_refid, pkt_key_id;
   double pkt_root_delay;
@@ -1279,6 +1281,8 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
   NTP_Timestamp_Source sample_rx_tss;
 
   /* ==================== */
+
+  stats = SRC_GetSourcestats(inst->source);
 
   pkt_leap = NTP_LVM_TO_LEAP(message->lvm);
   pkt_refid = ntohl(message->reference_id);
@@ -1347,7 +1351,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     precision = LCL_GetSysPrecisionAsQuantum() +
                 UTI_Log2ToDouble(message->precision);
 
-    SRC_GetFrequencyRange(inst->source, &source_freq_lo, &source_freq_hi);
+    SST_GetFrequencyRange(stats, &source_freq_lo, &source_freq_hi);
     
     UTI_Ntp64ToTimespec(&message->receive_ts, &remote_receive);
     UTI_Ntp64ToTimespec(&message->transmit_ts, &remote_transmit);
@@ -1416,16 +1420,15 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
        minimum one currently in the stats data register is less than an
        administrator-defined value */
     testB = inst->max_delay_ratio <= 1.0 ||
-            delay / SRC_MinRoundTripDelay(inst->source) <= inst->max_delay_ratio;
+            delay / SST_MinRoundTripDelay(stats) <= inst->max_delay_ratio;
 
     /* Test C requires that the ratio of the increase in delay from the minimum
        one in the stats data register to the standard deviation of the offsets
        in the register is less than an administrator-defined value or the
        difference between measured offset and predicted offset is larger than
        the increase in delay */
-    testC = SRC_IsGoodSample(inst->source, -offset, delay,
-                             inst->max_delay_dev_ratio, LCL_GetMaxClockError(),
-                             &sample_time);
+    testC = SST_IsGoodSample(stats, -offset, delay, inst->max_delay_dev_ratio,
+                             LCL_GetMaxClockError(), &sample_time);
 
     /* Test D requires that the remote peer is not synchronised to us to
        prevent a synchronisation loop */
@@ -1514,7 +1517,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
 
     if (good_packet) {
       /* Do this before we accumulate a new sample into the stats registers, obviously */
-      estimated_offset = SRC_PredictOffset(inst->source, &sample_time);
+      estimated_offset = SST_PredictOffset(stats, &sample_time);
 
       SRC_AccumulateSample(inst->source,
                            &sample_time,

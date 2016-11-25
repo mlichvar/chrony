@@ -309,22 +309,12 @@ SRC_SetRefid(SRC_Instance instance, uint32_t ref_id, IPAddr *addr)
 }
 
 /* ================================================== */
-/* Function to get the range of frequencies, relative to the given
-   source, that we believe the local clock lies within.  The return
-   values are in terms of the number of seconds fast (+ve) or slow
-   (-ve) relative to the source that the local clock becomes after a
-   given amount of local time has elapsed.
 
-   Suppose the initial offset relative to the source is U (fast +ve,
-   slow -ve) and a time interval T elapses measured in terms of the
-   local clock.  Then the error relative to the source at the end of
-   the interval should lie in the interval [U+T*lo, U+T*hi]. */
-
-void SRC_GetFrequencyRange(SRC_Instance instance, double *lo, double *hi)
+SST_Stats
+SRC_GetSourcestats(SRC_Instance instance)
 {
   assert(initialised);
-
-  SST_GetFrequencyRange(instance->stats, lo, hi);
+  return instance->stats;
 }
 
 /* ================================================== */
@@ -405,7 +395,7 @@ special_mode_end(void)
 
       /* Check if the source could still have enough samples to be selectable */
       if (SOURCE_REACH_BITS - 1 - sources[i]->reachability_size +
-            SRC_Samples(sources[i]) >= MIN_SAMPLES_FOR_REGRESS)
+            SST_Samples(sources[i]->stats) >= MIN_SAMPLES_FOR_REGRESS)
         return 0;
     }
 
@@ -1104,32 +1094,6 @@ SRC_SetReselectDistance(double distance)
 }
 
 /* ================================================== */
-
-double
-SRC_PredictOffset(SRC_Instance inst, struct timespec *when)
-{
-  return SST_PredictOffset(inst->stats, when);
-}
-
-/* ================================================== */
-
-double
-SRC_MinRoundTripDelay(SRC_Instance inst)
-{
-  return SST_MinRoundTripDelay(inst->stats);
-}
-
-/* ================================================== */
-
-int
-SRC_IsGoodSample(SRC_Instance inst, double offset, double delay,
-   double max_delay_dev_ratio, double clock_error, struct timespec *when)
-{
-  return SST_IsGoodSample(inst->stats, offset, delay, max_delay_dev_ratio,
-      clock_error, when);
-}
-
-/* ================================================== */
 /* This routine is registered as a callback with the local clock
    module, to be called whenever the local clock changes frequency or
    is slewed.  It runs through all the existing source statistics, and
@@ -1410,14 +1374,6 @@ SRC_GetType(int index)
   if ((index >= n_sources) || (index < 0))
     return -1;
   return sources[index]->type;
-}
-
-/* ================================================== */
-
-int
-SRC_Samples(SRC_Instance inst)
-{
-  return SST_Samples(inst->stats);
 }
 
 /* ================================================== */
