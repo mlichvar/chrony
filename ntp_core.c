@@ -1274,8 +1274,8 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
      measurement in seconds */
   double error_in_estimate;
 
+  double remote_interval, local_interval, server_interval;
   double delay_time, precision;
-
   NTP_Timestamp_Source sample_rx_tss;
 
   /* ==================== */
@@ -1343,7 +1343,6 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     /* These are the timespec equivalents of the remote and local epochs */
     struct timespec remote_receive, remote_transmit, prev_remote_receive;
     struct timespec local_average, remote_average;
-    double remote_interval, local_interval, server_interval;
 
     precision = LCL_GetSysPrecisionAsQuantum() +
                 UTI_Log2ToDouble(message->precision);
@@ -1433,6 +1432,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     testD = message->stratum <= 1 || REF_GetMode() != REF_ModeNormal ||
             pkt_refid != UTI_IPToRefid(&local_addr->ip_addr);
   } else {
+    remote_interval = local_interval = server_interval = 0.0;
     offset = delay = dispersion = 0.0;
     sample_time = rx_ts->ts;
     sample_rx_tss = rx_ts->source;
@@ -1496,6 +1496,9 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
             UTI_Ntp64ToString(&message->transmit_ts));
   DEBUG_LOG(LOGF_NtpCore, "offset=%.9f delay=%.9f dispersion=%f root_delay=%f root_dispersion=%f",
             offset, delay, dispersion, root_delay, root_dispersion);
+  DEBUG_LOG(LOGF_NtpCore, "remote_interval=%.9f local_interval=%.9f server_interval=%.9f txs=%c rxs=%c",
+            remote_interval, local_interval, server_interval,
+            tss_chars[inst->local_tx.source], tss_chars[sample_rx_tss]);
   DEBUG_LOG(LOGF_NtpCore, "test123=%d%d%d test567=%d%d%d testABCD=%d%d%d%d kod_rate=%d interleaved=%d presend=%d valid=%d good=%d updated=%d",
             test1, test2, test3, test5, test6, test7, testA, testB, testC, testD,
             kod_rate, interleaved_packet, inst->presend_done, valid_packet, good_packet,
