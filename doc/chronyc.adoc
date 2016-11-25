@@ -127,7 +127,7 @@ The *tracking* command displays parameters about the system's clock
 performance. An example of the output is shown below.
 +
 ----
-Reference ID    : 203.0.113.15 (foo.example.net)
+Reference ID    : CB00710F (foo.example.net)
 Stratum         : 3
 Ref time (UTC)  : Fri Feb  3 15:00:29 2012
 System time     : 0.000001501 seconds slow of NTP time
@@ -150,10 +150,14 @@ computer is currently synchronised. For IPv4 addresses, the reference ID is
 equal to the address and for IPv6 addresses it is the first 32 bits of the MD5
 sum of the address.
 +
-If it is _127.127.1.1_ it means the computer is not synchronised to any
-external source and that you have the _local_ mode operating (via the
-<<local,*local*>> command in *chronyc*, or the
+If the reference ID is _7F7F0101_ and there is no name or IP address, it means
+the computer is not synchronised to any external source and that you have the
+_local_ mode operating (via the <<local,*local*>> command in *chronyc*, or the
 <<chrony.conf.adoc#local,*local*>> directive in the configuration file).
++
+The reference ID is printed as a hexadecimal number. Note that in older
+versions it used to be printed in quad-dotted notation and could be confused
+with an IPv4 address.
 *Stratum*:::
 The stratum indicates how many hops away from a computer with an attached
 reference clock we are. Such a computer is a stratum-1 computer, so the

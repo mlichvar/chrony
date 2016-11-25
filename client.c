@@ -1789,10 +1789,9 @@ print_report(const char *format, ...)
         else
           print_freq_ppm(dbl);
         break;
-      case 'R': /* reference ID in quad-dotted notation */
+      case 'R': /* reference ID in hexdecimal */
         long_uinteger = va_arg(ap, unsigned long);
-        printf("%lu.%lu.%lu.%lu", long_uinteger >> 24, (long_uinteger >> 16) & 0xff,
-               (long_uinteger >> 8) & 0xff, long_uinteger & 0xff);
+        printf("%lX", long_uinteger);
         break;
       case 'S': /* offset with unit */
         dbl = va_arg(ap, double);

@@ -11,7 +11,7 @@ sourcestats"
 run_test || test_fail
 check_chronyd_exit || test_fail
 
-check_chronyc_output "^Reference ID    : 192\.168\.123\.1 \(192\.168\.123\.1\)
+check_chronyc_output "^Reference ID    : C0A87B01 \(192\.168\.123\.1\)
 Stratum         : 2
 Ref time \(UTC\)  : Fri Jan 01 00:1.:.. 2010
 System time     : 0\.0000..... seconds (slow|fast) of NTP time

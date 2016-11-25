@@ -287,12 +287,15 @@ authentication (`commandkey` directive).
 
 === Why does `chronyc tracking` always print an IPv4 address as reference ID?
 
-The reference ID is a 32-bit value and is always printed in quad-dotted
-notation, even if the reference source doesn't have an IPv4 address. For IPv4
-addresses, the reference ID is equal to the address, but for IPv6 addresses it
-is the first 32 bits of the MD5 sum of the address. For reference clocks, the
-reference ID is the value specified with the `refid` option in the `refclock`
-directive.
+The reference ID is a 32-bit value and in versions before 3.0 it was printed in
+quad-dotted notation, even if the reference source did not actually have an
+IPv4 address. For IPv4 addresses, the reference ID is equal to the address, but
+for IPv6 addresses it is the first 32 bits of the MD5 sum of the address. For
+reference clocks, the reference ID is the value specified with the `refid`
+option in the `refclock` directive.
+
+Since version 3.0, the reference ID is printed as a hexadecimal number to avoid
+confusion with IPv4 addresses.
 
 If you need to get the IP address of the current reference source, use the `-n`
 option to disable resolving of IP addresses and read the second field (printed
