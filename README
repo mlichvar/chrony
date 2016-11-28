@@ -14,10 +14,10 @@ intermittent network connections, heavily congested networks, changing
 temperatures (ordinary computer clocks are sensitive to temperature),
 and systems that do not run continuosly, or run on a virtual machine.
 
-Typical accuracy between two machines on a LAN is in tens, or a few
-hundreds, of microseconds; over the Internet, accuracy is typically
-within a few milliseconds.  With a good hardware reference clock
-sub-microsecond accuracy is possible.
+Typical accuracy between two machines synchronised over the Internet is
+within a few milliseconds; on a LAN, accuracy is typically in tens of
+microseconds.  With hardware timestamping or a hardware reference clock
+sub-microsecond accuracy may be possible.
 
 Two programs are included in chrony, chronyd is a daemon that can be
 started at boot time and chronyc is a command-line interface program
@@ -95,18 +95,11 @@ License
 
 chrony is distributed under the GNU General Public License version 2.
 
-
-Author
-======
+Authors
+=======
 
 Richard P. Curnow <rc@rc0.org.uk>
-
-
-Maintainers
-===========
-
 Miroslav Lichvar <mlichvar@redhat.com>
-
 
 Acknowledgements
 ================
@@ -198,18 +191,6 @@ Jim Knoble <jmknoble@pobox.com>
 Antti Jrvinen <costello@iki.fi>
     Advice on configuring for BSD/386
 
-Miroslav Lichvar <mlichvar@redhat.com>
-    Reference clock support
-    IPv6 support
-    Linux capabilities support
-    Leap second support
-    Improved source selection
-    Improved sample history trimming
-    Improved polling interval adjustment
-    Improved stability with temporary asymmetric delays
-    Temperature compensation
-    Many other bug fixes and improvements
-
 Victor Moroz <vim@prv.adlum.ru>
     Patch to support Linux with HZ!=100
 
@@ -228,6 +209,9 @@ Andreas Piesk <apiesk@virbus.de>
 Timo Teras <timo.teras@iki.fi>
     Patch to reply correctly on multihomed hosts
 
+Bill Unruh <unruh@physics.ubc.ca>
+    Advice on statistics
+
 Stephen Wadeley <swadeley@redhat.com>
     Improvements to man pages
 
@@ -244,5 +228,5 @@ Ulrich Windl <ulrich.windl@rz.uni-regensburg.de> for the
 Doug Woodward <dougw@whistler.com>
     Advice on configuring for Solaris 2.8 on x86
 
-Many other people have contributed bug reports and suggestions.  I'm
-sorry I can't identify all of you individually.
+Many other people have contributed bug reports and suggestions.  We are sorry
+we cannot identify all of you individually.
