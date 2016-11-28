@@ -1853,7 +1853,7 @@ print_report(const char *format, ...)
         break;
       case 'R': /* reference ID in hexdecimal */
         long_uinteger = va_arg(ap, unsigned long);
-        printf("%lX", long_uinteger);
+        printf("%08lX", long_uinteger);
         break;
       case 'S': /* offset with unit */
         dbl = va_arg(ap, double);
