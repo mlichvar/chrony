@@ -75,14 +75,15 @@ This option is similar to *-q*, but it will only print the offset without any
 corrections of the clock.
 
 *-r*::
-This option will reload sample histories for each of the servers and refclocks
-being used. These histories are created by using the
-<<chronyc.adoc#dump,*dump*>> command in *chronyc*, or by setting the
-<<chrony.conf.adoc#dumponexit,*dumponexit*>> directive in the configuration
-file. This option is useful if you want to stop and restart *chronyd* briefly
-for any reason, e.g. to install a new version. However, it should be used only
-on systems where the kernel can maintain clock compensation whilst not under
-*chronyd*'s control (i.e. Linux, FreeBSD, NetBSD and Solaris).
+This option will try to reload and then delete files containing sample
+histories for each of the servers and reference clocks being used. These
+histories are created by using the <<chronyc.adoc#dump,*dump*>> command in
+*chronyc*, or by setting the <<chrony.conf.adoc#dumponexit,*dumponexit*>>
+directive in the configuration file. This option is useful if you want to stop
+and restart *chronyd* briefly for any reason, e.g. to install a new version.
+However, it should be used only on systems where the kernel can maintain clock
+compensation whilst not under *chronyd*'s control (i.e. Linux, FreeBSD, NetBSD
+and Solaris).
 
 *-R*::
 When this option is used, the <<chrony.conf.adoc#initstepslew,*initstepslew*>>
@@ -161,4 +162,4 @@ https://chrony.tuxfamily.org/.
 
 == AUTHORS
 
-chrony was written by Richard Curnow, Miroslav Lichvar and others.
+chrony was written by Richard Curnow, Miroslav Lichvar, and others.

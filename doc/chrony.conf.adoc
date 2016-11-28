@@ -166,11 +166,11 @@ accuracy of the measurements.
 The interleaved mode is compatible with servers that support only the basic
 mode, but peers must both support and have enabled the interleaved mode,
 otherwise the synchronisation will work only in one direction. Note that even
-servers that support the interleaved mode may respond in the basic mode as the
-interleaved mode requires the servers to keep some state for each client and
-the state can be dropped when there are too many clients (e.g.
-<<clientloglimit,*clientloglimit*>> is too small), or it can be overwritten by
-other clients that have the same IP address (e.g. computers behind NAT or
+servers that support the interleaved mode might respond in the basic mode as
+the interleaved mode requires the servers to keep some state for each client
+and the state might be dropped when there are too many clients (e.g.
+<<clientloglimit,*clientloglimit*>> is too small), or it might be overwritten
+by other clients that have the same IP address (e.g. computers behind NAT or
 someone sending requests with a spoofed source address). The *presend* option
 can be used to shorten the interval in which the server has to keep the state
 for this computer and be able to respond in the interleaved mode.
@@ -246,26 +246,33 @@ pool pool.ntp.org iburst maxsources 3
 
 [[peer]]*peer* _hostname_ [_option_]...::
 The syntax of this directive is identical to that for the <<server,*server*>>
-directive, except that it is used to specify an NTP peer rather than an NTP
-server.
+directive, except that it specifies a symmetric association with an NTP peer
+instead of a client/server association with an NTP server. A single symmetric
+association allows the peers to be both servers and clients to each other. This
+is mainly useful when the NTP implementation of the peer (e.g. *ntpd*) supports
+ephemeral symmetric associations and does not need to be configured with an
+address of this host. *chronyd* does not support ephemeral associations.
 +
 When a key is specified by the *key* option to enable authentication, both
-peers must be configured to use the same key and the same key number.
+peers must use the same key and the same key number.
 +
-Please note that NTP peers that are not configured with a key to enable
-authentication are vulnerable to a denial-of-service attack. An attacker
-knowing that NTP hosts A and B are peering with each other can send a packet
-with random timestamps to host A with source address of B which will set the
-NTP state variables on A to the values sent by the attacker. Host A will then
-send on its next poll to B a packet with an origin timestamp that does not match
-the transmit timestamp of B and the packet will be dropped. If the attacker
-does this periodically for both hosts, they will not be able to synchronise to
-each other.
-+
-This attack can be prevented by enabling authentication with the *key* option,
-or by using the <<server,*server*>> directive on both sides to specify the other
-host as a server instead of a peer. The disadvantage of the *server* directive
-is that it will double the network traffic between the two hosts.
+Note that the symmetric mode is less secure than the client/server mode. A
+denial-of-service attack is possible on unauthenticated symmetric associations,
+i.e. when the peer was specified without the *key* option. An attacker who does
+not see network traffic between two hosts, but knows that they are peering with
+each other, can periodically send them unauthenticated packets with spoofed
+source addresses in order to disrupt their NTP state and prevent them from
+synchronising to each other. When the association is authenticated, an attacker
+who does see the network traffic, but cannot prevent the packets from reaching
+the other host, can still disrupt the state by replaying old packets. The
+attacker has effectively the same power as a man-in-the-middle attacker. A
+partial protection against this attack is implemented in *chronyd*, which can
+protect the peers if they are using the same polling interval and they never
+sent an authenticated packet with a timestamp from future, but it should not be
+relied on as it is difficult to ensure the conditions are met. If two hosts
+should be able to synchronise to each other in both directions, it is
+recommended to use two separate client/server associations (specified by the
+<<server,*server*>> directive on both hosts) instead.
 
 [[initstepslew]]*initstepslew* _step-threshold_ [_hostname_]...::
 In normal operation, *chronyd* slews the time when it needs to adjust the
@@ -534,12 +541,12 @@ saved.
 An example of the directive is:
 +
 ----
-dumpdir @CHRONYVARDIR@
+dumpdir @CHRONYSOCKDIR@
 ----
 +
-A source whose reference ID (the IP address for IPv4 sources) is _1.2.3.4_
-would have its measurement history saved in the file
-_/var/lib/chrony/1.2.3.4.dat_.
+A source whose IP address is _1.2.3.4_ would have its measurement history saved
+in the file _@CHRONYSOCKDIR@/1.2.3.4.dat_. History of reference clocks is saved
+to files named by their reference ID in form of _refid:XXXXXXXX.dat_.
 
 [[dumponexit]]*dumponexit*::
 If this directive is present, it indicates that *chronyd* should save the
@@ -1036,25 +1043,20 @@ There is also a *deny all* directive with similar behaviour to the *allow all*
 directive.
 
 [[bindaddress]]*bindaddress* _address_::
-The *bindaddress* directive allows you to restrict the network interface to
-which *chronyd* will listen for NTP requests. This provides an additional level
-of access restriction above that available through the <<deny,*deny*>>
-mechanism.
+The *bindaddress* directive binds the socket on which *chronyd* listens for NTP
+requests to a local address of the computer. On systems other than Linux, the
+address of the computer needs to be already configured when *chronyd* is
+started.
 +
-Suppose you have a local network with addresses in the _192.168.1.0_
-subnet together with an Internet connection. The network interface's IP
-address is _192.168.1.1_. Suppose you want to block all access through the
-Internet connection. You could add the line:
+An example of the use of the directive is:
 +
 ----
 bindaddress 192.168.1.1
 ----
 +
-to the configuration file.
-+
-For each of the IPv4 and IPv6 protocols, only one *bindaddress* directive can be
-specified. Therefore, it is not useful on computers which should serve NTP on
-multiple network interfaces.
+Currently, for each of the IPv4 and IPv6 protocols, only one *bindaddress*
+directive can be specified. Therefore, it is not useful on computers which
+should serve NTP on multiple network interfaces.
 
 [[broadcast]]*broadcast* _interval_ _address_ [_port_]::
 The *broadcast* directive is used to declare a broadcast address to which
@@ -1173,6 +1175,23 @@ An example of the directive is:
 local stratum 10 orphan
 ----
 
+[[ntpsigndsocket]]*ntpsigndsocket* _directory_::
+This directive specifies the location of the Samba *ntp_signd* socket when it
+is running as a Domain Controller (DC). If *chronyd* is compiled with this
+feature, responses to MS-SNTP clients will be signed by the *smbd* daemon.
++
+Note that MS-SNTP requests are not authenticated and any client that is allowed
+to access the server by the <<allow,*allow*>> directive, or the
+<<chronyc.adoc#allow,*allow*>> command in *chronyc*, can get an MS-SNTP
+response signed with a trust account's password and try to crack the password
+in a brute-force attack. Access to the server should be carefully controlled.
++
+An example of the directive is:
++
+----
+ntpsigndsocket /var/lib/samba/ntp_signd
+----
+
 [[port]]*port* _port_::
 This option allows you to configure the port on which *chronyd* will listen for
 NTP requests. The port will be open only when an address is allowed by the
@@ -1282,16 +1301,17 @@ smoothtime 50000 0.01
 === Command and monitoring access
 
 [[bindcmdaddress]]*bindcmdaddress* _address_::
-The *bindcmdaddress* directive allows you to specify the network interface on
-which *chronyd* will listen for monitoring command packets (issued by
-*chronyc*). This provides an additional level of access restriction above that
-available through the <<cmddeny,*cmddeny*>> mechanism.
+The *bindcmdaddress* directive allows you to specify an IP address of an
+interface on which *chronyd* will listen for monitoring command packets (issued
+by *chronyc*). On systems other than Linux, the address of the interface needs
+to be already configured when *chronyd* is started.
 +
 This directive can also change the path of the Unix domain command socket,
 which is used by *chronyc* to send configuration commands. The socket must be
 in a directory that is accessible only by the root or _chrony_ user. The
 directory will be created on start if it does not exist. The compiled-in default
-path of the socket is _@CHRONYSOCKDIR@/chronyd.sock_.
+path of the socket is _@CHRONYSOCKDIR@/chronyd.sock_. The socket can be
+disabled by setting the path to _/_.
 +
 By default, *chronyd* binds to the loopback interface (with addresses
 _127.0.0.1_ and _::1_). This blocks all access except from localhost. To listen
@@ -1304,8 +1324,8 @@ bindcmdaddress ::
 +
 to the configuration file.
 +
-For each of the IPv4 and IPv6 protocols, only one *bindcmdaddress* directive can be
-specified.
+For each of the IPv4, IPv6, and Unix domain protocols, only one
+*bindcmdaddress* directive can be specified.
 +
 An example that sets the path of the Unix domain command socket is:
 +
@@ -1754,9 +1774,14 @@ capabilities should include _SOF_TIMESTAMPING_RAW_HARDWARE_,
 _SOF_TIMESTAMPING_TX_HARDWARE_, _SOF_TIMESTAMPING_RX_HARDWARE_, and the filter
 modes should have _HWTSTAMP_FILTER_ALL_. When *chronyd* is running, no other
 process should be working with the clock on the NIC. If no *hwtimestamp*
-directive is specified, *chronyd* will try to enable software timestamping.
-The source of the timestamps is indicated in the _measurements.log_ file if
-enabled by the <<log,*log measurements*>> directive.
+directive is specified, *chronyd* will try to use software (kernel)
+timestamping. With both hardware and software timestamping there are
+some limitations on which packets can be actually timestamped, e.g. transmit
+timestamping does not currently work with IPv6 packets using IP options and
+hardware receive timestamping does not work with packets from bridged
+interfaces. The timestamping used in measurements is indicated in the
+_measurements.log_ file if enabled by the <<log,*log measurements*>> directive,
+and the <<chronyc.adoc#ntpdata,*ntpdata*>> report in *chronyc*.
 +
 An example of the directive is:
 +
@@ -1824,23 +1849,9 @@ should result in lower and more consistent latency. It should not have
 significant impact on performance as *chronyd's* memory usage is modest. The
 *mlockall(2)* man page has more details.
 
-[[ntpsigndsocket]]*ntpsigndsocket* _directory_::
-This directive specifies the location of the Samba *ntp_signd* socket when it
-is running as a Domain Controller (DC). If *chronyd* is compiled with this
-feature, responses to MS-SNTP clients will be signed by the *smbd* daemon. Note
-that MS-SNTP requests are not authenticated, so any NTP client can get
-responses authenticated with passwords of users in the domain. Access to the
-server should be carefully controlled.
-+
-An example of the directive is:
-+
-----
-ntpsigndsocket /var/lib/samba/ntp_signd
-----
-
 [[pidfile]]*pidfile* _file_::
 *chronyd* always writes its process ID (PID) to a file, and checks this file on
-startup to see if another *chronyd* may already be running on the system. By
+startup to see if another *chronyd* might already be running on the system. By
 default, the file used is _@DEFAULT_PID_FILE@_. The *pidfile* directive
 allows the name to be changed, e.g.:
 +
@@ -2178,6 +2189,34 @@ configuration file.
 For the system shutdown, *chronyd* should receive a SIGTERM several seconds
 before the final SIGKILL; the SIGTERM causes the measurement histories and RTC
 information to be saved.
+
+=== Public NTP server
+
+*chronyd* can be configured to operate as a public NTP server, e.g. to join the
+http://www.pool.ntp.org/en/join.html[pool.ntp.org] project. The configuration
+is similar to the NTP client with permanent connection, except it needs to
+allow client access from all addresses. It is recommended to handpick at least
+few good servers, and possibly combine them with a random selection of other
+servers in the pool. Rate limiting can be enabled to not waste too much
+bandwidth on misconfigured and broken NTP clients. The *-r* option with the
+*dumpdir* directive shortens the time for which *chronyd* will not serve time
+to its clients when it needs to be restarted for any reason.
+
+The configuration file might be:
+
+----
+server foo.example.net iburst
+server bar.example.net iburst
+server baz.example.net iburst
+pool pool.ntp.org iburst
+makestep 1.0 3
+rtcsync
+allow
+ratelimit interval 2 burst 10
+driftfile @CHRONYVARDIR@/drift
+dumpdir @CHRONYSOCKDIR@
+dumponexit
+----
 
 == SEE ALSO
 
