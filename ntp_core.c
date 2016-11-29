@@ -520,11 +520,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->auto_offline = params->auto_offline;
   result->poll_target = params->poll_target;
 
-  result->version = params->version;
-  if (result->version < NTP_MIN_COMPAT_VERSION)
-    result->version = NTP_MIN_COMPAT_VERSION;
-  else if (result->version > NTP_VERSION)
-    result->version = NTP_VERSION;
+  result->version = NTP_VERSION;
 
   if (params->authkey == INACTIVE_AUTHKEY) {
     result->auth_mode = AUTH_NONE;
@@ -541,7 +537,15 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
           result->auth_key_id, UTI_IPToString(&result->remote_addr.ip_addr),
           "too short");
     }
+
+    /* If the MAC in NTPv4 packets would be truncated, use version 3 by
+       default for compatibility with older chronyd servers */
+    if (KEY_GetAuthLength(result->auth_key_id) + 4 > NTP_MAX_V4_MAC_LENGTH)
+      result->version = 3;
   }
+
+  if (params->version)
+    result->version = CLAMP(NTP_MIN_COMPAT_VERSION, params->version, NTP_VERSION);
 
   /* Create a source instance for this NTP source */
   result->source = SRC_CreateNewInstance(UTI_IPToRefid(&remote_addr->ip_addr),

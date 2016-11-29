@@ -323,6 +323,22 @@ KEY_GetAuthDelay(uint32_t key_id)
 /* ================================================== */
 
 int
+KEY_GetAuthLength(uint32_t key_id)
+{
+  unsigned char buf[MAX_HASH_LENGTH];
+  Key *key;
+
+  key = get_key_by_id(key_id);
+
+  if (!key)
+    return 0;
+
+  return HSH_Hash(key->hash_id, buf, 0, buf, 0, buf, sizeof (buf));
+}
+
+/* ================================================== */
+
+int
 KEY_CheckKeyLength(uint32_t key_id)
 {
   Key *key;

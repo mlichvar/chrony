@@ -54,7 +54,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   src->params.iburst = 0;
   src->params.min_stratum = SRC_DEFAULT_MINSTRATUM;
   src->params.poll_target = SRC_DEFAULT_POLLTARGET;
-  src->params.version = NTP_VERSION;
+  src->params.version = 0;
   src->params.max_sources = SRC_DEFAULT_MAXSOURCES;
   src->params.min_samples = SRC_DEFAULT_MINSAMPLES;
   src->params.max_samples = SRC_DEFAULT_MAXSAMPLES;

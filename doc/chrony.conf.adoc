@@ -215,9 +215,13 @@ avoid selecting that source. This is useful with low stratum sources that are
 known to be unreliable or inaccurate and which should be used only when other
 sources are unreachable.
 *version* _version_:::
-This option sets the NTP version number used in packets sent to the server.
-This can be useful when the server runs an old NTP implementation that does not
-respond to newer versions. The default version number is 4.
+This option sets the NTP version of packets sent to the server. This can be
+useful when the server runs an old NTP implementation that does not respond to
+requests using a newer version. The default version depends on whether a key is
+specified by the *key* option and which authentication hash function the key
+is using. If the output size of the hash function is longer than 160 bits, the
+default version is 3 for compatibility with older *chronyd* servers. Otherwise,
+the default version is 4.
 
 [[pool]]*pool* _name_ [_option_]...::
 The syntax of this directive is similar to that for the <<server,*server*>>
