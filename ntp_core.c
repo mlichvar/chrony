@@ -1181,7 +1181,7 @@ check_packet_auth(NTP_Packet *pkt, int length,
     if (remainder >= NTP_MIN_MAC_LENGTH && remainder <= NTP_MAX_MAC_LENGTH) {
       id = ntohl(*(uint32_t *)(data + i));
       if (KEY_CheckAuth(id, (void *)pkt, i, (void *)(data + i + 4),
-                        remainder - 4)) {
+                        remainder - 4, NTP_MAX_MAC_LENGTH - 4)) {
         *auth_mode = AUTH_SYMMETRIC;
         *key_id = id;
         return 1;

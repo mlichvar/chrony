@@ -350,12 +350,14 @@ generate_ntp_auth(int hash_id, const unsigned char *key, int key_len,
 static int
 check_ntp_auth(int hash_id, const unsigned char *key, int key_len,
                const unsigned char *data, int data_len,
-               const unsigned char *auth, int auth_len)
+               const unsigned char *auth, int auth_len, int trunc_len)
 {
   unsigned char buf[MAX_HASH_LENGTH];
+  int hash_len;
 
-  return generate_ntp_auth(hash_id, key, key_len, data, data_len,
-                           buf, sizeof (buf)) == auth_len && !memcmp(buf, auth, auth_len);
+  hash_len = generate_ntp_auth(hash_id, key, key_len, data, data_len, buf, sizeof (buf));
+
+  return MIN(hash_len, trunc_len) == auth_len && !memcmp(buf, auth, auth_len);
 }
 
 /* ================================================== */
@@ -379,7 +381,7 @@ KEY_GenerateAuth(uint32_t key_id, const unsigned char *data, int data_len,
 
 int
 KEY_CheckAuth(uint32_t key_id, const unsigned char *data, int data_len,
-    const unsigned char *auth, int auth_len)
+              const unsigned char *auth, int auth_len, int trunc_len)
 {
   Key *key;
 
@@ -389,5 +391,5 @@ KEY_CheckAuth(uint32_t key_id, const unsigned char *data, int data_len,
     return 0;
 
   return check_ntp_auth(key->hash_id, (unsigned char *)key->val, key->len,
-                        data, data_len, auth, auth_len);
+                        data, data_len, auth, auth_len, trunc_len);
 }
