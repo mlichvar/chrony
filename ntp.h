@@ -56,6 +56,10 @@ typedef uint32_t NTP_int32;
 #define NTP_MIN_MAC_LENGTH (4 + 16)
 #define NTP_MAX_MAC_LENGTH (4 + MAX_HASH_LENGTH)
 
+/* The maximum length of MAC in NTPv4 packets which allows deterministic
+   parsing of extension fields (RFC 7822) */
+#define NTP_MAX_V4_MAC_LENGTH (4 + 20)
+
 /* Type definition for leap bits */
 typedef enum {
   LEAP_Normal = 0,

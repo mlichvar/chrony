@@ -1162,7 +1162,7 @@ static int
 check_packet_auth(NTP_Packet *pkt, int length,
                   AuthenticationMode *auth_mode, uint32_t *key_id)
 {
-  int i, version, remainder, ext_length;
+  int i, version, remainder, ext_length, max_mac_length;
   unsigned char *data;
   uint32_t id;
 
@@ -1175,15 +1175,28 @@ check_packet_auth(NTP_Packet *pkt, int length,
   while (1) {
     remainder = length - i;
 
-    /* Check if the remaining data is a valid MAC.  This needs to be done
-       before trying to parse it as an extension field, because we support
-       MACs longer than the shortest valid extension field. */
-    if (remainder >= NTP_MIN_MAC_LENGTH && remainder <= NTP_MAX_MAC_LENGTH) {
+    /* Check if the remaining data is a valid MAC.  There is a limit on MAC
+       length in NTPv4 packets to allow deterministic parsing of extension
+       fields (RFC 7822), but we need to support longer MACs to not break
+       compatibility with older chrony clients.  This needs to be done before
+       trying to parse the data as an extension field. */
+
+    max_mac_length = version == 4 && remainder <= NTP_MAX_V4_MAC_LENGTH ?
+                     NTP_MAX_V4_MAC_LENGTH : NTP_MAX_MAC_LENGTH;
+
+    if (remainder >= NTP_MIN_MAC_LENGTH && remainder <= max_mac_length) {
       id = ntohl(*(uint32_t *)(data + i));
       if (KEY_CheckAuth(id, (void *)pkt, i, (void *)(data + i + 4),
-                        remainder - 4, NTP_MAX_MAC_LENGTH - 4)) {
+                        remainder - 4, max_mac_length - 4)) {
         *auth_mode = AUTH_SYMMETRIC;
         *key_id = id;
+
+        /* If it's an NTPv4 packet with long MAC and no extension fields,
+           rewrite the version in the packet to respond with long MAC too */
+        if (version == 4 && NTP_NORMAL_PACKET_LENGTH + remainder == length &&
+            remainder > NTP_MAX_V4_MAC_LENGTH)
+          pkt->lvm = NTP_LVM(NTP_LVM_TO_LEAP(pkt->lvm), 3, NTP_LVM_TO_MODE(pkt->lvm));
+
         return 1;
       }
     }
@@ -1234,7 +1247,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
 {
   SST_Stats stats;
 
-  int pkt_leap;
+  int pkt_leap, pkt_version;
   uint32_t pkt_refid, pkt_key_id;
   double pkt_root_delay;
   double pkt_root_dispersion;
@@ -1292,6 +1305,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
   inst->report.total_rx_count++;
 
   pkt_leap = NTP_LVM_TO_LEAP(message->lvm);
+  pkt_version = NTP_LVM_TO_VERSION(message->lvm);
   pkt_refid = ntohl(message->reference_id);
   pkt_root_delay = UTI_Ntp32ToDouble(message->root_delay);
   pkt_root_dispersion = UTI_Ntp32ToDouble(message->root_dispersion);
@@ -1597,8 +1611,8 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     inst->report.remote_addr = inst->remote_addr.ip_addr;
     inst->report.local_addr = inst->local_addr.ip_addr;
     inst->report.remote_port = inst->remote_addr.port;
-    inst->report.leap = NTP_LVM_TO_LEAP(message->lvm);
-    inst->report.version = NTP_LVM_TO_VERSION(message->lvm);
+    inst->report.leap = pkt_leap;
+    inst->report.version = pkt_version;
     inst->report.mode = NTP_LVM_TO_MODE(message->lvm);
     inst->report.stratum = message->stratum;
     inst->report.poll = message->poll;
