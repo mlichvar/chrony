@@ -128,6 +128,37 @@ determine_hash_delay(uint32_t key_id)
 }
 
 /* ================================================== */
+/* Decode password encoded in ASCII or HEX */
+
+static int
+decode_password(char *key)
+{
+  int i, j, len = strlen(key);
+  char buf[3], *p;
+
+  if (!strncmp(key, "ASCII:", 6)) {
+    memmove(key, key + 6, len - 6);
+    return len - 6;
+  } else if (!strncmp(key, "HEX:", 4)) {
+    if ((len - 4) % 2)
+      return 0;
+
+    for (i = 0, j = 4; j + 1 < len; i++, j += 2) {
+      buf[0] = key[j], buf[1] = key[j + 1], buf[2] = '\0';
+      key[i] = strtol(buf, &p, 16);
+
+      if (p != buf + 2)
+        return 0;
+    }
+
+    return i;
+  } else {
+    /* assume ASCII */
+    return len;
+  }
+}
+
+/* ================================================== */
 
 /* Compare two keys */
 
@@ -191,7 +222,7 @@ KEY_Reload(void)
       continue;
     }
 
-    key.len = UTI_DecodePasswordFromText(keyval);
+    key.len = decode_password(keyval);
     if (!key.len) {
       LOG(LOGS_WARN, LOGF_Keys, "Could not decode password in key %"PRIu32, key_id);
       continue;
@@ -306,6 +337,29 @@ KEY_CheckKeyLength(uint32_t key_id)
 
 /* ================================================== */
 
+static int
+generate_ntp_auth(int hash_id, const unsigned char *key, int key_len,
+                  const unsigned char *data, int data_len,
+                  unsigned char *auth, int auth_len)
+{
+  return HSH_Hash(hash_id, key, key_len, data, data_len, auth, auth_len);
+}
+
+/* ================================================== */
+
+static int
+check_ntp_auth(int hash_id, const unsigned char *key, int key_len,
+               const unsigned char *data, int data_len,
+               const unsigned char *auth, int auth_len)
+{
+  unsigned char buf[MAX_HASH_LENGTH];
+
+  return generate_ntp_auth(hash_id, key, key_len, data, data_len,
+                           buf, sizeof (buf)) == auth_len && !memcmp(buf, auth, auth_len);
+}
+
+/* ================================================== */
+
 int
 KEY_GenerateAuth(uint32_t key_id, const unsigned char *data, int data_len,
     unsigned char *auth, int auth_len)
@@ -317,8 +371,8 @@ KEY_GenerateAuth(uint32_t key_id, const unsigned char *data, int data_len,
   if (!key)
     return 0;
 
-  return UTI_GenerateNTPAuth(key->hash_id, (unsigned char *)key->val,
-                             key->len, data, data_len, auth, auth_len);
+  return generate_ntp_auth(key->hash_id, (unsigned char *)key->val, key->len,
+                           data, data_len, auth, auth_len);
 }
 
 /* ================================================== */
@@ -334,6 +388,6 @@ KEY_CheckAuth(uint32_t key_id, const unsigned char *data, int data_len,
   if (!key)
     return 0;
 
-  return UTI_CheckNTPAuth(key->hash_id, (unsigned char *)key->val,
-                          key->len, data, data_len, auth, auth_len);
+  return check_ntp_auth(key->hash_id, (unsigned char *)key->val, key->len,
+                        data, data_len, auth, auth_len);
 }

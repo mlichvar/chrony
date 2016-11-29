@@ -157,14 +157,6 @@ extern Float UTI_FloatHostToNetwork(double x);
 /* Set FD_CLOEXEC on descriptor */
 extern int UTI_FdSetCloexec(int fd);
 
-extern int UTI_GenerateNTPAuth(int hash_id, const unsigned char *key, int key_len,
-    const unsigned char *data, int data_len, unsigned char *auth, int auth_len);
-extern int UTI_CheckNTPAuth(int hash_id, const unsigned char *key, int key_len,
-    const unsigned char *data, int data_len, const unsigned char *auth, int auth_len);
-
-/* Decode password encoded in ASCII or HEX */
-extern int UTI_DecodePasswordFromText(char *key);
-
 extern int UTI_SetQuitSignalsHandler(void (*handler)(int));
 
 /* Get directory (as an allocated string) for a path */
