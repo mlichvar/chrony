@@ -1995,6 +1995,9 @@ NCR_ProcessTxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   if (!check_packet_format(message, length))
     return;
 
+  if (NTP_LVM_TO_MODE(message->lvm) == MODE_BROADCAST)
+    return;
+
   log_index = CLG_GetClientIndex(&remote_addr->ip_addr);
   if (log_index < 0)
     return;
