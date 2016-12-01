@@ -146,6 +146,16 @@ signal_cleanup(int x)
 /* ================================================== */
 
 static void
+quit_timeout(void *arg)
+{
+  /* Return with non-zero status if the clock is not synchronised */
+  exit_status = REF_GetOurStratum() >= NTP_MAX_STRATUM;
+  SCH_QuitProgram();
+}
+
+/* ================================================== */
+
+static void
 ntp_source_resolving_end(void)
 {
   NSR_SetSourceResolvingEndHandler(NULL);
@@ -362,7 +372,7 @@ int main
   char *user = NULL;
   struct passwd *pw;
   int debug = 0, nofork = 0, address_family = IPADDR_UNSPEC;
-  int do_init_rtc = 0, restarted = 0;
+  int do_init_rtc = 0, restarted = 0, timeout = 0;
   int other_pid;
   int scfilter_level = 0, lock_memory = 0, sched_priority = 0;
   int system_log = 1;
@@ -420,6 +430,10 @@ int main
       ref_mode = REF_ModePrintOnce;
       nofork = 1;
       system_log = 0;
+    } else if (!strcmp("-t", *argv)) {
+      ++argv, --argc;
+      if (argc == 0 || sscanf(*argv, "%d", &timeout) != 1 || timeout <= 0)
+        LOG_FATAL(LOGF_Main, "Bad timeout");
     } else if (!strcmp("-4", *argv)) {
       address_family = IPADDR_INET4;
     } else if (!strcmp("-6", *argv)) {
@@ -548,6 +562,9 @@ int main
 
   REF_SetModeEndHandler(reference_mode_end);
   REF_SetMode(ref_mode);
+
+  if (timeout)
+    SCH_AddTimeoutByDelay(timeout, quit_timeout, NULL);
 
   if (do_init_rtc) {
     RTC_TimeInit(post_init_rtc_hook, NULL);

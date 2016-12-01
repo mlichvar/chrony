@@ -110,6 +110,13 @@ time and the RTC time, the system time will be set to it to restore the time
 when *chronyd* was previously stopped. This is useful on computers that have no
 RTC or the RTC is broken (e.g. it has no battery).
 
+*-t* _timeout_::
+This option sets a timeout (in seconds) after which *chronyd* will exit. If the
+clock is not synchronised, it will exit with a non-zero status. This is useful
+with the *-q* or *-Q* option to shorten the maximum time waiting for
+measurements, or with the *-r* option to limit the time when *chronyd* is
+running, but still allow it to adjust the frequency of the system clock.
+
 *-u* _user_::
 This option sets the name of the system user to which *chronyd* will switch
 after start in order to drop root privileges. It overrides the
