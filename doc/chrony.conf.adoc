@@ -178,7 +178,7 @@ for this computer and be able to respond in the interleaved mode.
 Target number of measurements to use for the regression algorithm which
 *chronyd* will try to maintain by adjusting the polling interval between
 *minpoll* and *maxpoll*. A higher target makes *chronyd* prefer shorter polling
-intervals. The default is 6 and a useful range is from 6 to 60.
+intervals. The default is 8 and a useful range is from 6 to 60.
 *port* _port_:::
 This option allows the UDP port on which the server understands NTP requests to
 be specified. For normal servers this option should not be required (the
@@ -568,7 +568,7 @@ useful range is 4 to 64.
 The *minsamples* directive sets the default minimum number of samples that
 *chronyd* should keep for each source. This setting can be overridden for
 individual sources in the <<server,*server*>> and <<refclock,*refclock*>>
-directives. The default value is 0. The useful range is 4 to 64.
+directives. The default value is 6. The useful range is 4 to 64.
 
 === Source selection
 

@@ -148,7 +148,7 @@ static double max_offset;
 
 /* Maximum and minimum number of samples per source */
 static int max_samples = 0; /* no limit */
-static int min_samples = 0;
+static int min_samples = 6;
 
 /* Threshold for a time adjustment to be logged to syslog */
 static double log_change_threshold = 1.0;

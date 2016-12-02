@@ -160,7 +160,7 @@ are `minpoll`, `maxpoll`, `polltarget`, `maxdelay`, `maxdelayratio`,
 The first three options set the minimum and maximum allowed polling interval,
 and how should be the actual interval adjusted in the specified range. Their
 default values are 6 (64 seconds) for `minpoll`, 10 (1024 seconds) for
-`maxpoll` and 6 (samples) for `polltarget`. The default values should be used
+`maxpoll` and 8 (samples) for `polltarget`. The default values should be used
 for general servers on the Internet. With your own NTP servers or if have
 permission to poll some servers more frequently, setting these options for
 shorter polling intervals may significantly improve the accuracy of the system
