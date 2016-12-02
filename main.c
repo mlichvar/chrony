@@ -439,7 +439,7 @@ int main
     } else if (!strcmp("-6", *argv)) {
       address_family = IPADDR_INET6;
     } else if (!strcmp("-h", *argv) || !strcmp("--help", *argv)) {
-      printf("Usage: %s [-4|-6] [-n|-d] [-q|-Q] [-r] [-R] [-s] [-f FILE|COMMAND...]\n",
+      printf("Usage: %s [-4|-6] [-n|-d] [-q|-Q] [-r] [-R] [-s] [-t TIMEOUT] [-f FILE|COMMAND...]\n",
              progname);
       return 0;
     } else if (*argv[0] == '-') {
