@@ -545,11 +545,11 @@ saved.
 An example of the directive is:
 +
 ----
-dumpdir @CHRONYSOCKDIR@
+dumpdir @CHRONYRUNDIR@
 ----
 +
 A source whose IP address is _1.2.3.4_ would have its measurement history saved
-in the file _@CHRONYSOCKDIR@/1.2.3.4.dat_. History of reference clocks is saved
+in the file _@CHRONYRUNDIR@/1.2.3.4.dat_. History of reference clocks is saved
 to files named by their reference ID in form of _refid:XXXXXXXX.dat_.
 
 [[dumponexit]]*dumponexit*::
@@ -1314,7 +1314,7 @@ This directive can also change the path of the Unix domain command socket,
 which is used by *chronyc* to send configuration commands. The socket must be
 in a directory that is accessible only by the root or _chrony_ user. The
 directory will be created on start if it does not exist. The compiled-in default
-path of the socket is _@CHRONYSOCKDIR@/chronyd.sock_. The socket can be
+path of the socket is _@CHRONYRUNDIR@/chronyd.sock_. The socket can be
 disabled by setting the path to _/_.
 +
 By default, *chronyd* binds to the loopback interface (with addresses
@@ -2218,7 +2218,7 @@ rtcsync
 allow
 ratelimit interval 2 burst 10
 driftfile @CHRONYVARDIR@/drift
-dumpdir @CHRONYSOCKDIR@
+dumpdir @CHRONYRUNDIR@
 dumponexit
 ----
 

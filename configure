@@ -120,7 +120,7 @@ Fine tuning of the installation directories:
   --mandir=DIR           man documentation [DATAROOTDIR/man]
   --docdir=DIR           documentation root [DATAROOTDIR/doc/chrony]
   --localstatedir=DIR    modifiable single-machine data [/var]
-  --chronysockdir=DIR    location for chrony sockets [LOCALSTATEDIR/run/chrony]
+  --chronyrundir=DIR     location for chrony sockets [LOCALSTATEDIR/run/chrony]
   --chronyvardir=DIR     location for chrony data [LOCALSTATEDIR/lib/chrony]
 
 Overriding system detection when cross-compiling:
@@ -281,8 +281,8 @@ do
     --localstatedir=* )
       SETLOCALSTATEDIR=`echo $option | sed -e 's/^.*=//;'`
     ;;
-    --chronysockdir=* )
-      SETCHRONYSOCKDIR=`echo $option | sed -e 's/^.*=//;'`
+    --chronyrundir=* | --chronysockdir=* )
+      SETCHRONYRUNDIR=`echo $option | sed -e 's/^.*=//;'`
     ;;
     --chronyvardir=* )
       SETCHRONYVARDIR=`echo $option | sed -e 's/^.*=//;'`
@@ -875,9 +875,9 @@ if [ "x$SETLOCALSTATEDIR" != "x" ]; then
   LOCALSTATEDIR=$SETLOCALSTATEDIR
 fi
 
-CHRONYSOCKDIR=${LOCALSTATEDIR}/run/chrony
-if [ "x$SETCHRONYSOCKDIR" != "x" ]; then
-  CHRONYSOCKDIR=$SETCHRONYSOCKDIR
+CHRONYRUNDIR=${LOCALSTATEDIR}/run/chrony
+if [ "x$SETCHRONYRUNDIR" != "x" ]; then
+  CHRONYRUNDIR=$SETCHRONYRUNDIR
 fi
 
 CHRONYVARDIR=${LOCALSTATEDIR}/lib/chrony
@@ -890,7 +890,7 @@ add_def DEFAULT_HWCLOCK_FILE "\"$default_hwclockfile\""
 add_def DEFAULT_PID_FILE "\"$default_pidfile\""
 add_def DEFAULT_RTC_DEVICE "\"$default_rtcdevice\""
 add_def DEFAULT_USER "\"$default_user\""
-add_def DEFAULT_COMMAND_SOCKET "\"$CHRONYSOCKDIR/chronyd.sock\""
+add_def DEFAULT_COMMAND_SOCKET "\"$CHRONYRUNDIR/chronyd.sock\""
 add_def MAIL_PROGRAM "\"$mail_program\""
 
 common_features="`get_features IPV6 DEBUG`"
@@ -928,7 +928,7 @@ do
           s%@DOCDIR@%${DOCDIR}%;\
           s%@MANDIR@%${MANDIR}%;\
           s%@LOCALSTATEDIR@%${LOCALSTATEDIR}%;\
-          s%@CHRONYSOCKDIR@%${CHRONYSOCKDIR}%;\
+          s%@CHRONYRUNDIR@%${CHRONYRUNDIR}%;\
           s%@CHRONYVARDIR@%${CHRONYVARDIR}%;\
           s%@DEFAULT_HWCLOCK_FILE@%${default_hwclockfile}%;\
           s%@DEFAULT_PID_FILE@%${default_pidfile}%;\

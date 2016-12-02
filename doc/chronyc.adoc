@@ -44,7 +44,7 @@ There are two ways *chronyc* can access *chronyd*. One is the Internet
 Protocol (IPv4 or IPv6) and the other is a Unix domain socket, which is
 accessible locally by the root or _chrony_ user. By default, *chronyc* first
 tries to connect to the Unix domain socket. The compiled-in default path is
-_@CHRONYSOCKDIR@/chronyd.sock_. If that fails (e.g. because *chronyc* is
+_@CHRONYRUNDIR@/chronyd.sock_. If that fails (e.g. because *chronyc* is
 running under a non-root user), it will try to connect to 127.0.0.1 and then
 ::1.
 
