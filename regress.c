@@ -151,20 +151,6 @@ RGR_GetChi2Coef(int dof)
 }
 
 /* ================================================== */
-/* Structure used for holding results of each regression */
-
-typedef struct {
-  double variance;
-  double slope_sd;
-  double slope;
-  double offset;
-  double offset_sd;
-  double K2; /* Variance / slope_var */
-  int n; /* Number of points */
-  int dof; /* Number of degrees of freedom */
-} RegressionResult;
-
-/* ================================================== */
 /* Critical value for number of runs of residuals with same sign.
    5% critical region for now. */
 
