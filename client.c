@@ -2223,7 +2223,7 @@ process_cmd_ntpdata(char *line)
                "Version         : %u\n"
                "Mode            : %M\n"
                "Stratum         : %u\n"
-               "Poll            : %u\n"
+               "Poll            : %d\n"
                "Precision       : %.9f seconds\n"
                "Root delay      : %.6f seconds\n"
                "Root dispersion : %.6f seconds\n"
