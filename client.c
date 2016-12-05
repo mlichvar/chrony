@@ -2215,9 +2215,9 @@ process_cmd_ntpdata(char *line)
   UTI_IPNetworkToHost(&reply.data.ntp_data.local_addr, &local_addr);
   UTI_TimespecNetworkToHost(&reply.data.ntp_data.ref_time, &ref_time);
 
-  print_report("Remote address  : %s\n"
+  print_report("Remote address  : %s (%R)\n"
                "Remote port     : %u\n"
-               "Local address   : %s\n"
+               "Local address   : %s (%R)\n"
                "Leap status     : %L\n"
                "Version         : %u\n"
                "Mode            : %M\n"
@@ -2241,8 +2241,9 @@ process_cmd_ntpdata(char *line)
                "Total TX        : %U\n"
                "Total RX        : %U\n"
                "Total valid RX  : %U\n",
-               UTI_IPToString(&remote_addr), ntohs(reply.data.ntp_data.remote_port),
-               UTI_IPToString(&local_addr),
+               UTI_IPToString(&remote_addr), (unsigned long)UTI_IPToRefid(&remote_addr),
+               ntohs(reply.data.ntp_data.remote_port),
+               UTI_IPToString(&local_addr), (unsigned long)UTI_IPToRefid(&local_addr),
                reply.data.ntp_data.leap, reply.data.ntp_data.version,
                reply.data.ntp_data.mode, reply.data.ntp_data.stratum,
                reply.data.ntp_data.poll, UTI_Log2ToDouble(reply.data.ntp_data.precision),

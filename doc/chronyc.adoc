@@ -447,9 +447,9 @@ NTP-specific information about the NTP source. An example of the output is
 shown below.
 +
 ----
-Remote address  : 203.0.113.15
+Remote address  : 203.0.113.15 (CB00710F)
 Remote port     : 123
-Local address   : 203.0.113.74
+Local address   : 203.0.113.74 (CB00714A)
 Leap status     : Normal
 Version         : 4
 Mode            : Server
@@ -478,12 +478,13 @@ Total valid RX  : 24
 The fields are explained as follows:
 +
 *Remote address*:::
-The IP address of the NTP server or peer.
+The IP address of the NTP server or peer, and the corresponding reference ID.
 *Remote port*:::
 The UDP port number to which the request was sent. The standard NTP port is
 123.
 *Local address*:::
-The local IP address which received the response.
+The local IP address which received the response, and the corresponding
+reference ID.
 *Leap status*:::
 *Version*:::
 *Mode*:::
