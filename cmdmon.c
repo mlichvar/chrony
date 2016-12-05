@@ -134,6 +134,8 @@ static const char permissions[] = {
   PERMIT_AUTH, /* CLIENT_ACCESSES_BY_INDEX2 */
   PERMIT_AUTH, /* LOCAL2 */
   PERMIT_AUTH, /* NTP_DATA */
+  PERMIT_AUTH, /* ADD_SERVER2 */
+  PERMIT_AUTH, /* ADD_PEER2 */
 };
 
 /* ================================================== */
@@ -778,7 +780,20 @@ handle_add_source(NTP_Source_Type type, CMD_Request *rx_message, CMD_Reply *tx_m
   params.minpoll = ntohl(rx_message->data.ntp_source.minpoll);
   params.maxpoll = ntohl(rx_message->data.ntp_source.maxpoll);
   params.presend_minpoll = ntohl(rx_message->data.ntp_source.presend_minpoll);
+  params.min_stratum = ntohl(rx_message->data.ntp_source.min_stratum);
+  params.poll_target = ntohl(rx_message->data.ntp_source.poll_target);
+  params.version = ntohl(rx_message->data.ntp_source.version);
+  params.max_sources = ntohl(rx_message->data.ntp_source.max_sources);
+  params.min_samples = ntohl(rx_message->data.ntp_source.min_samples);
+  params.max_samples = ntohl(rx_message->data.ntp_source.max_samples);
   params.authkey = ntohl(rx_message->data.ntp_source.authkey);
+  params.max_delay = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay);
+  params.max_delay_ratio =
+    UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_ratio);
+  params.max_delay_dev_ratio =
+    UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_dev_ratio);
+  params.offset = UTI_FloatNetworkToHost(rx_message->data.ntp_source.offset);
+
   params.online  = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_ONLINE ? 1 : 0;
   params.auto_offline = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_AUTOOFFLINE ? 1 : 0;
   params.iburst = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_IBURST ? 1 : 0;
@@ -788,17 +803,6 @@ handle_add_source(NTP_Source_Type type, CMD_Request *rx_message, CMD_Reply *tx_m
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_NOSELECT ? SRC_SELECT_NOSELECT : 0) |
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_TRUST ? SRC_SELECT_TRUST : 0) |
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_REQUIRE ? SRC_SELECT_REQUIRE : 0);
-  params.max_delay = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay);
-  params.max_delay_ratio = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_ratio);
-
- /* not transmitted in cmdmon protocol yet */
-  params.min_stratum = SRC_DEFAULT_MINSTRATUM;       
-  params.poll_target = SRC_DEFAULT_POLLTARGET;
-  params.max_delay_dev_ratio = SRC_DEFAULT_MAXDELAYDEVRATIO;
-  params.version = NTP_VERSION;
-  params.max_sources = SRC_DEFAULT_MAXSOURCES;
-  params.min_samples = SRC_DEFAULT_MINSAMPLES;
-  params.max_samples = SRC_DEFAULT_MAXSAMPLES;
 
   status = NSR_AddSource(&rem_addr, type, &params);
   switch (status) {
@@ -1521,11 +1525,11 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
           handle_cmdaccheck(&rx_message, &tx_message);
           break;
 
-        case REQ_ADD_SERVER:
+        case REQ_ADD_SERVER2:
           handle_add_source(NTP_SERVER, &rx_message, &tx_message);
           break;
 
-        case REQ_ADD_PEER:
+        case REQ_ADD_PEER2:
           handle_add_source(NTP_PEER, &rx_message, &tx_message);
           break;
 

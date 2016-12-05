@@ -95,7 +95,9 @@
 #define REQ_CLIENT_ACCESSES_BY_INDEX2 55
 #define REQ_LOCAL2 56
 #define REQ_NTP_DATA 57
-#define N_REQUEST_TYPES 58
+#define REQ_ADD_SERVER2 58
+#define REQ_ADD_PEER2 59
+#define N_REQUEST_TYPES 60
 
 /* Structure used to exchange timespecs independent of time_t size */
 typedef struct {
@@ -255,9 +257,17 @@ typedef struct {
   int32_t minpoll;
   int32_t maxpoll;
   int32_t presend_minpoll;
+  uint32_t min_stratum;
+  uint32_t poll_target;
+  uint32_t version;
+  uint32_t max_sources;
+  int32_t min_samples;
+  int32_t max_samples;
   uint32_t authkey;
   Float max_delay;
   Float max_delay_ratio;
+  Float max_delay_dev_ratio;
+  Float offset;
   uint32_t flags;
   int32_t EOR;
 } REQ_NTP_Source;

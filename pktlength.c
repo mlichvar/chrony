@@ -82,8 +82,8 @@ static const struct request_length request_lengths[] = {
   REQ_LENGTH_ENTRY(allow_deny, null),           /* CMDDENYALL */
   REQ_LENGTH_ENTRY(ac_check, null),             /* ACCHECK */
   REQ_LENGTH_ENTRY(ac_check, null),             /* CMDACCHECK */
-  REQ_LENGTH_ENTRY(ntp_source, null),           /* ADD_SERVER */
-  REQ_LENGTH_ENTRY(ntp_source, null),           /* ADD_PEER */
+  { 0, 0 },                                     /* ADD_SERVER */
+  { 0, 0 },                                     /* ADD_PEER */
   REQ_LENGTH_ENTRY(del_source, null),           /* DEL_SOURCE */
   REQ_LENGTH_ENTRY(null, null),                 /* WRITERTC */
   REQ_LENGTH_ENTRY(dfreq, null),                /* DFREQ */
@@ -114,6 +114,8 @@ static const struct request_length request_lengths[] = {
                    client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX2 */
   REQ_LENGTH_ENTRY(local, null),                /* LOCAL2 */
   REQ_LENGTH_ENTRY(ntp_data, ntp_data),         /* NTP_DATA */
+  REQ_LENGTH_ENTRY(ntp_source, null),           /* ADD_SERVER2 */
+  REQ_LENGTH_ENTRY(ntp_source, null),           /* ADD_PEER2 */
 };
 
 static const uint16_t reply_lengths[] = {

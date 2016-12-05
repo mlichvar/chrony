@@ -1073,25 +1073,7 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
         break;
       }
 
-      if (data.params.max_delay_dev_ratio != SRC_DEFAULT_MAXDELAYDEVRATIO)
-        opt_name = "maxdelaydevratio";
-      else if (data.params.max_samples != SRC_DEFAULT_MAXSAMPLES)
-        opt_name = "maxsamples";
-      else if (data.params.min_samples != SRC_DEFAULT_MINSAMPLES)
-        opt_name = "minsamples";
-      else if (data.params.max_sources != SRC_DEFAULT_MAXSOURCES)
-        opt_name = "maxsources";
-      else if (data.params.min_stratum != SRC_DEFAULT_MINSTRATUM)
-        opt_name = "minstratum";
-      else if (data.params.offset != 0.0)
-        opt_name = "offset";
-      else if (data.params.poll_target != SRC_DEFAULT_POLLTARGET)
-        opt_name = "polltarget";
-      else if (data.params.version != 0)
-        opt_name = "version";
-      else
-        opt_name = NULL;
-
+      opt_name = NULL;
       if (opt_name) {
         LOG(LOGS_ERR, LOGF_Client, "%s can't be set in chronyc", opt_name);
         break;
@@ -1102,9 +1084,18 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
       msg->data.ntp_source.minpoll = htonl(data.params.minpoll);
       msg->data.ntp_source.maxpoll = htonl(data.params.maxpoll);
       msg->data.ntp_source.presend_minpoll = htonl(data.params.presend_minpoll);
+      msg->data.ntp_source.min_stratum = htonl(data.params.min_stratum);
+      msg->data.ntp_source.poll_target = htonl(data.params.poll_target);
+      msg->data.ntp_source.version = htonl(data.params.version);
+      msg->data.ntp_source.max_sources = htonl(data.params.max_sources);
+      msg->data.ntp_source.min_samples = htonl(data.params.min_samples);
+      msg->data.ntp_source.max_samples = htonl(data.params.max_samples);
       msg->data.ntp_source.authkey = htonl(data.params.authkey);
       msg->data.ntp_source.max_delay = UTI_FloatHostToNetwork(data.params.max_delay);
       msg->data.ntp_source.max_delay_ratio = UTI_FloatHostToNetwork(data.params.max_delay_ratio);
+      msg->data.ntp_source.max_delay_dev_ratio =
+        UTI_FloatHostToNetwork(data.params.max_delay_dev_ratio);
+      msg->data.ntp_source.offset = UTI_FloatHostToNetwork(data.params.offset);
       msg->data.ntp_source.flags = htonl(
           (data.params.online ? REQ_ADDSRC_ONLINE : 0) |
           (data.params.auto_offline ? REQ_ADDSRC_AUTOOFFLINE : 0) |
@@ -1127,7 +1118,7 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
 static int
 process_cmd_add_server(CMD_Request *msg, char *line)
 {
-  msg->command = htons(REQ_ADD_SERVER);
+  msg->command = htons(REQ_ADD_SERVER2);
   return process_cmd_add_server_or_peer(msg, line);
 }
 
@@ -1136,7 +1127,7 @@ process_cmd_add_server(CMD_Request *msg, char *line)
 static int
 process_cmd_add_peer(CMD_Request *msg, char *line)
 {
-  msg->command = htons(REQ_ADD_PEER);
+  msg->command = htons(REQ_ADD_PEER2);
   return process_cmd_add_server_or_peer(msg, line);
 }
 
