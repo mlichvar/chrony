@@ -1408,10 +1408,9 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
       sample_rx_tss = rx_ts->source;
     }
 
-    /* In our case, we work out 'delay' as the worst case delay,
-       assuming worst case frequency error between us and the other
-       source */
-    delay = local_interval - remote_interval * (1.0 + source_freq_lo);
+    /* Work out 'delay' relative to the source's time */
+    delay = (1.0 - (source_freq_lo + source_freq_hi) / 2.0) *
+              local_interval - remote_interval;
 
     /* Clamp delay to avoid misleading results later */
     delay = fabs(delay);
@@ -1440,11 +1439,12 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     
     /* Additional tests required to pass before accumulating the sample */
 
-    /* Test A requires that the peer delay is not larger than the configured
-       maximum, in client mode that the server processing time is sane, and in
-       interleaved symmetric mode that the delay is not longer than half of the
-       remote polling interval to detect missed packets */
-    testA = delay <= inst->max_delay &&
+    /* Test A requires that the minimum estimate of the peer delay is not
+       larger than the configured maximum, in client mode that the server
+       processing time is sane, and in the interleaved symmetric mode that
+       the delay is not longer than half of the remote polling interval to
+       detect missed packets */
+    testA = delay - dispersion <= inst->max_delay &&
             !(inst->mode == MODE_CLIENT && server_interval > MAX_SERVER_INTERVAL) &&
             !(inst->mode == MODE_ACTIVE && interleaved_packet &&
               delay > UTI_Log2ToDouble(message->poll - 1));
@@ -1453,7 +1453,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
        minimum one currently in the stats data register is less than an
        administrator-defined value */
     testB = inst->max_delay_ratio <= 1.0 ||
-            delay / SST_MinRoundTripDelay(stats) <= inst->max_delay_ratio;
+            (delay - dispersion) / SST_MinRoundTripDelay(stats) <= inst->max_delay_ratio;
 
     /* Test C requires that the ratio of the increase in delay from the minimum
        one in the stats data register to the standard deviation of the offsets
