@@ -1087,7 +1087,7 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
         opt_name = "offset";
       else if (data.params.poll_target != SRC_DEFAULT_POLLTARGET)
         opt_name = "polltarget";
-      else if (data.params.version != NTP_VERSION)
+      else if (data.params.version != 0)
         opt_name = "version";
       else
         opt_name = NULL;
