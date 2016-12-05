@@ -1952,9 +1952,8 @@ format_name(char *buf, int size, int trunc_dns, int ref, uint32_t ref_id,
     snprintf(buf, size, "%s", UTI_IPToString(ip_addr));
   } else {
     DNS_IPAddress2Name(ip_addr, buf, size);
-    if (size > trunc_dns) {
-      if (trunc_dns > 0)
-        buf[trunc_dns - 1] = '>';
+    if (trunc_dns > 0 && strlen(buf) > trunc_dns) {
+      buf[trunc_dns - 1] = '>';
       buf[trunc_dns] = '\0';
     }
   }
