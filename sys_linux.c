@@ -483,7 +483,7 @@ SYS_Linux_EnableSystemCallFilter(int level)
     /* TODO: check socketcall arguments */
     SCMP_SYS(socketcall),
     /* General I/O */
-    SCMP_SYS(_newselect), SCMP_SYS(close), SCMP_SYS(open), SCMP_SYS(pipe),
+    SCMP_SYS(_newselect), SCMP_SYS(close), SCMP_SYS(open), SCMP_SYS(openat), SCMP_SYS(pipe),
     SCMP_SYS(poll), SCMP_SYS(read), SCMP_SYS(futex), SCMP_SYS(select),
     SCMP_SYS(set_robust_list), SCMP_SYS(write),
     /* Miscellaneous */
