@@ -128,8 +128,8 @@ struct SST_Stats_Record {
      about estimated_frequency */
   double skew;
 
-  /* This is the estimated residual variance of the data points */
-  double variance;
+  /* This is the estimated standard deviation of the data points */
+  double std_dev;
 
   /* This array contains the sample epochs, in terms of the local
      clock. */
@@ -235,7 +235,7 @@ SST_ResetInstance(SST_Stats inst)
   inst->estimated_offset = 0.0;
   inst->estimated_offset_sd = 86400.0; /* Assume it's at least within a day! */
   UTI_ZeroTimespec(&inst->offset_time);
-  inst->variance = 16.0;
+  inst->std_dev = 4.0;
   inst->nruns = 0;
   inst->asymmetry_run = 0;
   inst->asymmetry = 0.0;
@@ -536,7 +536,7 @@ SST_DoNewRegression(SST_Stats inst)
     inst->estimated_offset = est_intercept;
     inst->offset_time = inst->sample_times[inst->last_sample];
     inst->estimated_offset_sd = est_intercept_sd;
-    inst->variance = est_var;
+    inst->std_dev = sqrt(est_var);
     inst->nruns = nruns;
 
     if (inst->skew < MIN_SKEW)
@@ -553,7 +553,7 @@ SST_DoNewRegression(SST_Stats inst)
       LOG_FileWrite(logfileid, "%s %-15s %10.3e %10.3e %10.3e %10.3e %10.3e %7.1e %3d %3d %3d %5.2f",
               UTI_TimeToLogForm(inst->offset_time.tv_sec),
               inst->ip_addr ? UTI_IPToString(inst->ip_addr) : UTI_RefidToString(inst->refid),
-              sqrt(inst->variance),
+              inst->std_dev,
               inst->estimated_offset, inst->estimated_offset_sd,
               inst->estimated_frequency, inst->skew, stress,
               inst->n_samples, best_start, inst->nruns,
@@ -604,7 +604,7 @@ SST_GetSelectionData(SST_Stats inst, struct timespec *now,
                      double *offset_lo_limit,
                      double *offset_hi_limit,
                      double *root_distance,
-                     double *variance,
+                     double *std_dev,
                      double *first_sample_ago,
                      double *last_sample_ago,
                      int *select_ok)
@@ -621,7 +621,7 @@ SST_GetSelectionData(SST_Stats inst, struct timespec *now,
   j = get_buf_index(inst, inst->best_single_sample);
 
   *stratum = inst->strata[get_buf_index(inst, inst->n_samples - 1)];
-  *variance = inst->variance;
+  *std_dev = inst->std_dev;
 
   sample_elapsed = UTI_DiffTimespecsToDouble(now, &inst->sample_times[i]);
   offset = inst->offsets[i] + sample_elapsed * inst->estimated_frequency;
@@ -652,8 +652,8 @@ SST_GetSelectionData(SST_Stats inst, struct timespec *now,
 
   *select_ok = inst->regression_ok;
 
-  DEBUG_LOG(LOGF_SourceStats, "n=%d off=%f dist=%f var=%f first_ago=%f last_ago=%f selok=%d",
-            inst->n_samples, offset, *root_distance, *variance,
+  DEBUG_LOG(LOGF_SourceStats, "n=%d off=%f dist=%f sd=%f first_ago=%f last_ago=%f selok=%d",
+            inst->n_samples, offset, *root_distance, *std_dev,
             *first_sample_ago, *last_sample_ago, *select_ok);
 }
 
@@ -789,7 +789,7 @@ SST_IsGoodSample(SST_Stats inst, double offset, double delay,
      standard deviation is less than max_delay_dev_ratio. In the allowed
      increase in delay include also skew and clock_error. */
     
-  allowed_increase = sqrt(inst->variance) * max_delay_dev_ratio +
+  allowed_increase = inst->std_dev * max_delay_dev_ratio +
     elapsed * (inst->skew + clock_error);
   delay_increase = (delay - SST_MinRoundTripDelay(inst)) / 2.0;
 
@@ -990,7 +990,7 @@ SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report, struct ti
 
   report->resid_freq_ppm = 1.0e6 * inst->estimated_frequency;
   report->skew_ppm = 1.0e6 * inst->skew;
-  report->sd = sqrt(inst->variance);
+  report->sd = inst->std_dev;
 }
 
 /* ================================================== */

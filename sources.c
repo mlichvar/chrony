@@ -56,7 +56,7 @@ static int initialised = 0;
 struct SelectInfo {
   int stratum;
   int select_ok;
-  double variance;
+  double std_dev;
   double root_distance;
   double lo_limit;
   double hi_limit;
@@ -648,7 +648,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     si = &sources[i]->sel_info;
     SST_GetSelectionData(sources[i]->stats, &now, &si->stratum,
                          &si->lo_limit, &si->hi_limit, &si->root_distance,
-                         &si->variance, &first_sample_ago,
+                         &si->std_dev, &first_sample_ago,
                          &si->last_sample_ago, &si->select_ok);
 
     if (!si->select_ok) {
