@@ -855,6 +855,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   NTP_Packet message;
   int auth_len, mac_len, length, ret, precision;
   struct timespec local_receive, local_transmit;
+  double smooth_offset, local_transmit_err;
   NTP_int64 ts_fuzz;
 
   /* Parameters read from reference module */
@@ -862,7 +863,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   NTP_Leap leap_status;
   uint32_t our_ref_id;
   struct timespec our_ref_time;
-  double our_root_delay, our_root_dispersion, smooth_offset;
+  double our_root_delay, our_root_dispersion;
 
   /* Don't reply with version higher than ours */
   if (version > NTP_VERSION) {
@@ -956,7 +957,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   /* Transmit - this our local time right now!  Also, we might need to
      store this for our own use later, next time we receive a message
      from the source we're sending to now. */
-  LCL_ReadCookedTime(&local_transmit, NULL);
+  LCL_ReadCookedTime(&local_transmit, &local_transmit_err);
 
   if (smooth_time)
     UTI_AddDoubleToTimespec(&local_transmit, smooth_offset, &local_transmit);
@@ -1006,7 +1007,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
 
   if (local_tx) {
     local_tx->ts = local_transmit;
-    local_tx->err = 0.0;
+    local_tx->err = local_transmit_err;
     local_tx->source = NTP_TS_DAEMON;
   }
 
@@ -1438,7 +1439,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     skew = (source_freq_hi - source_freq_lo) / 2.0;
     
     /* and then calculate peer dispersion */
-    dispersion = precision + rx_ts_err + skew * fabs(local_interval);
+    dispersion = precision + inst->local_tx.err + rx_ts_err + skew * fabs(local_interval);
     
     /* Additional tests required to pass before accumulating the sample */
 
