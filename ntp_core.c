@@ -1380,6 +1380,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     /* These are the timespec equivalents of the remote and local epochs */
     struct timespec remote_receive, remote_transmit, prev_remote_receive;
     struct timespec local_average, remote_average;
+    double rx_ts_err;
 
     precision = LCL_GetSysPrecisionAsQuantum() +
                 UTI_Log2ToDouble(message->precision);
@@ -1398,6 +1399,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
                                &local_average, &local_interval);
       server_interval = UTI_DiffTimespecsToDouble(&remote_transmit,
                                                   &prev_remote_receive);
+      rx_ts_err = inst->local_rx.err;
       sample_rx_tss = inst->local_rx.source;
     } else {
       UTI_AverageDiffTimespecs(&remote_receive, &remote_transmit,
@@ -1405,6 +1407,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
       UTI_AverageDiffTimespecs(&inst->local_tx.ts, &rx_ts->ts,
                                &local_average, &local_interval);
       server_interval = remote_interval;
+      rx_ts_err = rx_ts->err;
       sample_rx_tss = rx_ts->source;
     }
 
@@ -1435,7 +1438,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     skew = (source_freq_hi - source_freq_lo) / 2.0;
     
     /* and then calculate peer dispersion */
-    dispersion = precision + rx_ts->err + skew * fabs(local_interval);
+    dispersion = precision + rx_ts_err + skew * fabs(local_interval);
     
     /* Additional tests required to pass before accumulating the sample */
 
