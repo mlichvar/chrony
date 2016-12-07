@@ -600,6 +600,13 @@ Setting *maxdistance* to a larger value can be useful to allow synchronisation
 with a server that only has a very infrequent connection to its sources and can
 accumulate a large dispersion between updates of its clock.
 
+[[maxjitter]]*maxjitter* _jitter_::
+The *maxjitter* directive sets the maximum allowed jitter of the sources to not
+be rejected by the source selection algorithm. This prevents synchronisation
+with sources that have a small root distance, but their time is too variable.
++
+By default, the maximum jitter is 1 second.
+
 [[minsources]]*minsources* _sources_::
 The *minsources* directive sets the minimum number of sources that need to be
 considered as selectable in the source selection algorithm before the local

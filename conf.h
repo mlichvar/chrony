@@ -90,6 +90,7 @@ extern double CNF_GetCorrectionTimeRatio(void);
 extern double CNF_GetMaxSlewRate(void);
 
 extern double CNF_GetMaxDistance(void);
+extern double CNF_GetMaxJitter(void);
 extern double CNF_GetReselectDistance(void);
 extern double CNF_GetStratumWeight(void);
 extern double CNF_GetCombineLimit(void);

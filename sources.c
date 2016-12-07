@@ -71,12 +71,12 @@ typedef enum {
   SRC_UNSELECTABLE,     /* Has noselect option set */
   SRC_BAD_STATS,        /* Doesn't have valid stats data */
   SRC_BAD_DISTANCE,     /* Has root distance longer than allowed maximum */
+  SRC_JITTERY,          /* Had std dev larger than allowed maximum */
   SRC_WAITS_STATS,      /* Others have bad stats, selection postponed */
   SRC_STALE,            /* Has older samples than others */
   SRC_ORPHAN,           /* Has stratum equal or larger than orphan stratum */
   SRC_UNTRUSTED,        /* Overlaps trusted sources */
   SRC_FALSETICKER,      /* Doesn't agree with others */
-  SRC_JITTERY,          /* Scatter worse than other's dispersion (not used) */
   SRC_WAITS_SOURCES,    /* Not enough sources, selection postponed */
   SRC_NONPREFERRED,     /* Others have prefer option */
   SRC_WAITS_UPDATE,     /* No updates, selection postponed */
@@ -159,6 +159,7 @@ static int selected_source_index; /* Which source index is currently
 #define DISTANT_PENALTY 32
 
 static double max_distance;
+static double max_jitter;
 static double reselect_distance;
 static double stratum_weight;
 static double combine_limit;
@@ -184,6 +185,7 @@ void SRC_Initialise(void) {
   max_n_sources = 0;
   selected_source_index = INVALID_SOURCE;
   max_distance = CNF_GetMaxDistance();
+  max_jitter = CNF_GetMaxJitter();
   reselect_distance = CNF_GetReselectDistance();
   stratum_weight = CNF_GetStratumWeight();
   combine_limit = CNF_GetCombineLimit();
@@ -662,6 +664,12 @@ SRC_SelectSource(SRC_Instance updated_inst)
     /* Require the root distance to be below the allowed maximum */
     if (si->root_distance > max_distance) {
       sources[i]->status = SRC_BAD_DISTANCE;
+      continue;
+    }
+
+    /* And the same applies for the estimated standard deviation */
+    if (si->std_dev > max_jitter) {
+      sources[i]->status = SRC_JITTERY;
       continue;
     }
 
