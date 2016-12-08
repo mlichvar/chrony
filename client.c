@@ -96,6 +96,10 @@ void LOG_Message(LOG_Severity severity,
 /* ================================================== */
 /* Read a single line of commands from standard input */
 
+#ifdef FEAT_READLINE
+static char **command_name_completion(const char *text, int start, int end);
+#endif
+
 static char *
 read_line(void)
 {
@@ -105,6 +109,9 @@ read_line(void)
   if (on_terminal) {
 #ifdef FEAT_READLINE
     char *cmd;
+
+    rl_attempted_completion_function = command_name_completion;
+    rl_basic_word_break_characters = "\t\n\r";
 
     /* save line only if not empty */
     cmd = readline(prompt);
@@ -1252,6 +1259,52 @@ give_help(void)
            s, "");
   }
 }
+
+/* ================================================== */
+/* Tab-completion when editline/readline is available */
+
+#ifdef FEAT_READLINE
+static char *
+command_name_generator(const char *text, int state)
+{
+  const char *name, *names[] = {
+    "accheck", "activity", "add peer", "add server", "allow", "burst",
+    "clients", "cmdaccheck", "cmdallow", "cmddeny", "cyclelogs", "delete",
+    "deny", "dns", "dump", "exit", "help", "keygen", "local", "makestep",
+    "manual on", "manual off", "manual delete", "manual list", "manual reset",
+    "maxdelay", "maxdelaydevratio", "maxdelayratio", "maxpoll",
+    "maxupdateskew", "minpoll", "minstratum", "ntpdata", "offline", "online",
+    "polltarget", "quit", "refresh", "rekey", "reselect", "reselectdist",
+    "retries", "rtcdata", "serverstats", "settime", "smoothing", "smoothtime",
+    "sources", "sources -v", "sourcestats", "sourcestats -v", "timeout",
+    "tracking", "trimrtc", "waitsync", "writertc",
+    NULL
+  };
+  static int list_index, len;
+
+  if (!state) {
+    list_index = 0;
+    len = strlen(text);
+  }
+
+  while ((name = names[list_index++])) {
+    if (strncmp(name, text, len) == 0) {
+      return strdup(name);
+    }
+  }
+
+  return NULL;
+}
+
+/* ================================================== */
+
+static char **
+command_name_completion(const char *text, int start, int end)
+{
+  rl_attempted_completion_over = 1;
+  return rl_completion_matches(text, command_name_generator);
+}
+#endif
 
 /* ================================================== */
 
