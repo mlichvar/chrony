@@ -674,6 +674,7 @@ static void
 parse_refclock(char *line)
 {
   int n, poll, dpoll, filter_length, pps_rate, min_samples, max_samples, sel_options;
+  int max_lock_age;
   uint32_t ref_id, lock_ref_id;
   double offset, delay, precision, max_dispersion;
   char *p, *cmd, *name, *param;
@@ -692,6 +693,7 @@ parse_refclock(char *line)
   precision = 0.0;
   max_dispersion = 0.0;
   ref_id = 0;
+  max_lock_age = 2;
   lock_ref_id = 0;
 
   if (!*line) {
@@ -741,6 +743,9 @@ parse_refclock(char *line)
         break;
     } else if (!strcasecmp(cmd, "minsamples")) {
       if (sscanf(line, "%d%n", &min_samples, &n) != 1)
+        break;
+    } else if (!strcasecmp(cmd, "maxlockage")) {
+      if (sscanf(line, "%d%n", &max_lock_age, &n) != 1)
         break;
     } else if (!strcasecmp(cmd, "maxsamples")) {
       if (sscanf(line, "%d%n", &max_samples, &n) != 1)
@@ -795,6 +800,7 @@ parse_refclock(char *line)
   refclock->precision = precision;
   refclock->max_dispersion = max_dispersion;
   refclock->ref_id = ref_id;
+  refclock->max_lock_age = max_lock_age;
   refclock->lock_ref_id = lock_ref_id;
 }
 

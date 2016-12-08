@@ -77,6 +77,7 @@ struct RCL_Instance_Record {
   int leap_status;
   int pps_rate;
   int pps_active;
+  int max_lock_age;
   struct MedianFilter filter;
   uint32_t ref_id;
   uint32_t lock_ref;
@@ -202,6 +203,7 @@ RCL_AddRefclock(RefclockParameters *params)
   inst->leap_status = LEAP_Normal;
   inst->pps_rate = params->pps_rate;
   inst->pps_active = 0;
+  inst->max_lock_age = params->max_lock_age;
   inst->lock_ref = params->lock_ref_id;
   inst->offset = params->offset;
   inst->delay = params->delay;
@@ -444,7 +446,7 @@ RCL_AddPulse(RCL_Instance instance, struct timespec *pulse_time, double second)
     ref_dispersion += filter_get_avg_sample_dispersion(&lock_refclock->filter);
 
     sample_diff = UTI_DiffTimespecsToDouble(&cooked_time, &ref_sample_time);
-    if (fabs(sample_diff) >= 2.0 / rate) {
+    if (fabs(sample_diff) >= (double)instance->max_lock_age / rate) {
       DEBUG_LOG(LOGF_Refclock, "refclock pulse ignored samplediff=%.9f",
           sample_diff);
       return 0;

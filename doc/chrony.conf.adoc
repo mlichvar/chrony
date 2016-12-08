@@ -434,6 +434,11 @@ This option sets the rate of the pulses in the PPS signal (in Hz). This option
 controls how the pulses will be completed with real time. To actually receive
 more than one pulse per second, a negative *dpoll* has to be specified (-3 for
 a 5Hz signal). The default is 1.
+*maxlockage* _pulses_:::
+This option specifies in number of pulses how old can be samples from the
+refclock specified by the *lock* option to be paired with the pulses.
+Increasing this value is useful when the samples are produced at a lower rate
+than the pulses. The default is 2.
 *offset* _offset_:::
 This option can be used to compensate for a constant error. The specified
 offset (in seconds) is applied to all samples produced by the reference clock.

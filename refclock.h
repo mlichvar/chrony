@@ -41,6 +41,7 @@ typedef struct {
   int min_samples;
   int max_samples;
   int sel_options;
+  int max_lock_age;
   uint32_t ref_id;
   uint32_t lock_ref_id;
   double offset;
