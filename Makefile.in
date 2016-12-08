@@ -63,12 +63,6 @@ chronyd : $(OBJS) $(EXTRA_OBJS)
 chronyc : $(CLI_OBJS)
 	$(CC) $(CFLAGS) -o chronyc $(CLI_OBJS) $(LDFLAGS) $(LIBS) $(EXTRA_CLI_LIBS)
 
-client.o : client.c
-	$(CC) $(CFLAGS) $(CPPFLAGS) @READLINE_COMPILE@ -c $<
-
-$(HASH_OBJ) : $(patsubst %.o,%.c,$(HASH_OBJ))
-	$(CC) $(CFLAGS) $(CPPFLAGS) @HASH_COMPILE@ -c $<
-
 distclean : clean
 	-rm -f .DS_Store
 	-rm -f Makefile config.h config.log

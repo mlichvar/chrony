@@ -757,7 +757,6 @@ then
   add_def FORCE_DNSRETRY
 fi
 
-READLINE_COMPILE=""
 READLINE_LINK=""
 if [ $feat_readline = "1" ]; then
   if [ $try_editline = "1" ]; then
@@ -767,7 +766,7 @@ if [ $feat_readline = "1" ]; then
     then
       add_def FEAT_READLINE
       add_def USE_EDITLINE
-      READLINE_COMPILE="$readline_inc"
+      MYCPPFLAGS="$MYCPPFLAGS $readline_inc"
       READLINE_LINK="$readline_lib -ledit"
     fi
   fi
@@ -778,7 +777,7 @@ if [ $feat_readline = "1" ]; then
       'add_history(readline("prompt"));'
     then
       add_def FEAT_READLINE
-      READLINE_COMPILE="$readline_inc"
+      MYCPPFLAGS="$MYCPPFLAGS $readline_inc"
       READLINE_LINK="$readline_lib -lreadline"
     fi
   fi
@@ -790,7 +789,7 @@ if [ $feat_readline = "1" ]; then
       'add_history(readline("prompt"));'
     then
       add_def FEAT_READLINE
-      READLINE_COMPILE="$readline_inc"
+      MYCPPFLAGS="$MYCPPFLAGS $readline_inc"
       READLINE_LINK="$readline_lib $ncurses_lib -lreadline -lncurses"
     fi
   fi
@@ -799,7 +798,6 @@ if [ $feat_readline = "1" ]; then
 fi
 
 HASH_OBJ="hash_intmd5.o"
-HASH_COMPILE=""
 HASH_LINK=""
 
 if [ $feat_sechash = "1" ] && [ $try_nss = "1" ]; then
@@ -810,9 +808,9 @@ if [ $feat_sechash = "1" ] && [ $try_nss = "1" ]; then
     'NSSLOWHASH_Begin(NSSLOWHASH_NewContext(NSSLOW_Init(), HASH_AlgSHA512));'
   then
     HASH_OBJ="hash_nss.o"
-    HASH_COMPILE="$test_cflags"
     HASH_LINK="$test_link"
     LIBS="$LIBS $HASH_LINK"
+    MYCPPFLAGS="$MYCPPFLAGS $test_cflags"
     add_def FEAT_SECHASH
   fi
 fi
@@ -822,9 +820,9 @@ if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ] && [ $try_tomcrypt = "1" ]
     'hash_memory_multi(find_hash("md5"), NULL, NULL, NULL, 0, NULL, 0);'
   then
     HASH_OBJ="hash_tomcrypt.o"
-    HASH_COMPILE="-I/usr/include/tomcrypt"
     HASH_LINK="-ltomcrypt"
     LIBS="$LIBS $HASH_LINK"
+    MYCPPFLAGS="$MYCPPFLAGS -I/usr/include/tomcrypt"
     add_def FEAT_SECHASH
   fi
 fi
@@ -918,9 +916,7 @@ do
           s%@LDFLAGS@%${MYLDFLAGS}%;\
           s%@EXTRA_LIBS@%${EXTRA_LIBS}%;\
           s%@EXTRA_CLI_LIBS@%${EXTRA_CLI_LIBS}%;\
-          s%@READLINE_COMPILE@%${READLINE_COMPILE}%;\
           s%@HASH_OBJ@%${HASH_OBJ}%;\
-          s%@HASH_COMPILE@%${HASH_COMPILE}%;\
           s%@SYSCONFDIR@%${SYSCONFDIR}%;\
           s%@BINDIR@%${BINDIR}%;\
           s%@SBINDIR@%${SBINDIR}%;\
