@@ -1,0 +1,14 @@
+#!/bin/sh
+
+cd ../..
+
+for opts in \
+	"--host-system=Linux" \
+	"--host-system=NetBSD" \
+	"--host-system=FreeBSD" \
+	"--without-nss" \
+	"--without-tomcrypt --without-nss"
+do
+	./configure $opts
+	scan-build make "$@" || exit 1
+done
