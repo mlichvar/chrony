@@ -939,11 +939,22 @@ filter_get_sample(struct MedianFilter *filter, struct timespec *sample_time, dou
 static void
 filter_slew_samples(struct MedianFilter *filter, struct timespec *when, double dfreq, double doffset)
 {
-  int i;
+  int i, first, last;
   double delta_time;
   struct timespec *sample;
 
-  for (i = 0; i < filter->used; i++) {
+  if (filter->last < 0)
+    return;
+
+  /* always slew the last sample as it may be needed by PPS refclocks */
+  if (filter->used > 0) {
+    first = 0;
+    last = filter->used - 1;
+  } else {
+    first = last = filter->last;
+  }
+
+  for (i = first; i <= last; i++) {
     sample = &filter->samples[i].sample_time;
     UTI_AdjustTimespec(sample, when, sample, &delta_time, dfreq, doffset);
     filter->samples[i].offset -= delta_time;
