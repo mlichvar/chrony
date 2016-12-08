@@ -19,7 +19,8 @@ refclock_offset="(* 10.0 (equal 0.1 (max (sum 1.0) 1000) 1000))"
 server_step="(* -10.0 (equal 0.1 (sum 1.0) 1))"
 server_strata=1
 server_conf="refclock SHM 0 dpoll 4 poll 6
-smoothtime 2000 1"
+smoothtime 2000 1
+maxjitter 10.0"
 time_offset=-10
 client_server_options="minpoll 6 maxpoll 6"
 client_conf="corrtimeratio 100"
