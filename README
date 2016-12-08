@@ -111,6 +111,9 @@ implementation has been used to check the details of the protocol.
 The following people have provided patches and other major contributions
 to the program :
 
+Lonnie Abelbeck <lonnie@abelbeck.com>
+    Patch to add tab-completion to chronyc
+
 Benny Lyne Amorsen <benny@amorsen.dk>
     Patch to add minstratum option
 
