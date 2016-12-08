@@ -80,9 +80,8 @@ For better control, use the options below.
   --disable-readline     Disable line editing support
   --without-readline     Don't use GNU readline even if it is available
   --without-editline     Don't use editline even if it is available
-  --readline-dir=DIR     Specify parent of readline include and lib directories
-  --readline-inc-dir=DIR Specify where readline include directory is
-  --readline-lib-dir=DIR Specify where readline lib directory is
+  --with-readline-includes=DIR Specify where readline include directory is
+  --with-readline-library=DIR Specify where readline lib directory is
   --with-ncurses-library=DIR Specify where ncurses lib directory is
   --disable-sechash      Disable support for hashes other than MD5
   --without-nss          Don't use NSS even if it is available
