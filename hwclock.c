@@ -112,7 +112,7 @@ int
 HCL_NeedsNewSample(HCL_Instance clock, struct timespec *now)
 {
   if (!clock->n_samples ||
-      fabs(UTI_DiffTimespecsToDouble(now, &clock->local_ref) >= MIN_SAMPLE_SEPARATION))
+      fabs(UTI_DiffTimespecsToDouble(now, &clock->local_ref)) >= MIN_SAMPLE_SEPARATION)
     return 1;
 
   return 0;
