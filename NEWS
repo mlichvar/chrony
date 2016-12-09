@@ -1,3 +1,29 @@
+New in version 3.0
+==================
+
+Enhancements
+------------
+* Add support for software and hardware timestamping on Linux
+* Add support for client/server and symmetric interleaved modes
+* Add support for MS-SNTP authentication in Samba
+* Add support for truncated MACs in NTPv4 packets
+* Estimate and correct for asymmetric network jitter
+* Increase default minsamples and polltarget to improve stability
+  with very low jitter
+* Add maxjitter directive to limit source selection by jitter
+* Add offset option to server/pool/peer directive
+* Add maxlockage option to refclock directive
+* Add -t option to chronyd to exit after specified time
+* Add partial protection against replay attacks on symmetric mode
+* Don't reset polling interval when switching sources to online state
+* Improve maximum server throughput on Linux and NetBSD
+* Remove dump files after start
+* Add tab-completion to chronyc with libedit/readline
+* Add ntpdata command to print details about NTP measurements
+* Indicate truncated addresses/hostnames in chronyc output
+* Print reference IDs as hexadecimal numbers to avoid confusion with
+  IPv4 addresses
+
 New in version 2.4.1
 ====================
 
