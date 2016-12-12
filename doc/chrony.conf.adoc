@@ -110,7 +110,8 @@ round-trip delay of 0.3 seconds or more should be ignored. The default value is
 This option is similar to the maxdelay option above. *chronyd* keeps a record
 of the minimum round-trip delay amongst the previous measurements that it has
 buffered. If a measurement has a round trip delay that is greater than the
-maxdelayratio times the minimum delay, it will be rejected.
+maxdelayratio times the minimum delay, it will be rejected. This option works
+only in the *server* directive when not in the interleaved mode.
 *maxdelaydevratio* _ratio_:::
 If a measurement has a ratio of the increase in the round-trip delay from the
 minimum delay amongst the previous measurements to the standard deviation of
