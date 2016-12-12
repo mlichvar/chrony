@@ -42,6 +42,7 @@
 #include "privops.h"
 #include "refclock.h"
 #include "sched.h"
+#include "util.h"
 
 #ifndef FEAT_ASYNCDNS
 
@@ -51,10 +52,11 @@ struct DNS_Async_Instance {
   const char *name;
   DNS_NameResolveHandler handler;
   void *arg;
+  int pipe[2];
 };
 
 static void
-resolve_name(void *anything)
+resolve_name(int fd, int event, void *anything)
 {
   struct DNS_Async_Instance *inst;
   IPAddr addrs[DNS_MAX_ADDRESSES];
@@ -62,6 +64,11 @@ resolve_name(void *anything)
   int i;
 
   inst = (struct DNS_Async_Instance *)anything;
+
+  SCH_RemoveFileHandler(inst->pipe[0]);
+  close(inst->pipe[0]);
+  close(inst->pipe[1]);
+
   status = PRV_Name2IPAddress(inst->name, addrs, DNS_MAX_ADDRESSES);
 
   for (i = 0; status == DNS_Success && i < DNS_MAX_ADDRESSES &&
@@ -83,7 +90,16 @@ DNS_Name2IPAddressAsync(const char *name, DNS_NameResolveHandler handler, void *
   inst->handler = handler;
   inst->arg = anything;
 
-  SCH_AddTimeoutByDelay(0.0, resolve_name, inst);
+  if (pipe(inst->pipe))
+    LOG_FATAL(LOGF_Nameserv, "pipe() failed");
+
+  UTI_FdSetCloexec(inst->pipe[0]);
+  UTI_FdSetCloexec(inst->pipe[1]);
+
+  SCH_AddFileHandler(inst->pipe[0], SCH_FILE_INPUT, resolve_name, inst);
+
+  if (write(inst->pipe[1], "", 1) < 0)
+    ;
 }
 
 #endif /* !FEAT_ASYNCDNS */
