@@ -113,6 +113,9 @@ DNS_Name2IPAddressAsync(const char *name, DNS_NameResolveHandler handler, void *
     LOG_FATAL(LOGF_Nameserv, "pipe() failed");
   }
 
+  UTI_FdSetCloexec(inst->pipe[0]);
+  UTI_FdSetCloexec(inst->pipe[1]);
+
   resolving_threads++;
   assert(resolving_threads <= 1);
 
