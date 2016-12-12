@@ -844,6 +844,8 @@ SST_SaveToFile(SST_Stats inst, FILE *out)
             inst->strata[j]);
 
   }
+
+  fprintf(out, "%d\n", inst->asymmetry_run);
 }
 
 /* ================================================== */
@@ -898,6 +900,10 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
         UTI_NormaliseTimespec(&inst->sample_times[i]);
       }
     }
+
+    /* This field was not saved in older versions */
+    if (!fgets(line, sizeof(line), in) || sscanf(line, "%d\n", &inst->asymmetry_run) != 1)
+      inst->asymmetry_run = 0;
   } else {
     inst->n_samples = 0; /* Load abandoned if any sign of corruption */
     return 0;
