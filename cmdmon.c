@@ -1232,6 +1232,7 @@ handle_ntp_data(CMD_Request *rx_message, CMD_Reply *tx_message)
   tx_message->data.ntp_data.total_tx_count = htonl(report.total_tx_count);
   tx_message->data.ntp_data.total_rx_count = htonl(report.total_rx_count);
   tx_message->data.ntp_data.total_valid_count = htonl(report.total_valid_count);
+  memset(tx_message->data.ntp_data.reserved, 0xff, sizeof (tx_message->data.ntp_data.reserved));
 }
 
 /* ================================================== */
