@@ -362,8 +362,8 @@ typedef struct {
    domain socket.
 
    Version 6 (no authentication) : changed format of client accesses by index
-   (using new request/reply types), new flags in NTP source request and report,
-   new commands: refresh, serverstats
+   (using new request/reply types), new fields and flags in NTP source request
+   and report, new commands: ntpdata, refresh, serverstats
  */
 
 #define PROTO_VERSION_NUMBER 6
