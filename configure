@@ -219,6 +219,7 @@ try_lockmem=0
 feat_asyncdns=1
 feat_forcednsretry=1
 try_clock_gettime=1
+try_recvmmsg=1
 feat_timestamping=1
 try_timestamping=0
 feat_ntp_signd=0
@@ -400,6 +401,9 @@ case $OPERATINGSYSTEM in
         echo "Configuring for " $SYSTEM
     ;;
     FreeBSD)
+        # recvmmsg() seems to be broken on FreeBSD 11.0 and it's just
+        # a wrapper around recvmsg()
+        try_recvmmsg=0
         EXTRA_OBJECTS="sys_generic.o sys_netbsd.o sys_timex.o"
         add_def FREEBSD
         if [ $feat_droproot = "1" ]; then
@@ -629,14 +633,16 @@ fi
 RECVMMSG_CODE='
   struct mmsghdr hdr;
   return !recvmmsg(0, &hdr, 1, MSG_DONTWAIT, 0);'
-if test_code 'recvmmsg()' 'sys/socket.h' '' "$EXTRA_LIBS" "$RECVMMSG_CODE"; then
-  add_def HAVE_RECVMMSG
-else
-  if test_code 'recvmmsg() with _GNU_SOURCE' 'sys/socket.h' '-D_GNU_SOURCE' \
-    "$EXTRA_LIBS" "$RECVMMSG_CODE"
-  then
-    add_def _GNU_SOURCE
+if [ $try_recvmmsg = "1" ]; then
+  if test_code 'recvmmsg()' 'sys/socket.h' '' "$EXTRA_LIBS" "$RECVMMSG_CODE"; then
     add_def HAVE_RECVMMSG
+  else
+    if test_code 'recvmmsg() with _GNU_SOURCE' 'sys/socket.h' '-D_GNU_SOURCE' \
+      "$EXTRA_LIBS" "$RECVMMSG_CODE"
+    then
+      add_def _GNU_SOURCE
+      add_def HAVE_RECVMMSG
+    fi
   fi
 fi
 
