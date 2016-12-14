@@ -454,8 +454,8 @@ Leap status     : Normal
 Version         : 4
 Mode            : Server
 Stratum         : 1
-Poll            : 10
-Precision       : 0.000000060 seconds
+Poll interval   : 10 (1024 seconds)
+Precision       : -24 (0.000000060 seconds)
 Root delay      : 0.000015 seconds
 Root dispersion : 0.000015 seconds
 Reference ID    : 50505331
@@ -489,7 +489,7 @@ reference ID.
 *Version*:::
 *Mode*:::
 *Stratum*:::
-*Poll*:::
+*Poll interval*:::
 *Precision*:::
 *Root delay*:::
 *Root dispersion*:::

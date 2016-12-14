@@ -2297,8 +2297,8 @@ process_cmd_ntpdata(char *line)
                  "Version         : %u\n"
                  "Mode            : %M\n"
                  "Stratum         : %u\n"
-                 "Poll            : %d\n"
-                 "Precision       : %.9f seconds\n"
+                 "Poll interval   : %d (%.0f seconds)\n"
+                 "Precision       : %d (%.9f seconds)\n"
                  "Root delay      : %.6f seconds\n"
                  "Root dispersion : %.6f seconds\n"
                  "Reference ID    : %R\n"
@@ -2321,7 +2321,8 @@ process_cmd_ntpdata(char *line)
                  UTI_IPToString(&local_addr), (unsigned long)UTI_IPToRefid(&local_addr),
                  reply.data.ntp_data.leap, reply.data.ntp_data.version,
                  reply.data.ntp_data.mode, reply.data.ntp_data.stratum,
-                 reply.data.ntp_data.poll, UTI_Log2ToDouble(reply.data.ntp_data.precision),
+                 reply.data.ntp_data.poll, UTI_Log2ToDouble(reply.data.ntp_data.poll),
+                 reply.data.ntp_data.precision, UTI_Log2ToDouble(reply.data.ntp_data.precision),
                  UTI_FloatNetworkToHost(reply.data.ntp_data.root_delay),
                  UTI_FloatNetworkToHost(reply.data.ntp_data.root_dispersion),
                  (unsigned long)ntohl(reply.data.ntp_data.ref_id), &ref_time,
