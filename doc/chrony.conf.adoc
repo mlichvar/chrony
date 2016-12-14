@@ -1238,7 +1238,9 @@ in any order):
 *interval*:::
 This option sets the minimum interval between responses. It is defined as a
 power of 2 in seconds. The default value is 3 (8 seconds). The minimum value
-is -4 and the maximum value is 12.
+is -19 and the maximum value is 12. Note that with values below -4 the rate
+limiting is coarse (responses are allowed in bursts, even if the interval
+between them is shorter than the specified interval).
 *burst*:::
 This option sets the maximum number of responses that can be sent in a burst,
 temporarily exceeding the limit specified by the *interval* option. This is

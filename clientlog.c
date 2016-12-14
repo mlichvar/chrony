@@ -95,7 +95,7 @@ static unsigned int max_slots;
    number of tokens spent on response are determined from configured
    minimum inverval between responses (in log2) and burst length. */
 
-#define MIN_LIMIT_INTERVAL (-TS_FRAC)
+#define MIN_LIMIT_INTERVAL (-15 - TS_FRAC)
 #define MAX_LIMIT_INTERVAL 12
 #define MIN_LIMIT_BURST 1
 #define MAX_LIMIT_BURST 255
@@ -105,7 +105,8 @@ static uint16_t max_cmd_tokens;
 static uint16_t ntp_tokens_per_packet;
 static uint16_t cmd_tokens_per_packet;
 
-/* Reduction of token rates to avoid overflow of 16-bit counters */
+/* Reduction of token rates to avoid overflow of 16-bit counters.  Negative
+   shift is used for coarse limiting with intervals shorter than -TS_FRAC. */
 static int ntp_token_shift;
 static int cmd_token_shift;
 
@@ -271,10 +272,17 @@ set_bucket_params(int interval, int burst, uint16_t *max_tokens,
   interval = CLAMP(MIN_LIMIT_INTERVAL, interval, MAX_LIMIT_INTERVAL);
   burst = CLAMP(MIN_LIMIT_BURST, burst, MAX_LIMIT_BURST);
 
-  /* Find smallest shift with which the maximum number fits in 16 bits */
-  for (*token_shift = 0; *token_shift < interval + TS_FRAC; (*token_shift)++) {
-    if (burst << (TS_FRAC + interval - *token_shift) < 1U << 16)
-      break;
+  if (interval >= -TS_FRAC) {
+    /* Find the smallest shift with which the maximum number fits in 16 bits */
+    for (*token_shift = 0; *token_shift < interval + TS_FRAC; (*token_shift)++) {
+      if (burst << (TS_FRAC + interval - *token_shift) < 1U << 16)
+        break;
+    }
+  } else {
+    /* Coarse rate limiting */
+    *token_shift = interval + TS_FRAC;
+    *tokens_per_packet = 1;
+    burst = MAX(1U << -*token_shift, burst);
   }
 
   *tokens_per_packet = 1U << (TS_FRAC + interval - *token_shift);
@@ -369,7 +377,12 @@ update_record(struct timespec *now, uint32_t *last_hit, uint32_t *hits,
   if (prev_hit == INVALID_TS || (int32_t)interval < 0)
     return;
 
-  new_tokens = (now_ts >> token_shift) - (prev_hit >> token_shift);
+  if (token_shift >= 0)
+    new_tokens = (now_ts >> token_shift) - (prev_hit >> token_shift);
+  else if (now_ts - prev_hit > max_tokens)
+    new_tokens = max_tokens;
+  else
+    new_tokens = (now_ts - prev_hit) << -token_shift;
   *tokens = MIN(*tokens + new_tokens, max_tokens);
 
   /* Convert the interval to scaled and rounded log2 */
