@@ -47,8 +47,9 @@
    2000ppm, which would be pretty bad */
 #define WORST_CASE_FREQ_BOUND (2000.0/1.0e6)
 
-/* The minimum allowed skew */
+/* The minimum and maximum assumed skew */
 #define MIN_SKEW 1.0e-12
+#define MAX_SKEW 1.0e+02
 
 /* The minimum assumed std dev for weighting */
 #define MIN_WEIGHT_SD 1.0e-9
@@ -541,9 +542,7 @@ SST_DoNewRegression(SST_Stats inst)
     inst->std_dev = sqrt(est_var);
     inst->nruns = nruns;
 
-    if (inst->skew < MIN_SKEW)
-      inst->skew = MIN_SKEW;
-
+    inst->skew = CLAMP(MIN_SKEW, inst->skew, MAX_SKEW);
     stress = fabs(old_freq - inst->estimated_frequency) / old_skew;
 
     DEBUG_LOG(LOGF_SourceStats, "off=%e freq=%e skew=%e n=%d bs=%d runs=%d asym=%f arun=%d",
