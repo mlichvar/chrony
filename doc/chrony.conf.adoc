@@ -1780,10 +1780,11 @@ received from the specified network interface. The network interface controller
 receptions, avoiding processing and queueing delays in the kernel, network
 driver, and hardware. This can significantly improve the accuracy of the
 timestamps and the measured offset, which is used for synchronisation of the
-system clock. In order to get best results, it is necessary to enable HW
-timestamping on both sides receiving and sending the packets (i.e. server and
-client, or both peers), and also enable the interleaved mode with the *xleave*
-option in the <<server,*server*>> or the <<peer,*peer*>> directive.
+system clock. In order to get the best results, both sides receiving and
+sending NTP packets (i.e. server and client, or two peers) need to use HW
+timestamping. If the server or peer supports the interleaved mode, it needs to
+be enabled by the *xleave* option in the <<server,*server*>> or the
+<<peer,*peer*>> directive.
 +
 This directive is supported on Linux 3.19 and newer. The NIC must support HW
 timestamping, which can be verified with the *ethtool -T* command. The list of
