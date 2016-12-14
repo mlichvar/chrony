@@ -1191,7 +1191,7 @@ give_help(void)
     "\0\0"
     "NTP sources:\0\0"
     "activity\0Check how many NTP sources are online/offline\0"
-    "ntpdata <address>\0Display information about last valid measurement\0"
+    "ntpdata [<address>]\0Display information about last valid measurement\0"
     "add server <address> [options]\0Add new NTP server\0"
     "add peer <address> [options]\0Add new NTP peer\0"
     "delete <address>\0Remove server or peer\0"
@@ -2244,71 +2244,103 @@ process_cmd_ntpdata(char *line)
   CMD_Reply reply;
   IPAddr remote_addr, local_addr;
   struct timespec ref_time;
+  uint32_t i, n_sources;
+  uint16_t mode;
+  int specified_addr;
 
-  if (DNS_Name2IPAddress(line, &remote_addr, 1) != DNS_Success) {
-    LOG(LOGS_ERR, LOGF_Client, "Could not get address for hostname");
-    return 0;
+  if (*line) {
+    specified_addr = 1;
+    n_sources = 1;
+  } else {
+    specified_addr = 0;
+    request.command = htons(REQ_N_SOURCES);
+    if (!request_reply(&request, &reply, RPY_N_SOURCES, 0))
+      return 0;
+    n_sources = ntohl(reply.data.n_sources.n_sources);
   }
 
-  request.command = htons(REQ_NTP_DATA);
-  UTI_IPHostToNetwork(&remote_addr, &request.data.ntp_data.ip_addr);
-  if (!request_reply(&request, &reply, RPY_NTP_DATA, 0))
-    return 0;
+  for (i = 0; i < n_sources; i++) {
+    if (specified_addr) {
+      if (DNS_Name2IPAddress(line, &remote_addr, 1) != DNS_Success) {
+        LOG(LOGS_ERR, LOGF_Client, "Could not get address for hostname");
+        return 0;
+      }
+    } else {
+      request.command = htons(REQ_SOURCE_DATA);
+      request.data.source_data.index = htonl(i);
+      if (!request_reply(&request, &reply, RPY_SOURCE_DATA, 0))
+        return 0;
 
-  UTI_IPNetworkToHost(&reply.data.ntp_data.remote_addr, &remote_addr);
-  UTI_IPNetworkToHost(&reply.data.ntp_data.local_addr, &local_addr);
-  UTI_TimespecNetworkToHost(&reply.data.ntp_data.ref_time, &ref_time);
+      mode = ntohs(reply.data.source_data.mode);
+      if (mode != RPY_SD_MD_CLIENT && mode != RPY_SD_MD_PEER)
+        continue;
 
-  print_report("Remote address  : %s (%R)\n"
-               "Remote port     : %u\n"
-               "Local address   : %s (%R)\n"
-               "Leap status     : %L\n"
-               "Version         : %u\n"
-               "Mode            : %M\n"
-               "Stratum         : %u\n"
-               "Poll            : %d\n"
-               "Precision       : %.9f seconds\n"
-               "Root delay      : %.6f seconds\n"
-               "Root dispersion : %.6f seconds\n"
-               "Reference ID    : %R\n"
-               "Reference time  : %T\n"
-               "Offset          : %+.9f seconds\n"
-               "Peer delay      : %.9f seconds\n"
-               "Peer dispersion : %.9f seconds\n"
-               "Response time   : %.9f seconds\n"
-               "Jitter asymmetry: %+.2f\n"
-               "NTP tests       : %.3b %.3b %.4b\n"
-               "Interleaved     : %B\n"
-               "Authenticated   : %B\n"
-               "TX timestamping : %N\n"
-               "RX timestamping : %N\n"
-               "Total TX        : %U\n"
-               "Total RX        : %U\n"
-               "Total valid RX  : %U\n",
-               UTI_IPToString(&remote_addr), (unsigned long)UTI_IPToRefid(&remote_addr),
-               ntohs(reply.data.ntp_data.remote_port),
-               UTI_IPToString(&local_addr), (unsigned long)UTI_IPToRefid(&local_addr),
-               reply.data.ntp_data.leap, reply.data.ntp_data.version,
-               reply.data.ntp_data.mode, reply.data.ntp_data.stratum,
-               reply.data.ntp_data.poll, UTI_Log2ToDouble(reply.data.ntp_data.precision),
-               UTI_FloatNetworkToHost(reply.data.ntp_data.root_delay),
-               UTI_FloatNetworkToHost(reply.data.ntp_data.root_dispersion),
-               (unsigned long)ntohl(reply.data.ntp_data.ref_id), &ref_time,
-               UTI_FloatNetworkToHost(reply.data.ntp_data.offset),
-               UTI_FloatNetworkToHost(reply.data.ntp_data.peer_delay),
-               UTI_FloatNetworkToHost(reply.data.ntp_data.peer_dispersion),
-               UTI_FloatNetworkToHost(reply.data.ntp_data.response_time),
-               UTI_FloatNetworkToHost(reply.data.ntp_data.jitter_asymmetry),
-               ntohs(reply.data.ntp_data.flags) >> 7,
-               ntohs(reply.data.ntp_data.flags) >> 4,
-               ntohs(reply.data.ntp_data.flags),
-               ntohs(reply.data.ntp_data.flags) & RPY_NTP_FLAG_INTERLEAVED,
-               ntohs(reply.data.ntp_data.flags) & RPY_NTP_FLAG_AUTHENTICATED,
-               reply.data.ntp_data.tx_tss_char, reply.data.ntp_data.rx_tss_char,
-               (unsigned long)ntohl(reply.data.ntp_data.total_tx_count),
-               (unsigned long)ntohl(reply.data.ntp_data.total_rx_count),
-               (unsigned long)ntohl(reply.data.ntp_data.total_valid_count),
-               REPORT_END);
+      UTI_IPNetworkToHost(&reply.data.source_data.ip_addr, &remote_addr);
+    }
+
+    request.command = htons(REQ_NTP_DATA);
+    UTI_IPHostToNetwork(&remote_addr, &request.data.ntp_data.ip_addr);
+    if (!request_reply(&request, &reply, RPY_NTP_DATA, 0))
+      return 0;
+
+    UTI_IPNetworkToHost(&reply.data.ntp_data.remote_addr, &remote_addr);
+    UTI_IPNetworkToHost(&reply.data.ntp_data.local_addr, &local_addr);
+    UTI_TimespecNetworkToHost(&reply.data.ntp_data.ref_time, &ref_time);
+
+    if (!specified_addr && !csv_mode)
+      printf("\n");
+
+    print_report("Remote address  : %s (%R)\n"
+                 "Remote port     : %u\n"
+                 "Local address   : %s (%R)\n"
+                 "Leap status     : %L\n"
+                 "Version         : %u\n"
+                 "Mode            : %M\n"
+                 "Stratum         : %u\n"
+                 "Poll            : %d\n"
+                 "Precision       : %.9f seconds\n"
+                 "Root delay      : %.6f seconds\n"
+                 "Root dispersion : %.6f seconds\n"
+                 "Reference ID    : %R\n"
+                 "Reference time  : %T\n"
+                 "Offset          : %+.9f seconds\n"
+                 "Peer delay      : %.9f seconds\n"
+                 "Peer dispersion : %.9f seconds\n"
+                 "Response time   : %.9f seconds\n"
+                 "Jitter asymmetry: %+.2f\n"
+                 "NTP tests       : %.3b %.3b %.4b\n"
+                 "Interleaved     : %B\n"
+                 "Authenticated   : %B\n"
+                 "TX timestamping : %N\n"
+                 "RX timestamping : %N\n"
+                 "Total TX        : %U\n"
+                 "Total RX        : %U\n"
+                 "Total valid RX  : %U\n",
+                 UTI_IPToString(&remote_addr), (unsigned long)UTI_IPToRefid(&remote_addr),
+                 ntohs(reply.data.ntp_data.remote_port),
+                 UTI_IPToString(&local_addr), (unsigned long)UTI_IPToRefid(&local_addr),
+                 reply.data.ntp_data.leap, reply.data.ntp_data.version,
+                 reply.data.ntp_data.mode, reply.data.ntp_data.stratum,
+                 reply.data.ntp_data.poll, UTI_Log2ToDouble(reply.data.ntp_data.precision),
+                 UTI_FloatNetworkToHost(reply.data.ntp_data.root_delay),
+                 UTI_FloatNetworkToHost(reply.data.ntp_data.root_dispersion),
+                 (unsigned long)ntohl(reply.data.ntp_data.ref_id), &ref_time,
+                 UTI_FloatNetworkToHost(reply.data.ntp_data.offset),
+                 UTI_FloatNetworkToHost(reply.data.ntp_data.peer_delay),
+                 UTI_FloatNetworkToHost(reply.data.ntp_data.peer_dispersion),
+                 UTI_FloatNetworkToHost(reply.data.ntp_data.response_time),
+                 UTI_FloatNetworkToHost(reply.data.ntp_data.jitter_asymmetry),
+                 ntohs(reply.data.ntp_data.flags) >> 7,
+                 ntohs(reply.data.ntp_data.flags) >> 4,
+                 ntohs(reply.data.ntp_data.flags),
+                 ntohs(reply.data.ntp_data.flags) & RPY_NTP_FLAG_INTERLEAVED,
+                 ntohs(reply.data.ntp_data.flags) & RPY_NTP_FLAG_AUTHENTICATED,
+                 reply.data.ntp_data.tx_tss_char, reply.data.ntp_data.rx_tss_char,
+                 (unsigned long)ntohl(reply.data.ntp_data.total_tx_count),
+                 (unsigned long)ntohl(reply.data.ntp_data.total_rx_count),
+                 (unsigned long)ntohl(reply.data.ntp_data.total_valid_count),
+                 REPORT_END);
+  }
 
   return 1;
 }
