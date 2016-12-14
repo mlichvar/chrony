@@ -28,6 +28,7 @@
 
 #include "sysincl.h"
 
+#include <ifaddrs.h>
 #include <linux/errqueue.h>
 #include <linux/ethtool.h>
 #include <linux/net_tstamp.h>
@@ -90,8 +91,15 @@ add_interface(const char *name)
   struct hwtstamp_config ts_config;
   struct ifreq req;
   int sock_fd, if_index, phc_index, phc_fd;
+  unsigned int i;
   struct Interface *iface;
   char phc_path[64];
+
+  /* Check if the interface was not already added */
+  for (i = 0; i < ARR_GetSize(interfaces); i++) {
+    if (!strcmp(name, ((struct Interface *)ARR_GetElement(interfaces, i))->name))
+      return 1;
+  }
 
   sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock_fd < 0)
@@ -160,7 +168,33 @@ add_interface(const char *name)
 
   iface->clock = HCL_CreateInstance();
 
+  DEBUG_LOG(LOGF_NtpIOLinux, "Enabled HW timestamping on %s", name);
+
   return 1;
+}
+
+/* ================================================== */
+
+static int
+add_all_interfaces(void)
+{
+  struct ifaddrs *ifaddr, *ifa;
+  int r;
+
+  if (getifaddrs(&ifaddr)) {
+    DEBUG_LOG(LOGF_NtpIOLinux, "getifaddrs() failed : %s", strerror(errno));
+    return 0;
+  }
+
+  for (r = 0, ifa = ifaddr; ifa; ifa = ifa->ifa_next) {
+    if (add_interface(ifa->ifa_name))
+      r = 1;
+  }
+  
+  freeifaddrs(ifaddr);
+
+  /* Return success if at least one interface was added */
+  return r;
 }
 
 /* ================================================== */
@@ -202,19 +236,34 @@ NIO_Linux_Initialise(void)
   ARR_Instance config_hwts_ifaces;
   char *if_name;
   unsigned int i;
+  int wildcard, hwts;
 
   interfaces = ARR_CreateInstance(sizeof (struct Interface));
 
   config_hwts_ifaces = CNF_GetHwTsInterfaces();
 
-  /* Enable HW timestamping on all specified interfaces.  If no interface was
-     specified, use SW timestamping. */
-  if (ARR_GetSize(config_hwts_ifaces)) {
+  /* Enable HW timestamping on specified interfaces.  If "*" was specified, try
+     all interfaces.  If no interface was specified, enable SW timestamping. */
+
+  for (i = wildcard = 0; i < ARR_GetSize(config_hwts_ifaces); i++) {
+    if (!strcmp("*", *(char **)ARR_GetElement(config_hwts_ifaces, i)))
+      wildcard = 1;
+  }
+
+  if (!wildcard && ARR_GetSize(config_hwts_ifaces)) {
     for (i = 0; i < ARR_GetSize(config_hwts_ifaces); i++) {
       if_name = *(char **)ARR_GetElement(config_hwts_ifaces, i);
       if (!add_interface(if_name))
         LOG_FATAL(LOGF_NtpIO, "Could not enable HW timestamping on %s", if_name);
     }
+    hwts = 1;
+  } else if (wildcard && add_all_interfaces()) {
+    hwts = 1;
+  } else {
+    hwts = 0;
+  }
+
+  if (hwts) {
     ts_flags = SOF_TIMESTAMPING_RAW_HARDWARE | SOF_TIMESTAMPING_RX_HARDWARE;
     ts_tx_flags = SOF_TIMESTAMPING_TX_HARDWARE;
   } else {

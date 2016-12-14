@@ -1800,6 +1800,9 @@ interfaces. The timestamping used in measurements is indicated in the
 _measurements.log_ file if enabled by the <<log,*log measurements*>> directive,
 and the <<chronyc.adoc#ntpdata,*ntpdata*>> report in *chronyc*.
 +
+If the specified interface is _*_, *chronyd* will try to enable HW timestamping
+on all available interfaces.
++
 An example of the directive is:
 +
 ----
