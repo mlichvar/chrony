@@ -1221,8 +1221,8 @@ source port used in NTP client requests can be set by the
 <<acquisitionport,*acquisitionport*>> directive.
 
 [[ratelimit]]*ratelimit* [_option_]...::
-This directive enables response rate limiting for NTP packets. Its purpose is
-to reduce network traffic with misconfigured or broken NTP clients that are
+This directive configures response rate limiting for NTP packets. Its purpose
+is to reduce network traffic with misconfigured or broken NTP clients that are
 polling the server too frequently. The limits are applied to individual IP
 addresses. If multiple clients share one IP address (e.g. multiple hosts behind
 NAT), the sum of their traffic will be limited. If a client that increases its
@@ -1237,35 +1237,40 @@ in any order):
 +
 *interval*:::
 This option sets the minimum interval between responses. It is defined as a
-power of 2 in seconds. The default value is 3 (8 seconds). The minimum value
-is -19 and the maximum value is 12. Note that with values below -4 the rate
-limiting is coarse (responses are allowed in bursts, even if the interval
-between them is shorter than the specified interval).
+power of 2 in seconds. The default value is -10 (1/1024 of a second, or 1024
+packets per second). The minimum value is -19 (524288 packets per second) and
+the maximum value is 12 (one packet per 4096 seconds). Note that with values
+below -4 the rate limiting is coarse (responses are allowed in bursts, even if
+the interval between them is shorter than the specified interval).
 *burst*:::
 This option sets the maximum number of responses that can be sent in a burst,
 temporarily exceeding the limit specified by the *interval* option. This is
 useful for clients that make rapid measurements on start (e.g. *chronyd* with
-the *iburst* option). The default value is 8. The minimum value is 1 and the
+the *iburst* option). The default value is 16. The minimum value is 1 and the
 maximum value is 255.
 *leak*:::
 This option sets the rate at which responses are randomly allowed even if the
 limits specified by the *interval* and *burst* options are exceeded. This is
 necessary to prevent an attacker who is sending requests with a spoofed
 source address from completely blocking responses to that address. The leak
-rate is defined as a power of 1/2 and it is 3 by default, i.e. on average at
-least every eighth request has a response. The minimum value is 1 and the
-maximum value is 4.
+rate is defined as a power of 1/2 and it is 2 by default, i.e. on average at
+least every fourth request has a response. The minimum value is 0, which
+disables the rate limiting, and the maximum value is 4 (one response per 16
+requests).
 ::
 +
 An example use of the directive is:
 +
 ----
-ratelimit interval 4 burst 4
+ratelimit interval 1 burst 8
 ----
 +
-This would reduce the response rate for IP addresses that send packets on
-average more frequently than once per 16 seconds or send packets in bursts
-of more than 4 packets.
+This would reduce the response rate for IP addresses sending packets on average
+more than once per 2 seconds, or sending packets in bursts of more than 8
+packets, by up to 75% (with default *leak* of 2).
++
+Rate limiting can be disabled by setting the *leak* option to 0, or by the
+<<noclientlog,*noclientlog*>> directive.
 
 [[smoothtime]]*smoothtime* _max-freq_ _max-wander_ [*leaponly*]::
 The *smoothtime* directive can be used to enable smoothing of the time that
@@ -1392,16 +1397,18 @@ This would make *chronyd* use UDP 257 as its command port. (*chronyc* would
 need to be run with the *-p 257* switch to inter-operate correctly.)
 
 [[cmdratelimit]]*cmdratelimit* [_option_]...::
-This directive enables response rate limiting for command packets. It is
-similar to the <<ratelimit,*ratelimit*>> directive, except responses to
-localhost are never limited and the default interval is 1 (2 seconds), the default
-burst is 16, and the default leak rate is 2.
+This directive is identical to the <<ratelimit,*ratelimit*>> directive, except
+it configures rate limiting for command packets and responses to localhost are
+never limited. It is disabled by default (the default *leak* is 0).
 +
 An example of the use of the directive is:
 +
 ----
-cmdratelimit interval 2
+cmdratelimit interval -2 burst 128 leak 2
 ----
++
+This would reduce response rate for addresses that send more than 4 requests
+per second, or bursts of more than 128 packets, by up to 75%.
 
 === Real-time clock (RTC)
 
@@ -2220,7 +2227,7 @@ http://www.pool.ntp.org/en/join.html[pool.ntp.org] project. The configuration
 is similar to the NTP client with permanent connection, except it needs to
 allow client access from all addresses. It is recommended to handpick at least
 few good servers, and possibly combine them with a random selection of other
-servers in the pool. Rate limiting can be enabled to not waste too much
+servers in the pool. The rate limiting interval can be increased to save more
 bandwidth on misconfigured and broken NTP clients. The *-r* option with the
 *dumpdir* directive shortens the time for which *chronyd* will not serve time
 to its clients when it needs to be restarted for any reason.
@@ -2235,7 +2242,7 @@ pool pool.ntp.org iburst
 makestep 1.0 3
 rtcsync
 allow
-ratelimit interval 2 burst 10
+ratelimit interval 1
 driftfile @CHRONYVARDIR@/drift
 dumpdir @CHRONYRUNDIR@
 dumponexit

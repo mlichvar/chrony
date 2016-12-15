@@ -119,7 +119,7 @@ static int cmd_token_shift;
    prevent an attacker sending requests with spoofed source address
    from blocking responses to the address completely. */
 
-#define MIN_LEAK_RATE 1
+#define MIN_LEAK_RATE 0
 #define MAX_LEAK_RATE 4
 
 static int ntp_leak_rate;
@@ -305,29 +305,19 @@ CLG_Initialise(void)
 {
   int interval, burst, leak_rate;
 
-  max_ntp_tokens = max_cmd_tokens = 0;
-  ntp_tokens_per_packet = cmd_tokens_per_packet = 0;
-  ntp_token_shift = cmd_token_shift = 0;
-  ntp_leak_rate = cmd_leak_rate = 0;
+  CNF_GetNTPRateLimit(&interval, &burst, &leak_rate);
+  set_bucket_params(interval, burst, &max_ntp_tokens, &ntp_tokens_per_packet,
+                    &ntp_token_shift);
+  ntp_leak_rate = CLAMP(MIN_LEAK_RATE, leak_rate, MAX_LEAK_RATE);
 
-  if (CNF_GetNTPRateLimit(&interval, &burst, &leak_rate)) {
-    set_bucket_params(interval, burst, &max_ntp_tokens, &ntp_tokens_per_packet,
-                      &ntp_token_shift);
-    ntp_leak_rate = CLAMP(MIN_LEAK_RATE, leak_rate, MAX_LEAK_RATE);
-  }
-
-  if (CNF_GetCommandRateLimit(&interval, &burst, &leak_rate)) {
-    set_bucket_params(interval, burst, &max_cmd_tokens, &cmd_tokens_per_packet,
-                      &cmd_token_shift);
-    cmd_leak_rate = CLAMP(MIN_LEAK_RATE, leak_rate, MAX_LEAK_RATE);
-  }
+  CNF_GetCommandRateLimit(&interval, &burst, &leak_rate);
+  set_bucket_params(interval, burst, &max_cmd_tokens, &cmd_tokens_per_packet,
+                    &cmd_token_shift);
+  cmd_leak_rate = CLAMP(MIN_LEAK_RATE, leak_rate, MAX_LEAK_RATE);
 
   active = !CNF_GetNoClientLog();
-  if (!active) {
-    if (ntp_leak_rate || cmd_leak_rate)
-      LOG_FATAL(LOGF_ClientLog, "ratelimit cannot be used with noclientlog");
+  if (!active)
     return;
-  }
 
   /* Calculate the maximum number of slots that can be allocated in the
      configured memory limit.  Take into account expanding of the hash
@@ -530,7 +520,7 @@ CLG_LimitNTPResponseRate(int index)
   Record *record;
   int drop;
 
-  if (!ntp_tokens_per_packet)
+  if (!ntp_leak_rate)
     return 0;
 
   record = ARR_GetElement(records, index);
@@ -571,7 +561,7 @@ CLG_LimitCommandResponseRate(int index)
 {
   Record *record;
 
-  if (!cmd_tokens_per_packet)
+  if (!cmd_leak_rate)
     return 0;
 
   record = ARR_GetElement(records, index);
