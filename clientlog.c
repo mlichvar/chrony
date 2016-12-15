@@ -86,6 +86,10 @@ static unsigned int max_slots;
 #define TS_FRAC 4
 #define INVALID_TS 0
 
+/* Static offset included in conversion to the fixed-point timestamps to
+   randomise their alignment */
+static uint32_t ts_offset;
+
 /* Request rates are saved in the record as 8-bit scaled log2 values */
 #define RATE_SCALE 4
 #define MIN_RATE (-14 * RATE_SCALE)
@@ -133,6 +137,8 @@ static uint32_t total_cmd_hits;
 static uint32_t total_ntp_drops;
 static uint32_t total_cmd_drops;
 static uint32_t total_record_drops;
+
+#define NSEC_PER_SEC 1000000000U
 
 /* ================================================== */
 
@@ -333,6 +339,9 @@ CLG_Initialise(void)
   records = NULL;
 
   expand_hashtable();
+
+  UTI_GetRandomBytes(&ts_offset, sizeof (ts_offset));
+  ts_offset %= NSEC_PER_SEC / (1U << TS_FRAC);
 }
 
 /* ================================================== */
@@ -352,6 +361,12 @@ static uint32_t
 get_ts_from_timespec(struct timespec *ts)
 {
   uint32_t sec = ts->tv_sec, nsec = ts->tv_nsec;
+
+  nsec += ts_offset;
+  if (nsec >= NSEC_PER_SEC) {
+    nsec -= NSEC_PER_SEC;
+    sec++;
+  }
 
   /* This is fast and accurate enough */
   return sec << TS_FRAC | (140740U * (nsec >> 15)) >> (32 - TS_FRAC);
