@@ -16,13 +16,20 @@ Enhancements
 * Add -t option to chronyd to exit after specified time
 * Add partial protection against replay attacks on symmetric mode
 * Don't reset polling interval when switching sources to online state
+* Enable NTP response rate limiting by default
+  (1024 packets per second per IP address and 25% leak)
 * Improve maximum server throughput on Linux and NetBSD
 * Remove dump files after start
 * Add tab-completion to chronyc with libedit/readline
 * Add ntpdata command to print details about NTP measurements
+* Allow all source options to be set in add server/peer command
 * Indicate truncated addresses/hostnames in chronyc output
 * Print reference IDs as hexadecimal numbers to avoid confusion with
   IPv4 addresses
+
+Bug fixes
+---------
+* Fix crash with disabled asynchronous name resolving
 
 New in version 2.4.1
 ====================
