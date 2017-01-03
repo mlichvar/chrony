@@ -194,10 +194,10 @@ static char *pidfile;
 static int ntp_ratelimit_enabled = 0;
 static int ntp_ratelimit_interval = 3;
 static int ntp_ratelimit_burst = 8;
-static int ntp_ratelimit_leak = 3;
+static int ntp_ratelimit_leak = 2;
 static int cmd_ratelimit_enabled = 0;
-static int cmd_ratelimit_interval = 1;
-static int cmd_ratelimit_burst = 16;
+static int cmd_ratelimit_interval = -4;
+static int cmd_ratelimit_burst = 8;
 static int cmd_ratelimit_leak = 2;
 
 /* Smoothing constants */
