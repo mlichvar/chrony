@@ -66,7 +66,8 @@ static void parse_log(char *);
 static void parse_mailonchange(char *);
 static void parse_makestep(char *);
 static void parse_maxchange(char *);
-static void parse_ratelimit(char *line, int *interval, int *burst, int *leak);
+static void parse_ratelimit(char *line, int *enabled, int *interval,
+                            int *burst, int *leak);
 static void parse_refclock(char *);
 static void parse_smoothtime(char *);
 static void parse_source(char *line, NTP_Source_Type type, int pool);
@@ -190,12 +191,14 @@ static char *ntp_signd_socket = NULL;
 static char *pidfile;
 
 /* Rate limiting parameters */
-static int ntp_ratelimit_interval = -10;
-static int ntp_ratelimit_burst = 16;
-static int ntp_ratelimit_leak = 2;
-static int cmd_ratelimit_interval = -10;
+static int ntp_ratelimit_enabled = 0;
+static int ntp_ratelimit_interval = 3;
+static int ntp_ratelimit_burst = 8;
+static int ntp_ratelimit_leak = 3;
+static int cmd_ratelimit_enabled = 0;
+static int cmd_ratelimit_interval = 1;
 static int cmd_ratelimit_burst = 16;
-static int cmd_ratelimit_leak = 0;
+static int cmd_ratelimit_leak = 2;
 
 /* Smoothing constants */
 static double smooth_max_freq = 0.0; /* in ppm */
@@ -452,7 +455,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "cmdport")) {
     parse_int(p, &cmd_port);
   } else if (!strcasecmp(command, "cmdratelimit")) {
-    parse_ratelimit(p, &cmd_ratelimit_interval, &cmd_ratelimit_burst, &cmd_ratelimit_leak);
+    parse_ratelimit(p, &cmd_ratelimit_enabled, &cmd_ratelimit_interval,
+                    &cmd_ratelimit_burst, &cmd_ratelimit_leak);
   } else if (!strcasecmp(command, "combinelimit")) {
     parse_double(p, &combine_limit);
   } else if (!strcasecmp(command, "corrtimeratio")) {
@@ -532,7 +536,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "port")) {
     parse_int(p, &ntp_port);
   } else if (!strcasecmp(command, "ratelimit")) {
-    parse_ratelimit(p, &ntp_ratelimit_interval, &ntp_ratelimit_burst, &ntp_ratelimit_leak);
+    parse_ratelimit(p, &ntp_ratelimit_enabled, &ntp_ratelimit_interval,
+                    &ntp_ratelimit_burst, &ntp_ratelimit_leak);
   } else if (!strcasecmp(command, "refclock")) {
     parse_refclock(p);
   } else if (!strcasecmp(command, "reselectdist")) {
@@ -637,10 +642,12 @@ parse_source(char *line, NTP_Source_Type type, int pool)
 /* ================================================== */
 
 static void
-parse_ratelimit(char *line, int *interval, int *burst, int *leak)
+parse_ratelimit(char *line, int *enabled, int *interval, int *burst, int *leak)
 {
   int n, val;
   char *opt;
+
+  *enabled = 1;
 
   while (*line) {
     opt = line;
@@ -1823,20 +1830,22 @@ CNF_GetLockMemory(void)
 
 /* ================================================== */
 
-void CNF_GetNTPRateLimit(int *interval, int *burst, int *leak)
+int CNF_GetNTPRateLimit(int *interval, int *burst, int *leak)
 {
   *interval = ntp_ratelimit_interval;
   *burst = ntp_ratelimit_burst;
   *leak = ntp_ratelimit_leak;
+  return ntp_ratelimit_enabled;
 }
 
 /* ================================================== */
 
-void CNF_GetCommandRateLimit(int *interval, int *burst, int *leak)
+int CNF_GetCommandRateLimit(int *interval, int *burst, int *leak)
 {
   *interval = cmd_ratelimit_interval;
   *burst = cmd_ratelimit_burst;
   *leak = cmd_ratelimit_leak;
+  return cmd_ratelimit_enabled;
 }
 
 /* ================================================== */
