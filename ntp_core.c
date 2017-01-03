@@ -1412,12 +1412,8 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
       sample_rx_tss = rx_ts->source;
     }
 
-    /* Work out 'delay' relative to the source's time */
-    delay = (1.0 - (source_freq_lo + source_freq_hi) / 2.0) *
-              local_interval - remote_interval;
-
-    /* Clamp delay to avoid misleading results later */
-    delay = fabs(delay);
+    /* Calculate delay */
+    delay = fabs(local_interval - remote_interval);
     if (delay < precision)
       delay = precision;
     
