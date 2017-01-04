@@ -55,6 +55,9 @@ struct HCL_Instance_Record {
   /* Number of samples */
   int n_samples;
 
+  /* Maximum error of the last sample */
+  double last_err;
+
   /* Flag indicating the offset and frequency values are valid */
   int valid_coefs;
 
@@ -151,6 +154,7 @@ HCL_AccumulateSample(HCL_Instance clock, struct timespec *hw_ts,
   clock->n_samples++;
   clock->hw_ref = *hw_ts;
   clock->local_ref = *local_ts;
+  clock->last_err = err;
 
   /* Get new coefficients */
   clock->valid_coefs =
@@ -196,9 +200,9 @@ HCL_CookTime(HCL_Instance clock, struct timespec *raw, struct timespec *cooked, 
   offset = clock->offset + elapsed / clock->frequency;
   UTI_AddDoubleToTimespec(&clock->local_ref, offset, cooked);
 
-  /* Estimation of the error is not implemented yet */
+  /* Fow now, just return the error of the last sample */
   if (err)
-    *err = 0.0;
+    *err = clock->last_err;
 
   return 1;
 }
