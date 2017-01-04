@@ -1435,7 +1435,8 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     skew = (source_freq_hi - source_freq_lo) / 2.0;
     
     /* and then calculate peer dispersion */
-    dispersion = precision + inst->local_tx.err + rx_ts_err + skew * fabs(local_interval);
+    dispersion = MAX(precision, MAX(inst->local_tx.err, rx_ts_err)) +
+                 skew * fabs(local_interval);
     
     /* Additional tests required to pass before accumulating the sample */
 
