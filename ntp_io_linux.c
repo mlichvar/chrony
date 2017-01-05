@@ -72,6 +72,9 @@ struct Interface {
 /* Number of PHC readings per HW clock sample */
 #define PHC_READINGS 10
 
+/* Maximum acceptable offset between HW and daemon/kernel timestamp */
+#define MAX_TS_DELAY 1.0
+
 /* Array of Interfaces */
 static ARR_Instance interfaces;
 
@@ -417,8 +420,8 @@ static void
 process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
                      NTP_Local_Timestamp *local_ts, int rx_ntp_length, int family)
 {
-  struct timespec sample_phc_ts, sample_local_ts;
-  double sample_delay, rx_correction;
+  struct timespec sample_phc_ts, sample_local_ts, ts;
+  double sample_delay, rx_correction, ts_delay, err;
   int l2_length;
 
   if (HCL_NeedsNewSample(iface->clock, &local_ts->ts)) {
@@ -444,9 +447,18 @@ process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
     UTI_AddDoubleToTimespec(hw_ts, rx_correction, hw_ts);
   }
 
-  if (!HCL_CookTime(iface->clock, hw_ts, &local_ts->ts, &local_ts->err))
+  if (!HCL_CookTime(iface->clock, hw_ts, &ts, &err))
     return;
 
+  ts_delay = UTI_DiffTimespecsToDouble(&local_ts->ts, &ts);
+
+  if (fabs(ts_delay) > MAX_TS_DELAY) {
+    DEBUG_LOG(LOGF_NtpIOLinux, "Unacceptable timestamp delay %.9f", ts_delay);
+    return;
+  }
+
+  local_ts->ts = ts;
+  local_ts->err = err;
   local_ts->source = NTP_TS_HARDWARE;
 }
 
