@@ -536,7 +536,7 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
       if (!UTI_IsZeroTimespec(&ts3.ts[0])) {
         LCL_CookTime(&ts3.ts[0], &local_ts->ts, &local_ts->err);
         local_ts->source = NTP_TS_KERNEL;
-      } else {
+      } else if (!UTI_IsZeroTimespec(&ts3.ts[2])) {
         iface = get_interface(if_index);
         if (iface) {
           process_hw_timestamp(iface, &ts3.ts[2], local_ts, !is_tx ? length : 0,
