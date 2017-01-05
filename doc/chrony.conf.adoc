@@ -1776,7 +1776,7 @@ sendmail binary.
 
 === Miscellaneous
 
-[[hwtimestamp]]*hwtimestamp* _interface_::
+[[hwtimestamp]]*hwtimestamp* _interface_ [_option_]...::
 This directive enables hardware timestamping of NTP packets sent to and
 received from the specified network interface. The network interface controller
 (NIC) uses its own clock to accurately timestamp the actual transmissions and
@@ -1807,10 +1807,25 @@ and the <<chronyc.adoc#ntpdata,*ntpdata*>> report in *chronyc*.
 If the specified interface is _*_, *chronyd* will try to enable HW timestamping
 on all available interfaces.
 +
-An example of the directive is:
+The *hwtimestamp* directive has the following options:
++
+*txcomp* _compensation_:::
+This option specifies the difference in seconds between the actual transmission
+time at the physical layer and the reported transmit timestamp. This value will
+be added to transmit timestamps obtained from the NIC. The default value is 0.
+*rxcomp* _compensation_:::
+This option specifies the difference in seconds between the reported receive
+timestamp and the actual reception time at the physical layer. This value will
+be subtracted from receive timestamps obtained from the NIC. The default value
+is 0.
+::
++
+Examples of the directive are:
 +
 ----
 hwtimestamp eth0
+hwtimestamp eth1 txcomp 300e-9 rxcomp 645e-9
+hwtimestamp *
 ----
 
 [[include]]*include* _pattern_::

@@ -364,8 +364,12 @@ NIO_Initialise(int family)
 #ifdef HAVE_LINUX_TIMESTAMPING
   NIO_Linux_Initialise();
 #else
-  if (ARR_GetSize(CNF_GetHwTsInterfaces()))
-    LOG_FATAL(LOGF_NtpIO, "HW timestamping not supported");
+  if (1) {
+    double tx_comp, rx_comp;
+    char *name;
+    if (CNF_GetHwTsInterface(0, &name, &tx_comp, &rx_comp))
+      LOG_FATAL(LOGF_NtpIO, "HW timestamping not supported");
+  }
 #endif
 
   recv_messages = ARR_CreateInstance(sizeof (struct Message));

@@ -66,6 +66,9 @@ struct Interface {
   /* Start of UDP data at layer 2 for IPv4 and IPv6 */
   int l2_udp4_ntp_start;
   int l2_udp6_ntp_start;
+  /* Compensation of errors in TX and RX timestamping */
+  double tx_comp;
+  double rx_comp;
   HCL_Instance clock;
 };
 
@@ -88,7 +91,7 @@ static int permanent_ts_options;
 /* ================================================== */
 
 static int
-add_interface(const char *name)
+add_interface(const char *name, double tx_comp, double rx_comp)
 {
   struct ethtool_ts_info ts_info;
   struct hwtstamp_config ts_config;
@@ -169,6 +172,9 @@ add_interface(const char *name)
   iface->l2_udp4_ntp_start = 42;
   iface->l2_udp6_ntp_start = 62;
 
+  iface->tx_comp = tx_comp;
+  iface->rx_comp = rx_comp;
+
   iface->clock = HCL_CreateInstance();
 
   DEBUG_LOG(LOGF_NtpIOLinux, "Enabled HW timestamping on %s", name);
@@ -179,7 +185,7 @@ add_interface(const char *name)
 /* ================================================== */
 
 static int
-add_all_interfaces(void)
+add_all_interfaces(double tx_comp, double rx_comp)
 {
   struct ifaddrs *ifaddr, *ifa;
   int r;
@@ -190,7 +196,7 @@ add_all_interfaces(void)
   }
 
   for (r = 0, ifa = ifaddr; ifa; ifa = ifa->ifa_next) {
-    if (add_interface(ifa->ifa_name))
+    if (add_interface(ifa->ifa_name, tx_comp, rx_comp))
       r = 1;
   }
   
@@ -236,34 +242,30 @@ update_interface_speed(struct Interface *iface)
 void
 NIO_Linux_Initialise(void)
 {
-  ARR_Instance config_hwts_ifaces;
-  char *if_name;
+  double tx_comp, rx_comp;
+  char *name;
   unsigned int i;
-  int wildcard, hwts;
+  int hwts;
 
   interfaces = ARR_CreateInstance(sizeof (struct Interface));
-
-  config_hwts_ifaces = CNF_GetHwTsInterfaces();
 
   /* Enable HW timestamping on specified interfaces.  If "*" was specified, try
      all interfaces.  If no interface was specified, enable SW timestamping. */
 
-  for (i = wildcard = 0; i < ARR_GetSize(config_hwts_ifaces); i++) {
-    if (!strcmp("*", *(char **)ARR_GetElement(config_hwts_ifaces, i)))
-      wildcard = 1;
+  for (i = hwts = 0; CNF_GetHwTsInterface(i, &name, &tx_comp, &rx_comp); i++) {
+    if (!strcmp("*", name))
+      continue;
+    if (!add_interface(name, tx_comp, rx_comp))
+      LOG_FATAL(LOGF_NtpIO, "Could not enable HW timestamping on %s", name);
+    hwts = 1;
   }
 
-  if (!wildcard && ARR_GetSize(config_hwts_ifaces)) {
-    for (i = 0; i < ARR_GetSize(config_hwts_ifaces); i++) {
-      if_name = *(char **)ARR_GetElement(config_hwts_ifaces, i);
-      if (!add_interface(if_name))
-        LOG_FATAL(LOGF_NtpIO, "Could not enable HW timestamping on %s", if_name);
-    }
-    hwts = 1;
-  } else if (wildcard && add_all_interfaces()) {
-    hwts = 1;
-  } else {
-    hwts = 0;
+  for (i = 0; CNF_GetHwTsInterface(i, &name, &tx_comp, &rx_comp); i++) {
+    if (strcmp("*", name))
+      continue;
+    if (add_all_interfaces(tx_comp, rx_comp))
+      hwts = 1;
+    break;
   }
 
   if (hwts) {
@@ -446,6 +448,11 @@ process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
 
     UTI_AddDoubleToTimespec(hw_ts, rx_correction, hw_ts);
   }
+
+  if (!rx_ntp_length && iface->tx_comp)
+    UTI_AddDoubleToTimespec(hw_ts, iface->tx_comp, hw_ts);
+  else if (rx_ntp_length && iface->rx_comp)
+    UTI_AddDoubleToTimespec(hw_ts, -iface->rx_comp, hw_ts);
 
   if (!HCL_CookTime(iface->clock, hw_ts, &ts, &err))
     return;

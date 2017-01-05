@@ -223,7 +223,13 @@ static char *leapsec_tz = NULL;
 /* Name of the user to which will be dropped root privileges. */
 static char *user;
 
-/* Array of strings for interfaces with HW timestamping */
+typedef struct {
+  char *name;
+  double tx_comp;
+  double rx_comp;
+} HwTs_Interface;
+
+/* Array of HwTs_Interface */
 static ARR_Instance hwts_interfaces;
 
 typedef struct {
@@ -327,7 +333,7 @@ CNF_Initialise(int r)
 {
   restarted = r;
 
-  hwts_interfaces = ARR_CreateInstance(sizeof (char *));
+  hwts_interfaces = ARR_CreateInstance(sizeof (HwTs_Interface));
 
   init_sources = ARR_CreateInstance(sizeof (IPAddr));
   ntp_sources = ARR_CreateInstance(sizeof (NTP_Source));
@@ -354,7 +360,7 @@ CNF_Finalise(void)
   unsigned int i;
 
   for (i = 0; i < ARR_GetSize(hwts_interfaces); i++)
-    Free(*(char **)ARR_GetElement(hwts_interfaces, i));
+    Free(((HwTs_Interface *)ARR_GetElement(hwts_interfaces, i))->name);
   ARR_DestroyInstance(hwts_interfaces);
 
   for (i = 0; i < ARR_GetSize(ntp_sources); i++)
@@ -1245,8 +1251,39 @@ parse_tempcomp(char *line)
 static void
 parse_hwtimestamp(char *line)
 {
-  check_number_of_args(line, 1);
-  *(char **)ARR_GetNewElement(hwts_interfaces) = Strdup(line);
+  HwTs_Interface *iface;
+  char *p;
+  int n;
+
+  if (!*line) {
+    command_parse_error();
+    return;
+  }
+
+  p = line;
+  line = CPS_SplitWord(line);
+
+  iface = ARR_GetNewElement(hwts_interfaces);
+  iface->name = Strdup(p);
+  iface->tx_comp = 0.0;
+  iface->rx_comp = 0.0;
+
+  for (p = line; *p; line += n, p = line) {
+    line = CPS_SplitWord(line);
+
+    if (!strcasecmp(p, "rxcomp")) {
+      if (sscanf(line, "%lf%n", &iface->rx_comp, &n) != 1)
+        break;
+    } else if (!strcasecmp(p, "txcomp")) {
+      if (sscanf(line, "%lf%n", &iface->tx_comp, &n) != 1)
+        break;
+    } else {
+      break;
+    }
+  }
+
+  if (*p)
+    command_parse_error();
 }
 
 /* ================================================== */
@@ -1930,8 +1967,18 @@ CNF_GetInitStepThreshold(void)
 
 /* ================================================== */
 
-ARR_Instance
-CNF_GetHwTsInterfaces(void)
+int
+CNF_GetHwTsInterface(unsigned int index, char **name, double *tx_comp, double *rx_comp)
 {
-  return hwts_interfaces;
+  HwTs_Interface *iface;
+
+  if (index >= ARR_GetSize(hwts_interfaces))
+    return 0;
+
+  iface = ARR_GetElement(hwts_interfaces, index);
+  *name = iface->name;
+  *tx_comp = iface->tx_comp;
+  *rx_comp = iface->rx_comp;
+
+  return 1;
 }
