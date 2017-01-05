@@ -425,10 +425,11 @@ SRC_UpdateReachability(SRC_Instance inst, int reachable)
   }
 
   /* Try to replace NTP sources that are unreachable, falsetickers, or
-     have root distance larger than the allowed maximum */
+     have root distance or jitter larger than the allowed maximums */
   if (inst->type == SRC_NTP &&
       ((!inst->reachability && inst->reachability_size == SOURCE_REACH_BITS) ||
-       inst->status == SRC_FALSETICKER || inst->status == SRC_BAD_DISTANCE)) {
+       inst->status == SRC_BAD_DISTANCE || inst->status == SRC_JITTERY ||
+       inst->status == SRC_FALSETICKER)) {
     NSR_HandleBadSource(inst->ip_addr);
   }
 }
