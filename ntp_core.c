@@ -1606,13 +1606,14 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
                      UTI_DiffTimespecsToDouble(&inst->local_rx.ts, &inst->local_tx.ts));
 
       if (kod_rate) {
+        LOG(LOGS_WARN, LOGF_NtpCore, "Received KoD RATE from %s",
+            UTI_IPToString(&inst->remote_addr.ip_addr));
+
         /* Back off for a while and stop ongoing burst */
         delay_time += 4 * (1UL << inst->minpoll);
 
         if (inst->opmode == MD_BURST_WAS_OFFLINE || inst->opmode == MD_BURST_WAS_ONLINE) {
           inst->burst_good_samples_to_go = 0;
-          LOG(LOGS_WARN, LOGF_NtpCore, "Received KoD RATE from %s, burst sampling stopped",
-              UTI_IPToString(&inst->remote_addr.ip_addr));
         }
       }
 
