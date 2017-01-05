@@ -2301,7 +2301,7 @@ process_cmd_ntpdata(char *line)
                  "Precision       : %d (%.9f seconds)\n"
                  "Root delay      : %.6f seconds\n"
                  "Root dispersion : %.6f seconds\n"
-                 "Reference ID    : %R\n"
+                 "Reference ID    : %R (%s)\n"
                  "Reference time  : %T\n"
                  "Offset          : %+.9f seconds\n"
                  "Peer delay      : %.9f seconds\n"
@@ -2325,7 +2325,10 @@ process_cmd_ntpdata(char *line)
                  reply.data.ntp_data.precision, UTI_Log2ToDouble(reply.data.ntp_data.precision),
                  UTI_FloatNetworkToHost(reply.data.ntp_data.root_delay),
                  UTI_FloatNetworkToHost(reply.data.ntp_data.root_dispersion),
-                 (unsigned long)ntohl(reply.data.ntp_data.ref_id), &ref_time,
+                 (unsigned long)ntohl(reply.data.ntp_data.ref_id),
+                 reply.data.ntp_data.stratum <= 1 ?
+                   UTI_RefidToString(ntohl(reply.data.ntp_data.ref_id)) : "",
+                 &ref_time,
                  UTI_FloatNetworkToHost(reply.data.ntp_data.offset),
                  UTI_FloatNetworkToHost(reply.data.ntp_data.peer_delay),
                  UTI_FloatNetworkToHost(reply.data.ntp_data.peer_dispersion),
