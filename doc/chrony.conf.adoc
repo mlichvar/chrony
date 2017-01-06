@@ -160,9 +160,8 @@ synchronisation only if they agree with the trusted and required source.
 *xleave*:::
 This option enables an interleaved mode which allows the server or the peer to
 send transmit timestamps captured after the actual transmission (e.g. when the
-server or the peer is running *chronyd* with HW timestamping enabled by the
-<<hwtimestamp,*hwtimestamp*>> directive). This can significantly improve the
-accuracy of the measurements.
+server or the peer is running *chronyd* with software (kernel) or hardware
+timestamping). This can significantly improve the accuracy of the measurements.
 +
 The interleaved mode is compatible with servers that support only the basic
 mode, but peers must both support and have enabled the interleaved mode,
@@ -994,7 +993,7 @@ both a client of its servers, and a server to other clients.
 Examples of the use of the directive are as follows:
 +
 ----
-allow foo.example.net
+allow 1.2.3.4
 allow 1.2
 allow 3.4.5
 allow 6.7.8/22
@@ -1005,7 +1004,8 @@ allow ::/0
 allow
 ----
 +
-The first directive allows the named node to be an NTP client of this computer.
+The first directive allows a node with IPv4 address _1.2.3.4_ to be an NTP
+client of this computer.
 The second directive allows any node with an IPv4 address of the form _1.2.x.y_
 (with _x_ and _y_ arbitrary) to be an NTP client of this computer. Likewise,
 the third directive allows any node with an IPv4 address of the form _3.4.5.x_
@@ -1045,6 +1045,10 @@ _any_ previous directive relating to a subnet within the specified subnet.
 Within a configuration file this capability is probably rather moot; however,
 it is of greater use for reconfiguration at run-time via *chronyc* with the
 <<chronyc.adoc#allow,*allow all*>> command.
++
+The directive allows a hostname to be specified instead of an IP address, but
+the name must be resolvable when *chronyd* is started (i.e. *chronyd* needs
+to be started when the network is already up and DNS is working).
 +
 Note, if the <<initstepslew,*initstepslew*>> directive is used in the
 configuration file, each of the computers listed in that directive must allow
@@ -2234,24 +2238,34 @@ information to be saved.
 *chronyd* can be configured to operate as a public NTP server, e.g. to join the
 http://www.pool.ntp.org/en/join.html[pool.ntp.org] project. The configuration
 is similar to the NTP client with permanent connection, except it needs to
-allow client access from all addresses. It is recommended to handpick at least
-few good servers, and possibly combine them with a random selection of other
-servers in the pool. Rate limiting can be enabled to not waste too much
-bandwidth on misconfigured and broken NTP clients. The *-r* option with the
-*dumpdir* directive shortens the time for which *chronyd* will not serve time
-to its clients when it needs to be restarted for any reason.
+allow client access from all addresses. It is recommended to find at least four
+good servers (e.g. from the pool, or on the NTP homepage). If the server has a
+hardware reference clock (e.g. a GPS receiver), it can be specified by the
+<<refclock,*refclock*>> directive.
 
-The configuration file might be:
+The amount of memory used for logging client accesses can be increased in order
+to enable clients to use the interleaved mode even when the server has a large
+number of clients, and better support rate limiting if it is enabled by the
+<<ratelimit,*ratelimit*>> directive. The system timezone database, if it is
+kept up to date and includes the *right/UTC* timezone, can be used as a
+reliable source to determine when a leap second will be applied to UTC. The
+*-r* option with the <<dumpdir,*dumpdir*>> directive shortens the time in which
+*chronyd* will not be able to serve time to its clients when it needs to be
+restarted (e.g. after upgrading to a newer version, or a change in the
+configuration).
+
+The configuration file could look like:
 
 ----
 server foo.example.net iburst
 server bar.example.net iburst
 server baz.example.net iburst
-pool pool.ntp.org iburst
+server qux.example.net iburst
 makestep 1.0 3
 rtcsync
 allow
-ratelimit interval 2 burst 10
+clientloglimit 100000000
+leapsectz right/UTC
 driftfile @CHRONYVARDIR@/drift
 dumpdir @CHRONYRUNDIR@
 dumponexit
