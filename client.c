@@ -2723,7 +2723,8 @@ process_cmd_waitsync(char *line)
   max_skew_ppm = 0.0;
   interval = 10.0;
 
-  sscanf(line, "%d %lf %lf %lf", &max_tries, &max_correction, &max_skew_ppm, &interval);
+  if (sscanf(line, "%d %lf %lf %lf", &max_tries, &max_correction, &max_skew_ppm, &interval))
+    ;
 
   /* Don't allow shorter interval than 0.1 seconds */
   if (interval < 0.1)
@@ -2831,7 +2832,8 @@ process_cmd_keygen(char *line)
   snprintf(hash_name, sizeof (hash_name), "MD5");
 #endif
 
-  sscanf(line, "%u %16s %d", &id, hash_name, &bits);
+  if (sscanf(line, "%u %16s %d", &id, hash_name, &bits))
+    ;
 
   length = CLAMP(10, (bits + 7) / 8, sizeof (key));
   if (HSH_GetHashId(hash_name) < 0) {

@@ -325,7 +325,8 @@ go_daemon(void)
     if (r) {
       if (r > 0) {
         /* Print the error message from the child */
-        fprintf(stderr, "%.1024s\n", message);
+        message[sizeof (message) - 1] = '\0';
+        fprintf(stderr, "%s\n", message);
       }
       exit(1);
     } else

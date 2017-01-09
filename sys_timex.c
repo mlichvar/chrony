@@ -158,7 +158,8 @@ set_sync_status(int synchronised, double est_error, double max_error)
   txc.esterror = est_error * 1.0e6;
   txc.maxerror = max_error * 1.0e6;
 
-  SYS_Timex_Adjust(&txc, 1);
+  if (SYS_Timex_Adjust(&txc, 1) < 0)
+    ;
 }
 
 /* ================================================== */
