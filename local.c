@@ -144,6 +144,8 @@ calculate_sys_precision(void)
     best *= 2;
   }
 
+  assert(precision_log >= -30);
+
   DEBUG_LOG(LOGF_Local, "Clock precision %.9f (%d)", precision_quantum, precision_log);
 }
 
