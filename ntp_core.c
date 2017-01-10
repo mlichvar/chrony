@@ -956,57 +956,63 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
      frequency all along */
   UTI_TimespecToNtp64(&local_receive, &message.receive_ts, &ts_fuzz);
 
-  /* Prepare random bits which will be added to the transmit timestamp. */
-  UTI_GetNtp64Fuzz(&ts_fuzz, precision);
+  do {
+    /* Prepare random bits which will be added to the transmit timestamp */
+    UTI_GetNtp64Fuzz(&ts_fuzz, precision);
 
-  /* Transmit - this our local time right now!  Also, we might need to
-     store this for our own use later, next time we receive a message
-     from the source we're sending to now. */
-  LCL_ReadCookedTime(&local_transmit, &local_transmit_err);
+    /* Transmit - this our local time right now!  Also, we might need to
+       store this for our own use later, next time we receive a message
+       from the source we're sending to now. */
+    LCL_ReadCookedTime(&local_transmit, &local_transmit_err);
 
-  if (smooth_time)
-    UTI_AddDoubleToTimespec(&local_transmit, smooth_offset, &local_transmit);
+    if (smooth_time)
+      UTI_AddDoubleToTimespec(&local_transmit, smooth_offset, &local_transmit);
 
-  length = NTP_NORMAL_PACKET_LENGTH;
+    length = NTP_NORMAL_PACKET_LENGTH;
 
-  /* Authenticate the packet if needed */
+    /* Authenticate the packet */
 
-  if (auth_mode == AUTH_SYMMETRIC || auth_mode == AUTH_MSSNTP) {
-    /* Pre-compensate the transmit time by approx. how long it will
-       take to generate the authentication data. */
-    local_transmit.tv_nsec += auth_mode == AUTH_SYMMETRIC ?
-                              KEY_GetAuthDelay(key_id) : NSD_GetAuthDelay(key_id);
-    UTI_NormaliseTimespec(&local_transmit);
-    UTI_TimespecToNtp64(interleaved ? &local_tx->ts : &local_transmit,
-                        &message.transmit_ts, &ts_fuzz);
+    if (auth_mode == AUTH_SYMMETRIC || auth_mode == AUTH_MSSNTP) {
+      /* Pre-compensate the transmit time by approximately how long it will
+         take to generate the authentication data */
+      local_transmit.tv_nsec += auth_mode == AUTH_SYMMETRIC ?
+                                KEY_GetAuthDelay(key_id) : NSD_GetAuthDelay(key_id);
+      UTI_NormaliseTimespec(&local_transmit);
+      UTI_TimespecToNtp64(interleaved ? &local_tx->ts : &local_transmit,
+                          &message.transmit_ts, &ts_fuzz);
 
-    if (auth_mode == AUTH_SYMMETRIC) {
-      auth_len = KEY_GenerateAuth(key_id, (unsigned char *) &message,
-                                  offsetof(NTP_Packet, auth_keyid),
-                                  (unsigned char *)&message.auth_data,
-                                  sizeof (message.auth_data));
-      if (!auth_len) {
-        DEBUG_LOG(LOGF_NtpCore, "Could not generate auth data with key %"PRIu32, key_id);
-        return 0;
+      if (auth_mode == AUTH_SYMMETRIC) {
+        auth_len = KEY_GenerateAuth(key_id, (unsigned char *) &message,
+                                    offsetof(NTP_Packet, auth_keyid),
+                                    (unsigned char *)&message.auth_data,
+                                    sizeof (message.auth_data));
+        if (!auth_len) {
+          DEBUG_LOG(LOGF_NtpCore, "Could not generate auth data with key %"PRIu32, key_id);
+          return 0;
+        }
+
+        message.auth_keyid = htonl(key_id);
+        mac_len = sizeof (message.auth_keyid) + auth_len;
+
+        /* Truncate MACs in NTPv4 packets to allow deterministic parsing
+           of extension fields (RFC 7822) */
+        if (version == 4 && mac_len > NTP_MAX_V4_MAC_LENGTH)
+          mac_len = NTP_MAX_V4_MAC_LENGTH;
+
+        length += mac_len;
+      } else if (auth_mode == AUTH_MSSNTP) {
+        /* MS-SNTP packets are signed (asynchronously) by ntp_signd */
+        return NSD_SignAndSendPacket(key_id, &message, where_to, from, length);
       }
-
-      message.auth_keyid = htonl(key_id);
-      mac_len = sizeof (message.auth_keyid) + auth_len;
-
-      /* Truncate MACs in NTPv4 packets to allow deterministic parsing
-         of extension fields (RFC 7822) */
-      if (version == 4 && mac_len > NTP_MAX_V4_MAC_LENGTH)
-        mac_len = NTP_MAX_V4_MAC_LENGTH;
-
-      length += mac_len;
-    } else if (auth_mode == AUTH_MSSNTP) {
-      /* MS-SNTP packets are signed (asynchronously) by ntp_signd */
-      return NSD_SignAndSendPacket(key_id, &message, where_to, from, length);
+    } else {
+      UTI_TimespecToNtp64(interleaved ? &local_tx->ts : &local_transmit,
+                          &message.transmit_ts, &ts_fuzz);
     }
-  } else {
-    UTI_TimespecToNtp64(interleaved ? &local_tx->ts : &local_transmit,
-                        &message.transmit_ts, &ts_fuzz);
-  }
+
+    /* Avoid sending messages with non-zero transmit timestamp equal to the
+       receive timestamp to allow reliable detection of the interleaved mode */
+  } while (!UTI_CompareNtp64(&message.transmit_ts, &message.receive_ts) &&
+           !UTI_IsZeroNtp64(&message.transmit_ts));
 
   ret = NIO_SendPacket(&message, where_to, from, length, local_tx != NULL);
 
