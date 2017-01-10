@@ -754,8 +754,11 @@ UTI_Ntp64ToTimespec(NTP_int64 *src, struct timespec *dest)
 {
   uint32_t ntp_sec, ntp_frac;
 
-  /* As yet, there is no need to check for zero - all processing that
-     has to detect that case is in the NTP layer */
+  /* Zero is a special value */
+  if (UTI_IsZeroNtp64(src)) {
+    UTI_ZeroTimespec(dest);
+    return;
+  }
 
   ntp_sec = ntohl(src->hi);
   ntp_frac = ntohl(src->lo);
