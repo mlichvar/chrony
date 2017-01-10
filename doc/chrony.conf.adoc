@@ -105,7 +105,7 @@ If the user knows that round trip delays above a certain level should cause the
 measurement to be ignored, this level can be defined with the *maxdelay*
 option. For example, *maxdelay 0.3* would indicate that measurements with a
 round-trip delay of 0.3 seconds or more should be ignored. The default value is
-3 seconds.
+3 seconds and the maximum value is 1000 seconds.
 *maxdelayratio* _ratio_:::
 This option is similar to the maxdelay option above. *chronyd* keeps a record
 of the minimum round-trip delay amongst the previous measurements that it has
