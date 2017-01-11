@@ -74,6 +74,14 @@ void test_unit(void) {
   TEST_CHECK(!UTI_IsZeroTimespec(&ts));
   TEST_CHECK(!UTI_IsZeroNtp64(&ntp_ts));
 
+  ntp_ts.hi = 0;
+  ntp_ts.lo = 0;
+
+  UTI_Ntp64ToTimespec(&ntp_ts, &ts);
+  TEST_CHECK(UTI_IsZeroTimespec(&ts));
+  UTI_TimespecToNtp64(&ts, &ntp_ts, NULL);
+  TEST_CHECK(UTI_IsZeroNtp64(&ntp_ts));
+
   ntp_fuzz.hi = htonl(1);
   ntp_fuzz.lo = htonl(3);
   ntp_ts.hi = htonl(1);
