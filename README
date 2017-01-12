@@ -16,7 +16,7 @@ and systems that do not run continuosly, or run on a virtual machine.
 
 Typical accuracy between two machines synchronised over the Internet is
 within a few milliseconds; on a LAN, accuracy is typically in tens of
-microseconds.  With hardware timestamping or a hardware reference clock
+microseconds.  With hardware timestamping, or a hardware reference clock,
 sub-microsecond accuracy may be possible.
 
 Two programs are included in chrony, chronyd is a daemon that can be
@@ -202,6 +202,9 @@ Kalle Olavi Niemitalo  <tosi@stekt.oulu.fi>
 
 Frank Otto <sandwichmacher@web.de>
     Handling arbitrary HZ values
+
+Denny Page <dennypage@me.com>
+    Advice on support for hardware timestamping
 
 Gautier PHILIPPON <gautier.philippon@ensimag.grenoble-inp.fr>
     Patch to add refresh command to chronyc
