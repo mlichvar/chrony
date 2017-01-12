@@ -4,7 +4,8 @@
 # chronyd/chronyc - Programs for keeping computer clocks accurate.
 #
 # Copyright (C) Richard P. Curnow  1997-2003
-# Copyright (C) Miroslav Lichvar  2009, 2012-2015
+# Copyright (C) Bryan Christianson  2016
+# Copyright (C) Miroslav Lichvar  2009, 2012-2016
 #
 # =======================================================================
 
