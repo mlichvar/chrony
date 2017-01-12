@@ -928,7 +928,7 @@ void
 SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timespec *now)
 {
   int i, j;
-  struct timespec ago;
+  struct timespec last_sample_time;
 
   if (inst->n_samples > 0) {
     i = get_runsbuf_index(inst, inst->n_samples - 1);
@@ -938,8 +938,10 @@ SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timespec *no
     report->latest_meas_err = 0.5*inst->root_delays[j] + inst->root_dispersions[j];
     report->stratum = inst->strata[j];
 
-    UTI_DiffTimespecs(&ago, now, &inst->sample_times[i]);
-    report->latest_meas_ago = ago.tv_sec;
+    /* Align the sample time to reduce the leak of the receive timestamp */
+    last_sample_time = inst->sample_times[i];
+    last_sample_time.tv_nsec = 0;
+    report->latest_meas_ago = UTI_DiffTimespecsToDouble(now, &last_sample_time);
   } else {
     report->latest_meas_ago = (uint32_t)-1;
     report->orig_latest_meas = 0;
