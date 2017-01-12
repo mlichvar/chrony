@@ -25,7 +25,7 @@ time_offset=-10
 client_server_options="minpoll 6 maxpoll 6"
 client_conf="corrtimeratio 100"
 min_sync_time=8000
-max_sync_time=8500
+max_sync_time=9000
 
 run_test || test_fail
 check_chronyd_exit || test_fail
