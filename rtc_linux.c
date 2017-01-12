@@ -187,6 +187,11 @@ accumulate_sample(time_t rtc, struct timespec *sys)
     discard_samples(NEW_FIRST_WHEN_FULL);
   }
 
+  /* Discard all samples if the RTC was stepped back (not our trim) */
+  if (n_samples > 0 && rtc_sec[n_samples - 1] - rtc >= rtc_trim[n_samples - 1]) {
+    DEBUG_LOG(LOGF_RtcLinux, "RTC samples discarded");
+    n_samples = 0;
+  }
 
   /* Always use most recent sample as reference */
   /* use sample only if n_sample is not negative*/
