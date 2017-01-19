@@ -1,7 +1,9 @@
 [Unit]
 Description=NTP client/server
+Documentation=man:chronyd(8) man:chrony.conf(5)
 After=ntpdate.service sntp.service ntpd.service
 Conflicts=ntpd.service systemd-timesyncd.service
+ConditionCapability=CAP_SYS_TIME
 
 [Service]
 Type=forking
