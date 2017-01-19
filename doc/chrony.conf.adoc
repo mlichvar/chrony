@@ -68,11 +68,15 @@ options:
 Although *chronyd* will trim the rate at which it samples the server during
 normal operation, the user might want to constrain the minimum polling interval.
 This is always defined as a power of 2, so *minpoll 5* would mean that the
-polling interval cannot drop below 32 seconds. The default is 6 (64 seconds).
+polling interval cannot drop below 32 seconds. The default is 6 (64 seconds),
+the minimum is -4 (1/16th of a second), and the maximum is 24 (6 months). Note
+that intervals shorter than 6 (64 seconds) should generally not be used with
+public servers on the Internet as their administrators may consider it abuse.
 *maxpoll* _poll_:::
 In a similar way, the user might want to constrain the maximum polling interval.
 Again this is specified as a power of 2, *maxpoll 9* indicates that the polling
-interval must stay at or below 512 seconds. The default is 10 (1024 seconds).
+interval must stay at or below 512 seconds. The default is 10 (1024 seconds),
+the minimum is 0 (1 second), and the maximum is 24 (6 months).
 *iburst*:::
 If this option is set, the interval between the first four polls will be 2
 seconds instead of _minpoll_. This is useful to quickly get the first update of

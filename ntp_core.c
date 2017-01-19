@@ -249,7 +249,8 @@ static ARR_Instance broadcasts;
 #define MAX_MAXDELAYDEVRATIO 1.0e6
 
 /* Minimum and maximum allowed poll interval */
-#define MIN_POLL 0
+#define MIN_MINPOLL -4
+#define MIN_MAXPOLL 0
 #define MAX_POLL 24
 
 /* Kiss-o'-Death codes */
@@ -497,12 +498,12 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->interleaved = params->interleaved;
 
   result->minpoll = params->minpoll;
-  if (result->minpoll < MIN_POLL)
+  if (result->minpoll < MIN_MINPOLL)
     result->minpoll = SRC_DEFAULT_MINPOLL;
   else if (result->minpoll > MAX_POLL)
     result->minpoll = MAX_POLL;
   result->maxpoll = params->maxpoll;
-  if (result->maxpoll < MIN_POLL)
+  if (result->maxpoll < MIN_MAXPOLL)
     result->maxpoll = SRC_DEFAULT_MAXPOLL;
   else if (result->maxpoll > MAX_POLL)
     result->maxpoll = MAX_POLL;
@@ -765,7 +766,7 @@ get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx)
              approx the poll interval away */
           poll_to_use = inst->local_poll;
 
-          delay_time = (double) (1UL<<poll_to_use);
+          delay_time = UTI_Log2ToDouble(poll_to_use);
           if (inst->presend_done)
             delay_time = WARM_UP_DELAY;
 
@@ -783,7 +784,7 @@ get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx)
           if (poll_to_use < inst->minpoll)
             poll_to_use = inst->minpoll;
 
-          delay_time = (double) (1UL<<poll_to_use);
+          delay_time = UTI_Log2ToDouble(poll_to_use);
 
           /* If the remote stratum is higher than ours, try to lock on the
              peer's polling to minimize our response time by slightly extending
@@ -1622,7 +1623,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
             UTI_IPToString(&inst->remote_addr.ip_addr));
 
         /* Back off for a while and stop ongoing burst */
-        delay_time += 4 * (1UL << inst->local_poll);
+        delay_time += 4 * UTI_Log2ToDouble(inst->local_poll);
 
         if (inst->opmode == MD_BURST_WAS_OFFLINE || inst->opmode == MD_BURST_WAS_ONLINE) {
           inst->burst_good_samples_to_go = 0;
@@ -2092,7 +2093,7 @@ NCR_TakeSourceOffline(NCR_Instance inst)
 void
 NCR_ModifyMinpoll(NCR_Instance inst, int new_minpoll)
 {
-  if (new_minpoll < MIN_POLL || new_minpoll > MAX_POLL)
+  if (new_minpoll < MIN_MINPOLL || new_minpoll > MAX_POLL)
     return;
   inst->minpoll = new_minpoll;
   LOG(LOGS_INFO, LOGF_NtpCore, "Source %s new minpoll %d", UTI_IPToString(&inst->remote_addr.ip_addr), new_minpoll);
@@ -2105,7 +2106,7 @@ NCR_ModifyMinpoll(NCR_Instance inst, int new_minpoll)
 void
 NCR_ModifyMaxpoll(NCR_Instance inst, int new_maxpoll)
 {
-  if (new_maxpoll < MIN_POLL || new_maxpoll > MAX_POLL)
+  if (new_maxpoll < MIN_MAXPOLL || new_maxpoll > MAX_POLL)
     return;
   inst->maxpoll = new_maxpoll;
   LOG(LOGS_INFO, LOGF_NtpCore, "Source %s new maxpoll %d", UTI_IPToString(&inst->remote_addr.ip_addr), new_maxpoll);
@@ -2374,7 +2375,7 @@ NCR_AddBroadcastDestination(IPAddr *addr, unsigned short port, int interval)
   destination->addr.port = port;
   destination->local_addr.ip_addr.family = IPADDR_UNSPEC;
   destination->local_addr.sock_fd = NIO_OpenServerSocket(&destination->addr);
-  destination->interval = CLAMP(1 << MIN_POLL, interval, 1 << MAX_POLL);
+  destination->interval = CLAMP(1, interval, 1 << MAX_POLL);
 
   SCH_AddTimeoutInClass(destination->interval, SAMPLING_SEPARATION, SAMPLING_RANDOMNESS,
                         SCH_NtpBroadcastClass, broadcast_timeout,
