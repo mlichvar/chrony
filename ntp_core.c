@@ -1475,7 +1475,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
        processing time is sane, and in the interleaved symmetric mode that
        the delay is not longer than half of the remote polling interval to
        detect missed packets */
-    testA = delay - dispersion <= inst->max_delay &&
+    testA = delay - dispersion <= inst->max_delay && precision <= inst->max_delay &&
             !(inst->mode == MODE_CLIENT && server_interval > MAX_SERVER_INTERVAL) &&
             !(inst->mode == MODE_ACTIVE && interleaved_packet &&
               delay > UTI_Log2ToDouble(message->poll - 1));
