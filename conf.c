@@ -1259,13 +1259,17 @@ parse_hwtimestamp(char *line)
 
   iface = ARR_GetNewElement(hwts_interfaces);
   iface->name = Strdup(p);
+  iface->precision = 100.0e-9;
   iface->tx_comp = 0.0;
   iface->rx_comp = 0.0;
 
   for (p = line; *p; line += n, p = line) {
     line = CPS_SplitWord(line);
 
-    if (!strcasecmp(p, "rxcomp")) {
+    if (!strcasecmp(p, "precision")) {
+      if (sscanf(line, "%lf%n", &iface->precision, &n) != 1)
+        break;
+    } else if (!strcasecmp(p, "rxcomp")) {
       if (sscanf(line, "%lf%n", &iface->rx_comp, &n) != 1)
         break;
     } else if (!strcasecmp(p, "txcomp")) {

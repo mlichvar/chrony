@@ -121,6 +121,7 @@ extern double CNF_GetInitStepThreshold(void);
 
 typedef struct {
   char *name;
+  double precision;
   double tx_comp;
   double rx_comp;
 } CNF_HwTsInterface;

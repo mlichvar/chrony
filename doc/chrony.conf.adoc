@@ -1818,6 +1818,9 @@ on all available interfaces.
 +
 The *hwtimestamp* directive has the following options:
 +
+*precision* _precision_:::
+This option specifies the assumed precision of reading of the NIC clock. The
+default value is 100e-9 (100 nanoseconds).
 *txcomp* _compensation_:::
 This option specifies the difference in seconds between the actual transmission
 time at the physical layer and the reported transmit timestamp. This value will

@@ -175,7 +175,7 @@ add_interface(CNF_HwTsInterface *conf_iface)
   iface->l2_udp4_ntp_start = 42;
   iface->l2_udp6_ntp_start = 62;
 
-  iface->precision = 100.0e-9;
+  iface->precision = conf_iface->precision;
   iface->tx_comp = conf_iface->tx_comp;
   iface->rx_comp = conf_iface->rx_comp;
 
