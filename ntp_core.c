@@ -653,6 +653,7 @@ NCR_ResetPoll(NCR_Instance instance)
 void
 NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remote_addr)
 {
+  memset(&inst->report, 0, sizeof (inst->report));
   NCR_ResetInstance(inst);
   inst->remote_addr = *remote_addr;
 
