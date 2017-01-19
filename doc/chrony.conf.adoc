@@ -402,9 +402,10 @@ refclock SOCK /var/run/chrony.ttyS0.sock
 *PHC*:::
 PTP hardware clock (PHC) driver. The parameter is the path to the device of
 the PTP clock, which for example can be synchronised by *ptp4l* from
-http://linuxptp.sourceforge.net[*linuxptp*]. PTP clocks are typically kept in
-TAI instead of UTC, so the *offset* option should be used to compensate for the
-current UTC-TAI offset. For example:
+http://linuxptp.sourceforge.net[*linuxptp*]. String *:nocrossts* can be
+appended to the path to disable use of precise cross timestamping. PTP clocks
+are typically kept in TAI instead of UTC, so the *offset* option should be used
+to compensate for the current UTC-TAI offset. For example:
 +
 ----
 refclock PHC /dev/ptp0 poll 3 dpoll -2 offset -36

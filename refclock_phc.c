@@ -42,6 +42,7 @@
 struct phc_instance {
   int fd;
   int mode;
+  int nocrossts;
 };
 
 static int phc_initialise(RCL_Instance instance)
@@ -61,6 +62,7 @@ static int phc_initialise(RCL_Instance instance)
   phc = MallocNew(struct phc_instance);
   phc->fd = phc_fd;
   phc->mode = 0;
+  phc->nocrossts = RCL_GetDriverOption(instance, "nocrossts") ? 1 : 0;
 
   RCL_SetDriverData(instance, phc);
   return 1;
@@ -83,8 +85,8 @@ static int phc_poll(RCL_Instance instance)
 
   phc = (struct phc_instance *)RCL_GetDriverData(instance);
 
-  if (!SYS_Linux_GetPHCSample(phc->fd, 0, RCL_GetPrecision(instance), &phc->mode,
-                              &phc_ts, &sys_ts, &err))
+  if (!SYS_Linux_GetPHCSample(phc->fd, phc->nocrossts, RCL_GetPrecision(instance),
+                              &phc->mode, &phc_ts, &sys_ts, &err))
     return 0;
 
   offset = UTI_DiffTimespecsToDouble(&phc_ts, &sys_ts);
