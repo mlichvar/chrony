@@ -61,6 +61,7 @@ struct Interface {
   char name[IF_NAMESIZE];
   int if_index;
   int phc_fd;
+  int phc_mode;
   /* Link speed in mbit/s */
   int link_speed;
   /* Start of UDP data at layer 2 for IPv4 and IPv6 */
@@ -101,10 +102,9 @@ add_interface(CNF_HwTsInterface *conf_iface)
   struct ethtool_ts_info ts_info;
   struct hwtstamp_config ts_config;
   struct ifreq req;
-  int sock_fd, if_index, phc_index, phc_fd;
+  int sock_fd, if_index, phc_fd;
   unsigned int i;
   struct Interface *iface;
-  char phc_path[64];
 
   /* Check if the interface was not already added */
   for (i = 0; i < ARR_GetSize(interfaces); i++) {
@@ -154,24 +154,17 @@ add_interface(CNF_HwTsInterface *conf_iface)
   }
 
   close(sock_fd);
-  phc_index = ts_info.phc_index;
 
-  if (snprintf(phc_path, sizeof (phc_path), "/dev/ptp%d", phc_index) >= sizeof (phc_path))
+  phc_fd = SYS_Linux_OpenPHC(NULL, ts_info.phc_index);
+  if (phc_fd < 0)
     return 0;
-
-  phc_fd = open(phc_path, O_RDONLY);
-  if (phc_fd < 0) {
-    LOG(LOGS_ERR, LOGF_NtpIOLinux, "Could not open %s : %s", phc_path, strerror(errno));
-    return 0;
-  }
-
-  UTI_FdSetCloexec(phc_fd);
 
   iface = ARR_GetNewElement(interfaces);
 
   snprintf(iface->name, sizeof (iface->name), "%s", conf_iface->name);
   iface->if_index = if_index;
   iface->phc_fd = phc_fd;
+  iface->phc_mode = 0;
 
   /* Start with 1 gbit and no VLANs or IPv4/IPv6 options */
   iface->link_speed = 1000;
@@ -347,69 +340,6 @@ NIO_Linux_SetTimestampSocketOptions(int sock_fd, int client_only, int *events)
 
 /* ================================================== */
 
-static int
-get_phc_sample(struct Interface *iface, struct timespec *phc_ts, struct timespec *local_ts,
-               double *err)
-{
-  struct ptp_sys_offset sys_off;
-  struct timespec ts1, ts2, ts3, phc_tss[PHC_READINGS], sys_tss[PHC_READINGS];
-  double min_delay = 0.0, delays[PHC_READINGS], phc_sum, local_sum, local_prec;
-  int i, n;
-
-  /* Silence valgrind */
-  memset(&sys_off, 0, sizeof (sys_off));
-
-  sys_off.n_samples = PHC_READINGS;
-
-  if (ioctl(iface->phc_fd, PTP_SYS_OFFSET, &sys_off)) {
-    DEBUG_LOG(LOGF_NtpIOLinux, "ioctl(%s) failed : %s", "PTP_SYS_OFFSET", strerror(errno));
-    return 0;
-  }
-
-  for (i = 0; i < PHC_READINGS; i++) {
-    ts1.tv_sec = sys_off.ts[i * 2].sec;
-    ts1.tv_nsec = sys_off.ts[i * 2].nsec;
-    ts2.tv_sec = sys_off.ts[i * 2 + 1].sec;
-    ts2.tv_nsec = sys_off.ts[i * 2 + 1].nsec;
-    ts3.tv_sec = sys_off.ts[i * 2 + 2].sec;
-    ts3.tv_nsec = sys_off.ts[i * 2 + 2].nsec;
-
-    sys_tss[i] = ts1;
-    phc_tss[i] = ts2;
-    delays[i] = UTI_DiffTimespecsToDouble(&ts3, &ts1);
-
-    if (delays[i] <= 0.0)
-      /* Step in the middle of a PHC reading? */
-      return 0;
-
-    if (!i || delays[i] < min_delay)
-      min_delay = delays[i];
-  }
-
-  local_prec = LCL_GetSysPrecisionAsQuantum();
-
-  /* Combine best readings */
-  for (i = n = 0, phc_sum = local_sum = 0.0; i < PHC_READINGS; i++) {
-    if (delays[i] > min_delay + MAX(local_prec, iface->precision))
-      continue;
-
-    phc_sum += UTI_DiffTimespecsToDouble(&phc_tss[i], &phc_tss[0]);
-    local_sum += UTI_DiffTimespecsToDouble(&sys_tss[i], &sys_tss[0]) + delays[i] / 2.0;
-    n++;
-  }
-
-  assert(n);
-
-  UTI_AddDoubleToTimespec(&phc_tss[0], phc_sum / n, phc_ts);
-  UTI_AddDoubleToTimespec(&sys_tss[0], local_sum / n, &ts1);
-  LCL_CookTime(&ts1, local_ts, NULL);
-  *err = MAX(min_delay / 2.0, iface->precision);
-
-  return 1;
-}
-
-/* ================================================== */
-
 static struct Interface *
 get_interface(int if_index)
 {
@@ -433,14 +363,16 @@ static void
 process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
                      NTP_Local_Timestamp *local_ts, int rx_ntp_length, int family)
 {
-  struct timespec sample_phc_ts, sample_local_ts, ts;
+  struct timespec sample_phc_ts, sample_sys_ts, sample_local_ts, ts;
   double rx_correction, ts_delay, err;
   int l2_length;
 
   if (HCL_NeedsNewSample(iface->clock, &local_ts->ts)) {
-    if (!get_phc_sample(iface, &sample_phc_ts, &sample_local_ts, &err))
+    if (!SYS_Linux_GetPHCSample(iface->phc_fd, iface->precision, &iface->phc_mode,
+                                &sample_phc_ts, &sample_sys_ts, &err))
       return;
 
+    LCL_CookTime(&sample_sys_ts, &sample_local_ts, NULL);
     HCL_AccumulateSample(iface->clock, &sample_phc_ts, &sample_local_ts, err);
 
     update_interface_speed(iface);
