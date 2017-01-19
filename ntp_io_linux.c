@@ -368,7 +368,7 @@ process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
   int l2_length;
 
   if (HCL_NeedsNewSample(iface->clock, &local_ts->ts)) {
-    if (!SYS_Linux_GetPHCSample(iface->phc_fd, iface->precision, &iface->phc_mode,
+    if (!SYS_Linux_GetPHCSample(iface->phc_fd, 0, iface->precision, &iface->phc_mode,
                                 &sample_phc_ts, &sample_sys_ts, &err))
       return;
 

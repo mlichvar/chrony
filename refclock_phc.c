@@ -83,7 +83,7 @@ static int phc_poll(RCL_Instance instance)
 
   phc = (struct phc_instance *)RCL_GetDriverData(instance);
 
-  if (!SYS_Linux_GetPHCSample(phc->fd, RCL_GetPrecision(instance), &phc->mode,
+  if (!SYS_Linux_GetPHCSample(phc->fd, 0, RCL_GetPrecision(instance), &phc->mode,
                               &phc_ts, &sys_ts, &err))
     return 0;
 

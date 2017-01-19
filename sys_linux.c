@@ -517,6 +517,9 @@ SYS_Linux_EnableSystemCallFilter(int level)
     FIONREAD, TCGETS,
 #if defined(FEAT_PHC) || defined(HAVE_LINUX_TIMESTAMPING)
     PTP_SYS_OFFSET,
+#ifdef PTP_SYS_OFFSET_PRECISE
+    PTP_SYS_OFFSET_PRECISE,
+#endif
 #endif
 #ifdef FEAT_PPS
     PPS_FETCH,
@@ -729,6 +732,35 @@ get_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
 
   return 1;
 }
+/* ================================================== */
+
+static int
+get_precise_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
+		       struct timespec *sys_ts, double *err)
+{
+#ifdef PTP_SYS_OFFSET_PRECISE
+  struct ptp_sys_offset_precise sys_off;
+
+  /* Silence valgrind */
+  memset(&sys_off, 0, sizeof (sys_off));
+
+  if (ioctl(phc_fd, PTP_SYS_OFFSET_PRECISE, &sys_off)) {
+    DEBUG_LOG(LOGF_SysLinux, "ioctl(%s) failed : %s", "PTP_SYS_OFFSET_PRECISE",
+              strerror(errno));
+    return 0;
+  }
+
+  phc_ts->tv_sec = sys_off.device.sec;
+  phc_ts->tv_nsec = sys_off.device.nsec;
+  sys_ts->tv_sec = sys_off.sys_realtime.sec;
+  sys_ts->tv_nsec = sys_off.sys_realtime.nsec;
+  *err = MAX(LCL_GetSysPrecisionAsQuantum(), precision);
+
+  return 1;
+#else
+  return 0;
+#endif
+}
 
 /* ================================================== */
 
@@ -766,10 +798,14 @@ SYS_Linux_OpenPHC(const char *path, int phc_index)
 /* ================================================== */
 
 int
-SYS_Linux_GetPHCSample(int fd, double precision, int *reading_mode,
+SYS_Linux_GetPHCSample(int fd, int nocrossts, double precision, int *reading_mode,
                        struct timespec *phc_ts, struct timespec *sys_ts, double *err)
 {
-  if ((*reading_mode == 1 || !*reading_mode) &&
+  if ((*reading_mode == 2 || !*reading_mode) && !nocrossts &&
+      get_precise_phc_sample(fd, precision, phc_ts, sys_ts, err)) {
+    *reading_mode = 2;
+    return 1;
+  } else if ((*reading_mode == 1 || !*reading_mode) &&
       get_phc_sample(fd, precision, phc_ts, sys_ts, err)) {
     *reading_mode = 1;
     return 1;
