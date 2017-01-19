@@ -205,7 +205,8 @@ static ARR_Instance broadcasts;
 
 /* Spacing required between samples for any two servers/peers (to
    minimise risk of network collisions) (in seconds) */
-#define SAMPLING_SEPARATION 0.2
+#define MIN_SAMPLING_SEPARATION 0.02
+#define MAX_SAMPLING_SEPARATION 0.2
 
 /* Randomness added to spacing between samples for one server/peer */
 #define SAMPLING_RANDOMNESS 0.02
@@ -279,6 +280,7 @@ static const char tss_chars[3] = {'D', 'K', 'H'};
 
 static void transmit_timeout(void *arg);
 static double get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx);
+static double get_separation(int poll);
 
 /* ================================================== */
 
@@ -399,7 +401,7 @@ restart_timeout(NCR_Instance inst, double delay)
   SCH_RemoveTimeout(inst->tx_timeout_id);
 
   /* Start new timer for transmission */
-  inst->tx_timeout_id = SCH_AddTimeoutInClass(delay, SAMPLING_SEPARATION,
+  inst->tx_timeout_id = SCH_AddTimeoutInClass(delay, get_separation(inst->local_poll),
                                               SAMPLING_RANDOMNESS,
                                               SCH_NtpSamplingClass,
                                               transmit_timeout, (void *)inst);
@@ -821,6 +823,21 @@ get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx)
   }
 
   return delay_time;
+}
+
+/* ================================================== */
+/* Calculate sampling separation for given polling interval */
+
+static double
+get_separation(int poll)
+{
+  double separation;
+
+  /* Allow up to 8 sources using the same short interval to not be limited
+     by the separation */
+  separation = UTI_Log2ToDouble(poll - 3);
+
+  return CLAMP(MIN_SAMPLING_SEPARATION, separation, MAX_SAMPLING_SEPARATION);
 }
 
 /* ================================================== */
@@ -2345,20 +2362,21 @@ broadcast_timeout(void *arg)
   BroadcastDestination *destination;
   NTP_int64 orig_ts;
   NTP_Local_Timestamp recv_ts;
+  int poll;
 
   destination = ARR_GetElement(broadcasts, (long)arg);
+  poll = log(destination->interval) / log(2.0) + 0.5;
 
   UTI_ZeroNtp64(&orig_ts);
   UTI_ZeroTimespec(&recv_ts.ts);
   recv_ts.source = NTP_TS_DAEMON;
   recv_ts.err = 0.0;
 
-  transmit_packet(MODE_BROADCAST, 0, log(destination->interval) / log(2.0) + 0.5,
-                  NTP_VERSION, 0, 0, &orig_ts, &orig_ts, &recv_ts, NULL, NULL, NULL,
-                  &destination->addr, &destination->local_addr);
+  transmit_packet(MODE_BROADCAST, 0, poll, NTP_VERSION, 0, 0, &orig_ts, &orig_ts, &recv_ts,
+                  NULL, NULL, NULL, &destination->addr, &destination->local_addr);
 
   /* Requeue timeout.  We don't care if interval drifts gradually. */
-  SCH_AddTimeoutInClass(destination->interval, SAMPLING_SEPARATION, SAMPLING_RANDOMNESS,
+  SCH_AddTimeoutInClass(destination->interval, get_separation(poll), SAMPLING_RANDOMNESS,
                         SCH_NtpBroadcastClass, broadcast_timeout, arg);
 }
 
@@ -2377,7 +2395,7 @@ NCR_AddBroadcastDestination(IPAddr *addr, unsigned short port, int interval)
   destination->local_addr.sock_fd = NIO_OpenServerSocket(&destination->addr);
   destination->interval = CLAMP(1, interval, 1 << MAX_POLL);
 
-  SCH_AddTimeoutInClass(destination->interval, SAMPLING_SEPARATION, SAMPLING_RANDOMNESS,
+  SCH_AddTimeoutInClass(destination->interval, MAX_SAMPLING_SEPARATION, SAMPLING_RANDOMNESS,
                         SCH_NtpBroadcastClass, broadcast_timeout,
                         (void *)(long)(ARR_GetSize(broadcasts) - 1));
 }
