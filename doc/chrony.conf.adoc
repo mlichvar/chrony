@@ -1836,6 +1836,9 @@ This option specifies the difference in seconds between the reported receive
 timestamp and the actual reception time at the physical layer. This value will
 be subtracted from receive timestamps obtained from the NIC. The default value
 is 0.
+*nocrossts*:::
+Some hardware can precisely cross timestamp the NIC clock with the system
+clock. This option disables the use of the cross timestamping.
 ::
 +
 Examples of the directive are:

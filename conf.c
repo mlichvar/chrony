@@ -1260,6 +1260,7 @@ parse_hwtimestamp(char *line)
   iface = ARR_GetNewElement(hwts_interfaces);
   iface->name = Strdup(p);
   iface->minpoll = 0;
+  iface->nocrossts = 0;
   iface->precision = 100.0e-9;
   iface->tx_comp = 0.0;
   iface->rx_comp = 0.0;
@@ -1279,6 +1280,9 @@ parse_hwtimestamp(char *line)
     } else if (!strcasecmp(p, "txcomp")) {
       if (sscanf(line, "%lf%n", &iface->tx_comp, &n) != 1)
         break;
+    } else if (!strcasecmp(p, "nocrossts")) {
+      n = 0;
+      iface->nocrossts = 1;
     } else {
       break;
     }

@@ -62,6 +62,7 @@ struct Interface {
   int if_index;
   int phc_fd;
   int phc_mode;
+  int phc_nocrossts;
   /* Link speed in mbit/s */
   int link_speed;
   /* Start of UDP data at layer 2 for IPv4 and IPv6 */
@@ -165,6 +166,7 @@ add_interface(CNF_HwTsInterface *conf_iface)
   iface->if_index = if_index;
   iface->phc_fd = phc_fd;
   iface->phc_mode = 0;
+  iface->phc_nocrossts = conf_iface->nocrossts;
 
   /* Start with 1 gbit and no VLANs or IPv4/IPv6 options */
   iface->link_speed = 1000;
@@ -368,8 +370,8 @@ process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
   int l2_length;
 
   if (HCL_NeedsNewSample(iface->clock, &local_ts->ts)) {
-    if (!SYS_Linux_GetPHCSample(iface->phc_fd, 0, iface->precision, &iface->phc_mode,
-                                &sample_phc_ts, &sample_sys_ts, &err))
+    if (!SYS_Linux_GetPHCSample(iface->phc_fd, iface->phc_nocrossts, iface->precision,
+                                &iface->phc_mode, &sample_phc_ts, &sample_sys_ts, &err))
       return;
 
     LCL_CookTime(&sample_sys_ts, &sample_local_ts, NULL);
