@@ -179,7 +179,7 @@ add_interface(CNF_HwTsInterface *conf_iface)
   iface->tx_comp = conf_iface->tx_comp;
   iface->rx_comp = conf_iface->rx_comp;
 
-  iface->clock = HCL_CreateInstance();
+  iface->clock = HCL_CreateInstance(1.0);
 
   DEBUG_LOG(LOGF_NtpIOLinux, "Enabled HW timestamping on %s", iface->name);
 

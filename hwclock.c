@@ -39,9 +39,6 @@
 /* Maximum number of samples per clock */
 #define MAX_SAMPLES 16
 
-/* Minimum interval between samples (in seconds) */
-#define MIN_SAMPLE_SEPARATION 1.0
-
 struct HCL_Instance_Record {
   /* HW and local reference timestamp */
   struct timespec hw_ref;
@@ -57,6 +54,9 @@ struct HCL_Instance_Record {
 
   /* Maximum error of the last sample */
   double last_err;
+
+  /* Minimum interval between samples */
+  double min_separation;
 
   /* Flag indicating the offset and frequency values are valid */
   int valid_coefs;
@@ -86,7 +86,7 @@ handle_slew(struct timespec *raw, struct timespec *cooked, double dfreq,
 /* ================================================== */
 
 HCL_Instance
-HCL_CreateInstance(void)
+HCL_CreateInstance(double min_separation)
 {
   HCL_Instance clock;
 
@@ -95,6 +95,7 @@ HCL_CreateInstance(void)
   clock->y_data[MAX_SAMPLES - 1] = 0.0;
   clock->n_samples = 0;
   clock->valid_coefs = 0;
+  clock->min_separation = min_separation;
 
   LCL_AddParameterChangeHandler(handle_slew, clock);
 
@@ -115,7 +116,7 @@ int
 HCL_NeedsNewSample(HCL_Instance clock, struct timespec *now)
 {
   if (!clock->n_samples ||
-      fabs(UTI_DiffTimespecsToDouble(now, &clock->local_ref)) >= MIN_SAMPLE_SEPARATION)
+      fabs(UTI_DiffTimespecsToDouble(now, &clock->local_ref)) >= clock->min_separation)
     return 1;
 
   return 0;
@@ -140,7 +141,7 @@ HCL_AccumulateSample(HCL_Instance clock, struct timespec *hw_ts,
     hw_delta = UTI_DiffTimespecsToDouble(hw_ts, &clock->hw_ref);
     local_delta = UTI_DiffTimespecsToDouble(local_ts, &clock->local_ref) / local_freq;
 
-    if (hw_delta <= 0.0 || local_delta < MIN_SAMPLE_SEPARATION / 2.0) {
+    if (hw_delta <= 0.0 || local_delta < clock->min_separation / 2.0) {
       clock->n_samples = 0;
       DEBUG_LOG(LOGF_HwClocks, "HW clock reset interval=%f", local_delta);
     }

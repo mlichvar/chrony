@@ -29,7 +29,7 @@
 typedef struct HCL_Instance_Record *HCL_Instance;
 
 /* Create a new HW clock instance */
-extern HCL_Instance HCL_CreateInstance(void);
+extern HCL_Instance HCL_CreateInstance(double min_separation);
 
 /* Destroy a HW clock instance */
 extern void HCL_DestroyInstance(HCL_Instance clock);

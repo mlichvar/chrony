@@ -31,7 +31,7 @@ test_unit(void)
 
   LCL_Initialise();
 
-  clock = HCL_CreateInstance();
+  clock = HCL_CreateInstance(1.0);
 
   for (i = 0; i < 2000; i++) {
     UTI_ZeroTimespec(&start_hw_ts);
@@ -43,7 +43,7 @@ test_unit(void)
 
     freq = TST_GetRandomDouble(0.9, 1.1);
     jitter = TST_GetRandomDouble(10.0e-9, 1000.0e-9);
-    interval = TST_GetRandomDouble(MIN_SAMPLE_SEPARATION / 10, MIN_SAMPLE_SEPARATION * 10.0);
+    interval = TST_GetRandomDouble(0.1, 10.0);
 
     clock->n_samples = 0;
     clock->valid_coefs = 0;
