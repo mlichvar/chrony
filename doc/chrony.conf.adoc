@@ -1818,6 +1818,12 @@ on all available interfaces.
 +
 The *hwtimestamp* directive has the following options:
 +
+*minpoll* _poll_:::
+This option specifies the minimum interval between readings of the NIC clock.
+It's defined as a power of two. It should correspond to the minimum polling
+interval of all NTP sources and the minimum expected polling interval of NTP
+clients. The default value is 0 (1 second) and the minimum value is -6 (1/64th
+of a second).
 *precision* _precision_:::
 This option specifies the assumed precision of reading of the NIC clock. The
 default value is 100e-9 (100 nanoseconds).

@@ -77,6 +77,9 @@ struct Interface {
 /* Number of PHC readings per HW clock sample */
 #define PHC_READINGS 10
 
+/* Minimum interval between PHC readings */
+#define MIN_PHC_POLL -6
+
 /* Maximum acceptable offset between HW and daemon/kernel timestamp */
 #define MAX_TS_DELAY 1.0
 
@@ -179,7 +182,7 @@ add_interface(CNF_HwTsInterface *conf_iface)
   iface->tx_comp = conf_iface->tx_comp;
   iface->rx_comp = conf_iface->rx_comp;
 
-  iface->clock = HCL_CreateInstance(1.0);
+  iface->clock = HCL_CreateInstance(UTI_Log2ToDouble(MAX(conf_iface->minpoll, MIN_PHC_POLL)));
 
   DEBUG_LOG(LOGF_NtpIOLinux, "Enabled HW timestamping on %s", iface->name);
 

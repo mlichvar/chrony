@@ -1259,6 +1259,7 @@ parse_hwtimestamp(char *line)
 
   iface = ARR_GetNewElement(hwts_interfaces);
   iface->name = Strdup(p);
+  iface->minpoll = 0;
   iface->precision = 100.0e-9;
   iface->tx_comp = 0.0;
   iface->rx_comp = 0.0;
@@ -1266,7 +1267,10 @@ parse_hwtimestamp(char *line)
   for (p = line; *p; line += n, p = line) {
     line = CPS_SplitWord(line);
 
-    if (!strcasecmp(p, "precision")) {
+    if (!strcasecmp(p, "minpoll")) {
+      if (sscanf(line, "%d%n", &iface->minpoll, &n) != 1)
+        break;
+    } else if (!strcasecmp(p, "precision")) {
       if (sscanf(line, "%lf%n", &iface->precision, &n) != 1)
         break;
     } else if (!strcasecmp(p, "rxcomp")) {
