@@ -66,6 +66,8 @@ struct Interface {
   /* Start of UDP data at layer 2 for IPv4 and IPv6 */
   int l2_udp4_ntp_start;
   int l2_udp6_ntp_start;
+  /* Precision of PHC readings */
+  double precision;
   /* Compensation of errors in TX and RX timestamping */
   double tx_comp;
   double rx_comp;
@@ -173,6 +175,7 @@ add_interface(CNF_HwTsInterface *conf_iface)
   iface->l2_udp4_ntp_start = 42;
   iface->l2_udp6_ntp_start = 62;
 
+  iface->precision = 100.0e-9;
   iface->tx_comp = conf_iface->tx_comp;
   iface->rx_comp = conf_iface->rx_comp;
 
@@ -342,7 +345,8 @@ NIO_Linux_SetTimestampSocketOptions(int sock_fd, int client_only, int *events)
 /* ================================================== */
 
 static int
-get_phc_sample(int phc_fd, struct timespec *phc_ts, struct timespec *local_ts, double *p_delay)
+get_phc_sample(struct Interface *iface, struct timespec *phc_ts, struct timespec *local_ts,
+               double *err)
 {
   struct ptp_sys_offset sys_off;
   struct timespec ts1, ts2, ts3, phc_tss[PHC_READINGS], sys_tss[PHC_READINGS];
@@ -354,7 +358,7 @@ get_phc_sample(int phc_fd, struct timespec *phc_ts, struct timespec *local_ts, d
 
   sys_off.n_samples = PHC_READINGS;
 
-  if (ioctl(phc_fd, PTP_SYS_OFFSET, &sys_off)) {
+  if (ioctl(iface->phc_fd, PTP_SYS_OFFSET, &sys_off)) {
     DEBUG_LOG(LOGF_NtpIOLinux, "ioctl(%s) failed : %s", "PTP_SYS_OFFSET", strerror(errno));
     return 0;
   }
@@ -383,7 +387,7 @@ get_phc_sample(int phc_fd, struct timespec *phc_ts, struct timespec *local_ts, d
 
   /* Combine best readings */
   for (i = n = 0, phc_sum = local_sum = 0.0; i < PHC_READINGS; i++) {
-    if (delays[i] > min_delay + local_prec)
+    if (delays[i] > min_delay + MAX(local_prec, iface->precision))
       continue;
 
     phc_sum += UTI_DiffTimespecsToDouble(&phc_tss[i], &phc_tss[0]);
@@ -396,7 +400,7 @@ get_phc_sample(int phc_fd, struct timespec *phc_ts, struct timespec *local_ts, d
   UTI_AddDoubleToTimespec(&phc_tss[0], phc_sum / n, phc_ts);
   UTI_AddDoubleToTimespec(&sys_tss[0], local_sum / n, &ts1);
   LCL_CookTime(&ts1, local_ts, NULL);
-  *p_delay = min_delay;
+  *err = MAX(min_delay / 2.0, iface->precision);
 
   return 1;
 }
@@ -427,15 +431,14 @@ process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
                      NTP_Local_Timestamp *local_ts, int rx_ntp_length, int family)
 {
   struct timespec sample_phc_ts, sample_local_ts, ts;
-  double sample_delay, rx_correction, ts_delay, err;
+  double rx_correction, ts_delay, err;
   int l2_length;
 
   if (HCL_NeedsNewSample(iface->clock, &local_ts->ts)) {
-    if (!get_phc_sample(iface->phc_fd, &sample_phc_ts, &sample_local_ts, &sample_delay))
+    if (!get_phc_sample(iface, &sample_phc_ts, &sample_local_ts, &err))
       return;
 
-    HCL_AccumulateSample(iface->clock, &sample_phc_ts, &sample_local_ts,
-                         sample_delay / 2.0);
+    HCL_AccumulateSample(iface->clock, &sample_phc_ts, &sample_local_ts, err);
 
     update_interface_speed(iface);
   }
