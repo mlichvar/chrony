@@ -119,6 +119,12 @@ extern char *CNF_GetHwclockFile(void);
 extern int CNF_GetInitSources(void);
 extern double CNF_GetInitStepThreshold(void);
 
-extern int CNF_GetHwTsInterface(unsigned int index, char **name, double *tx_comp, double *rx_comp);
+typedef struct {
+  char *name;
+  double tx_comp;
+  double rx_comp;
+} CNF_HwTsInterface;
+
+extern int CNF_GetHwTsInterface(unsigned int index, CNF_HwTsInterface **iface);
 
 #endif /* GOT_CONF_H */

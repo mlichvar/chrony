@@ -223,13 +223,7 @@ static char *leapsec_tz = NULL;
 /* Name of the user to which will be dropped root privileges. */
 static char *user;
 
-typedef struct {
-  char *name;
-  double tx_comp;
-  double rx_comp;
-} HwTs_Interface;
-
-/* Array of HwTs_Interface */
+/* Array of CNF_HwTsInterface */
 static ARR_Instance hwts_interfaces;
 
 typedef struct {
@@ -333,7 +327,7 @@ CNF_Initialise(int r)
 {
   restarted = r;
 
-  hwts_interfaces = ARR_CreateInstance(sizeof (HwTs_Interface));
+  hwts_interfaces = ARR_CreateInstance(sizeof (CNF_HwTsInterface));
 
   init_sources = ARR_CreateInstance(sizeof (IPAddr));
   ntp_sources = ARR_CreateInstance(sizeof (NTP_Source));
@@ -360,7 +354,7 @@ CNF_Finalise(void)
   unsigned int i;
 
   for (i = 0; i < ARR_GetSize(hwts_interfaces); i++)
-    Free(((HwTs_Interface *)ARR_GetElement(hwts_interfaces, i))->name);
+    Free(((CNF_HwTsInterface *)ARR_GetElement(hwts_interfaces, i))->name);
   ARR_DestroyInstance(hwts_interfaces);
 
   for (i = 0; i < ARR_GetSize(ntp_sources); i++)
@@ -1251,7 +1245,7 @@ parse_tempcomp(char *line)
 static void
 parse_hwtimestamp(char *line)
 {
-  HwTs_Interface *iface;
+  CNF_HwTsInterface *iface;
   char *p;
   int n;
 
@@ -1968,17 +1962,11 @@ CNF_GetInitStepThreshold(void)
 /* ================================================== */
 
 int
-CNF_GetHwTsInterface(unsigned int index, char **name, double *tx_comp, double *rx_comp)
+CNF_GetHwTsInterface(unsigned int index, CNF_HwTsInterface **iface)
 {
-  HwTs_Interface *iface;
-
   if (index >= ARR_GetSize(hwts_interfaces))
     return 0;
 
-  iface = ARR_GetElement(hwts_interfaces, index);
-  *name = iface->name;
-  *tx_comp = iface->tx_comp;
-  *rx_comp = iface->rx_comp;
-
+  *iface = (CNF_HwTsInterface *)ARR_GetElement(hwts_interfaces, index);
   return 1;
 }

@@ -91,7 +91,7 @@ static int permanent_ts_options;
 /* ================================================== */
 
 static int
-add_interface(const char *name, double tx_comp, double rx_comp)
+add_interface(CNF_HwTsInterface *conf_iface)
 {
   struct ethtool_ts_info ts_info;
   struct hwtstamp_config ts_config;
@@ -103,7 +103,7 @@ add_interface(const char *name, double tx_comp, double rx_comp)
 
   /* Check if the interface was not already added */
   for (i = 0; i < ARR_GetSize(interfaces); i++) {
-    if (!strcmp(name, ((struct Interface *)ARR_GetElement(interfaces, i))->name))
+    if (!strcmp(conf_iface->name, ((struct Interface *)ARR_GetElement(interfaces, i))->name))
       return 1;
   }
 
@@ -114,7 +114,8 @@ add_interface(const char *name, double tx_comp, double rx_comp)
   memset(&req, 0, sizeof (req));
   memset(&ts_info, 0, sizeof (ts_info));
 
-  if (snprintf(req.ifr_name, sizeof (req.ifr_name), "%s", name) >= sizeof (req.ifr_name)) {
+  if (snprintf(req.ifr_name, sizeof (req.ifr_name), "%s", conf_iface->name) >=
+      sizeof (req.ifr_name)) {
     close(sock_fd);
     return 0;
   }
@@ -163,7 +164,7 @@ add_interface(const char *name, double tx_comp, double rx_comp)
 
   iface = ARR_GetNewElement(interfaces);
 
-  snprintf(iface->name, sizeof (iface->name), "%s", name);
+  snprintf(iface->name, sizeof (iface->name), "%s", conf_iface->name);
   iface->if_index = if_index;
   iface->phc_fd = phc_fd;
 
@@ -172,12 +173,12 @@ add_interface(const char *name, double tx_comp, double rx_comp)
   iface->l2_udp4_ntp_start = 42;
   iface->l2_udp6_ntp_start = 62;
 
-  iface->tx_comp = tx_comp;
-  iface->rx_comp = rx_comp;
+  iface->tx_comp = conf_iface->tx_comp;
+  iface->rx_comp = conf_iface->rx_comp;
 
   iface->clock = HCL_CreateInstance();
 
-  DEBUG_LOG(LOGF_NtpIOLinux, "Enabled HW timestamping on %s", name);
+  DEBUG_LOG(LOGF_NtpIOLinux, "Enabled HW timestamping on %s", iface->name);
 
   return 1;
 }
@@ -185,10 +186,13 @@ add_interface(const char *name, double tx_comp, double rx_comp)
 /* ================================================== */
 
 static int
-add_all_interfaces(double tx_comp, double rx_comp)
+add_all_interfaces(CNF_HwTsInterface *conf_iface_all)
 {
+  CNF_HwTsInterface conf_iface;
   struct ifaddrs *ifaddr, *ifa;
   int r;
+
+  conf_iface = *conf_iface_all;
 
   if (getifaddrs(&ifaddr)) {
     DEBUG_LOG(LOGF_NtpIOLinux, "getifaddrs() failed : %s", strerror(errno));
@@ -196,7 +200,8 @@ add_all_interfaces(double tx_comp, double rx_comp)
   }
 
   for (r = 0, ifa = ifaddr; ifa; ifa = ifa->ifa_next) {
-    if (add_interface(ifa->ifa_name, tx_comp, rx_comp))
+    conf_iface.name = ifa->ifa_name;
+    if (add_interface(&conf_iface))
       r = 1;
   }
   
@@ -242,8 +247,7 @@ update_interface_speed(struct Interface *iface)
 void
 NIO_Linux_Initialise(void)
 {
-  double tx_comp, rx_comp;
-  char *name;
+  CNF_HwTsInterface *conf_iface;
   unsigned int i;
   int hwts;
 
@@ -252,18 +256,18 @@ NIO_Linux_Initialise(void)
   /* Enable HW timestamping on specified interfaces.  If "*" was specified, try
      all interfaces.  If no interface was specified, enable SW timestamping. */
 
-  for (i = hwts = 0; CNF_GetHwTsInterface(i, &name, &tx_comp, &rx_comp); i++) {
-    if (!strcmp("*", name))
+  for (i = hwts = 0; CNF_GetHwTsInterface(i, &conf_iface); i++) {
+    if (!strcmp("*", conf_iface->name))
       continue;
-    if (!add_interface(name, tx_comp, rx_comp))
-      LOG_FATAL(LOGF_NtpIO, "Could not enable HW timestamping on %s", name);
+    if (!add_interface(conf_iface))
+      LOG_FATAL(LOGF_NtpIO, "Could not enable HW timestamping on %s", conf_iface->name);
     hwts = 1;
   }
 
-  for (i = 0; CNF_GetHwTsInterface(i, &name, &tx_comp, &rx_comp); i++) {
-    if (strcmp("*", name))
+  for (i = 0; CNF_GetHwTsInterface(i, &conf_iface); i++) {
+    if (strcmp("*", conf_iface->name))
       continue;
-    if (add_all_interfaces(tx_comp, rx_comp))
+    if (add_all_interfaces(conf_iface))
       hwts = 1;
     break;
   }

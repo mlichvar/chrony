@@ -365,9 +365,8 @@ NIO_Initialise(int family)
   NIO_Linux_Initialise();
 #else
   if (1) {
-    double tx_comp, rx_comp;
-    char *name;
-    if (CNF_GetHwTsInterface(0, &name, &tx_comp, &rx_comp))
+    CNF_HwTsInterface *conf_iface;
+    if (CNF_GetHwTsInterface(0, &conf_iface))
       LOG_FATAL(LOGF_NtpIO, "HW timestamping not supported");
   }
 #endif
