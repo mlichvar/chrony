@@ -1622,7 +1622,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
             UTI_IPToString(&inst->remote_addr.ip_addr));
 
         /* Back off for a while and stop ongoing burst */
-        delay_time += 4 * (1UL << inst->minpoll);
+        delay_time += 4 * (1UL << inst->local_poll);
 
         if (inst->opmode == MD_BURST_WAS_OFFLINE || inst->opmode == MD_BURST_WAS_ONLINE) {
           inst->burst_good_samples_to_go = 0;
