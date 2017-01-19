@@ -505,6 +505,12 @@ RCL_AddPulse(RCL_Instance instance, struct timespec *pulse_time, double second)
   return 1;
 }
 
+double
+RCL_GetPrecision(RCL_Instance instance)
+{
+  return instance->precision;
+}
+
 static int
 valid_sample_time(RCL_Instance instance, struct timespec *raw, struct timespec *cooked)
 {

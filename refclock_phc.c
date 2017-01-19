@@ -33,144 +33,65 @@
 
 #include "sysincl.h"
 
-#include <linux/ptp_clock.h>
-
 #include "refclock.h"
 #include "logging.h"
+#include "memory.h"
 #include "util.h"
+#include "sys_linux.h"
 
-/* From linux/include/linux/posix-timers.h */
-#define CPUCLOCK_MAX            3
-#define CLOCKFD                 CPUCLOCK_MAX
-#define CLOCKFD_MASK            (CPUCLOCK_PERTHREAD_MASK|CPUCLOCK_CLOCK_MASK)
-
-#define FD_TO_CLOCKID(fd)       ((~(clockid_t) (fd) << 3) | CLOCKFD)
-
-#define NUM_READINGS 10
-
-static int no_sys_offset_ioctl = 0;
-
-struct phc_reading {
-  struct timespec sys_ts1;
-  struct timespec phc_ts;;
-  struct timespec sys_ts2;
+struct phc_instance {
+  int fd;
+  int mode;
 };
-
-static int read_phc_ioctl(struct phc_reading *readings, int phc_fd, int n)
-{
-#if defined(PTP_SYS_OFFSET) && NUM_READINGS <= PTP_MAX_SAMPLES
-  struct ptp_sys_offset sys_off;
-  int i;
-
-  /* Silence valgrind */
-  memset(&sys_off, 0, sizeof (sys_off));
-
-  sys_off.n_samples = n;
-  if (ioctl(phc_fd, PTP_SYS_OFFSET, &sys_off)) {
-    LOG(LOGS_ERR, LOGF_Refclock, "ioctl(PTP_SYS_OFFSET) failed : %s", strerror(errno));
-    return 0;
-  }
-
-  for (i = 0; i < n; i++) {
-    readings[i].sys_ts1.tv_sec = sys_off.ts[i * 2].sec;
-    readings[i].sys_ts1.tv_nsec = sys_off.ts[i * 2].nsec;
-    readings[i].phc_ts.tv_sec = sys_off.ts[i * 2 + 1].sec;
-    readings[i].phc_ts.tv_nsec = sys_off.ts[i * 2 + 1].nsec;
-    readings[i].sys_ts2.tv_sec = sys_off.ts[i * 2 + 2].sec;
-    readings[i].sys_ts2.tv_nsec = sys_off.ts[i * 2 + 2].nsec;
-  }
-
-  return 1;
-#else
-  /* Not available */
-  return 0;
-#endif
-}
-
-static int read_phc_user(struct phc_reading *readings, int phc_fd, int n)
-{
-  clockid_t phc_id;
-  int i;
-
-  phc_id = FD_TO_CLOCKID(phc_fd);
-
-  for (i = 0; i < n; i++) {
-    if (clock_gettime(CLOCK_REALTIME, &readings[i].sys_ts1) ||
-        clock_gettime(phc_id, &readings[i].phc_ts) ||
-        clock_gettime(CLOCK_REALTIME, &readings[i].sys_ts2)) {
-      LOG(LOGS_ERR, LOGF_Refclock, "clock_gettime() failed : %s", strerror(errno));
-      return 0;
-    }
-  }
-
-  return 1;
-}
 
 static int phc_initialise(RCL_Instance instance)
 {
-  struct ptp_clock_caps caps;
+  struct phc_instance *phc;
   int phc_fd;
   char *path;
 
   path = RCL_GetDriverParameter(instance);
  
-  phc_fd = open(path, O_RDONLY);
+  phc_fd = SYS_Linux_OpenPHC(path, 0);
   if (phc_fd < 0) {
-    LOG_FATAL(LOGF_Refclock, "open() failed on %s", path);
+    LOG_FATAL(LOGF_Refclock, "Could not open PHC");
     return 0;
   }
 
-  /* Make sure it is a PHC */
-  if (ioctl(phc_fd, PTP_CLOCK_GETCAPS, &caps)) {
-    LOG_FATAL(LOGF_Refclock, "ioctl(PTP_CLOCK_GETCAPS) failed : %s", strerror(errno));
-    return 0;
-  }
+  phc = MallocNew(struct phc_instance);
+  phc->fd = phc_fd;
+  phc->mode = 0;
 
-  UTI_FdSetCloexec(phc_fd);
-
-  RCL_SetDriverData(instance, (void *)(long)phc_fd);
+  RCL_SetDriverData(instance, phc);
   return 1;
 }
 
 static void phc_finalise(RCL_Instance instance)
 {
-  close((long)RCL_GetDriverData(instance));
+  struct phc_instance *phc;
+
+  phc = (struct phc_instance *)RCL_GetDriverData(instance);
+  close(phc->fd);
+  Free(phc);
 }
 
 static int phc_poll(RCL_Instance instance)
 {
-  struct phc_reading readings[NUM_READINGS];
-  double offset = 0.0, delay, best_delay = 0.0;
-  int i, phc_fd, best;
- 
-  phc_fd = (long)RCL_GetDriverData(instance);
+  struct phc_instance *phc;
+  struct timespec phc_ts, sys_ts;
+  double offset, err;
 
-  if (!no_sys_offset_ioctl) {
-    if (!read_phc_ioctl(readings, phc_fd, NUM_READINGS)) {
-      no_sys_offset_ioctl = 1;
-      return 0;
-    }
-  } else {
-    if (!read_phc_user(readings, phc_fd, NUM_READINGS))
-      return 0;
-  }
+  phc = (struct phc_instance *)RCL_GetDriverData(instance);
 
-  /* Find the fastest reading */
-  for (i = 0; i < NUM_READINGS; i++) {
-    delay = UTI_DiffTimespecsToDouble(&readings[i].sys_ts2, &readings[i].sys_ts1);
+  if (!SYS_Linux_GetPHCSample(phc->fd, RCL_GetPrecision(instance), &phc->mode,
+                              &phc_ts, &sys_ts, &err))
+    return 0;
 
-    if (!i || best_delay > delay) {
-      best = i;
-      best_delay = delay;
-    }
-  }
+  offset = UTI_DiffTimespecsToDouble(&phc_ts, &sys_ts);
 
-  offset = UTI_DiffTimespecsToDouble(&readings[best].phc_ts, &readings[best].sys_ts2) +
-           best_delay / 2.0;
+  DEBUG_LOG(LOGF_Refclock, "PHC offset: %+.9f err: %.9f", offset, err);
 
-  DEBUG_LOG(LOGF_Refclock, "PHC offset: %+.9f delay: %.9f", offset, best_delay);
-
-  return RCL_AddSample(instance, &readings[best].sys_ts2, offset, LEAP_Normal);
+  return RCL_AddSample(instance, &sys_ts, offset, LEAP_Normal);
 }
 
 RefclockDriver RCL_PHC_driver = {

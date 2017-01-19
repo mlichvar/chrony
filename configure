@@ -732,7 +732,7 @@ fi
 if [ $feat_refclock = "1" ] && [ $feat_phc = "1" ] && [ $try_phc = "1" ] && \
   grep '#define HAVE_CLOCK_GETTIME' config.h > /dev/null && \
   test_code '<linux/ptp_clock.h>' 'sys/ioctl.h linux/ptp_clock.h' '' '' \
-    'ioctl(1, PTP_CLOCK_GETCAPS, 0);'
+    'ioctl(1, PTP_CLOCK_GETCAPS + PTP_SYS_OFFSET, 0);'
 then
   add_def FEAT_PHC
 fi
