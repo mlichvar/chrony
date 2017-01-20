@@ -480,8 +480,7 @@ extract_udp_data(unsigned char *msg, NTP_Remote_Address *remote_addr, int len)
 
 int
 NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
-                         NTP_Local_Timestamp *local_ts, struct msghdr *hdr,
-                         int length, int sock_fd, int if_index)
+                         NTP_Local_Timestamp *local_ts, struct msghdr *hdr, int length)
 {
   struct Interface *iface;
   struct cmsghdr *cmsg;
@@ -500,12 +499,13 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
         LCL_CookTime(&ts3.ts[0], &local_ts->ts, &local_ts->err);
         local_ts->source = NTP_TS_KERNEL;
       } else if (!UTI_IsZeroTimespec(&ts3.ts[2])) {
-        iface = get_interface(if_index);
+        iface = get_interface(local_addr->if_index);
         if (iface) {
           process_hw_timestamp(iface, &ts3.ts[2], local_ts, !is_tx ? length : 0,
                                remote_addr->ip_addr.family);
         } else {
-          DEBUG_LOG(LOGF_NtpIOLinux, "HW clock not found for interface %d", if_index);
+          DEBUG_LOG(LOGF_NtpIOLinux, "HW clock not found for interface %d",
+                    local_addr->if_index);
         }
       }
     }
@@ -537,7 +537,7 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
 
   DEBUG_LOG(LOGF_NtpIOLinux, "Received %d (%d) bytes from error queue for %s:%d fd=%d if=%d tss=%d",
             l2_length, length, UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
-            sock_fd, if_index, local_ts->source);
+            local_addr->sock_fd, local_addr->if_index, local_ts->source);
 
   /* Update assumed position of UDP data at layer 2 for next received packet */
   if (iface && length) {

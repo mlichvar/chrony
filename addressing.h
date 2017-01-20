@@ -50,8 +50,11 @@ typedef struct {
   unsigned short port;
 } NTP_Remote_Address;
 
+#define INVALID_IF_INDEX -1
+
 typedef struct {
   IPAddr ip_addr;
+  int if_index;
   int sock_fd;
 } NTP_Local_Address;
 

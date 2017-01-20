@@ -80,6 +80,7 @@ send_request(void)
   advance_time(1e-4);
 
   local_addr.ip_addr.family = IPADDR_UNSPEC;
+  local_addr.if_index = INVALID_IF_INDEX;
   local_addr.sock_fd = 101;
   local_ts.ts = current_time;
   local_ts.err = 0.0;
@@ -176,6 +177,7 @@ process_response(int valid, int updated)
   res = &res_buffer.ntp_pkt;
 
   local_addr.ip_addr.family = IPADDR_UNSPEC;
+  local_addr.if_index = INVALID_IF_INDEX;
   local_addr.sock_fd = NTP_LVM_TO_MODE(res->lvm) == MODE_ACTIVE ? 100 : 101;
   local_ts.ts = current_time;
   local_ts.err = 0.0;

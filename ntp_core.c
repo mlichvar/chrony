@@ -482,6 +482,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
 
   result->remote_addr = *remote_addr;
   result->local_addr.ip_addr.family = IPADDR_UNSPEC;
+  result->local_addr.if_index = INVALID_IF_INDEX;
 
   switch (type) {
     case NTP_SERVER:
@@ -665,6 +666,7 @@ NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remote_addr)
   else {
     NIO_CloseServerSocket(inst->local_addr.sock_fd);
     inst->local_addr.ip_addr.family = IPADDR_UNSPEC;
+    inst->local_addr.if_index = INVALID_IF_INDEX;
     inst->local_addr.sock_fd = NIO_OpenServerSocket(remote_addr);
   }
 
@@ -1094,6 +1096,7 @@ transmit_timeout(void *arg)
 
   /* Don't require the packet to be sent from the same address as before */
   local_addr.ip_addr.family = IPADDR_UNSPEC;
+  local_addr.if_index = INVALID_IF_INDEX;
   local_addr.sock_fd = inst->local_addr.sock_fd;
 
   /* Check whether we need to 'warm up' the link to the other end by
@@ -1627,8 +1630,9 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
        server and the socket can be closed */
     close_client_socket(inst);
 
-    /* Update the local address */
+    /* Update the local address and interface */
     inst->local_addr.ip_addr = local_addr->ip_addr;
+    inst->local_addr.if_index = local_addr->if_index;
 
     /* And now, requeue the timer */
     if (inst->opmode != MD_OFFLINE) {
@@ -2392,6 +2396,7 @@ NCR_AddBroadcastDestination(IPAddr *addr, unsigned short port, int interval)
   destination->addr.ip_addr = *addr;
   destination->addr.port = port;
   destination->local_addr.ip_addr.family = IPADDR_UNSPEC;
+  destination->local_addr.if_index = INVALID_IF_INDEX;
   destination->local_addr.sock_fd = NIO_OpenServerSocket(&destination->addr);
   destination->interval = CLAMP(1, interval, 1 << MAX_POLL);
 
