@@ -1943,10 +1943,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
                   !UTI_CompareNtp64(&message->originate_ts, local_ntp_rx);
 
     if (interleaved) {
-      if (!UTI_IsZeroNtp64(local_ntp_tx))
-        UTI_Ntp64ToTimespec(local_ntp_tx, &local_tx.ts);
-      else
-        interleaved = 0;
+      UTI_Ntp64ToTimespec(local_ntp_tx, &local_tx.ts);
       tx_ts = &local_tx;
     } else {
       UTI_ZeroNtp64(local_ntp_tx);
@@ -2040,9 +2037,6 @@ NCR_ProcessTxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
     return;
 
   CLG_GetNtpTimestamps(log_index, &local_ntp_rx, &local_ntp_tx);
-
-  if (UTI_IsZeroNtp64(local_ntp_tx))
-    return;
 
   UTI_Ntp64ToTimespec(local_ntp_tx, &local_tx.ts);
   update_tx_timestamp(&local_tx, tx_ts, local_ntp_rx, NULL, message);
