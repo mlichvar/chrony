@@ -32,6 +32,14 @@ check_chronyd_exit || test_fail
 check_source_selection || test_fail
 check_sync || test_fail
 
+client_server_options="minpoll 6 maxpoll 6 xleave maxdelay 1e-1"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_source_selection || test_fail
+check_sync || test_fail
+
+client_server_options="minpoll 6 maxpoll 6"
 min_sync_time=$default_min_sync_time
 max_sync_time=$default_max_sync_time
 time_max_limit=11
