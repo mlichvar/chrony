@@ -1,3 +1,16 @@
+New in version 3.1
+==================
+
+Enhancements
+------------
+* Add support for precise cross timestamping of PHC on Linux
+* Add minpoll, precision, nocrossts options to hwtimestamp directive
+* Allow sub-second polling interval with NTP sources
+
+Bug fixes
+---------
+* Fix time smoothing in interleaved mode
+
 New in version 3.0
 ==================
 
