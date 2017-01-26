@@ -96,4 +96,5 @@ test_unit(void)
   SCH_Finalise();
   LCL_Finalise();
   CNF_Finalise();
+  HSH_Finalise();
 }

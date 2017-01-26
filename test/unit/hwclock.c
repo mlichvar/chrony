@@ -68,5 +68,7 @@ test_unit(void)
     }
   }
 
+  HCL_DestroyInstance(clock);
+
   LCL_Finalise();
 }
