@@ -1214,7 +1214,7 @@ REF_GetReferenceParams
     *leap_status = LEAP_Normal;
     
     *root_delay = 0.0;
-    *root_dispersion = LCL_GetSysPrecisionAsQuantum();
+    *root_dispersion = 0.0;
     
   } else {
 
