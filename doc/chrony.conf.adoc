@@ -71,7 +71,7 @@ This is always defined as a power of 2, so *minpoll 5* would mean that the
 polling interval cannot drop below 32 seconds. The default is 6 (64 seconds),
 the minimum is -4 (1/16th of a second), and the maximum is 24 (6 months). Note
 that intervals shorter than 6 (64 seconds) should generally not be used with
-public servers on the Internet as their administrators may consider it abuse.
+public servers on the Internet, because it might be considered abuse.
 *maxpoll* _poll_:::
 In a similar way, the user might want to constrain the maximum polling interval.
 Again this is specified as a power of 2, *maxpoll 9* indicates that the polling
@@ -176,9 +176,12 @@ the interleaved mode requires the servers to keep some state for each client
 and the state might be dropped when there are too many clients (e.g.
 <<clientloglimit,*clientloglimit*>> is too small), or it might be overwritten
 by other clients that have the same IP address (e.g. computers behind NAT or
-someone sending requests with a spoofed source address). The *presend* option
-can be used to shorten the interval in which the server has to keep the state
-for this computer and be able to respond in the interleaved mode.
+someone sending requests with a spoofed source address).
++
+With longer polling intervals, it is recommended to combine the *xleave* option
+with the *presend* option in order to shorten the interval in which the server
+has to keep the state to be able to respond in the interleaved mode. The
+shorter interval also improves accuracy of the measured offset and delay.
 *polltarget* _target_:::
 Target number of measurements to use for the regression algorithm which
 *chronyd* will try to maintain by adjusting the polling interval between
