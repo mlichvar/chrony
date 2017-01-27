@@ -79,7 +79,7 @@ rtcsync
 
 You need to add an `allow` directive to the _chrony.conf_ file in order to open
 the NTP port and allow `chronyd` to reply to client requests. `allow` with no
-specified subnet allows all IPv4 and IPv6 addresses.
+specified subnet allows access from all IPv4 and IPv6 addresses.
 
 === I have several computers on a LAN. Should be all clients of an external server?
 
@@ -97,7 +97,7 @@ _chrony.conf_ file. This configuration will be better because
 No. Starting from version 1.25, `chronyd` will keep trying to resolve
 the names specified by the `server`, `pool`, and `peer` directives in an
 increasing interval until it succeeds. The `online` command can be issued from
-`chronyc` to try to resolve them immediately.
+`chronyc` to force `chronyd` to try to resolve the names immediately.
 
 === How can I make `chronyd` more secure?
 
@@ -161,7 +161,7 @@ The first three options set the minimum and maximum allowed polling interval,
 and how should be the actual interval adjusted in the specified range. Their
 default values are 6 (64 seconds) for `minpoll`, 10 (1024 seconds) for
 `maxpoll` and 8 (samples) for `polltarget`. The default values should be used
-for general servers on the Internet. With your own NTP servers or if have
+for general servers on the Internet. With your own NTP servers, or if you have
 permission to poll some servers more frequently, setting these options for
 shorter polling intervals may significantly improve the accuracy of the system
 clock.
@@ -195,13 +195,25 @@ server ntp.local minpoll 2 maxpoll 4 polltarget 30 maxdelaydevratio 2
 ----
 
 If your server supports the interleaved mode, the `xleave` option should be
-added to the `server` directive in order to receive server's more accurate
-hardware or kernel transmit timestamps. When combined with local hardware
-timestamping, a sub-microsecond accuracy may be possible. An example could be
+added to the `server` directive in order to allow the server to send the
+client more accurate hardware or kernel transmit timestamps. When combined with
+local hardware timestamping, sub-microsecond accuracy may be possible. An
+example could be
 
 ----
 server ntp.local minpoll 2 maxpoll 2 xleave
 hwtimestamp eth0
+----
+
+=== Does `chronyd` have an ntpdate mode?
+
+Yes. With the `-q` option `chronyd` will set the system clock once and exit.
+With the `-Q` option it will print the measured offset without setting the
+clock. If you don't want to use a configuration file, NTP servers can be
+specified on the command line. For example:
+
+----
+# chronyd -q 'pool pool.ntp.org iburst'
 ----
 
 === What happened to the `commandkey` and `generatecommandkey` directives?
@@ -242,8 +254,17 @@ MS Name/IP address         Stratum Poll Reach LastRx Last sample
 === Are NTP servers specified with the `offline` option?
 
 Check that you're using ``chronyc``'s `online` and `offline` commands
-appropriately. Again, check in _measurements.log_ to see if you're getting any
-data back from the server.
+appropriately. The `activity` command prints the number of sources that are
+currently online and offline. For example:
+
+----
+200 OK
+3 sources online
+0 sources offline
+0 sources doing burst (return to online)
+0 sources doing burst (return to offline)
+0 sources with unknown address
+----
 
 === Is `chronyd` allowed to step the system clock?
 
@@ -396,15 +417,15 @@ option for all time sources in the _chrony.conf_ file.
 
 === What happens if the network connection is dropped without using ``chronyc``'s `offline` command first?
 
-`chronyd` will keep trying to access the server(s) that it thinks are online.
-When the network is connected again, it will take some time (on average half of
-the maximum polling interval) before new measurements are made and the clock is
-corrected. If the servers were set to offline and the `online` command was
-issued when the network was connected, `chronyd` would make new measurements
-immediately.
+`chronyd` will keep trying to access the sources that it thinks are online, and
+it will take longer before new measurements are actually made and the clock is
+corrected when the network is connected again. If the sources were set to
+offline, `chronyd` would make new measurements immediately after issuing the
+`online` command.
 
-The `auto_offline` option to the `server` entry in the _chrony.conf_ file may
-be useful to switch the servers to the offline state automatically.
+Unless the network connection lasts only few minutes (less than the maximum
+polling interval), the delay is usually not a problem, and it may be acceptable
+to keep all sources online all the time.
 
 == Operating systems
 
