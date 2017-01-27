@@ -179,7 +179,7 @@ add_interface(CNF_HwTsInterface *conf_iface)
 
   iface->clock = HCL_CreateInstance(UTI_Log2ToDouble(MAX(conf_iface->minpoll, MIN_PHC_POLL)));
 
-  DEBUG_LOG(LOGF_NtpIOLinux, "Enabled HW timestamping on %s", iface->name);
+  LOG(LOGS_INFO, LOGF_NtpIOLinux, "Enabled HW timestamping on %s", iface->name);
 
   return 1;
 }
