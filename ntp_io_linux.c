@@ -103,7 +103,7 @@ add_interface(CNF_HwTsInterface *conf_iface)
   struct ethtool_ts_info ts_info;
   struct hwtstamp_config ts_config;
   struct ifreq req;
-  int sock_fd, if_index, phc_fd;
+  int sock_fd, if_index, phc_fd, req_hwts_flags;
   unsigned int i;
   struct Interface *iface;
 
@@ -139,6 +139,14 @@ add_interface(CNF_HwTsInterface *conf_iface)
 
   if (ioctl(sock_fd, SIOCETHTOOL, &req)) {
     DEBUG_LOG(LOGF_NtpIOLinux, "ioctl(%s) failed : %s", "SIOCETHTOOL", strerror(errno));
+    close(sock_fd);
+    return 0;
+  }
+
+  req_hwts_flags = SOF_TIMESTAMPING_RX_HARDWARE | SOF_TIMESTAMPING_TX_HARDWARE |
+                   SOF_TIMESTAMPING_RAW_HARDWARE;
+  if ((ts_info.so_timestamping & req_hwts_flags) != req_hwts_flags) {
+    DEBUG_LOG(LOGF_NtpIOLinux, "HW timestamping not supported on %s", req.ifr_name);
     close(sock_fd);
     return 0;
   }
