@@ -20,8 +20,8 @@ RMS offset      : 0\.000...... seconds
 Frequency       : (99|100)\.... ppm fast
 Residual freq   : [+-][0-9]\.... ppm
 Skew            : [0-9]\.... ppm
-Root delay      : 0\.000... seconds
-Root dispersion : 0\.000... seconds
+Root delay      : 0\.000...... seconds
+Root dispersion : 0\.000...... seconds
 Update interval : [0-9]+\.. seconds
 Leap status     : Normal
 210 Number of sources = 1
