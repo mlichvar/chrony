@@ -2215,8 +2215,8 @@ process_cmd_tracking(char *line)
                "Frequency       : %.3F\n"
                "Residual freq   : %+.3f ppm\n"
                "Skew            : %.3f ppm\n"
-               "Root delay      : %.6f seconds\n"
-               "Root dispersion : %.6f seconds\n"
+               "Root delay      : %.9f seconds\n"
+               "Root dispersion : %.9f seconds\n"
                "Update interval : %.1f seconds\n"
                "Leap status     : %L\n",
                (unsigned long)ref_id, name,

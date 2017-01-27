@@ -130,15 +130,15 @@ performance. An example of the output is shown below.
 ----
 Reference ID    : CB00710F (foo.example.net)
 Stratum         : 3
-Ref time (UTC)  : Fri Feb  3 15:00:29 2012
-System time     : 0.000001501 seconds slow of NTP time
-Last offset     : -0.000001632 seconds
-RMS offset      : 0.000002360 seconds
-Frequency       : 331.898 ppm fast
-Residual freq   : 0.004 ppm
-Skew            : 0.154 ppm
-Root delay      : 0.373169 seconds
-Root dispersion : 0.024780 seconds
+Ref time (UTC)  : Fri Jan 27 09:49:17 2017
+System time     : 0.000006523 seconds slow of NTP time
+Last offset     : -0.000006747 seconds
+RMS offset      : 0.000035822 seconds
+Frequency       : 3.225 ppm slow
+Residual freq   : -0.000 ppm
+Skew            : 0.129 ppm
+Root delay      : 0.013639022 seconds
+Root dispersion : 0.001100737 seconds
 Update interval : 64.2 seconds
 Leap status     : Normal
 ----
@@ -187,9 +187,6 @@ The '`frequency`' is the rate by which the system's clock would be wrong if
 For example, a value of 1 ppm would mean that when the system's clock thinks it
 has advanced 1 second, it has actually advanced by 1.000001 seconds relative to
 true time.
-+
-As you can see in the example, the clock in the computer is not a very
-good one; it would gain about 30 seconds per day if it was not corrected!
 *Residual freq*:::
 This shows the '`residual frequency`' for the currently selected reference
 source. This reflects any difference between what the measurements from the
