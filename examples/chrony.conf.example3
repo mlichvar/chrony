@@ -33,41 +33,29 @@
 
 ! pool pool.ntp.org iburst
  
-# However, for dial-up use you probably want these instead.  The word
-# 'offline' means that the server is not visible at boot time.  Use
-# chronyc's 'online' command to tell chronyd that these servers have
-# become visible after you go on-line.
-
-! server foo.example.net offline
-! server bar.example.net offline
-! server baz.example.net offline
-
-! pool pool.ntp.org offline
-
-# You may want to specify NTP 'peers' instead.  If you run a network
-# with a lot of computers and want several computers running chrony to
-# have the 'front-line' interface to the public NTP servers, you can
-# 'peer' these machines together to increase robustness.
-
-! peer foo.example.net
-
-# There are other options to the 'server' and 'peer' directives that you
-# might want to use.  For example, you can ignore measurements whose
-# round-trip-time is too large (indicating that the measurement is
-# probably useless, because you don't know which way the measurement
-# message got held up.)  Consult the full documentation for details.
-
 #######################################################################
 ### AVOIDING POTENTIALLY BOGUS CHANGES TO YOUR CLOCK
 #
 # To avoid changes being made to your computer's gain/loss compensation
 # when the measurement history is too erratic, you might want to enable
-# one of the following lines.  The first seems good for dial-up (or
-# other high-latency connections like slow leased lines), the second
-# seems OK for a LAN environment.
+# one of the following lines.  The first seems good with servers on the
+# Internet, the second seems OK for a LAN environment.
 
 ! maxupdateskew 100
 ! maxupdateskew 5
+
+# If you want to increase the minimum number of selectable sources
+# required to update the system clock in order to make the
+# synchronisation more reliable, uncomment (and edit) the following
+# line.
+
+! minsources 2
+
+# If your computer has a good stable clock (e.g. it is not a virtual
+# machine), you might also want to reduce the maximum assumed drift
+# (frequency error) of the clock (the value is specified in ppm).
+
+! maxdrift 100
 
 #######################################################################
 ### FILENAMES ETC
@@ -181,13 +169,12 @@ driftfile /var/lib/chrony/drift
 # machine accesses it.  The information can be accessed by the 'clients'
 # command of chronyc.  You can disable this facility by uncommenting the
 # following line.  This will save a bit of memory if you have many
-# clients.
+# clients and it will also disable support for the interleaved mode.
 
 ! noclientlog
 
 # The clientlog size is limited to 512KB by default.  If you have many
-# clients, especially in many different subnets, you might want to
-# increase the limit. 
+# clients, you might want to increase the limit.
 
 ! clientloglimit 4194304
 
@@ -196,7 +183,7 @@ driftfile /var/lib/chrony/drift
 # clients that are sending requests too frequently, uncomment and edit
 # the following line.
 
-! limitrate interval 3 burst 8
+! ratelimit interval 3 burst 8
 
 #######################################################################
 ### REPORTING BIG CLOCK CHANGES
@@ -243,7 +230,17 @@ driftfile /var/lib/chrony/drift
 # Rate limiting can be enabled also for command packets.  (Note,
 # commands from localhost are never limited.)
 
-! cmdratelimit interval 1 burst 16
+! cmdratelimit interval -4 burst 16
+
+#######################################################################
+### HARDWARE TIMESTAMPING
+# On Linux, if the network interface controller and its driver support
+# hardware timestamping, it can significantly improve the accuracy of
+# synchronisation. It can be enabled on specified interfaces only, or it
+# can be enabled on all interfaces that support it.
+
+! hwtimestamp eth0
+! hwtimestamp *
 
 #######################################################################
 ### REAL TIME CLOCK
@@ -273,6 +270,12 @@ driftfile /var/lib/chrony/drift
 # using devfs), uncomment and edit the following line.
 
 ! rtcdevice /dev/misc/rtc
+
+# Alternatively, if not using the -s option, this directive can be used
+# to enable a mode in which the RTC is periodically set to the system
+# time, with no tracking of its drift.
+
+! rtcsync
 
 #######################################################################
 ### REAL TIME SCHEDULER
