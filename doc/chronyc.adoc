@@ -1130,6 +1130,10 @@ directory into which the dump files will be written. This can only be
 done in the configuration file with the <<chrony.conf.adoc#dumpdir,*dumpdir*>>
 directive.
 
+[[rekey]]*rekey*::
+The *rekey* command causes *chronyd* to re-read the key file specified in the
+configuration file by the <<chrony.conf.adoc#keyfile,*keyfile*>> directive.
+
 === Client commands
 
 [[dns]]*dns* _option_::
