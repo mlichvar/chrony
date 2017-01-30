@@ -10,6 +10,9 @@ Type=forking
 PIDFile=/var/run/chronyd.pid
 EnvironmentFile=-/etc/sysconfig/chronyd
 ExecStart=/usr/sbin/chronyd $OPTIONS
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=full
 
 [Install]
 WantedBy=multi-user.target

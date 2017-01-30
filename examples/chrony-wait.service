@@ -1,5 +1,6 @@
 [Unit]
 Description=Wait for chrony to synchronize system clock
+Documentation=man:chronyc(1)
 After=chronyd.service
 Requires=chronyd.service
 Before=time-sync.target
