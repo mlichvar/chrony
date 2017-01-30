@@ -1518,10 +1518,12 @@ The log files are written to the directory specified by the <<logdir,*logdir*>>
 directive. A banner is periodically written to the files to indicate the
 meanings of the columns.
 +
-*measurements*:::
+*rawmeasurements*:::
 This option logs the raw NTP measurements and related information to a file
-called _measurements.log_. An example line (which actually appears as a single
-line in the file) from the log file is shown below.
+called _measurements.log_. An entry is made for each packet received from the
+source. This can be useful when debugging a problem. An example line (which
+actually appears as a single line in the file) from the log file is shown
+below.
 +
 ----
 2016-11-09 05:40:50 203.0.113.15    N  2 111 111 1111  10 10 1.0 \
@@ -1562,6 +1564,12 @@ from the example line above):
   (_D_=daemon, _K_=kernel, _H_=hardware). [D]
 . Source of the local receive timestamp
   (_D_=daemon, _K_=kernel, _H_=hardware). [K]
++
+*measurements*:::
+This option is identical to the *rawmeasurements* option, except it logs only
+valid measurements from synchronised sources, i.e. measurements which passed
+the RFC 5905 tests 1 through 7. This can be useful for producing graphs of the
+source's performance.
 +
 *statistics*:::
 This option logs information about the regression processing to a file called
