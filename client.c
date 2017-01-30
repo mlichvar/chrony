@@ -1242,6 +1242,7 @@ give_help(void)
     "Other daemon commands:\0\0"
     "cyclelogs\0Close and re-open log files\0"
     "dump\0Dump all measurements to save files\0"
+    "rekey\0Re-read keys from key file\0"
     "\0\0"
     "Client commands:\0\0"
     "dns -n|+n\0Disable/enable resolving IP addresses to hostnames\0"
