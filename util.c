@@ -329,12 +329,14 @@ UTI_StringToIP(const char *addr, IPAddr *ip)
 
   if (inet_pton(AF_INET, addr, &in4) > 0) {
     ip->family = IPADDR_INET4;
+    ip->_pad = 0;
     ip->addr.in4 = ntohl(in4.s_addr);
     return 1;
   }
 
   if (inet_pton(AF_INET6, addr, &in6) > 0) {
     ip->family = IPADDR_INET6;
+    ip->_pad = 0;
     memcpy(ip->addr.in6, in6.s6_addr, sizeof (ip->addr.in6));
     return 1;
   }
@@ -344,6 +346,7 @@ UTI_StringToIP(const char *addr, IPAddr *ip)
   n = sscanf(addr, "%lu.%lu.%lu.%lu", &a, &b, &c, &d);
   if (n == 4) {
     ip->family = IPADDR_INET4;
+    ip->_pad = 0;
     ip->addr.in4 = ((a & 0xff) << 24) | ((b & 0xff) << 16) | 
                    ((c & 0xff) << 8) | (d & 0xff);
     return 1;
@@ -442,6 +445,7 @@ void
 UTI_IPNetworkToHost(IPAddr *src, IPAddr *dest)
 {
   dest->family = ntohs(src->family);
+  dest->_pad = 0;
 
   switch (dest->family) {
     case IPADDR_INET4:
