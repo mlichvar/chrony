@@ -64,10 +64,10 @@ chronyc : $(CLI_OBJS)
 	$(CC) $(CFLAGS) -o chronyc $(CLI_OBJS) $(LDFLAGS) $(LIBS) $(EXTRA_CLI_LIBS)
 
 distclean : clean
-	-rm -f .DS_Store
-	-rm -f Makefile config.h config.log
 	$(MAKE) -C doc distclean
 	$(MAKE) -C test/unit distclean
+	-rm -f .DS_Store
+	-rm -f Makefile config.h config.log
 
 clean :
 	-rm -f *.o *.s chronyc chronyd core *~
