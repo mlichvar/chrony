@@ -5,6 +5,8 @@ Enhancements
 ------------
 * Add support for precise cross timestamping of PHC on Linux
 * Add minpoll, precision, nocrossts options to hwtimestamp directive
+* Add rawmeasurements option to log directive and modify measurements
+  option to log only valid measurements from synchronised sources
 * Allow sub-second polling interval with NTP sources
 
 Bug fixes
