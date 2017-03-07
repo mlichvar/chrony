@@ -40,6 +40,7 @@
 #define OP_SETTIME        1026
 #define OP_BINDSOCKET     1027
 #define OP_NAME2IPADDRESS 1028
+#define OP_RELOADDNS      1029
 #define OP_QUIT           1099
 
 union sockaddr_in46 {
@@ -293,10 +294,21 @@ do_name_to_ipaddress(ReqName2IPAddress *req, PrvResponse *res)
   /* make sure the string is terminated */
   req->name[sizeof (req->name) - 1] = '\0';
 
-  DNS_Reload();
-
   res->rc = DNS_Name2IPAddress(req->name, res->data.name_to_ipaddress.addresses,
                                DNS_MAX_ADDRESSES);
+}
+#endif
+
+/* ======================================================================= */
+
+/* HELPER - perform DNS_Reload() */
+
+#ifdef PRIVOPS_RELOADDNS
+static void
+do_reload_dns(PrvResponse *res)
+{
+  DNS_Reload();
+  res->rc = 0;
 }
 #endif
 
@@ -342,6 +354,11 @@ helper_main(int fd)
 #ifdef PRIVOPS_NAME2IPADDRESS
       case OP_NAME2IPADDRESS:
         do_name_to_ipaddress(&req.data.name_to_ipaddress, &res);
+        break;
+#endif
+#ifdef PRIVOPS_RELOADDNS
+      case OP_RELOADDNS:
+        do_reload_dns(&res);
         break;
 #endif
       case OP_QUIT:
@@ -608,6 +625,30 @@ PRV_Name2IPAddress(const char *name, IPAddr *ip_addrs, int max_addrs)
     ip_addrs[i] = res.data.name_to_ipaddress.addresses[i];
 
   return res.rc;
+}
+#endif
+
+/* ======================================================================= */
+
+/* DAEMON - request res_init() */
+
+#ifdef PRIVOPS_RELOADDNS
+void
+PRV_ReloadDNS(void)
+{
+  PrvRequest req;
+  PrvResponse res;
+
+  if (!have_helper()) {
+    DNS_Reload();
+    return;
+  }
+
+  memset(&req, 0, sizeof (req));
+  req.op = OP_RELOADDNS;
+
+  submit_request(&req, &res);
+  assert(!res.rc);
 }
 #endif
 

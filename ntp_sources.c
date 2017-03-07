@@ -39,6 +39,7 @@
 #include "local.h"
 #include "memory.h"
 #include "nameserv_async.h"
+#include "privops.h"
 #include "sched.h"
 
 /* ================================================== */
@@ -469,7 +470,7 @@ resolve_sources(void *arg)
 
   assert(!resolving_source);
 
-  DNS_Reload();
+  PRV_ReloadDNS();
 
   /* Start with the first source in the list, name_resolve_handler
      will iterate over the rest */

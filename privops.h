@@ -58,6 +58,12 @@ int PRV_Name2IPAddress(const char *name, IPAddr *ip_addrs, int max_addrs);
 #define PRV_Name2IPAddress DNS_Name2IPAddress
 #endif
 
+#ifdef PRIVOPS_RELOADDNS
+void PRV_ReloadDNS(void);
+#else
+#define PRV_ReloadDNS DNS_Reload
+#endif
+
 #ifdef PRIVOPS_HELPER
 void PRV_Initialise(void);
 void PRV_StartHelper(void);
