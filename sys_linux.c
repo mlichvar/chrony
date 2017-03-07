@@ -240,7 +240,7 @@ guess_hz(void)
   }
 
   /* oh dear.  doomed. */
-  LOG_FATAL(LOGF_SysLinux, "Can't determine hz from tick %d", tick);
+  LOG_FATAL("Can't determine hz from tick %d", tick);
 
   return 0;
 }
@@ -283,11 +283,11 @@ get_kernel_version(int *major, int *minor, int *patch)
   struct utsname uts;
 
   if (uname(&uts) < 0)
-    LOG_FATAL(LOGF_SysLinux, "uname() failed");
+    LOG_FATAL("uname() failed");
 
   *patch = 0;
   if (sscanf(uts.release, "%d.%d.%d", major, minor, patch) < 2)
-    LOG_FATAL(LOGF_SysLinux, "Could not parse kernel version");
+    LOG_FATAL("Could not parse kernel version");
 }
 
 /* ================================================== */
@@ -314,10 +314,10 @@ get_version_specific_details(void)
   tick_update_hz = 100;
 
   get_kernel_version(&major, &minor, &patch);
-  DEBUG_LOG(LOGF_SysLinux, "Linux kernel major=%d minor=%d patch=%d", major, minor, patch);
+  DEBUG_LOG("Linux kernel major=%d minor=%d patch=%d", major, minor, patch);
 
   if (kernelvercmp(major, minor, patch, 2, 2, 0) < 0) {
-    LOG_FATAL(LOGF_SysLinux, "Kernel version not supported, sorry.");
+    LOG_FATAL("Kernel version not supported, sorry.");
   }
 
   if (kernelvercmp(major, minor, patch, 2, 6, 27) >= 0 &&
@@ -334,7 +334,7 @@ get_version_specific_details(void)
     have_setoffset = 1;
   }
 
-  DEBUG_LOG(LOGF_SysLinux, "hz=%d nominal_tick=%d max_tick_bias=%d",
+  DEBUG_LOG("hz=%d nominal_tick=%d max_tick_bias=%d",
       hz, nominal_tick, max_tick_bias);
 }
 
@@ -391,7 +391,7 @@ SYS_Linux_Initialise(void)
   reset_adjtime_offset();
 
   if (have_setoffset && !test_step_offset()) {
-    LOG(LOGS_INFO, LOGF_SysLinux, "adjtimex() doesn't support ADJ_SETOFFSET");
+    LOG(LOGS_INFO, "adjtimex() doesn't support ADJ_SETOFFSET");
     have_setoffset = 0;
   }
 
@@ -421,7 +421,7 @@ SYS_Linux_DropRoot(uid_t uid, gid_t gid)
   cap_t cap;
 
   if (prctl(PR_SET_KEEPCAPS, 1)) {
-    LOG_FATAL(LOGF_SysLinux, "prctl() failed");
+    LOG_FATAL("prctl() failed");
   }
   
   UTI_DropRoot(uid, gid);
@@ -431,11 +431,11 @@ SYS_Linux_DropRoot(uid_t uid, gid_t gid)
              "cap_net_bind_service,cap_sys_time=ep" : "cap_sys_time=ep";
 
   if ((cap = cap_from_text(cap_text)) == NULL) {
-    LOG_FATAL(LOGF_SysLinux, "cap_from_text() failed");
+    LOG_FATAL("cap_from_text() failed");
   }
 
   if (cap_set_proc(cap)) {
-    LOG_FATAL(LOGF_SysLinux, "cap_set_proc() failed");
+    LOG_FATAL("cap_set_proc() failed");
   }
 
   cap_free(cap);
@@ -454,7 +454,7 @@ void check_seccomp_applicability(void)
 
   CNF_GetMailOnChange(&mail_enabled, &mail_threshold, &mail_user);
   if (mail_enabled)
-    LOG_FATAL(LOGF_SysLinux, "mailonchange directive cannot be used with -F enabled");
+    LOG_FATAL("mailonchange directive cannot be used with -F enabled");
 }
 
 /* ================================================== */
@@ -546,7 +546,7 @@ SYS_Linux_EnableSystemCallFilter(int level)
 
   ctx = seccomp_init(level > 0 ? SCMP_ACT_KILL : SCMP_ACT_TRAP);
   if (ctx == NULL)
-      LOG_FATAL(LOGF_SysLinux, "Failed to initialize seccomp");
+      LOG_FATAL("Failed to initialize seccomp");
 
   /* Add system calls that are always allowed */
   for (i = 0; i < (sizeof (syscalls) / sizeof (*syscalls)); i++) {
@@ -587,14 +587,14 @@ SYS_Linux_EnableSystemCallFilter(int level)
   }
 
   if (seccomp_load(ctx) < 0)
-    LOG_FATAL(LOGF_SysLinux, "Failed to load seccomp rules");
+    LOG_FATAL("Failed to load seccomp rules");
 
-  LOG(LOGS_INFO, LOGF_SysLinux, "Loaded seccomp filter");
+  LOG(LOGS_INFO, "Loaded seccomp filter");
   seccomp_release(ctx);
   return;
 
 add_failed:
-  LOG_FATAL(LOGF_SysLinux, "Failed to add seccomp rules");
+  LOG_FATAL("Failed to add seccomp rules");
 }
 #endif
 
@@ -608,7 +608,7 @@ void SYS_Linux_SetScheduler(int SchedPriority)
   struct sched_param sched;
 
   if (SchedPriority < 1 || SchedPriority > 99) {
-    LOG_FATAL(LOGF_SysLinux, "Bad scheduler priority: %d", SchedPriority);
+    LOG_FATAL("Bad scheduler priority: %d", SchedPriority);
   } else {
     sched.sched_priority = SchedPriority;
     pmax = sched_get_priority_max(SCHED_FIFO);
@@ -620,10 +620,10 @@ void SYS_Linux_SetScheduler(int SchedPriority)
       sched.sched_priority = pmin;
     }
     if ( sched_setscheduler(0, SCHED_FIFO, &sched) == -1 ) {
-      LOG(LOGS_ERR, LOGF_SysLinux, "sched_setscheduler() failed");
+      LOG(LOGS_ERR, "sched_setscheduler() failed");
     }
     else {
-      DEBUG_LOG(LOGF_SysLinux, "Enabled SCHED_FIFO with priority %d",
+      DEBUG_LOG("Enabled SCHED_FIFO with priority %d",
           sched.sched_priority);
     }
   }
@@ -641,14 +641,14 @@ void SYS_Linux_MemLockAll(int LockAll)
     rlim.rlim_max = RLIM_INFINITY;
     rlim.rlim_cur = RLIM_INFINITY;
     if (setrlimit(RLIMIT_MEMLOCK, &rlim) < 0) {
-      LOG(LOGS_ERR, LOGF_SysLinux, "setrlimit() failed: not locking into RAM");
+      LOG(LOGS_ERR, "setrlimit() failed: not locking into RAM");
     }
     else {
       if (mlockall(MCL_CURRENT|MCL_FUTURE) < 0) {
-	LOG(LOGS_ERR, LOGF_SysLinux, "mlockall() failed");
+	LOG(LOGS_ERR, "mlockall() failed");
       }
       else {
-	DEBUG_LOG(LOGF_SysLinux, "Successfully locked into RAM");
+	DEBUG_LOG("Successfully locked into RAM");
       }
     }
   }
@@ -688,7 +688,7 @@ get_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
   sys_off.n_samples = PHC_READINGS;
 
   if (ioctl(phc_fd, PTP_SYS_OFFSET, &sys_off)) {
-    DEBUG_LOG(LOGF_SysLinux, "ioctl(%s) failed : %s", "PTP_SYS_OFFSET", strerror(errno));
+    DEBUG_LOG("ioctl(%s) failed : %s", "PTP_SYS_OFFSET", strerror(errno));
     return 0;
   }
 
@@ -745,7 +745,7 @@ get_precise_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
   memset(&sys_off, 0, sizeof (sys_off));
 
   if (ioctl(phc_fd, PTP_SYS_OFFSET_PRECISE, &sys_off)) {
-    DEBUG_LOG(LOGF_SysLinux, "ioctl(%s) failed : %s", "PTP_SYS_OFFSET_PRECISE",
+    DEBUG_LOG("ioctl(%s) failed : %s", "PTP_SYS_OFFSET_PRECISE",
               strerror(errno));
     return 0;
   }
@@ -779,13 +779,13 @@ SYS_Linux_OpenPHC(const char *path, int phc_index)
 
   phc_fd = open(path, O_RDONLY);
   if (phc_fd < 0) {
-    LOG(LOGS_ERR, LOGF_SysLinux, "Could not open %s : %s", path, strerror(errno));
+    LOG(LOGS_ERR, "Could not open %s : %s", path, strerror(errno));
     return -1;
   }
 
   /* Make sure it is a PHC */
   if (ioctl(phc_fd, PTP_CLOCK_GETCAPS, &caps)) {
-    LOG(LOGS_ERR, LOGF_SysLinux, "ioctl(%s) failed : %s", "PTP_CLOCK_GETCAPS", strerror(errno));
+    LOG(LOGS_ERR, "ioctl(%s) failed : %s", "PTP_CLOCK_GETCAPS", strerror(errno));
     close(phc_fd);
     return -1;
   }

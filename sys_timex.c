@@ -119,7 +119,7 @@ set_leap(int leap)
 
   SYS_Timex_Adjust(&txc, 0);
 
-  LOG(LOGS_INFO, LOGF_SysTimex, "System clock status %s leap second",
+  LOG(LOGS_INFO, "System clock status %s leap second",
       leap ? (leap > 0 ? "set to insert" : "set to delete") :
       (applied ? "reset after" : "set to not insert/delete"));
 }
@@ -239,11 +239,9 @@ SYS_Timex_Adjust(struct timex *txc, int ignore_error)
 
   if (state < 0) {
     if (!ignore_error)
-      LOG_FATAL(LOGF_SysTimex, NTP_ADJTIME_NAME"(0x%x) failed : %s",
-                txc->modes, strerror(errno));
+      LOG_FATAL(NTP_ADJTIME_NAME"(0x%x) failed : %s", txc->modes, strerror(errno));
     else
-      DEBUG_LOG(LOGF_SysTimex, NTP_ADJTIME_NAME"(0x%x) failed : %s",
-                txc->modes, strerror(errno));
+      DEBUG_LOG(NTP_ADJTIME_NAME"(0x%x) failed : %s", txc->modes, strerror(errno));
   }
 
   return state;

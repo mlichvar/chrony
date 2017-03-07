@@ -92,7 +92,7 @@ read_timeout(void *arg)
     if (fabs(comp) <= MAX_COMP) {
       comp = LCL_SetTempComp(comp);
 
-      DEBUG_LOG(LOGF_TempComp, "tempcomp updated to %f for %f", comp, temp);
+      DEBUG_LOG("tempcomp updated to %f for %f", comp, temp);
 
       if (logfileid != -1) {
         struct timespec now;
@@ -102,13 +102,11 @@ read_timeout(void *arg)
             UTI_TimeToLogForm(now.tv_sec), temp, comp);
       }
     } else {
-      LOG(LOGS_WARN, LOGF_TempComp,
-          "Temperature compensation of %.3f ppm exceeds sanity limit of %.1f",
+      LOG(LOGS_WARN, "Temperature compensation of %.3f ppm exceeds sanity limit of %.1f",
           comp, MAX_COMP);
     }
   } else {
-    LOG(LOGS_WARN, LOGF_TempComp, "Could not read temperature from %s",
-        filename);
+    LOG(LOGS_WARN, "Could not read temperature from %s", filename);
   }
 
   if (f)
@@ -126,7 +124,7 @@ read_points(const char *filename)
 
   f = fopen(filename, "r");
   if (!f) {
-    LOG_FATAL(LOGF_TempComp, "Could not open tempcomp point file %s", filename);
+    LOG_FATAL("Could not open tempcomp point file %s", filename);
     return;
   }
 
@@ -135,7 +133,7 @@ read_points(const char *filename)
   while (fgets(line, sizeof (line), f)) {
     p = (struct Point *)ARR_GetNewElement(points);
     if (sscanf(line, "%lf %lf", &p->temp, &p->comp) != 2) {
-      LOG_FATAL(LOGF_TempComp, "Could not read tempcomp point from %s", filename);
+      LOG_FATAL("Could not read tempcomp point from %s", filename);
       break;
     }
   }
@@ -143,7 +141,7 @@ read_points(const char *filename)
   fclose(f);
 
   if (ARR_GetSize(points) < 2)
-    LOG_FATAL(LOGF_TempComp, "Not enough points in %s", filename);
+    LOG_FATAL("Not enough points in %s", filename);
 }
 
 void

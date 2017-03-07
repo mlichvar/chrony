@@ -271,7 +271,7 @@ static const char *processed_command;
 static void
 command_parse_error(void)
 {
-    LOG_FATAL(LOGF_Configure, "Could not parse %s directive at line %d%s%s",
+    LOG_FATAL("Could not parse %s directive at line %d%s%s",
         processed_command, line_number, processed_file ? " in file " : "",
         processed_file ? processed_file : "");
 }
@@ -281,7 +281,7 @@ command_parse_error(void)
 static void
 other_parse_error(const char *message)
 {
-    LOG_FATAL(LOGF_Configure, "%s at line %d%s%s",
+    LOG_FATAL("%s at line %d%s%s",
         message, line_number, processed_file ? " in file " : "",
         processed_file ? processed_file : "");
 }
@@ -314,7 +314,7 @@ check_number_of_args(char *line, int num)
   num -= get_number_of_args(line);
 
   if (num) {
-    LOG_FATAL(LOGF_Configure, "%s arguments for %s directive at line %d%s%s",
+    LOG_FATAL("%s arguments for %s directive at line %d%s%s",
         num > 0 ? "Missing" : "Too many",
         processed_command, line_number, processed_file ? " in file " : "",
         processed_file ? processed_file : "");
@@ -398,12 +398,12 @@ CNF_ReadFile(const char *filename)
 
   in = fopen(filename, "r");
   if (!in) {
-    LOG_FATAL(LOGF_Configure, "Could not open configuration file %s : %s",
+    LOG_FATAL("Could not open configuration file %s : %s",
               filename, strerror(errno));
     return;
   }
 
-  DEBUG_LOG(LOGF_Configure, "Reading %s", filename);
+  DEBUG_LOG("Reading %s", filename);
 
   for (i = 1; fgets(line, sizeof(line), in); i++) {
     CNF_ParseLine(filename, i, line);
@@ -569,7 +569,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
              !strcasecmp(command, "generatecommandkey") ||
              !strcasecmp(command, "linux_freq_scale") ||
              !strcasecmp(command, "linux_hz")) {
-    LOG(LOGS_WARN, LOGF_Configure, "%s directive is no longer supported", command);
+    LOG(LOGS_WARN, "%s directive is no longer supported", command);
   } else {
     other_parse_error("Invalid command");
   }
@@ -878,7 +878,7 @@ parse_initstepslew(char *line)
       if (DNS_Name2IPAddress(hostname, &ip_addr, 1) == DNS_Success) {
         ARR_AppendElement(init_sources, &ip_addr);
       } else {
-        LOG(LOGS_WARN, LOGF_Configure, "Could not resolve address of initstepslew server %s", hostname);
+        LOG(LOGS_WARN, "Could not resolve address of initstepslew server %s", hostname);
       }
     }
   }
@@ -1307,7 +1307,7 @@ parse_include(char *line)
   check_number_of_args(line, 1);
 
   if (glob(line, 0, NULL, &gl)) {
-    DEBUG_LOG(LOGF_Configure, "glob of %s failed", line);
+    DEBUG_LOG("glob of %s failed", line);
     return;
   }
 
@@ -1333,7 +1333,7 @@ CNF_CreateDirs(uid_t uid, gid_t gid)
        existed.  It MUST NOT be accessible by others as permissions on Unix
        domain sockets are ignored on some systems (e.g. Solaris). */
     if (!UTI_CheckDirPermissions(dir, 0770, uid, gid)) {
-      LOG(LOGS_WARN, LOGF_Configure, "Disabled command socket %s", bind_cmd_path);
+      LOG(LOGS_WARN, "Disabled command socket %s", bind_cmd_path);
       bind_cmd_path[0] = '\0';
     }
 
@@ -1740,7 +1740,7 @@ CNF_SetupAccessRestrictions(void)
     node = ARR_GetElement(ntp_restrictions, i);
     status = NCR_AddAccessRestriction(&node->ip, node->subnet_bits, node->allow, node->all);
     if (!status) {
-      LOG_FATAL(LOGF_Configure, "Bad subnet in %s/%d", UTI_IPToString(&node->ip), node->subnet_bits);
+      LOG_FATAL("Bad subnet in %s/%d", UTI_IPToString(&node->ip), node->subnet_bits);
     }
   }
 
@@ -1748,7 +1748,7 @@ CNF_SetupAccessRestrictions(void)
     node = ARR_GetElement(cmd_restrictions, i);
     status = CAM_AddAccessRestriction(&node->ip, node->subnet_bits, node->allow, node->all);
     if (!status) {
-      LOG_FATAL(LOGF_Configure, "Bad subnet in %s/%d", UTI_IPToString(&node->ip), node->subnet_bits);
+      LOG_FATAL("Bad subnet in %s/%d", UTI_IPToString(&node->ip), node->subnet_bits);
     }
   }
 

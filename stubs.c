@@ -91,7 +91,7 @@ DNS_Name2IPAddressAsync(const char *name, DNS_NameResolveHandler handler, void *
   inst->arg = anything;
 
   if (pipe(inst->pipe))
-    LOG_FATAL(LOGF_Nameserv, "pipe() failed");
+    LOG_FATAL("pipe() failed");
 
   UTI_FdSetCloexec(inst->pipe[0]);
   UTI_FdSetCloexec(inst->pipe[1]);

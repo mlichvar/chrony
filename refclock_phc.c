@@ -55,7 +55,7 @@ static int phc_initialise(RCL_Instance instance)
  
   phc_fd = SYS_Linux_OpenPHC(path, 0);
   if (phc_fd < 0) {
-    LOG_FATAL(LOGF_Refclock, "Could not open PHC");
+    LOG_FATAL("Could not open PHC");
     return 0;
   }
 
@@ -91,7 +91,7 @@ static int phc_poll(RCL_Instance instance)
 
   offset = UTI_DiffTimespecsToDouble(&phc_ts, &sys_ts);
 
-  DEBUG_LOG(LOGF_Refclock, "PHC offset: %+.9f err: %.9f", offset, err);
+  DEBUG_LOG("PHC offset: %+.9f err: %.9f", offset, err);
 
   return RCL_AddSample(instance, &sys_ts, offset, LEAP_Normal);
 }

@@ -290,7 +290,7 @@ write_lockfile(void)
 
   out = fopen(pidfile, "w");
   if (!out) {
-    LOG_FATAL(LOGF_Main, "could not open lockfile %s for writing", pidfile);
+    LOG_FATAL("could not open lockfile %s for writing", pidfile);
   } else {
     fprintf(out, "%d\n", (int)getpid());
     fclose(out);
@@ -307,14 +307,14 @@ go_daemon(void)
   /* Create pipe which will the daemon use to notify the grandparent
      when it's initialised or send an error message */
   if (pipe(pipefd)) {
-    LOG_FATAL(LOGF_Main, "Could not detach, pipe failed : %s", strerror(errno));
+    LOG_FATAL("Could not detach, pipe failed : %s", strerror(errno));
   }
 
   /* Does this preserve existing signal handlers? */
   pid = fork();
 
   if (pid < 0) {
-    LOG_FATAL(LOGF_Main, "Could not detach, fork failed : %s", strerror(errno));
+    LOG_FATAL("Could not detach, fork failed : %s", strerror(errno));
   } else if (pid > 0) {
     /* In the 'grandparent' */
     char message[1024];
@@ -340,7 +340,7 @@ go_daemon(void)
     pid = fork();
 
     if (pid < 0) {
-      LOG_FATAL(LOGF_Main, "Could not detach, fork failed : %s", strerror(errno));
+      LOG_FATAL("Could not detach, fork failed : %s", strerror(errno));
     } else if (pid > 0) {
       exit(0); /* In the 'parent' */
     } else {
@@ -348,7 +348,7 @@ go_daemon(void)
 
       /* Change current directory to / */
       if (chdir("/") < 0) {
-        LOG_FATAL(LOGF_Main, "Could not chdir to / : %s", strerror(errno));
+        LOG_FATAL("Could not chdir to / : %s", strerror(errno));
       }
 
       /* Don't keep stdin/out/err from before. But don't close
@@ -392,7 +392,7 @@ int main
     } else if (!strcmp("-P", *argv)) {
       ++argv, --argc;
       if (argc == 0 || sscanf(*argv, "%d", &sched_priority) != 1) {
-        LOG_FATAL(LOGF_Main, "Bad scheduler priority");
+        LOG_FATAL("Bad scheduler priority");
       }
     } else if (!strcmp("-m", *argv)) {
       lock_memory = 1;
@@ -403,14 +403,14 @@ int main
     } else if (!strcmp("-u", *argv)) {
       ++argv, --argc;
       if (argc == 0) {
-        LOG_FATAL(LOGF_Main, "Missing user name");
+        LOG_FATAL("Missing user name");
       } else {
         user = *argv;
       }
     } else if (!strcmp("-F", *argv)) {
       ++argv, --argc;
       if (argc == 0 || sscanf(*argv, "%d", &scfilter_level) != 1)
-        LOG_FATAL(LOGF_Main, "Bad syscall filter level");
+        LOG_FATAL("Bad syscall filter level");
     } else if (!strcmp("-s", *argv)) {
       do_init_rtc = 1;
     } else if (!strcmp("-v", *argv) || !strcmp("--version",*argv)) {
@@ -434,7 +434,7 @@ int main
     } else if (!strcmp("-t", *argv)) {
       ++argv, --argc;
       if (argc == 0 || sscanf(*argv, "%d", &timeout) != 1 || timeout <= 0)
-        LOG_FATAL(LOGF_Main, "Bad timeout");
+        LOG_FATAL("Bad timeout");
     } else if (!strcmp("-4", *argv)) {
       address_family = IPADDR_INET4;
     } else if (!strcmp("-6", *argv)) {
@@ -444,7 +444,7 @@ int main
              progname);
       return 0;
     } else if (*argv[0] == '-') {
-      LOG_FATAL(LOGF_Main, "Unrecognized command line option [%s]", *argv);
+      LOG_FATAL("Unrecognized command line option [%s]", *argv);
     } else {
       /* Process remaining arguments and configuration lines */
       config_args = argc;
@@ -469,8 +469,7 @@ int main
   
   LOG_SetDebugLevel(debug);
   
-  LOG(LOGS_INFO, LOGF_Main, "chronyd version %s starting (%s)",
-      CHRONY_VERSION, CHRONYD_FEATURES);
+  LOG(LOGS_INFO, "chronyd version %s starting (%s)", CHRONY_VERSION, CHRONYD_FEATURES);
 
   DNS_SetAddressFamily(address_family);
 
@@ -489,7 +488,7 @@ int main
    * forking, so that message logging goes to the right place (i.e. syslog), in
    * case this chronyd is being run from a boot script. */
   if (maybe_another_chronyd_running(&other_pid)) {
-    LOG_FATAL(LOGF_Main, "Another chronyd may already be running (pid=%d), check lockfile (%s)",
+    LOG_FATAL("Another chronyd may already be running (pid=%d), check lockfile (%s)",
               other_pid, CNF_GetPidFile());
   }
 
@@ -529,7 +528,7 @@ int main
   }
 
   if ((pw = getpwnam(user)) == NULL)
-    LOG_FATAL(LOGF_Main, "Could not get %s uid/gid", user);
+    LOG_FATAL("Could not get %s uid/gid", user);
 
   /* Create all directories before dropping root */
   CNF_CreateDirs(pw->pw_uid, pw->pw_gid);
@@ -577,7 +576,7 @@ int main
      the scheduler. */
   SCH_MainLoop();
 
-  LOG(LOGS_INFO, LOGF_Main, "chronyd exiting");
+  LOG(LOGS_INFO, "chronyd exiting");
 
   MAI_CleanupAndExit();
 

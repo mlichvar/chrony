@@ -37,7 +37,7 @@ Malloc(size_t size)
 
   r = malloc(size);
   if (!r && size)
-    LOG_FATAL(LOGF_Memory, "Could not allocate memory");
+    LOG_FATAL("Could not allocate memory");
 
   return r;
 }
@@ -49,7 +49,7 @@ Realloc(void *ptr, size_t size)
 
   r = realloc(ptr, size);
   if (!r && size)
-    LOG_FATAL(LOGF_Memory, "Could not allocate memory");
+    LOG_FATAL("Could not allocate memory");
 
   return r;
 }
@@ -61,7 +61,7 @@ Strdup(const char *s)
 
   r = strdup(s);
   if (!r)
-    LOG_FATAL(LOGF_Memory, "Could not allocate memory");
+    LOG_FATAL("Could not allocate memory");
 
   return r;
 }

@@ -143,7 +143,7 @@ HCL_AccumulateSample(HCL_Instance clock, struct timespec *hw_ts,
 
     if (hw_delta <= 0.0 || local_delta < clock->min_separation / 2.0) {
       clock->n_samples = 0;
-      DEBUG_LOG(LOGF_HwClocks, "HW clock reset interval=%f", local_delta);
+      DEBUG_LOG("HW clock reset interval=%f", local_delta);
     }
 
     for (i = MAX_SAMPLES - clock->n_samples; i < MAX_SAMPLES; i++) {
@@ -165,7 +165,7 @@ HCL_AccumulateSample(HCL_Instance clock, struct timespec *hw_ts,
                                  &n_runs, &best_start);
 
   if (!clock->valid_coefs) {
-    DEBUG_LOG(LOGF_HwClocks, "HW clock needs more samples");
+    DEBUG_LOG("HW clock needs more samples");
     return;
   }
 
@@ -177,12 +177,12 @@ HCL_AccumulateSample(HCL_Instance clock, struct timespec *hw_ts,
   /* If the fit doesn't cross the error interval of the last sample, throw away
      all previous samples and keep only the frequency estimate */
   if (fabs(clock->offset) > err) {
-    DEBUG_LOG(LOGF_HwClocks, "HW clock reset offset=%e", clock->offset);
+    DEBUG_LOG("HW clock reset offset=%e", clock->offset);
     clock->offset = 0.0;
     clock->n_samples = 1;
   }
 
-  DEBUG_LOG(LOGF_HwClocks, "HW clock samples=%d offset=%e freq=%.9e raw_freq=%.9e err=%e ref_diff=%e",
+  DEBUG_LOG("HW clock samples=%d offset=%e freq=%.9e raw_freq=%.9e err=%e ref_diff=%e",
             clock->n_samples, clock->offset, clock->frequency, raw_freq, err,
             UTI_DiffTimespecsToDouble(&clock->hw_ref, &clock->local_ref));
 }

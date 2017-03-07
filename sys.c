@@ -91,7 +91,7 @@ void SYS_DropRoot(uid_t uid, gid_t gid)
 #elif defined(MACOSX) && defined(FEAT_PRIVDROP)
   SYS_MacOSX_DropRoot(uid, gid);
 #else
-  LOG_FATAL(LOGF_Sys, "dropping root privileges not supported");
+  LOG_FATAL("dropping root privileges not supported");
 #endif
 }
 
@@ -102,7 +102,7 @@ void SYS_EnableSystemCallFilter(int level)
 #if defined(LINUX) && defined(FEAT_SCFILTER)
   SYS_Linux_EnableSystemCallFilter(level);
 #else
-  LOG_FATAL(LOGF_Sys, "system call filter not supported");
+  LOG_FATAL("system call filter not supported");
 #endif
 }
 
@@ -115,7 +115,7 @@ void SYS_SetScheduler(int SchedPriority)
 #elif defined(MACOSX)
   SYS_MacOSX_SetScheduler(SchedPriority);
 #else
-  LOG_FATAL(LOGF_Sys, "scheduler priority setting not supported");
+  LOG_FATAL("scheduler priority setting not supported");
 #endif
 }
 
@@ -126,7 +126,7 @@ void SYS_LockMemory(void)
 #if defined(LINUX) && defined(HAVE_MLOCKALL)
   SYS_Linux_MemLockAll(1);
 #else
-  LOG_FATAL(LOGF_Sys, "memory locking not supported");
+  LOG_FATAL("memory locking not supported");
 #endif
 }
 

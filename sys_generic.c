@@ -129,7 +129,7 @@ start_fastslew(void)
 
   drv_accrue_offset(offset_register, 0.0);
 
-  DEBUG_LOG(LOGF_SysGeneric, "fastslew offset=%e", offset_register);
+  DEBUG_LOG("fastslew offset=%e", offset_register);
 
   offset_register = 0.0;
   fastslew_active = 1;
@@ -246,7 +246,7 @@ update_slew(void)
   slew_timeout_id = SCH_AddTimeout(&end_of_slew, handle_end_of_slew, NULL);
   slew_start = now;
 
-  DEBUG_LOG(LOGF_SysGeneric, "slew offset=%e corr_rate=%e base_freq=%f total_freq=%f slew_freq=%e duration=%f slew_error=%e",
+  DEBUG_LOG("slew offset=%e corr_rate=%e base_freq=%f total_freq=%f slew_freq=%e duration=%f slew_error=%e",
       offset_register, correction_rate, base_freq, total_freq, slew_freq,
       duration, slew_error);
 }
@@ -333,7 +333,7 @@ apply_step_offset(double offset)
   UTI_TimespecToTimeval(&new_time, &new_time_tv);
 
   if (PRV_SetTime(&new_time_tv, NULL) < 0) {
-    DEBUG_LOG(LOGF_SysGeneric, "settimeofday() failed");
+    DEBUG_LOG("settimeofday() failed");
     return 0;
   }
 

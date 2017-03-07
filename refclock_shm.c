@@ -69,13 +69,13 @@ static int shm_initialise(RCL_Instance instance) {
 
   id = shmget(SHMKEY + param, sizeof (struct shmTime), IPC_CREAT | perm);
   if (id == -1) {
-    LOG_FATAL(LOGF_Refclock, "shmget() failed");
+    LOG_FATAL("shmget() failed");
     return 0;
   }
    
   shm = (struct shmTime *)shmat(id, 0, 0);
   if ((long)shm == -1) {
-    LOG_FATAL(LOGF_Refclock, "shmat() failed");
+    LOG_FATAL("shmat() failed");
     return 0;
   }
 
@@ -100,7 +100,7 @@ static int shm_poll(RCL_Instance instance)
   
   if ((t.mode == 1 && t.count != shm->count) ||
     !(t.mode == 0 || t.mode == 1) || !t.valid) {
-    DEBUG_LOG(LOGF_Refclock, "SHM sample ignored mode=%d count=%d valid=%d",
+    DEBUG_LOG("SHM sample ignored mode=%d count=%d valid=%d",
         t.mode, t.count, t.valid);
     return 0;
   }

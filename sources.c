@@ -348,12 +348,12 @@ void SRC_AccumulateSample
 
   inst->leap_status = leap_status;
 
-  DEBUG_LOG(LOGF_Sources, "ip=[%s] t=%s ofs=%f del=%f disp=%f str=%d",
+  DEBUG_LOG("ip=[%s] t=%s ofs=%f del=%f disp=%f str=%d",
             source_to_string(inst), UTI_TimespecToString(sample_time), -offset,
             root_delay, root_dispersion, stratum);
 
   if (REF_IsLeapSecondClose()) {
-    LOG(LOGS_INFO, LOGF_Sources, "Dropping sample around leap second");
+    LOG(LOGS_INFO, "Dropping sample around leap second");
     return;
   }
 
@@ -451,7 +451,7 @@ log_selection_message(char *format, char *arg)
 {
   if (REF_GetMode() != REF_ModeNormal)
     return;
-  LOG(LOGS_INFO, LOGF_Sources, format, arg);
+  LOG(LOGS_INFO, format, arg);
 }
 
 /* ================================================== */
@@ -563,7 +563,7 @@ combine_sources(int n_sel_sources, struct timespec *ref_time, double *offset,
     offset_weight = 1.0 / sources[index]->sel_info.root_distance;
     frequency_weight = 1.0 / src_skew;
 
-    DEBUG_LOG(LOGF_Sources, "combining index=%d oweight=%e offset=%e sd=%e fweight=%e freq=%e skew=%e",
+    DEBUG_LOG("combining index=%d oweight=%e offset=%e sd=%e fweight=%e freq=%e skew=%e",
         index, offset_weight, src_offset, src_offset_sd, frequency_weight, src_frequency, src_skew);
 
     sum_offset_weight += offset_weight;
@@ -584,7 +584,7 @@ combine_sources(int n_sel_sources, struct timespec *ref_time, double *offset,
   *frequency = sum_frequency / sum_frequency_weight;
   *skew = 1.0 / sqrt(inv_sum2_skew);
 
-  DEBUG_LOG(LOGF_Sources, "combined result offset=%e sd=%e freq=%e skew=%e",
+  DEBUG_LOG("combined result offset=%e sd=%e freq=%e skew=%e",
       *offset, *offset_sd, *frequency, *skew);
 
   return combined;
@@ -736,12 +736,11 @@ SRC_SelectSource(SRC_Instance updated_inst)
     uint32_t local_ref_id = NSR_GetLocalRefid(sources[orphan_source]->ip_addr);
 
     if (!local_ref_id) {
-      LOG(LOGS_ERR, LOGF_Sources, "Unknown local refid in orphan mode");
+      LOG(LOGS_ERR, "Unknown local refid in orphan mode");
     } else if (sources[orphan_source]->ref_id < local_ref_id) {
       sources[orphan_source]->status = SRC_OK;
       n_sel_sources = 1;
-      DEBUG_LOG(LOGF_Sources, "selecting orphan refid=%"PRIx32,
-                sources[orphan_source]->ref_id);
+      DEBUG_LOG("selecting orphan refid=%"PRIx32, sources[orphan_source]->ref_id);
     }
   }
 
@@ -765,7 +764,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     n_endpoints += 2;
   }
 
-  DEBUG_LOG(LOGF_Sources, "badstat=%d sel=%d badstat_reach=%x sel_reach=%x max_reach_ago=%f",
+  DEBUG_LOG("badstat=%d sel=%d badstat_reach=%x sel_reach=%x max_reach_ago=%f",
             n_badstats_sources, n_sel_sources, max_badstat_reach,
             max_sel_reach, max_reach_sample_ago);
 
@@ -1003,7 +1002,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
       sources[i]->sel_score = 1.0 / distance;
     }
 
-    DEBUG_LOG(LOGF_Sources, "select score=%f refid=%"PRIx32" match_refid=%"PRIx32" status=%d dist=%f",
+    DEBUG_LOG("select score=%f refid=%"PRIx32" match_refid=%"PRIx32" status=%d dist=%f",
               sources[i]->sel_score, sources[i]->ref_id,
               updated_inst ? updated_inst->ref_id : 0,
               sources[i]->status, distance);
@@ -1027,7 +1026,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     if (sources[max_score_index]->updates == 0) {
       selected_source_index = INVALID_SOURCE;
       mark_ok_sources(SRC_WAITS_UPDATE);
-      DEBUG_LOG(LOGF_Sources, "best source has no updates");
+      DEBUG_LOG("best source has no updates");
       return;
     }
 
@@ -1098,7 +1097,7 @@ SRC_SetReselectDistance(double distance)
 {
   if (reselect_distance != distance) {
     reselect_distance = distance;
-    LOG(LOGS_INFO, LOGF_Sources, "New reselect distance %f", distance);
+    LOG(LOGS_INFO, "New reselect distance %f", distance);
   }
 }
 
@@ -1153,7 +1152,7 @@ FILE *open_dumpfile(SRC_Instance inst, const char *mode)
 
   dumpdir = CNF_GetDumpDir();
   if (dumpdir[0] == '\0') {
-    LOG(LOGS_WARN, LOGF_Sources, "dumpdir not specified");
+    LOG(LOGS_WARN, "dumpdir not specified");
     return NULL;
   }
 
@@ -1164,13 +1163,13 @@ FILE *open_dumpfile(SRC_Instance inst, const char *mode)
       (inst->type != SRC_NTP &&
        snprintf(filename, sizeof (filename), "%s/refid:%08"PRIx32".dat",
                 dumpdir, inst->ref_id) >= sizeof (filename))) {
-    LOG(LOGS_WARN, LOGF_Sources, "dumpdir too long");
+    LOG(LOGS_WARN, "dumpdir too long");
     return NULL;
   }
 
   f = fopen(filename, mode);
   if (!f && mode[0] != 'r')
-    LOG(LOGS_WARN, LOGF_Sources, "Could not open dump file for %s",
+    LOG(LOGS_WARN, "Could not open dump file for %s",
         source_to_string(inst));
 
   return f;
@@ -1207,10 +1206,10 @@ SRC_ReloadSources(void)
     if (!in)
       continue;
     if (!SST_LoadFromFile(sources[i]->stats, in))
-      LOG(LOGS_WARN, LOGF_Sources, "Could not load dump file for %s",
+      LOG(LOGS_WARN, "Could not load dump file for %s",
           source_to_string(sources[i]));
     else
-      LOG(LOGS_INFO, LOGF_Sources, "Loaded dump file for %s",
+      LOG(LOGS_INFO, "Loaded dump file for %s",
           source_to_string(sources[i]));
     fclose(in);
   }
@@ -1248,7 +1247,7 @@ SRC_RemoveDumpFiles(void)
     if (strncmp(name, "refid:", 6) && !UTI_StringToIP(name, &ip_addr))
       continue;
 
-    DEBUG_LOG(LOGF_Sources, "Removing %s", gl.gl_pathv[i]);
+    DEBUG_LOG("Removing %s", gl.gl_pathv[i]);
     unlink(gl.gl_pathv[i]);
   }
 

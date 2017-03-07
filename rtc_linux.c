@@ -189,7 +189,7 @@ accumulate_sample(time_t rtc, struct timespec *sys)
 
   /* Discard all samples if the RTC was stepped back (not our trim) */
   if (n_samples > 0 && rtc_sec[n_samples - 1] - rtc >= rtc_trim[n_samples - 1]) {
-    DEBUG_LOG(LOGF_RtcLinux, "RTC samples discarded");
+    DEBUG_LOG("RTC samples discarded");
     n_samples = 0;
   }
 
@@ -294,7 +294,7 @@ slew_samples
     coef_gain_rate += dfreq * (1.0 - coef_gain_rate);
   }
 
-  DEBUG_LOG(LOGF_RtcLinux, "dfreq=%.8f doffset=%.6f old_fast=%.6f old_rate=%.3f new_fast=%.6f new_rate=%.3f",
+  DEBUG_LOG("dfreq=%.8f doffset=%.6f old_fast=%.6f old_rate=%.3f new_fast=%.6f new_rate=%.3f",
       dfreq, doffset,
       old_seconds_fast, 1.0e6 * old_gain_rate,
       coef_seconds_fast, 1.0e6 * coef_gain_rate);
@@ -371,7 +371,7 @@ t_from_rtc(struct tm *stm) {
   diff = t2 - t1;
 
   if (t1 - diff == -1)
-    DEBUG_LOG(LOGF_RtcLinux, "Could not convert RTC time");
+    DEBUG_LOG("Could not convert RTC time");
 
   return t1 - diff;
 }
@@ -390,7 +390,7 @@ read_hwclock_file(const char *hwclock_file)
 
   in = fopen(hwclock_file, "r");
   if (!in) {
-    LOG(LOGS_WARN, LOGF_RtcLinux, "Could not open %s : %s",
+    LOG(LOGS_WARN, "Could not open %s : %s",
         hwclock_file, strerror(errno));
     return;
   }
@@ -408,8 +408,7 @@ read_hwclock_file(const char *hwclock_file)
   } else if (i == 3 && !strncmp(line, "UTC", 3)) {
     rtc_on_utc = 1;
   } else {
-    LOG(LOGS_WARN, LOGF_RtcLinux, "Could not read RTC LOCAL/UTC setting from %s",
-        hwclock_file);
+    LOG(LOGS_WARN, "Could not read RTC LOCAL/UTC setting from %s", hwclock_file);
   }
 }
 
@@ -451,8 +450,7 @@ read_coefs_from_file(void)
                  &file_ref_offset,
                  &file_rate_ppm) == 4) {
       } else {
-        LOG(LOGS_WARN, LOGF_RtcLinux, "Could not read coefficients from %s",
-            coefs_file_name);
+        LOG(LOGS_WARN, "Could not read coefficients from %s", coefs_file_name);
       }
       fclose(in);
     }
@@ -485,7 +483,7 @@ write_coefs_to_file(int valid,time_t ref_time,double offset,double rate)
   out = fopen(temp_coefs_file_name, "w");
   if (!out) {
     Free(temp_coefs_file_name);
-    LOG(LOGS_WARN, LOGF_RtcLinux, "Could not open temporary RTC file %s.tmp for writing",
+    LOG(LOGS_WARN, "Could not open temporary RTC file %s.tmp for writing",
         coefs_file_name);
     return RTC_ST_BADFILE;
   }
@@ -496,7 +494,7 @@ write_coefs_to_file(int valid,time_t ref_time,double offset,double rate)
   r2 = fclose(out);
   if (r1 < 0 || r2) {
     Free(temp_coefs_file_name);
-    LOG(LOGS_WARN, LOGF_RtcLinux, "Could not write to temporary RTC file %s.tmp",
+    LOG(LOGS_WARN, "Could not write to temporary RTC file %s.tmp",
         coefs_file_name);
     return RTC_ST_BADFILE;
   }
@@ -506,7 +504,7 @@ write_coefs_to_file(int valid,time_t ref_time,double offset,double rate)
   if (!stat(coefs_file_name,&buf)) {
     if (chown(temp_coefs_file_name,buf.st_uid,buf.st_gid) ||
         chmod(temp_coefs_file_name,buf.st_mode & 0777)) {
-      LOG(LOGS_WARN, LOGF_RtcLinux,
+      LOG(LOGS_WARN,
           "Could not change ownership or permissions of temporary RTC file %s.tmp",
           coefs_file_name);
     }
@@ -517,7 +515,7 @@ write_coefs_to_file(int valid,time_t ref_time,double offset,double rate)
   if (rename(temp_coefs_file_name,coefs_file_name)) {
     unlink(temp_coefs_file_name);
     Free(temp_coefs_file_name);
-    LOG(LOGS_WARN, LOGF_RtcLinux, "Could not replace old RTC file %s.tmp with new one %s",
+    LOG(LOGS_WARN, "Could not replace old RTC file %s.tmp with new one %s",
         coefs_file_name, coefs_file_name);
     return RTC_ST_BADFILE;
   }
@@ -550,7 +548,7 @@ RTC_Linux_Initialise(void)
 
   fd = open (CNF_GetRtcDevice(), O_RDWR);
   if (fd < 0) {
-    LOG(LOGS_ERR, LOGF_RtcLinux, "Could not open RTC device %s : %s",
+    LOG(LOGS_ERR, "Could not open RTC device %s : %s",
         CNF_GetRtcDevice(), strerror(errno));
     return 0;
   }
@@ -611,16 +609,14 @@ switch_interrupts(int onoff)
   if (onoff) {
     status = ioctl(fd, RTC_UIE_ON, 0);
     if (status < 0) {
-      LOG(LOGS_ERR, LOGF_RtcLinux, "Could not %s RTC interrupt : %s",
-          "enable", strerror(errno));
+      LOG(LOGS_ERR, "Could not %s RTC interrupt : %s", "enable", strerror(errno));
       return;
     }
     skip_interrupts = 1;
   } else {
     status = ioctl(fd, RTC_UIE_OFF, 0);
     if (status < 0) {
-      LOG(LOGS_ERR, LOGF_RtcLinux, "Could not %s RTC interrupt : %s",
-          "disable", strerror(errno));
+      LOG(LOGS_ERR, "Could not %s RTC interrupt : %s", "disable", strerror(errno));
       return;
     }
   }
@@ -658,7 +654,7 @@ set_rtc(time_t new_rtc_time)
 
   status = ioctl(fd, RTC_SET_TIME, &rtc_raw);
   if (status < 0) {
-    LOG(LOGS_ERR, LOGF_RtcLinux, "Could not set RTC time");
+    LOG(LOGS_ERR, "Could not set RTC time");
   }
 
 }
@@ -701,10 +697,10 @@ handle_initial_trim(void)
     sys_error_now = rtc_error_now - coef_seconds_fast;
           
     LCL_AccumulateOffset(sys_error_now, 0.0);
-    LOG(LOGS_INFO, LOGF_RtcLinux, "System clock off from RTC by %f seconds (slew)",
+    LOG(LOGS_INFO, "System clock off from RTC by %f seconds (slew)",
         sys_error_now);
   } else {
-    LOG(LOGS_WARN, LOGF_RtcLinux, "No valid rtcfile coefficients");
+    LOG(LOGS_WARN, "No valid rtcfile coefficients");
   }
   
   coefs_valid = 0;
@@ -729,7 +725,7 @@ handle_relock_after_trim(void)
   if (valid) {
     write_coefs_to_file(1,ref,fast,saved_coef_gain_rate);
   } else {
-    DEBUG_LOG(LOGF_RtcLinux, "Could not do regression after trim");
+    DEBUG_LOG("Could not do regression after trim");
   }
 
   coefs_valid = 0;
@@ -824,7 +820,7 @@ read_from_device(int fd_, int event, void *any)
   if (status < 0) {
     /* This looks like a bad error : the file descriptor was indicating it was
      * ready to read but we couldn't read anything.  Give up. */
-    LOG(LOGS_ERR, LOGF_RtcLinux, "Could not read flags %s : %s", CNF_GetRtcDevice(), strerror(errno));
+    LOG(LOGS_ERR, "Could not read flags %s : %s", CNF_GetRtcDevice(), strerror(errno));
     SCH_RemoveFileHandler(fd);
     switch_interrupts(0); /* Likely to raise error too, but just to be sure... */
     close(fd);
@@ -848,7 +844,7 @@ read_from_device(int fd_, int event, void *any)
 
     status = ioctl(fd, RTC_RD_TIME, &rtc_raw);
     if (status < 0) {
-      LOG(LOGS_ERR, LOGF_RtcLinux, "Could not read time from %s : %s", CNF_GetRtcDevice(), strerror(errno));
+      LOG(LOGS_ERR, "Could not read time from %s : %s", CNF_GetRtcDevice(), strerror(errno));
       error = 1;
       goto turn_off_interrupt;
     }
@@ -889,7 +885,7 @@ turn_off_interrupt:
   switch (operating_mode) {
     case OM_INITIAL:
       if (error) {
-        DEBUG_LOG(LOGF_RtcLinux, "Could not complete initial step due to errors");
+        DEBUG_LOG("Could not complete initial step due to errors");
         operating_mode = OM_NORMAL;
         (after_init_hook)(after_init_hook_arg);
 
@@ -902,7 +898,7 @@ turn_off_interrupt:
 
     case OM_AFTERTRIM:
       if (error) {
-        DEBUG_LOG(LOGF_RtcLinux, "Could not complete after trim relock due to errors");
+        DEBUG_LOG("Could not complete after trim relock due to errors");
         operating_mode = OM_NORMAL;
 
         switch_interrupts(0);
@@ -1041,7 +1037,7 @@ RTC_Linux_TimePreInit(time_t driftfile_time)
       UTI_AddDoubleToTimespec(&new_sys_time, -accumulated_error, &new_sys_time);
 
       if (new_sys_time.tv_sec < driftfile_time) {
-        LOG(LOGS_WARN, LOGF_RtcLinux, "RTC time before last driftfile modification (ignored)");
+        LOG(LOGS_WARN, "RTC time before last driftfile modification (ignored)");
         return 0;
       }
 
@@ -1050,7 +1046,7 @@ RTC_Linux_TimePreInit(time_t driftfile_time)
       /* Set system time only if the step is larger than 1 second */
       if (fabs(sys_offset) >= 1.0) {
         if (LCL_ApplyStepOffset(sys_offset))
-          LOG(LOGS_INFO, LOGF_RtcLinux, "System time set from RTC");
+          LOG(LOGS_INFO, "System time set from RTC");
       }
     } else {
       return 0;
@@ -1095,7 +1091,7 @@ RTC_Linux_Trim(void)
 
   if (fabs(coef_seconds_fast) > 1.0) {
 
-    LOG(LOGS_INFO, LOGF_RtcLinux, "RTC wrong by %.3f seconds (step)",
+    LOG(LOGS_INFO, "RTC wrong by %.3f seconds (step)",
         coef_seconds_fast);
 
     /* Do processing to set clock.  Let R be the value we set the

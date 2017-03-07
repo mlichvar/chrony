@@ -59,37 +59,37 @@ static int pps_initialise(RCL_Instance instance) {
 
   fd = open(path, O_RDWR);
   if (fd < 0) {
-    LOG_FATAL(LOGF_Refclock, "open() failed on %s", path);
+    LOG_FATAL("open() failed on %s", path);
     return 0;
   }
 
   UTI_FdSetCloexec(fd);
 
   if (time_pps_create(fd, &handle) < 0) {
-    LOG_FATAL(LOGF_Refclock, "time_pps_create() failed on %s", path);
+    LOG_FATAL("time_pps_create() failed on %s", path);
     return 0;
   }
 
   if (time_pps_getcap(handle, &mode) < 0) {
-    LOG_FATAL(LOGF_Refclock, "time_pps_getcap() failed on %s", path);
+    LOG_FATAL("time_pps_getcap() failed on %s", path);
     return 0;
   }
 
   if (time_pps_getparams(handle, &params) < 0) {
-    LOG_FATAL(LOGF_Refclock, "time_pps_getparams() failed on %s", path);
+    LOG_FATAL("time_pps_getparams() failed on %s", path);
     return 0;
   }
 
   if (!edge_clear) {
     if (!(mode & PPS_CAPTUREASSERT)) {
-      LOG_FATAL(LOGF_Refclock, "CAPTUREASSERT not supported on %s", path);
+      LOG_FATAL("CAPTUREASSERT not supported on %s", path);
       return 0;
     }
     params.mode |= PPS_CAPTUREASSERT;
     params.mode &= ~PPS_CAPTURECLEAR;
   } else {
     if (!(mode & PPS_CAPTURECLEAR)) {
-      LOG_FATAL(LOGF_Refclock, "CAPTURECLEAR not supported on %s", path);
+      LOG_FATAL("CAPTURECLEAR not supported on %s", path);
       return 0;
     }
     params.mode |= PPS_CAPTURECLEAR;
@@ -97,7 +97,7 @@ static int pps_initialise(RCL_Instance instance) {
   }
 
   if (time_pps_setparams(handle, &params) < 0) {
-    LOG_FATAL(LOGF_Refclock, "time_pps_setparams() failed on %s", path);
+    LOG_FATAL("time_pps_setparams() failed on %s", path);
     return 0;
   }
 
@@ -133,7 +133,7 @@ static int pps_poll(RCL_Instance instance)
   ts.tv_nsec = 0;
 
   if (time_pps_fetch(pps->handle, PPS_TSFMT_TSPEC, &pps_info, &ts) < 0) {
-    LOG(LOGS_ERR, LOGF_Refclock, "time_pps_fetch() failed : %s", strerror(errno));
+    LOG(LOGS_ERR, "time_pps_fetch() failed : %s", strerror(errno));
     return 0;
   }
 
@@ -146,7 +146,7 @@ static int pps_poll(RCL_Instance instance)
   }
 
   if (seq == pps->last_seq || UTI_IsZeroTimespec(&ts)) {
-    DEBUG_LOG(LOGF_Refclock, "PPS sample ignored seq=%lu ts=%s",
+    DEBUG_LOG("PPS sample ignored seq=%lu ts=%s",
               seq, UTI_TimespecToString(&ts));
     return 0;
   }

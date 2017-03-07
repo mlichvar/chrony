@@ -135,7 +135,7 @@ open_socket(void)
 
   sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (sock_fd < 0) {
-    DEBUG_LOG(LOGF_NtpSignd, "Could not open signd socket : %s", strerror(errno));
+    DEBUG_LOG("Could not open signd socket : %s", strerror(errno));
     return 0;
   }
 
@@ -145,18 +145,18 @@ open_socket(void)
   s.sun_family = AF_UNIX;
   if (snprintf(s.sun_path, sizeof (s.sun_path), "%s/socket",
                CNF_GetNtpSigndSocket()) >= sizeof (s.sun_path)) {
-    DEBUG_LOG(LOGF_NtpSignd, "signd socket path too long");
+    DEBUG_LOG("signd socket path too long");
     close_socket();
     return 0;
   }
 
   if (connect(sock_fd, (struct sockaddr *)&s, sizeof (s)) < 0) {
-    DEBUG_LOG(LOGF_NtpSignd, "Could not connect to signd : %s", strerror(errno));
+    DEBUG_LOG("Could not connect to signd : %s", strerror(errno));
     close_socket();
     return 0;
   }
 
-  DEBUG_LOG(LOGF_NtpSignd, "Connected to signd");
+  DEBUG_LOG("Connected to signd");
 
   return 1;
 }
@@ -170,25 +170,25 @@ process_response(SignInstance *inst)
   double delay;
 
   if (ntohs(inst->request.packet_id) != ntohl(inst->response.packet_id)) {
-    DEBUG_LOG(LOGF_NtpSignd, "Invalid response ID");
+    DEBUG_LOG("Invalid response ID");
     return;
   }
 
   if (ntohl(inst->response.op) != SIGNING_SUCCESS) {
-    DEBUG_LOG(LOGF_NtpSignd, "Signing failed");
+    DEBUG_LOG("Signing failed");
     return;
   }
 
   /* Check if the file descriptor is still valid */
   if (!NIO_IsServerSocket(inst->local_addr.sock_fd)) {
-    DEBUG_LOG(LOGF_NtpSignd, "Invalid NTP socket");
+    DEBUG_LOG("Invalid NTP socket");
     return;
   }
 
   SCH_GetLastEventTime(NULL, NULL, &ts);
   delay = UTI_DiffTimespecsToDouble(&ts, &inst->request_ts);
 
-  DEBUG_LOG(LOGF_NtpSignd, "Signing succeeded (delay %f)", delay);
+  DEBUG_LOG("Signing succeeded (delay %f)", delay);
 
   /* Send the signed NTP packet */
   NIO_SendPacket(&inst->response.signed_packet, &inst->remote_addr, &inst->local_addr,
@@ -222,12 +222,12 @@ read_write_socket(int sock_fd, int event, void *anything)
              inst->request_length - inst->sent, 0);
 
     if (s < 0) {
-      DEBUG_LOG(LOGF_NtpSignd, "signd socket error: %s", strerror(errno));
+      DEBUG_LOG("signd socket error: %s", strerror(errno));
       close_socket();
       return;
     }
 
-    DEBUG_LOG(LOGF_NtpSignd, "Sent %d bytes to signd", s);
+    DEBUG_LOG("Sent %d bytes to signd", s);
     inst->sent += s;
 
     /* Try again later if the request is not complete yet */
@@ -240,7 +240,7 @@ read_write_socket(int sock_fd, int event, void *anything)
 
   if (event == SCH_FILE_INPUT) {
     if (IS_QUEUE_EMPTY()) {
-        DEBUG_LOG(LOGF_NtpSignd, "Unexpected signd response");
+        DEBUG_LOG("Unexpected signd response");
         close_socket();
         return;
     }
@@ -251,15 +251,15 @@ read_write_socket(int sock_fd, int event, void *anything)
 
     if (s <= 0) {
       if (s < 0)
-        DEBUG_LOG(LOGF_NtpSignd, "signd socket error: %s", strerror(errno));
+        DEBUG_LOG("signd socket error: %s", strerror(errno));
       else
-        DEBUG_LOG(LOGF_NtpSignd, "signd socket closed");
+        DEBUG_LOG("signd socket closed");
 
       close_socket();
       return;
     }
 
-    DEBUG_LOG(LOGF_NtpSignd, "Received %d bytes from signd", s);
+    DEBUG_LOG("Received %d bytes from signd", s);
     inst->received += s;
 
     if (inst->received < sizeof (inst->response.length))
@@ -269,7 +269,7 @@ read_write_socket(int sock_fd, int event, void *anything)
 
     if (response_length < offsetof(SigndResponse, signed_packet) ||
         response_length > sizeof (SigndResponse)) {
-      DEBUG_LOG(LOGF_NtpSignd, "Invalid response length");
+      DEBUG_LOG("Invalid response length");
       close_socket();
       return;
     }
@@ -303,7 +303,7 @@ NSD_Initialise()
   ARR_SetSize(queue, MAX_QUEUE_LENGTH);
   queue_head = queue_tail = 0;
 
-  LOG(LOGS_INFO, LOGF_NtpSignd, "MS-SNTP authentication enabled");
+  LOG(LOGS_INFO, "MS-SNTP authentication enabled");
 }
 
 /* ================================================== */
@@ -333,17 +333,17 @@ NSD_SignAndSendPacket(uint32_t key_id, NTP_Packet *packet, NTP_Remote_Address *r
   SignInstance *inst;
 
   if (!enabled) {
-    DEBUG_LOG(LOGF_NtpSignd, "signd disabled");
+    DEBUG_LOG("signd disabled");
     return 0;
   }
 
   if (queue_head == NEXT_QUEUE_INDEX(queue_tail)) {
-    DEBUG_LOG(LOGF_NtpSignd, "signd queue full");
+    DEBUG_LOG("signd queue full");
     return 0;
   }
 
   if (length != NTP_NORMAL_PACKET_LENGTH) {
-    DEBUG_LOG(LOGF_NtpSignd, "Invalid packet length");
+    DEBUG_LOG("Invalid packet length");
     return 0;
   }
 
@@ -373,8 +373,7 @@ NSD_SignAndSendPacket(uint32_t key_id, NTP_Packet *packet, NTP_Remote_Address *r
 
   queue_tail = NEXT_QUEUE_INDEX(queue_tail);
 
-  DEBUG_LOG(LOGF_NtpSignd, "Packet added to signd queue (%u:%u)",
-            queue_head, queue_tail);
+  DEBUG_LOG("Packet added to signd queue (%u:%u)", queue_head, queue_tail);
 
   return 1;
 }

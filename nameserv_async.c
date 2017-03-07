@@ -78,7 +78,7 @@ end_resolving(int fd, int event, void *anything)
   int i;
 
   if (pthread_join(inst->thread, NULL)) {
-    LOG_FATAL(LOGF_Nameserv, "pthread_join() failed");
+    LOG_FATAL("pthread_join() failed");
   }
 
   resolving_threads--;
@@ -110,7 +110,7 @@ DNS_Name2IPAddressAsync(const char *name, DNS_NameResolveHandler handler, void *
   inst->status = DNS_Failure;
 
   if (pipe(inst->pipe)) {
-    LOG_FATAL(LOGF_Nameserv, "pipe() failed");
+    LOG_FATAL("pipe() failed");
   }
 
   UTI_FdSetCloexec(inst->pipe[0]);
@@ -120,7 +120,7 @@ DNS_Name2IPAddressAsync(const char *name, DNS_NameResolveHandler handler, void *
   assert(resolving_threads <= 1);
 
   if (pthread_create(&inst->thread, NULL, start_resolving, inst)) {
-    LOG_FATAL(LOGF_Nameserv, "pthread_create() failed");
+    LOG_FATAL("pthread_create() failed");
   }
 
   SCH_AddFileHandler(inst->pipe[0], SCH_FILE_INPUT, end_resolving, inst);

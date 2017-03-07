@@ -104,7 +104,7 @@ apply_driftfile_time(time_t t)
 
   if (now.tv_sec < t) {
     if (LCL_ApplyStepOffset(now.tv_sec - t))
-      LOG(LOGS_INFO, LOGF_Rtc, "System time restored from driftfile");
+      LOG(LOGS_INFO, "System time restored from driftfile");
   }
 }
 
@@ -142,7 +142,7 @@ RTC_Initialise(int initial_set)
 
   if (file_name) {
     if (CNF_GetRtcSync()) {
-      LOG_FATAL(LOGF_Rtc, "rtcfile directive cannot be used with rtcsync");
+      LOG_FATAL("rtcfile directive cannot be used with rtcsync");
     }
 
     if (driver.init) {
@@ -150,7 +150,7 @@ RTC_Initialise(int initial_set)
         driver_initialised = 1;
       }
     } else {
-      LOG(LOGS_ERR, LOGF_Rtc, "RTC not supported on this operating system");
+      LOG(LOGS_ERR, "RTC not supported on this operating system");
     }
   }
 }

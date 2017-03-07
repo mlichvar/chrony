@@ -355,7 +355,7 @@ replace_source(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr)
   /* The hash table must be rebuilt for the new address */
   rehash_records();
 
-  LOG(LOGS_INFO, LOGF_NtpSources, "Source %s replaced with %s",
+  LOG(LOGS_INFO, "Source %s replaced with %s",
       UTI_IPToString(&old_addr->ip_addr),
       UTI_IPToString(&new_addr->ip_addr));
 
@@ -378,7 +378,7 @@ process_resolved_name(struct UnresolvedSource *us, IPAddr *ip_addrs, int n_addrs
     address.ip_addr = ip_addrs[((unsigned int)i + first) % n_addrs];
     address.port = us->port;
 
-    DEBUG_LOG(LOGF_NtpSources, "(%d) %s", i + 1, UTI_IPToString(&address.ip_addr));
+    DEBUG_LOG("(%d) %s", i + 1, UTI_IPToString(&address.ip_addr));
 
     if (us->replacement) {
       if (replace_source(&us->replace_source, &address) != NSR_AlreadyInUse)
@@ -405,7 +405,7 @@ name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *any
 
   assert(us == resolving_source);
 
-  DEBUG_LOG(LOGF_NtpSources, "%s resolved to %d addrs", us->name, n_addrs);
+  DEBUG_LOG("%s resolved to %d addrs", us->name, n_addrs);
 
   switch (status) {
     case DNS_TryAgain:
@@ -414,7 +414,7 @@ name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *any
       process_resolved_name(us, ip_addrs, n_addrs);
       break;
     case DNS_Failure:
-      LOG(LOGS_WARN, LOGF_NtpSources, "Invalid host %s", us->name);
+      LOG(LOGS_WARN, "Invalid host %s", us->name);
       break;
     default:
       assert(0);
@@ -439,7 +439,7 @@ name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *any
 
   if (next) {
     /* Continue with the next source in the list */
-    DEBUG_LOG(LOGF_NtpSources, "resolving %s", next->name);
+    DEBUG_LOG("resolving %s", next->name);
     DNS_Name2IPAddressAsync(next->name, name_resolve_handler, next);
   } else {
     /* This was the last source in the list. If some sources couldn't
@@ -477,7 +477,7 @@ resolve_sources(void *arg)
   us = unresolved_sources;
 
   resolving_source = us;
-  DEBUG_LOG(LOGF_NtpSources, "resolving %s", us->name);
+  DEBUG_LOG("resolving %s", us->name);
   DNS_Name2IPAddressAsync(us->name, name_resolve_handler, us);
 }
 
@@ -658,8 +658,7 @@ resolve_source_replacement(SourceRecord *record)
 {
   struct UnresolvedSource *us;
 
-  DEBUG_LOG(LOGF_NtpSources, "trying to replace %s",
-            UTI_IPToString(&record->remote_addr->ip_addr));
+  DEBUG_LOG("trying to replace %s", UTI_IPToString(&record->remote_addr->ip_addr));
 
   us = MallocNew(struct UnresolvedSource);
   us->name = Strdup(record->name);
@@ -705,7 +704,7 @@ NSR_HandleBadSource(IPAddr *address)
   SCH_GetLastEventTime(NULL, NULL, &now);
   diff = UTI_DiffTimespecsToDouble(&now, &last_replacement);
   if (fabs(diff) < RESOLVE_INTERVAL_UNIT * (1 << MIN_REPLACEMENT_INTERVAL)) {
-    DEBUG_LOG(LOGF_NtpSources, "replacement postponed");
+    DEBUG_LOG("replacement postponed");
     return;
   }
   last_replacement = now;
@@ -743,7 +742,7 @@ static void remove_tentative_pool_sources(int pool)
     if (!record->remote_addr || record->pool != pool || !record->tentative)
       continue;
 
-    DEBUG_LOG(LOGF_NtpSources, "removing tentative source %s",
+    DEBUG_LOG("removing tentative source %s",
               UTI_IPToString(&record->remote_addr->ip_addr));
 
     clean_source_record(record);
@@ -801,8 +800,7 @@ NSR_ProcessRx(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
         pool = ARR_GetElement(pools, record->pool);
         pool->sources++;
 
-        DEBUG_LOG(LOGF_NtpSources, "pool %s has %d confirmed sources",
-                  record->name, pool->sources);
+        DEBUG_LOG("pool %s has %d confirmed sources", record->name, pool->sources);
 
         /* If the number of sources from the pool reached the configured
            maximum, remove the remaining tentative sources */

@@ -161,7 +161,7 @@ prepare_socket(int family, int port_number)
 
   sock_fd = socket(family, SOCK_DGRAM, 0);
   if (sock_fd < 0) {
-    LOG(LOGS_ERR, LOGF_CmdMon, "Could not open %s command socket : %s",
+    LOG(LOGS_ERR, "Could not open %s command socket : %s",
         UTI_SockaddrFamilyToString(family), strerror(errno));
     return -1;
   }
@@ -172,14 +172,14 @@ prepare_socket(int family, int port_number)
   if (family != AF_UNIX) {
     /* Allow reuse of port number */
     if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *) &on_off, sizeof(on_off)) < 0) {
-      LOG(LOGS_ERR, LOGF_CmdMon, "Could not set reuseaddr socket options");
+      LOG(LOGS_ERR, "Could not set reuseaddr socket options");
       /* Don't quit - we might survive anyway */
     }
 
 #ifdef IP_FREEBIND
     /* Allow binding to address that doesn't exist yet */
     if (setsockopt(sock_fd, IPPROTO_IP, IP_FREEBIND, (char *)&on_off, sizeof(on_off)) < 0) {
-      LOG(LOGS_ERR, LOGF_CmdMon, "Could not set free bind socket option");
+      LOG(LOGS_ERR, "Could not set free bind socket option");
     }
 #endif
 
@@ -188,7 +188,7 @@ prepare_socket(int family, int port_number)
 #ifdef IPV6_V6ONLY
       /* Receive IPv6 packets only */
       if (setsockopt(sock_fd, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&on_off, sizeof(on_off)) < 0) {
-        LOG(LOGS_ERR, LOGF_CmdMon, "Could not request IPV6_V6ONLY socket option");
+        LOG(LOGS_ERR, "Could not request IPV6_V6ONLY socket option");
       }
 #endif
     }
@@ -230,7 +230,7 @@ prepare_socket(int family, int port_number)
       my_addr.un.sun_family = family;
       if (snprintf(my_addr.un.sun_path, sizeof (my_addr.un.sun_path), "%s",
                    CNF_GetBindCommandPath()) >= sizeof (my_addr.un.sun_path))
-        LOG_FATAL(LOGF_CmdMon, "Unix socket path too long");
+        LOG_FATAL("Unix socket path too long");
       unlink(my_addr.un.sun_path);
       break;
     default:
@@ -238,7 +238,7 @@ prepare_socket(int family, int port_number)
   }
 
   if (bind(sock_fd, &my_addr.sa, my_addr_len) < 0) {
-    LOG(LOGS_ERR, LOGF_CmdMon, "Could not bind %s command socket : %s",
+    LOG(LOGS_ERR, "Could not bind %s command socket : %s",
         UTI_SockaddrFamilyToString(family), strerror(errno));
     close(sock_fd);
     return -1;
@@ -315,7 +315,7 @@ CAM_Initialise(int family)
       && sock_fd6 < 0
 #endif
       ) {
-    LOG_FATAL(LOGF_CmdMon, "Could not open any command socket");
+    LOG_FATAL("Could not open any command socket");
   }
 
   access_auth_table = ADF_CreateTable();
@@ -396,12 +396,12 @@ transmit_reply(CMD_Reply *msg, union sockaddr_all *where_to)
                   &where_to->sa, addrlen);
 
   if (status < 0) {
-    DEBUG_LOG(LOGF_CmdMon, "Could not send to %s fd %d : %s",
+    DEBUG_LOG("Could not send to %s fd %d : %s",
               UTI_SockaddrToString(&where_to->sa), sock_fd, strerror(errno));
     return;
   }
 
-  DEBUG_LOG(LOGF_CmdMon, "Sent %d bytes to %s fd %d", status,
+  DEBUG_LOG("Sent %d bytes to %s fd %d", status,
             UTI_SockaddrToString(&where_to->sa), sock_fd);
 }
   
@@ -874,7 +874,7 @@ handle_dfreq(CMD_Request *rx_message, CMD_Reply *tx_message)
   double dfreq;
   dfreq = UTI_FloatNetworkToHost(rx_message->data.dfreq.dfreq);
   LCL_AccumulateDeltaFrequency(dfreq * 1.0e-6);
-  LOG(LOGS_INFO, LOGF_CmdMon, "Accumulated delta freq of %.3fppm", dfreq);
+  LOG(LOGS_INFO, "Accumulated delta freq of %.3fppm", dfreq);
 }
 
 /* ================================================== */
@@ -887,7 +887,7 @@ handle_doffset(CMD_Request *rx_message, CMD_Reply *tx_message)
   sec = (int32_t)ntohl(rx_message->data.doffset.sec);
   usec = (int32_t)ntohl(rx_message->data.doffset.usec);
   doffset = (double) sec + 1.0e-6 * (double) usec;
-  LOG(LOGS_INFO, LOGF_CmdMon, "Accumulated delta offset of %.6f seconds", doffset);
+  LOG(LOGS_INFO, "Accumulated delta offset of %.6f seconds", doffset);
   LCL_AccumulateOffset(doffset, 0.0);
 }
 
@@ -1258,14 +1258,14 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
                     &where_from.sa, &from_length);
 
   if (status < 0) {
-    LOG(LOGS_WARN, LOGF_CmdMon, "Error [%s] reading from control socket %d",
+    LOG(LOGS_WARN, "Error [%s] reading from control socket %d",
         strerror(errno), sock_fd);
     return;
   }
 
   if (from_length > sizeof (where_from) ||
       from_length <= sizeof (where_from.sa.sa_family)) {
-    DEBUG_LOG(LOGF_CmdMon, "Read command packet without source address");
+    DEBUG_LOG("Read command packet without source address");
     return;
   }
 
@@ -1300,7 +1300,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
       assert(0);
   }
 
-  DEBUG_LOG(LOGF_CmdMon, "Received %d bytes from %s fd %d",
+  DEBUG_LOG("Received %d bytes from %s fd %d",
             status, UTI_SockaddrToString(&where_from.sa), sock_fd);
 
   if (!(localhost || ADF_IsAllowed(access_auth_table, &remote_ip))) {
@@ -1319,7 +1319,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
     /* We don't know how to process anything like this or an error reply
        would be larger than the request */
-    DEBUG_LOG(LOGF_CmdMon, "Command packet dropped");
+    DEBUG_LOG("Command packet dropped");
     return;
   }
 
@@ -1341,7 +1341,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
   tx_message.pad5 = 0;
 
   if (rx_message.version != PROTO_VERSION_NUMBER) {
-    DEBUG_LOG(LOGF_CmdMon, "Command packet has invalid version (%d != %d)",
+    DEBUG_LOG("Command packet has invalid version (%d != %d)",
               rx_message.version, PROTO_VERSION_NUMBER);
 
     if (rx_message.version >= PROTO_VERSION_MISMATCH_COMPAT_SERVER) {
@@ -1353,7 +1353,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
   if (rx_command >= N_REQUEST_TYPES ||
       expected_length < (int)offsetof(CMD_Request, data)) {
-    DEBUG_LOG(LOGF_CmdMon, "Command packet has invalid command %d", rx_command);
+    DEBUG_LOG("Command packet has invalid command %d", rx_command);
 
     tx_message.status = htons(STT_INVALID);
     transmit_reply(&tx_message, &where_from);
@@ -1361,7 +1361,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
   }
 
   if (read_length < expected_length) {
-    DEBUG_LOG(LOGF_CmdMon, "Command packet is too short (%d < %d)", read_length,
+    DEBUG_LOG("Command packet is too short (%d < %d)", read_length,
               expected_length);
 
     tx_message.status = htons(STT_BADPKTLENGTH);
@@ -1376,7 +1376,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
   /* Don't reply to all requests from hosts other than localhost if the rate
      is excessive */
   if (!localhost && log_index >= 0 && CLG_LimitCommandResponseRate(log_index)) {
-      DEBUG_LOG(LOGF_CmdMon, "Command packet discarded to limit response rate");
+      DEBUG_LOG("Command packet discarded to limit response rate");
       return;
   }
 
@@ -1627,7 +1627,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
           break;
 
         default:
-          DEBUG_LOG(LOGF_CmdMon, "Unhandled command %d", rx_command);
+          DEBUG_LOG("Unhandled command %d", rx_command);
           tx_message.status = htons(STT_FAILED);
           break;
       }

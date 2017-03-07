@@ -69,19 +69,19 @@ static void read_sample(int sockfd, int event, void *anything)
   s = recv(sockfd, &sample, sizeof (sample), 0);
 
   if (s < 0) {
-    LOG(LOGS_ERR, LOGF_Refclock, "Could not read SOCK sample : %s",
+    LOG(LOGS_ERR, "Could not read SOCK sample : %s",
         strerror(errno));
     return;
   }
 
   if (s != sizeof (sample)) {
-    LOG(LOGS_WARN, LOGF_Refclock, "Unexpected length of SOCK sample : %d != %ld",
+    LOG(LOGS_WARN, "Unexpected length of SOCK sample : %d != %ld",
         s, (long)sizeof (sample));
     return;
   }
 
   if (sample.magic != SOCK_MAGIC) {
-    LOG(LOGS_WARN, LOGF_Refclock, "Unexpected magic number in SOCK sample : %x != %x",
+    LOG(LOGS_WARN, "Unexpected magic number in SOCK sample : %x != %x",
         sample.magic, SOCK_MAGIC);
     return;
   }
@@ -106,13 +106,13 @@ static int sock_initialise(RCL_Instance instance)
  
   s.sun_family = AF_UNIX;
   if (snprintf(s.sun_path, sizeof (s.sun_path), "%s", path) >= sizeof (s.sun_path)) {
-    LOG_FATAL(LOGF_Refclock, "path %s is too long", path);
+    LOG_FATAL("path %s is too long", path);
     return 0;
   }
 
   sockfd = socket(AF_UNIX, SOCK_DGRAM, 0);
   if (sockfd < 0) {
-    LOG_FATAL(LOGF_Refclock, "socket() failed");
+    LOG_FATAL("socket() failed");
     return 0;
   }
 
@@ -120,7 +120,7 @@ static int sock_initialise(RCL_Instance instance)
 
   unlink(path);
   if (bind(sockfd, (struct sockaddr *)&s, sizeof (s)) < 0) {
-    LOG_FATAL(LOGF_Refclock, "bind() failed");
+    LOG_FATAL("bind() failed");
     return 0;
   }
 

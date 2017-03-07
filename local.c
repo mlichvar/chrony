@@ -146,7 +146,7 @@ calculate_sys_precision(void)
 
   assert(precision_log >= -30);
 
-  DEBUG_LOG(LOGF_Local, "Clock precision %.9f (%d)", precision_quantum, precision_log);
+  DEBUG_LOG("Clock precision %.9f (%d)", precision_quantum, precision_log);
 }
 
 /* ================================================== */
@@ -358,12 +358,12 @@ LCL_ReadRawTime(struct timespec *ts)
 {
 #if HAVE_CLOCK_GETTIME
   if (clock_gettime(CLOCK_REALTIME, ts) < 0)
-    LOG_FATAL(LOGF_Local, "clock_gettime() failed : %s", strerror(errno));
+    LOG_FATAL("clock_gettime() failed : %s", strerror(errno));
 #else
   struct timeval tv;
 
   if (gettimeofday(&tv, NULL) < 0)
-    LOG_FATAL(LOGF_Local, "gettimeofday() failed : %s", strerror(errno));
+    LOG_FATAL("gettimeofday() failed : %s", strerror(errno));
 
   UTI_TimevalToTimespec(&tv, ts);
 #endif
@@ -426,7 +426,7 @@ clamp_freq(double freq)
   if (freq <= max_freq_ppm && freq >= -max_freq_ppm)
     return freq;
 
-  LOG(LOGS_WARN, LOGF_Local, "Frequency %.1f ppm exceeds allowed maximum", freq);
+  LOG(LOGS_WARN, "Frequency %.1f ppm exceeds allowed maximum", freq);
 
   return CLAMP(-max_freq_ppm, freq, max_freq_ppm);
 }
@@ -440,7 +440,7 @@ check_offset(struct timespec *now, double offset)
   if (UTI_IsTimeOffsetSane(now, -offset))
       return 1;
 
-  LOG(LOGS_WARN, LOGF_Local, "Adjustment of %.1f seconds is invalid", -offset);
+  LOG(LOGS_WARN, "Adjustment of %.1f seconds is invalid", -offset);
   return 0;
 }
 
@@ -546,7 +546,7 @@ LCL_ApplyStepOffset(double offset)
       return 0;
 
   if (!(*drv_apply_step_offset)(offset)) {
-    LOG(LOGS_ERR, LOGF_Local, "Could not step clock");
+    LOG(LOGS_ERR, "Could not step clock");
     return 0;
   }
 
@@ -613,7 +613,7 @@ LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate)
 
   current_freq_ppm = clamp_freq(current_freq_ppm);
 
-  DEBUG_LOG(LOGF_Local, "old_freq=%.3fppm new_freq=%.3fppm offset=%.6fsec",
+  DEBUG_LOG("old_freq=%.3fppm new_freq=%.3fppm offset=%.6fsec",
       old_freq_ppm, current_freq_ppm, doffset);
 
   /* Call the system-specific driver for setting the frequency */
@@ -660,7 +660,7 @@ lcl_RegisterSystemDrivers(lcl_ReadFrequencyDriver read_freq,
 
   current_freq_ppm = (*drv_read_freq)();
 
-  DEBUG_LOG(LOGF_Local, "Local freq=%.3fppm", current_freq_ppm);
+  DEBUG_LOG("Local freq=%.3fppm", current_freq_ppm);
 }
 
 /* ================================================== */
@@ -684,7 +684,7 @@ LCL_MakeStep(void)
   if (!LCL_ApplyStepOffset(-correction))
     return 0;
 
-  LOG(LOGS_WARN, LOGF_Local, "System clock was stepped by %.6f seconds", correction);
+  LOG(LOGS_WARN, "System clock was stepped by %.6f seconds", correction);
 
   return 1;
 }

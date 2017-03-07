@@ -295,7 +295,7 @@ SST_AccumulateSample(SST_Stats inst, struct timespec *sample_time,
   /* Make sure it's newer than the last sample */
   if (inst->n_samples &&
       UTI_CompareTimespecs(&inst->sample_times[inst->last_sample], sample_time) >= 0) {
-    LOG(LOGS_WARN, LOGF_SourceStats, "Out of order sample detected, discarding history for %s",
+    LOG(LOGS_WARN, "Out of order sample detected, discarding history for %s",
         inst->ip_addr ? UTI_IPToString(inst->ip_addr) : UTI_RefidToString(inst->refid));
     SST_ResetInstance(inst);
   }
@@ -545,7 +545,7 @@ SST_DoNewRegression(SST_Stats inst)
     inst->skew = CLAMP(MIN_SKEW, inst->skew, MAX_SKEW);
     stress = fabs(old_freq - inst->estimated_frequency) / old_skew;
 
-    DEBUG_LOG(LOGF_SourceStats, "off=%e freq=%e skew=%e n=%d bs=%d runs=%d asym=%f arun=%d",
+    DEBUG_LOG("off=%e freq=%e skew=%e n=%d bs=%d runs=%d asym=%f arun=%d",
               inst->estimated_offset, inst->estimated_frequency, inst->skew,
               inst->n_samples, best_start, inst->nruns,
               inst->asymmetry, inst->asymmetry_run);
@@ -653,7 +653,7 @@ SST_GetSelectionData(SST_Stats inst, struct timespec *now,
 
   *select_ok = inst->regression_ok;
 
-  DEBUG_LOG(LOGF_SourceStats, "n=%d off=%f dist=%f sd=%f first_ago=%f last_ago=%f selok=%d",
+  DEBUG_LOG("n=%d off=%f dist=%f sd=%f first_ago=%f last_ago=%f selok=%d",
             inst->n_samples, offset, *root_distance, *std_dev,
             *first_sample_ago, *last_sample_ago, *select_ok);
 }
@@ -684,8 +684,9 @@ SST_GetTrackingData(SST_Stats inst, struct timespec *ref_time,
   elapsed_sample = UTI_DiffTimespecsToDouble(&inst->offset_time, &inst->sample_times[i]);
   *root_dispersion = inst->root_dispersions[j] + inst->skew * elapsed_sample;
 
-  DEBUG_LOG(LOGF_SourceStats, "n=%d freq=%f (%.3fppm) skew=%f (%.3fppm) avoff=%f offsd=%f disp=%f",
-      inst->n_samples, *frequency, 1.0e6* *frequency, *skew, 1.0e6* *skew, *average_offset, *offset_sd, *root_dispersion);
+  DEBUG_LOG("n=%d freq=%f (%.3fppm) skew=%f (%.3fppm) avoff=%f offsd=%f disp=%f",
+            inst->n_samples, *frequency, 1.0e6* *frequency, *skew, 1.0e6* *skew,
+            *average_offset, *offset_sd, *root_dispersion);
 
 }
 
@@ -719,7 +720,7 @@ SST_SlewSamples(SST_Stats inst, struct timespec *when, double dfreq, double doff
   inst->estimated_offset += delta_time;
   inst->estimated_frequency = (inst->estimated_frequency - dfreq) / (1.0 - dfreq);
 
-  DEBUG_LOG(LOGF_SourceStats, "n=%d m=%d old_off_time=%s new=%s old_off=%f new_off=%f old_freq=%.3f new_freq=%.3f",
+  DEBUG_LOG("n=%d m=%d old_off_time=%s new=%s old_off=%f new_off=%f old_freq=%.3f new_freq=%.3f",
             inst->n_samples, inst->runs_samples,
             UTI_TimespecToString(&prev), UTI_TimespecToString(&inst->offset_time),
             prev_offset, inst->estimated_offset,
@@ -805,7 +806,7 @@ SST_IsGoodSample(SST_Stats inst, double offset, double delay,
   if (fabs(offset) - delay_increase > allowed_increase)
     return 1;
 
-  DEBUG_LOG(LOGF_SourceStats, "Bad sample: offset=%f delay=%f incr_delay=%f allowed=%f",
+  DEBUG_LOG("Bad sample: offset=%f delay=%f incr_delay=%f allowed=%f",
       offset, delay, allowed_increase, delay_increase);
 
   return 0;

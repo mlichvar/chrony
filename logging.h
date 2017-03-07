@@ -46,26 +46,26 @@ extern int log_debug_enabled;
 #endif
 
 #if DEBUG > 0
-#define LOG_MESSAGE(severity, facility, ...) \
-  LOG_Message(severity, facility, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__)
+#define LOG_MESSAGE(severity, ...) \
+  LOG_Message(severity, __LINE__, __FILE__, FUNCTION_NAME, __VA_ARGS__)
 #else
-#define LOG_MESSAGE(severity, facility, ...) \
+#define LOG_MESSAGE(severity, ...) \
   LOG_Message(severity, __VA_ARGS__)
 #endif
 
-#define DEBUG_LOG(facility, ...) \
+#define DEBUG_LOG(...) \
   do { \
     if (DEBUG && log_debug_enabled) \
-      LOG_MESSAGE(LOGS_DEBUG, facility, __VA_ARGS__); \
+      LOG_MESSAGE(LOGS_DEBUG, __VA_ARGS__); \
   } while (0)
 
-#define LOG_FATAL(facility, ...) \
+#define LOG_FATAL(...) \
   do { \
-    LOG_MESSAGE(LOGS_FATAL, facility, __VA_ARGS__); \
+    LOG_MESSAGE(LOGS_FATAL, __VA_ARGS__); \
     exit(1); \
   } while (0)
 
-#define LOG(severity, facility, ...) LOG_MESSAGE(severity, facility, __VA_ARGS__)
+#define LOG(severity, ...) LOG_MESSAGE(severity, __VA_ARGS__)
 
 /* Definition of severity */
 typedef enum {
@@ -76,50 +76,6 @@ typedef enum {
   LOGS_DEBUG
 } LOG_Severity;
 
-/* Definition of facility.  Each message is tagged with who generated
-   it, so that the user can customise what level of reporting he gets
-   for each area of the software */
-typedef enum {
-  LOGF_Reference,
-  LOGF_NtpIO,
-  LOGF_NtpIOLinux,
-  LOGF_NtpCore,
-  LOGF_NtpSignd,
-  LOGF_NtpSources,
-  LOGF_Scheduler,
-  LOGF_SourceStats,
-  LOGF_Sources,
-  LOGF_Local,
-  LOGF_Util,
-  LOGF_Main,
-  LOGF_Memory,
-  LOGF_Client,
-  LOGF_ClientLog,
-  LOGF_Configure,
-  LOGF_CmdMon,
-  LOGF_Acquire,
-  LOGF_Manual,
-  LOGF_Keys,
-  LOGF_Logging,
-  LOGF_Nameserv,
-  LOGF_PrivOps,
-  LOGF_Rtc,
-  LOGF_Regress,
-  LOGF_Sys,
-  LOGF_SysGeneric,
-  LOGF_SysLinux,
-  LOGF_SysMacOSX,
-  LOGF_SysNetBSD,
-  LOGF_SysSolaris,
-  LOGF_SysTimex,
-  LOGF_SysWinnt,
-  LOGF_TempComp,
-  LOGF_RtcLinux,
-  LOGF_Refclock,
-  LOGF_HwClocks,
-  LOGF_Smooth,
-} LOG_Facility;
-
 /* Init function */
 extern void LOG_Initialise(void);
 
@@ -128,9 +84,8 @@ extern void LOG_Finalise(void);
 
 /* Line logging function */
 #if DEBUG > 0
-FORMAT_ATTRIBUTE_PRINTF(6, 7)
-extern void LOG_Message(LOG_Severity severity, LOG_Facility facility,
-                        int line_number, const char *filename,
+FORMAT_ATTRIBUTE_PRINTF(5, 6)
+extern void LOG_Message(LOG_Severity severity, int line_number, const char *filename,
                         const char *function_name, const char *format, ...);
 #else
 FORMAT_ATTRIBUTE_PRINTF(2, 3)

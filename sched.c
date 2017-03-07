@@ -163,7 +163,7 @@ SCH_AddFileHandler
   assert(fd >= 0);
   
   if (fd >= FD_SETSIZE)
-    LOG_FATAL(LOGF_Scheduler, "Too many file descriptors");
+    LOG_FATAL("Too many file descriptors");
 
   /* Resize the array if the descriptor is highest so far */
   while (ARR_GetSize(file_handlers) <= fd) {
@@ -350,7 +350,7 @@ SCH_AddTimeoutByDelay(double delay, SCH_TimeoutHandler handler, SCH_ArbitraryArg
   LCL_ReadRawTime(&now);
   UTI_AddDoubleToTimespec(&now, delay, &then);
   if (UTI_CompareTimespecs(&now, &then) > 0) {
-    LOG_FATAL(LOGF_Scheduler, "Timeout overflow");
+    LOG_FATAL("Timeout overflow");
   }
 
   return SCH_AddTimeout(&then, handler, arg);
@@ -512,7 +512,7 @@ dispatch_timeouts(struct timespec *now) {
        more time than was delay of a scheduled timeout. */
     if (n_done > n_timer_queue_entries * 4 &&
         n_done > n_entries_on_start * 4) {
-      LOG_FATAL(LOGF_Scheduler, "Possible infinite loop in scheduling");
+      LOG_FATAL("Possible infinite loop in scheduling");
     }
   }
 }
@@ -680,10 +680,10 @@ check_current_time(struct timespec *prev_raw, struct timespec *raw, int timeout,
 
   if (last_select_ts_raw.tv_sec + elapsed_min.tv_sec >
       raw->tv_sec + JUMP_DETECT_THRESHOLD) {
-    LOG(LOGS_WARN, LOGF_Scheduler, "Backward time jump detected!");
+    LOG(LOGS_WARN, "Backward time jump detected!");
   } else if (prev_raw->tv_sec + elapsed_max.tv_sec + JUMP_DETECT_THRESHOLD <
              raw->tv_sec) {
-    LOG(LOGS_WARN, LOGF_Scheduler, "Forward time jump detected!");
+    LOG(LOGS_WARN, "Forward time jump detected!");
   } else {
     return 1;
   }
@@ -742,7 +742,7 @@ SCH_MainLoop(void)
     /* if there are no file descriptors being waited on and no
        timeout set, this is clearly ridiculous, so stop the run */
     if (!ptv && !p_read_fds && !p_write_fds)
-      LOG_FATAL(LOGF_Scheduler, "Nothing to do");
+      LOG_FATAL("Nothing to do");
 
     status = select(one_highest_fd, p_read_fds, p_write_fds, p_except_fds, ptv);
     errsv = errno;
@@ -762,7 +762,7 @@ SCH_MainLoop(void)
 
     if (status < 0) {
       if (!need_to_exit && errsv != EINTR) {
-        LOG_FATAL(LOGF_Scheduler, "select() failed : %s", strerror(errsv));
+        LOG_FATAL("select() failed : %s", strerror(errsv));
       }
     } else if (status > 0) {
       /* A file descriptor is ready for input or output */

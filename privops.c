@@ -388,14 +388,14 @@ receive_response(PrvResponse *res)
 
   resp_len = recv(helper_fd, res, sizeof (*res), 0);
   if (resp_len < 0)
-    LOG_FATAL(LOGF_PrivOps, "Could not read from helper : %s", strerror(errno));
+    LOG_FATAL("Could not read from helper : %s", strerror(errno));
   if (resp_len != sizeof (*res))
-    LOG_FATAL(LOGF_PrivOps, "Invalid helper response");
+    LOG_FATAL("Invalid helper response");
 
   if (res->fatal_error)
-    LOG_FATAL(LOGF_PrivOps, "Error in helper : %s", res->data.fatal_msg.msg);
+    LOG_FATAL("Error in helper : %s", res->data.fatal_msg.msg);
 
-  DEBUG_LOG(LOGF_PrivOps, "Received response rc=%d", res->rc);
+  DEBUG_LOG("Received response rc=%d", res->rc);
 
   /* if operation failed in the helper, set errno so daemon can print log message */
   if (res->res_errno)
@@ -446,10 +446,10 @@ send_request(PrvRequest *req)
   if (sendmsg(helper_fd, &msg, 0) < 0) {
     /* don't try to send another request from exit() */
     helper_fd = -1;
-    LOG_FATAL(LOGF_PrivOps, "Could not send to helper : %s", strerror(errno));
+    LOG_FATAL("Could not send to helper : %s", strerror(errno));
   }
 
-  DEBUG_LOG(LOGF_PrivOps, "Sent request op=%d", req->op);
+  DEBUG_LOG("Sent request op=%d", req->op);
 }
 
 /* ======================================================================= */
@@ -615,7 +615,7 @@ PRV_Name2IPAddress(const char *name, IPAddr *ip_addrs, int max_addrs)
   req.op = OP_NAME2IPADDRESS;
   if (snprintf(req.data.name_to_ipaddress.name, sizeof (req.data.name_to_ipaddress.name),
                "%s", name) >= sizeof (req.data.name_to_ipaddress.name)) {
-    DEBUG_LOG(LOGF_PrivOps, "Name too long");
+    DEBUG_LOG("Name too long");
     return DNS_Failure;
   }
 
@@ -672,21 +672,21 @@ PRV_StartHelper(void)
   int fd, sock_pair[2];
 
   if (have_helper())
-    LOG_FATAL(LOGF_PrivOps, "Helper already running");
+    LOG_FATAL("Helper already running");
 
   if (
 #ifdef SOCK_SEQPACKET
       socketpair(AF_UNIX, SOCK_SEQPACKET, 0, sock_pair) &&
 #endif
       socketpair(AF_UNIX, SOCK_DGRAM, 0, sock_pair))
-    LOG_FATAL(LOGF_PrivOps, "socketpair() failed : %s", strerror(errno));
+    LOG_FATAL("socketpair() failed : %s", strerror(errno));
 
   UTI_FdSetCloexec(sock_pair[0]);
   UTI_FdSetCloexec(sock_pair[1]);
 
   pid = fork();
   if (pid < 0)
-    LOG_FATAL(LOGF_PrivOps, "fork() failed : %s", strerror(errno));
+    LOG_FATAL("fork() failed : %s", strerror(errno));
 
   if (pid == 0) {
     /* child process */

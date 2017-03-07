@@ -1038,25 +1038,25 @@ create_dir(char *p, mode_t mode, uid_t uid, gid_t gid)
 
   if (status < 0) {
     if (errno != ENOENT) {
-      LOG(LOGS_ERR, LOGF_Util, "Could not access %s : %s", p, strerror(errno));
+      LOG(LOGS_ERR, "Could not access %s : %s", p, strerror(errno));
       return 0;
     }
   } else {
     if (S_ISDIR(buf.st_mode))
       return 1;
-    LOG(LOGS_ERR, LOGF_Util, "%s is not directory", p);
+    LOG(LOGS_ERR, "%s is not directory", p);
     return 0;
   }
 
   /* Create the directory */
   if (mkdir(p, mode) < 0) {
-    LOG(LOGS_ERR, LOGF_Util, "Could not create directory %s : %s", p, strerror(errno));
+    LOG(LOGS_ERR, "Could not create directory %s : %s", p, strerror(errno));
     return 0;
   }
 
   /* Set its owner */
   if (chown(p, uid, gid) < 0) {
-    LOG(LOGS_ERR, LOGF_Util, "Could not change ownership of %s : %s", p, strerror(errno));
+    LOG(LOGS_ERR, "Could not change ownership of %s : %s", p, strerror(errno));
     /* Don't leave it there with incorrect ownership */
     rmdir(p);
     return 0;
@@ -1125,27 +1125,27 @@ UTI_CheckDirPermissions(const char *path, mode_t perm, uid_t uid, gid_t gid)
   struct stat buf;
 
   if (stat(path, &buf)) {
-    LOG(LOGS_ERR, LOGF_Util, "Could not access %s : %s", path, strerror(errno));
+    LOG(LOGS_ERR, "Could not access %s : %s", path, strerror(errno));
     return 0;
   }
 
   if (!S_ISDIR(buf.st_mode)) {
-    LOG(LOGS_ERR, LOGF_Util, "%s is not directory", path);
+    LOG(LOGS_ERR, "%s is not directory", path);
     return 0;
   }
 
   if ((buf.st_mode & 0777) & ~perm) {
-    LOG(LOGS_ERR, LOGF_Util, "Wrong permissions on %s", path);
+    LOG(LOGS_ERR, "Wrong permissions on %s", path);
     return 0;
   }
 
   if (buf.st_uid != uid) {
-    LOG(LOGS_ERR, LOGF_Util, "Wrong owner of %s (%s != %d)", path, "UID", uid);
+    LOG(LOGS_ERR, "Wrong owner of %s (%s != %d)", path, "UID", uid);
     return 0;
   }
 
   if (buf.st_gid != gid) {
-    LOG(LOGS_ERR, LOGF_Util, "Wrong owner of %s (%s != %d)", path, "GID", gid);
+    LOG(LOGS_ERR, "Wrong owner of %s (%s != %d)", path, "GID", gid);
     return 0;
   }
 
@@ -1159,17 +1159,17 @@ UTI_DropRoot(uid_t uid, gid_t gid)
 {
   /* Drop supplementary groups */
   if (setgroups(0, NULL))
-    LOG_FATAL(LOGF_Util, "setgroups() failed : %s", strerror(errno));
+    LOG_FATAL("setgroups() failed : %s", strerror(errno));
 
   /* Set effective, saved and real group ID */
   if (setgid(gid))
-    LOG_FATAL(LOGF_Util, "setgid(%d) failed : %s", gid, strerror(errno));
+    LOG_FATAL("setgid(%d) failed : %s", gid, strerror(errno));
 
   /* Set effective, saved and real user ID */
   if (setuid(uid))
-    LOG_FATAL(LOGF_Util, "setuid(%d) failed : %s", uid, strerror(errno));
+    LOG_FATAL("setuid(%d) failed : %s", uid, strerror(errno));
 
-  DEBUG_LOG(LOGF_Util, "Dropped root privileges: UID %d GID %d", uid, gid);
+  DEBUG_LOG("Dropped root privileges: UID %d GID %d", uid, gid);
 }
 
 /* ================================================== */
@@ -1184,9 +1184,9 @@ UTI_GetRandomBytesUrandom(void *buf, unsigned int len)
   if (!f)
     f = fopen(DEV_URANDOM, "r");
   if (!f)
-    LOG_FATAL(LOGF_Util, "Can't open %s : %s", DEV_URANDOM, strerror(errno));
+    LOG_FATAL("Can't open %s : %s", DEV_URANDOM, strerror(errno));
   if (fread(buf, 1, len, f) != len)
-    LOG_FATAL(LOGF_Util, "Can't read from %s", DEV_URANDOM);
+    LOG_FATAL("Can't read from %s", DEV_URANDOM);
 }
 
 /* ================================================== */

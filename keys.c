@@ -122,7 +122,7 @@ determine_hash_delay(uint32_t key_id)
   /* Add on a bit extra to allow for copying, conversions etc */
   nsecs = 1.0625e9 * min_diff;
 
-  DEBUG_LOG(LOGF_Keys, "authentication delay for key %"PRIu32": %d nsecs", key_id, nsecs);
+  DEBUG_LOG("authentication delay for key %"PRIu32": %d nsecs", key_id, nsecs);
 
   return nsecs;
 }
@@ -200,7 +200,7 @@ KEY_Reload(void)
 
   in = fopen(key_file, "r");
   if (!in) {
-    LOG(LOGS_WARN, LOGF_Keys, "Could not open keyfile %s", key_file);
+    LOG(LOGS_WARN, "Could not open keyfile %s", key_file);
     return;
   }
 
@@ -212,19 +212,19 @@ KEY_Reload(void)
       continue;
 
     if (!CPS_ParseKey(line, &key_id, &hashname, &keyval)) {
-      LOG(LOGS_WARN, LOGF_Keys, "Could not parse key at line %d in file %s", line_number, key_file);
+      LOG(LOGS_WARN, "Could not parse key at line %d in file %s", line_number, key_file);
       continue;
     }
 
     key.hash_id = HSH_GetHashId(hashname);
     if (key.hash_id < 0) {
-      LOG(LOGS_WARN, LOGF_Keys, "Unknown hash function in key %"PRIu32, key_id);
+      LOG(LOGS_WARN, "Unknown hash function in key %"PRIu32, key_id);
       continue;
     }
 
     key.len = decode_password(keyval);
     if (!key.len) {
-      LOG(LOGS_WARN, LOGF_Keys, "Could not decode password in key %"PRIu32, key_id);
+      LOG(LOGS_WARN, "Could not decode password in key %"PRIu32, key_id);
       continue;
     }
 
@@ -244,7 +244,7 @@ KEY_Reload(void)
   /* Check for duplicates */
   for (i = 1; i < ARR_GetSize(keys); i++) {
     if (get_key(i - 1)->id == get_key(i)->id)
-      LOG(LOGS_WARN, LOGF_Keys, "Detected duplicate key %"PRIu32, get_key(i - 1)->id);
+      LOG(LOGS_WARN, "Detected duplicate key %"PRIu32, get_key(i - 1)->id);
   }
 
   /* Erase any passwords from stack */

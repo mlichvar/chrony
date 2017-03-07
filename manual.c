@@ -145,15 +145,14 @@ estimate_and_set_system(struct timespec *now, int offset_provided, double offset
   }
   
   if (found_freq) {
-    LOG(LOGS_INFO, LOGF_Manual,
-        "Making a frequency change of %.3f ppm and a slew of %.6f",
+    LOG(LOGS_INFO, "Making a frequency change of %.3f ppm and a slew of %.6f",
         1.0e6 * freq, slew_by);
     
     REF_SetManualReference(now,
                            slew_by,
                            freq, skew);
   } else {
-    LOG(LOGS_INFO, LOGF_Manual, "Making a slew of %.6f", slew_by);
+    LOG(LOGS_INFO, "Making a slew of %.6f", slew_by);
     REF_SetManualReference(now,
                            slew_by,
                            0.0, skew);

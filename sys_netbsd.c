@@ -65,14 +65,14 @@ accrue_offset(double offset, double corr_rate)
   UTI_DoubleToTimeval(-offset, &newadj);
 
   if (PRV_AdjustTime(&newadj, &oldadj) < 0)
-    LOG_FATAL(LOGF_SysNetBSD, "adjtime() failed");
+    LOG_FATAL("adjtime() failed");
 
   /* Add the old remaining adjustment if not zero */
   doldadj = UTI_TimevalToDouble(&oldadj);
   if (doldadj != 0.0) {
     UTI_DoubleToTimeval(-offset + doldadj, &newadj);
     if (PRV_AdjustTime(&newadj, NULL) < 0)
-      LOG_FATAL(LOGF_SysNetBSD, "adjtime() failed");
+      LOG_FATAL("adjtime() failed");
   }
 }
 
@@ -86,7 +86,7 @@ get_offset_correction(struct timespec *raw,
   double adjustment_remaining;
 
   if (PRV_AdjustTime(NULL, &remadj) < 0)
-    LOG_FATAL(LOGF_SysNetBSD, "adjtime() failed");
+    LOG_FATAL("adjtime() failed");
 
   adjustment_remaining = UTI_TimevalToDouble(&remadj);
 
@@ -138,7 +138,7 @@ SYS_NetBSD_DropRoot(uid_t uid, gid_t gid)
   /* Check if we have write access to /dev/clockctl */
   fd = open("/dev/clockctl", O_WRONLY);
   if (fd < 0)
-    LOG_FATAL(LOGF_SysNetBSD, "Can't write to /dev/clockctl");
+    LOG_FATAL("Can't write to /dev/clockctl");
   close(fd);
 #endif
 }

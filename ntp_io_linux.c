@@ -127,7 +127,7 @@ add_interface(CNF_HwTsInterface *conf_iface)
   }
 
   if (ioctl(sock_fd, SIOCGIFINDEX, &req)) {
-    DEBUG_LOG(LOGF_NtpIOLinux, "ioctl(%s) failed : %s", "SIOCGIFINDEX", strerror(errno));
+    DEBUG_LOG("ioctl(%s) failed : %s", "SIOCGIFINDEX", strerror(errno));
     close(sock_fd);
     return 0;
   }
@@ -138,7 +138,7 @@ add_interface(CNF_HwTsInterface *conf_iface)
   req.ifr_data = (char *)&ts_info;
 
   if (ioctl(sock_fd, SIOCETHTOOL, &req)) {
-    DEBUG_LOG(LOGF_NtpIOLinux, "ioctl(%s) failed : %s", "SIOCETHTOOL", strerror(errno));
+    DEBUG_LOG("ioctl(%s) failed : %s", "SIOCETHTOOL", strerror(errno));
     close(sock_fd);
     return 0;
   }
@@ -146,7 +146,7 @@ add_interface(CNF_HwTsInterface *conf_iface)
   req_hwts_flags = SOF_TIMESTAMPING_RX_HARDWARE | SOF_TIMESTAMPING_TX_HARDWARE |
                    SOF_TIMESTAMPING_RAW_HARDWARE;
   if ((ts_info.so_timestamping & req_hwts_flags) != req_hwts_flags) {
-    DEBUG_LOG(LOGF_NtpIOLinux, "HW timestamping not supported on %s", req.ifr_name);
+    DEBUG_LOG("HW timestamping not supported on %s", req.ifr_name);
     close(sock_fd);
     return 0;
   }
@@ -157,7 +157,7 @@ add_interface(CNF_HwTsInterface *conf_iface)
   req.ifr_data = (char *)&ts_config;
 
   if (ioctl(sock_fd, SIOCSHWTSTAMP, &req)) {
-    DEBUG_LOG(LOGF_NtpIOLinux, "ioctl(%s) failed : %s", "SIOCSHWTSTAMP", strerror(errno));
+    DEBUG_LOG("ioctl(%s) failed : %s", "SIOCSHWTSTAMP", strerror(errno));
     close(sock_fd);
     return 0;
   }
@@ -187,7 +187,7 @@ add_interface(CNF_HwTsInterface *conf_iface)
 
   iface->clock = HCL_CreateInstance(UTI_Log2ToDouble(MAX(conf_iface->minpoll, MIN_PHC_POLL)));
 
-  LOG(LOGS_INFO, LOGF_NtpIOLinux, "Enabled HW timestamping on %s", iface->name);
+  LOG(LOGS_INFO, "Enabled HW timestamping on %s", iface->name);
 
   return 1;
 }
@@ -204,7 +204,7 @@ add_all_interfaces(CNF_HwTsInterface *conf_iface_all)
   conf_iface = *conf_iface_all;
 
   if (getifaddrs(&ifaddr)) {
-    DEBUG_LOG(LOGF_NtpIOLinux, "getifaddrs() failed : %s", strerror(errno));
+    DEBUG_LOG("getifaddrs() failed : %s", strerror(errno));
     return 0;
   }
 
@@ -241,7 +241,7 @@ update_interface_speed(struct Interface *iface)
   req.ifr_data = (char *)&cmd;
 
   if (ioctl(sock_fd, SIOCETHTOOL, &req)) {
-    DEBUG_LOG(LOGF_NtpIOLinux, "ioctl(%s) failed : %s", "SIOCETHTOOL", strerror(errno));
+    DEBUG_LOG("ioctl(%s) failed : %s", "SIOCETHTOOL", strerror(errno));
     close(sock_fd);
     return;
   }
@@ -269,7 +269,7 @@ NIO_Linux_Initialise(void)
     if (!strcmp("*", conf_iface->name))
       continue;
     if (!add_interface(conf_iface))
-      LOG_FATAL(LOGF_NtpIO, "Could not enable HW timestamping on %s", conf_iface->name);
+      LOG_FATAL("Could not enable HW timestamping on %s", conf_iface->name);
     hwts = 1;
   }
 
@@ -333,13 +333,13 @@ NIO_Linux_SetTimestampSocketOptions(int sock_fd, int client_only, int *events)
     flags |= ts_tx_flags;
 
   if (setsockopt(sock_fd, SOL_SOCKET, SO_SELECT_ERR_QUEUE, &val, sizeof (val)) < 0) {
-    LOG(LOGS_ERR, LOGF_NtpIOLinux, "Could not set %s socket option", "SO_SELECT_ERR_QUEUE");
+    LOG(LOGS_ERR, "Could not set %s socket option", "SO_SELECT_ERR_QUEUE");
     ts_flags = 0;
     return 0;
   }
 
   if (setsockopt(sock_fd, SOL_SOCKET, SO_TIMESTAMPING, &flags, sizeof (flags)) < 0) {
-    LOG(LOGS_ERR, LOGF_NtpIOLinux, "Could not set %s socket option", "SO_TIMESTAMPING");
+    LOG(LOGS_ERR, "Could not set %s socket option", "SO_TIMESTAMPING");
     ts_flags = 0;
     return 0;
   }
@@ -412,7 +412,7 @@ process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
   ts_delay = UTI_DiffTimespecsToDouble(&local_ts->ts, &ts);
 
   if (fabs(ts_delay) > MAX_TS_DELAY) {
-    DEBUG_LOG(LOGF_NtpIOLinux, "Unacceptable timestamp delay %.9f", ts_delay);
+    DEBUG_LOG("Unacceptable timestamp delay %.9f", ts_delay);
     return;
   }
 
@@ -512,8 +512,7 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
           process_hw_timestamp(iface, &ts3.ts[2], local_ts, !is_tx ? length : 0,
                                remote_addr->ip_addr.family);
         } else {
-          DEBUG_LOG(LOGF_NtpIOLinux, "HW clock not found for interface %d",
-                    local_addr->if_index);
+          DEBUG_LOG("HW clock not found for interface %d", local_addr->if_index);
         }
       }
     }
@@ -526,7 +525,7 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
 
       if (err.ee_errno != ENOMSG || err.ee_info != SCM_TSTAMP_SND ||
           err.ee_origin != SO_EE_ORIGIN_TIMESTAMPING) {
-        DEBUG_LOG(LOGF_NtpIOLinux, "Unknown extended error");
+        DEBUG_LOG("Unknown extended error");
         /* Drop the message */
         return 1;
       }
@@ -543,7 +542,7 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
   l2_length = length;
   length = extract_udp_data(hdr->msg_iov[0].iov_base, remote_addr, length);
 
-  DEBUG_LOG(LOGF_NtpIOLinux, "Received %d (%d) bytes from error queue for %s:%d fd=%d if=%d tss=%d",
+  DEBUG_LOG("Received %d (%d) bytes from error queue for %s:%d fd=%d if=%d tss=%d",
             l2_length, length, UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
             local_addr->sock_fd, local_addr->if_index, local_ts->source);
 
@@ -557,7 +556,7 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
 
   /* Drop the message if HW timestamp is missing or its processing failed */
   if ((ts_flags & SOF_TIMESTAMPING_RAW_HARDWARE) && local_ts->source != NTP_TS_HARDWARE) {
-    DEBUG_LOG(LOGF_NtpIOLinux, "Missing HW timestamp");
+    DEBUG_LOG("Missing HW timestamp");
     return 1;
   }
 

@@ -81,8 +81,7 @@ int log_debug_enabled = 0;
 
 void LOG_Message(LOG_Severity severity,
 #if DEBUG > 0
-                 LOG_Facility facility, int line_number,
-                 const char *filename, const char *function_name,
+                 int line_number, const char *filename, const char *function_name,
 #endif
                  const char *format, ...)
 {
@@ -168,18 +167,18 @@ get_sockaddrs(const char *hostnames, int port)
       addr = (union sockaddr_all *)ARR_GetNewElement(addrs);
       if (snprintf(addr->un.sun_path, sizeof (addr->un.sun_path), "%s", hostname) >=
           sizeof (addr->un.sun_path))
-        LOG_FATAL(LOGF_Client, "Unix socket path too long");
+        LOG_FATAL("Unix socket path too long");
       addr->un.sun_family = AF_UNIX;
     } else {
       if (DNS_Name2IPAddress(hostname, ip_addrs, DNS_MAX_ADDRESSES) != DNS_Success) {
-        DEBUG_LOG(LOGF_Client, "Could not get IP address for %s", hostname);
+        DEBUG_LOG("Could not get IP address for %s", hostname);
         break;
       }
 
       for (i = 0; i < DNS_MAX_ADDRESSES && ip_addrs[i].family != IPADDR_UNSPEC; i++) {
         addr = (union sockaddr_all *)ARR_GetNewElement(addrs);
         UTI_IPAndPortToSockaddr(&ip_addrs[i], port, (struct sockaddr *)addr);
-        DEBUG_LOG(LOGF_Client, "Resolved %s to %s", hostname, UTI_IPToString(&ip_addrs[i]));
+        DEBUG_LOG("Resolved %s to %s", hostname, UTI_IPToString(&ip_addrs[i]));
       }
     }
   }
@@ -216,7 +215,7 @@ prepare_socket(union sockaddr_all *addr)
   sock_fd = socket(addr->sa.sa_family, SOCK_DGRAM, 0);
 
   if (sock_fd < 0) {
-    DEBUG_LOG(LOGF_Client, "Could not create socket : %s", strerror(errno));
+    DEBUG_LOG("Could not create socket : %s", strerror(errno));
     return 0;
   }
 
@@ -229,7 +228,7 @@ prepare_socket(union sockaddr_all *addr)
     dir = UTI_PathToDir(addr->un.sun_path);
     if (snprintf(sa_un.sun_path, sizeof (sa_un.sun_path),
                  "%s/chronyc.%d.sock", dir, (int)getpid()) >= sizeof (sa_un.sun_path))
-      LOG_FATAL(LOGF_Client, "Unix socket path too long");
+      LOG_FATAL("Unix socket path too long");
     Free(dir);
 
     sa_un.sun_family = AF_UNIX;
@@ -237,19 +236,19 @@ prepare_socket(union sockaddr_all *addr)
 
     /* Bind the socket to the path */
     if (bind(sock_fd, (struct sockaddr *)&sa_un, sizeof (sa_un)) < 0) {
-      DEBUG_LOG(LOGF_Client, "Could not bind socket : %s", strerror(errno));
+      DEBUG_LOG("Could not bind socket : %s", strerror(errno));
       return 0;
     }
 
     /* Allow server without root privileges to send replies to our socket */
     if (chmod(sa_un.sun_path, 0666) < 0) {
-      DEBUG_LOG(LOGF_Client, "Could not change socket permissions : %s", strerror(errno));
+      DEBUG_LOG("Could not change socket permissions : %s", strerror(errno));
       return 0;
     }
   }
 
   if (connect(sock_fd, &addr->sa, addr_len) < 0) {
-    DEBUG_LOG(LOGF_Client, "Could not connect socket : %s", strerror(errno));
+    DEBUG_LOG("Could not connect socket : %s", strerror(errno));
     return 0;
   }
 
@@ -269,7 +268,7 @@ close_io(void)
 
   /* Remove our Unix domain socket */
   if (getsockname(sock_fd, &addr.sa, &addr_len) < 0)
-    LOG_FATAL(LOGF_Client, "getsockname() failed : %s", strerror(errno));
+    LOG_FATAL("getsockname() failed : %s", strerror(errno));
   if (addr_len <= sizeof (addr) && addr_len > sizeof (addr.sa.sa_family) &&
       addr.sa.sa_family == AF_UNIX)
     unlink(addr.un.sun_path);
@@ -295,8 +294,7 @@ open_io(void)
   /* Find an address for which a socket can be opened and connected */
   for (; address_index < ARR_GetSize(sockaddrs); address_index++) {
     addr = (union sockaddr_all *)ARR_GetElement(sockaddrs, address_index);
-    DEBUG_LOG(LOGF_Client, "Opening connection to %s",
-              UTI_SockaddrToString(&addr->sa));
+    DEBUG_LOG("Opening connection to %s", UTI_SockaddrToString(&addr->sa));
 
     if (prepare_socket(addr))
       return 1;
@@ -373,13 +371,13 @@ read_mask_address(char *line, IPAddr *mask, IPAddr *address)
         bits_to_mask(-1, address->family, mask);
         return 1;
       } else {
-        LOG(LOGS_ERR, LOGF_Client, "Could not get address for hostname");
+        LOG(LOGS_ERR, "Could not get address for hostname");
         return 0;
       }
     }
   }
 
-  LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for mask/address");
+  LOG(LOGS_ERR, "Invalid syntax for mask/address");
   return 0;
 }
 
@@ -438,11 +436,11 @@ read_address_integer(char *line, IPAddr *address, int *value)
   line = CPS_SplitWord(line);
 
   if (sscanf(line, "%d", value) != 1) {
-    LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for address value");
+    LOG(LOGS_ERR, "Invalid syntax for address value");
     ok = 0;
   } else {
     if (DNS_Name2IPAddress(hostname, address, 1) != DNS_Success) {
-      LOG(LOGS_ERR, LOGF_Client, "Could not get address for hostname");
+      LOG(LOGS_ERR, "Could not get address for hostname");
       ok = 0;
     } else {
       ok = 1;
@@ -466,11 +464,11 @@ read_address_double(char *line, IPAddr *address, double *value)
   line = CPS_SplitWord(line);
 
   if (sscanf(line, "%lf", value) != 1) {
-    LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for address value");
+    LOG(LOGS_ERR, "Invalid syntax for address value");
     ok = 0;
   } else {
     if (DNS_Name2IPAddress(hostname, address, 1) != DNS_Success) {
-      LOG(LOGS_ERR, LOGF_Client, "Could not get address for hostname");
+      LOG(LOGS_ERR, "Could not get address for hostname");
       ok = 0;
     } else {
       ok = 1;
@@ -703,7 +701,7 @@ process_cmd_burst(CMD_Request *msg, char *line)
   CPS_SplitWord(s2);
 
   if (sscanf(s1, "%d/%d", &n_good_samples, &n_total_samples) != 2) {
-    LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for burst command");
+    LOG(LOGS_ERR, "Invalid syntax for burst command");
     return 0;
   }
 
@@ -735,7 +733,7 @@ process_cmd_local(CMD_Request *msg, char *line)
   } else if (CPS_ParseLocal(line, &stratum, &orphan, &distance)) {
     on_off = 1;
   } else {
-    LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for local command");
+    LOG(LOGS_ERR, "Invalid syntax for local command");
     return 0;
   }
 
@@ -764,7 +762,7 @@ process_cmd_manual(CMD_Request *msg, const char *line)
   } else if (!strcmp(p, "reset")) {
     msg->data.manual.option = htonl(2);
   } else {
-    LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for manual command");
+    LOG(LOGS_ERR, "Invalid syntax for manual command");
     return 0;
   }
   msg->command = htons(REQ_MANUAL);
@@ -799,7 +797,7 @@ parse_allow_deny(CMD_Request *msg, char *line)
 
       /* Try to parse as the name of a machine */
       if (DNS_Name2IPAddress(p, &ip, 1) != DNS_Success) {
-        LOG(LOGS_ERR, LOGF_Client, "Could not read address");
+        LOG(LOGS_ERR, "Could not read address");
         return 0;
       } else {
         UTI_IPHostToNetwork(&ip, &msg->data.allow_deny.ip);
@@ -852,7 +850,7 @@ parse_allow_deny(CMD_Request *msg, char *line)
         if (n == 1) {
           msg->data.allow_deny.subnet_bits = htonl(specified_subnet_bits);
         } else {
-          LOG(LOGS_WARN, LOGF_Client, "Warning: badly formatted subnet size, using %d",
+          LOG(LOGS_WARN, "Warning: badly formatted subnet size, using %d",
               (int)ntohl(msg->data.allow_deny.subnet_bits));
         }
       } 
@@ -987,7 +985,7 @@ process_cmd_accheck(CMD_Request *msg, char *line)
     UTI_IPHostToNetwork(&ip, &msg->data.ac_check.ip);
     return 1;
   } else {    
-    LOG(LOGS_ERR, LOGF_Client, "Could not read address");
+    LOG(LOGS_ERR, "Could not read address");
     return 0;
   }
 }
@@ -1003,7 +1001,7 @@ process_cmd_cmdaccheck(CMD_Request *msg, char *line)
     UTI_IPHostToNetwork(&ip, &msg->data.ac_check.ip);
     return 1;
   } else {    
-    LOG(LOGS_ERR, LOGF_Client, "Could not read address");
+    LOG(LOGS_ERR, "Could not read address");
     return 0;
   }
 }
@@ -1073,17 +1071,17 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
   status = CPS_ParseNTPSourceAdd(line, &data);
   switch (status) {
     case 0:
-      LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for add command");
+      LOG(LOGS_ERR, "Invalid syntax for add command");
       break;
     default:
       if (DNS_Name2IPAddress(data.name, &ip_addr, 1) != DNS_Success) {
-        LOG(LOGS_ERR, LOGF_Client, "Invalid host/IP address");
+        LOG(LOGS_ERR, "Invalid host/IP address");
         break;
       }
 
       opt_name = NULL;
       if (opt_name) {
-        LOG(LOGS_ERR, LOGF_Client, "%s can't be set in chronyc", opt_name);
+        LOG(LOGS_ERR, "%s can't be set in chronyc", opt_name);
         break;
       }
 
@@ -1153,11 +1151,11 @@ process_cmd_delete(CMD_Request *msg, char *line)
   CPS_SplitWord(line);
 
   if (!*hostname) {
-    LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for address");
+    LOG(LOGS_ERR, "Invalid syntax for address");
     ok = 0;
   } else {
     if (DNS_Name2IPAddress(hostname, &address, 1) != DNS_Success) {
-      LOG(LOGS_ERR, LOGF_Client, "Could not get address for hostname");
+      LOG(LOGS_ERR, "Could not get address for hostname");
       ok = 0;
     } else {
       UTI_IPHostToNetwork(&address, &msg->data.del_source.ip_addr);
@@ -1369,17 +1367,16 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
       memset(((char *)request) + command_length - padding_length, 0, padding_length);
 
       if (sock_fd < 0) {
-        DEBUG_LOG(LOGF_Client, "No socket to send request");
+        DEBUG_LOG("No socket to send request");
         return 0;
       }
 
       if (send(sock_fd, (void *)request, command_length, 0) < 0) {
-        DEBUG_LOG(LOGF_Client, "Could not send %d bytes : %s",
-                  command_length, strerror(errno));
+        DEBUG_LOG("Could not send %d bytes : %s", command_length, strerror(errno));
         return 0;
       }
 
-      DEBUG_LOG(LOGF_Client, "Sent %d bytes", command_length);
+      DEBUG_LOG("Sent %d bytes", command_length);
     }
 
     if (gettimeofday(&tv, NULL))
@@ -1394,7 +1391,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
     timeout = initial_timeout / 1000.0 * (1U << (n_attempts - 1)) -
               UTI_DiffTimespecsToDouble(&ts_now, &ts_start);
     UTI_DoubleToTimeval(timeout, &tv);
-    DEBUG_LOG(LOGF_Client, "Timeout %f seconds", timeout);
+    DEBUG_LOG("Timeout %f seconds", timeout);
 
     FD_ZERO(&rdfd);
     FD_ZERO(&wrfd);
@@ -1408,7 +1405,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
     select_status = select(sock_fd + 1, &rdfd, &wrfd, &exfd, &tv);
 
     if (select_status < 0) {
-      DEBUG_LOG(LOGF_Client, "select failed : %s", strerror(errno));
+      DEBUG_LOG("select failed : %s", strerror(errno));
     } else if (select_status == 0) {
       /* Timeout must have elapsed, try a resend? */
       new_attempt = 1;
@@ -1418,10 +1415,10 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
       if (recv_status < 0) {
         /* If we get connrefused here, it suggests the sendto is
            going to a dead port */
-        DEBUG_LOG(LOGF_Client, "Could not receive : %s", strerror(errno));
+        DEBUG_LOG("Could not receive : %s", strerror(errno));
         new_attempt = 1;
       } else {
-        DEBUG_LOG(LOGF_Client, "Received %d bytes", recv_status);
+        DEBUG_LOG("Received %d bytes", recv_status);
         
         read_length = recv_status;
         if (read_length >= offsetof(CMD_Reply, data)) {
@@ -1471,7 +1468,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
 #endif
 
         /* Good packet received, print out results */
-        DEBUG_LOG(LOGF_Client, "Reply cmd=%d reply=%d stat=%d",
+        DEBUG_LOG("Reply cmd=%d reply=%d stat=%d",
                   ntohs(reply->command), ntohs(reply->reply), ntohs(reply->status));
         break;
       }
@@ -2264,7 +2261,7 @@ process_cmd_ntpdata(char *line)
   for (i = 0; i < n_sources; i++) {
     if (specified_addr) {
       if (DNS_Name2IPAddress(line, &remote_addr, 1) != DNS_Success) {
-        LOG(LOGS_ERR, LOGF_Client, "Could not get address for hostname");
+        LOG(LOGS_ERR, "Could not get address for hostname");
         return 0;
       }
     } else {
@@ -2421,7 +2418,7 @@ process_cmd_smoothtime(CMD_Request *msg, const char *line)
   } else if (!strcmp(line, "activate")) {
     msg->data.smoothtime.option = htonl(REQ_SMOOTHTIME_ACTIVATE);
   } else {
-    LOG(LOGS_ERR, LOGF_Client, "Invalid syntax for smoothtime command");
+    LOG(LOGS_ERR, "Invalid syntax for smoothtime command");
     return 0;
   }
 
@@ -2569,7 +2566,7 @@ process_cmd_manual_delete(CMD_Request *msg, const char *line)
   int index;
 
   if (sscanf(line, "%d", &index) != 1) {
-    LOG(LOGS_ERR, LOGF_Client, "Bad syntax for manual delete command");
+    LOG(LOGS_ERR, "Bad syntax for manual delete command");
     return 0;
   }
 
@@ -2632,7 +2629,7 @@ process_cmd_makestep(CMD_Request *msg, char *line)
 
   if (*line) {
     if (sscanf(line, "%lf %d", &threshold, &limit) != 2) {
-      LOG(LOGS_ERR, LOGF_Client, "Bad syntax for makestep command");
+      LOG(LOGS_ERR, "Bad syntax for makestep command");
       return 0;
     }
     msg->command = htons(REQ_MODIFY_MAKESTEP);
@@ -2781,7 +2778,7 @@ process_cmd_dns(const char *line)
   } else if (!strcmp(line, "+n")) {
     no_dns = 0;
   } else {
-    LOG(LOGS_ERR, LOGF_Client, "Unrecognized dns command");
+    LOG(LOGS_ERR, "Unrecognized dns command");
     return 0;
   }
   return 1;
@@ -2796,7 +2793,7 @@ process_cmd_timeout(const char *line)
 
   timeout = atoi(line);
   if (timeout < 100) {
-    LOG(LOGS_ERR, LOGF_Client, "Timeout %d is too short", timeout);
+    LOG(LOGS_ERR, "Timeout %d is too short", timeout);
     return 0;
   }
   initial_timeout = timeout;
@@ -2812,7 +2809,7 @@ process_cmd_retries(const char *line)
 
   retries = atoi(line);
   if (retries < 0) {
-    LOG(LOGS_ERR, LOGF_Client, "Invalid maximum number of retries");
+    LOG(LOGS_ERR, "Invalid maximum number of retries");
     return 0;
   }
   max_retries = retries;
@@ -2839,7 +2836,7 @@ process_cmd_keygen(char *line)
 
   length = CLAMP(10, (bits + 7) / 8, sizeof (key));
   if (HSH_GetHashId(hash_name) < 0) {
-    LOG(LOGS_ERR, LOGF_Client, "Unknown hash function %s", hash_name);
+    LOG(LOGS_ERR, "Unknown hash function %s", hash_name);
     return 0;
   }
 
@@ -3031,11 +3028,11 @@ process_line(char *line)
   } else if (!strcmp(command, "authhash") ||
              !strcmp(command, "password")) {
     /* Warn, but don't return error to not break scripts */
-    LOG(LOGS_WARN, LOGF_Client, "Authentication is no longer supported");
+    LOG(LOGS_WARN, "Authentication is no longer supported");
     do_normal_submit = 0;
     ret = 1;
   } else {
-    LOG(LOGS_ERR, LOGF_Client, "Unrecognized command");
+    LOG(LOGS_ERR, "Unrecognized command");
     do_normal_submit = 0;
   }
     
@@ -3149,8 +3146,7 @@ main(int argc, char **argv)
       printf("chronyc (chrony) version %s (%s)\n", CHRONY_VERSION, CHRONYC_FEATURES);
       return 0;
     } else if (!strncmp(*argv, "-", 1)) {
-      LOG(LOGS_ERR, LOGF_Client,
-          "Usage: %s [-h HOST] [-p PORT] [-n] [-c] [-d] [-4|-6] [-m] [COMMAND]",
+      LOG(LOGS_ERR, "Usage: %s [-h HOST] [-p PORT] [-n] [-c] [-d] [-4|-6] [-m] [COMMAND]",
           progname);
       return 1;
     } else {
@@ -3177,7 +3173,7 @@ main(int argc, char **argv)
   sockaddrs = get_sockaddrs(hostnames, port);
 
   if (!open_io())
-    LOG_FATAL(LOGF_Client, "Could not open connection to daemon");
+    LOG_FATAL("Could not open connection to daemon");
 
   if (argc > 0) {
     ret = process_args(argc, argv, multi);

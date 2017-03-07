@@ -121,8 +121,7 @@ static void log_message(int fatal, LOG_Severity severity, const char *message)
 
 void LOG_Message(LOG_Severity severity,
 #if DEBUG > 0
-                 LOG_Facility facility, int line_number,
-                 const char *filename, const char *function_name,
+                 int line_number, const char *filename, const char *function_name,
 #endif
                  const char *format, ...)
 {
@@ -241,7 +240,7 @@ LOG_FileWrite(LOG_FileID id, const char *format, ...)
     char filename[512], *logdir = CNF_GetLogDir();
 
     if (logdir[0] == '\0') {
-      LOG(LOGS_WARN, LOGF_Logging, "logdir not specified");
+      LOG(LOGS_WARN, "logdir not specified");
       logfiles[id].name = NULL;
       return;
     }
@@ -249,7 +248,7 @@ LOG_FileWrite(LOG_FileID id, const char *format, ...)
     if (snprintf(filename, sizeof(filename), "%s/%s.log",
                  logdir, logfiles[id].name) >= sizeof (filename) ||
         !(logfiles[id].file = fopen(filename, "a"))) {
-      LOG(LOGS_WARN, LOGF_Logging, "Could not open log file %s", filename);
+      LOG(LOGS_WARN, "Could not open log file %s", filename);
       logfiles[id].name = NULL;
       return;
     }

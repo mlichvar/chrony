@@ -294,7 +294,7 @@ set_bucket_params(int interval, int burst, uint16_t *max_tokens,
   *tokens_per_packet = 1U << (TS_FRAC + interval - *token_shift);
   *max_tokens = *tokens_per_packet * burst;
 
-  DEBUG_LOG(LOGF_ClientLog, "Tokens max %d packet %d shift %d",
+  DEBUG_LOG("Tokens max %d packet %d shift %d",
             *max_tokens, *tokens_per_packet, *token_shift);
 }
 
@@ -325,7 +325,7 @@ CLG_Initialise(void)
   active = !CNF_GetNoClientLog();
   if (!active) {
     if (ntp_leak_rate || cmd_leak_rate)
-      LOG_FATAL(LOGF_ClientLog, "ratelimit cannot be used with noclientlog");
+      LOG_FATAL("ratelimit cannot be used with noclientlog");
     return;
   }
 
@@ -470,7 +470,7 @@ CLG_LogNTPAccess(IPAddr *client, struct timespec *now)
                 record->flags & FLAG_NTP_DROPPED ?
                 &record->ntp_timeout_rate : &record->ntp_rate);
 
-  DEBUG_LOG(LOGF_ClientLog, "NTP hits %"PRIu32" rate %d trate %d tokens %d",
+  DEBUG_LOG("NTP hits %"PRIu32" rate %d trate %d tokens %d",
             record->ntp_hits, record->ntp_rate, record->ntp_timeout_rate,
             record->ntp_tokens);
 
@@ -494,7 +494,7 @@ CLG_LogCommandAccess(IPAddr *client, struct timespec *now)
                 &record->cmd_tokens, max_cmd_tokens, cmd_token_shift,
                 &record->cmd_rate);
 
-  DEBUG_LOG(LOGF_ClientLog, "Cmd hits %"PRIu32" rate %d tokens %d",
+  DEBUG_LOG("Cmd hits %"PRIu32" rate %d tokens %d",
             record->cmd_hits, record->cmd_rate, record->cmd_tokens);
 
   return get_index(record);

@@ -116,7 +116,7 @@ clock_initialise(void)
   newadj.tv_usec = 0;
 
   if (PRV_AdjustTime(&newadj, &oldadj) < 0) {
-    LOG_FATAL(LOGF_SysMacOSX, "adjtime() failed");
+    LOG_FATAL("adjtime() failed");
   }
 }
 
@@ -154,10 +154,9 @@ start_adjust(void)
 
   predicted_error = (current_drift_removal_interval - drift_removal_elapsed) / 2.0 * current_freq;
 
-  DEBUG_LOG(LOGF_SysMacOSX, "drift_removal_elapsed: %.3f current_drift_removal_interval: %.3f predicted_error: %.3f",
-                            1.0e6 * drift_removal_elapsed,
-                            1.0e6 * current_drift_removal_interval,
-                            1.0e6 * predicted_error);
+  DEBUG_LOG("drift_removal_elapsed: %.3f current_drift_removal_interval: %.3f predicted_error: %.3f",
+            1.0e6 * drift_removal_elapsed, 1.0e6 * current_drift_removal_interval,
+            1.0e6 * predicted_error);
 
   adjust_required = - (accrued_error + offset_register + predicted_error);
 
@@ -166,7 +165,7 @@ start_adjust(void)
   rounding_error = adjust_required - adjustment_requested;
 
   if (PRV_AdjustTime(&newadj, &oldadj) < 0) {
-    LOG_FATAL(LOGF_SysMacOSX, "adjtime() failed");
+    LOG_FATAL("adjtime() failed");
   }
 
   old_adjust_remaining = UTI_TimevalToDouble(&oldadj);
@@ -190,7 +189,7 @@ stop_adjust(void)
   zeroadj.tv_usec = 0;
 
   if (PRV_AdjustTime(&zeroadj, &remadj) < 0) {
-    LOG_FATAL(LOGF_SysMacOSX, "adjtime() failed");
+    LOG_FATAL("adjtime() failed");
   }
 
   LCL_ReadRawTime(&T1);
@@ -239,7 +238,7 @@ apply_step_offset(double offset)
   UTI_TimespecToTimeval(&new_time, &new_time_tv);
 
   if (PRV_SetTime(&new_time_tv, NULL) < 0) {
-    DEBUG_LOG(LOGF_SysMacOSX, "settimeofday() failed");
+    DEBUG_LOG("settimeofday() failed");
     return 0;
   }
 
@@ -338,14 +337,14 @@ set_sync_status(int synchronised, double est_error, double max_error)
         /* update the RTC by applying a step of 0.0 secs */
         apply_step_offset(0.0);
         last_rtc_sync = now;
-        DEBUG_LOG(LOGF_SysMacOSX, "rtc synchronised");
+        DEBUG_LOG("rtc synchronised");
       }
     }
 
     interval = ERROR_WEIGHT * est_error / (fabs(current_freq) + FREQUENCY_RES);
     drift_removal_interval = MAX(interval, DRIFT_REMOVAL_INTERVAL_MIN);
 
-    DEBUG_LOG(LOGF_SysMacOSX, "est_error: %.3f current_freq: %.3f est drift_removal_interval: %.3f act drift_removal_interval: %.3f",
+    DEBUG_LOG("est_error: %.3f current_freq: %.3f est drift_removal_interval: %.3f act drift_removal_interval: %.3f",
                 est_error * 1.0e6, current_freq * 1.0e6, interval, drift_removal_interval);
   }
 
@@ -389,7 +388,7 @@ set_realtime(void)
           THREAD_TIME_CONSTRAINT_POLICY_COUNT);
 
   if (kr != KERN_SUCCESS) {
-    LOG(LOGS_WARN, LOGF_SysMacOSX, "Cannot set real-time priority: %d", kr);
+    LOG(LOGS_WARN, "Cannot set real-time priority: %d", kr);
     return -1;
   }
   return 0;
