@@ -60,7 +60,6 @@ extern int CNF_GetLogRefclocks(void);
 extern int CNF_GetLogTempComp(void);
 extern char *CNF_GetKeysFile(void);
 extern char *CNF_GetRtcFile(void);
-extern int CNF_GetDumpOnExit(void);
 extern int CNF_GetManualEnabled(void);
 extern int CNF_GetCommandPort(void);
 extern int CNF_GetRtcOnUtc(void);

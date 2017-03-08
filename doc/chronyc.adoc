@@ -1118,17 +1118,11 @@ purged. An example of how to do this is shown below.
 
 [[dump]]*dump*::
 The *dump* command causes *chronyd* to write its current history of
-measurements for each of its sources to dump files, either for inspection or to
-support the *-r* option when *chronyd* is restarted.
-+
-The *dump* command is somewhat equivalent to the
-<<chrony.conf.adoc#dumponexit,*dumponexit*>> directive in the configuration
-file.
-+
-To use the *dump* command, you might want to configure the name of the
-directory into which the dump files will be written. This can only be
-done in the configuration file with the <<chrony.conf.adoc#dumpdir,*dumpdir*>>
-directive.
+measurements for each of its sources to dump files in the directory specified
+in the configuration file by the <<chrony.conf.adoc#dumpdir,*dumpdir*>>
+directive. Note that *chronyd* does this automatically when it exits. This
+command is mainly useful for inspection of the history whilst *chronyd* is
+running.
 
 [[rekey]]*rekey*::
 The *rekey* command causes *chronyd* to re-read the key file specified in the

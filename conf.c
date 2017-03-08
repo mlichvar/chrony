@@ -104,7 +104,6 @@ static int do_log_tracking = 0;
 static int do_log_rtc = 0;
 static int do_log_refclocks = 0;
 static int do_log_tempcomp = 0;
-static int do_dump_on_exit = 0;
 static int log_banner = 32;
 static char *logdir;
 static char *dumpdir;
@@ -469,7 +468,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "dumpdir")) {
     parse_string(p, &dumpdir);
   } else if (!strcasecmp(command, "dumponexit")) {
-    do_dump_on_exit = parse_null(p);
+    /* Silently ignored */
   } else if (!strcasecmp(command, "fallbackdrift")) {
     parse_fallbackdrift(p);
   } else if (!strcasecmp(command, "hwclockfile")) {
@@ -1548,14 +1547,6 @@ char *
 CNF_GetRtcDevice(void)
 {
   return rtc_device;
-}
-
-/* ================================================== */
-
-int
-CNF_GetDumpOnExit(void)
-{
-  return do_dump_on_exit;
 }
 
 /* ================================================== */

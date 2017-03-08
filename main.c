@@ -97,7 +97,7 @@ MAI_CleanupAndExit(void)
 {
   if (!initialised) exit(exit_status);
   
-  if (CNF_GetDumpOnExit()) {
+  if (CNF_GetDumpDir()[0] != '\0') {
     SRC_DumpSources();
   }
 

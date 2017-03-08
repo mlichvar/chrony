@@ -550,11 +550,9 @@ built up since the previous slew.)
 +
 For such systems, it is possible to save the measurement history across
 restarts of *chronyd* (assuming no changes are made to the system clock
-behaviour whilst it is not running). If this capability is to be used (via the
-*dumponexit* directive in the configuration file, or the
-<<chronyc.adoc#dump,*dump*>> command in *chronyc*), the *dumpdir* directive
-should be used to define the directory where the measurement histories are
-saved.
+behaviour whilst it is not running). The *dumpdir* directive defines the
+directory where the measurement histories are saved when *chronyd* exits,
+or the <<chronyc.adoc#dump,*dump*>> command in *chronyc* is issued.
 +
 An example of the directive is:
 +
@@ -565,11 +563,6 @@ dumpdir @CHRONYRUNDIR@
 A source whose IP address is _1.2.3.4_ would have its measurement history saved
 in the file _@CHRONYRUNDIR@/1.2.3.4.dat_. History of reference clocks is saved
 to files named by their reference ID in form of _refid:XXXXXXXX.dat_.
-
-[[dumponexit]]*dumponexit*::
-If this directive is present, it indicates that *chronyd* should save the
-measurement history for each of its time sources recorded whenever the program
-exits. (See the <<dumpdir,*dumpdir*>> directive above.)
 
 [[maxsamples]]*maxsamples* _samples_::
 The *maxsamples* directive sets the default maximum number of samples that
@@ -2178,8 +2171,7 @@ is made of the RTC error at a particular RTC second, and the rate at which the
 RTC gains or loses time relative to true time.
 
 When the computer is powered down, the measurement histories for all the NTP
-servers are saved to files (if the <<dumponexit,*dumponexit*>> directive is
-specified in the configuration file), and the RTC tracking information is also
+servers are saved to files, and the RTC tracking information is also
 saved to a file (if the <<rtcfile,*rtcfile*>> directive has been specified).
 These pieces of information are also saved if the <<chronyc.adoc#dump,*dump*>>
 and <<chronyc.adoc#writertc,*writertc*>> commands respectively are issued
@@ -2232,7 +2224,6 @@ log statistics measurements tracking
 driftfile @CHRONYVARDIR@/drift
 makestep 1.0 3
 maxupdateskew 100.0
-dumponexit
 dumpdir @CHRONYVARDIR@
 rtcfile @CHRONYVARDIR@/rtc
 ----
@@ -2297,7 +2288,6 @@ clientloglimit 100000000
 leapsectz right/UTC
 driftfile @CHRONYVARDIR@/drift
 dumpdir @CHRONYRUNDIR@
-dumponexit
 ----
 
 == SEE ALSO
