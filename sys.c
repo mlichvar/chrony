@@ -30,6 +30,7 @@
 #include "sysincl.h"
 
 #include "sys.h"
+#include "sys_null.h"
 #include "logging.h"
 
 #if defined(LINUX)
@@ -44,9 +45,18 @@
 
 /* ================================================== */
 
+static int null_driver;
+
+/* ================================================== */
+
 void
-SYS_Initialise(void)
+SYS_Initialise(int clock_control)
 {
+  null_driver = !clock_control;
+  if (null_driver) {
+    SYS_Null_Initialise();
+    return;
+  }
 #if defined(LINUX)
   SYS_Linux_Initialise();
 #elif defined(SOLARIS)
@@ -65,6 +75,10 @@ SYS_Initialise(void)
 void
 SYS_Finalise(void)
 {
+  if (null_driver) {
+    SYS_Null_Finalise();
+    return;
+  }
 #if defined(LINUX)
   SYS_Linux_Finalise();
 #elif defined(SOLARIS)

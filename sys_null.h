@@ -2,7 +2,7 @@
   chronyd/chronyc - Programs for keeping computer clocks accurate.
 
  **********************************************************************
- * Copyright (C) Richard P. Curnow  1997-2002
+ * Copyright (C) Miroslav Lichvar  2017
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
@@ -21,28 +21,14 @@
 
   =======================================================================
 
-  This is the header for the file that links in the operating system-
-  specific parts of the software
+  Header file for null clock driver
+  */
 
-*/
+#ifndef GOT_SYS_NULL_H
+#define GOT_SYS_NULL_H
 
-#ifndef GOT_SYS_H
-#define GOT_SYS_H
+extern void SYS_Null_Initialise(void);
 
-/* Called at the start of the run to do initialisation */
-extern void SYS_Initialise(int clock_control);
+extern void SYS_Null_Finalise(void);
 
-/* Called at the end of the run to do final clean-up */
-extern void SYS_Finalise(void);
-
-/* Drop root privileges to the specified user and group */
-extern void SYS_DropRoot(uid_t uid, gid_t gid);
-
-/* Enable a system call filter to allow only system calls
-   which chronyd normally needs after initialization */
-extern void SYS_EnableSystemCallFilter(int level);
-
-extern void SYS_SetScheduler(int SchedPriority);
-extern void SYS_LockMemory(void);
-
-#endif /* GOT_SYS_H */
+#endif

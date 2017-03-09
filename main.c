@@ -376,7 +376,7 @@ int main
   int do_init_rtc = 0, restarted = 0, timeout = 0;
   int other_pid;
   int scfilter_level = 0, lock_memory = 0, sched_priority = 0;
-  int system_log = 1;
+  int clock_control = 1, system_log = 1;
   int config_args = 0;
 
   do_platform_checks();
@@ -435,6 +435,8 @@ int main
       ++argv, --argc;
       if (argc == 0 || sscanf(*argv, "%d", &timeout) != 1 || timeout <= 0)
         LOG_FATAL("Bad timeout");
+    } else if (!strcmp("-x", *argv)) {
+      clock_control = 0;
     } else if (!strcmp("-4", *argv)) {
       address_family = IPADDR_INET4;
     } else if (!strcmp("-6", *argv)) {
@@ -499,7 +501,7 @@ int main
   PRV_Initialise();
   LCL_Initialise();
   SCH_Initialise();
-  SYS_Initialise();
+  SYS_Initialise(clock_control);
   RTC_Initialise(do_init_rtc);
   SRC_Initialise();
   RCL_Initialise();
