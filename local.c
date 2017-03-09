@@ -546,7 +546,7 @@ LCL_ApplyStepOffset(double offset)
       return 0;
 
   if (!(*drv_apply_step_offset)(offset)) {
-    LOG(LOGS_ERR, "Could not step clock");
+    LOG(LOGS_ERR, "Could not step system clock");
     return 0;
   }
 
