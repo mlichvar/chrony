@@ -807,7 +807,7 @@ SST_IsGoodSample(SST_Stats inst, double offset, double delay,
     return 1;
 
   DEBUG_LOG("Bad sample: offset=%f delay=%f incr_delay=%f allowed=%f",
-      offset, delay, allowed_increase, delay_increase);
+            offset, delay, delay_increase, allowed_increase);
 
   return 0;
 }
