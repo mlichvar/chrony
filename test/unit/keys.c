@@ -98,7 +98,7 @@ test_unit(void)
   KEY_Initialise();
 
   for (i = 0; i < 100; i++) {
-    DEBUG_LOG(0, "iteration %d", i);
+    DEBUG_LOG("iteration %d", i);
 
     if (i) {
       generate_key_file(KEYFILE, keys);

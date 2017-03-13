@@ -40,7 +40,7 @@ test_unit(void)
     UTI_ZeroTimespec(&ts);
     SMT_Reset(&ts);
 
-    DEBUG_LOG(0, "iteration %d", i);
+    DEBUG_LOG("iteration %d", i);
 
     offset = (random() % 1000000 - 500000) / 1.0e6;
     freq = (random() % 1000000 - 500000) / 1.0e9;

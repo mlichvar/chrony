@@ -42,7 +42,7 @@ test_unit(void)
         TST_GetRandomAddress(&ip, IPADDR_INET6, -1);
       }
 
-      DEBUG_LOG(0, "address %s", UTI_IPToString(&ip));
+      DEBUG_LOG("address %s", UTI_IPToString(&ip));
 
       sub = random() % (maxsub + 1);
 

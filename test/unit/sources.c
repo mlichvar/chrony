@@ -41,7 +41,7 @@ test_unit(void)
   REF_SetMode(REF_ModeIgnore);
 
   for (i = 0; i < 1000; i++) {
-    DEBUG_LOG(0, "iteration %d", i);
+    DEBUG_LOG("iteration %d", i);
 
     for (j = 0; j < sizeof (srcs) / sizeof (srcs[0]); j++) {
       TEST_CHECK(n_sources == j);
@@ -51,7 +51,7 @@ test_unit(void)
       sel_options = i & random() & (SRC_SELECT_NOSELECT | SRC_SELECT_PREFER |
                                     SRC_SELECT_TRUST | SRC_SELECT_REQUIRE);
 
-      DEBUG_LOG(0, "added source %d options %d", j, sel_options);
+      DEBUG_LOG("added source %d options %d", j, sel_options);
       srcs[j] = SRC_CreateNewInstance(UTI_IPToRefid(&addr), SRC_NTP, sel_options, &addr,
                                          SRC_DEFAULT_MINSAMPLES, SRC_DEFAULT_MAXSAMPLES);
       SRC_UpdateReachability(srcs[j], 1);
@@ -68,7 +68,7 @@ test_unit(void)
         delay = TST_GetRandomDouble(1.0e-6, 1.0e-1);
         disp = TST_GetRandomDouble(1.0e-6, 1.0e-1);
 
-        DEBUG_LOG(0, "source %d sample %d offset %f delay %f disp %f", j, k,
+        DEBUG_LOG("source %d sample %d offset %f delay %f disp %f", j, k,
                   offset, delay, disp);
 
         SRC_AccumulateSample(srcs[j], &ts, offset, delay, disp, delay, disp,
@@ -81,7 +81,7 @@ test_unit(void)
         double passed_lo = DBL_MAX, passed_hi = DBL_MIN;
 
         SRC_SelectSource(srcs[k]);
-        DEBUG_LOG(0, "source %d status %d", k, sources[k]->status);
+        DEBUG_LOG("source %d status %d", k, sources[k]->status);
 
         for (l = 0; l <= j; l++) {
           TEST_CHECK(sources[l]->status > SRC_OK && sources[l]->status <= SRC_SELECTED);
@@ -114,7 +114,7 @@ test_unit(void)
           }
         }
 
-        DEBUG_LOG(0, "sources %d passed %d trusted %d/%d required %d/%d", j, passed,
+        DEBUG_LOG("sources %d passed %d trusted %d/%d required %d/%d", j, passed,
                   trusted_passed, trusted, required_passed, required);
 
         TEST_CHECK(!trusted || !passed || (passed_lo >= trusted_lo && passed_hi <= trusted_hi));

@@ -249,7 +249,7 @@ test_unit(void)
     has_updated = 0;
 
     for (j = 0; j < 50; j++) {
-      DEBUG_LOG(0, "iteration %d, %d", i, j);
+      DEBUG_LOG("iteration %d, %d", i, j);
 
       interleaved = random() % 2;
       authenticated = random() % 2;

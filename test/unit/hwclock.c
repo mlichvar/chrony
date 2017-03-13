@@ -39,7 +39,7 @@ test_unit(void)
     UTI_AddDoubleToTimespec(&start_hw_ts, TST_GetRandomDouble(0.0, 1e9), &start_hw_ts);
     UTI_AddDoubleToTimespec(&start_local_ts, TST_GetRandomDouble(0.0, 1e9), &start_local_ts);
 
-    DEBUG_LOG(0, "iteration %d", i);
+    DEBUG_LOG("iteration %d", i);
 
     freq = TST_GetRandomDouble(0.9, 1.1);
     jitter = TST_GetRandomDouble(10.0e-9, 1000.0e-9);

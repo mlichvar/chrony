@@ -42,14 +42,14 @@ test_unit(void)
   TEST_CHECK(ARR_GetSize(records) == 16);
 
   for (i = 0; i < 500; i++) {
-    DEBUG_LOG(0, "iteration %d", i);
+    DEBUG_LOG("iteration %d", i);
 
     ts.tv_sec = (time_t)random() & 0x0fffffff;
     ts.tv_nsec = 0;
 
     for (j = 0; j < 1000; j++) {
       TST_GetRandomAddress(&ip, IPADDR_UNSPEC, i % 8 ? -1 : i / 8 % 9);
-      DEBUG_LOG(0, "address %s", UTI_IPToString(&ip));
+      DEBUG_LOG("address %s", UTI_IPToString(&ip));
 
       if (random() % 2) {
         index = CLG_LogNTPAccess(&ip, &ts);
@@ -65,7 +65,7 @@ test_unit(void)
     }
   }
 
-  DEBUG_LOG(0, "records %d", ARR_GetSize(records));
+  DEBUG_LOG("records %d", ARR_GetSize(records));
   TEST_CHECK(ARR_GetSize(records) == 64);
 
   for (i = j = 0; i < 10000; i++) {
@@ -76,7 +76,7 @@ test_unit(void)
       j++;
   }
 
-  DEBUG_LOG(0, "requests %u responses %u", i, j);
+  DEBUG_LOG("requests %u responses %u", i, j);
   TEST_CHECK(j * 4 < i && j * 6 > i);
 
   CLG_Finalise();
