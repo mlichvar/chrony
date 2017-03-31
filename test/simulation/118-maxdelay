@@ -10,7 +10,7 @@ wander=0.0
 freq_offset="(sum 1e-10)"
 time_rms_limit=2e-4
 
-client_server_options="maxdelay 3e-5 maxdelayratio 2.0 maxdelaydevratio 2.0"
+client_server_options="maxpoll 6 maxdelay 3e-5 maxdelayratio 2.0 maxdelaydevratio 2.0"
 
 run_test || test_fail
 check_chronyd_exit || test_fail
@@ -18,7 +18,7 @@ check_source_selection || test_fail
 check_packet_interval || test_fail
 check_sync || test_fail
 
-for client_server_options in "maxdelay 2e-5" \ "maxdelayratio 1.001"; do
+for client_server_options in "maxpoll 6 maxdelay 2e-5" "maxpoll 6 maxdelayratio 1.001"; do
 	run_test || test_fail
 	check_chronyd_exit || test_fail
 	check_packet_interval || test_fail
