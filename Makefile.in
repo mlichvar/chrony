@@ -109,9 +109,13 @@ install-docs :
 %.s : %.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -S $<
 
-check : chronyd chronyc
+quickcheck : chronyd chronyc
 	$(MAKE) -C test/unit check
 	cd test/simulation && ./run
+
+check : chronyd chronyc
+	$(MAKE) -C test/unit check
+	cd test/simulation && ./run -i 20 -m 2
 
 Makefile : Makefile.in configure
 	@echo
