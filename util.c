@@ -558,7 +558,7 @@ char *UTI_SockaddrToString(struct sockaddr *sa)
 {
   unsigned short port;
   IPAddr ip;
-  char *result;
+  char *result, *sun_path;
 
   result = NEXT_BUFFER;
 
@@ -571,7 +571,11 @@ char *UTI_SockaddrToString(struct sockaddr *sa)
       snprintf(result, BUFFER_LENGTH, "%s:%hu", UTI_IPToString(&ip), port);
       break;
     case AF_UNIX:
-      snprintf(result, BUFFER_LENGTH, "%s", ((struct sockaddr_un *)sa)->sun_path);
+      sun_path = ((struct sockaddr_un *)sa)->sun_path;
+      snprintf(result, BUFFER_LENGTH, "%.*s", BUFFER_LENGTH - 1, sun_path);
+      /* Indicate truncated path */
+      if (strlen(sun_path) >= BUFFER_LENGTH)
+        result[BUFFER_LENGTH - 2] = '>';
       break;
     default:
       snprintf(result, BUFFER_LENGTH, "[UNKNOWN]");
