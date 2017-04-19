@@ -705,9 +705,11 @@ get_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
     phc_tss[i] = ts2;
     delays[i] = UTI_DiffTimespecsToDouble(&ts3, &ts1);
 
-    if (delays[i] <= 0.0)
+    if (delays[i] < 0.0) {
       /* Step in the middle of a PHC reading? */
+      DEBUG_LOG("Bad PTP_SYS_OFFSET sample delay=%e", delays[i]);
       return 0;
+    }
 
     if (!i || delays[i] < min_delay)
       min_delay = delays[i];
