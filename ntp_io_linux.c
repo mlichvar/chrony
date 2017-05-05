@@ -32,7 +32,6 @@
 #include <linux/errqueue.h>
 #include <linux/ethtool.h>
 #include <linux/net_tstamp.h>
-#include <linux/ptp_clock.h>
 #include <linux/sockios.h>
 #include <net/if.h>
 
