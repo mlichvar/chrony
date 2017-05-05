@@ -522,6 +522,12 @@ RCL_GetPrecision(RCL_Instance instance)
   return instance->precision;
 }
 
+int
+RCL_GetDriverPoll(RCL_Instance instance)
+{
+  return instance->driver_poll;
+}
+
 static int
 valid_sample_time(RCL_Instance instance, struct timespec *sample_time)
 {
