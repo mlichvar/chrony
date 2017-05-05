@@ -517,7 +517,7 @@ SYS_Linux_EnableSystemCallFilter(int level)
   const static unsigned long ioctls[] = {
     FIONREAD, TCGETS,
 #if defined(FEAT_PHC) || defined(HAVE_LINUX_TIMESTAMPING)
-    PTP_SYS_OFFSET,
+    PTP_EXTTS_REQUEST, PTP_PIN_SETFUNC, PTP_SYS_OFFSET,
 #ifdef PTP_SYS_OFFSET_PRECISE
     PTP_SYS_OFFSET_PRECISE,
 #endif
@@ -814,6 +814,58 @@ SYS_Linux_GetPHCSample(int fd, int nocrossts, double precision, int *reading_mod
     return 1;
   }
   return 0;
+}
+
+/* ================================================== */
+
+int
+SYS_Linux_SetPHCExtTimestamping(int fd, int pin, int channel,
+                                int rising, int falling, int enable)
+{
+  struct ptp_pin_desc pin_desc;
+  struct ptp_extts_request extts_req;
+
+  memset(&pin_desc, 0, sizeof (pin_desc));
+  pin_desc.index = pin;
+  pin_desc.func = enable ? PTP_PF_EXTTS : PTP_PF_NONE;
+  pin_desc.chan = channel;
+
+  if (ioctl(fd, PTP_PIN_SETFUNC, &pin_desc)) {
+    DEBUG_LOG("ioctl(%s) failed : %s", "PTP_PIN_SETFUNC", strerror(errno));
+    return 0;
+  }
+
+  memset(&extts_req, 0, sizeof (extts_req));
+  extts_req.index = channel;
+  extts_req.flags = (enable ? PTP_ENABLE_FEATURE : 0) |
+                    (rising ? PTP_RISING_EDGE : 0) |
+                    (falling ? PTP_FALLING_EDGE : 0);
+
+  if (ioctl(fd, PTP_EXTTS_REQUEST, &extts_req)) {
+    DEBUG_LOG("ioctl(%s) failed : %s", "PTP_EXTTS_REQUEST", strerror(errno));
+    return 0;
+  }
+
+  return 1;
+}
+
+/* ================================================== */
+
+int
+SYS_Linux_ReadPHCExtTimestamp(int fd, struct timespec *phc_ts, int *channel)
+{
+  struct ptp_extts_event extts_event;
+
+  if (read(fd, &extts_event, sizeof (extts_event)) != sizeof (extts_event)) {
+    DEBUG_LOG("Could not read PHC extts event");
+    return 0;
+  }
+
+  phc_ts->tv_sec = extts_event.t.sec;
+  phc_ts->tv_nsec = extts_event.t.nsec;
+  *channel = extts_event.index;
+
+  return 1;
 }
 
 #endif
