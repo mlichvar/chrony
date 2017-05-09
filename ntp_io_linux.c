@@ -373,16 +373,18 @@ process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
                      NTP_Local_Timestamp *local_ts, int rx_ntp_length, int family)
 {
   struct timespec sample_phc_ts, sample_sys_ts, sample_local_ts, ts;
-  double rx_correction, ts_delay, err;
+  double rx_correction, ts_delay, phc_err, local_err;
   int l2_length;
 
   if (HCL_NeedsNewSample(iface->clock, &local_ts->ts)) {
     if (!SYS_Linux_GetPHCSample(iface->phc_fd, iface->phc_nocrossts, iface->precision,
-                                &iface->phc_mode, &sample_phc_ts, &sample_sys_ts, &err))
+                                &iface->phc_mode, &sample_phc_ts, &sample_sys_ts,
+                                &phc_err))
       return;
 
-    LCL_CookTime(&sample_sys_ts, &sample_local_ts, NULL);
-    HCL_AccumulateSample(iface->clock, &sample_phc_ts, &sample_local_ts, err);
+    LCL_CookTime(&sample_sys_ts, &sample_local_ts, &local_err);
+    HCL_AccumulateSample(iface->clock, &sample_phc_ts, &sample_local_ts,
+                         phc_err + local_err);
 
     update_interface_speed(iface);
   }
@@ -405,7 +407,7 @@ process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
   else if (rx_ntp_length && iface->rx_comp)
     UTI_AddDoubleToTimespec(hw_ts, -iface->rx_comp, hw_ts);
 
-  if (!HCL_CookTime(iface->clock, hw_ts, &ts, &err))
+  if (!HCL_CookTime(iface->clock, hw_ts, &ts, &local_err))
     return;
 
   ts_delay = UTI_DiffTimespecsToDouble(&local_ts->ts, &ts);
@@ -416,7 +418,7 @@ process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
   }
 
   local_ts->ts = ts;
-  local_ts->err = err;
+  local_ts->err = local_err;
   local_ts->source = NTP_TS_HARDWARE;
 }
 
