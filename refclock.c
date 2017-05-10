@@ -164,7 +164,6 @@ RCL_Finalise(void)
 int
 RCL_AddRefclock(RefclockParameters *params)
 {
-  int pps_source = 0;
   RCL_Instance inst;
 
   inst = MallocNew(struct RCL_Instance_Record);
@@ -176,11 +175,9 @@ RCL_AddRefclock(RefclockParameters *params)
   } else if (strcmp(params->driver_name, "SOCK") == 0) {
     inst->driver = &RCL_SOCK_driver;
     inst->precision = 1e-9;
-    pps_source = 1;
   } else if (strcmp(params->driver_name, "PPS") == 0) {
     inst->driver = &RCL_PPS_driver;
     inst->precision = 1e-9;
-    pps_source = 1;
   } else if (strcmp(params->driver_name, "PHC") == 0) {
     inst->driver = &RCL_PHC_driver;
     inst->precision = 1e-9;
@@ -221,12 +218,8 @@ RCL_AddRefclock(RefclockParameters *params)
         inst->driver_parameter[i] = '\0';
   }
 
-  if (pps_source) {
-    if (inst->pps_rate < 1)
-      inst->pps_rate = 1;
-  } else {
-    inst->pps_rate = 0;
-  }
+  if (inst->pps_rate < 1)
+    inst->pps_rate = 1;
 
   if (params->ref_id)
     inst->ref_id = params->ref_id;
@@ -432,7 +425,6 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
   leap = LEAP_Normal;
   dispersion += instance->precision;
   rate = instance->pps_rate;
-  assert(rate > 0);
 
   offset = -second + instance->offset;
 
