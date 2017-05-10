@@ -404,24 +404,37 @@ RCL_AddSample(RCL_Instance instance, struct timespec *sample_time, double offset
 int
 RCL_AddPulse(RCL_Instance instance, struct timespec *pulse_time, double second)
 {
-  double correction, dispersion, offset;
+  double correction, dispersion;
   struct timespec cooked_time;
+
+  LCL_GetOffsetCorrection(pulse_time, &correction, &dispersion);
+  UTI_AddDoubleToTimespec(pulse_time, correction, &cooked_time);
+  second += correction;
+
+  if (!UTI_IsTimeOffsetSane(pulse_time, 0.0))
+    return 0;
+
+  return RCL_AddCookedPulse(instance, &cooked_time, second, dispersion, correction);
+}
+
+int
+RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
+                   double second, double dispersion, double raw_correction)
+{
+  double offset;
   int rate;
   NTP_Leap leap;
 
-  leap = LEAP_Normal;
-  LCL_GetOffsetCorrection(pulse_time, &correction, &dispersion);
-  UTI_AddDoubleToTimespec(pulse_time, correction, &cooked_time);
-  dispersion += instance->precision;
-
-  if (!UTI_IsTimeOffsetSane(pulse_time, 0.0) ||
-      !valid_sample_time(instance, &cooked_time))
+  if (!UTI_IsTimeOffsetSane(cooked_time, second) ||
+      !valid_sample_time(instance, cooked_time))
     return 0;
 
+  leap = LEAP_Normal;
+  dispersion += instance->precision;
   rate = instance->pps_rate;
   assert(rate > 0);
 
-  offset = -second - correction + instance->offset;
+  offset = -second + instance->offset;
 
   /* Adjust the offset to [-0.5/rate, 0.5/rate) interval */
   offset -= (long)(offset * rate) / (double)rate;
@@ -445,7 +458,7 @@ RCL_AddPulse(RCL_Instance instance, struct timespec *pulse_time, double second)
 
     ref_dispersion += filter_get_avg_sample_dispersion(&lock_refclock->filter);
 
-    sample_diff = UTI_DiffTimespecsToDouble(&cooked_time, &ref_sample_time);
+    sample_diff = UTI_DiffTimespecsToDouble(cooked_time, &ref_sample_time);
     if (fabs(sample_diff) >= (double)instance->max_lock_age / rate) {
       DEBUG_LOG("refclock pulse ignored samplediff=%.9f",
           sample_diff);
@@ -468,8 +481,8 @@ RCL_AddPulse(RCL_Instance instance, struct timespec *pulse_time, double second)
 
     leap = lock_refclock->leap_status;
 
-    DEBUG_LOG("refclock pulse second=%.9f offset=%.9f offdiff=%.9f samplediff=%.9f",
-        second, offset, ref_offset - offset, sample_diff);
+    DEBUG_LOG("refclock pulse offset=%.9f offdiff=%.9f samplediff=%.9f",
+              offset, ref_offset - offset, sample_diff);
   } else {
     struct timespec ref_time;
     int is_synchronised, stratum;
@@ -479,24 +492,25 @@ RCL_AddPulse(RCL_Instance instance, struct timespec *pulse_time, double second)
     /* Ignore the pulse if we are not well synchronized and the local
        reference is not active */
 
-    REF_GetReferenceParams(&cooked_time, &is_synchronised, &leap, &stratum,
+    REF_GetReferenceParams(cooked_time, &is_synchronised, &leap, &stratum,
         &ref_id, &ref_time, &root_delay, &root_dispersion);
     distance = fabs(root_delay) / 2 + root_dispersion;
 
     if (leap == LEAP_Unsynchronised || distance >= 0.5 / rate) {
-      DEBUG_LOG("refclock pulse ignored second=%.9f sync=%d dist=%.9f",
-          second, leap != LEAP_Unsynchronised, distance);
+      DEBUG_LOG("refclock pulse ignored offset=%.9f sync=%d dist=%.9f",
+                offset, leap != LEAP_Unsynchronised, distance);
       /* Drop also all stored samples */
       filter_reset(&instance->filter);
       return 0;
     }
   }
 
-  filter_add_sample(&instance->filter, &cooked_time, offset, dispersion);
+  filter_add_sample(&instance->filter, cooked_time, offset, dispersion);
   instance->leap_status = leap;
   instance->pps_active = 1;
 
-  log_sample(instance, &cooked_time, 0, 1, offset + correction - instance->offset, offset, dispersion);
+  log_sample(instance, cooked_time, 0, 1, offset + raw_correction - instance->offset,
+             offset, dispersion);
 
   /* for logging purposes */
   if (!instance->driver->poll)
