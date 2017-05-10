@@ -93,7 +93,7 @@ static ARR_Instance refclocks;
 
 static LOG_FileID logfileid;
 
-static int valid_sample_time(RCL_Instance instance, struct timespec *raw, struct timespec *cooked);
+static int valid_sample_time(RCL_Instance instance, struct timespec *sample_time);
 static int pps_stratum(RCL_Instance instance, struct timespec *ts);
 static void poll_timeout(void *arg);
 static void slew_samples(struct timespec *raw, struct timespec *cooked, double dfreq,
@@ -375,7 +375,7 @@ RCL_AddSample(RCL_Instance instance, struct timespec *sample_time, double offset
 
   /* Make sure the timestamp and offset provided by the driver are sane */
   if (!UTI_IsTimeOffsetSane(sample_time, offset) ||
-      !valid_sample_time(instance, sample_time, &cooked_time))
+      !valid_sample_time(instance, &cooked_time))
     return 0;
 
   switch (leap) {
@@ -415,7 +415,7 @@ RCL_AddPulse(RCL_Instance instance, struct timespec *pulse_time, double second)
   dispersion += instance->precision;
 
   if (!UTI_IsTimeOffsetSane(pulse_time, 0.0) ||
-      !valid_sample_time(instance, pulse_time, &cooked_time))
+      !valid_sample_time(instance, &cooked_time))
     return 0;
 
   rate = instance->pps_rate;
@@ -512,22 +512,22 @@ RCL_GetPrecision(RCL_Instance instance)
 }
 
 static int
-valid_sample_time(RCL_Instance instance, struct timespec *raw, struct timespec *cooked)
+valid_sample_time(RCL_Instance instance, struct timespec *sample_time)
 {
-  struct timespec now_raw, last_sample_time;
+  struct timespec now, last_sample_time;
   double diff, last_offset, last_dispersion;
 
-  LCL_ReadRawTime(&now_raw);
-  diff = UTI_DiffTimespecsToDouble(&now_raw, raw);
+  LCL_ReadCookedTime(&now, NULL);
+  diff = UTI_DiffTimespecsToDouble(&now, sample_time);
 
   if (diff < 0.0 || diff > UTI_Log2ToDouble(instance->poll + 1) ||
       (filter_get_samples(&instance->filter) > 0 &&
        filter_get_last_sample(&instance->filter, &last_sample_time,
                               &last_offset, &last_dispersion) &&
-       UTI_CompareTimespecs(&last_sample_time, cooked) >= 0)) {
-    DEBUG_LOG("%s refclock sample not valid age=%.6f raw=%s cooked=%s",
-              UTI_RefidToString(instance->ref_id), diff,
-              UTI_TimespecToString(raw), UTI_TimespecToString(cooked));
+       UTI_CompareTimespecs(&last_sample_time, sample_time) >= 0)) {
+    DEBUG_LOG("%s refclock sample time %s not valid age=%.6f",
+              UTI_RefidToString(instance->ref_id),
+              UTI_TimespecToString(sample_time), diff);
     return 0;
   }
 
