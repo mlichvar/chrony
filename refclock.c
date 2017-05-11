@@ -75,6 +75,7 @@ struct RCL_Instance_Record {
   int driver_polled;
   int poll;
   int leap_status;
+  int pps_forced;
   int pps_rate;
   int pps_active;
   int max_lock_age;
@@ -198,6 +199,7 @@ RCL_AddRefclock(RefclockParameters *params)
   inst->poll = params->poll;
   inst->driver_polled = 0;
   inst->leap_status = LEAP_Normal;
+  inst->pps_forced = params->pps_forced;
   inst->pps_rate = params->pps_rate;
   inst->pps_active = 0;
   inst->max_lock_age = params->max_lock_age;
@@ -361,6 +363,9 @@ RCL_AddSample(RCL_Instance instance, struct timespec *sample_time, double offset
 {
   double correction, dispersion;
   struct timespec cooked_time;
+
+  if (instance->pps_forced)
+    return RCL_AddPulse(instance, sample_time, -offset);
 
   LCL_GetOffsetCorrection(sample_time, &correction, &dispersion);
   UTI_AddDoubleToTimespec(sample_time, correction, &cooked_time);
