@@ -85,6 +85,7 @@ struct RCL_Instance_Record {
   double offset;
   double delay;
   double precision;
+  double pulse_width;
   SCH_TimeoutID timeout_id;
   SRC_Instance source;
 };
@@ -208,6 +209,7 @@ RCL_AddRefclock(RefclockParameters *params)
   inst->delay = params->delay;
   if (params->precision > 0.0)
     inst->precision = params->precision;
+  inst->pulse_width = params->pulse_width;
   inst->timeout_id = -1;
   inst->source = NULL;
 
@@ -415,6 +417,27 @@ RCL_AddPulse(RCL_Instance instance, struct timespec *pulse_time, double second)
   return RCL_AddCookedPulse(instance, &cooked_time, second, dispersion, correction);
 }
 
+static int
+check_pulse_edge(RCL_Instance instance, double offset, double distance)
+{
+  double max_error;
+
+  if (instance->pulse_width <= 0.0)
+    return 1;
+
+  max_error = 1.0 / instance->pps_rate - instance->pulse_width;
+  max_error = MIN(instance->pulse_width, max_error);
+  max_error *= 0.5;
+
+  if (fabs(offset) > max_error || distance > max_error) {
+      DEBUG_LOG("refclock pulse ignored offset=%.9f distance=%.9f max_error=%.9f",
+                offset, distance, max_error);
+      return 0;
+  }
+
+  return 1;
+}
+
 int
 RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
                    double second, double dispersion, double raw_correction)
@@ -476,6 +499,9 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
       return 0;
     }
 
+    if (!check_pulse_edge(instance, ref_offset - offset, 0.0))
+      return 0;
+
     leap = lock_refclock->leap_status;
 
     DEBUG_LOG("refclock pulse offset=%.9f offdiff=%.9f samplediff=%.9f",
@@ -500,6 +526,9 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
       filter_reset(&instance->filter);
       return 0;
     }
+
+    if (!check_pulse_edge(instance, offset, distance))
+      return 0;
   }
 
   filter_add_sample(&instance->filter, cooked_time, offset, dispersion);

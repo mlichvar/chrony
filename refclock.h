@@ -49,6 +49,7 @@ typedef struct {
   double delay;
   double precision;
   double max_dispersion;
+  double pulse_width;
 } RefclockParameters;
 
 typedef struct RCL_Instance_Record *RCL_Instance;
