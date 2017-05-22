@@ -344,46 +344,55 @@ for *initstepslew* to finish before exiting. This is useful to prevent programs
 started in the boot sequence after *chronyd* from reading the clock before it
 has been stepped.
 
-[[refclock]]*refclock* _driver_ _parameter_ [_option_]...::
+[[refclock]]*refclock* _driver_ _parameter_[:__option__,...] [_option_]...::
 The *refclock* directive specifies a hardware reference clock to be used as a
 time source. It has two mandatory parameters, a driver name and a
-driver-specific parameter.
+driver-specific parameter. The two parameters are followed by zero or more
+refclock options. Some drivers have special options, which can be appended to
+the driver-specific parameter (separated by the *:* and *,* characters).
 +
-There are currently four drivers included:
+There are four drivers included in *chronyd*:
 +
 *PPS*:::
 Driver for the kernel PPS (pulse per second) API. The parameter is the path to
-the PPS device (typically _/dev/pps?_). The assert events are used for
-synchronisation by default. String *:clear* can be appended to the path to use
-the clear events instead.
+the PPS device (typically _/dev/pps?_). As PPS refclocks do not supply full
+time, another time source (e.g. NTP server or non-PPS refclock) is needed to
+complete samples from the PPS refclock. An alternative is to enable the
+<<local,*local*>> directive to allow synchronisation with some unknown but
+constant offset. The driver supports the following option:
 +
-As PPS refclocks don't supply full time, *chronyd* needs to be configured with
-another time source (NTP or non-PPS refclock) in order to complete samples from
-the PPS refclock. An alternative is to enable the <<local,*local*>> directive
-to allow synchronisation with some unknown but constant offset.
-For example:
+*clear*::::
+By default, the PPS refclock uses assert events (rising edge) for
+synchronisation. With this option, it will use clear events (falling edge)
+instead.
++
+:::
+Examples:
 +
 ----
-refclock PPS /dev/pps0 lock NMEA
+refclock PPS /dev/pps0 lock NMEA refid GPS
 refclock SHM 0 offset 0.5 delay 0.2 refid NMEA noselect
+refclock PPS /dev/pps1:clear refid GPS2
 ----
 +
 *SHM*:::
 NTP shared memory driver. This driver uses a shared memory segment to receive
-samples from another process. The parameter is the number of the shared memory
-segment, typically 0, 1, 2 or 3. For example:
+samples from another process (e.g. *gpsd*). The parameter is the number of the
+shared memory segment, typically a small number like 0, 1, 2, or 3. The driver
+supports the following option:
++
+*perm*=_mode_::::
+This option specifies the permissions of the shared memory segment created by
+*chronyd*. They are specified as a numeric mode. The default value is 0600
+(read-write access for owner only).
+:::
++
+Examples:
 +
 ----
-refclock SHM 1 poll 3 refid GPS1
+refclock SHM 0 poll 3 refid GPS1
+refclock SHM 1:perm=0644 refid GPS2
 ----
-+
-A driver option in form of *:perm=NNN* can be appended to the segment number to
-create the segment with permissions other than the default 0600.
-+
-Examples of applications that can be used as SHM refclocks are
-http://www.catb.org/gpsd/[*gpsd*],
-http://www.buzzard.me.uk/jonathan/radioclock.html[*radioclk*], and
-https://www.vanheusden.com/time/omnisync/[*omnisync*].
 +
 *SOCK*:::
 Unix domain socket driver. It is similar to the SHM driver, but samples are
@@ -404,18 +413,44 @@ refclock SOCK /var/run/chrony.ttyS0.sock
 +
 *PHC*:::
 PTP hardware clock (PHC) driver. The parameter is the path to the device of
-the PTP clock, which for example can be synchronised by *ptp4l* from
-http://linuxptp.sourceforge.net[*linuxptp*]. String *:nocrossts* can be
-appended to the path to disable use of precise cross timestamping. PTP clocks
-are typically kept in TAI instead of UTC, so the *offset* option should be used
-to compensate for the current UTC-TAI offset. For example:
+the PTP clock which should be used as a time source. If the clock is kept in
+TAI instead of UTC (e.g. it is synchronised by a PTP daemon), the current
+UTC-TAI offset needs to be specified by the *offset* option. Alternatively, the
+*pps* refclock option can be enabled to treat the PHC as a PPS refclock, using
+only the sub-second offset for synchronisation. The driver supports the
+following options:
++
+*nocrossts*::::
+This option disables use of precise cross timestamping.
+*extpps*::::
+This option enables a PPS mode in which the PTP clock is timestamping pulses
+of an external PPS signal connected to the clock. The clock does not need to be
+synchronised, but another time source is needed to complete the PPS samples.
+Note that some PTP clocks cannot be configured to timestamp only assert or
+clear events, and it is necessary to use the *width* option to filter wrong
+PPS samples.
+*pin*=_index_::::
+This option specifies the index of the pin to which is connected the PPS
+signal. The default value is 0.
+*channel*=_index_::::
+This option specifies the index of the channel for the PPS mode. The default
+value is 0.
+*clear*::::
+This option enables timestamping of clear events (falling edge) instead of
+assert events (rising edge) in the PPS mode. This may not work with some
+clocks.
+:::
++
+Examples:
 +
 ----
-refclock PHC /dev/ptp0 poll 3 dpoll -2 offset -36
+refclock PHC /dev/ptp0 poll 0 dpoll -2 offset -37
+refclock PHC /dev/ptp1:nocrossts poll 3 pps
+refclock PHC /dev/ptp2:extpps,pin=1 width 0.2 poll 2
 ----
 +
 ::
-The *refclock* directive also supports a number of options:
+The *refclock* directive supports the following options:
 +
 *poll* _poll_:::
 Timestamps produced by refclock drivers are not used immediately, but they are
@@ -448,6 +483,17 @@ This option specifies in number of pulses how old can be samples from the
 refclock specified by the *lock* option to be paired with the pulses.
 Increasing this value is useful when the samples are produced at a lower rate
 than the pulses. The default is 2.
+*width* _width_:::
+This option specifies the width of the pulses (in seconds). It is used to
+filter PPS samples when the driver provides samples for both rising and falling
+edges. Note that it reduces the maximum allowed error of the time source which
+completes the PPS samples. If the duty cycle is configurable, 50% should be
+prefered in order to maximise the allowed error.
+*pps*:::
+This options forces *chronyd* to treat any refclock (e.g. SHM or PHC) as a PPS
+refclock. This can be useful when the refclock provides time with a variable
+offset of a whole number of seconds (e.g. it uses TAI instead of UTC). Another
+time source is needed to complete samples from the refclock.
 *offset* _offset_:::
 This option can be used to compensate for a constant error. The specified
 offset (in seconds) is applied to all samples produced by the reference clock.
