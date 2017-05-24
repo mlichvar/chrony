@@ -624,7 +624,7 @@ SST_GetSelectionData(SST_Stats inst, struct timespec *now,
   *stratum = inst->strata[get_buf_index(inst, inst->n_samples - 1)];
   *std_dev = inst->std_dev;
 
-  sample_elapsed = UTI_DiffTimespecsToDouble(now, &inst->sample_times[i]);
+  sample_elapsed = fabs(UTI_DiffTimespecsToDouble(now, &inst->sample_times[i]));
   offset = inst->offsets[i] + sample_elapsed * inst->estimated_frequency;
   *root_distance = 0.5 * inst->root_delays[j] +
     inst->root_dispersions[j] + sample_elapsed * inst->skew;
