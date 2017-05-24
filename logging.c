@@ -40,6 +40,7 @@ int log_debug_enabled = 0;
 /* Flag indicating we have initialised */
 static int initialised = 0;
 
+static FILE *file_log;
 static int system_log = 0;
 
 static int parent_fd = 0;
@@ -69,6 +70,7 @@ void
 LOG_Initialise(void)
 {
   initialised = 1;
+  file_log = stderr;
 }
 
 /* ================================================== */
@@ -79,6 +81,8 @@ LOG_Finalise(void)
 {
   if (system_log) {
     closelog();
+  } else {
+    fclose(file_log);
   }
 
   LOG_CycleLogFiles();
@@ -113,7 +117,7 @@ static void log_message(int fatal, LOG_Severity severity, const char *message)
     }
     syslog(priority, fatal ? "Fatal error : %s" : "%s", message);
   } else {
-    fprintf(stderr, fatal ? "Fatal error : %s\n" : "%s\n", message);
+    fprintf(file_log, fatal ? "Fatal error : %s\n" : "%s\n", message);
   }
 }
 
@@ -135,10 +139,10 @@ void LOG_Message(LOG_Severity severity,
     time(&t);
     stm = *gmtime(&t);
     strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &stm);
-    fprintf(stderr, "%s ", buf);
+    fprintf(file_log, "%s ", buf);
 #if DEBUG > 0
     if (debug_level >= DEBUG_LEVEL_PRINT_FUNCTION)
-      fprintf(stderr, "%s:%d:(%s) ", filename, line_number, function_name);
+      fprintf(file_log, "%s:%d:(%s) ", filename, line_number, function_name);
 #endif
   }
 
@@ -172,6 +176,21 @@ void LOG_Message(LOG_Severity severity,
       assert(0);
   }
 }
+
+/* ================================================== */
+
+void
+LOG_OpenFileLog(const char *log_file)
+{
+  FILE *f;
+
+  f = fopen(log_file, "a");
+  if (!f)
+    LOG_FATAL("Could not open log file %s", log_file);
+
+  file_log = f;
+}
+
 
 /* ================================================== */
 
