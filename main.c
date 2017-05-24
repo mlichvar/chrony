@@ -370,7 +370,7 @@ int main
 {
   const char *conf_file = DEFAULT_CONF_FILE;
   const char *progname = argv[0];
-  char *user = NULL;
+  char *user = NULL, *log_file = NULL;
   struct passwd *pw;
   int debug = 0, nofork = 0, address_family = IPADDR_UNSPEC;
   int do_init_rtc = 0, restarted = 0, timeout = 0;
@@ -417,6 +417,9 @@ int main
       /* This write to the terminal is OK, it comes before we turn into a daemon */
       printf("chronyd (chrony) version %s (%s)\n", CHRONY_VERSION, CHRONYD_FEATURES);
       return 0;
+    } else if (!strcmp("-l", *argv)) {
+      ++argv, --argc;
+      log_file = *argv;
     } else if (!strcmp("-n", *argv)) {
       nofork = 1;
     } else if (!strcmp("-d", *argv)) {
@@ -463,7 +466,9 @@ int main
     go_daemon();
   }
 
-  if (system_log) {
+  if (log_file) {
+    LOG_OpenFileLog(log_file);
+  } else if (system_log) {
     LOG_OpenSystemLog();
   }
   

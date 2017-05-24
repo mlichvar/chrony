@@ -66,6 +66,10 @@ and all messages will be sent to the terminal instead of to syslog. When
 *chronyd* was compiled with debugging support, this option can be used twice to
 print also debugging messages.
 
+*-l* _file_::
+This option specifies a file which should be used for logging instead of syslog
+or terminal.
+
 *-q*::
 When run in this mode, *chronyd* will set the system clock once and exit. It
 will not detach from the terminal.
