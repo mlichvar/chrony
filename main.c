@@ -455,9 +455,7 @@ int main
   }
 
   if (getuid() != 0) {
-    /* This write to the terminal is OK, it comes before we turn into a daemon */
-    fprintf(stderr,"Not superuser\n");
-    return 1;
+    LOG_FATAL("Not superuser");
   }
 
   /* Turn into a daemon */
