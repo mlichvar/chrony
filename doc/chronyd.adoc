@@ -62,7 +62,7 @@ When run in this mode, the program will not detach itself from the terminal.
 
 *-d*::
 When run in this mode, the program will not detach itself from the terminal,
-and all messages will be sent to the terminal instead of to syslog. When
+and all messages will be written to the terminal instead of syslog. When
 *chronyd* was compiled with debugging support, this option can be used twice to
 print also debugging messages.
 
