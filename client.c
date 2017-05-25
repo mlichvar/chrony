@@ -3049,7 +3049,7 @@ process_line(char *line)
 static int
 process_args(int argc, char **argv, int multi)
 {
-  int total_length, i, ret;
+  int total_length, i, ret = 0;
   char *line;
 
   total_length = 0;
@@ -3104,53 +3104,80 @@ display_gpl(void)
 
 /* ================================================== */
 
+static void
+print_help(const char *progname)
+{
+      printf("Usage: %s [-h HOST] [-p PORT] [-n] [-c] [-d] [-4|-6] [-m] [COMMAND]\n",
+             progname);
+}
+
+/* ================================================== */
+
+static void
+print_version(void)
+{
+      printf("chronyc (chrony) version %s (%s)\n", CHRONY_VERSION, CHRONYC_FEATURES);
+}
+
+/* ================================================== */
+
 int
 main(int argc, char **argv)
 {
   char *line;
   const char *progname = argv[0];
   const char *hostnames = NULL;
-  int ret = 1, multi = 0, family = IPADDR_UNSPEC;
+  int opt, ret = 1, multi = 0, family = IPADDR_UNSPEC;
   int port = DEFAULT_CANDM_PORT;
 
-  /* Parse command line options */
-  while (++argv, --argc) {
-    if (!strcmp(*argv, "-h")) {
-      ++argv, --argc;
-      if (*argv) {
-        hostnames = *argv;
-      }
-    } else if (!strcmp(*argv, "-p")) {
-      ++argv, --argc;
-      if (*argv) {
-        port = atoi(*argv);
-      }
-    } else if (!strcmp(*argv, "-f")) {
-      ++argv, --argc;
-      /* For compatibility */
-    } else if (!strcmp(*argv, "-a")) {
-      /* For compatibility */
-    } else if (!strcmp(*argv, "-c")) {
-      csv_mode = 1;
-    } else if (!strcmp(*argv, "-d")) {
-      log_debug_enabled = 1;
-    } else if (!strcmp(*argv, "-m")) {
-      multi = 1;
-    } else if (!strcmp(*argv, "-n")) {
-      no_dns = 1;
-    } else if (!strcmp(*argv, "-4")) {
-      family = IPADDR_INET4;
-    } else if (!strcmp(*argv, "-6")) {
-      family = IPADDR_INET6;
-    } else if (!strcmp("-v", *argv) || !strcmp("--version",*argv)) {
-      printf("chronyc (chrony) version %s (%s)\n", CHRONY_VERSION, CHRONYC_FEATURES);
+  /* Parse (undocumented) long command-line options */
+  for (optind = 1; optind < argc; optind++) {
+    if (!strcmp("--help", argv[optind])) {
+      print_help(progname);
       return 0;
-    } else if (!strncmp(*argv, "-", 1)) {
-      LOG(LOGS_ERR, "Usage: %s [-h HOST] [-p PORT] [-n] [-c] [-d] [-4|-6] [-m] [COMMAND]",
-          progname);
-      return 1;
-    } else {
-      break; /* And process remainder of line as a command */
+    } else if (!strcmp("--version", argv[optind])) {
+      print_version();
+      return 0;
+    }
+  }
+
+  optind = 1;
+
+  /* Parse short command-line options */
+  while ((opt = getopt(argc, argv, "46acdf:h:mnp:v")) != -1) {
+    switch (opt) {
+      case '4':
+      case '6':
+        family = opt == '4' ? IPADDR_INET4 : IPADDR_INET6;
+        break;
+      case 'a':
+      case 'f':
+        /* For compatibility only */
+        break;
+      case 'c':
+        csv_mode = 1;
+        break;
+      case 'd':
+        log_debug_enabled = 1;
+        break;
+      case 'h':
+        hostnames = optarg;
+        break;
+      case 'm':
+        multi = 1;
+        break;
+      case 'n':
+        no_dns = 1;
+        break;
+      case 'p':
+        port = atoi(optarg);
+        break;
+      case 'v':
+        print_version();
+        return 0;
+      default:
+        print_help(progname);
+        return 1;
     }
   }
 
@@ -3158,7 +3185,7 @@ main(int argc, char **argv)
     on_terminal = 1;
   }
 
-  if (on_terminal && (argc == 0)) {
+  if (on_terminal && optind == argc) {
     display_gpl();
   }
   
@@ -3175,8 +3202,8 @@ main(int argc, char **argv)
   if (!open_io())
     LOG_FATAL("Could not open connection to daemon");
 
-  if (argc > 0) {
-    ret = process_args(argc, argv, multi);
+  if (optind < argc) {
+    ret = process_args(argc - optind, argv + optind, multi);
   } else {
     do {
       line = read_line();
