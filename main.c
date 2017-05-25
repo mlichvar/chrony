@@ -365,6 +365,35 @@ go_daemon(void)
 
 /* ================================================== */
 
+static void
+print_help(const char *progname)
+{
+      printf("Usage: %s [-4|-6] [-n|-d] [-q|-Q] [-r] [-R] [-s] [-t TIMEOUT] [-f FILE|COMMAND...]\n",
+             progname);
+}
+
+/* ================================================== */
+
+static void
+print_version(void)
+{
+  printf("chronyd (chrony) version %s (%s)\n", CHRONY_VERSION, CHRONYD_FEATURES);
+}
+
+/* ================================================== */
+
+static int
+parse_int_arg(const char *arg)
+{
+  int i;
+
+  if (sscanf(arg, "%d", &i) != 1)
+    LOG_FATAL("Invalid argument %s", arg);
+  return i;
+}
+
+/* ================================================== */
+
 int main
 (int argc, char **argv)
 {
@@ -372,7 +401,7 @@ int main
   const char *progname = argv[0];
   char *user = NULL, *log_file = NULL;
   struct passwd *pw;
-  int debug = 0, nofork = 0, address_family = IPADDR_UNSPEC;
+  int opt, debug = 0, nofork = 0, address_family = IPADDR_UNSPEC;
   int do_init_rtc = 0, restarted = 0, timeout = 0;
   int other_pid;
   int scfilter_level = 0, lock_memory = 0, sched_priority = 0;
@@ -383,77 +412,79 @@ int main
 
   LOG_Initialise();
 
-  /* Parse command line options */
-  while (++argv, (--argc)>0) {
+  /* Parse (undocumented) long command-line options */
+  for (optind = 1; optind < argc; optind++) {
+    if (!strcmp("--help", argv[optind])) {
+      print_help(progname);
+      return 0;
+    } else if (!strcmp("--version", argv[optind])) {
+      print_version();
+      return 0;
+    }
+  }
 
-    if (!strcmp("-f", *argv)) {
-      ++argv, --argc;
-      conf_file = *argv;
-    } else if (!strcmp("-P", *argv)) {
-      ++argv, --argc;
-      if (argc == 0 || sscanf(*argv, "%d", &sched_priority) != 1) {
-        LOG_FATAL("Bad scheduler priority");
-      }
-    } else if (!strcmp("-m", *argv)) {
-      lock_memory = 1;
-    } else if (!strcmp("-r", *argv)) {
-      reload = 1;
-    } else if (!strcmp("-R", *argv)) {
-      restarted = 1;
-    } else if (!strcmp("-u", *argv)) {
-      ++argv, --argc;
-      if (argc == 0) {
-        LOG_FATAL("Missing user name");
-      } else {
-        user = *argv;
-      }
-    } else if (!strcmp("-F", *argv)) {
-      ++argv, --argc;
-      if (argc == 0 || sscanf(*argv, "%d", &scfilter_level) != 1)
-        LOG_FATAL("Bad syscall filter level");
-    } else if (!strcmp("-s", *argv)) {
-      do_init_rtc = 1;
-    } else if (!strcmp("-v", *argv) || !strcmp("--version",*argv)) {
-      /* This write to the terminal is OK, it comes before we turn into a daemon */
-      printf("chronyd (chrony) version %s (%s)\n", CHRONY_VERSION, CHRONYD_FEATURES);
-      return 0;
-    } else if (!strcmp("-l", *argv)) {
-      ++argv, --argc;
-      log_file = *argv;
-    } else if (!strcmp("-n", *argv)) {
-      nofork = 1;
-    } else if (!strcmp("-d", *argv)) {
-      debug++;
-      nofork = 1;
-      system_log = 0;
-    } else if (!strcmp("-q", *argv)) {
-      ref_mode = REF_ModeUpdateOnce;
-      nofork = 1;
-      system_log = 0;
-    } else if (!strcmp("-Q", *argv)) {
-      ref_mode = REF_ModePrintOnce;
-      nofork = 1;
-      system_log = 0;
-    } else if (!strcmp("-t", *argv)) {
-      ++argv, --argc;
-      if (argc == 0 || sscanf(*argv, "%d", &timeout) != 1 || timeout <= 0)
-        LOG_FATAL("Bad timeout");
-    } else if (!strcmp("-x", *argv)) {
-      clock_control = 0;
-    } else if (!strcmp("-4", *argv)) {
-      address_family = IPADDR_INET4;
-    } else if (!strcmp("-6", *argv)) {
-      address_family = IPADDR_INET6;
-    } else if (!strcmp("-h", *argv) || !strcmp("--help", *argv)) {
-      printf("Usage: %s [-4|-6] [-n|-d] [-q|-Q] [-r] [-R] [-s] [-t TIMEOUT] [-f FILE|COMMAND...]\n",
-             progname);
-      return 0;
-    } else if (*argv[0] == '-') {
-      LOG_FATAL("Unrecognized command line option [%s]", *argv);
-    } else {
-      /* Process remaining arguments and configuration lines */
-      config_args = argc;
-      break;
+  optind = 1;
+
+  /* Parse short command-line options */
+  while ((opt = getopt(argc, argv, "46df:F:hl:mnP:qQrRst:u:vx")) != -1) {
+    switch (opt) {
+      case '4':
+      case '6':
+        address_family = opt == '4' ? IPADDR_INET4 : IPADDR_INET6;
+        break;
+      case 'd':
+        debug++;
+        nofork = 1;
+        system_log = 0;
+        break;
+      case 'f':
+        conf_file = optarg;
+        break;
+      case 'F':
+        scfilter_level = parse_int_arg(optarg);
+        break;
+      case 'l':
+        log_file = optarg;
+        break;
+      case 'm':
+        lock_memory = 1;
+        break;
+      case 'n':
+        nofork = 1;
+        break;
+      case 'P':
+        sched_priority = parse_int_arg(optarg);
+        break;
+      case 'q':
+      case 'Q':
+        ref_mode = opt == 'q' ? REF_ModeUpdateOnce : REF_ModePrintOnce;
+        nofork = 1;
+        system_log = 0;
+        break;
+      case 'r':
+        reload = 1;
+        break;
+      case 'R':
+        restarted = 1;
+        break;
+      case 's':
+        do_init_rtc = 1;
+        break;
+      case 't':
+        timeout = parse_int_arg(optarg);
+        break;
+      case 'u':
+        user = optarg;
+        break;
+      case 'v':
+        print_version();
+        return 0;
+      case 'x':
+        clock_control = 0;
+        break;
+      default:
+        print_help(progname);
+        return opt != 'h';
     }
   }
 
@@ -481,12 +512,12 @@ int main
   CNF_Initialise(restarted);
 
   /* Parse the config file or the remaining command line arguments */
+  config_args = argc - optind;
   if (!config_args) {
     CNF_ReadFile(conf_file);
   } else {
-    do {
-      CNF_ParseLine(NULL, config_args - argc + 1, *argv);
-    } while (++argv, --argc);
+    for (; optind < argc; optind++)
+      CNF_ParseLine(NULL, config_args + optind - argc + 1, argv[optind]);
   }
 
   /* Check whether another chronyd may already be running.  Do this after
@@ -568,7 +599,7 @@ int main
   REF_SetModeEndHandler(reference_mode_end);
   REF_SetMode(ref_mode);
 
-  if (timeout)
+  if (timeout > 0)
     SCH_AddTimeoutByDelay(timeout, quit_timeout, NULL);
 
   if (do_init_rtc) {
