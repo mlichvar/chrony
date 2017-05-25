@@ -172,7 +172,7 @@ get_sockaddrs(const char *hostnames, int port)
     } else {
       if (DNS_Name2IPAddress(hostname, ip_addrs, DNS_MAX_ADDRESSES) != DNS_Success) {
         DEBUG_LOG("Could not get IP address for %s", hostname);
-        break;
+        continue;
       }
 
       for (i = 0; i < DNS_MAX_ADDRESSES && ip_addrs[i].family != IPADDR_UNSPEC; i++) {
