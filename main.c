@@ -127,9 +127,8 @@ MAI_CleanupAndExit(void)
   delete_pidfile();
   
   CNF_Finalise();
-  LOG_Finalise();
-
   HSH_Finalise();
+  LOG_Finalise();
 
   exit(exit_status);
 }
