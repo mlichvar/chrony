@@ -204,21 +204,18 @@ prepare_socket(int family, int port_number, int client_only)
     /* Don't quit - we might survive anyway */
   }
 
-#ifdef SO_TIMESTAMP
-  /* Enable receiving of timestamp control messages */
-#ifdef SO_TIMESTAMPNS
-  /* Try nanosecond resolution first */
-  if (setsockopt(sock_fd, SOL_SOCKET, SO_TIMESTAMPNS, (char *)&on_off, sizeof(on_off)) < 0)
-#endif
-  if (setsockopt(sock_fd, SOL_SOCKET, SO_TIMESTAMP, (char *)&on_off, sizeof(on_off)) < 0) {
-    LOG(LOGS_ERR, "Could not set %s socket option", "SO_TIMESTAMP");
-    /* Don't quit - we might survive anyway */
-  }
-#endif
-
+  /* Enable kernel/HW timestamping of packets */
 #ifdef HAVE_LINUX_TIMESTAMPING
-  NIO_Linux_SetTimestampSocketOptions(sock_fd, client_only, &events);
+  if (!NIO_Linux_SetTimestampSocketOptions(sock_fd, client_only, &events))
 #endif
+#ifdef SO_TIMESTAMPNS
+    if (setsockopt(sock_fd, SOL_SOCKET, SO_TIMESTAMPNS, (char *)&on_off, sizeof(on_off)) < 0)
+#endif
+#ifdef SO_TIMESTAMP
+      if (setsockopt(sock_fd, SOL_SOCKET, SO_TIMESTAMP, (char *)&on_off, sizeof(on_off)) < 0)
+        LOG(LOGS_ERR, "Could not set %s socket option", "SO_TIMESTAMP");
+#endif
+      ;
 
 #ifdef IP_FREEBIND
   /* Allow binding to address that doesn't exist yet */

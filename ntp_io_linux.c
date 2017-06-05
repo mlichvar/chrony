@@ -280,12 +280,12 @@ NIO_Linux_Initialise(void)
     break;
   }
 
+  ts_flags = SOF_TIMESTAMPING_SOFTWARE | SOF_TIMESTAMPING_RX_SOFTWARE;
+  ts_tx_flags = SOF_TIMESTAMPING_TX_SOFTWARE;
+
   if (hwts) {
-    ts_flags = SOF_TIMESTAMPING_RAW_HARDWARE | SOF_TIMESTAMPING_RX_HARDWARE;
-    ts_tx_flags = SOF_TIMESTAMPING_TX_HARDWARE;
-  } else {
-    ts_flags = SOF_TIMESTAMPING_SOFTWARE | SOF_TIMESTAMPING_RX_SOFTWARE;
-    ts_tx_flags = SOF_TIMESTAMPING_TX_SOFTWARE;
+    ts_flags |= SOF_TIMESTAMPING_RAW_HARDWARE | SOF_TIMESTAMPING_RX_HARDWARE;
+    ts_tx_flags |= SOF_TIMESTAMPING_TX_HARDWARE;
   }
 
   /* Enable IP_PKTINFO in messages looped back to the error queue */
@@ -504,10 +504,7 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
 
       memcpy(&ts3, CMSG_DATA(cmsg), sizeof (ts3));
 
-      if (!UTI_IsZeroTimespec(&ts3.ts[0])) {
-        LCL_CookTime(&ts3.ts[0], &local_ts->ts, &local_ts->err);
-        local_ts->source = NTP_TS_KERNEL;
-      } else if (!UTI_IsZeroTimespec(&ts3.ts[2])) {
+      if (!UTI_IsZeroTimespec(&ts3.ts[2])) {
         iface = get_interface(local_addr->if_index);
         if (iface) {
           process_hw_timestamp(iface, &ts3.ts[2], local_ts, !is_tx ? length : 0,
@@ -515,6 +512,12 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
         } else {
           DEBUG_LOG("HW clock not found for interface %d", local_addr->if_index);
         }
+      }
+
+      if (local_ts->source == NTP_TS_DAEMON && !UTI_IsZeroTimespec(&ts3.ts[0]) &&
+          (!is_tx || UTI_IsZeroTimespec(&ts3.ts[2]))) {
+        LCL_CookTime(&ts3.ts[0], &local_ts->ts, &local_ts->err);
+        local_ts->source = NTP_TS_KERNEL;
       }
     }
 
@@ -555,9 +558,9 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
       iface->l2_udp6_ntp_start = l2_length - length;
   }
 
-  /* Drop the message if HW timestamp is missing or its processing failed */
-  if ((ts_flags & SOF_TIMESTAMPING_RAW_HARDWARE) && local_ts->source != NTP_TS_HARDWARE) {
-    DEBUG_LOG("Missing HW timestamp");
+  /* Drop the message if it has no timestamp or its processing failed */
+  if (local_ts->source == NTP_TS_DAEMON) {
+    DEBUG_LOG("Missing TX timestamp");
     return 1;
   }
 
