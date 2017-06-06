@@ -152,12 +152,24 @@ add_interface(CNF_HwTsInterface *conf_iface)
 
   ts_config.flags = 0;
   ts_config.tx_type = HWTSTAMP_TX_ON;
+
+  switch (conf_iface->rxfilter) {
+    case CNF_HWTS_RXFILTER_NONE:
+      ts_config.rx_filter = HWTSTAMP_FILTER_NONE;
+      break;
+    case CNF_HWTS_RXFILTER_NTP:
 #ifdef HAVE_LINUX_TIMESTAMPING_RXFILTER_NTP
-  if (ts_info.rx_filters & (1 << HWTSTAMP_FILTER_NTP_ALL))
-    ts_config.rx_filter = HWTSTAMP_FILTER_NTP_ALL;
-  else
+      if (ts_info.rx_filters & (1 << HWTSTAMP_FILTER_NTP_ALL)) {
+        ts_config.rx_filter = HWTSTAMP_FILTER_NTP_ALL;
+        break;
+      }
 #endif
-    ts_config.rx_filter = HWTSTAMP_FILTER_ALL;
+      /* Fall through */
+    default:
+      ts_config.rx_filter = HWTSTAMP_FILTER_ALL;
+      break;
+  }
+
   req.ifr_data = (char *)&ts_config;
 
   if (ioctl(sock_fd, SIOCSHWTSTAMP, &req)) {

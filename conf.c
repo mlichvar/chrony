@@ -1259,7 +1259,7 @@ static void
 parse_hwtimestamp(char *line)
 {
   CNF_HwTsInterface *iface;
-  char *p;
+  char *p, filter[5];
   int n;
 
   if (!*line) {
@@ -1274,6 +1274,7 @@ parse_hwtimestamp(char *line)
   iface->name = Strdup(p);
   iface->minpoll = 0;
   iface->nocrossts = 0;
+  iface->rxfilter = CNF_HWTS_RXFILTER_NTP;
   iface->precision = 100.0e-9;
   iface->tx_comp = 0.0;
   iface->rx_comp = 0.0;
@@ -1292,6 +1293,17 @@ parse_hwtimestamp(char *line)
         break;
     } else if (!strcasecmp(p, "txcomp")) {
       if (sscanf(line, "%lf%n", &iface->tx_comp, &n) != 1)
+        break;
+    } else if (!strcasecmp(p, "rxfilter")) {
+      if (sscanf(line, "%4s%n", filter, &n) != 1)
+        break;
+      if (!strcasecmp(filter, "none"))
+        iface->rxfilter = CNF_HWTS_RXFILTER_NONE;
+      else if (!strcasecmp(filter, "ntp"))
+        iface->rxfilter = CNF_HWTS_RXFILTER_NTP;
+      else if (!strcasecmp(filter, "all"))
+        iface->rxfilter = CNF_HWTS_RXFILTER_ALL;
+      else
         break;
     } else if (!strcasecmp(p, "nocrossts")) {
       n = 0;
