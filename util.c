@@ -1195,11 +1195,44 @@ UTI_GetRandomBytesUrandom(void *buf, unsigned int len)
 
 /* ================================================== */
 
+#ifdef HAVE_GETRANDOM
+static void
+get_random_bytes_getrandom(char *buf, unsigned int len)
+{
+  static char rand_buf[256];
+  static unsigned int available = 0, disabled = 0;
+  unsigned int i;
+
+  for (i = 0; i < len; i++) {
+    if (!available) {
+      if (disabled)
+        break;
+
+      if (getrandom(rand_buf, sizeof (rand_buf), 0) != sizeof (rand_buf)) {
+        disabled = 1;
+        break;
+      }
+
+      available = sizeof (rand_buf);
+    }
+
+    buf[i] = rand_buf[--available];
+  }
+
+  if (i < len)
+    UTI_GetRandomBytesUrandom(buf, len);
+}
+#endif
+
+/* ================================================== */
+
 void
 UTI_GetRandomBytes(void *buf, unsigned int len)
 {
 #ifdef HAVE_ARC4RANDOM
   arc4random_buf(buf, len);
+#elif defined(HAVE_GETRANDOM)
+  get_random_bytes_getrandom(buf, len);
 #else
   UTI_GetRandomBytesUrandom(buf, len);
 #endif

@@ -76,4 +76,8 @@
 #include <arpa/inet.h>
 #endif
 
+#ifdef HAVE_GETRANDOM
+#include <sys/random.h>
+#endif
+
 #endif /* GOT_SYSINCL_H */
