@@ -451,13 +451,13 @@ process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
     UTI_AddDoubleToTimespec(hw_ts, rx_correction, hw_ts);
   }
 
-  if (!rx_ntp_length && iface->tx_comp)
-    UTI_AddDoubleToTimespec(hw_ts, iface->tx_comp, hw_ts);
-  else if (rx_ntp_length && iface->rx_comp)
-    UTI_AddDoubleToTimespec(hw_ts, -iface->rx_comp, hw_ts);
-
   if (!HCL_CookTime(iface->clock, hw_ts, &ts, &local_err))
     return;
+
+  if (!rx_ntp_length && iface->tx_comp)
+    UTI_AddDoubleToTimespec(&ts, iface->tx_comp, &ts);
+  else if (rx_ntp_length && iface->rx_comp)
+    UTI_AddDoubleToTimespec(&ts, -iface->rx_comp, &ts);
 
   ts_delay = UTI_DiffTimespecsToDouble(&local_ts->ts, &ts);
 
