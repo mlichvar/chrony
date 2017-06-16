@@ -1860,7 +1860,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   NTP_Mode pkt_mode, my_mode;
   NTP_int64 *local_ntp_rx, *local_ntp_tx;
   NTP_Local_Timestamp local_tx, *tx_ts;
-  int valid_auth, log_index, interleaved;
+  int valid_auth, log_index, interleaved, poll;
   AuthenticationMode auth_mode;
   uint32_t key_id;
 
@@ -1947,8 +1947,13 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
     }
   }
 
+  /* Suggest the client to increase its polling interval if it indicates
+     the interval is shorter than the rate limiting interval */
+  poll = CLG_GetNtpMinPoll();
+  poll = MAX(poll, message->poll);
+
   /* Send a reply */
-  transmit_packet(my_mode, interleaved, message->poll, NTP_LVM_TO_VERSION(message->lvm),
+  transmit_packet(my_mode, interleaved, poll, NTP_LVM_TO_VERSION(message->lvm),
                   auth_mode, key_id, &message->receive_ts, &message->transmit_ts,
                   rx_ts, tx_ts, local_ntp_rx, NULL, remote_addr, local_addr);
 

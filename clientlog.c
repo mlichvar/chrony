@@ -128,6 +128,9 @@ static int cmd_leak_rate;
 /* Flag indicating whether the last response was dropped */
 #define FLAG_NTP_DROPPED 0x1
 
+/* NTP limit interval in log2 */
+static int ntp_limit_interval;
+
 /* Flag indicating whether facility is turned on or not */
 static int active;
 
@@ -309,11 +312,13 @@ CLG_Initialise(void)
   ntp_tokens_per_packet = cmd_tokens_per_packet = 0;
   ntp_token_shift = cmd_token_shift = 0;
   ntp_leak_rate = cmd_leak_rate = 0;
+  ntp_limit_interval = MIN_LIMIT_INTERVAL;
 
   if (CNF_GetNTPRateLimit(&interval, &burst, &leak_rate)) {
     set_bucket_params(interval, burst, &max_ntp_tokens, &ntp_tokens_per_packet,
                       &ntp_token_shift);
     ntp_leak_rate = CLAMP(MIN_LEAK_RATE, leak_rate, MAX_LEAK_RATE);
+    ntp_limit_interval = CLAMP(MIN_LIMIT_INTERVAL, interval, MAX_LIMIT_INTERVAL);
   }
 
   if (CNF_GetCommandRateLimit(&interval, &burst, &leak_rate)) {
@@ -602,6 +607,14 @@ void CLG_GetNtpTimestamps(int index, NTP_int64 **rx_ts, NTP_int64 **tx_ts)
 
   *rx_ts = &record->ntp_rx_ts;
   *tx_ts = &record->ntp_tx_ts;
+}
+
+/* ================================================== */
+
+int
+CLG_GetNtpMinPoll(void)
+{
+  return ntp_limit_interval;
 }
 
 /* ================================================== */
