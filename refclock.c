@@ -173,16 +173,12 @@ RCL_AddRefclock(RefclockParameters *params)
 
   if (strcmp(params->driver_name, "SHM") == 0) {
     inst->driver = &RCL_SHM_driver;
-    inst->precision = 1e-6;
   } else if (strcmp(params->driver_name, "SOCK") == 0) {
     inst->driver = &RCL_SOCK_driver;
-    inst->precision = 1e-9;
   } else if (strcmp(params->driver_name, "PPS") == 0) {
     inst->driver = &RCL_PPS_driver;
-    inst->precision = 1e-9;
   } else if (strcmp(params->driver_name, "PHC") == 0) {
     inst->driver = &RCL_PHC_driver;
-    inst->precision = 1e-9;
   } else {
     LOG_FATAL("unknown refclock driver %s", params->driver_name);
     return 0;
@@ -207,8 +203,8 @@ RCL_AddRefclock(RefclockParameters *params)
   inst->lock_ref = params->lock_ref_id;
   inst->offset = params->offset;
   inst->delay = params->delay;
-  if (params->precision > 0.0)
-    inst->precision = params->precision;
+  inst->precision = LCL_GetSysPrecisionAsQuantum();
+  inst->precision = MAX(inst->precision, params->precision);
   inst->pulse_width = params->pulse_width;
   inst->timeout_id = -1;
   inst->source = NULL;

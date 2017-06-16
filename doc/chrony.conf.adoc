@@ -505,9 +505,8 @@ algorithm. Increasing the delay is useful to avoid having no majority in the
 source selection or to make it prefer other sources. The default is 1e-9 (1
 nanosecond).
 *precision* _precision_:::
-This option sets the refclock precision (in seconds). The default is 1e-6 (1
-microsecond) for SHM refclock, and 1e-9 (1 nanosecond) for SOCK, PPS and PHC
-refclocks.
+This option sets the precision of the reference clock (in seconds). The default
+value is the estimated precision of the system clock.
 *maxdispersion* _dispersion_:::
 Maximum allowed dispersion for filtered samples (in seconds). Samples with
 larger estimated dispersion are ignored. By default, this limit is disabled.
