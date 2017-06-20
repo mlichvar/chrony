@@ -1324,10 +1324,14 @@ parse_include(char *line)
 {
   glob_t gl;
   size_t i;
+  int r;
 
   check_number_of_args(line, 1);
 
-  if (glob(line, 0, NULL, &gl)) {
+  if ((r = glob(line, GLOB_ERR | GLOB_NOMAGIC, NULL, &gl)) != 0) {
+    if (r != GLOB_NOMATCH)
+      LOG_FATAL("Could not search for files matching %s", line);
+
     DEBUG_LOG("glob of %s failed", line);
     return;
   }
