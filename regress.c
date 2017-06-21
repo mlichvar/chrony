@@ -430,6 +430,19 @@ find_median(double *x, int n)
 }
 
 /* ================================================== */
+
+double
+RGR_FindMedian(double *x, int n)
+{
+  double tmp[MAX_POINTS];
+
+  assert(n > 0 && n <= MAX_POINTS);
+  memcpy(tmp, x, n * sizeof (tmp[0]));
+
+  return find_median(tmp, n);
+}
+
+/* ================================================== */
 /* This function evaluates the equation
 
    \sum_{i=0}^{n-1} x_i sign(y_i - a - b x_i)

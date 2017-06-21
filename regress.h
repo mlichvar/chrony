@@ -131,4 +131,7 @@ RGR_MultipleRegress
  double *b2                     /* estimated second slope */
 );
 
+/* Return the median value from an array */
+extern double RGR_FindMedian(double *x, int n);
+
 #endif /* GOT_REGRESS_H */
