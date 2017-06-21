@@ -51,9 +51,6 @@
 #define MIN_SKEW 1.0e-12
 #define MAX_SKEW 1.0e+02
 
-/* The minimum assumed std dev for weighting */
-#define MIN_WEIGHT_SD 1.0e-9
-
 /* The asymmetry of network jitter when all jitter is in one direction */
 #define MAX_ASYMMETRY 0.5
 
@@ -489,6 +486,7 @@ SST_DoNewRegression(SST_Stats inst)
   double min_distance, mean_distance;
   double sd_weight, sd;
   double old_skew, old_freq, stress;
+  double precision;
 
   convert_to_intervals(inst, times_back + inst->runs_samples);
 
@@ -510,11 +508,15 @@ SST_DoNewRegression(SST_Stats inst)
 
     /* And now, work out the weight vector */
 
-    sd = mean_distance - min_distance;
-    sd = CLAMP(MIN_WEIGHT_SD, sd, min_distance);
+    precision = LCL_GetSysPrecisionAsQuantum();
+    sd = (mean_distance - min_distance) / SD_TO_DIST_RATIO;
+    sd = CLAMP(precision, sd, min_distance);
+    min_distance += precision;
 
     for (i=0; i<inst->n_samples; i++) {
-      sd_weight = 1.0 + SD_TO_DIST_RATIO * (peer_distances[i] - min_distance) / sd;
+      sd_weight = 1.0;
+      if (peer_distances[i] > min_distance)
+        sd_weight += (peer_distances[i] - min_distance) / sd;
       weights[i] = sd_weight * sd_weight;
     }
   }
