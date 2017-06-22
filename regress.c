@@ -340,7 +340,7 @@ RGR_FindBestRegression
    0-521-43108-5). */
 
 static double
-find_ordered_entry_with_flags(double *x, int n, int index, int *flags)
+find_ordered_entry_with_flags(double *x, int n, int index, char *flags)
 {
   int u, v, l, r;
   double temp;
@@ -403,9 +403,9 @@ find_ordered_entry_with_flags(double *x, int n, int index, int *flags)
 static double
 find_ordered_entry(double *x, int n, int index)
 {
-  int flags[MAX_POINTS];
+  char flags[MAX_POINTS];
 
-  memset(flags, 0, n * sizeof(int));
+  memset(flags, 0, n * sizeof (flags[0]));
   return find_ordered_entry_with_flags(x, n, index, flags);
 }
 #endif
@@ -417,9 +417,9 @@ static double
 find_median(double *x, int n)
 {
   int k;
-  int flags[MAX_POINTS];
+  char flags[MAX_POINTS];
 
-  memset(flags, 0, n*sizeof(int));
+  memset(flags, 0, n * sizeof (flags[0]));
   k = n>>1;
   if (n&1) {
     return find_ordered_entry_with_flags(x, n, k, flags);
