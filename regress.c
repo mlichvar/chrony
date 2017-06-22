@@ -594,6 +594,8 @@ RGR_FindBestRobustRegression
     /* OK, so the root for b lies in (blo, bhi). Start bisecting */
     do {
       bmid = 0.5 * (blo + bhi);
+      if (!(blo < bmid && bmid < bhi))
+        break;
       eval_robust_residual(x + start, y + start, n_points, bmid, &a, &rmid);
       if (rmid == 0.0) {
         break;
@@ -606,7 +608,7 @@ RGR_FindBestRobustRegression
       } else {
         assert(0);
       }
-    } while ((bhi - blo) > tol && (bmid - blo) * (bhi - bmid) > 0.0);
+    } while (bhi - blo > tol);
 
     *b0 = a;
     *b1 = bmid;
