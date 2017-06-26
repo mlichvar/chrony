@@ -64,7 +64,11 @@ main(int argc, char **argv)
   printf("Testing %-30s ", test_name);
   fflush(stdout);
 
+  LOG_Initialise();
+
   test_unit();
+
+  LOG_Finalise();
 
   printf("PASS\n");
 
