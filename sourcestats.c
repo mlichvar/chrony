@@ -463,7 +463,7 @@ correct_asymmetry(SST_Stats inst, double *times_back, double *offsets)
    time.  E.g. a value of 4 means that we think the standard deviation
    is four times the fluctuation  of the peer distance */
 
-#define SD_TO_DIST_RATIO 1.0
+#define SD_TO_DIST_RATIO 0.7
 
 /* ================================================== */
 /* This function runs the linear regression operation on the data.  It
@@ -483,7 +483,7 @@ SST_DoNewRegression(SST_Stats inst)
   int best_start, times_back_start;
   double est_intercept, est_slope, est_var, est_intercept_sd, est_slope_sd;
   int i, j, nruns;
-  double min_distance, mean_distance;
+  double min_distance, median_distance;
   double sd_weight, sd;
   double old_skew, old_freq, stress;
   double precision;
@@ -495,21 +495,21 @@ SST_DoNewRegression(SST_Stats inst)
       offsets[i + inst->runs_samples] = inst->offsets[get_runsbuf_index(inst, i)];
     }
   
-    for (i = 0, mean_distance = 0.0, min_distance = DBL_MAX; i < inst->n_samples; i++) {
+    for (i = 0, min_distance = DBL_MAX; i < inst->n_samples; i++) {
       j = get_buf_index(inst, i);
       peer_distances[i] = 0.5 * inst->peer_delays[get_runsbuf_index(inst, i)] +
                           inst->peer_dispersions[j];
-      mean_distance += peer_distances[i];
       if (peer_distances[i] < min_distance) {
         min_distance = peer_distances[i];
       }
     }
-    mean_distance /= inst->n_samples;
 
     /* And now, work out the weight vector */
 
     precision = LCL_GetSysPrecisionAsQuantum();
-    sd = (mean_distance - min_distance) / SD_TO_DIST_RATIO;
+    median_distance = RGR_FindMedian(peer_distances, inst->n_samples);
+
+    sd = (median_distance - min_distance) / SD_TO_DIST_RATIO;
     sd = CLAMP(precision, sd, min_distance);
     min_distance += precision;
 
