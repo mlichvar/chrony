@@ -34,7 +34,7 @@
 #include "logging.h"
 #include "util.h"
 
-#define MAX_POINTS 128
+#define MAX_POINTS 64
 
 void
 RGR_WeightedRegression
