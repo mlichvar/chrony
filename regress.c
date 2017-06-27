@@ -509,7 +509,7 @@ RGR_FindBestRobustRegression
   double mx, dx, my, dy;
   int nruns = 0;
 
-  assert(n < MAX_POINTS);
+  assert(n <= MAX_POINTS);
 
   if (n < 2) {
     return 0;
