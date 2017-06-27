@@ -752,6 +752,8 @@ if [ $feat_refclock = "1" ] && [ $feat_phc = "1" ] && [ $try_phc = "1" ] && \
   test_code '<linux/ptp_clock.h>' 'sys/ioctl.h linux/ptp_clock.h' '' '' \
     'ioctl(1, PTP_CLOCK_GETCAPS + PTP_SYS_OFFSET, 0);'
 then
+  grep 'HAVE_LINUX_TIMESTAMPING' config.h > /dev/null ||
+    EXTRA_OBJECTS="$EXTRA_OBJECTS hwclock.o"
   add_def FEAT_PHC
 fi
 
