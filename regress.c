@@ -566,24 +566,18 @@ RGR_FindBestRobustRegression
        Estimate standard deviation of b and expand range about b based
        on that. */
     sb = sqrt(s2 * W/V);
-    if (sb > tol) {
-      incr = 3.0 * sb;
-    } else {
-      incr = 3.0 * tol;
-    }
+    incr = MAX(sb, tol);
   
-    blo = b;
-    bhi = b;
-
     do {
-      /* Make sure incr is significant to blo and bhi */
-      while (bhi + incr == bhi || blo - incr == blo) {
-        incr *= 2;
-      }
+      incr *= 2.0;
 
-      blo -= incr;
-      bhi += incr;
-      
+      /* Give up if the interval is too large */
+      if (incr > 100.0)
+        return 0;
+
+      blo = b - incr;
+      bhi = b + incr;
+
       /* We don't want 'a' yet */
       eval_robust_residual(x + start, y + start, n_points, blo, &a, &rlo);
       eval_robust_residual(x + start, y + start, n_points, bhi, &a, &rhi);
