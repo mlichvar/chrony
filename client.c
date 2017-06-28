@@ -2058,7 +2058,8 @@ process_cmd_sources(char *line)
 
     mode = ntohs(reply.data.source_data.mode);
     UTI_IPNetworkToHost(&reply.data.source_data.ip_addr, &ip_addr);
-    format_name(name, sizeof (name), 25, mode == RPY_SD_MD_REF,
+    format_name(name, sizeof (name), 25,
+                mode == RPY_SD_MD_REF && ip_addr.family == IPADDR_INET4,
                 ip_addr.addr.in4, &ip_addr);
 
     switch (mode) {
