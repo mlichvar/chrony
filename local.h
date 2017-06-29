@@ -201,10 +201,11 @@ extern int LCL_MakeStep(void);
    does something */
 extern int LCL_CanSystemLeap(void);
 
-/* Routine to set the system clock to correct itself for a leap second if
-   supported.  Leap second will be inserted at the end of the day if the
-   argument is positive, deleted if negative, and zero resets the setting. */
-extern void LCL_SetSystemLeap(int leap);
+/* Routine to set the system clock to correct itself for a leap second and also
+   set its TAI-UTC offset.  If supported, leap second will be inserted at the
+   end of the day if the argument is positive, deleted if negative, and zero
+   resets the setting. */
+extern void LCL_SetSystemLeap(int leap, int tai_offset);
 
 /* Routine to set a frequency correction (in ppm) that should be applied
    to local clock to compensate for temperature changes.  A positive

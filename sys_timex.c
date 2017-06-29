@@ -95,7 +95,7 @@ set_frequency(double freq_ppm)
 /* ================================================== */
 
 static void
-set_leap(int leap)
+set_leap(int leap, int tai_offset)
 {
   struct timex txc;
   int applied;

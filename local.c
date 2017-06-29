@@ -700,10 +700,10 @@ LCL_CanSystemLeap(void)
 /* ================================================== */
 
 void
-LCL_SetSystemLeap(int leap)
+LCL_SetSystemLeap(int leap, int tai_offset)
 {
   if (drv_set_leap) {
-    (drv_set_leap)(leap);
+    (drv_set_leap)(leap, tai_offset);
   }
 }
 

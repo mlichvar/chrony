@@ -678,7 +678,7 @@ leap_end_timeout(void *arg)
   our_leap_sec = 0;
 
   if (leap_mode == REF_LeapModeSystem)
-    LCL_SetSystemLeap(0);
+    LCL_SetSystemLeap(our_leap_sec, 0);
 
   if (our_leap_status == LEAP_InsertSecond ||
       our_leap_status == LEAP_DeleteSecond)
@@ -778,7 +778,7 @@ update_leap_status(NTP_Leap leap, time_t now, int reset)
 
     switch (leap_mode) {
       case REF_LeapModeSystem:
-        LCL_SetSystemLeap(our_leap_sec);
+        LCL_SetSystemLeap(our_leap_sec, 0);
         /* Fall through */
       case REF_LeapModeSlew:
       case REF_LeapModeStep:

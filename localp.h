@@ -54,8 +54,8 @@ typedef int (*lcl_ApplyStepOffsetDriver)(double offset);
    raw time to get the corrected time */
 typedef void (*lcl_OffsetCorrectionDriver)(struct timespec *raw, double *corr, double *err);
 
-/* System driver to schedule leap second */
-typedef void (*lcl_SetLeapDriver)(int leap);
+/* System driver to schedule leap seconds and set TAI-UTC offset */
+typedef void (*lcl_SetLeapDriver)(int leap, int tai_offset);
 
 /* System driver to set the synchronisation status */
 typedef void (*lcl_SetSyncStatusDriver)(int synchronised, double est_error, double max_error);
