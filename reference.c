@@ -111,8 +111,6 @@ static SCH_TimeoutID leap_timeout_id;
 
 /* Name of a system timezone containing leap seconds occuring at midnight */
 static char *leap_tzname;
-static time_t last_tz_leap_check;
-static NTP_Leap tz_leap;
 
 /* ================================================== */
 
@@ -617,6 +615,8 @@ is_leap_second_day(struct tm *stm) {
 static NTP_Leap
 get_tz_leap(time_t when)
 {
+  static time_t last_tz_leap_check;
+  static NTP_Leap tz_leap;
   struct tm stm;
   time_t t;
   char *tz_env, tz_orig[128];
