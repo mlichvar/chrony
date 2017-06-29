@@ -98,15 +98,12 @@ static void
 set_leap(int leap, int tai_offset)
 {
   struct timex txc;
-  int applied;
+  int applied, prev_status;
 
-  applied = 0;
-  if (!leap) {
-    txc.modes = 0;
-    if (SYS_Timex_Adjust(&txc, 1) == TIME_WAIT)
-      applied = 1;
-  }
+  txc.modes = 0;
+  applied = SYS_Timex_Adjust(&txc, 0) == TIME_WAIT;
 
+  prev_status = status;
   status &= ~(STA_INS | STA_DEL);
 
   if (leap > 0)
@@ -117,11 +114,21 @@ set_leap(int leap, int tai_offset)
   txc.modes = MOD_STATUS;
   txc.status = status;
 
+#ifdef MOD_TAI
+  if (tai_offset && tai_offset != txc.tai) {
+    txc.modes |= MOD_TAI;
+    txc.constant = tai_offset;
+    LOG(LOGS_INFO, "System clock TAI offset set to %d seconds", tai_offset);
+  }
+#endif
+
   SYS_Timex_Adjust(&txc, 0);
 
-  LOG(LOGS_INFO, "System clock status %s leap second",
-      leap ? (leap > 0 ? "set to insert" : "set to delete") :
-      (applied ? "reset after" : "set to not insert/delete"));
+  if (prev_status != status) {
+    LOG(LOGS_INFO, "System clock status %s leap second",
+        leap ? (leap > 0 ? "set to insert" : "set to delete") :
+        (applied ? "reset after" : "set to not insert/delete"));
+  }
 }
 
 /* ================================================== */
