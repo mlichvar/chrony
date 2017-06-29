@@ -49,6 +49,7 @@ static int local_orphan;
 static double local_distance;
 static NTP_Leap our_leap_status;
 static int our_leap_sec;
+static int our_tai_offset;
 static int our_stratum;
 static uint32_t our_ref_id;
 static IPAddr our_ref_ip;
@@ -139,7 +140,7 @@ static double last_ref_update_interval;
 
 /* ================================================== */
 
-static NTP_Leap get_tz_leap(time_t when);
+static NTP_Leap get_tz_leap(time_t when, int *tai_offset);
 static void update_leap_status(NTP_Leap leap, time_t now, int reset);
 
 /* ================================================== */
@@ -179,11 +180,13 @@ REF_Initialise(void)
   FILE *in;
   double file_freq_ppm, file_skew_ppm;
   double our_frequency_ppm;
+  int tai_offset;
 
   mode = REF_ModeNormal;
   are_we_synchronised = 0;
   our_leap_status = LEAP_Unsynchronised;
   our_leap_sec = 0;
+  our_tai_offset = 0;
   initialised = 1;
   our_root_dispersion = 1.0;
   our_root_delay = 1.0;
@@ -241,8 +244,8 @@ REF_Initialise(void)
   leap_tzname = CNF_GetLeapSecTimezone();
   if (leap_tzname) {
     /* Check that the timezone has good data for Jun 30 2012 and Dec 31 2012 */
-    if (get_tz_leap(1341014400) == LEAP_InsertSecond &&
-        get_tz_leap(1356912000) == LEAP_Normal) {
+    if (get_tz_leap(1341014400, &tai_offset) == LEAP_InsertSecond && tai_offset == 34 &&
+        get_tz_leap(1356912000, &tai_offset) == LEAP_Normal && tai_offset == 35) {
       LOG(LOGS_INFO, "Using %s timezone to obtain leap second data", leap_tzname);
     } else {
       LOG(LOGS_WARN, "Timezone %s failed leap second check, ignoring", leap_tzname);
@@ -613,13 +616,17 @@ is_leap_second_day(struct tm *stm) {
 /* ================================================== */
 
 static NTP_Leap
-get_tz_leap(time_t when)
+get_tz_leap(time_t when, int *tai_offset)
 {
   static time_t last_tz_leap_check;
   static NTP_Leap tz_leap;
+  static int tz_tai_offset;
+
   struct tm stm;
   time_t t;
   char *tz_env, tz_orig[128];
+
+  *tai_offset = tz_tai_offset;
 
   /* Do this check at most twice a day */
   when = when / (12 * 3600) * (12 * 3600);
@@ -628,11 +635,9 @@ get_tz_leap(time_t when)
 
   last_tz_leap_check = when;
   tz_leap = LEAP_Normal;
+  tz_tai_offset = 0;
 
   stm = *gmtime(&when);
-
-  if (!is_leap_second_day(&stm))
-    return tz_leap;
 
   /* Temporarily switch to the timezone containing leap seconds */
   tz_env = getenv("TZ");
@@ -643,6 +648,11 @@ get_tz_leap(time_t when)
   }
   setenv("TZ", leap_tzname, 1);
   tzset();
+
+  /* Get the TAI-UTC offset, which started at the epoch at 10 seconds */
+  t = mktime(&stm);
+  if (t != -1)
+    tz_tai_offset = t - when + 10;
 
   /* Set the time to 23:59:60 and see how it overflows in mktime() */
   stm.tm_sec = 60;
@@ -665,6 +675,8 @@ get_tz_leap(time_t when)
   else if (stm.tm_sec == 1)
     tz_leap = LEAP_DeleteSecond;
 
+  *tai_offset = tz_tai_offset;
+
   return tz_leap;
 }
 
@@ -675,10 +687,13 @@ leap_end_timeout(void *arg)
 {
   leap_timeout_id = 0;
   leap_in_progress = 0;
+
+  if (our_tai_offset)
+    our_tai_offset += our_leap_sec;
   our_leap_sec = 0;
 
   if (leap_mode == REF_LeapModeSystem)
-    LCL_SetSystemLeap(our_leap_sec, 0);
+    LCL_SetSystemLeap(our_leap_sec, our_tai_offset);
 
   if (our_leap_status == LEAP_InsertSecond ||
       our_leap_status == LEAP_DeleteSecond)
@@ -752,12 +767,17 @@ set_leap_timeout(time_t now)
 static void
 update_leap_status(NTP_Leap leap, time_t now, int reset)
 {
-  int leap_sec;
+  NTP_Leap tz_leap;
+  int leap_sec, tai_offset;
 
   leap_sec = 0;
+  tai_offset = 0;
 
-  if (leap_tzname && now && leap == LEAP_Normal)
-    leap = get_tz_leap(now);
+  if (leap_tzname && now) {
+    tz_leap = get_tz_leap(now, &tai_offset);
+    if (leap == LEAP_Normal)
+      leap = tz_leap;
+  }
 
   if (leap == LEAP_InsertSecond || leap == LEAP_DeleteSecond) {
     /* Check that leap second is allowed today */
@@ -773,12 +793,14 @@ update_leap_status(NTP_Leap leap, time_t now, int reset)
     }
   }
   
-  if (leap_sec != our_leap_sec && !REF_IsLeapSecondClose()) {
+  if ((leap_sec != our_leap_sec || tai_offset != our_tai_offset)
+      && !REF_IsLeapSecondClose()) {
     our_leap_sec = leap_sec;
+    our_tai_offset = tai_offset;
 
     switch (leap_mode) {
       case REF_LeapModeSystem:
-        LCL_SetSystemLeap(our_leap_sec, 0);
+        LCL_SetSystemLeap(our_leap_sec, our_tai_offset);
         /* Fall through */
       case REF_LeapModeSlew:
       case REF_LeapModeStep:

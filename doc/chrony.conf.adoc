@@ -830,15 +830,23 @@ clients to safely synchronise with multiple identically configured leap
 smearing servers.
 
 [[leapsectz]]*leapsectz* _timezone_::
-This directive is used to set the name of the timezone in the system tz
-database which *chronyd* can use to find out when will the next leap second
-occur. It will periodically check if the times 23:59:59 and 23:59:60 are valid
-on Jun 30 and Dec 31 in the timezone. This typically works with the *right/UTC*
-timezone.
+This directive specifies a timezone in the system tz database which *chronyd*
+can use to determine when will the next leap second occur and what is the
+current offset between TAI and UTC. It will periodically check if 23:59:59 and
+23:59:60 are valid times in the timezone. This typically works with the
+_right/UTC_ timezone.
 +
-This directive is mainly useful with reference clocks which do not provide
-leap second information. It is not necessary to restart *chronyd* if the tz
-database is updated with a new leap second at least 12 hours before the event.
+When a leap second is announced, the timezone needs to be updated at least 12
+hours before the leap second. It is not necessary to restart *chronyd*.
++
+This directive is useful with reference clocks and other time sources which do
+not announce leap seconds, or announce them too late for an NTP server to
+forward them to its own clients. Clients of leap smearing servers must not
+use this directive.
++
+It is also useful when the system clock is required to have correct TAI-UTC
+offset. Note that the offset is set only when leap seconds are handled by the
+kernel, i.e. <<leapsecmode,*leapsecmode*>> is set to *system*.
 +
 An example of the directive is:
 +
@@ -2325,7 +2333,7 @@ The amount of memory used for logging client accesses can be increased in order
 to enable clients to use the interleaved mode even when the server has a large
 number of clients, and better support rate limiting if it is enabled by the
 <<ratelimit,*ratelimit*>> directive. The system timezone database, if it is
-kept up to date and includes the *right/UTC* timezone, can be used as a
+kept up to date and includes the _right/UTC_ timezone, can be used as a
 reliable source to determine when a leap second will be applied to UTC. The
 *-r* option with the <<dumpdir,*dumpdir*>> directive shortens the time in which
 *chronyd* will not be able to serve time to its clients when it needs to be
