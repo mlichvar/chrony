@@ -574,7 +574,7 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
           process_hw_timestamp(iface, &ts3.ts[2], local_ts, !is_tx ? length : 0,
                                remote_addr->ip_addr.family, l2_length);
         } else {
-          DEBUG_LOG("HW clock not found for interface %d", local_addr->if_index);
+          DEBUG_LOG("HW clock not found for interface %d", ts_if_index);
         }
       }
 
