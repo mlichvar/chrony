@@ -1575,9 +1575,11 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
             !UTI_CompareTimespecs(&inst->local_rx.ts, &rx_ts->ts));
 
   if (valid_packet) {
+    inst->remote_poll = message->poll;
+    inst->remote_stratum = message->stratum != NTP_INVALID_STRATUM ?
+                           message->stratum : NTP_MAX_STRATUM;
+
     if (synced_packet) {
-      inst->remote_poll = message->poll;
-      inst->remote_stratum = message->stratum;
       inst->tx_count = 0;
       SRC_UpdateReachability(inst->source, 1);
     }
