@@ -161,7 +161,7 @@ HCL_AccumulateSample(HCL_Instance clock, struct timespec *hw_ts,
   clock->valid_coefs =
     RGR_FindBestRobustRegression(clock->x_data + MAX_SAMPLES - clock->n_samples,
                                  clock->y_data + MAX_SAMPLES - clock->n_samples,
-                                 clock->n_samples, 1.0e-9, &clock->offset, &raw_freq,
+                                 clock->n_samples, 1.0e-10, &clock->offset, &raw_freq,
                                  &n_runs, &best_start);
 
   if (!clock->valid_coefs) {
