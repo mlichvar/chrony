@@ -213,7 +213,7 @@ static ARR_Instance broadcasts;
 #define SAMPLING_RANDOMNESS 0.02
 
 /* Adjustment of the peer polling interval */
-#define PEER_SAMPLING_ADJ 1.1
+#define PEER_SAMPLING_ADJ 1.15
 
 /* Spacing between samples in burst mode for one server/peer */
 #define BURST_INTERVAL 2.0
@@ -789,13 +789,16 @@ get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx)
 
           delay_time = UTI_Log2ToDouble(poll_to_use);
 
-          /* If the remote stratum is higher than ours, try to lock on the
-             peer's polling to minimize our response time by slightly extending
-             our delay or waiting for the peer to catch up with us as the
-             random part in the actual interval is reduced. If the remote
-             stratum is equal to ours, try to interleave evenly with the peer. */
+          /* If in the basic mode the remote stratum is higher than ours,
+             or in the interleaved mode it is lower, wait a bit for the next
+             packet before responding in order to minimize the delay of the
+             measurement and its error for the peer which has higher stratum.
+             If the remote stratum is equal to ours, try to interleave packets
+             evenly with the peer. */
           stratum_diff = inst->remote_stratum - REF_GetOurStratum();
-          if ((stratum_diff > 0 && last_tx * PEER_SAMPLING_ADJ < delay_time) ||
+          if ((((stratum_diff > 0 && !inst->interleaved) ||
+                (stratum_diff < 0 && inst->interleaved)) &&
+               last_tx * PEER_SAMPLING_ADJ < delay_time) ||
               (!on_tx && !stratum_diff &&
                last_tx / delay_time > PEER_SAMPLING_ADJ - 0.5))
             delay_time *= PEER_SAMPLING_ADJ;
