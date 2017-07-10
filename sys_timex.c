@@ -63,6 +63,9 @@
 /* Saved timex status */
 static int sys_status;
 
+/* Saved TAI-UTC offset */
+static int sys_tai_offset;
+
 /* ================================================== */
 
 static double
@@ -115,10 +118,17 @@ set_leap(int leap, int tai_offset)
   txc.status = sys_status;
 
 #ifdef MOD_TAI
-  if (tai_offset && tai_offset != txc.tai) {
+  if (tai_offset) {
     txc.modes |= MOD_TAI;
     txc.constant = tai_offset;
-    LOG(LOGS_INFO, "System clock TAI offset set to %d seconds", tai_offset);
+
+    if (applied && !(sys_status & (STA_INS | STA_DEL)))
+      sys_tai_offset += prev_status & STA_INS ? 1 : -1;
+
+    if (sys_tai_offset != tai_offset) {
+      sys_tai_offset = tai_offset;
+      LOG(LOGS_INFO, "System clock TAI offset set to %d seconds", tai_offset);
+    }
   }
 #endif
 
@@ -177,6 +187,7 @@ initialise_timex(void)
   struct timex txc;
 
   sys_status = STA_UNSYNC;
+  sys_tai_offset = 0;
 
   /* Reset PLL offset */
   txc.modes = MOD_OFFSET | MOD_STATUS;
