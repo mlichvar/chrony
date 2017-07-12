@@ -241,48 +241,35 @@ post_init_rtc_hook(void *anything)
 }
 
 /* ================================================== */
-/* Return 1 if the process exists on the system. */
 
-static int
-does_process_exist(int pid)
-{
-  int status;
-  status = getsid(pid);
-  if (status >= 0) {
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
-/* ================================================== */
-
-static int
-maybe_another_chronyd_running(int *other_pid)
+static void
+check_pidfile(void)
 {
   const char *pidfile = CNF_GetPidFile();
   FILE *in;
   int pid, count;
   
-  *other_pid = 0;
-
   in = fopen(pidfile, "r");
-  if (!in) return 0;
+  if (!in)
+    return;
 
   count = fscanf(in, "%d", &pid);
   fclose(in);
   
-  if (count != 1) return 0;
+  if (count != 1)
+    return;
 
-  *other_pid = pid;
-  return does_process_exist(pid);
-  
+  if (getsid(pid) < 0)
+    return;
+
+  LOG_FATAL("Another chronyd may already be running (pid=%d), check %s",
+            pid, pidfile);
 }
 
 /* ================================================== */
 
 static void
-write_lockfile(void)
+write_pidfile(void)
 {
   const char *pidfile = CNF_GetPidFile();
   FILE *out;
@@ -402,7 +389,6 @@ int main
   struct passwd *pw;
   int opt, debug = 0, nofork = 0, address_family = IPADDR_UNSPEC;
   int do_init_rtc = 0, restarted = 0, timeout = 0;
-  int other_pid;
   int scfilter_level = 0, lock_memory = 0, sched_priority = 0;
   int clock_control = 1, system_log = 1;
   int config_args = 0;
@@ -519,17 +505,11 @@ int main
       CNF_ParseLine(NULL, config_args + optind - argc + 1, argv[optind]);
   }
 
-  /* Check whether another chronyd may already be running.  Do this after
-   * forking, so that message logging goes to the right place (i.e. syslog), in
-   * case this chronyd is being run from a boot script. */
-  if (maybe_another_chronyd_running(&other_pid)) {
-    LOG_FATAL("Another chronyd may already be running (pid=%d), check lockfile (%s)",
-              other_pid, CNF_GetPidFile());
-  }
+  /* Check whether another chronyd may already be running */
+  check_pidfile();
 
-  /* Write our lockfile to prevent other chronyds running.  This has *GOT* to
-   * be done *AFTER* the daemon-creation fork() */
-  write_lockfile();
+  /* Write our pidfile to prevent other chronyds running */
+  write_pidfile();
 
   PRV_Initialise();
   LCL_Initialise();
