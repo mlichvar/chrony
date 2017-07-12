@@ -79,7 +79,7 @@ static void parse_tempcomp(char *);
 static int restarted = 0;
 static char *rtc_device;
 static int acquisition_port = -1;
-static int ntp_port = 123;
+static int ntp_port = NTP_PORT;
 static char *keys_file = NULL;
 static char *drift_file = NULL;
 static char *rtc_file = NULL;
@@ -1179,7 +1179,7 @@ parse_broadcast(char *line)
     }
   } else {
     /* default port */
-    port = 123;
+    port = NTP_PORT;
   }
 
   destination = (NTP_Broadcast_Destination *)ARR_GetNewElement(broadcasts);

@@ -38,6 +38,9 @@ typedef struct {
 
 typedef uint32_t NTP_int32;
 
+/* The UDP port number used by NTP */
+#define NTP_PORT 123
+
 /* The NTP protocol version that we support */
 #define NTP_VERSION 4
 
