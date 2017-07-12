@@ -86,6 +86,10 @@ static void
 delete_pidfile(void)
 {
   const char *pidfile = CNF_GetPidFile();
+
+  if (!pidfile[0])
+    return;
+
   /* Don't care if this fails, there's not a lot we can do */
   unlink(pidfile);
 }
@@ -274,6 +278,9 @@ write_pidfile(void)
   const char *pidfile = CNF_GetPidFile();
   FILE *out;
 
+  if (!pidfile[0])
+    return;
+
   out = fopen(pidfile, "w");
   if (!out) {
     LOG_FATAL("Could not open %s : %s", pidfile, strerror(errno));
@@ -388,7 +395,7 @@ int main
   char *user = NULL, *log_file = NULL;
   struct passwd *pw;
   int opt, debug = 0, nofork = 0, address_family = IPADDR_UNSPEC;
-  int do_init_rtc = 0, restarted = 0, timeout = 0;
+  int do_init_rtc = 0, restarted = 0, client_only = 0, timeout = 0;
   int scfilter_level = 0, lock_memory = 0, sched_priority = 0;
   int clock_control = 1, system_log = 1;
   int config_args = 0;
@@ -444,6 +451,8 @@ int main
       case 'Q':
         ref_mode = opt == 'q' ? REF_ModeUpdateOnce : REF_ModePrintOnce;
         nofork = 1;
+        client_only = 1;
+        clock_control = 0;
         system_log = 0;
         break;
       case 'r':
@@ -473,9 +482,8 @@ int main
     }
   }
 
-  if (getuid() != 0) {
+  if (getuid() && !client_only)
     LOG_FATAL("Not superuser");
-  }
 
   /* Turn into a daemon */
   if (!nofork) {
@@ -494,7 +502,7 @@ int main
 
   DNS_SetAddressFamily(address_family);
 
-  CNF_Initialise(restarted);
+  CNF_Initialise(restarted, client_only);
 
   /* Parse the config file or the remaining command line arguments */
   config_args = argc - optind;
@@ -548,8 +556,8 @@ int main
   /* Create all directories before dropping root */
   CNF_CreateDirs(pw->pw_uid, pw->pw_gid);
 
-  /* Drop root privileges if the user has non-zero uid or gid */
-  if (pw->pw_uid || pw->pw_gid)
+  /* Drop root privileges if the specified user has a non-zero UID */
+  if (!geteuid() && (pw->pw_uid || pw->pw_gid))
     SYS_DropRoot(pw->pw_uid, pw->pw_gid);
 
   REF_Initialise();

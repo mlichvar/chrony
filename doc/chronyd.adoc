@@ -75,8 +75,9 @@ When run in this mode, *chronyd* will set the system clock once and exit. It
 will not detach from the terminal.
 
 *-Q*::
-This option is similar to *-q*, but it will only print the offset without any
-corrections of the clock.
+This option is similar to the *-q* option, except it only prints the offset
+without making any corrections of the clock and it allows *chronyd* to be
+started without root privileges.
 
 *-r*::
 This option will try to reload and then delete files containing sample

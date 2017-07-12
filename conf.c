@@ -323,7 +323,7 @@ check_number_of_args(char *line, int num)
 /* ================================================== */
 
 void
-CNF_Initialise(int r)
+CNF_Initialise(int r, int client_only)
 {
   restarted = r;
 
@@ -339,11 +339,18 @@ CNF_Initialise(int r)
 
   dumpdir = Strdup("");
   logdir = Strdup("");
-  bind_cmd_path = Strdup(DEFAULT_COMMAND_SOCKET);
-  pidfile = Strdup(DEFAULT_PID_FILE);
   rtc_device = Strdup(DEFAULT_RTC_DEVICE);
   hwclock_file = Strdup(DEFAULT_HWCLOCK_FILE);
   user = Strdup(DEFAULT_USER);
+
+  if (client_only) {
+    cmd_port = ntp_port = 0;
+    bind_cmd_path = Strdup("");
+    pidfile = Strdup("");
+  } else {
+    bind_cmd_path = Strdup(DEFAULT_COMMAND_SOCKET);
+    pidfile = Strdup(DEFAULT_PID_FILE);
+  }
 }
 
 /* ================================================== */

@@ -33,7 +33,7 @@ test_unit(void)
     "cmdratelimit interval 3 burst 4 leak 3",
   };
 
-  CNF_Initialise(0);
+  CNF_Initialise(0, 0);
   for (i = 0; i < sizeof conf / sizeof conf[0]; i++)
     CNF_ParseLine(NULL, i + 1, conf[i]);
 

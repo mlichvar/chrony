@@ -34,7 +34,7 @@ test_unit(void)
 
   memset(&params, 0, sizeof (params));
 
-  CNF_Initialise(0);
+  CNF_Initialise(0, 0);
   CNF_ParseLine(NULL, 1, conf);
 
   LCL_Initialise();

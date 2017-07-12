@@ -29,7 +29,7 @@ test_unit(void)
   double offset, freq, wander;
   char conf[] = "smoothtime 300 0.01";
 
-  CNF_Initialise(0);
+  CNF_Initialise(0, 0);
   CNF_ParseLine(NULL, 1, conf);
 
   LCL_Initialise();

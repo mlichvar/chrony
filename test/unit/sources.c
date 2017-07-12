@@ -31,7 +31,7 @@ test_unit(void)
   double offset, delay, disp;
   struct timespec ts;
 
-  CNF_Initialise(0);
+  CNF_Initialise(0, 0);
   LCL_Initialise();
   TST_RegisterDummyDrivers();
   SCH_Initialise();
