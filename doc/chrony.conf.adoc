@@ -587,11 +587,12 @@ can be specified.
 To compute the rate of gain or loss of time, *chronyd* has to store a
 measurement history for each of the time sources it uses.
 +
-Certain systems (Linux, FreeBSD, NetBSD, Solaris) have operating system support
-for setting the rate of gain or loss to compensate for known errors. (On Mac OS
-X, *chronyd* must simulate such a capability by periodically slewing the system
-clock forwards or backwards by a suitable amount to compensate for the error
-built up since the previous slew.)
+All supported systems, with the exception of macOS 10.12 and earlier, have
+operating system support for setting the rate of gain or loss to compensate for
+known errors.
+(On macOS 10.12 and earlier, *chronyd* must simulate such a capability by
+periodically slewing the system clock forwards or backwards by a suitable amount
+to compensate for the error built up since the previous slew.)
 +
 For such systems, it is possible to save the measurement history across
 restarts of *chronyd* (assuming no changes are made to the system clock
@@ -690,8 +691,9 @@ distances are in milliseconds.
 
 [[corrtimeratio]]*corrtimeratio* _ratio_::
 When *chronyd* is slewing the system clock to correct an offset, the rate at
-which it is slewing adds to the frequency error of the clock. On Linux,
-FreeBSD, NetBSD and Solaris this rate can be controlled.
+which it is slewing adds to the frequency error of the clock. On all supported
+systems, with the exception of macOS 12 and earlier, this rate can be
+controlled.
 +
 The *corrtimeratio* directive sets the ratio between the duration in which the
 clock is slewed for an average correction according to the source history and
@@ -774,8 +776,8 @@ that error is corrected. There are four options:
 When inserting a leap second, the kernel steps the system clock backwards by
 one second when the clock gets to 00:00:00 UTC. When deleting a leap second, it
 steps forward by one second when the clock gets to 23:59:59 UTC. This is the
-default mode when the system driver supports leap seconds (i.e. on Linux,
-FreeBSD, NetBSD and Solaris).
+default mode when the system driver supports leap seconds (i.e. all supported
+systems with the exception of macOS 12 and earlier).
 *step*:::
 This is similar to the *system* mode, except the clock is stepped by
 *chronyd* instead of the kernel. It can be useful to avoid bugs in the kernel
@@ -918,7 +920,7 @@ This directive specifies the maximum assumed drift (frequency error) of the
 system clock. It limits the frequency adjustment that *chronyd* is allowed to
 use to correct the measured drift. It is an additional limit to the maximum
 adjustment that can be set by the system driver (100000 ppm on Linux, 500 ppm
-on FreeBSD and NetBSD, 32500 ppm on Solaris).
+on FreeBSD, NetBSD, and macOS 10.13+, 32500 ppm on Solaris).
 +
 By default, the maximum assumed drift is 500000 ppm, i.e. the adjustment is
 limited by the system driver rather than this directive.
@@ -953,13 +955,17 @@ The *maxslewrate* directive sets the maximum rate at which *chronyd* is allowed
 to slew the time. It limits the slew rate controlled by the correction time
 ratio (which can be set by the <<corrtimeratio,*corrtimeratio*>> directive) and
 is effective only on systems where *chronyd* is able to control the rate (i.e.
-Linux, FreeBSD, NetBSD, Solaris).
+all supported systems with the exception of macOS 12 or earlier).
 +
-For each system there is a maximum frequency offset of the clock that
-can be set by the driver. On Linux it is 100000 ppm, on FreeBSD and NetBSD
-it is 5000 ppm, and on Solaris it is 32500 ppm. Also, due to a kernel
-limitation, setting *maxslewrate* on FreeBSD and NetBSD to a value between 500
+For each system there is a maximum frequency offset of the clock that can be set
+by the driver. On Linux it is 100000 ppm, on FreeBSD, NetBSD and macOS 10.13+ it
+is 5000 ppm, and on Solaris it is 32500 ppm. Also, due to a kernel limitation,
+setting *maxslewrate* on FreeBSD, NetBSD, macOS 10.13+ to a value between 500
 ppm and 5000 ppm will effectively set it to 500 ppm.
++
+In early beta releases of macOS 13 this capability is disabled because of a
+system kernel bug. When the kernel bug is fixed, chronyd will detect this and
+re-enable the capability (see above limitations) with no recompilation required.
 +
 By default, the maximum slew rate is set to 83333.333 ppm (one twelfth).
 

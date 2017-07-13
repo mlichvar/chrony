@@ -46,6 +46,15 @@
 #include "privops.h"
 #include "util.h"
 
+#ifdef HAVE_MACOS_SYS_TIMEX
+#include <dlfcn.h>
+#include "sys_netbsd.h"
+#include "sys_timex.h"
+
+static int have_ntp_adjtime = 0;
+static int have_bad_adjtime = 0;
+#endif
+
 /* ================================================== */
 
 /* This register contains the number of seconds by which the local
@@ -417,8 +426,8 @@ void SYS_MacOSX_DropRoot(uid_t uid, gid_t gid)
 
 /* ================================================== */
 
-void
-SYS_MacOSX_Initialise(void)
+static void
+legacy_MacOSX_Initialise(void)
 {
   clock_initialise();
 
@@ -434,8 +443,8 @@ SYS_MacOSX_Initialise(void)
 
 /* ================================================== */
 
-void
-SYS_MacOSX_Finalise(void)
+static void
+legacy_MacOSX_Finalise(void)
 {
   SCH_RemoveTimeout(drift_removal_id);
 
@@ -443,5 +452,68 @@ SYS_MacOSX_Finalise(void)
 }
 
 /* ================================================== */
+
+#ifdef HAVE_MACOS_SYS_TIMEX
+/*
+    Test adjtime() to see if Apple have fixed the signed/unsigned bug
+*/
+static int
+test_adjtime()
+{
+  struct timeval tv1 = {-1, 0};
+  struct timeval tv2 = {0, 0};
+  struct timeval tv;
+
+  if (PRV_AdjustTime(&tv1, &tv) != 0) {
+    return 0;
+  }
+  if (PRV_AdjustTime(&tv2, &tv) != 0) {
+    return 0;
+  }
+  if (tv.tv_sec < -1 || tv.tv_sec > 1) {
+    return 0;
+  }
+  return 1;
+}
+#endif
+
+/* ================================================== */
+
+void
+SYS_MacOSX_Initialise(void)
+{
+#ifdef HAVE_MACOS_SYS_TIMEX
+  have_ntp_adjtime = (dlsym(RTLD_NEXT, "ntp_adjtime") != NULL);
+  if (have_ntp_adjtime) {
+    have_bad_adjtime = !test_adjtime();
+    if (have_bad_adjtime) {
+      LOG(LOGS_WARN, "adjtime() is buggy - using timex driver");
+      SYS_Timex_Initialise();
+    } else {
+      SYS_NetBSD_Initialise();
+    }
+    return;
+  }
+#endif
+  legacy_MacOSX_Initialise();
+}
+
+/* ================================================== */
+
+void
+SYS_MacOSX_Finalise(void)
+{
+#ifdef HAVE_MACOS_SYS_TIMEX
+  if (have_ntp_adjtime) {
+    if (have_bad_adjtime) {
+      SYS_Timex_Finalise();
+    } else {
+      SYS_NetBSD_Finalise();
+    }
+    return;
+  }
+#endif
+  legacy_MacOSX_Finalise();
+}
 
 #endif

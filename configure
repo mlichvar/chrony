@@ -428,6 +428,15 @@ case $OPERATINGSYSTEM in
           add_def FEAT_PRIVDROP
           priv_ops="ADJUSTTIME SETTIME BINDSOCKET"
         fi
+        major=`echo $VERSION | cut -d. -f1`
+        # ntp_adjtime is not available in macOS 10.12 (Darwin 16.x.x) and earlier
+        if [ $major -gt "16" ]; then
+          add_def HAVE_MACOS_SYS_TIMEX
+          EXTRA_OBJECTS="$EXTRA_OBJECTS sys_generic.o sys_netbsd.o sys_timex.o"
+          if [ $feat_droproot = "1" ]; then
+            priv_ops="$priv_ops ADJUSTTIMEX"
+          fi
+        fi
         echo "Configuring for macOS (" $SYSTEM "macOS version" $VERSION ")"
     ;;
     SunOS)

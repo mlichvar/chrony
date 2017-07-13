@@ -59,7 +59,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#if defined(LINUX) || defined(FREEBSD) || defined(NETBSD) || defined(SOLARIS)
+#if defined(LINUX) || defined(FREEBSD) || defined(NETBSD) || defined(SOLARIS) || defined(HAVE_MACOS_SYS_TIMEX)
 #include <sys/timex.h>
 #endif
 

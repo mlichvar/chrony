@@ -87,8 +87,8 @@ histories are created by using the <<chronyc.adoc#dump,*dump*>> command in
 directive in the configuration file. This option is useful if you want to stop
 and restart *chronyd* briefly for any reason, e.g. to install a new version.
 However, it should be used only on systems where the kernel can maintain clock
-compensation whilst not under *chronyd*'s control (i.e. Linux, FreeBSD, NetBSD
-and Solaris).
+compensation whilst not under *chronyd*'s control (i.e. Linux, FreeBSD, NetBSD,
+Solaris, and macOS 10.13 or later).
 
 *-R*::
 When this option is used, the <<chrony.conf.adoc#initstepslew,*initstepslew*>>
