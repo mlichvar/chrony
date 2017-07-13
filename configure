@@ -518,6 +518,22 @@ fi
 
 if [ "x$MYCFLAGS" = "x" ]; then
   MYCFLAGS="-O2 -g"
+
+  TESTCFLAGS="-D_FORTIFY_SOURCE=2 -fPIE"
+  TESTLDFLAGS="-pie -Wl,-z,relro,-z,now"
+  if test_code 'hardening compiler options' '' "$TESTCFLAGS" "$TESTLDFLAGS" ''; then
+    MYCFLAGS="$MYCFLAGS $TESTCFLAGS"
+    MYLDFLAGS="$MYLDFLAGS $TESTLDFLAGS"
+  fi
+  TESTCFLAGS="-fstack-protector-strong --param=ssp-buffer-size=4"
+  if test_code '-fstack-protector-strong' '' "$TESTCFLAGS" '' ''; then
+    MYCFLAGS="$MYCFLAGS $TESTCFLAGS"
+  else
+    TESTCFLAGS="-fstack-protector --param=ssp-buffer-size=4"
+    if test_code '-fstack-protector' '' "$TESTCFLAGS" '' ''; then
+      MYCFLAGS="$MYCFLAGS $TESTCFLAGS"
+    fi
+  fi
 fi
 
 if [ "x$MYCC" = "xgcc" ] || [ "x$MYCC" = "xclang" ]; then
