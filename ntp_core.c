@@ -139,9 +139,8 @@ struct NCR_Instance_Record {
   uint32_t auth_key_id;          /* The ID of the authentication key to
                                    use. */
 
-  /* Count of how many packets we have transmitted since last successful
-     receive from this peer */
-  int tx_count;
+  /* Count of transmitted packets since last valid response */
+  unsigned int tx_count;
 
   /* Flag indicating a valid response was received since last request */
   int valid_rx;
@@ -1582,10 +1581,8 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     inst->remote_stratum = message->stratum != NTP_INVALID_STRATUM ?
                            message->stratum : NTP_MAX_STRATUM;
 
-    if (synced_packet) {
-      inst->tx_count = 0;
-      SRC_UpdateReachability(inst->source, 1);
-    }
+    inst->tx_count = 0;
+    SRC_UpdateReachability(inst->source, synced_packet);
 
     if (good_packet) {
       /* Do this before we accumulate a new sample into the stats registers, obviously */
@@ -1625,7 +1622,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
         default:
           break;
       }
-    } else if (synced_packet) {
+    } else {
       /* Slowly increase the polling interval if we can't get good packet */
       adjust_poll(inst, 0.1);
     }
