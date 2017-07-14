@@ -260,6 +260,9 @@ static ARR_Instance broadcasts;
 /* Maximum poll interval set by KoD RATE */
 #define MAX_KOD_RATE_POLL SRC_DEFAULT_MAXPOLL
 
+/* Maximum number of missed responses to follow peer's polling interval */
+#define MAX_PEER_POLL_TX 8
+
 /* Invalid socket, different from the one in ntp_io.c */
 #define INVALID_SOCK_FD -2
 
@@ -781,10 +784,8 @@ get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx)
           /* Use shorter of the local and remote poll interval, but not shorter
              than the allowed minimum */
           poll_to_use = inst->local_poll;
-          if (poll_to_use > inst->remote_poll)
-            poll_to_use = inst->remote_poll;
-          if (poll_to_use < inst->minpoll)
-            poll_to_use = inst->minpoll;
+          if (poll_to_use > inst->remote_poll && inst->tx_count < MAX_PEER_POLL_TX)
+            poll_to_use = MAX(inst->remote_poll, inst->minpoll);
 
           delay_time = UTI_Log2ToDouble(poll_to_use);
 
