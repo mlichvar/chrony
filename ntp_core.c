@@ -739,6 +739,24 @@ get_poll_adj(NCR_Instance inst, double error_in_estimate, double peer_distance)
 
 /* ================================================== */
 
+static int
+get_transmit_poll(NCR_Instance inst)
+{
+  int poll;
+
+  poll = inst->local_poll;
+
+  /* In symmetric mode, if the peer is responding, use shorter of the local
+     and remote poll interval, but not shorter than the minimum */
+  if (inst->mode == MODE_ACTIVE && poll > inst->remote_poll &&
+      inst->tx_count < MAX_PEER_POLL_TX)
+    poll = MAX(inst->remote_poll, inst->minpoll);
+
+  return poll;
+}
+
+/* ================================================== */
+
 static double
 get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx)
 {
@@ -757,38 +775,21 @@ get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx)
      we're in client/server mode, we don't care what poll interval the
      server responded with last time. */
 
+  poll_to_use = get_transmit_poll(inst);
+  delay_time = UTI_Log2ToDouble(poll_to_use);
+
   switch (inst->opmode) {
     case MD_OFFLINE:
       assert(0);
       break;
     case MD_ONLINE:
-      /* Normal processing, depending on whether we're in
-         client/server or symmetric mode */
-
       switch(inst->mode) {
         case MODE_CLIENT:
-          /* Client/server association - aim at some randomised time
-             approx the poll interval away */
-          poll_to_use = inst->local_poll;
-
-          delay_time = UTI_Log2ToDouble(poll_to_use);
           if (inst->presend_done)
             delay_time = WARM_UP_DELAY;
-
           break;
 
         case MODE_ACTIVE:
-          /* Symmetric active association - aim at some randomised time approx
-             the poll interval away since the last transmit */
-
-          /* Use shorter of the local and remote poll interval, but not shorter
-             than the allowed minimum */
-          poll_to_use = inst->local_poll;
-          if (poll_to_use > inst->remote_poll && inst->tx_count < MAX_PEER_POLL_TX)
-            poll_to_use = MAX(inst->remote_poll, inst->minpoll);
-
-          delay_time = UTI_Log2ToDouble(poll_to_use);
-
           /* If in the basic mode the remote stratum is higher than ours,
              or in the interleaved mode it is lower, wait a bit for the next
              packet before responding in order to minimize the delay of the
@@ -2227,7 +2228,7 @@ NCR_InitiateSampleBurst(NCR_Instance inst, int n_good_samples, int n_total_sampl
 void
 NCR_ReportSource(NCR_Instance inst, RPT_SourceReport *report, struct timespec *now)
 {
-  report->poll = inst->local_poll;
+  report->poll = get_transmit_poll(inst);
 
   switch (inst->mode) {
     case MODE_CLIENT:
