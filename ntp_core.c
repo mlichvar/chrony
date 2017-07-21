@@ -178,6 +178,9 @@ struct NCR_Instance_Record {
   NTP_int64 local_ntp_tx;
   NTP_Local_Timestamp local_tx;
 
+  /* Previous local transmit timestamp for the interleaved mode */
+  NTP_Local_Timestamp prev_local_tx;
+
   /* The instance record in the main source management module.  This
      performs the statistical analysis on the samples we generate */
 
@@ -643,6 +646,7 @@ NCR_ResetInstance(NCR_Instance instance)
   UTI_ZeroNtp64(&instance->local_ntp_rx);
   UTI_ZeroNtp64(&instance->local_ntp_tx);
   zero_local_timestamp(&instance->local_rx);
+  zero_local_timestamp(&instance->prev_local_tx);
 }
 
 /* ================================================== */
@@ -1349,9 +1353,9 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
      measurement in seconds */
   double error_in_estimate;
 
-  double remote_interval, local_interval, server_interval;
+  NTP_Local_Timestamp local_receive, local_transmit;
+  double remote_interval, local_interval, response_time;
   double delay_time, precision;
-  NTP_Timestamp_Source sample_rx_tss;
 
   /* ==================== */
 
@@ -1421,38 +1425,33 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
 
   if (synced_packet && (!interleaved_packet || inst->valid_timestamps)) {
     /* These are the timespec equivalents of the remote and local epochs */
-    struct timespec remote_receive, remote_transmit, prev_remote_receive;
+    struct timespec remote_receive, remote_transmit, remote_request_receive;
     struct timespec local_average, remote_average;
-    double rx_ts_err;
 
-    precision = LCL_GetSysPrecisionAsQuantum() +
-                UTI_Log2ToDouble(message->precision);
-
-    SST_GetFrequencyRange(stats, &source_freq_lo, &source_freq_hi);
-    
-    UTI_Ntp64ToTimespec(&message->receive_ts, &remote_receive);
-    UTI_Ntp64ToTimespec(&message->transmit_ts, &remote_transmit);
+    /* Select remote and local timestamps for the new sample */
+    if (interleaved_packet) {
+      UTI_Ntp64ToTimespec(&message->receive_ts, &remote_receive);
+      UTI_Ntp64ToTimespec(&message->transmit_ts, &remote_transmit);
+      UTI_Ntp64ToTimespec(&inst->remote_ntp_rx, &remote_request_receive);
+      local_receive = inst->local_rx;
+      local_transmit = inst->local_tx;
+    } else {
+      UTI_Ntp64ToTimespec(&message->receive_ts, &remote_receive);
+      UTI_Ntp64ToTimespec(&message->transmit_ts, &remote_transmit);
+      remote_request_receive = remote_receive;
+      local_receive = *rx_ts;
+      local_transmit = inst->local_tx;
+    }
 
     /* Calculate intervals between remote and local timestamps */
-    if (interleaved_packet) {
-      UTI_Ntp64ToTimespec(&inst->remote_ntp_rx, &prev_remote_receive);
-      UTI_AverageDiffTimespecs(&remote_transmit, &remote_receive,
-                               &remote_average, &remote_interval);
-      UTI_AverageDiffTimespecs(&inst->local_rx.ts, &inst->local_tx.ts,
-                               &local_average, &local_interval);
-      server_interval = UTI_DiffTimespecsToDouble(&remote_transmit,
-                                                  &prev_remote_receive);
-      rx_ts_err = inst->local_rx.err;
-      sample_rx_tss = inst->local_rx.source;
-    } else {
-      UTI_AverageDiffTimespecs(&remote_receive, &remote_transmit,
-                               &remote_average, &remote_interval);
-      UTI_AverageDiffTimespecs(&inst->local_tx.ts, &rx_ts->ts,
-                               &local_average, &local_interval);
-      server_interval = remote_interval;
-      rx_ts_err = rx_ts->err;
-      sample_rx_tss = rx_ts->source;
-    }
+    UTI_AverageDiffTimespecs(&remote_receive, &remote_transmit,
+                             &remote_average, &remote_interval);
+    UTI_AverageDiffTimespecs(&local_transmit.ts, &local_receive.ts,
+                             &local_average, &local_interval);
+    response_time = fabs(UTI_DiffTimespecsToDouble(&remote_transmit,
+                                                   &remote_request_receive));
+
+    precision = LCL_GetSysPrecisionAsQuantum() + UTI_Log2ToDouble(message->precision);
 
     /* Calculate delay */
     delay = fabs(local_interval - remote_interval);
@@ -1473,11 +1472,13 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
        sample pair. */
     sample_time = local_average;
     
+    SST_GetFrequencyRange(stats, &source_freq_lo, &source_freq_hi);
+
     /* Calculate skew */
     skew = (source_freq_hi - source_freq_lo) / 2.0;
     
     /* and then calculate peer dispersion */
-    dispersion = MAX(precision, MAX(inst->local_tx.err, rx_ts_err)) +
+    dispersion = MAX(precision, MAX(local_transmit.err, local_receive.err)) +
                  skew * fabs(local_interval);
     
     /* Additional tests required to pass before accumulating the sample */
@@ -1488,7 +1489,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
        the delay is not longer than half of the remote polling interval to
        detect missed packets */
     testA = delay - dispersion <= inst->max_delay && precision <= inst->max_delay &&
-            !(inst->mode == MODE_CLIENT && server_interval > MAX_SERVER_INTERVAL) &&
+            !(inst->mode == MODE_CLIENT && response_time > MAX_SERVER_INTERVAL) &&
             !(inst->mode == MODE_ACTIVE && interleaved_packet &&
               delay > UTI_Log2ToDouble(message->poll - 1));
 
@@ -1512,10 +1513,11 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     testD = message->stratum <= 1 || REF_GetMode() != REF_ModeNormal ||
             pkt_refid != UTI_IPToRefid(&local_addr->ip_addr);
   } else {
-    remote_interval = local_interval = server_interval = 0.0;
+    remote_interval = local_interval = response_time = 0.0;
     offset = delay = dispersion = 0.0;
     sample_time = rx_ts->ts;
-    sample_rx_tss = rx_ts->source;
+    local_receive = *rx_ts;
+    local_transmit = inst->local_tx;
     testA = testB = testC = testD = 0;
   }
   
@@ -1561,8 +1563,8 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     inst->valid_rx = 1;
   }
 
-  if ((int)sample_rx_tss < 0 || sample_rx_tss >= sizeof (tss_chars) ||
-      (int)inst->local_tx.source < 0 || inst->local_tx.source >= sizeof (tss_chars))
+  if ((unsigned int)local_receive.source >= sizeof (tss_chars) ||
+      (unsigned int)local_transmit.source >= sizeof (tss_chars))
     assert(0);
 
   DEBUG_LOG("NTP packet lvm=%o stratum=%d poll=%d prec=%d root_delay=%f root_disp=%f refid=%"PRIx32" [%s]",
@@ -1576,9 +1578,9 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
             UTI_Ntp64ToString(&message->transmit_ts));
   DEBUG_LOG("offset=%.9f delay=%.9f dispersion=%f root_delay=%f root_dispersion=%f",
             offset, delay, dispersion, root_delay, root_dispersion);
-  DEBUG_LOG("remote_interval=%.9f local_interval=%.9f server_interval=%.9f txs=%c rxs=%c",
-            remote_interval, local_interval, server_interval,
-            tss_chars[inst->local_tx.source], tss_chars[sample_rx_tss]);
+  DEBUG_LOG("remote_interval=%.9f local_interval=%.9f response_time=%.9f txs=%c rxs=%c",
+            remote_interval, local_interval, response_time,
+            tss_chars[local_transmit.source], tss_chars[local_receive.source]);
   DEBUG_LOG("test123=%d%d%d test567=%d%d%d testABCD=%d%d%d%d kod_rate=%d interleaved=%d presend=%d valid=%d good=%d updated=%d",
             test1, test2, test3, test5, test6, test7, testA, testB, testC, testD,
             kod_rate, interleaved_packet, inst->presend_done, valid_packet, good_packet,
@@ -1682,15 +1684,15 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     inst->report.offset = offset;
     inst->report.peer_delay = delay;
     inst->report.peer_dispersion = dispersion;
-    inst->report.response_time = server_interval;
+    inst->report.response_time = response_time;
     inst->report.jitter_asymmetry = SST_GetJitterAsymmetry(stats);
     inst->report.tests = ((((((((test1 << 1 | test2) << 1 | test3) << 1 |
                                test5) << 1 | test6) << 1 | test7) << 1 |
                             testA) << 1 | testB) << 1 | testC) << 1 | testD;
     inst->report.interleaved = interleaved_packet;
     inst->report.authenticated = inst->auth_mode != AUTH_NONE;
-    inst->report.tx_tss_char = tss_chars[inst->local_tx.source];
-    inst->report.rx_tss_char = tss_chars[sample_rx_tss];
+    inst->report.tx_tss_char = tss_chars[local_transmit.source];
+    inst->report.rx_tss_char = tss_chars[local_receive.source];
 
     inst->report.total_valid_count++;
   }
@@ -1708,8 +1710,8 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
             offset, delay, dispersion,
             pkt_root_delay, pkt_root_dispersion, pkt_refid,
             NTP_LVM_TO_MODE(message->lvm), interleaved_packet ? 'I' : 'B',
-            tss_chars[inst->local_tx.source],
-            tss_chars[sample_rx_tss]);
+            tss_chars[local_transmit.source],
+            tss_chars[local_receive.source]);
   }            
 
   return good_packet;
