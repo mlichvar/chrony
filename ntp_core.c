@@ -266,6 +266,10 @@ static ARR_Instance broadcasts;
 /* Maximum number of missed responses to follow peer's polling interval */
 #define MAX_PEER_POLL_TX 8
 
+/* Maximum ratio of local intervals in the timestamp selection of the
+   interleaved mode to prefer a sample using previous timestamps */
+#define MAX_INTERLEAVED_L2L_RATIO 0.1
+
 /* Invalid socket, different from the one in ntp_io.c */
 #define INVALID_SOCK_FD -2
 
@@ -1430,11 +1434,23 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
 
     /* Select remote and local timestamps for the new sample */
     if (interleaved_packet) {
-      UTI_Ntp64ToTimespec(&message->receive_ts, &remote_receive);
+      /* Prefer previous local TX and remote RX timestamps if it will make
+         the intervals significantly shorter in order to improve the accuracy
+         of the measured delay */
+      if (!UTI_IsZeroTimespec(&inst->prev_local_tx.ts) &&
+          MAX_INTERLEAVED_L2L_RATIO *
+            UTI_DiffTimespecsToDouble(&inst->local_tx.ts, &inst->local_rx.ts) >
+          UTI_DiffTimespecsToDouble(&inst->local_rx.ts, &inst->prev_local_tx.ts)) {
+        UTI_Ntp64ToTimespec(&inst->remote_ntp_rx, &remote_receive);
+        remote_request_receive = remote_receive;
+        local_transmit = inst->prev_local_tx;
+      } else {
+        UTI_Ntp64ToTimespec(&message->receive_ts, &remote_receive);
+        UTI_Ntp64ToTimespec(&inst->remote_ntp_rx, &remote_request_receive);
+        local_transmit = inst->local_tx;
+      }
       UTI_Ntp64ToTimespec(&message->transmit_ts, &remote_transmit);
-      UTI_Ntp64ToTimespec(&inst->remote_ntp_rx, &remote_request_receive);
       local_receive = inst->local_rx;
-      local_transmit = inst->local_tx;
     } else {
       UTI_Ntp64ToTimespec(&message->receive_ts, &remote_receive);
       UTI_Ntp64ToTimespec(&message->transmit_ts, &remote_transmit);
@@ -1546,6 +1562,12 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     inst->local_rx = *rx_ts;
     inst->valid_timestamps = synced_packet;
     inst->updated_timestamps = 1;
+
+    /* Don't use the same set of timestamps for the next sample */
+    if (interleaved_packet)
+      inst->prev_local_tx = inst->local_tx;
+    else
+      zero_local_timestamp(&inst->prev_local_tx);
   }
 
   /* Accept at most one response per request.  The NTP specification recommends
@@ -2070,6 +2092,9 @@ NCR_SlewTimes(NCR_Instance inst, struct timespec *when, double dfreq, double dof
     UTI_AdjustTimespec(&inst->local_rx.ts, when, &inst->local_rx.ts, &delta, dfreq, doffset);
   if (!UTI_IsZeroTimespec(&inst->local_tx.ts))
     UTI_AdjustTimespec(&inst->local_tx.ts, when, &inst->local_tx.ts, &delta, dfreq, doffset);
+  if (!UTI_IsZeroTimespec(&inst->prev_local_tx.ts))
+    UTI_AdjustTimespec(&inst->prev_local_tx.ts, when, &inst->prev_local_tx.ts, &delta, dfreq,
+                       doffset);
 }
 
 /* ================================================== */
