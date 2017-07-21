@@ -266,6 +266,10 @@ static ARR_Instance broadcasts;
 /* Maximum number of missed responses to follow peer's polling interval */
 #define MAX_PEER_POLL_TX 8
 
+/* Maximum number of missed responses to accept samples using old timestamps
+   in the interleaved client/server mode */
+#define MAX_CLIENT_INTERLEAVED_TX 4
+
 /* Maximum ratio of local intervals in the timestamp selection of the
    interleaved mode to prefer a sample using previous timestamps */
 #define MAX_INTERLEAVED_L2L_RATIO 0.1
@@ -1498,11 +1502,14 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
 
     /* Test A requires that the minimum estimate of the peer delay is not
        larger than the configured maximum, in client mode that the server
-       processing time is sane, and in the interleaved symmetric mode that
-       the delay is not longer than half of the remote polling interval to
-       detect missed packets */
+       processing time is sane, in the interleaved client mode that the
+       timestamps are not too old, and in the interleaved symmetric mode
+       that the delay is not longer than half of the remote polling interval
+       to detect missed packets */
     testA = delay - dispersion <= inst->max_delay && precision <= inst->max_delay &&
-            !(inst->mode == MODE_CLIENT && response_time > MAX_SERVER_INTERVAL) &&
+            !(inst->mode == MODE_CLIENT &&
+              (response_time > MAX_SERVER_INTERVAL ||
+               (interleaved_packet && inst->tx_count > MAX_CLIENT_INTERLEAVED_TX + 1))) &&
             !(inst->mode == MODE_ACTIVE && interleaved_packet &&
               delay > UTI_Log2ToDouble(message->poll - 1));
 
