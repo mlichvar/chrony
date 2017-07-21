@@ -784,7 +784,7 @@ SST_IsGoodSample(SST_Stats inst, double offset, double delay,
 {
   double elapsed, allowed_increase, delay_increase;
 
-  if (inst->n_samples < 3)
+  if (inst->n_samples < 6)
     return 1;
 
   elapsed = UTI_DiffTimespecsToDouble(when, &inst->offset_time);
