@@ -728,19 +728,12 @@ static double
 get_poll_adj(NCR_Instance inst, double error_in_estimate, double peer_distance)
 {
   double poll_adj;
+  int samples;
 
   if (error_in_estimate > peer_distance) {
-    int shift = 0;
-    unsigned long temp = (int)(error_in_estimate / peer_distance);
-    do {
-      shift++;
-      temp>>=1;
-    } while (temp);
-
-    poll_adj = -shift - inst->poll_score + 0.5;
-
+    poll_adj = -log(error_in_estimate / peer_distance) / log(2.0);
   } else {
-    int samples = SST_Samples(SRC_GetSourcestats(inst->source));
+    samples = SST_Samples(SRC_GetSourcestats(inst->source));
 
     /* Adjust polling interval so that the number of sourcestats samples
        remains close to the target value */
