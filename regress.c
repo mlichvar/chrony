@@ -285,7 +285,7 @@ RGR_FindBestRegression
         n - start <= min_samples) {
       if (start != resid_start) {
         /* Ignore extra samples in returned nruns */
-        nruns = n_runs_from_residuals(resid - resid_start + start, n - start);
+        nruns = n_runs_from_residuals(resid + (start - resid_start), n - start);
       }
       break;
     } else {
