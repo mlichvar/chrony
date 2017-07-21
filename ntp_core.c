@@ -348,6 +348,16 @@ do_time_checks(void)
 
 /* ================================================== */
 
+static void
+zero_local_timestamp(NTP_Local_Timestamp *ts)
+{
+  UTI_ZeroTimespec(&ts->ts);
+  ts->err = 0.0;
+  ts->source = NTP_TS_DAEMON;
+}
+
+/* ================================================== */
+
 void
 NCR_Initialise(void)
 {
@@ -569,9 +579,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->opmode = params->online ? MD_ONLINE : MD_OFFLINE;
   result->local_poll = result->minpoll;
   result->poll_score = 0.0;
-  UTI_ZeroTimespec(&result->local_tx.ts);
-  result->local_tx.err = 0.0;
-  result->local_tx.source = NTP_TS_DAEMON;
+  zero_local_timestamp(&result->local_tx);
   result->burst_good_samples_to_go = 0;
   result->burst_total_samples_to_go = 0;
   memset(&result->report, 0, sizeof (result->report));
@@ -634,9 +642,7 @@ NCR_ResetInstance(NCR_Instance instance)
   UTI_ZeroNtp64(&instance->remote_ntp_tx);
   UTI_ZeroNtp64(&instance->local_ntp_rx);
   UTI_ZeroNtp64(&instance->local_ntp_tx);
-  UTI_ZeroTimespec(&instance->local_rx.ts);
-  instance->local_rx.err = 0.0;
-  instance->local_rx.source = NTP_TS_DAEMON;
+  zero_local_timestamp(&instance->local_rx);
 }
 
 /* ================================================== */
@@ -2374,9 +2380,7 @@ broadcast_timeout(void *arg)
   poll = log(destination->interval) / log(2.0) + 0.5;
 
   UTI_ZeroNtp64(&orig_ts);
-  UTI_ZeroTimespec(&recv_ts.ts);
-  recv_ts.source = NTP_TS_DAEMON;
-  recv_ts.err = 0.0;
+  zero_local_timestamp(&recv_ts);
 
   transmit_packet(MODE_BROADCAST, 0, poll, NTP_VERSION, 0, 0, &orig_ts, &orig_ts, &recv_ts,
                   NULL, NULL, NULL, &destination->addr, &destination->local_addr);
