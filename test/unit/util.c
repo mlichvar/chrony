@@ -43,6 +43,10 @@ void test_unit(void) {
   ntp_ts.hi = htonl(JAN_1970);
   ntp_ts.lo = 0xffffffff;
   UTI_Ntp64ToTimespec(&ntp_ts, &ts);
+  TEST_CHECK(ts.tv_sec == 0);
+  TEST_CHECK(ts.tv_nsec == 999999999);
+
+  UTI_AddDoubleToTimespec(&ts, 1e-9, &ts);
   TEST_CHECK(ts.tv_sec == 1);
   TEST_CHECK(ts.tv_nsec == 0);
 

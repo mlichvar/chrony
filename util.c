@@ -180,7 +180,7 @@ UTI_DiffTimespecs(struct timespec *result, struct timespec *a, struct timespec *
 double
 UTI_DiffTimespecsToDouble(struct timespec *a, struct timespec *b)
 {
-  return (a->tv_sec - b->tv_sec) + 1.0e-9 * (a->tv_nsec - b->tv_nsec);
+  return ((double)a->tv_sec - (double)b->tv_sec) + 1.0e-9 * (a->tv_nsec - b->tv_nsec);
 }
 
 /* ================================================== */
@@ -778,9 +778,7 @@ UTI_Ntp64ToTimespec(NTP_int64 *src, struct timespec *dest)
   dest->tv_sec = ntp_sec - JAN_1970;
 #endif
 
-  dest->tv_nsec = ntp_frac / NSEC_PER_NTP64 + 0.5;
-
-  UTI_NormaliseTimespec(dest);
+  dest->tv_nsec = ntp_frac / NSEC_PER_NTP64;
 }
 
 /* ================================================== */
@@ -840,12 +838,11 @@ UTI_Log2ToDouble(int l)
 void
 UTI_TimespecNetworkToHost(Timespec *src, struct timespec *dest)
 {
-  uint32_t sec_low;
+  uint32_t sec_low, nsec;
 #ifdef HAVE_LONG_TIME_T
   uint32_t sec_high;
 #endif
 
-  dest->tv_nsec = ntohl(src->tv_nsec);
   sec_low = ntohl(src->tv_sec_low);
 #ifdef HAVE_LONG_TIME_T
   sec_high = ntohl(src->tv_sec_high);
@@ -857,7 +854,8 @@ UTI_TimespecNetworkToHost(Timespec *src, struct timespec *dest)
   dest->tv_sec = sec_low;
 #endif
 
-  UTI_NormaliseTimespec(dest);
+  nsec = ntohl(src->tv_nsec);
+  dest->tv_nsec = CLAMP(0U, nsec, 999999999U);
 }
 
 /* ================================================== */
