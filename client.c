@@ -315,7 +315,7 @@ bits_to_mask(int bits, int family, IPAddr *mask)
   mask->family = family;
   switch (family) {
     case IPADDR_INET4:
-      if (bits < 0)
+      if (bits > 32 || bits < 0)
         bits = 32;
       if (bits > 0) {
         mask->addr.in4 = -1;
@@ -2809,7 +2809,7 @@ process_cmd_retries(const char *line)
   int retries;
 
   retries = atoi(line);
-  if (retries < 0) {
+  if (retries < 0 || retries > 30) {
     LOG(LOGS_ERR, "Invalid maximum number of retries");
     return 0;
   }
