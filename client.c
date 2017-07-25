@@ -796,7 +796,7 @@ parse_allow_deny(CMD_Request *msg, char *line)
         (n = sscanf(p, "%lu.%lu.%lu.%lu", &a, &b, &c, &d)) <= 0) {
 
       /* Try to parse as the name of a machine */
-      if (DNS_Name2IPAddress(p, &ip, 1) != DNS_Success) {
+      if (slashpos || DNS_Name2IPAddress(p, &ip, 1) != DNS_Success) {
         LOG(LOGS_ERR, "Could not read address");
         return 0;
       } else {
