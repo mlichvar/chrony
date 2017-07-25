@@ -108,32 +108,26 @@ estimate_and_set_system(struct timespec *now, int offset_provided, double offset
   int found_freq;
   double slew_by;
 
+  b0 = offset_provided ? offset : 0.0;
+  b1 = freq = 0.0;
+  found_freq = 0;
+
   if (n_samples > 1) {
     for (i=0; i<n_samples; i++) {
       agos[i] = UTI_DiffTimespecsToDouble(&samples[n_samples - 1].when, &samples[i].when);
       offsets[i] = samples[i].offset;
     }
     
-    RGR_FindBestRobustRegression(agos, offsets, n_samples,
-                                 1.0e-8, /* 0.01ppm easily good enough for this! */
-                                 &b0, &b1, &n_runs, &best_start);
-    
-    
-    /* Ignore b0 from regression; treat offset as being the most
-       recently entered value.  (If the administrator knows he's put
-       an outlier in, he will rerun the settime operation.)   However,
-       the frequency estimate comes from the regression. */
-    
-    freq = -b1;
-    found_freq = 1;
-  } else {
-    if (offset_provided) {
-      b0 = offset;
-    } else {
-      b0 = 0.0;
+    if (RGR_FindBestRobustRegression(agos, offsets, n_samples, 1.0e-8,
+                                     &b0, &b1, &n_runs, &best_start)) {
+      /* Ignore b0 from regression; treat offset as being the most
+         recently entered value.  (If the administrator knows he's put
+         an outlier in, he will rerun the settime operation.)   However,
+         the frequency estimate comes from the regression. */
+      freq = -b1;
+      found_freq = 1;
     }
-    b1 = freq = 0.0;
-    found_freq = 0;
+  } else {
     agos[0] = 0.0;
     offsets[0] = b0;
   }
