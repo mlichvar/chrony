@@ -490,7 +490,7 @@ SYS_Linux_EnableSystemCallFilter(int level)
     SCMP_SYS(poll), SCMP_SYS(read), SCMP_SYS(futex), SCMP_SYS(select),
     SCMP_SYS(set_robust_list), SCMP_SYS(write),
     /* Miscellaneous */
-    SCMP_SYS(sysinfo), SCMP_SYS(uname),
+    SCMP_SYS(getrandom), SCMP_SYS(sysinfo), SCMP_SYS(uname),
   };
 
   const int socket_domains[] = {
