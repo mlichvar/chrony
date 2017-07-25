@@ -2585,7 +2585,6 @@ process_cmd_settime(char *line)
   time_t now, new_time;
   CMD_Request request;
   CMD_Reply reply;
-  long offset_cs;
   double dfreq_ppm, new_afreq_ppm;
   double offset;
 
@@ -2599,9 +2598,8 @@ process_cmd_settime(char *line)
     ts.tv_nsec = 0;
     UTI_TimespecHostToNetwork(&ts, &request.data.settime.ts);
     request.command = htons(REQ_SETTIME);
-    if (request_reply(&request, &reply, RPY_MANUAL_TIMESTAMP, 1)) {
-          offset_cs = ntohl(reply.data.manual_timestamp.centiseconds);
-          offset = 0.01 * (double)(int32_t)offset_cs;
+    if (request_reply(&request, &reply, RPY_MANUAL_TIMESTAMP2, 1)) {
+          offset = UTI_FloatNetworkToHost(reply.data.manual_timestamp.offset);
           dfreq_ppm = UTI_FloatNetworkToHost(reply.data.manual_timestamp.dfreq_ppm);
           new_afreq_ppm = UTI_FloatNetworkToHost(reply.data.manual_timestamp.new_afreq_ppm);
           printf("Clock was %.2f seconds fast.  Frequency change = %.2fppm, new frequency = %.2fppm\n",

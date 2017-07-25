@@ -97,7 +97,8 @@ MNL_Finalise(void)
 /* ================================================== */
 
 static void
-estimate_and_set_system(struct timespec *now, int offset_provided, double offset, long *offset_cs, double *dfreq_ppm, double *new_afreq_ppm)
+estimate_and_set_system(struct timespec *now, int offset_provided, double offset,
+                        double *reg_offset, double *dfreq_ppm, double *new_afreq_ppm)
 {
   double agos[MAX_SAMPLES], offsets[MAX_SAMPLES];
   double b0, b1;
@@ -152,7 +153,7 @@ estimate_and_set_system(struct timespec *now, int offset_provided, double offset
                            0.0, skew);
   }
   
-  if (offset_cs) *offset_cs = (long)(0.5 + 100.0 * b0);
+  if (reg_offset) *reg_offset = b0;
   if (dfreq_ppm) *dfreq_ppm = 1.0e6 * freq;
   if (new_afreq_ppm) *new_afreq_ppm = LCL_ReadAbsoluteFrequency();
   
@@ -166,7 +167,7 @@ estimate_and_set_system(struct timespec *now, int offset_provided, double offset
 /* ================================================== */
 
 int
-MNL_AcceptTimestamp(struct timespec *ts, long *offset_cs, double *dfreq_ppm, double *new_afreq_ppm)
+MNL_AcceptTimestamp(struct timespec *ts, double *reg_offset, double *dfreq_ppm, double *new_afreq_ppm)
 {
   struct timespec now;
   double offset, diff;
@@ -203,7 +204,7 @@ MNL_AcceptTimestamp(struct timespec *ts, long *offset_cs, double *dfreq_ppm, dou
     samples[n_samples].orig_offset = offset;
     ++n_samples;
 
-    estimate_and_set_system(&now, 1, offset, offset_cs, dfreq_ppm, new_afreq_ppm);
+    estimate_and_set_system(&now, 1, offset, reg_offset, dfreq_ppm, new_afreq_ppm);
 
     return 1;
 

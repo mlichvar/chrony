@@ -123,7 +123,7 @@ static const uint16_t reply_lengths[] = {
   RPY_LENGTH_ENTRY(null),                       /* NULL */
   RPY_LENGTH_ENTRY(n_sources),                  /* N_SOURCES */
   RPY_LENGTH_ENTRY(source_data),                /* SOURCE_DATA */
-  RPY_LENGTH_ENTRY(manual_timestamp),           /* MANUAL_TIMESTAMP */
+  0,                                            /* MANUAL_TIMESTAMP */
   RPY_LENGTH_ENTRY(tracking),                   /* TRACKING */
   RPY_LENGTH_ENTRY(sourcestats),                /* SOURCESTATS */
   RPY_LENGTH_ENTRY(rtc),                        /* RTC */
@@ -136,6 +136,7 @@ static const uint16_t reply_lengths[] = {
   RPY_LENGTH_ENTRY(server_stats),               /* SERVER_STATS */
   RPY_LENGTH_ENTRY(client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX2 */
   RPY_LENGTH_ENTRY(ntp_data),                   /* NTP_DATA */
+  RPY_LENGTH_ENTRY(manual_timestamp),           /* MANUAL_TIMESTAMP2 */
 };
 
 /* ================================================== */

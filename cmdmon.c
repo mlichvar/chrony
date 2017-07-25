@@ -568,14 +568,13 @@ static void
 handle_settime(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   struct timespec ts;
-  long offset_cs;
-  double dfreq_ppm, new_afreq_ppm;
+  double offset, dfreq_ppm, new_afreq_ppm;
   UTI_TimespecNetworkToHost(&rx_message->data.settime.ts, &ts);
   if (!MNL_IsEnabled()) {
     tx_message->status = htons(STT_NOTENABLED);
-  } else if (MNL_AcceptTimestamp(&ts, &offset_cs, &dfreq_ppm, &new_afreq_ppm)) {
-    tx_message->reply = htons(RPY_MANUAL_TIMESTAMP);
-    tx_message->data.manual_timestamp.centiseconds = htonl((int32_t)offset_cs);
+  } else if (MNL_AcceptTimestamp(&ts, &offset, &dfreq_ppm, &new_afreq_ppm)) {
+    tx_message->reply = htons(RPY_MANUAL_TIMESTAMP2);
+    tx_message->data.manual_timestamp.offset = UTI_FloatHostToNetwork(offset);
     tx_message->data.manual_timestamp.dfreq_ppm = UTI_FloatHostToNetwork(dfreq_ppm);
     tx_message->data.manual_timestamp.new_afreq_ppm = UTI_FloatHostToNetwork(new_afreq_ppm);
   } else {
