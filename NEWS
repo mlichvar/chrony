@@ -1,3 +1,34 @@
+New in version 3.2
+==================
+
+Enhancements
+------------
+* Improve stability with NTP sources and reference clocks
+* Improve support for NTP interleaved modes
+* Control frequency of system clock on macOS 10.13 and later
+* Set TAI-UTC offset of system clock with leapsectz directive
+* Add support for new HW timestamping options added in Linux 4.13
+* Add rxfilter option to hwtimestamp directive
+* Add extpps option to PHC refclock to timestamp external PPS signal
+* Add pps option to refclock directive to treat any refclock as PPS
+* Add width option to refclock directive to filter wrong pulse edges
+* Add -x option to disable control of system clock
+* Add -l option to log to specified file instead of syslog
+* Allow multiple command-line options to be specified together
+* Allow starting without root privileges with -Q option
+* Update seccomp filter for new glibc versions
+* Dump history on exit by default with dumpdir directive
+* Use hardening compiler options by default
+
+Bug fixes
+---------
+* Don't drop PHC samples with low-resolution system clock
+* Ignore outliers in PHC tracking, RTC tracking, manual input
+* Increase polling interval when peer is not responding
+* Exit with error message when include directive fails
+* Don't allow slash after hostname in allow/deny directive/command
+* Try to connect to all addresses in chronyc before giving up
+
 New in version 3.1
 ==================
 
