@@ -1071,7 +1071,7 @@ parse_allow_deny(char *line, ARR_Instance restrictions, int allow)
       }
 
     } else {
-      if (DNS_Name2IPAddress(p, &ip_addr, 1) == DNS_Success) {
+      if (!slashpos && DNS_Name2IPAddress(p, &ip_addr, 1) == DNS_Success) {
         new_node = (AllowDeny *)ARR_GetNewElement(restrictions);
         new_node->allow = allow;
         new_node->all = all;
