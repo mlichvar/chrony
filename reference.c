@@ -1366,7 +1366,7 @@ REF_GetTrackingReport(RPT_TrackingReport *rep)
                          &rep->ref_id, &rep->ref_time,
                          &rep->root_delay, &rep->root_dispersion);
 
-  if (rep->stratum == NTP_MAX_STRATUM)
+  if (rep->stratum == NTP_MAX_STRATUM && !synchronised)
     rep->stratum = 0;
 
   rep->ip_addr.family = IPADDR_UNSPEC;
