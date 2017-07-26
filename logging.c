@@ -188,6 +188,9 @@ LOG_OpenFileLog(const char *log_file)
   if (!f)
     LOG_FATAL("Could not open log file %s", log_file);
 
+  /* Enable line buffering */
+  setvbuf(f, NULL, _IOLBF, BUFSIZ);
+
   file_log = f;
 }
 
