@@ -448,8 +448,13 @@ int main
         sched_priority = parse_int_arg(optarg);
         break;
       case 'q':
+        ref_mode = REF_ModeUpdateOnce;
+        nofork = 1;
+        client_only = 0;
+        system_log = 0;
+        break;
       case 'Q':
-        ref_mode = opt == 'q' ? REF_ModeUpdateOnce : REF_ModePrintOnce;
+        ref_mode = REF_ModePrintOnce;
         nofork = 1;
         client_only = 1;
         clock_control = 0;
