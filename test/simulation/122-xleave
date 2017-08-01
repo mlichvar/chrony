@@ -17,6 +17,7 @@ max_sync_time=500
 base_delay="(+ 1e-4 (* -1 (equal 0.1 from 2) (equal 0.1 to 1)))"
 
 client_lpeer_options="xleave minpoll 5 maxpoll 5"
+client_rpeer_options="minpoll 5 maxpoll 5"
 
 run_test || test_fail
 check_chronyd_exit || test_fail

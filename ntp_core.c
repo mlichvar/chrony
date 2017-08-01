@@ -181,6 +181,7 @@ struct NCR_Instance_Record {
   /* Previous values of some variables needed in interleaved mode */
   NTP_Local_Timestamp prev_local_tx;
   int prev_local_poll;
+  unsigned int prev_tx_count;
 
   /* The instance record in the main source management module.  This
      performs the statistical analysis on the samples we generate */
@@ -655,8 +656,10 @@ NCR_ResetInstance(NCR_Instance instance)
   UTI_ZeroNtp64(&instance->local_ntp_rx);
   UTI_ZeroNtp64(&instance->local_ntp_tx);
   zero_local_timestamp(&instance->local_rx);
+
   zero_local_timestamp(&instance->prev_local_tx);
   instance->prev_local_poll = 0;
+  instance->prev_tx_count = 0;
 }
 
 /* ================================================== */
@@ -1072,7 +1075,7 @@ transmit_timeout(void *arg)
 {
   NCR_Instance inst = (NCR_Instance) arg;
   NTP_Local_Address local_addr;
-  int sent;
+  int interleaved, sent;
 
   inst->tx_timeout_id = 0;
 
@@ -1112,18 +1115,27 @@ transmit_timeout(void *arg)
   local_addr.if_index = INVALID_IF_INDEX;
   local_addr.sock_fd = inst->local_addr.sock_fd;
 
+  /* In symmetric mode, don't send a packet in interleaved mode unless it
+     is the first response to the last valid request received from the peer
+     and there was just one response to the previous valid request.  This
+     prevents the peer from matching the transmit timestamp with an older
+     response if it can't detect missed responses. */
+  interleaved = inst->interleaved &&
+                (inst->mode == MODE_CLIENT ||
+                 (inst->prev_tx_count == 1 && inst->tx_count == 0));
+
   /* Check whether we need to 'warm up' the link to the other end by
      sending an NTP exchange to ensure both ends' ARP caches are
      primed or whether we need to send two packets first to ensure a
      server in the interleaved mode has a fresh timestamp for us. */
   if (inst->presend_minpoll <= inst->local_poll && !inst->presend_done &&
       !inst->burst_total_samples_to_go) {
-    inst->presend_done = inst->interleaved ? 2 : 1;
+    inst->presend_done = interleaved ? 2 : 1;
   } else if (inst->presend_done > 0) {
     inst->presend_done--;
   }
 
-  sent = transmit_packet(inst->mode, inst->interleaved, inst->local_poll,
+  sent = transmit_packet(inst->mode, interleaved, inst->local_poll,
                          inst->version,
                          inst->auth_mode, inst->auth_key_id,
                          &inst->remote_ntp_rx, &inst->remote_ntp_tx,
@@ -1624,6 +1636,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
                            message->stratum : NTP_MAX_STRATUM;
 
     inst->prev_local_poll = inst->local_poll;
+    inst->prev_tx_count = inst->tx_count;
     inst->tx_count = 0;
 
     SRC_UpdateReachability(inst->source, synced_packet);
