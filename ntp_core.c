@@ -1506,11 +1506,11 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
             !(inst->mode == MODE_ACTIVE && interleaved_packet &&
               delay > UTI_Log2ToDouble(message->poll - 1));
 
-    /* Test B requires in the basic client mode that the ratio of the round
-       trip delay to the minimum one currently in the stats data register is
-       less than an administrator-defined value */
+    /* Test B requires in client mode that the ratio of the round trip delay
+       to the minimum one currently in the stats data register is less than an
+       administrator-defined value */
     testB = inst->max_delay_ratio <= 1.0 ||
-            !(inst->mode == MODE_CLIENT && !interleaved_packet &&
+            !(inst->mode == MODE_CLIENT &&
               (delay - dispersion) / SST_MinRoundTripDelay(stats) > inst->max_delay_ratio);
 
     /* Test C requires that the ratio of the increase in delay from the minimum
