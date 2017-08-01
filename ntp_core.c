@@ -178,8 +178,9 @@ struct NCR_Instance_Record {
   NTP_int64 local_ntp_tx;
   NTP_Local_Timestamp local_tx;
 
-  /* Previous local transmit timestamp for the interleaved mode */
+  /* Previous values of some variables needed in interleaved mode */
   NTP_Local_Timestamp prev_local_tx;
+  int prev_local_poll;
 
   /* The instance record in the main source management module.  This
      performs the statistical analysis on the samples we generate */
@@ -655,6 +656,7 @@ NCR_ResetInstance(NCR_Instance instance)
   UTI_ZeroNtp64(&instance->local_ntp_tx);
   zero_local_timestamp(&instance->local_rx);
   zero_local_timestamp(&instance->prev_local_tx);
+  instance->prev_local_poll = 0;
 }
 
 /* ================================================== */
@@ -1424,7 +1426,8 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
   if (synced_packet && (!interleaved_packet || inst->valid_timestamps)) {
     /* These are the timespec equivalents of the remote and local epochs */
     struct timespec remote_receive, remote_transmit, remote_request_receive;
-    struct timespec local_average, remote_average;
+    struct timespec local_average, remote_average, prev_remote_transmit;
+    double prev_remote_poll_interval;
 
     /* Select remote and local timestamps for the new sample */
     if (interleaved_packet) {
@@ -1444,10 +1447,12 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
         local_transmit = inst->local_tx;
       }
       UTI_Ntp64ToTimespec(&message->transmit_ts, &remote_transmit);
+      UTI_Ntp64ToTimespec(&inst->remote_ntp_tx, &prev_remote_transmit);
       local_receive = inst->local_rx;
     } else {
       UTI_Ntp64ToTimespec(&message->receive_ts, &remote_receive);
       UTI_Ntp64ToTimespec(&message->transmit_ts, &remote_transmit);
+      UTI_ZeroTimespec(&prev_remote_transmit);
       remote_request_receive = remote_receive;
       local_receive = *rx_ts;
       local_transmit = inst->local_tx;
@@ -1491,20 +1496,28 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     dispersion = MAX(precision, MAX(local_transmit.err, local_receive.err)) +
                  skew * fabs(local_interval);
     
+    /* If the source is an active peer, this is the minimum assumed interval
+       between previous two transmissions (if not constrained by minpoll) */
+    prev_remote_poll_interval = UTI_Log2ToDouble(MIN(inst->remote_poll,
+                                                     inst->prev_local_poll));
+
     /* Additional tests required to pass before accumulating the sample */
 
     /* Test A requires that the minimum estimate of the peer delay is not
-       larger than the configured maximum, in client mode that the server
-       processing time is sane, in the interleaved client mode that the
-       timestamps are not too old, and in the interleaved symmetric mode
-       that the delay is not longer than half of the remote polling interval
-       to detect missed packets */
+       larger than the configured maximum, in both client modes that the server
+       processing time is sane, in interleaved client mode that the timestamps
+       are not too old, and in interleaved symmetric mode that the delay and
+       intervals between remote timestamps don't indicate a missed response */
     testA = delay - dispersion <= inst->max_delay && precision <= inst->max_delay &&
             !(inst->mode == MODE_CLIENT &&
               (response_time > MAX_SERVER_INTERVAL ||
                (interleaved_packet && inst->tx_count > MAX_CLIENT_INTERLEAVED_TX + 1))) &&
             !(inst->mode == MODE_ACTIVE && interleaved_packet &&
-              delay > UTI_Log2ToDouble(message->poll - 1));
+              (delay > 0.5 * prev_remote_poll_interval ||
+               UTI_CompareNtp64(&message->receive_ts, &message->transmit_ts) <= 0 ||
+               (inst->remote_poll <= inst->prev_local_poll &&
+                UTI_DiffTimespecsToDouble(&remote_transmit, &prev_remote_transmit) >
+                  1.5 * prev_remote_poll_interval)));
 
     /* Test B requires in client mode that the ratio of the round trip delay
        to the minimum one currently in the stats data register is less than an
@@ -1610,7 +1623,9 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     inst->remote_stratum = message->stratum != NTP_INVALID_STRATUM ?
                            message->stratum : NTP_MAX_STRATUM;
 
+    inst->prev_local_poll = inst->local_poll;
     inst->tx_count = 0;
+
     SRC_UpdateReachability(inst->source, synced_packet);
 
     if (good_packet) {
