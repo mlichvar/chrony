@@ -178,10 +178,9 @@ and the state might be dropped when there are too many clients (e.g.
 by other clients that have the same IP address (e.g. computers behind NAT or
 someone sending requests with a spoofed source address).
 +
-With longer polling intervals, it is recommended to combine the *xleave* option
-with the *presend* option in order to shorten the interval in which the server
-has to keep the state to be able to respond in the interleaved mode. The
-shorter interval also improves accuracy of the measured offset and delay.
+The *xleave* option can be combined with the *presend* option in order to
+shorten the interval in which the server has to keep the state to be able to
+respond in the interleaved mode.
 *polltarget* _target_:::
 Target number of measurements to use for the regression algorithm which
 *chronyd* will try to maintain by adjusting the polling interval between
@@ -1865,20 +1864,17 @@ be enabled by the *xleave* option in the <<server,*server*>> or the
 This directive is supported on Linux 3.19 and newer. The NIC must support HW
 timestamping, which can be verified with the *ethtool -T* command. The list of
 capabilities should include _SOF_TIMESTAMPING_RAW_HARDWARE_,
-_SOF_TIMESTAMPING_TX_HARDWARE_, _SOF_TIMESTAMPING_RX_HARDWARE_, and the filter
-modes should include _HWTSTAMP_FILTER_ALL_ or _HWTSTAMP_FILTER_NTP_ALL_. When
+_SOF_TIMESTAMPING_TX_HARDWARE_, _SOF_TIMESTAMPING_RX_HARDWARE_, and the receive
+filters should include _HWTSTAMP_FILTER_ALL_ or _HWTSTAMP_FILTER_NTP_ALL_. When
 *chronyd* is running, no other process (e.g. a PTP daemon) should be working
-with the NIC clock.
+with the NIC clock. HW timestamping of packets received from bridged and bonded
+interfaces is supported on Linux 4.13 and newer.
 +
 If the kernel supports software timestamping, it will be enabled for all
-interfaces. With both hardware and software timestamping there are some
-limitations on which timestamps can be actually used, e.g. transmit
-timestamping does not currently work with IPv6 packets using IP options and
-hardware timestamping of packets received from bridges, bonds, and other
-virtual interfaces, works only on Linux 4.13 and newer. The source of
-timestamps (i.e. hardware, kernel, or daemon) is indicated in the
-_measurements.log_ file if enabled by the <<log,*log measurements*>> directive,
-and the <<chronyc.adoc#ntpdata,*ntpdata*>> report in *chronyc*.
+interfaces. The source of timestamps (i.e. hardware, kernel, or daemon) is
+indicated in the _measurements.log_ file if enabled by the <<log,*log
+measurements*>> directive, and the <<chronyc.adoc#ntpdata,*ntpdata*>> report in
+*chronyc*.
 +
 If the specified interface is _*_, *chronyd* will try to enable HW timestamping
 on all available interfaces.
