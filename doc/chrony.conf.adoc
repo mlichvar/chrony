@@ -1610,7 +1610,7 @@ from the example line above):
 . The root dispersion (_EPSILON_ in RFC 5905). [7.446e-03]
 . Reference ID of the server's source as a hexadecimal number. [CB00717B]
 . NTP mode of the received packet (_1_=active peer, _2_=passive peer,
-  _3_=server, _B_=basic, _I_=interleaved). [4B]
+  _4_=server, _B_=basic, _I_=interleaved). [4B]
 . Source of the local transmit timestamp
   (_D_=daemon, _K_=kernel, _H_=hardware). [D]
 . Source of the local receive timestamp
