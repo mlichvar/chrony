@@ -512,14 +512,43 @@ extract_udp_data(unsigned char *msg, NTP_Remote_Address *remote_addr, int len)
     len -= ihl + 8, msg += ihl + 8;
 #ifdef FEAT_IPV6
   } else if (len >= 48 && msg[0] >> 4 == 6) {
-    /* IPv6 extension headers are not supported */
-    if (msg[6] != 17)
-      return 0;
+    int eh_len, next_header = msg[6];
 
     memcpy(&addr.in6.sin6_addr.s6_addr, msg + 24, 16);
-    addr.in6.sin6_port = *(uint16_t *)(msg + 40 + 2);
+    len -= 40, msg += 40;
+
+    /* Skip IPv6 extension headers if present */
+    while (next_header != 17) {
+      switch (next_header) {
+        case 44:  /* Fragment Header */
+          /* Process only the first fragment */
+          if (ntohs(*(uint16_t *)(msg + 2)) >> 3 != 0)
+            return 0;
+          eh_len = 8;
+          break;
+        case 0:   /* Hop-by-Hop Options */
+        case 43:  /* Routing Header */
+        case 60:  /* Destination Options */
+        case 135: /* Mobility Header */
+          eh_len = 8 * (msg[1] + 1);
+          break;
+        case 51:  /* Authentication Header */
+          eh_len = 4 * (msg[1] + 2);
+          break;
+        default:
+          return 0;
+      }
+
+      if (eh_len < 8 || len < eh_len + 8)
+        return 0;
+
+      next_header = msg[0];
+      len -= eh_len, msg += eh_len;
+    }
+
+    addr.in6.sin6_port = *(uint16_t *)(msg + 2);
     addr.in6.sin6_family = AF_INET6;
-    len -= 48, msg += 48;
+    len -= 8, msg += 8;
 #endif
   } else {
     return 0;
