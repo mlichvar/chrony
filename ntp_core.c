@@ -1119,10 +1119,14 @@ transmit_timeout(void *arg)
      is the first response to the last valid request received from the peer
      and there was just one response to the previous valid request.  This
      prevents the peer from matching the transmit timestamp with an older
-     response if it can't detect missed responses. */
+     response if it can't detect missed responses.  In client mode, which has
+     at most one response per request, check how many responses are missing to
+     prevent the server from responding with a very old transmit timestamp. */
   interleaved = inst->interleaved &&
-                (inst->mode == MODE_CLIENT ||
-                 (inst->prev_tx_count == 1 && inst->tx_count == 0));
+                ((inst->mode == MODE_CLIENT &&
+                  inst->tx_count < MAX_CLIENT_INTERLEAVED_TX) ||
+                 (inst->mode == MODE_ACTIVE &&
+                  inst->prev_tx_count == 1 && inst->tx_count == 0));
 
   /* Check whether we need to 'warm up' the link to the other end by
      sending an NTP exchange to ensure both ends' ARP caches are
@@ -1517,13 +1521,11 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
 
     /* Test A requires that the minimum estimate of the peer delay is not
        larger than the configured maximum, in both client modes that the server
-       processing time is sane, in interleaved client mode that the timestamps
-       are not too old, and in interleaved symmetric mode that the delay and
-       intervals between remote timestamps don't indicate a missed response */
+       processing time is sane, and in interleaved symmetric mode that the
+       measured delay and intervals between remote timestamps don't indicate
+       a missed response */
     testA = delay - dispersion <= inst->max_delay && precision <= inst->max_delay &&
-            !(inst->mode == MODE_CLIENT &&
-              (response_time > MAX_SERVER_INTERVAL ||
-               (interleaved_packet && inst->tx_count > MAX_CLIENT_INTERLEAVED_TX + 1))) &&
+            !(inst->mode == MODE_CLIENT && response_time > MAX_SERVER_INTERVAL) &&
             !(inst->mode == MODE_ACTIVE && interleaved_packet &&
               (delay > 0.5 * prev_remote_poll_interval ||
                UTI_CompareNtp64(&message->receive_ts, &message->transmit_ts) <= 0 ||

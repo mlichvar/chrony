@@ -251,7 +251,8 @@ test_unit(void)
     for (j = 0; j < 50; j++) {
       DEBUG_LOG("iteration %d, %d", i, j);
 
-      interleaved = random() % 2;
+      interleaved = random() % 2 && (inst->mode != MODE_CLIENT ||
+                                     inst->tx_count <= MAX_CLIENT_INTERLEAVED_TX);
       authenticated = random() % 2;
       valid = (!interleaved || (source.params.interleaved && has_updated)) &&
               (!source.params.authkey || authenticated);
