@@ -981,17 +981,24 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
 
   UTI_TimespecToNtp64(&our_ref_time, &message.reference_ts, NULL);
 
-  /* Originate - this comes from the last packet the source sent us */
-  message.originate_ts = interleaved ? *remote_ntp_rx : *remote_ntp_tx;
+  /* Don't reveal timestamps which are not necessary for the protocol */
 
-  /* Prepare random bits which will be added to the receive timestamp */
-  UTI_GetNtp64Fuzz(&ts_fuzz, precision);
+  if (my_mode != MODE_CLIENT || interleaved) {
+    /* Originate - this comes from the last packet the source sent us */
+    message.originate_ts = interleaved ? *remote_ntp_rx : *remote_ntp_tx;
 
-  /* Receive - this is when we received the last packet from the source.
-     This timestamp will have been adjusted so that it will now look to
-     the source like we have been running on our latest estimate of
-     frequency all along */
-  UTI_TimespecToNtp64(&local_receive, &message.receive_ts, &ts_fuzz);
+    /* Prepare random bits which will be added to the receive timestamp */
+    UTI_GetNtp64Fuzz(&ts_fuzz, precision);
+
+    /* Receive - this is when we received the last packet from the source.
+       This timestamp will have been adjusted so that it will now look to
+       the source like we have been running on our latest estimate of
+       frequency all along */
+    UTI_TimespecToNtp64(&local_receive, &message.receive_ts, &ts_fuzz);
+  } else {
+    UTI_ZeroNtp64(&message.originate_ts);
+    UTI_ZeroNtp64(&message.receive_ts);
+  }
 
   do {
     /* Prepare random bits which will be added to the transmit timestamp */
