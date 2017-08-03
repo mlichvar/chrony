@@ -1,17 +1,35 @@
 #!/bin/sh
 # This is a NetworkManager dispatcher script for chronyd to set its NTP sources
-# online/offline when a default route is configured/removed on the system.
+# online or offline when a network interface is configured or removed
 
 export LC_ALL=C
 
-if [ "$2" = "up" ]; then
-	/sbin/ip route list dev "$1" | grep -q '^default' &&
-		/usr/bin/chronyc online > /dev/null 2>&1
+# Check if there is a default route
+
+if /sbin/ip route list 2> /dev/null | grep -q '^default'; then
+  chronyc online > /dev/null 2>&1
+  exit 0
 fi
 
-if [ "$2" = "down" ]; then
-	/sbin/ip route list | grep -q '^default' ||
-		/usr/bin/chronyc offline > /dev/null 2>&1
-fi
+sources=$(chronyc -c -n sources 2> /dev/null)
+
+[ $? -ne 0 ] && exit 0
+
+# Check each configured source if it has a route
+
+echo "$sources" | while IFS=, read mode state address rest; do
+  [ "$mode" != '^' ] && [ "$mode" != '=' ] && continue
+
+  /sbin/ip route get "$address" > /dev/null 2>&1 && command="online" || command="offline"
+
+  # Set priority of sources so that the selected source is set as
+  # last if offline to avoid unnecessary reselection
+  [ "$state" != '*' ] && priority=1 || priority=2
+
+  echo "$priority $command $address"
+
+done | sort | while read priority command address; do
+  echo "$command $address"
+done | chronyc > /dev/null 2>&1
 
 exit 0
