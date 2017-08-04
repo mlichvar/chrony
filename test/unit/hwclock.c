@@ -26,14 +26,14 @@ test_unit(void)
 {
   struct timespec start_hw_ts, start_local_ts, hw_ts, local_ts, ts;
   HCL_Instance clock;
-  double freq, jitter, interval, d;
-  int i, j;
+  double freq, jitter, interval, dj, sum;
+  int i, j, count;
 
   LCL_Initialise();
 
   clock = HCL_CreateInstance(1.0);
 
-  for (i = 0; i < 2000; i++) {
+  for (i = 0, count = 0, sum = 0.0; i < 2000; i++) {
     UTI_ZeroTimespec(&start_hw_ts);
     UTI_ZeroTimespec(&start_local_ts);
     UTI_AddDoubleToTimespec(&start_hw_ts, TST_GetRandomDouble(0.0, 1e9), &start_hw_ts);
@@ -49,12 +49,18 @@ test_unit(void)
     clock->valid_coefs = 0;
 
     for (j = 0; j < 100; j++) {
-      UTI_AddDoubleToTimespec(&start_hw_ts, j * interval * freq + TST_GetRandomDouble(-jitter, jitter), &hw_ts);
+      UTI_AddDoubleToTimespec(&start_hw_ts, j * interval * freq, &hw_ts);
       UTI_AddDoubleToTimespec(&start_local_ts, j * interval, &local_ts);
       if (HCL_CookTime(clock, &hw_ts, &ts, NULL)) {
-        d = UTI_DiffTimespecsToDouble(&ts, &local_ts);
-        TEST_CHECK(fabs(d) <= 5.0 * jitter);
+        dj = fabs(UTI_DiffTimespecsToDouble(&ts, &local_ts) / jitter);
+        DEBUG_LOG("delta/jitter %f", dj);
+        if (clock->n_samples >= 8)
+          sum += dj, count++;
+        TEST_CHECK(clock->n_samples < 4 || dj <= 4.0);
+        TEST_CHECK(clock->n_samples < 8 || dj <= 3.0);
       }
+
+      UTI_AddDoubleToTimespec(&start_hw_ts, j * interval * freq + TST_GetRandomDouble(-jitter, jitter), &hw_ts);
 
       if (HCL_NeedsNewSample(clock, &local_ts))
         HCL_AccumulateSample(clock, &hw_ts, &local_ts, 2.0 * jitter);
@@ -67,6 +73,8 @@ test_unit(void)
       TEST_CHECK(fabs(clock->offset) <= 2.0 * jitter);
     }
   }
+
+  TEST_CHECK(sum / count < 0.4);
 
   HCL_DestroyInstance(clock);
 
