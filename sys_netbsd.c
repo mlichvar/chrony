@@ -84,9 +84,18 @@ get_offset_correction(struct timespec *raw,
 {
   struct timeval remadj;
   double adjustment_remaining;
+#ifdef MACOSX
+  struct timeval tv = {0, 0};
 
+  if (PRV_AdjustTime(&tv, &remadj) < 0)
+    LOG_FATAL("adjtime() failed");
+
+  if (PRV_AdjustTime(&remadj, NULL) < 0)
+    LOG_FATAL("adjtime() failed");
+#else
   if (PRV_AdjustTime(NULL, &remadj) < 0)
     LOG_FATAL("adjtime() failed");
+#endif
 
   adjustment_remaining = UTI_TimevalToDouble(&remadj);
 
