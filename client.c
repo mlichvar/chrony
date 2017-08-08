@@ -3143,7 +3143,7 @@ main(int argc, char **argv)
   optind = 1;
 
   /* Parse short command-line options */
-  while ((opt = getopt(argc, argv, "46acdf:h:mnp:v")) != -1) {
+  while ((opt = getopt(argc, argv, "+46acdf:h:mnp:v")) != -1) {
     switch (opt) {
       case '4':
       case '6':
