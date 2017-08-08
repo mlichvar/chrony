@@ -34,7 +34,8 @@ typedef unsigned int SCH_TimeoutID;
 
 typedef enum {
   SCH_ReservedTimeoutValue = 0,
-  SCH_NtpSamplingClass,
+  SCH_NtpClientClass,
+  SCH_NtpPeerClass,
   SCH_NtpBroadcastClass,
   SCH_NumberOfClasses /* needs to be last */
 } SCH_TimeoutClass;

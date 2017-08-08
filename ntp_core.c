@@ -427,7 +427,8 @@ restart_timeout(NCR_Instance inst, double delay)
   /* Start new timer for transmission */
   inst->tx_timeout_id = SCH_AddTimeoutInClass(delay, get_separation(inst->local_poll),
                                               SAMPLING_RANDOMNESS,
-                                              SCH_NtpSamplingClass,
+                                              inst->mode == MODE_CLIENT ?
+                                                SCH_NtpClientClass : SCH_NtpPeerClass,
                                               transmit_timeout, (void *)inst);
 }
 
