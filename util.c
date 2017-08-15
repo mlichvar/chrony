@@ -641,6 +641,7 @@ UTI_GetNtp64Fuzz(NTP_int64 *ts, int precision)
   int start, bits;
 
   assert(precision >= -32 && precision <= 32);
+  assert(sizeof (*ts) == 8);
 
   start = sizeof (*ts) - (precision + 32 + 7) / 8;
   ts->hi = ts->lo = 0;
