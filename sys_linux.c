@@ -517,7 +517,10 @@ SYS_Linux_EnableSystemCallFilter(int level)
   const static unsigned long ioctls[] = {
     FIONREAD, TCGETS,
 #if defined(FEAT_PHC) || defined(HAVE_LINUX_TIMESTAMPING)
-    PTP_EXTTS_REQUEST, PTP_PIN_SETFUNC, PTP_SYS_OFFSET,
+    PTP_EXTTS_REQUEST, PTP_SYS_OFFSET,
+#ifdef PTP_PIN_SETFUNC
+    PTP_PIN_SETFUNC,
+#endif
 #ifdef PTP_SYS_OFFSET_PRECISE
     PTP_SYS_OFFSET_PRECISE,
 #endif
@@ -822,8 +825,9 @@ int
 SYS_Linux_SetPHCExtTimestamping(int fd, int pin, int channel,
                                 int rising, int falling, int enable)
 {
-  struct ptp_pin_desc pin_desc;
   struct ptp_extts_request extts_req;
+#ifdef PTP_PIN_SETFUNC
+  struct ptp_pin_desc pin_desc;
 
   memset(&pin_desc, 0, sizeof (pin_desc));
   pin_desc.index = pin;
@@ -834,6 +838,10 @@ SYS_Linux_SetPHCExtTimestamping(int fd, int pin, int channel,
     DEBUG_LOG("ioctl(%s) failed : %s", "PTP_PIN_SETFUNC", strerror(errno));
     return 0;
   }
+#else
+  DEBUG_LOG("Missing PTP_PIN_SETFUNC");
+  return 0;
+#endif
 
   memset(&extts_req, 0, sizeof (extts_req));
   extts_req.index = channel;
