@@ -246,7 +246,8 @@ handle_slew(struct timespec *raw, struct timespec *cooked, double dfreq,
       update_smoothing(cooked, doffset, dfreq);
   }
 
-  UTI_AdjustTimespec(&last_update, cooked, &last_update, &delta, dfreq, doffset);
+  if (!UTI_IsZeroTimespec(&last_update))
+    UTI_AdjustTimespec(&last_update, cooked, &last_update, &delta, dfreq, doffset);
 }
 
 void SMT_Initialise(void)
@@ -263,6 +264,8 @@ void SMT_Initialise(void)
   /* Convert from ppm */
   max_freq *= 1e-6;
   max_wander *= 1e-6;
+
+  UTI_ZeroTimespec(&last_update);
 
   LCL_AddParameterChangeHandler(handle_slew, NULL);
 }
