@@ -856,7 +856,7 @@ UTI_TimespecNetworkToHost(Timespec *src, struct timespec *dest)
 #endif
 
   nsec = ntohl(src->tv_nsec);
-  dest->tv_nsec = CLAMP(0U, nsec, 999999999U);
+  dest->tv_nsec = MIN(nsec, 999999999U);
 }
 
 /* ================================================== */
