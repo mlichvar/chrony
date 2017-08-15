@@ -156,7 +156,8 @@ handle_slew(struct timespec *raw,
   double delta;
   struct timespec now;
 
-  UTI_AdjustTimespec(&our_ref_time, cooked, &our_ref_time, &delta, dfreq, doffset);
+  if (!UTI_IsZeroTimespec(&our_ref_time))
+    UTI_AdjustTimespec(&our_ref_time, cooked, &our_ref_time, &delta, dfreq, doffset);
 
   if (change_type == LCL_ChangeUnknownStep) {
     UTI_ZeroTimespec(&last_ref_update);
@@ -267,6 +268,7 @@ REF_Initialise(void)
     fb_drift_timeout_id = 0;
   }
 
+  UTI_ZeroTimespec(&our_ref_time);
   UTI_ZeroTimespec(&last_ref_update);
   last_ref_update_interval = 0.0;
 
