@@ -38,7 +38,8 @@ extern void SST_Initialise(void);
 extern void SST_Finalise(void);
 
 /* This function creates a new instance of the statistics handler */
-extern SST_Stats SST_CreateInstance(uint32_t refid, IPAddr *addr, int min_samples, int max_samples);
+extern SST_Stats SST_CreateInstance(uint32_t refid, IPAddr *addr,
+                                    int min_samples, int max_samples, double min_delay);
 
 /* This function deletes an instance of the statistics handler. */
 extern void SST_DeleteInstance(SST_Stats inst);

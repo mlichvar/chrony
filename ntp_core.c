@@ -585,7 +585,8 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->source = SRC_CreateNewInstance(UTI_IPToRefid(&remote_addr->ip_addr),
                                          SRC_NTP, params->sel_options,
                                          &result->remote_addr.ip_addr,
-                                         params->min_samples, params->max_samples);
+                                         params->min_samples, params->max_samples,
+                                         0.0);
 
   result->rx_timeout_id = 0;
   result->tx_timeout_id = 0;

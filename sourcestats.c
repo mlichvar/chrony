@@ -82,6 +82,9 @@ struct SST_Stats_Record {
   int min_samples;
   int max_samples;
 
+  /* User defined minimum delay */
+  double fixed_min_delay;
+
   /* Number of samples currently stored.  The samples are stored in circular
      buffer. */
   int n_samples;
@@ -197,13 +200,14 @@ SST_Finalise(void)
 /* This function creates a new instance of the statistics handler */
 
 SST_Stats
-SST_CreateInstance(uint32_t refid, IPAddr *addr, int min_samples, int max_samples)
+SST_CreateInstance(uint32_t refid, IPAddr *addr, int min_samples, int max_samples, double min_delay)
 {
   SST_Stats inst;
   inst = MallocNew(struct SST_Stats_Record);
 
   inst->min_samples = min_samples;
   inst->max_samples = max_samples;
+  inst->fixed_min_delay = min_delay;
 
   SST_SetRefid(inst, refid, addr);
   SST_ResetInstance(inst);
@@ -310,6 +314,9 @@ SST_AccumulateSample(SST_Stats inst, struct timespec *sample_time,
   inst->root_dispersions[m] = root_dispersion;
   inst->strata[m] = stratum;
  
+  if (inst->peer_delays[n] < inst->fixed_min_delay)
+    inst->peer_delays[n] = 2.0 * inst->fixed_min_delay - inst->peer_delays[n];
+
   if (!inst->n_samples || inst->peer_delays[n] < inst->peer_delays[inst->min_delay_sample])
     inst->min_delay_sample = n;
 
@@ -418,18 +425,19 @@ find_min_delay_sample(SST_Stats inst)
 static void
 correct_asymmetry(SST_Stats inst, double *times_back, double *offsets)
 {
-  double asymmetry, delays[MAX_SAMPLES * REGRESS_RUNS_RATIO];
+  double asymmetry, min_delay, delays[MAX_SAMPLES * REGRESS_RUNS_RATIO];
   int i, n;
 
   /* Don't try to estimate the asymmetry with reference clocks */
   if (!inst->ip_addr)
     return;
 
+  min_delay = SST_MinRoundTripDelay(inst);
   n = inst->runs_samples + inst->n_samples;
 
   for (i = 0; i < n; i++)
     delays[i] = inst->peer_delays[get_runsbuf_index(inst, i - inst->runs_samples)] -
-                inst->peer_delays[inst->min_delay_sample];
+                min_delay;
 
   /* Reset the counter when the regression fails or the sign changes */
   if (!RGR_MultipleRegress(times_back, delays, offsets, n, &asymmetry) ||
@@ -771,8 +779,12 @@ SST_PredictOffset(SST_Stats inst, struct timespec *when)
 double
 SST_MinRoundTripDelay(SST_Stats inst)
 {
+  if (inst->fixed_min_delay > 0.0)
+    return inst->fixed_min_delay;
+
   if (!inst->n_samples)
     return DBL_MAX;
+
   return inst->peer_delays[inst->min_delay_sample];
 }
 
