@@ -1076,7 +1076,7 @@ REF_SetReference(int stratum,
   }
 
   /* Update fallback drifts */
-  if (fb_drifts) {
+  if (fb_drifts && are_we_synchronised) {
     update_fb_drifts(abs_freq_ppm, update_interval);
     schedule_fb_drift(&now);
   }
