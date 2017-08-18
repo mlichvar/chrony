@@ -823,17 +823,22 @@ update_leap_status(NTP_Leap leap, time_t now, int reset)
 /* ================================================== */
 
 static void
-write_log(struct timespec *ref_time, char *ref, int stratum, NTP_Leap leap,
-    double freq, double skew, double offset, int combined_sources,
-    double offset_sd, double uncorrected_offset)
+write_log(struct timespec *now, int combined_sources, double freq,
+          double offset, double offset_sd, double uncorrected_offset)
 {
   const char leap_codes[4] = {'N', '+', '-', '?'};
-  if (logfileid != -1) {
-    LOG_FileWrite(logfileid, "%s %-15s %2d %10.3f %10.3f %10.3e %1c %2d %10.3e %10.3e",
-            UTI_TimeToLogForm(ref_time->tv_sec), ref, stratum, freq, skew,
-            offset, leap_codes[leap], combined_sources, offset_sd,
-            uncorrected_offset);
-  }
+
+  if (logfileid == -1)
+    return;
+
+  LOG_FileWrite(logfileid,
+                "%s %-15s %2d %10.3f %10.3f %10.3e %1c %2d %10.3e %10.3e",
+                UTI_TimeToLogForm(now->tv_sec),
+                our_ref_ip.family != IPADDR_UNSPEC ?
+                  UTI_IPToString(&our_ref_ip) : UTI_RefidToString(our_ref_id),
+                our_stratum, freq, 1.0e6 * our_skew, offset,
+                leap_codes[our_leap_status], combined_sources, offset_sd,
+                uncorrected_offset);
 }
 
 /* ================================================== */
@@ -1055,16 +1060,7 @@ REF_SetReference(int stratum,
 
   abs_freq_ppm = LCL_ReadAbsoluteFrequency();
 
-  write_log(&now,
-            our_ref_ip.family != IPADDR_UNSPEC ? UTI_IPToString(&our_ref_ip) : UTI_RefidToString(our_ref_id),
-            our_stratum,
-            our_leap_status,
-            abs_freq_ppm,
-            1.0e6*our_skew,
-            our_offset,
-            combined_sources,
-            offset_sd,
-            uncorrected_offset);
+  write_log(&now, combined_sources, abs_freq_ppm, our_offset, offset_sd, uncorrected_offset);
 
   if (drift_file) {
     /* Update drift file at most once per hour */
@@ -1138,20 +1134,14 @@ REF_SetUnsynchronised(void)
   }
 
   update_leap_status(LEAP_Unsynchronised, 0, 0);
+  our_ref_ip.family = IPADDR_INET4;
+  our_ref_ip.addr.in4 = 0;
+  our_stratum = 0;
   are_we_synchronised = 0;
 
   LCL_SetSyncStatus(0, 0.0, 0.0);
 
-  write_log(&now,
-            "0.0.0.0",
-            0,
-            our_leap_status,
-            LCL_ReadAbsoluteFrequency(),
-            1.0e6*our_skew,
-            0.0,
-            0,
-            0.0,
-            uncorrected_offset);
+  write_log(&now, 0, LCL_ReadAbsoluteFrequency(), 0.0, 0.0, uncorrected_offset);
 }
 
 /* ================================================== */
