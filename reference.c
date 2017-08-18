@@ -931,28 +931,10 @@ REF_SetReference(int stratum,
     return;
   }
 
-  /* Guard against dividing by zero */
-  if (skew < MIN_SKEW)
+  /* Guard against dividing by zero and NaN */
+  if (!(skew > MIN_SKEW))
     skew = MIN_SKEW;
 
-  /* If we get a serious rounding error in the source stats regression
-     processing, there is a remote chance that the skew argument is a
-     'not a number'.  If such a quantity gets propagated into the
-     machine's kernel clock variables, nasty things will happen ..
-     
-     To guard against this we need to check whether the skew argument
-     is a reasonable real number.  I don't think isnan, isinf etc are
-     platform independent, so the following algorithm is used. */
-
-  {
-    double t;
-    t = (skew + skew) / skew; /* Skew shouldn't be zero either */
-    if ((t < 1.9) || (t > 2.1)) {
-      LOG(LOGS_WARN, "Bogus skew value encountered");
-      return;
-    }
-  }
-    
   LCL_ReadRawTime(&raw_now);
   LCL_GetOffsetCorrection(&raw_now, &uncorrected_offset, NULL);
   UTI_AddDoubleToTimespec(&raw_now, uncorrected_offset, &now);
