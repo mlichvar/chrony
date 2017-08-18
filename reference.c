@@ -822,6 +822,19 @@ update_leap_status(NTP_Leap leap, time_t now, int reset)
 
 /* ================================================== */
 
+static double
+get_root_dispersion(struct timespec *ts)
+{
+  if (UTI_IsZeroTimespec(&our_ref_time))
+    return 1.0;
+
+  return our_root_dispersion +
+         fabs(UTI_DiffTimespecsToDouble(ts, &our_ref_time)) *
+         (our_skew + fabs(our_residual_freq) + LCL_GetMaxClockError());
+}
+
+/* ================================================== */
+
 static void
 write_log(struct timespec *now, int combined_sources, double freq,
           double offset, double offset_sd, double uncorrected_offset)
@@ -1159,14 +1172,12 @@ REF_GetReferenceParams
  double *root_dispersion
 )
 {
-  double elapsed, dispersion;
+  double dispersion;
 
   assert(initialised);
 
   if (are_we_synchronised) {
-    elapsed = UTI_DiffTimespecsToDouble(local_time, &our_ref_time);
-    dispersion = our_root_dispersion +
-      (our_skew + fabs(our_residual_freq) + LCL_GetMaxClockError()) * elapsed;
+    dispersion = get_root_dispersion(local_time);
   } else {
     dispersion = 0.0;
   }
