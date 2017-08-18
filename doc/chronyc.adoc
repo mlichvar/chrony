@@ -216,7 +216,7 @@ An absolute bound on the computer's clock accuracy (assuming the stratum-1
 computer is correct) is given by:
 +
 ----
-clock_error <= root_dispersion + (0.5 * |root_delay|)
+clock_error <= |system_time_offset| + root_dispersion + (0.5 * root_delay)
 ----
 *Update interval*:::
 This is the interval between the last two clock updates.
