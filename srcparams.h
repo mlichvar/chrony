@@ -48,6 +48,8 @@ typedef struct {
   double max_delay;
   double max_delay_ratio;
   double max_delay_dev_ratio;
+  double min_delay;
+  double asymmetry;
   double offset;
 } SourceParameters;
 
@@ -63,6 +65,7 @@ typedef struct {
 #define SRC_DEFAULT_MAXSOURCES 4
 #define SRC_DEFAULT_MINSAMPLES (-1)
 #define SRC_DEFAULT_MAXSAMPLES (-1)
+#define SRC_DEFAULT_ASYMMETRY 1.0
 #define INACTIVE_AUTHKEY 0
 
 /* Flags for source selection */

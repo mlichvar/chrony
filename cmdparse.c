@@ -64,6 +64,8 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   src->params.max_delay = SRC_DEFAULT_MAXDELAY;
   src->params.max_delay_ratio = SRC_DEFAULT_MAXDELAYRATIO;
   src->params.max_delay_dev_ratio = SRC_DEFAULT_MAXDELAYDEVRATIO;
+  src->params.min_delay = 0.0;
+  src->params.asymmetry = SRC_DEFAULT_ASYMMETRY;
   src->params.offset = 0.0;
 
   hostname = line;
@@ -98,6 +100,9 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
       if (sscanf(line, "%"SCNu32"%n", &src->params.authkey, &n) != 1 ||
           src->params.authkey == INACTIVE_AUTHKEY)
         return 0;
+    } else if (!strcasecmp(cmd, "asymmetry")) {
+      if (sscanf(line, "%lf%n", &src->params.asymmetry, &n) != 1)
+        return 0;
     } else if (!strcasecmp(cmd, "maxdelay")) {
       if (sscanf(line, "%lf%n", &src->params.max_delay, &n) != 1)
         return 0;
@@ -115,6 +120,9 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
         return 0;
     } else if (!strcasecmp(cmd, "maxsources")) {
       if (sscanf(line, "%d%n", &src->params.max_sources, &n) != 1)
+        return 0;
+    } else if (!strcasecmp(cmd, "mindelay")) {
+      if (sscanf(line, "%lf%n", &src->params.min_delay, &n) != 1)
         return 0;
     } else if (!strcasecmp(cmd, "minpoll")) {
       if (sscanf(line, "%d%n", &src->params.minpoll, &n) != 1)

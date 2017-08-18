@@ -586,7 +586,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
                                          SRC_NTP, params->sel_options,
                                          &result->remote_addr.ip_addr,
                                          params->min_samples, params->max_samples,
-                                         0.0, 1.0);
+                                         params->min_delay, params->asymmetry);
 
   result->rx_timeout_id = 0;
   result->tx_timeout_id = 0;

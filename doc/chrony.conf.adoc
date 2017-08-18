@@ -122,6 +122,19 @@ If a measurement has a ratio of the increase in the round-trip delay from the
 minimum delay amongst the previous measurements to the standard deviation of
 the previous measurements that is greater than the specified ratio, it will be
 rejected. The default is 10.0.
+*mindelay* _delay_:::
+This options specifies a fixed minimum round-trip delay to be used instead of
+the minimum amongst the previous measurements. This can be useful in networks
+with static configuration to improve the stability of corrections for
+asymmetric jitter, weighting of the measurements, and the *maxdelayratio* and
+*maxdelaydevratio* tests. The value should be set accurately in order to have a
+positive effect on the synchronisation.
+*asymmetry* _ratio_:::
+This options specifies the asymmetry of the network jitter on the path to the
+source, which is used to correct the measured offset according to the delay.
+The asymmetry can be between -0.5 and +0.5. A negative value means the delay of
+packets sent to the source is more variable than the delay of packets sent from
+the source back. By default, *chronyd* estimates the asymmetry automatically.
 *offset* _offset_:::
 This option specifies a correction (in seconds) which will be applied to
 offsets measured with this source. It's particularly useful to compensate for a
@@ -1664,11 +1677,11 @@ from the example line above):
   to be discarded. The number of runs for the data that is being retained is
   tabulated. Values of approximately half the number of samples are expected.
   [8]
-. The estimated asymmetry of network jitter on the path to the source which was
-  used to correct the measured offsets. The asymmetry can be between -0.5 and
-  0.5. A negative value means the delay of packets sent to the source is
-  more variable than the delay of packets sent from the source back. [0.00,
-  i.e. no correction for asymmetry]
+. The estimated or configured asymmetry of network jitter on the path to the
+  source which was used to correct the measured offsets. The asymmetry can be
+  between -0.5 and +0.5. A negative value means the delay of packets sent to
+  the source is more variable than the delay of packets sent from the source
+  back. [0.00, i.e. no correction for asymmetry]
 +
 *tracking*:::
 This option logs changes to the estimate of the system's gain or loss rate, and
