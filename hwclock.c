@@ -186,8 +186,8 @@ HCL_AccumulateSample(HCL_Instance clock, struct timespec *hw_ts,
     clock->valid_coefs = 0;
   }
 
-  DEBUG_LOG("HW clock samples=%d offset=%e freq=%.9e raw_freq=%.9e err=%e ref_diff=%e",
-            clock->n_samples, clock->offset, clock->frequency, raw_freq, err,
+  DEBUG_LOG("HW clock samples=%d offset=%e freq=%e raw_freq=%e err=%e ref_diff=%e",
+            clock->n_samples, clock->offset, clock->frequency - 1.0, raw_freq - 1.0, err,
             UTI_DiffTimespecsToDouble(&clock->hw_ref, &clock->local_ref));
 }
 
