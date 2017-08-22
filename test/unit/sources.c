@@ -53,7 +53,8 @@ test_unit(void)
 
       DEBUG_LOG("added source %d options %d", j, sel_options);
       srcs[j] = SRC_CreateNewInstance(UTI_IPToRefid(&addr), SRC_NTP, sel_options, &addr,
-                                      SRC_DEFAULT_MINSAMPLES, SRC_DEFAULT_MAXSAMPLES, 0.0);
+                                      SRC_DEFAULT_MINSAMPLES, SRC_DEFAULT_MAXSAMPLES,
+                                      0.0, 1.0);
       SRC_UpdateReachability(srcs[j], 1);
 
       samples = (i + j) % 5 + 3;

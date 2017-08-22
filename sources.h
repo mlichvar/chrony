@@ -59,8 +59,9 @@ typedef enum {
 /* Function to create a new instance.  This would be called by one of
    the individual source-type instance creation routines. */
 
-extern SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, int sel_options, IPAddr *addr,
-                                          int min_samples, int max_samples, double min_delay);
+extern SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, int sel_options,
+                                          IPAddr *addr, int min_samples, int max_samples,
+                                          double min_delay, double asymmetry);
 
 /* Function to get rid of a source when it is being unconfigured.
    This may cause the current reference source to be reselected, if this

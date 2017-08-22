@@ -85,6 +85,9 @@ struct SST_Stats_Record {
   /* User defined minimum delay */
   double fixed_min_delay;
 
+  /* User defined asymmetry of network jitter */
+  double fixed_asymmetry;
+
   /* Number of samples currently stored.  The samples are stored in circular
      buffer. */
   int n_samples;
@@ -200,7 +203,8 @@ SST_Finalise(void)
 /* This function creates a new instance of the statistics handler */
 
 SST_Stats
-SST_CreateInstance(uint32_t refid, IPAddr *addr, int min_samples, int max_samples, double min_delay)
+SST_CreateInstance(uint32_t refid, IPAddr *addr, int min_samples, int max_samples,
+                   double min_delay, double asymmetry)
 {
   SST_Stats inst;
   inst = MallocNew(struct SST_Stats_Record);
@@ -208,6 +212,7 @@ SST_CreateInstance(uint32_t refid, IPAddr *addr, int min_samples, int max_sample
   inst->min_samples = min_samples;
   inst->max_samples = max_samples;
   inst->fixed_min_delay = min_delay;
+  inst->fixed_asymmetry = asymmetry;
 
   SST_SetRefid(inst, refid, addr);
   SST_ResetInstance(inst);
@@ -422,14 +427,43 @@ find_min_delay_sample(SST_Stats inst)
    minimum network delay.  This can significantly improve the accuracy and
    stability of the estimated offset and frequency. */
 
+static int
+estimate_asymmetry(double *times_back, double *offsets, double *delays, int n,
+                   double *asymmetry, int *asymmetry_run)
+{
+  double a;
+
+  /* Reset the counter when the regression fails or the sign changes */
+  if (!RGR_MultipleRegress(times_back, delays, offsets, n, &a) ||
+      a * *asymmetry_run < 0.0) {
+    *asymmetry = 0;
+    *asymmetry_run = 0.0;
+    return 0;
+  }
+
+  if (a <= -MIN_ASYMMETRY && *asymmetry_run > -MAX_ASYMMETRY_RUN)
+    (*asymmetry_run)--;
+  else if (a >= MIN_ASYMMETRY && *asymmetry_run < MAX_ASYMMETRY_RUN)
+    (*asymmetry_run)++;
+
+  if (abs(*asymmetry_run) < MIN_ASYMMETRY_RUN)
+    return 0;
+
+  *asymmetry = CLAMP(-MAX_ASYMMETRY, a, MAX_ASYMMETRY);
+
+  return 1;
+}
+
+/* ================================================== */
+
 static void
 correct_asymmetry(SST_Stats inst, double *times_back, double *offsets)
 {
-  double asymmetry, min_delay, delays[MAX_SAMPLES * REGRESS_RUNS_RATIO];
+  double min_delay, delays[MAX_SAMPLES * REGRESS_RUNS_RATIO];
   int i, n;
 
-  /* Don't try to estimate the asymmetry with reference clocks */
-  if (!inst->ip_addr)
+  /* Check if the asymmetry was not specified to be zero */
+  if (inst->fixed_asymmetry == 0.0)
     return;
 
   min_delay = SST_MinRoundTripDelay(inst);
@@ -439,29 +473,17 @@ correct_asymmetry(SST_Stats inst, double *times_back, double *offsets)
     delays[i] = inst->peer_delays[get_runsbuf_index(inst, i - inst->runs_samples)] -
                 min_delay;
 
-  /* Reset the counter when the regression fails or the sign changes */
-  if (!RGR_MultipleRegress(times_back, delays, offsets, n, &asymmetry) ||
-      asymmetry * inst->asymmetry_run < 0.0) {
-    inst->asymmetry_run = 0;
-    inst->asymmetry = 0.0;
-    return;
+  if (fabs(inst->fixed_asymmetry) <= MAX_ASYMMETRY) {
+    inst->asymmetry = inst->fixed_asymmetry;
+  } else {
+    if (!estimate_asymmetry(times_back, offsets, delays, n,
+                            &inst->asymmetry, &inst->asymmetry_run))
+      return;
   }
-
-  asymmetry = CLAMP(-MAX_ASYMMETRY, asymmetry, MAX_ASYMMETRY);
-
-  if (asymmetry <= -MIN_ASYMMETRY && inst->asymmetry_run > -MAX_ASYMMETRY_RUN)
-    inst->asymmetry_run--;
-  else if (asymmetry >= MIN_ASYMMETRY && inst->asymmetry_run < MAX_ASYMMETRY_RUN)
-    inst->asymmetry_run++;
-
-  if (abs(inst->asymmetry_run) < MIN_ASYMMETRY_RUN)
-    return;
 
   /* Correct the offsets */
   for (i = 0; i < n; i++)
-    offsets[i] -= asymmetry * delays[i];
-
-  inst->asymmetry = asymmetry;
+    offsets[i] -= inst->asymmetry * delays[i];
 }
 
 /* ================================================== */

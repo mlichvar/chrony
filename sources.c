@@ -213,8 +213,9 @@ void SRC_Finalise(void)
 /* Function to create a new instance.  This would be called by one of
    the individual source-type instance creation routines. */
 
-SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, int sel_options, IPAddr *addr,
-                                   int min_samples, int max_samples, double min_delay)
+SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, int sel_options,
+                                   IPAddr *addr, int min_samples, int max_samples,
+                                   double min_delay, double asymmetry)
 {
   SRC_Instance result;
 
@@ -226,7 +227,8 @@ SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, int sel_optio
     max_samples = CNF_GetMaxSamples();
 
   result = MallocNew(struct SRC_Instance_Record);
-  result->stats = SST_CreateInstance(ref_id, addr, min_samples, max_samples, min_delay);
+  result->stats = SST_CreateInstance(ref_id, addr, min_samples, max_samples,
+                                     min_delay, asymmetry);
 
   if (n_sources == max_n_sources) {
     /* Reallocate memory */
