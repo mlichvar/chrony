@@ -174,12 +174,12 @@ HCL_AccumulateSample(HCL_Instance clock, struct timespec *hw_ts,
   /* Drop unneeded samples */
   clock->n_samples -= best_start;
 
-  /* If the fit doesn't cross the error interval of the last sample, throw away
-     all previous samples and keep only the frequency estimate */
+  /* If the fit doesn't cross the error interval of the last sample,
+     throw away all samples and start again */
   if (fabs(clock->offset) > err) {
-    DEBUG_LOG("HW clock reset offset=%e", clock->offset);
-    clock->offset = 0.0;
-    clock->n_samples = 1;
+    DEBUG_LOG("HW clock reset");
+    clock->n_samples = 0;
+    clock->valid_coefs = 0;
   }
 
   DEBUG_LOG("HW clock samples=%d offset=%e freq=%.9e raw_freq=%.9e err=%e ref_diff=%e",

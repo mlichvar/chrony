@@ -65,7 +65,7 @@ test_unit(void)
       if (HCL_NeedsNewSample(clock, &local_ts))
         HCL_AccumulateSample(clock, &hw_ts, &local_ts, 2.0 * jitter);
 
-      TEST_CHECK(j < 20 || clock->valid_coefs);
+      TEST_CHECK(clock->valid_coefs || clock->n_samples < 2);
 
       if (!clock->valid_coefs)
         continue;
