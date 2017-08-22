@@ -1690,33 +1690,42 @@ actually appears as a single line in the file) from the log file is shown
 below.
 +
 ----
-2015-02-23 05:40:50 203.0.113.15     3    340.529      1.606  1.046e-03 N \
-            4  6.849e-03 -4.670e-04
+2017-08-22 13:22:36 203.0.113.15     2     -3.541      0.075 -8.621e-06 N \
+            2  2.940e-03 -2.084e-04  1.534e-02  3.472e-04  8.304e-03
 ----
 +
 The columns are as follows (the quantities in square brackets are the
 values from the example line above) :
 +
-. Date [2015-02-03]
+. Date [2017-08-22]
 . Hour:Minute:Second. Note that the date-time pair is expressed in UTC, not the
-  local time zone. [05:40:50]
+  local time zone. [13:22:36]
 . The IP address of the server or peer to which the local system is synchronised.
   [203.0.113.15]
-. The stratum of the local system. [3]
+. The stratum of the local system. [2]
 . The local system frequency (in ppm, positive means the local system runs fast
-  of UTC). [340.529]
-. The error bounds on the frequency (in ppm). [1.606]
-. The estimated local offset at the epoch (which is rapidly corrected by
-  slewing the local clock. (In seconds, positive indicates the local system
-  is fast of UTC). [1.046e-3]
+  of UTC). [-3.541]
+. The error bounds on the frequency (in ppm). [0.075]
+. The estimated local offset at the epoch, which is normally corrected by
+  slewing the local clock (in seconds, positive indicates the clock is fast of
+  UTC). [-8.621e-06]
 . Leap status (_N_ means normal, _+_ means that the last minute of this month
   has 61 seconds, _-_ means that the last minute of the month has 59 seconds,
   _?_ means the clock is not currently synchronised.) [N]
-. The number of combined sources. [4]
+. The number of combined sources. [2]
 . The estimated standard deviation of the combined offset (in seconds).
-  [6.849e-03]
+  [2.940e-03]
 . The remaining offset correction from the previous update (in seconds,
-  positive means the system clock is slow of UTC). [-4.670e-04]
+  positive means the system clock is slow of UTC). [-2.084e-04]
+. The total of the network path delays to the reference clock to which
+  the local clock is ultimately synchronised (in seconds). [1.534e-02]
+. The total dispersion accumulated through all the servers back to the
+  reference clock to which the local clock is ultimately synchronised
+  (in seconds). [3.472e-04]
+. The maximum estimated error of the system clock in the interval since the
+  previous update (in seconds). It includes the offset, remaining offset
+  correction, root delay, and dispersion from the previous update with the
+  dispersion which accumulated in the interval. [8.304e-03]
 +
 *rtc*:::
 This option logs information about the system's real-time clock. An example

@@ -226,7 +226,7 @@ REF_Initialise(void)
   }
 
   logfileid = CNF_GetLogTracking() ? LOG_FileOpen("tracking",
-      "   Date (UTC) Time     IP Address   St   Freq ppm   Skew ppm     Offset L Co  Offset sd Rem. corr.")
+      "   Date (UTC) Time     IP Address   St   Freq ppm   Skew ppm     Offset L Co  Offset sd Rem. corr. Root delay Root disp. Max. error")
     : -1;
 
   max_update_skew = fabs(CNF_GetMaxUpdateSkew()) * 1.0e-6;
@@ -837,21 +837,28 @@ get_root_dispersion(struct timespec *ts)
 
 static void
 write_log(struct timespec *now, int combined_sources, double freq,
-          double offset, double offset_sd, double uncorrected_offset)
+          double offset, double offset_sd, double uncorrected_offset,
+          double orig_root_distance)
 {
   const char leap_codes[4] = {'N', '+', '-', '?'};
+  double root_dispersion, max_error;
+  static double last_sys_offset = 0.0;
 
   if (logfileid == -1)
     return;
 
+  max_error = orig_root_distance + fabs(last_sys_offset);
+  root_dispersion = get_root_dispersion(now);
+  last_sys_offset = offset - uncorrected_offset;
+
   LOG_FileWrite(logfileid,
-                "%s %-15s %2d %10.3f %10.3f %10.3e %1c %2d %10.3e %10.3e",
+                "%s %-15s %2d %10.3f %10.3f %10.3e %1c %2d %10.3e %10.3e %10.3e %10.3e %10.3e",
                 UTI_TimeToLogForm(now->tv_sec),
                 our_ref_ip.family != IPADDR_UNSPEC ?
                   UTI_IPToString(&our_ref_ip) : UTI_RefidToString(our_ref_id),
                 our_stratum, freq, 1.0e6 * our_skew, offset,
                 leap_codes[our_leap_status], combined_sources, offset_sd,
-                uncorrected_offset);
+                uncorrected_offset, our_root_delay, root_dispersion, max_error);
 }
 
 /* ================================================== */
@@ -935,8 +942,7 @@ REF_SetReference(int stratum,
   double our_frequency;
   double abs_freq_ppm;
   double update_interval;
-  double elapsed;
-  double correction_rate;
+  double elapsed, correction_rate, orig_root_distance;
   double uncorrected_offset, accumulate_offset, step_offset;
   struct timespec now, raw_now;
   NTP_int64 ref_fuzz;
@@ -962,6 +968,8 @@ REF_SetReference(int stratum,
 
   if (!is_offset_ok(our_offset))
     return;
+
+  orig_root_distance = our_root_delay / 2.0 + get_root_dispersion(&now);
 
   are_we_synchronised = leap != LEAP_Unsynchronised ? 1 : 0;
   our_stratum = stratum + 1;
@@ -1073,7 +1081,8 @@ REF_SetReference(int stratum,
 
   abs_freq_ppm = LCL_ReadAbsoluteFrequency();
 
-  write_log(&now, combined_sources, abs_freq_ppm, our_offset, offset_sd, uncorrected_offset);
+  write_log(&now, combined_sources, abs_freq_ppm, our_offset, offset_sd,
+            uncorrected_offset, orig_root_distance);
 
   if (drift_file) {
     /* Update drift file at most once per hour */
@@ -1154,7 +1163,8 @@ REF_SetUnsynchronised(void)
 
   LCL_SetSyncStatus(0, 0.0, 0.0);
 
-  write_log(&now, 0, LCL_ReadAbsoluteFrequency(), 0.0, 0.0, uncorrected_offset);
+  write_log(&now, 0, LCL_ReadAbsoluteFrequency(), 0.0, 0.0, uncorrected_offset,
+            our_root_delay / 2.0 + get_root_dispersion(&now));
 }
 
 /* ================================================== */
