@@ -39,6 +39,9 @@
 /* Maximum number of samples per clock */
 #define MAX_SAMPLES 16
 
+/* Maximum acceptable frequency offset of the clock */
+#define MAX_FREQ_OFFSET (2.0 / 3.0)
+
 struct HCL_Instance_Record {
   /* HW and local reference timestamp */
   struct timespec hw_ref;
@@ -175,8 +178,9 @@ HCL_AccumulateSample(HCL_Instance clock, struct timespec *hw_ts,
   clock->n_samples -= best_start;
 
   /* If the fit doesn't cross the error interval of the last sample,
-     throw away all samples and start again */
-  if (fabs(clock->offset) > err) {
+     or the frequency is not sane, drop all samples and start again */
+  if (fabs(clock->offset) > err ||
+      fabs(clock->frequency - 1.0) > MAX_FREQ_OFFSET) {
     DEBUG_LOG("HW clock reset");
     clock->n_samples = 0;
     clock->valid_coefs = 0;
