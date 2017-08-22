@@ -114,8 +114,10 @@ static const struct request_length request_lengths[] = {
                    client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX2 */
   REQ_LENGTH_ENTRY(local, null),                /* LOCAL2 */
   REQ_LENGTH_ENTRY(ntp_data, ntp_data),         /* NTP_DATA */
-  REQ_LENGTH_ENTRY(ntp_source, null),           /* ADD_SERVER2 */
-  REQ_LENGTH_ENTRY(ntp_source, null),           /* ADD_PEER2 */
+  { 0, 0 },                                     /* ADD_SERVER2 */
+  { 0, 0 },                                     /* ADD_PEER2 */
+  REQ_LENGTH_ENTRY(ntp_source, null),           /* ADD_SERVER3 */
+  REQ_LENGTH_ENTRY(ntp_source, null),           /* ADD_PEER3 */
 };
 
 static const uint16_t reply_lengths[] = {

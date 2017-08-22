@@ -136,6 +136,8 @@ static const char permissions[] = {
   PERMIT_AUTH, /* NTP_DATA */
   PERMIT_AUTH, /* ADD_SERVER2 */
   PERMIT_AUTH, /* ADD_PEER2 */
+  PERMIT_AUTH, /* ADD_SERVER3 */
+  PERMIT_AUTH, /* ADD_PEER3 */
 };
 
 /* ================================================== */
@@ -791,6 +793,8 @@ handle_add_source(NTP_Source_Type type, CMD_Request *rx_message, CMD_Reply *tx_m
     UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_ratio);
   params.max_delay_dev_ratio =
     UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_dev_ratio);
+  params.min_delay = UTI_FloatNetworkToHost(rx_message->data.ntp_source.min_delay);
+  params.asymmetry = UTI_FloatNetworkToHost(rx_message->data.ntp_source.asymmetry);
   params.offset = UTI_FloatNetworkToHost(rx_message->data.ntp_source.offset);
 
   params.online  = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_ONLINE ? 1 : 0;
@@ -1525,11 +1529,11 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
           handle_cmdaccheck(&rx_message, &tx_message);
           break;
 
-        case REQ_ADD_SERVER2:
+        case REQ_ADD_SERVER3:
           handle_add_source(NTP_SERVER, &rx_message, &tx_message);
           break;
 
-        case REQ_ADD_PEER2:
+        case REQ_ADD_PEER3:
           handle_add_source(NTP_PEER, &rx_message, &tx_message);
           break;
 

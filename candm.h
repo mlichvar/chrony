@@ -97,7 +97,9 @@
 #define REQ_NTP_DATA 57
 #define REQ_ADD_SERVER2 58
 #define REQ_ADD_PEER2 59
-#define N_REQUEST_TYPES 60
+#define REQ_ADD_SERVER3 60
+#define REQ_ADD_PEER3 61
+#define N_REQUEST_TYPES 62
 
 /* Structure used to exchange timespecs independent of time_t size */
 typedef struct {
@@ -267,8 +269,11 @@ typedef struct {
   Float max_delay;
   Float max_delay_ratio;
   Float max_delay_dev_ratio;
+  Float min_delay;
+  Float asymmetry;
   Float offset;
   uint32_t flags;
+  uint32_t reserved[4];
   int32_t EOR;
 } REQ_NTP_Source;
 
