@@ -154,17 +154,25 @@ add_interface(CNF_HwTsInterface *conf_iface)
   ts_config.tx_type = HWTSTAMP_TX_ON;
 
   switch (conf_iface->rxfilter) {
+    case CNF_HWTS_RXFILTER_ANY:
+#ifdef HAVE_LINUX_TIMESTAMPING_RXFILTER_NTP
+      if (ts_info.rx_filters & (1 << HWTSTAMP_FILTER_NTP_ALL))
+        ts_config.rx_filter = HWTSTAMP_FILTER_NTP_ALL;
+      else
+#endif
+      if (ts_info.rx_filters & (1 << HWTSTAMP_FILTER_ALL))
+        ts_config.rx_filter = HWTSTAMP_FILTER_ALL;
+      else
+        ts_config.rx_filter = HWTSTAMP_FILTER_NONE;
+      break;
     case CNF_HWTS_RXFILTER_NONE:
       ts_config.rx_filter = HWTSTAMP_FILTER_NONE;
       break;
-    case CNF_HWTS_RXFILTER_NTP:
 #ifdef HAVE_LINUX_TIMESTAMPING_RXFILTER_NTP
-      if (ts_info.rx_filters & (1 << HWTSTAMP_FILTER_NTP_ALL)) {
-        ts_config.rx_filter = HWTSTAMP_FILTER_NTP_ALL;
-        break;
-      }
+    case CNF_HWTS_RXFILTER_NTP:
+      ts_config.rx_filter = HWTSTAMP_FILTER_NTP_ALL;
+      break;
 #endif
-      /* Fall through */
     default:
       ts_config.rx_filter = HWTSTAMP_FILTER_ALL;
       break;
@@ -203,7 +211,8 @@ add_interface(CNF_HwTsInterface *conf_iface)
 
   iface->clock = HCL_CreateInstance(UTI_Log2ToDouble(MAX(conf_iface->minpoll, MIN_PHC_POLL)));
 
-  LOG(LOGS_INFO, "Enabled HW timestamping on %s", iface->name);
+  LOG(LOGS_INFO, "Enabled HW timestamping %son %s",
+      ts_config.rx_filter == HWTSTAMP_FILTER_NONE ? "(TX only) " : "", iface->name);
 
   return 1;
 }

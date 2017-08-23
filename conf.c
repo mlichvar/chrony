@@ -1281,7 +1281,7 @@ parse_hwtimestamp(char *line)
   iface->name = Strdup(p);
   iface->minpoll = 0;
   iface->nocrossts = 0;
-  iface->rxfilter = CNF_HWTS_RXFILTER_NTP;
+  iface->rxfilter = CNF_HWTS_RXFILTER_ANY;
   iface->precision = 100.0e-9;
   iface->tx_comp = 0.0;
   iface->rx_comp = 0.0;

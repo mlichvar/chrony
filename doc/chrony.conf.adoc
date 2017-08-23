@@ -1886,11 +1886,12 @@ be enabled by the *xleave* option in the <<server,*server*>> or the
 This directive is supported on Linux 3.19 and newer. The NIC must support HW
 timestamping, which can be verified with the *ethtool -T* command. The list of
 capabilities should include _SOF_TIMESTAMPING_RAW_HARDWARE_,
-_SOF_TIMESTAMPING_TX_HARDWARE_, _SOF_TIMESTAMPING_RX_HARDWARE_, and the receive
-filters should include _HWTSTAMP_FILTER_ALL_ or _HWTSTAMP_FILTER_NTP_ALL_. When
-*chronyd* is running, no other process (e.g. a PTP daemon) should be working
-with the NIC clock. HW timestamping of packets received from bridged and bonded
-interfaces is supported on Linux 4.13 and newer.
+_SOF_TIMESTAMPING_TX_HARDWARE_, and _SOF_TIMESTAMPING_RX_HARDWARE_. Receive
+filter _HWTSTAMP_FILTER_ALL_, or _HWTSTAMP_FILTER_NTP_ALL_, is necessary for
+timestamping of received packets. Timestamping of packets received from bridged
+and bonded interfaces is supported on Linux 4.13 and newer. When *chronyd* is
+running, no other process (e.g. a PTP daemon) should be working with the NIC
+clock.
 +
 If the kernel supports software timestamping, it will be enabled for all
 interfaces. The source of timestamps (i.e. hardware, kernel, or daemon) is
@@ -1925,15 +1926,21 @@ is 0.
 Some hardware can precisely cross timestamp the NIC clock with the system
 clock. This option disables the use of the cross timestamping.
 *rxfilter* _filter_:::
-This option selects the receive timestamping filter. Possible values are:
-_all_, _ntp_, and _none_. The default value is _ntp_, which enables
-timestamping of NTP packets (_HWTSTAMP_FILTER_NTP_ALL_) if it is supported, or
-timestamping of all packets (_HWTSTAMP_FILTER_ALL_). Setting *rxfilter* to
-_all_ forces timestamping of all packets, which can be useful when the NIC
-supports both filters and NTP packets are received from or on a non-standard
-UDP port (e.g. specified by the *port* directive). Setting *rxfilter* to _none_
-disables receive HW timestamping and allows transmit HW timestamping to be
-enabled when the NIC supports only PTP-specific receive filters.
+This option selects the receive timestamping filter. The _filter_ can be one of
+the following:
+_all_::::
+Enables timestamping of all received packets.
+_ntp_::::
+Enables timestamping of received NTP packets.
+_none_::::
+Disables timestamping of received packets.
+:::
+The most specific filter for timestamping NTP packets which is supported by the
+NIC is selected by default. Some NICs can timestamp only PTP packets, which
+limits the selection to the _none_ filter. Forcing timestamping of all packets
+with the _all_ filter when the NIC supports both _all_ and _ntp_ filters can be
+useful when packets are received from or on a non-standard UDP port (e.g.
+specified by the *port* directive).
 ::
 +
 Examples of the directive are:

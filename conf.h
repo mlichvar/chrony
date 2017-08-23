@@ -118,9 +118,10 @@ extern char *CNF_GetHwclockFile(void);
 extern int CNF_GetInitSources(void);
 extern double CNF_GetInitStepThreshold(void);
 
-#define CNF_HWTS_RXFILTER_NONE 0
-#define CNF_HWTS_RXFILTER_NTP 1
-#define CNF_HWTS_RXFILTER_ALL 2
+#define CNF_HWTS_RXFILTER_ANY 0
+#define CNF_HWTS_RXFILTER_NONE 1
+#define CNF_HWTS_RXFILTER_NTP 2
+#define CNF_HWTS_RXFILTER_ALL 3
 
 typedef struct {
   char *name;
