@@ -610,13 +610,17 @@ UTI_SockaddrFamilyToString(int family)
 char *
 UTI_TimeToLogForm(time_t t)
 {
-  struct tm stm;
+  struct tm *stm;
   char *result;
 
   result = NEXT_BUFFER;
 
-  stm = *gmtime(&t);
-  strftime(result, BUFFER_LENGTH, "%Y-%m-%d %H:%M:%S", &stm);
+  stm = gmtime(&t);
+
+  if (stm)
+    strftime(result, BUFFER_LENGTH, "%Y-%m-%d %H:%M:%S", stm);
+  else
+    snprintf(result, BUFFER_LENGTH, "INVALID    INVALID ");
 
   return result;
 }
