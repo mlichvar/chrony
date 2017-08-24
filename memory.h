@@ -30,12 +30,14 @@
 /* Wrappers checking for errors */
 extern void *Malloc(size_t size);
 extern void *Realloc(void *ptr, size_t size);
+extern void *Malloc2(size_t nmemb, size_t size);
+extern void *Realloc2(void *ptr, size_t nmemb, size_t size);
 extern char *Strdup(const char *s);
 
 /* Convenient macros */
 #define MallocNew(T) ((T *) Malloc(sizeof(T)))
-#define MallocArray(T, n) ((T *) Malloc((n) * sizeof(T)))
-#define ReallocArray(T,n,x) ((T *) Realloc((void *)(x), (n)*sizeof(T)))
+#define MallocArray(T, n) ((T *) Malloc2(n, sizeof(T)))
+#define ReallocArray(T, n, x) ((T *) Realloc2((void *)(x), n, sizeof(T)))
 #define Free(x) free(x)
 
 #endif /* GOT_MEMORY_H */

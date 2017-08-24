@@ -54,6 +54,32 @@ Realloc(void *ptr, size_t size)
   return r;
 }
 
+static size_t
+get_array_size(size_t nmemb, size_t size)
+{
+  size_t array_size;
+
+  array_size = nmemb * size;
+
+  /* Check for overflow */
+  if (nmemb > 0 && array_size / nmemb != size)
+    LOG_FATAL("Could not allocate memory");
+
+  return array_size;
+}
+
+void *
+Malloc2(size_t nmemb, size_t size)
+{
+  return Malloc(get_array_size(nmemb, size));
+}
+
+void *
+Realloc2(void *ptr, size_t nmemb, size_t size)
+{
+  return Realloc(ptr, get_array_size(nmemb, size));
+}
+
 char *
 Strdup(const char *s)
 {
