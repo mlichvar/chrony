@@ -18,7 +18,7 @@ check_source_selection || test_fail
 check_packet_interval || test_fail
 check_sync || test_fail
 
-for client_server_options in "maxpoll 6 maxdelay 2e-5" "maxpoll 6 maxdelayratio 1.001"; do
+for client_server_options in "maxpoll 6 maxdelay 2e-5"; do
 	run_test || test_fail
 	check_chronyd_exit || test_fail
 	check_packet_interval || test_fail

@@ -1326,6 +1326,30 @@ check_packet_auth(NTP_Packet *pkt, int length,
 /* ================================================== */
 
 static int
+check_delay_ratio(NCR_Instance inst, SST_Stats stats,
+                struct timespec *sample_time, double delay)
+{
+  double last_sample_ago, predicted_offset, min_delay, skew, std_dev;
+  double max_delay;
+
+  if (inst->max_delay_ratio < 1.0 ||
+      !SST_GetDelayTestData(stats, sample_time, &last_sample_ago,
+                            &predicted_offset, &min_delay, &skew, &std_dev))
+    return 1;
+
+  max_delay = min_delay * inst->max_delay_ratio +
+              last_sample_ago * (skew + LCL_GetMaxClockError());
+
+  if (delay <= max_delay)
+    return 1;
+
+  DEBUG_LOG("maxdelayratio: delay=%e max_delay=%e", delay, max_delay);
+  return 0;
+}
+
+/* ================================================== */
+
+static int
 check_delay_dev_ratio(NCR_Instance inst, SST_Stats stats,
                       struct timespec *sample_time, double offset, double delay)
 {
@@ -1582,9 +1606,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     /* Test B requires in client mode that the ratio of the round trip delay
        to the minimum one currently in the stats data register is less than an
        administrator-defined value */
-    testB = inst->max_delay_ratio <= 1.0 ||
-            !(inst->mode == MODE_CLIENT &&
-              (delay - dispersion) / SST_MinRoundTripDelay(stats) > inst->max_delay_ratio);
+    testB = check_delay_ratio(inst, stats, &sample_time, delay);
 
     /* Test C requires that the ratio of the increase in delay from the minimum
        one in the stats data register to the standard deviation of the offsets
