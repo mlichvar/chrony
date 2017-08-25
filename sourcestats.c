@@ -813,39 +813,21 @@ SST_MinRoundTripDelay(SST_Stats inst)
 /* ================================================== */
 
 int
-SST_IsGoodSample(SST_Stats inst, double offset, double delay,
-    double max_delay_dev_ratio, double clock_error, struct timespec *when)
+SST_GetDelayTestData(SST_Stats inst, struct timespec *sample_time,
+                     double *last_sample_ago, double *predicted_offset,
+                     double *min_delay, double *skew, double *std_dev)
 {
-  double elapsed, allowed_increase, delay_increase;
-
   if (inst->n_samples < 6)
-    return 1;
+    return 0;
 
-  elapsed = UTI_DiffTimespecsToDouble(when, &inst->offset_time);
+  *last_sample_ago = UTI_DiffTimespecsToDouble(sample_time, &inst->offset_time);
+  *predicted_offset = inst->estimated_offset +
+                      *last_sample_ago * inst->estimated_frequency;
+  *min_delay = SST_MinRoundTripDelay(inst);
+  *skew = inst->skew;
+  *std_dev = inst->std_dev;
 
-  /* Require that the ratio of the increase in delay from the minimum to the
-     standard deviation is less than max_delay_dev_ratio. In the allowed
-     increase in delay include also skew and clock_error. */
-    
-  allowed_increase = inst->std_dev * max_delay_dev_ratio +
-    elapsed * (inst->skew + clock_error);
-  delay_increase = (delay - SST_MinRoundTripDelay(inst)) / 2.0;
-
-  if (delay_increase < allowed_increase)
-    return 1;
-
-  offset -= inst->estimated_offset + elapsed * inst->estimated_frequency;
-
-  /* Before we decide to drop the sample, make sure the difference between
-     measured offset and predicted offset is not significantly larger than
-     the increase in delay */
-  if (fabs(offset) - delay_increase > allowed_increase)
-    return 1;
-
-  DEBUG_LOG("Bad sample: offset=%f delay=%f incr_delay=%f allowed=%f",
-            offset, delay, delay_increase, allowed_increase);
-
-  return 0;
+  return 1;
 }
 
 /* ================================================== */

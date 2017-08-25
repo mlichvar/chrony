@@ -1326,6 +1326,43 @@ check_packet_auth(NTP_Packet *pkt, int length,
 /* ================================================== */
 
 static int
+check_delay_dev_ratio(NCR_Instance inst, SST_Stats stats,
+                      struct timespec *sample_time, double offset, double delay)
+{
+  double last_sample_ago, predicted_offset, min_delay, skew, std_dev;
+  double delta, max_delta, error_in_estimate;
+
+  if (!SST_GetDelayTestData(stats, sample_time, &last_sample_ago,
+                            &predicted_offset, &min_delay, &skew, &std_dev))
+    return 1;
+
+  /* Require that the ratio of the increase in delay from the minimum to the
+     standard deviation is less than max_delay_dev_ratio.  In the allowed
+     increase in delay include also dispersion. */
+
+  max_delta = std_dev * inst->max_delay_dev_ratio +
+              last_sample_ago * (skew + LCL_GetMaxClockError());
+  delta = (delay - min_delay) / 2.0;
+
+  if (delta <= max_delta)
+    return 1;
+
+  error_in_estimate = offset + predicted_offset;
+
+  /* Before we decide to drop the sample, make sure the difference between
+     measured offset and predicted offset is not significantly larger than
+     the increase in delay */
+  if (fabs(error_in_estimate) - delta > max_delta)
+    return 1;
+
+  DEBUG_LOG("maxdelaydevratio: error=%e delay=%e delta=%e max_delta=%e",
+            error_in_estimate, delay, delta, max_delta);
+  return 0;
+}
+
+/* ================================================== */
+
+static int
 receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
                NTP_Local_Timestamp *rx_ts, NTP_Packet *message, int length)
 {
@@ -1554,8 +1591,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
        in the register is less than an administrator-defined value or the
        difference between measured offset and predicted offset is larger than
        the increase in delay */
-    testC = SST_IsGoodSample(stats, -offset, delay, inst->max_delay_dev_ratio,
-                             LCL_GetMaxClockError(), &sample_time);
+    testC = check_delay_dev_ratio(inst, stats, &sample_time, offset, delay);
 
     /* Test D requires that the remote peer is not synchronised to us to
        prevent a synchronisation loop */
