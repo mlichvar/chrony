@@ -50,7 +50,7 @@ directive can be used for names that resolve to multiple addresses. For good
 reliability the client should have at least three servers. The `iburst` option
 speeds up the initial synchronisation.
 
-To stabilize the initial synchronisation on the next start, the estimated drift
+To stabilise the initial synchronisation on the next start, the estimated drift
 of the system clock is saved to a file specified by the `driftfile` directive.
 
 If the system clock can be far from the true time after boot for any reason,
@@ -59,7 +59,7 @@ slewing, which would take a very long time. The `makestep` directive does
 that.
 
 In order to keep the real-time clock (RTC) close to the true time, so the
-system time is reasonably close to the true time when it's initialized on the
+system time is reasonably close to the true time when it's initialised on the
 next boot from the RTC, the `rtcsync` directive enables a mode in which the
 system time is periodically copied to the RTC. It is supported on Linux and
 macOS.
@@ -347,14 +347,14 @@ Only by the source code. See _cmdmon.c_ (`chronyd` side) and _client.c_
 === What is the real-time clock (RTC)?
 
 This is the clock which keeps the time even when your computer is turned off.
-It is used to initialize the system clock on boot. It normally doesn't drift
+It is used to initialise the system clock on boot. It normally doesn't drift
 more than few seconds per day.
 
 There are two approaches how `chronyd` can work with it. One is to use the
 `rtcsync` directive, which tells `chronyd` to enable a kernel mode which sets
 the RTC from the system clock every 11 minutes. `chronyd` itself won't touch
 the RTC. If the computer is not turned off for a long time, the RTC should
-still be close to the true time when the system clock will be initialized from
+still be close to the true time when the system clock will be initialised from
 it on the next boot.
 
 The other option is to use the `rtcfile` directive, which tells `chronyd` to
