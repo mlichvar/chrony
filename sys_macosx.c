@@ -4,7 +4,7 @@
  **********************************************************************
  * Copyright (C) Richard P. Curnow  1997-2001
  * Copyright (C) J. Hannken-Illjes  2001
- * Copyright (C) Bryan Christianson 2015
+ * Copyright (C) Bryan Christianson  2015, 2017
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
