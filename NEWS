@@ -4,14 +4,19 @@ New in version 3.2
 Enhancements
 ------------
 * Improve stability with NTP sources and reference clocks
+* Improve stability with hardware timestamping
 * Improve support for NTP interleaved modes
 * Control frequency of system clock on macOS 10.13 and later
 * Set TAI-UTC offset of system clock with leapsectz directive
-* Add support for new HW timestamping options added in Linux 4.13
-* Add rxfilter option to hwtimestamp directive
+* Minimise data in client requests to improve privacy
+* Allow transmit-only hardware timestamping
+* Add support for new timestamping options introduced in Linux 4.13
+* Add root delay, root dispersion and maximum error to tracking log
+* Add mindelay and asymmetry options to server/peer/pool directive
 * Add extpps option to PHC refclock to timestamp external PPS signal
 * Add pps option to refclock directive to treat any refclock as PPS
 * Add width option to refclock directive to filter wrong pulse edges
+* Add rxfilter option to hwtimestamp directive
 * Add -x option to disable control of system clock
 * Add -l option to log to specified file instead of syslog
 * Allow multiple command-line options to be specified together
