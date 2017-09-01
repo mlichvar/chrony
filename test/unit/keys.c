@@ -134,8 +134,8 @@ test_unit(void)
       UTI_GetRandomBytes(&key, sizeof (key));
       if (KEY_KeyKnown(key))
         continue;
-      TEST_CHECK(!KEY_GenerateAuth(j, data, data_len, auth, sizeof (auth)));
-      TEST_CHECK(!KEY_CheckAuth(j, data, data_len, auth, auth_len, auth_len));
+      TEST_CHECK(!KEY_GenerateAuth(key, data, data_len, auth, sizeof (auth)));
+      TEST_CHECK(!KEY_CheckAuth(key, data, data_len, auth, auth_len, auth_len));
     }
   }
 
