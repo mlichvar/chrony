@@ -1335,7 +1335,11 @@ parse_include(char *line)
 
   check_number_of_args(line, 1);
 
-  if ((r = glob(line, GLOB_ERR | GLOB_NOMAGIC, NULL, &gl)) != 0) {
+  if ((r = glob(line,
+#ifdef GLOB_NOMAGIC
+                GLOB_NOMAGIC |
+#endif
+                GLOB_ERR, NULL, &gl)) != 0) {
     if (r != GLOB_NOMATCH)
       LOG_FATAL("Could not search for files matching %s", line);
 
