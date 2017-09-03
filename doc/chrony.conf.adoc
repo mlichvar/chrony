@@ -500,7 +500,7 @@ This option specifies the width of the pulses (in seconds). It is used to
 filter PPS samples when the driver provides samples for both rising and falling
 edges. Note that it reduces the maximum allowed error of the time source which
 completes the PPS samples. If the duty cycle is configurable, 50% should be
-prefered in order to maximise the allowed error.
+preferred in order to maximise the allowed error.
 *pps*:::
 This options forces *chronyd* to treat any refclock (e.g. SHM or PHC) as a PPS
 refclock. This can be useful when the refclock provides time with a variable
