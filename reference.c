@@ -609,7 +609,14 @@ is_offset_ok(double offset)
 /* ================================================== */
 
 static int
-is_leap_second_day(struct tm *stm) {
+is_leap_second_day(time_t when)
+{
+  struct tm *stm;
+
+  stm = gmtime(&when);
+  if (!stm)
+    return 0;
+
   /* Allow leap second only on the last day of June and December */
   return (stm->tm_mon == 5 && stm->tm_mday == 30) ||
          (stm->tm_mon == 11 && stm->tm_mday == 31);
@@ -624,7 +631,7 @@ get_tz_leap(time_t when, int *tai_offset)
   static NTP_Leap tz_leap;
   static int tz_tai_offset;
 
-  struct tm stm;
+  struct tm stm, *tm;
   time_t t;
   char *tz_env, tz_orig[128];
 
@@ -639,7 +646,11 @@ get_tz_leap(time_t when, int *tai_offset)
   tz_leap = LEAP_Normal;
   tz_tai_offset = 0;
 
-  stm = *gmtime(&when);
+  tm = gmtime(&when);
+  if (!tm)
+    return tz_leap;
+
+  stm = *tm;
 
   /* Temporarily switch to the timezone containing leap seconds */
   tz_env = getenv("TZ");
@@ -784,7 +795,7 @@ update_leap_status(NTP_Leap leap, time_t now, int reset)
   if (leap == LEAP_InsertSecond || leap == LEAP_DeleteSecond) {
     /* Check that leap second is allowed today */
 
-    if (is_leap_second_day(gmtime(&now))) {
+    if (is_leap_second_day(now)) {
       if (leap == LEAP_InsertSecond) {
         leap_sec = 1;
       } else {
