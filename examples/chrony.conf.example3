@@ -97,6 +97,12 @@ driftfile /var/lib/chrony/drift
 
 ! pidfile /var/run/chronyd.pid
 
+# If the system timezone database is kept up to date and includes the
+# right/UTC timezone, chronyd can use it to determine the current
+# TAI-UTC offset and when will the next leap second occur.
+
+! leapsectz right/UTC
+
 #######################################################################
 ### INITIAL CLOCK CORRECTION
 # This option is useful to quickly correct the clock on start if it's
