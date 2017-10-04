@@ -53,7 +53,19 @@ DNS_Name2IPAddress(const char *name, IPAddr *ip_addrs, int max_addrs)
   max_addrs = MIN(max_addrs, DNS_MAX_ADDRESSES);
 
   memset(&hints, 0, sizeof (hints));
-  hints.ai_family = AF_UNSPEC;
+
+  switch (address_family) {
+    case IPADDR_INET4:
+      hints.ai_family = AF_INET;
+      break;
+#ifdef FEAT_IPV6
+    case IPADDR_INET6:
+      hints.ai_family = AF_INET6;
+      break;
+#endif
+    default:
+      hints.ai_family = AF_UNSPEC;
+  }
   hints.ai_socktype = SOCK_STREAM;
 
   result = getaddrinfo(name, NULL, &hints, &res);
