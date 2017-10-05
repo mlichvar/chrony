@@ -550,7 +550,11 @@ then
     split_seconds=$ntp_era_split
     split_days=0
   else
-    split_seconds=`date '+%s'`
+    if [ "x$SOURCE_DATE_EPOCH" != "x" ]; then
+      split_seconds=$SOURCE_DATE_EPOCH
+    else
+      split_seconds=`date '+%s'`
+    fi
     if [ "x$split_seconds" = "x" ]; then
       echo "error: could not get current time, --with-ntp-era option is needed"
       exit 1
