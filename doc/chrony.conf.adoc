@@ -516,6 +516,9 @@ is included in the maximum assumed error which is used in the source selection
 algorithm. Increasing the delay is useful to avoid having no majority in the
 source selection or to make it prefer other sources. The default is 1e-9 (1
 nanosecond).
+*stratum* _stratum_:::
+This option sets the NTP stratum of the refclock. This can be useful when the
+refclock provides time with a stratum other than 0. The default is 0.
 *precision* _precision_:::
 This option sets the precision of the reference clock (in seconds). The default
 value is the estimated precision of the system clock.

@@ -79,6 +79,7 @@ struct RCL_Instance_Record {
   int pps_rate;
   int pps_active;
   int max_lock_age;
+  int stratum;
   struct MedianFilter filter;
   uint32_t ref_id;
   uint32_t lock_ref;
@@ -200,6 +201,7 @@ RCL_AddRefclock(RefclockParameters *params)
   inst->pps_rate = params->pps_rate;
   inst->pps_active = 0;
   inst->max_lock_age = params->max_lock_age;
+  inst->stratum = params->stratum;
   inst->lock_ref = params->lock_ref_id;
   inst->offset = params->offset;
   inst->delay = params->delay;
@@ -635,7 +637,7 @@ poll_timeout(void *arg)
         /* Handle special case when PPS is used with local stratum */
         stratum = pps_stratum(inst, &sample_time);
       else
-        stratum = 0;
+        stratum = inst->stratum;
 
       SRC_UpdateReachability(inst->source, 1);
       SRC_AccumulateSample(inst->source, &sample_time, offset,

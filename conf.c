@@ -681,7 +681,7 @@ static void
 parse_refclock(char *line)
 {
   int n, poll, dpoll, filter_length, pps_rate, min_samples, max_samples, sel_options;
-  int max_lock_age, pps_forced;
+  int max_lock_age, pps_forced, stratum;
   uint32_t ref_id, lock_ref_id;
   double offset, delay, precision, max_dispersion, pulse_width;
   char *p, *cmd, *name, *param;
@@ -704,6 +704,7 @@ parse_refclock(char *line)
   ref_id = 0;
   max_lock_age = 2;
   lock_ref_id = 0;
+  stratum = 0;
 
   if (!*line) {
     command_parse_error();
@@ -774,6 +775,10 @@ parse_refclock(char *line)
     } else if (!strcasecmp(cmd, "maxdispersion")) {
       if (sscanf(line, "%lf%n", &max_dispersion, &n) != 1)
         break;
+    } else if (!strcasecmp(cmd, "stratum")) {
+      if (sscanf(line, "%d%n", &stratum, &n) != 1 ||
+          stratum >= NTP_MAX_STRATUM || stratum < 0)
+        break;
     } else if (!strcasecmp(cmd, "width")) {
       if (sscanf(line, "%lf%n", &pulse_width, &n) != 1)
         break;
@@ -811,6 +816,7 @@ parse_refclock(char *line)
   refclock->min_samples = min_samples;
   refclock->max_samples = max_samples;
   refclock->sel_options = sel_options;
+  refclock->stratum = stratum;
   refclock->offset = offset;
   refclock->delay = delay;
   refclock->precision = precision;
