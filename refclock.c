@@ -80,6 +80,7 @@ struct RCL_Instance_Record {
   int pps_active;
   int max_lock_age;
   int stratum;
+  int tai;
   struct MedianFilter filter;
   uint32_t ref_id;
   uint32_t lock_ref;
@@ -190,6 +191,9 @@ RCL_AddRefclock(RefclockParameters *params)
     return 0;
   }
 
+  if (params->tai && !CNF_GetLeapSecTimezone())
+    LOG_FATAL("refclock tai option requires leapsectz");
+
   inst->data = NULL;
   inst->driver_parameter = params->driver_parameter;
   inst->driver_parameter_length = 0;
@@ -202,6 +206,7 @@ RCL_AddRefclock(RefclockParameters *params)
   inst->pps_active = 0;
   inst->max_lock_age = params->max_lock_age;
   inst->stratum = params->stratum;
+  inst->tai = params->tai;
   inst->lock_ref = params->lock_ref_id;
   inst->offset = params->offset;
   inst->delay = params->delay;
@@ -385,6 +390,17 @@ RCL_AddSample(RCL_Instance instance, struct timespec *sample_time, double offset
     default:
       DEBUG_LOG("refclock sample ignored bad leap %d", leap);
       return 0;
+  }
+
+  if (instance->tai) {
+    int tai_offset = REF_GetTaiOffset(sample_time);
+
+    if (!tai_offset) {
+      DEBUG_LOG("refclock sample ignored unknown TAI offset");
+      return 0;
+    }
+
+    offset -= tai_offset;
   }
 
   filter_add_sample(&instance->filter, &cooked_time, offset - correction + instance->offset, dispersion);

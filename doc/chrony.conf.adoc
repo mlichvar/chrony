@@ -549,6 +549,13 @@ but not very precise, reference clock to be safely combined with
 unauthenticated NTP sources in order to improve the accuracy of the clock. They
 can be selected and used for synchronisation only if they agree with the
 trusted and required source.
+*tai*:::
+This option indicates that the time on the given reference clock is kept in TAI
+instead of UTC and that *chronyd* should apply the current TAI-UTC offset to
+samples taken from this refclock. To use this, the *leapsectz* directive must
+be used as *chronyd* uses the timezone files to compute the TAI-UTC offset.
+This option does not make sense if the given refclock is only being used for
+PPS input.
 *minsamples* _samples_:::
 Set the minimum number of samples kept for this source. This overrides the
 <<minsamples,*minsamples*>> directive.
