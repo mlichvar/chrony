@@ -184,6 +184,9 @@ extern void REF_DisableLocal(void);
    and is better to discard any measurements */
 extern int REF_IsLeapSecondClose(void);
 
+/* Return TAI-UTC offset corresponding to a time in UTC if available */
+extern int REF_GetTaiOffset(struct timespec *ts);
+
 extern void REF_GetTrackingReport(RPT_TrackingReport *rep);
 
 #endif /* GOT_REFERENCE_H */

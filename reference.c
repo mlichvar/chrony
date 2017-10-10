@@ -1356,6 +1356,18 @@ int REF_IsLeapSecondClose(void)
 
 /* ================================================== */
 
+int
+REF_GetTaiOffset(struct timespec *ts)
+{
+  int tai_offset;
+
+  get_tz_leap(ts->tv_sec, &tai_offset);
+
+  return tai_offset;
+}
+
+/* ================================================== */
+
 void
 REF_GetTrackingReport(RPT_TrackingReport *rep)
 {
