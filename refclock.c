@@ -183,13 +183,10 @@ RCL_AddRefclock(RefclockParameters *params)
     inst->driver = &RCL_PHC_driver;
   } else {
     LOG_FATAL("unknown refclock driver %s", params->driver_name);
-    return 0;
   }
 
-  if (!inst->driver->init && !inst->driver->poll) {
+  if (!inst->driver->init && !inst->driver->poll)
     LOG_FATAL("refclock driver %s is not compiled in", params->driver_name);
-    return 0;
-  }
 
   if (params->tai && !CNF_GetLeapSecTimezone())
     LOG_FATAL("refclock tai option requires leapsectz");
@@ -258,11 +255,8 @@ RCL_AddRefclock(RefclockParameters *params)
     }
   }
 
-  if (inst->driver->init)
-    if (!inst->driver->init(inst)) {
-      LOG_FATAL("refclock %s initialisation failed", params->driver_name);
-      return 0;
-    }
+  if (inst->driver->init && !inst->driver->init(inst))
+    LOG_FATAL("refclock %s initialisation failed", params->driver_name);
 
   filter_init(&inst->filter, params->filter_length, params->max_dispersion);
 
