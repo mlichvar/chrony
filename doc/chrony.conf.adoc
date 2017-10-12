@@ -872,6 +872,11 @@ It is also useful when the system clock is required to have correct TAI-UTC
 offset. Note that the offset is set only when leap seconds are handled by the
 kernel, i.e. <<leapsecmode,*leapsecmode*>> is set to *system*.
 +
+The specified timezone is not used as an exclusive source of information about
+leap seconds. If a majority of time sources announce on the last day of June or
+December that a leap second should be inserted or deleted, it will be accepted
+it even if it is not included in the timezone.
++
 An example of the directive is:
 +
 ----
