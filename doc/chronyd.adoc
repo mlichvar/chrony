@@ -135,7 +135,7 @@ range of privileged system calls on behalf of the parent.
 *-F* _level_::
 This option configures a system call filter when *chronyd* is compiled with
 support for the Linux secure computing (seccomp) facility. In level 1 the
-process is killed when a forbidden system call is made, in level -1 the SYSSIG
+process is killed when a forbidden system call is made, in level -1 the SIGSYS
 signal is thrown instead and in level 0 the filter is disabled (default 0).
 +
 It's recommended to enable the filter only when it's known to work on the
