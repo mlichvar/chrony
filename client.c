@@ -1335,7 +1335,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
   struct timeval tv;
   int n_attempts, new_attempt;
   double timeout;
-  fd_set rdfd, wrfd, exfd;
+  fd_set rdfd;
 
   request->pkt_type = PKT_TYPE_CMD_REQUEST;
   request->res1 = 0;
@@ -1405,15 +1405,12 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
     UTI_DoubleToTimeval(timeout, &tv);
 
     FD_ZERO(&rdfd);
-    FD_ZERO(&wrfd);
-    FD_ZERO(&exfd);
-
     FD_SET(sock_fd, &rdfd);
 
     if (quit)
       return 0;
 
-    select_status = select(sock_fd + 1, &rdfd, &wrfd, &exfd, &tv);
+    select_status = select(sock_fd + 1, &rdfd, NULL, NULL, &tv);
 
     if (select_status < 0) {
       DEBUG_LOG("select failed : %s", strerror(errno));
