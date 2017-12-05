@@ -1394,8 +1394,15 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
 
     timeout = initial_timeout / 1000.0 * (1U << (n_attempts - 1)) -
               UTI_DiffTimespecsToDouble(&ts_now, &ts_start);
-    UTI_DoubleToTimeval(timeout, &tv);
     DEBUG_LOG("Timeout %f seconds", timeout);
+
+    /* Avoid calling select() with an invalid timeout */
+    if (timeout <= 0.0) {
+      new_attempt = 1;
+      continue;
+    }
+
+    UTI_DoubleToTimeval(timeout, &tv);
 
     FD_ZERO(&rdfd);
     FD_ZERO(&wrfd);
@@ -1410,6 +1417,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
 
     if (select_status < 0) {
       DEBUG_LOG("select failed : %s", strerror(errno));
+      return 0;
     } else if (select_status == 0) {
       /* Timeout must have elapsed, try a resend? */
       new_attempt = 1;
