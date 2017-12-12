@@ -1347,13 +1347,13 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
   new_attempt = 1;
 
   do {
+    if (gettimeofday(&tv, NULL))
+      return 0;
+
     if (new_attempt) {
       new_attempt = 0;
 
       if (n_attempts > max_retries)
-        return 0;
-
-      if (gettimeofday(&tv, NULL))
         return 0;
 
       UTI_TimevalToTimespec(&tv, &ts_start);
@@ -1382,9 +1382,6 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
 
       DEBUG_LOG("Sent %d bytes", command_length);
     }
-
-    if (gettimeofday(&tv, NULL))
-      return 0;
 
     UTI_TimevalToTimespec(&tv, &ts_now);
 
