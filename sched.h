@@ -60,7 +60,7 @@ extern void SCH_Finalise(void);
 /* Register a handler for when select goes true on a file descriptor */
 extern void SCH_AddFileHandler(int fd, int events, SCH_FileHandler handler, SCH_ArbitraryArgument arg);
 extern void SCH_RemoveFileHandler(int fd);
-extern void SCH_SetFileHandlerEvents(int fd, int events);
+extern void SCH_SetFileHandlerEvent(int fd, int event, int enable);
 
 /* Get the time stamp taken after a file descriptor became ready or a timeout expired */
 extern void SCH_GetLastEventTime(struct timespec *cooked, double *err, struct timespec *raw);

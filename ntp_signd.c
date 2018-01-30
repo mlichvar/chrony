@@ -235,7 +235,7 @@ read_write_socket(int sock_fd, int event, void *anything)
       return;
 
     /* Disable output and wait for a response */
-    SCH_SetFileHandlerEvents(sock_fd, SCH_FILE_INPUT);
+    SCH_SetFileHandlerEvent(sock_fd, SCH_FILE_OUTPUT, 0);
   }
 
   if (event == SCH_FILE_INPUT) {
@@ -283,7 +283,7 @@ read_write_socket(int sock_fd, int event, void *anything)
     /* Move the head and enable output for the next packet */
     queue_head = NEXT_QUEUE_INDEX(queue_head);
     if (!IS_QUEUE_EMPTY())
-      SCH_SetFileHandlerEvents(sock_fd, SCH_FILE_INPUT | SCH_FILE_OUTPUT);
+      SCH_SetFileHandlerEvent(sock_fd, SCH_FILE_OUTPUT, 1);
   }
 }
 
@@ -369,7 +369,7 @@ NSD_SignAndSendPacket(uint32_t key_id, NTP_Packet *packet, NTP_Remote_Address *r
 
   /* Enable output if there was no pending request */
   if (IS_QUEUE_EMPTY())
-    SCH_SetFileHandlerEvents(sock_fd, SCH_FILE_INPUT | SCH_FILE_OUTPUT);
+    SCH_SetFileHandlerEvent(sock_fd, SCH_FILE_OUTPUT, 1);
 
   queue_tail = NEXT_QUEUE_INDEX(queue_tail);
 

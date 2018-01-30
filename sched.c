@@ -219,13 +219,16 @@ SCH_RemoveFileHandler(int fd)
 /* ================================================== */
 
 void
-SCH_SetFileHandlerEvents(int fd, int events)
+SCH_SetFileHandlerEvent(int fd, int event, int enable)
 {
   FileHandlerEntry *ptr;
 
-  assert(events);
   ptr = ARR_GetElement(file_handlers, fd);
-  ptr->events = events;
+
+  if (enable)
+    ptr->events |= event;
+  else
+    ptr->events &= ~event;
 }
 
 /* ================================================== */
