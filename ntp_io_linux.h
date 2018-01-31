@@ -24,6 +24,9 @@
   This is the header file for the Linux-specific NTP socket I/O bits.
   */
 
+#ifndef GOT_NTP_IO_LINUX_H
+#define GOT_NTP_IO_LINUX_H
+
 extern void NIO_Linux_Initialise(void);
 
 extern void NIO_Linux_Finalise(void);
@@ -34,3 +37,5 @@ extern int NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_A
                                     NTP_Local_Timestamp *local_ts, struct msghdr *hdr, int length);
 
 extern int NIO_Linux_RequestTxTimestamp(struct msghdr *msg, int cmsglen, int sock_fd);
+
+#endif
