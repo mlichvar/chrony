@@ -682,6 +682,9 @@ NIO_Linux_RequestTxTimestamp(struct msghdr *msg, int cmsglen, int sock_fd)
 {
   struct cmsghdr *cmsg;
 
+  if (!ts_flags)
+    return cmsglen;
+
   /* Check if TX timestamping is disabled on this socket */
   if (permanent_ts_options || !NIO_IsServerSocket(sock_fd))
     return cmsglen;
