@@ -318,6 +318,9 @@ close_socket(int sock_fd)
   if (sock_fd == INVALID_SOCK_FD)
     return;
 
+#ifdef HAVE_LINUX_TIMESTAMPING
+  NIO_Linux_NotifySocketClosing(sock_fd);
+#endif
   SCH_RemoveFileHandler(sock_fd);
   close(sock_fd);
 }
@@ -684,6 +687,11 @@ read_from_socket(int sock_fd, int event, void *anything)
   struct MessageHeader *hdr;
   unsigned int i, n;
   int status, flags = 0;
+
+#ifdef HAVE_LINUX_TIMESTAMPING
+  if (NIO_Linux_ProcessEvent(sock_fd, event))
+    return;
+#endif
 
   hdr = ARR_GetElements(recv_headers);
   n = ARR_GetSize(recv_headers);
