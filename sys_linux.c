@@ -415,9 +415,9 @@ SYS_Linux_Finalise(void)
 
 #ifdef FEAT_PRIVDROP
 void
-SYS_Linux_DropRoot(uid_t uid, gid_t gid)
+SYS_Linux_DropRoot(uid_t uid, gid_t gid, int clock_control)
 {
-  const char *cap_text;
+  char cap_text[256];
   cap_t cap;
 
   if (prctl(PR_SET_KEEPCAPS, 1)) {
@@ -426,9 +426,12 @@ SYS_Linux_DropRoot(uid_t uid, gid_t gid)
   
   UTI_DropRoot(uid, gid);
 
-  /* Keep CAP_NET_BIND_SERVICE only if NTP port can be opened */
-  cap_text = CNF_GetNTPPort() ?
-             "cap_net_bind_service,cap_sys_time=ep" : "cap_sys_time=ep";
+  /* Keep CAP_NET_BIND_SERVICE only if a server NTP port can be opened
+     and keep CAP_SYS_TIME only if the clock control is enabled */
+  if (snprintf(cap_text, sizeof (cap_text), "%s %s",
+               CNF_GetNTPPort() ? "cap_net_bind_service=ep" : "",
+               clock_control ? "cap_sys_time=ep" : "") >= sizeof (cap_text))
+    assert(0);
 
   if ((cap = cap_from_text(cap_text)) == NULL) {
     LOG_FATAL("cap_from_text() failed");

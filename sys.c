@@ -97,7 +97,7 @@ SYS_Finalise(void)
 void SYS_DropRoot(uid_t uid, gid_t gid)
 {
 #if defined(LINUX) && defined (FEAT_PRIVDROP)
-  SYS_Linux_DropRoot(uid, gid);
+  SYS_Linux_DropRoot(uid, gid, !null_driver);
 #elif defined(SOLARIS) && defined(FEAT_PRIVDROP)
   SYS_Solaris_DropRoot(uid, gid);
 #elif (defined(NETBSD) || defined(FREEBSD)) && defined(FEAT_PRIVDROP)
