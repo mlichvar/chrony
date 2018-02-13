@@ -4,6 +4,8 @@
 
 export LC_ALL=C
 
+[ "$2" != "up" ] && [ "$2" != "down" ] && exit 0
+
 # Check if there is a default route
 
 if /sbin/ip route list 2> /dev/null | grep -q '^default'; then
