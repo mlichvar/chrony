@@ -107,6 +107,12 @@ static SCH_TimeoutID resume_timeout_id;
 
 #define RESUME_TIMEOUT 200.0e-6
 
+/* Unbound socket keeping the kernel RX timestamping permanently enabled
+   in order to avoid a race condition between receiving a server response
+   and the kernel actually starting to timestamp received packets after
+   enabling the timestamping and sending a request */
+static int dummy_rxts_socket;
+
 #define INVALID_SOCK_FD -3
 
 /* ================================================== */
@@ -316,6 +322,29 @@ check_timestamping_option(int option)
 
 /* ================================================== */
 
+static int
+open_dummy_socket(void)
+{
+  int sock_fd, events = 0;
+
+  if ((sock_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0
+#ifdef FEAT_IPV6
+      && (sock_fd = socket(AF_INET6, SOCK_DGRAM, 0)) < 0
+#endif
+     )
+    return INVALID_SOCK_FD;
+
+  if (!NIO_Linux_SetTimestampSocketOptions(sock_fd, 1, &events)) {
+    close(sock_fd);
+    return INVALID_SOCK_FD;
+  }
+
+  UTI_FdSetCloexec(sock_fd);
+  return sock_fd;
+}
+
+/* ================================================== */
+
 void
 NIO_Linux_Initialise(void)
 {
@@ -368,6 +397,9 @@ NIO_Linux_Initialise(void)
 
   monitored_socket = INVALID_SOCK_FD;
   suspended_socket = INVALID_SOCK_FD;
+
+  /* Open a socket to keep the kernel RX timestamping permanently enabled */
+  dummy_rxts_socket = open_dummy_socket();
 }
 
 /* ================================================== */
@@ -377,6 +409,9 @@ NIO_Linux_Finalise(void)
 {
   struct Interface *iface;
   unsigned int i;
+
+  if (dummy_rxts_socket != INVALID_SOCK_FD)
+    close(dummy_rxts_socket);
 
   for (i = 0; i < ARR_GetSize(interfaces); i++) {
     iface = ARR_GetElement(interfaces, i);
