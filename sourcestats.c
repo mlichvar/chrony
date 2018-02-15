@@ -884,7 +884,7 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
   char line[1024];
   double weight;
 
-  assert(!inst->n_samples);
+  SST_ResetInstance(inst);
 
   if (fgets(line, sizeof(line), in) &&
       sscanf(line, "%d", &inst->n_samples) == 1 &&
@@ -933,7 +933,6 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
     return 1;
 
   inst->last_sample = inst->n_samples - 1;
-  inst->runs_samples = 0;
 
   find_min_delay_sample(inst);
   SST_DoNewRegression(inst);
