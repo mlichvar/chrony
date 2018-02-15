@@ -8,11 +8,20 @@ limit=1000
 refclock_jitter=$jitter
 min_sync_time=45
 max_sync_time=70
-client_conf="refclock SHM 0"
+chronyc_start=70
+client_conf="refclock SHM 0 stratum 3 delay 1e-3 refid GPS"
+chronyc_conf="tracking"
 
 run_test || test_fail
 check_chronyd_exit || test_fail
 check_source_selection || test_fail
 check_sync || test_fail
+check_chronyc_output "^Reference ID.*47505300 \(GPS\)
+Stratum.*: 4
+.*
+Root delay      : 0.001000000 seconds
+.*
+Update interval : 16\.. seconds
+.*$" || test_fail
 
 test_pass
