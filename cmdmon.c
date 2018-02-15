@@ -279,7 +279,7 @@ do_size_checks(void)
     reply.reply = htons(i);
     reply.status = STT_SUCCESS;
     reply.data.manual_list.n_samples = htonl(MAX_MANUAL_LIST_SAMPLES);
-    reply_length = PKL_ReplyLength(&reply);
+    reply_length = PKL_ReplyLength(&reply, sizeof (reply));
     if ((reply_length && reply_length < offsetof(CMD_Reply, data)) ||
         reply_length > sizeof (CMD_Reply))
       assert(0);
@@ -393,7 +393,7 @@ transmit_reply(CMD_Reply *msg, union sockaddr_all *where_to)
       assert(0);
   }
 
-  tx_message_length = PKL_ReplyLength(msg);
+  tx_message_length = PKL_ReplyLength(msg, sizeof (*msg));
   status = sendto(sock_fd, (void *) msg, tx_message_length, 0,
                   &where_to->sa, addrlen);
 

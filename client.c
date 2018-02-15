@@ -1427,14 +1427,9 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
         DEBUG_LOG("Received %d bytes", recv_status);
         
         read_length = recv_status;
-        if (read_length >= offsetof(CMD_Reply, data)) {
-          expected_length = PKL_ReplyLength(reply);
-        } else {
-          expected_length = 0;
-        }
+        expected_length = PKL_ReplyLength(reply, read_length);
 
-        bad_length = (read_length < expected_length ||
-                      expected_length < offsetof(CMD_Reply, data));
+        bad_length = !expected_length || read_length < expected_length;
         
         if (!bad_length) {
           bad_sequence = reply->sequence != request->sequence;

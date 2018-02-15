@@ -183,11 +183,14 @@ PKL_CommandPaddingLength(CMD_Request *r)
 /* ================================================== */
 
 int
-PKL_ReplyLength(CMD_Reply *r)
+PKL_ReplyLength(CMD_Reply *r, int read_length)
 {
   uint32_t type;
 
   assert(sizeof (reply_lengths) / sizeof (reply_lengths[0]) == N_REPLY_TYPES);
+
+  if (read_length < (int)offsetof(CMD_Reply, data))
+    return 0;
 
   type = ntohs(r->reply);
 
@@ -201,6 +204,9 @@ PKL_ReplyLength(CMD_Reply *r)
 
     if (r->status != htons(STT_SUCCESS))
       return offsetof(CMD_Reply, data);
+
+    if (read_length < (int)offsetof(CMD_Reply, data.manual_list.samples))
+      return 0;
 
     ns = ntohl(r->data.manual_list.n_samples);
     if (ns > MAX_MANUAL_LIST_SAMPLES)
