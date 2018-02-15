@@ -4,14 +4,30 @@
 
 test_start "chronyc"
 
-chronyc_conf="tracking
+refclock_jitter=$jitter
+client_conf="
+refclock SHM 0 noselect
+smoothtime 400 0.001 leaponly"
+
+chronyc_conf="activity
+tracking
 sources
-sourcestats"
+sourcestats
+manual list
+smoothing
+waitsync
+rtcdata"
 
 run_test || test_fail
 check_chronyd_exit || test_fail
 
-check_chronyc_output "^Reference ID    : C0A87B01 \(192\.168\.123\.1\)
+check_chronyc_output "^200 OK
+1 sources online
+0 sources offline
+0 sources doing burst \(return to online\)
+0 sources doing burst \(return to offline\)
+0 sources with unknown address
+Reference ID    : C0A87B01 \(192\.168\.123\.1\)
 Stratum         : 2
 Ref time \(UTC\)  : Fri Jan 01 00:1.:.. 2010
 System time     : 0\.0000..... seconds (slow|fast) of NTP time
@@ -24,14 +40,27 @@ Root delay      : 0\.000...... seconds
 Root dispersion : 0\.000...... seconds
 Update interval : [0-9]+\.. seconds
 Leap status     : Normal
-210 Number of sources = 1
+210 Number of sources = 2
 MS Name/IP address         Stratum Poll Reach LastRx Last sample               
 ===============================================================================
+#\? SHM0                          0   4   377    [0-9]+ [0-9 +-]+[un]s\[[0-9 +-]+[un]s\] \+/-[ 0-9]+[un]s
 \^\* 192\.168\.123\.1                 1   [67]   377    [0-9]+ [0-9 +-]+[un]s\[[0-9 +-]+[un]s\] \+/-[ 0-9]+[un]s
-210 Number of sources = 1
+210 Number of sources = 2
 Name/IP Address            NP  NR  Span  Frequency  Freq Skew  Offset  Std Dev
 ==============================================================================
-192\.168\.123\.1              [0-9 ]+ [0-9 ]+ [0-9 ]+ [ +-][01]\.... [0-9 ]+\....  [0-9 +-]+[un]s [0-9 ]+[un]s$" \
+SHM0                       [0-9 ]+ [0-9 ]+ [0-9 ]+ [ +-][01]\.... [0-9 ]+\....  [0-9 +-]+[un]s [0-9 ]+[un]s
+192\.168\.123\.1              [0-9 ]+ [0-9 ]+ [0-9 ]+ [ +-][01]\.... [0-9 ]+\....  [0-9 +-]+[un]s [0-9 ]+[un]s
+210 n_samples = 0
+#    Date     Time\(UTC\)    Slewed   Original   Residual
+=======================================================
+Active         : Yes \(leap second only\)
+Offset         : \+0\.000000000 seconds
+Frequency      : \+0\.000000 ppm
+Wander         : \+0\.000000 ppm per second
+Last update    : [0-9]+\.. seconds ago
+Remaining time : 0\.0 seconds
+try: 1, refid: C0A87B01, correction: 0\.000......, skew: .\....
+513 RTC driver not running$" \
 || test_fail
 
 test_pass
