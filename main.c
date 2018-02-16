@@ -524,6 +524,16 @@ int main
   /* Write our pidfile to prevent other chronyds running */
   write_pidfile();
 
+  if (!user)
+    user = CNF_GetUser();
+
+  pw = getpwnam(user);
+  if (!pw)
+    LOG_FATAL("Could not get user/group ID of %s", user);
+
+  /* Create directories for sockets, log files, and dump files */
+  CNF_CreateDirs(pw->pw_uid, pw->pw_gid);
+
   PRV_Initialise();
   LCL_Initialise();
   SCH_Initialise();
@@ -550,16 +560,6 @@ int main
   if (lock_memory || CNF_GetLockMemory()) {
     SYS_LockMemory();
   }
-
-  if (!user) {
-    user = CNF_GetUser();
-  }
-
-  if ((pw = getpwnam(user)) == NULL)
-    LOG_FATAL("Could not get user/group ID of %s", user);
-
-  /* Create all directories before dropping root */
-  CNF_CreateDirs(pw->pw_uid, pw->pw_gid);
 
   /* Drop root privileges if the specified user has a non-zero UID */
   if (!geteuid() && (pw->pw_uid || pw->pw_gid))
