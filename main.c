@@ -556,7 +556,7 @@ int main
   }
 
   if ((pw = getpwnam(user)) == NULL)
-    LOG_FATAL("Could not get %s uid/gid", user);
+    LOG_FATAL("Could not get user/group ID of %s", user);
 
   /* Create all directories before dropping root */
   CNF_CreateDirs(pw->pw_uid, pw->pw_gid);
