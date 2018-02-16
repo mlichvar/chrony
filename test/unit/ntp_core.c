@@ -74,7 +74,6 @@ send_request(void)
 
   transmit_timeout(inst);
   TEST_CHECK(!inst->valid_rx);
-  TEST_CHECK(!inst->updated_timestamps);
   TEST_CHECK(prev_tx_count + 1 == inst->report.total_tx_count);
 
   advance_time(1e-4);
@@ -165,13 +164,13 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
 }
 
 static void
-process_response(int valid, int updated)
+process_response(int valid, int updated_sync, int updated_init)
 {
   NTP_Local_Address local_addr;
   NTP_Local_Timestamp local_ts;
   NTP_Packet *res;
   uint32_t prev_rx_count, prev_valid_count;
-  struct timespec prev_rx_ts;
+  struct timespec prev_rx_ts, prev_init_rx_ts;
   int prev_open_socket;
 
   res = &res_buffer.ntp_pkt;
@@ -186,6 +185,7 @@ process_response(int valid, int updated)
   prev_rx_count = inst->report.total_rx_count;
   prev_valid_count = inst->report.total_valid_count;
   prev_rx_ts = inst->local_rx.ts;
+  prev_init_rx_ts = inst->init_local_rx.ts;
   prev_open_socket = inst->local_addr.sock_fd != INVALID_SOCK_FD;
 
   NCR_ProcessRxKnown(inst, &local_addr, &local_ts, res, res_length);
@@ -200,10 +200,20 @@ process_response(int valid, int updated)
   else
     TEST_CHECK(prev_valid_count == inst->report.total_valid_count);
 
-  if (updated)
+  if (updated_sync)
     TEST_CHECK(UTI_CompareTimespecs(&inst->local_rx.ts, &prev_rx_ts));
   else
     TEST_CHECK(!UTI_CompareTimespecs(&inst->local_rx.ts, &prev_rx_ts));
+
+  if (updated_init)
+    TEST_CHECK(UTI_CompareTimespecs(&inst->init_local_rx.ts, &prev_init_rx_ts));
+  else
+    TEST_CHECK(!UTI_CompareTimespecs(&inst->init_local_rx.ts, &prev_init_rx_ts));
+
+  if (valid) {
+    TEST_CHECK(UTI_IsZeroTimespec(&inst->init_local_rx.ts));
+    TEST_CHECK(UTI_IsZeroNtp64(&inst->init_remote_ntp_tx));
+  }
 }
 
 void
@@ -259,30 +269,38 @@ test_unit(void)
       updated = (valid || inst->mode == MODE_ACTIVE) &&
                 (!source.params.authkey || authenticated);
       has_updated = has_updated || updated;
+      if (inst->mode == MODE_CLIENT)
+        updated = 0;
 
       send_request();
 
       send_response(interleaved, authenticated, 1, 0, 1);
-      process_response(0, inst->mode == MODE_CLIENT ? 0 : updated);
+      DEBUG_LOG("response 1");
+      process_response(0, 0, updated);
 
       if (source.params.authkey) {
         send_response(interleaved, authenticated, 1, 1, 0);
-        process_response(0, 0);
+        DEBUG_LOG("response 2");
+        process_response(0, 0, 0);
       }
 
       send_response(interleaved, authenticated, 1, 1, 1);
-      process_response(valid, updated);
-      process_response(0, 0);
+      DEBUG_LOG("response 3");
+      process_response(valid, valid, updated);
+      DEBUG_LOG("response 4");
+      process_response(0, 0, 0);
 
       advance_time(-1.0);
 
       send_response(interleaved, authenticated, 1, 1, 1);
-      process_response(0, 0);
+      DEBUG_LOG("response 5");
+      process_response(0, 0, updated && valid);
 
       advance_time(1.0);
 
       send_response(interleaved, authenticated, 1, 1, 1);
-      process_response(0, inst->mode == MODE_CLIENT ? 0 : updated);
+      DEBUG_LOG("response 6");
+      process_response(0, valid && updated, updated);
     }
 
     NCR_DestroyInstance(inst);
