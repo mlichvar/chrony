@@ -726,6 +726,23 @@ UTI_CompareNtp64(NTP_int64 *a, NTP_int64 *b)
 
 /* ================================================== */
 
+int
+UTI_IsEqualAnyNtp64(NTP_int64 *a, NTP_int64 *b1, NTP_int64 *b2, NTP_int64 *b3)
+{
+  if (b1 && a->lo == b1->lo && a->hi == b1->hi)
+    return 1;
+
+  if (b2 && a->lo == b2->lo && a->hi == b2->hi)
+    return 1;
+
+  if (b3 && a->lo == b3->lo && a->hi == b3->hi)
+    return 1;
+
+  return 0;
+}
+
+/* ================================================== */
+
 /* Seconds part of NTP timestamp correponding to the origin of the time_t format */
 #define JAN_1970 0x83aa7e80UL
 

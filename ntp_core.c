@@ -899,8 +899,10 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 NTP_Local_Timestamp *local_rx, /* The RX time of the received packet */
                 NTP_Local_Timestamp *local_tx, /* The TX time of the previous packet
                                                   RESULT : TX time of this packet */
-                NTP_int64 *local_ntp_rx, /* RESULT : receive timestamp from this packet */
-                NTP_int64 *local_ntp_tx, /* RESULT : transmit timestamp from this packet */
+                NTP_int64 *local_ntp_rx, /* The receive timestamp from the previous packet
+                                            RESULT : receive timestamp from this packet */
+                NTP_int64 *local_ntp_tx, /* The transmit timestamp from the previous packet
+                                            RESULT : transmit timestamp from this packet */
                 NTP_Remote_Address *where_to, /* Where to address the reponse to */
                 NTP_Local_Address *from /* From what address to send it */
                 )
@@ -998,14 +1000,21 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     /* Originate - this comes from the last packet the source sent us */
     message.originate_ts = interleaved ? *remote_ntp_rx : *remote_ntp_tx;
 
-    /* Prepare random bits which will be added to the receive timestamp */
-    UTI_GetNtp64Fuzz(&ts_fuzz, precision);
+    do {
+      /* Prepare random bits which will be added to the receive timestamp */
+      UTI_GetNtp64Fuzz(&ts_fuzz, precision);
 
-    /* Receive - this is when we received the last packet from the source.
-       This timestamp will have been adjusted so that it will now look to
-       the source like we have been running on our latest estimate of
-       frequency all along */
-    UTI_TimespecToNtp64(&local_receive, &message.receive_ts, &ts_fuzz);
+      /* Receive - this is when we received the last packet from the source.
+         This timestamp will have been adjusted so that it will now look to
+         the source like we have been running on our latest estimate of
+         frequency all along */
+      UTI_TimespecToNtp64(&local_receive, &message.receive_ts, &ts_fuzz);
+
+      /* Do not send a packet with a non-zero receive timestamp equal to the
+         originate timestamp or previous receive timestamp */
+    } while (!UTI_IsZeroNtp64(&message.receive_ts) &&
+             UTI_IsEqualAnyNtp64(&message.receive_ts, &message.originate_ts,
+                                 local_ntp_rx, NULL));
   } else {
     UTI_ZeroNtp64(&message.originate_ts);
     UTI_ZeroNtp64(&message.receive_ts);
@@ -1064,10 +1073,16 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                           &message.transmit_ts, &ts_fuzz);
     }
 
-    /* Avoid sending messages with non-zero transmit timestamp equal to the
-       receive timestamp to allow reliable detection of the interleaved mode */
-  } while (!UTI_CompareNtp64(&message.transmit_ts, &message.receive_ts) &&
-           !UTI_IsZeroNtp64(&message.transmit_ts));
+    /* Do not send a packet with a non-zero transmit timestamp which is
+       equal to any of the following timestamps:
+       - receive (to allow reliable detection of the interleaved mode)
+       - originate (to prevent the packet from being its own valid response
+                    in the symmetric mode)
+       - previous transmit (to invalidate responses to the previous packet)
+       (the precision must be at least -30 to prevent an infinite loop!) */
+  } while (!UTI_IsZeroNtp64(&message.transmit_ts) &&
+           UTI_IsEqualAnyNtp64(&message.transmit_ts, &message.receive_ts,
+                               &message.originate_ts, local_ntp_tx));
 
   ret = NIO_SendPacket(&message, where_to, from, length, local_tx != NULL);
 

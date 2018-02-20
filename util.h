@@ -136,6 +136,10 @@ extern int UTI_IsZeroNtp64(NTP_int64 *ts);
    b, and 1 if a is after b. */
 extern int UTI_CompareNtp64(NTP_int64 *a, NTP_int64 *b);
 
+/* Compare an NTP timestamp with up to three other timestamps.  Returns 0
+   if a is not equal to any of b1, b2, and b3, 1 otherwise. */
+extern int UTI_IsEqualAnyNtp64(NTP_int64 *a, NTP_int64 *b1, NTP_int64 *b2, NTP_int64 *b3);
+
 /* Convert a timespec into an NTP timestamp */
 extern void UTI_TimespecToNtp64(struct timespec *src, NTP_int64 *dest, NTP_int64 *fuzz);
 
