@@ -292,6 +292,8 @@ write_pidfile(void)
 
 /* ================================================== */
 
+#define DEV_NULL "/dev/null"
+
 static void
 go_daemon(void)
 {
@@ -352,6 +354,13 @@ go_daemon(void)
       }
 
       LOG_SetParentFd(pipefd[1]);
+
+      /* Open /dev/null as new stdin/out/err */
+      errno = 0;
+      if (open(DEV_NULL, O_RDONLY) != STDIN_FILENO ||
+          open(DEV_NULL, O_WRONLY) != STDOUT_FILENO ||
+          open(DEV_NULL, O_RDWR) != STDERR_FILENO)
+        LOG_FATAL("Could not open %s : %s", DEV_NULL, strerror(errno));
     }
   }
 }
