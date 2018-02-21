@@ -79,11 +79,11 @@ LOG_Initialise(void)
 void
 LOG_Finalise(void)
 {
-  if (system_log) {
+  if (system_log)
     closelog();
-  } else {
+
+  if (file_log)
     fclose(file_log);
-  }
 
   LOG_CycleLogFiles();
 
@@ -116,7 +116,7 @@ static void log_message(int fatal, LOG_Severity severity, const char *message)
         assert(0);
     }
     syslog(priority, fatal ? "Fatal error : %s" : "%s", message);
-  } else {
+  } else if (file_log) {
     fprintf(file_log, fatal ? "Fatal error : %s\n" : "%s\n", message);
   }
 }
@@ -134,7 +134,7 @@ void LOG_Message(LOG_Severity severity,
   time_t t;
   struct tm stm;
 
-  if (!system_log) {
+  if (!system_log && file_log) {
     /* Don't clutter up syslog with timestamps and internal debugging info */
     time(&t);
     stm = *gmtime(&t);
@@ -160,16 +160,14 @@ void LOG_Message(LOG_Severity severity,
     case LOGS_FATAL:
       log_message(1, severity, buf);
 
-      /* With syslog, send the message also to the grandparent
-         process or write it to stderr if not detached */
-      if (system_log) {
-        if (parent_fd > 0) {
-          if (write(parent_fd, buf, strlen(buf) + 1) < 0)
-            ; /* Not much we can do here */
-        } else if (parent_fd == 0) {
-          system_log = 0;
-          log_message(1, severity, buf);
-        }
+      /* Send the message also to the foreground process if it is
+         still running, or stderr if it is still open */
+      if (parent_fd > 0) {
+        if (write(parent_fd, buf, strlen(buf) + 1) < 0)
+          ; /* Not much we can do here */
+      } else if (system_log && parent_fd == 0) {
+        system_log = 0;
+        log_message(1, severity, buf);
       }
       break;
     default:
@@ -220,6 +218,8 @@ void
 LOG_SetParentFd(int fd)
 {
   parent_fd = fd;
+  if (file_log == stderr)
+    file_log = NULL;
 }
 
 /* ================================================== */

@@ -105,7 +105,7 @@ extern void LOG_OpenFileLog(const char *log_file);
 /* Log messages to syslog instead of stderr */
 extern void LOG_OpenSystemLog(void);
 
-/* Send fatal message also to the foreground process */
+/* Stop using stderr and send fatal message to the foreground process */
 extern void LOG_SetParentFd(int fd);
 
 /* Close the pipe to the foreground process so it can exit */
