@@ -366,16 +366,14 @@ UTI_IPToRefid(IPAddr *ip)
     case IPADDR_INET4:
       return ip->addr.in4;
     case IPADDR_INET6:
-      if (MD5_hash < 0) {
+      if (MD5_hash < 0)
         MD5_hash = HSH_GetHashId("MD5");
-        assert(MD5_hash >= 0);
-      }
 
-      if (HSH_Hash(MD5_hash, (unsigned const char *)ip->addr.in6, sizeof
-            (ip->addr.in6), NULL, 0, buf, 16) != 16) {
-        assert(0);
-        return 0;
-      };
+      if (MD5_hash < 0 ||
+          HSH_Hash(MD5_hash, (const unsigned char *)ip->addr.in6, sizeof (ip->addr.in6),
+                   NULL, 0, buf, sizeof (buf)) != sizeof (buf))
+        LOG_FATAL("Could not get MD5");
+
       return (uint32_t)buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
   }
   return 0;
