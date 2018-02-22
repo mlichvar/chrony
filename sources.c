@@ -665,6 +665,16 @@ SRC_SelectSource(SRC_Instance updated_inst)
       continue;
     }
 
+    /* Include extra dispersion in the root distance of sources that don't
+       have new samples (the last sample is older than span of all samples) */
+    if (first_sample_ago < 2.0 * si->last_sample_ago) {
+      double extra_disp = LCL_GetMaxClockError() *
+                          (2.0 * si->last_sample_ago - first_sample_ago);
+      si->root_distance += extra_disp;
+      si->lo_limit -= extra_disp;
+      si->hi_limit += extra_disp;
+    }
+
     /* Require the root distance to be below the allowed maximum */
     if (si->root_distance > max_distance) {
       sources[i]->status = SRC_BAD_DISTANCE;
