@@ -136,6 +136,11 @@ void test_unit(void) {
   TEST_CHECK(UTI_CompareNtp64(&ntp_ts, &ntp_fuzz) < 0);
   TEST_CHECK(UTI_CompareNtp64(&ntp_fuzz, &ntp_ts) > 0);
 
+  TEST_CHECK(UTI_IsEqualAnyNtp64(&ntp_ts, &ntp_ts, NULL, NULL));
+  TEST_CHECK(UTI_IsEqualAnyNtp64(&ntp_ts, NULL, &ntp_ts, NULL));
+  TEST_CHECK(UTI_IsEqualAnyNtp64(&ntp_ts, NULL, NULL, &ntp_ts));
+  TEST_CHECK(!UTI_IsEqualAnyNtp64(&ntp_ts, &ntp_fuzz, &ntp_fuzz, &ntp_fuzz));
+
   ts.tv_sec = 1;
   ts.tv_nsec = 2;
   ts2.tv_sec = 1;
