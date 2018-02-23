@@ -1495,7 +1495,8 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
      The test values are 1 when passed and 0 when failed. */
   
   /* Test 1 checks for duplicate packet */
-  test1 = !!UTI_CompareNtp64(&message->transmit_ts, &inst->remote_ntp_tx);
+  test1 = UTI_CompareNtp64(&message->receive_ts, &inst->remote_ntp_rx) ||
+          UTI_CompareNtp64(&message->transmit_ts, &inst->remote_ntp_tx);
 
   /* Test 2 checks for bogus packet in the basic and interleaved modes.  This
      ensures the source is responding to the latest packet we sent to it. */
