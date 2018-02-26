@@ -5,8 +5,9 @@ test_start "smoothtime option"
 
 server_strata=2
 server_conf="smoothtime 400 0.001"
-min_sync_time=250
-max_sync_time=1000
+server_server_options="minpoll 8"
+min_sync_time=600
+max_sync_time=800
 
 run_test || test_fail
 check_chronyd_exit || test_fail
@@ -22,6 +23,7 @@ server_conf="refclock SHM 0 dpoll 4 poll 6
 smoothtime 2000 1
 maxjitter 10.0"
 time_offset=-10
+server_server_options=""
 client_server_options="minpoll 6 maxpoll 6"
 client_conf="corrtimeratio 100"
 min_sync_time=8000
