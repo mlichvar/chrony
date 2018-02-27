@@ -66,33 +66,33 @@ server, or its IP address. The *server* directive supports the following
 options:
 +
 *minpoll* _poll_:::
-Although *chronyd* will trim the rate at which it samples the server during
-normal operation, the user might want to constrain the minimum polling interval.
-This is always defined as a power of 2, so *minpoll 5* would mean that the
-polling interval cannot drop below 32 seconds. The default is 6 (64 seconds),
-the minimum is -4 (1/16th of a second), and the maximum is 24 (6 months). Note
-that intervals shorter than 6 (64 seconds) should generally not be used with
-public servers on the Internet, because it might be considered abuse.
+This option specifies the minimum interval between requests sent to the server
+as a power of 2 in seconds. For example, *minpoll 5* would mean that the
+polling interval should not drop below 32 seconds. The default is 6 (64
+seconds), the minimum is -4 (1/16th of a second), and the maximum is 24 (6
+months). Note that intervals shorter than 6 (64 seconds) should generally not
+be used with public servers on the Internet, because it might be considered
+abuse.
 *maxpoll* _poll_:::
-In a similar way, the user might want to constrain the maximum polling interval.
-Again this is specified as a power of 2, *maxpoll 9* indicates that the polling
-interval must stay at or below 512 seconds. The default is 10 (1024 seconds),
-the minimum is 0 (1 second), and the maximum is 24 (6 months).
+This option specifies the maximum interval between requests sent to the server
+as a power of 2 in seconds. For example, *maxpoll 9* indicates that the polling
+interval should stay at or below 9 (512 seconds). The default is 10 (1024
+seconds), the minimum is 0 (1 second), and the maximum is 24 (6 months).
 *iburst*:::
-If this option is set, the interval between the first four polls will be 2
-seconds instead of _minpoll_. This is useful to quickly get the first update of
-the clock after *chronyd* is started.
-*key* _id_:::
+With this option, the interval between the first four requests sent to the
+server will be 2 seconds instead of the interval specified by the *minpoll*
+option, which allows *chronyd* to make the first update of the clock shortly
+after start.
+*key* _ID_:::
 The NTP protocol supports the inclusion of checksums in the packets, to prevent
 computers having their system time upset by rogue packets being sent to them.
 The checksums are generated as a function of a password, using the
 cryptographic hash function set in the key file, which is specified by the
 <<keyfile,*keyfile*>> directive.
 +
-If the key option is present, *chronyd* will attempt to use authenticated
-packets when communicating with this server. The key number used will be the
-single argument to the key option (an unsigned integer in the range 1 through
-2^32-1). The server must have the same password for this key number configured,
+The *key* option specifies which key (with an ID in the range 1 through 2^32-1)
+should *chronyd* use to authenticate requests sent to the server and verify its
+responses. The server must have the same key for this number configured,
 otherwise no relationship between the computers will be possible.
 *maxdelay* _delay_:::
 *chronyd* uses the network round-trip delay to the server to determine how
@@ -113,7 +113,7 @@ option. For example, *maxdelay 0.3* would indicate that measurements with a
 round-trip delay of 0.3 seconds or more should be ignored. The default value is
 3 seconds and the maximum value is 1000 seconds.
 *maxdelayratio* _ratio_:::
-This option is similar to the maxdelay option above. *chronyd* keeps a record
+This option is similar to the *maxdelay* option above. *chronyd* keeps a record
 of the minimum round-trip delay amongst the previous measurements that it has
 buffered. If a measurement has a round trip delay that is greater than the
 maxdelayratio times the minimum delay, it will be rejected.
@@ -123,14 +123,14 @@ minimum delay amongst the previous measurements to the standard deviation of
 the previous measurements that is greater than the specified ratio, it will be
 rejected. The default is 10.0.
 *mindelay* _delay_:::
-This options specifies a fixed minimum round-trip delay to be used instead of
+This option specifies a fixed minimum round-trip delay to be used instead of
 the minimum amongst the previous measurements. This can be useful in networks
 with static configuration to improve the stability of corrections for
 asymmetric jitter, weighting of the measurements, and the *maxdelayratio* and
 *maxdelaydevratio* tests. The value should be set accurately in order to have a
 positive effect on the synchronisation.
 *asymmetry* _ratio_:::
-This options specifies the asymmetry of the network jitter on the path to the
+This option specifies the asymmetry of the network jitter on the path to the
 source, which is used to correct the measured offset according to the delay.
 The asymmetry can be between -0.5 and +0.5. A negative value means the delay of
 packets sent to the source is more variable than the delay of packets sent from
@@ -154,14 +154,15 @@ option can be specified. *chronyd* will not try to poll the server until it is
 enabled to do so (by using the <<chronyc.adoc#online,*online*>> command in
 *chronyc*).
 *auto_offline*:::
-If this option is set, the server will be assumed to have gone offline when 2
+With this option, the server will be assumed to have gone offline when two
 requests have been sent to it without receiving a response. This option avoids
 the need to run the <<chronyc.adoc#offline,*offline*>> command from *chronyc*
-when disconnecting the network link. (It will still be necessary to use the
-<<chronyc.adoc#online,*online*>> command when the link has been established, to
-enable measurements to start.)
+when disconnecting the network link, if it is safe to assume that the requests
+and responses will not be dropped in the network, e.g. in a trusted local
+network. (It will still be necessary to use the <<chronyc.adoc#online,*online*>>
+command when the link has been established, to enable measurements to start.)
 *prefer*:::
-Prefer this source over sources without prefer option.
+Prefer this source over sources without the *prefer* option.
 *noselect*:::
 Never select this source. This is particularly useful for monitoring.
 *trust*:::
