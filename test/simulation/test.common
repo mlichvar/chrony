@@ -71,6 +71,9 @@ default_freq_rms_limit=1e-5
 default_min_sync_time=120
 default_max_sync_time=210
 
+default_client_min_mean_out_interval=0.0
+default_client_max_min_out_interval=inf
+
 # Initialize test settings from their defaults
 for defopt in $(declare | grep '^default_'); do
 	defoptname=${defopt%%=*}
@@ -303,10 +306,12 @@ check_packet_interval() {
 			([ $i -gt $servers ] || \
 				check_stat $mean_in_interval 0.0 $mean_out_interval 10*$jitter) && \
 			([ $i -le $[$servers * $server_strata] ] || \
-				check_stat $mean_out_interval 0.0 $mean_in_interval 10*$jitter) && \
+				check_stat $mean_out_interval $client_min_mean_out_interval \
+					$mean_in_interval 10*$jitter) && \
 			([ $i -le $[$servers * $server_strata] ] || \
 				check_stat $min_out_interval \
-					$([ $servers -gt 1 ] && echo 0.18 || echo 1.8) inf) && \
+					$([ $servers -gt 1 ] && echo 0.18 || echo 1.8) \
+					$client_max_min_out_interval) && \
 			test_ok || test_bad
 
 		[ $? -eq 0 ] || ret=1
