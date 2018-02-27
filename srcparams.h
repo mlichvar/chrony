@@ -35,6 +35,7 @@ typedef struct {
   int online;
   int auto_offline;
   int presend_minpoll;
+  int burst;
   int iburst;
   int min_stratum;
   int poll_target;

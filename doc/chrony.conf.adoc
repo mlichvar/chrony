@@ -83,6 +83,13 @@ With this option, the interval between the first four requests sent to the
 server will be 2 seconds instead of the interval specified by the *minpoll*
 option, which allows *chronyd* to make the first update of the clock shortly
 after start.
+*burst*:::
+With this option, *chronyd* will shorten the interval between up to four
+requests to 2 seconds when it cannot get a good measurement from the server.
+The number of requests in the burst is limited by the current polling interval
+to keep the average interval at or above the minimum interval, i.e. the current
+interval needs to be at least two times longer than the minimum interval in
+order to allow a burst with two requests.
 *key* _ID_:::
 The NTP protocol supports the inclusion of checksums in the packets, to prevent
 computers having their system time upset by rogue packets being sent to them.

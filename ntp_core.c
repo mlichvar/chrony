@@ -88,6 +88,7 @@ struct NCR_Instance_Record {
   SCH_TimeoutID tx_timeout_id;  /* Timeout ID for next transmission */
   int tx_suspended;             /* Boolean indicating we can't transmit yet */
 
+  int auto_burst;               /* If 1, initiate a burst on each poll */
   int auto_offline;             /* If 1, automatically go offline if server/peer
                                    isn't responding */
 
@@ -235,6 +236,10 @@ static ARR_Instance broadcasts;
 /* Number of samples in initial burst */
 #define IBURST_GOOD_SAMPLES 4
 #define IBURST_TOTAL_SAMPLES SOURCE_REACH_BITS
+
+/* Number of samples in automatic burst */
+#define BURST_GOOD_SAMPLES 1
+#define MAX_BURST_TOTAL_SAMPLES 4
 
 /* Time to wait after sending packet to 'warm up' link */
 #define WARM_UP_DELAY 2.0
@@ -557,6 +562,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->max_delay_ratio = CLAMP(0.0, params->max_delay_ratio, MAX_MAXDELAYRATIO);
   result->max_delay_dev_ratio = CLAMP(0.0, params->max_delay_dev_ratio, MAX_MAXDELAYDEVRATIO);
   result->offset_correction = params->offset;
+  result->auto_burst = params->burst;
   result->auto_offline = params->auto_offline;
   result->poll_target = params->poll_target;
 
@@ -1121,6 +1127,14 @@ transmit_timeout(void *arg)
       if (inst->burst_total_samples_to_go <= 0)
         take_offline(inst);
       break;
+    case MD_ONLINE:
+      /* Start a new burst if the burst option is enabled and the average
+         polling interval including the burst will not fall below the
+         minimum polling interval */
+      if (inst->auto_burst && inst->local_poll > inst->minpoll && inst->local_poll > 1)
+        NCR_InitiateSampleBurst(inst, BURST_GOOD_SAMPLES,
+                                MIN(1 << (inst->local_poll - inst->minpoll),
+                                    MAX_BURST_TOTAL_SAMPLES));
     default:
       break;
   }

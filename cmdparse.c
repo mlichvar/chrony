@@ -51,6 +51,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   src->params.online = 1;
   src->params.auto_offline = 0;
   src->params.presend_minpoll = SRC_DEFAULT_PRESEND_MINPOLL;
+  src->params.burst = 0;
   src->params.iburst = 0;
   src->params.min_stratum = SRC_DEFAULT_MINSTRATUM;
   src->params.poll_target = SRC_DEFAULT_POLLTARGET;
@@ -84,6 +85,8 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
 
     if (!strcasecmp(cmd, "auto_offline")) {
       src->params.auto_offline = 1;
+    } else if (!strcasecmp(cmd, "burst")) {
+      src->params.burst = 1;
     } else if (!strcasecmp(cmd, "iburst")) {
       src->params.iburst = 1;
     } else if (!strcasecmp(cmd, "offline")) {
