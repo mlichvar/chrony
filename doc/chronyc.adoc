@@ -1128,6 +1128,10 @@ running.
 The *rekey* command causes *chronyd* to re-read the key file specified in the
 configuration file by the <<chrony.conf.adoc#keyfile,*keyfile*>> directive.
 
+[[rekey]]*shutdown*::
+The *shutdown* command causes *chronyd* to exit. This is equivalent to sending
+the process the SIGTERM signal.
+
 === Client commands
 
 [[dns]]*dns* _option_::

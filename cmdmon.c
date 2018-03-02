@@ -138,6 +138,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* ADD_PEER2 */
   PERMIT_AUTH, /* ADD_SERVER3 */
   PERMIT_AUTH, /* ADD_PEER3 */
+  PERMIT_AUTH, /* SHUTDOWN */
 };
 
 /* ================================================== */
@@ -1240,6 +1241,15 @@ handle_ntp_data(CMD_Request *rx_message, CMD_Reply *tx_message)
 }
 
 /* ================================================== */
+
+static void
+handle_shutdown(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  LOG(LOGS_INFO, "Received shutdown command");
+  SCH_QuitProgram();
+}
+
+/* ================================================== */
 /* Read a packet and process it */
 
 static void
@@ -1628,6 +1638,10 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
         case REQ_NTP_DATA:
           handle_ntp_data(&rx_message, &tx_message);
+          break;
+
+        case REQ_SHUTDOWN:
+          handle_shutdown(&rx_message, &tx_message);
           break;
 
         default:

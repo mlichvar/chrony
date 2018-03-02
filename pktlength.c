@@ -118,6 +118,7 @@ static const struct request_length request_lengths[] = {
   { 0, 0 },                                     /* ADD_PEER2 */
   REQ_LENGTH_ENTRY(ntp_source, null),           /* ADD_SERVER3 */
   REQ_LENGTH_ENTRY(ntp_source, null),           /* ADD_PEER3 */
+  REQ_LENGTH_ENTRY(null, null),                 /* SHUTDOWN */
 };
 
 static const uint16_t reply_lengths[] = {

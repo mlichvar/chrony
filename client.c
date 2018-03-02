@@ -1246,6 +1246,7 @@ give_help(void)
     "cyclelogs\0Close and re-open log files\0"
     "dump\0Dump all measurements to save files\0"
     "rekey\0Re-read keys from key file\0"
+    "shutdown\0Stop daemon\0"
     "\0\0"
     "Client commands:\0\0"
     "dns -n|+n\0Disable/enable resolving IP addresses to hostnames\0"
@@ -1280,9 +1281,9 @@ command_name_generator(const char *text, int state)
     "maxdelay", "maxdelaydevratio", "maxdelayratio", "maxpoll",
     "maxupdateskew", "minpoll", "minstratum", "ntpdata", "offline", "online",
     "polltarget", "quit", "refresh", "rekey", "reselect", "reselectdist",
-    "retries", "rtcdata", "serverstats", "settime", "smoothing", "smoothtime",
-    "sources", "sources -v", "sourcestats", "sourcestats -v", "timeout",
-    "tracking", "trimrtc", "waitsync", "writertc",
+    "retries", "rtcdata", "serverstats", "settime", "shutdown", "smoothing",
+    "smoothtime", "sources", "sources -v", "sourcestats", "sourcestats -v",
+    "timeout", "tracking", "trimrtc", "waitsync", "writertc",
     NULL
   };
   static int list_index, len;
@@ -2707,6 +2708,14 @@ process_cmd_refresh(CMD_Request *msg, char *line)
 
 /* ================================================== */
 
+static void
+process_cmd_shutdown(CMD_Request *msg, char *line)
+{
+  msg->command = htons(REQ_SHUTDOWN);
+}
+
+/* ================================================== */
+
 static int
 process_cmd_waitsync(char *line)
 {
@@ -3002,6 +3011,8 @@ process_line(char *line)
   } else if (!strcmp(command, "settime")) {
     do_normal_submit = 0;
     ret = process_cmd_settime(line);
+  } else if (!strcmp(command, "shutdown")) {
+    process_cmd_shutdown(&tx_message, line);
   } else if (!strcmp(command, "smoothing")) {
     do_normal_submit = 0;
     ret = process_cmd_smoothing(line);
