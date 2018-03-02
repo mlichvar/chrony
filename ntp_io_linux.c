@@ -397,9 +397,7 @@ NIO_Linux_Initialise(void)
 
   monitored_socket = INVALID_SOCK_FD;
   suspended_socket = INVALID_SOCK_FD;
-
-  /* Open a socket to keep the kernel RX timestamping permanently enabled */
-  dummy_rxts_socket = open_dummy_socket();
+  dummy_rxts_socket = INVALID_SOCK_FD;
 }
 
 /* ================================================== */
@@ -761,6 +759,14 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
         return 1;
       }
     }
+  }
+
+  /* If the kernel is slow with enabling RX timestamping, open a dummy
+     socket to keep the kernel RX timestamping permanently enabled */
+  if (!is_tx && local_ts->source == NTP_TS_DAEMON && ts_flags) {
+    DEBUG_LOG("Missing kernel RX timestamp");
+    if (dummy_rxts_socket == INVALID_SOCK_FD)
+      dummy_rxts_socket = open_dummy_socket();
   }
 
   /* Return the message if it's not received from the error queue */
