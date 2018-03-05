@@ -279,8 +279,7 @@ do_size_checks(void)
   for (i = 1; i < N_REPLY_TYPES; i++) {
     reply.reply = htons(i);
     reply.status = STT_SUCCESS;
-    reply.data.manual_list.n_samples = htonl(MAX_MANUAL_LIST_SAMPLES);
-    reply_length = PKL_ReplyLength(&reply, sizeof (reply));
+    reply_length = PKL_ReplyLength(&reply);
     if ((reply_length && reply_length < offsetof(CMD_Reply, data)) ||
         reply_length > sizeof (CMD_Reply))
       assert(0);
@@ -394,7 +393,7 @@ transmit_reply(CMD_Reply *msg, union sockaddr_all *where_to)
       assert(0);
   }
 
-  tx_message_length = PKL_ReplyLength(msg, sizeof (*msg));
+  tx_message_length = PKL_ReplyLength(msg);
   status = sendto(sock_fd, (void *) msg, tx_message_length, 0,
                   &where_to->sa, addrlen);
 
@@ -1105,10 +1104,14 @@ handle_manual_list(CMD_Request *rx_message, CMD_Reply *tx_message)
   RPY_ManualListSample *sample;
   RPT_ManualSamplesReport report[MAX_MANUAL_LIST_SAMPLES];
 
-  tx_message->reply = htons(RPY_MANUAL_LIST);
+  tx_message->reply = htons(RPY_MANUAL_LIST2);
   
   MNL_ReportSamples(report, MAX_MANUAL_LIST_SAMPLES, &n_samples);
   tx_message->data.manual_list.n_samples = htonl(n_samples);
+
+  memset(tx_message->data.manual_list.samples, 0,
+         sizeof (tx_message->data.manual_list.samples));
+
   for (i=0; i<n_samples; i++) {
     sample = &tx_message->data.manual_list.samples[i];
     UTI_TimespecHostToNetwork(&report[i].when, &sample->when);

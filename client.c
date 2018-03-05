@@ -1429,9 +1429,14 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
         DEBUG_LOG("Received %d bytes", recv_status);
         
         read_length = recv_status;
-        expected_length = PKL_ReplyLength(reply, read_length);
+        if (read_length >= offsetof(CMD_Reply, data)) {
+          expected_length = PKL_ReplyLength(reply);
+        } else {
+          expected_length = 0;
+        }
 
-        bad_length = !expected_length || read_length < expected_length;
+        bad_length = (read_length < expected_length ||
+                      expected_length < offsetof(CMD_Reply, data));
         
         if (!bad_length) {
           bad_sequence = reply->sequence != request->sequence;
@@ -2539,7 +2544,7 @@ process_cmd_manual_list(const char *line)
   struct timespec when;
 
   request.command = htons(REQ_MANUAL_LIST);
-  if (!request_reply(&request, &reply, RPY_MANUAL_LIST, 0))
+  if (!request_reply(&request, &reply, RPY_MANUAL_LIST2, 0))
     return 0;
 
   n_samples = ntohl(reply.data.manual_list.n_samples);
@@ -2547,7 +2552,7 @@ process_cmd_manual_list(const char *line)
 
   print_header("#    Date     Time(UTC)    Slewed   Original   Residual");
 
-  for (i = 0; i < n_samples; i++) {
+  for (i = 0; i < n_samples && i < MAX_MANUAL_LIST_SAMPLES; i++) {
     sample = &reply.data.manual_list.samples[i];
     UTI_TimespecNetworkToHost(&sample->when, &when);
 

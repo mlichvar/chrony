@@ -470,7 +470,8 @@ typedef struct {
 #define RPY_CLIENT_ACCESSES_BY_INDEX2 15
 #define RPY_NTP_DATA 16
 #define RPY_MANUAL_TIMESTAMP2 17
-#define N_REPLY_TYPES 18
+#define RPY_MANUAL_LIST2 18
+#define N_REPLY_TYPES 19
 
 /* Status codes */
 #define STT_SUCCESS 0

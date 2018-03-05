@@ -133,13 +133,14 @@ static const uint16_t reply_lengths[] = {
   0,                                            /* SUBNETS_ACCESSED - not supported */
   0,                                            /* CLIENT_ACCESSES - not supported */
   0,                                            /* CLIENT_ACCESSES_BY_INDEX - not supported */
-  0,                                            /* MANUAL_LIST - variable length */
+  0,                                            /* MANUAL_LIST - not supported */
   RPY_LENGTH_ENTRY(activity),                   /* ACTIVITY */
   RPY_LENGTH_ENTRY(smoothing),                  /* SMOOTHING */
   RPY_LENGTH_ENTRY(server_stats),               /* SERVER_STATS */
   RPY_LENGTH_ENTRY(client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX2 */
   RPY_LENGTH_ENTRY(ntp_data),                   /* NTP_DATA */
   RPY_LENGTH_ENTRY(manual_timestamp),           /* MANUAL_TIMESTAMP2 */
+  RPY_LENGTH_ENTRY(manual_list),                /* MANUAL_LIST2 */
 };
 
 /* ================================================== */
@@ -184,38 +185,17 @@ PKL_CommandPaddingLength(CMD_Request *r)
 /* ================================================== */
 
 int
-PKL_ReplyLength(CMD_Reply *r, int read_length)
+PKL_ReplyLength(CMD_Reply *r)
 {
   uint32_t type;
 
   assert(sizeof (reply_lengths) / sizeof (reply_lengths[0]) == N_REPLY_TYPES);
-
-  if (read_length < (int)offsetof(CMD_Reply, data))
-    return 0;
 
   type = ntohs(r->reply);
 
   /* Note that reply type codes start from 1, not 0 */
   if (type < 1 || type >= N_REPLY_TYPES)
     return 0;
-
-  /* Length of MANUAL_LIST depends on number of samples stored in it */
-  if (type == RPY_MANUAL_LIST) {
-    uint32_t ns;
-
-    if (r->status != htons(STT_SUCCESS))
-      return offsetof(CMD_Reply, data);
-
-    if (read_length < (int)offsetof(CMD_Reply, data.manual_list.samples))
-      return 0;
-
-    ns = ntohl(r->data.manual_list.n_samples);
-    if (ns > MAX_MANUAL_LIST_SAMPLES)
-      return 0;
-
-    return offsetof(CMD_Reply, data.manual_list.samples) +
-           ns * sizeof (RPY_ManualListSample);
-  }
 
   return reply_lengths[type];
 }
