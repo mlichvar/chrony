@@ -2129,7 +2129,8 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   if (log_index >= 0) {
     CLG_GetNtpTimestamps(log_index, &local_ntp_rx, &local_ntp_tx);
     interleaved = !UTI_IsZeroNtp64(local_ntp_rx) &&
-                  !UTI_CompareNtp64(&message->originate_ts, local_ntp_rx);
+                  !UTI_CompareNtp64(&message->originate_ts, local_ntp_rx) &&
+                  UTI_CompareNtp64(&message->receive_ts, &message->transmit_ts);
 
     if (interleaved) {
       UTI_Ntp64ToTimespec(local_ntp_tx, &local_tx.ts);
