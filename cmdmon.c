@@ -1069,9 +1069,6 @@ handle_client_accesses_by_index(CMD_Request *rx_message, CMD_Reply *tx_message)
   tx_message->reply = htons(RPY_CLIENT_ACCESSES_BY_INDEX2);
   tx_message->data.client_accesses_by_index.n_indices = htonl(n_indices);
 
-  memset(tx_message->data.client_accesses_by_index.clients, 0,
-         sizeof (tx_message->data.client_accesses_by_index.clients));
-
   for (i = req_first_index, j = 0; i < (uint32_t)n_indices && j < req_n_clients; i++) {
     if (!CLG_GetClientAccessReportByIndex(i, &report, &now))
       continue;
@@ -1108,9 +1105,6 @@ handle_manual_list(CMD_Request *rx_message, CMD_Reply *tx_message)
   
   MNL_ReportSamples(report, MAX_MANUAL_LIST_SAMPLES, &n_samples);
   tx_message->data.manual_list.n_samples = htonl(n_samples);
-
-  memset(tx_message->data.manual_list.samples, 0,
-         sizeof (tx_message->data.manual_list.samples));
 
   for (i=0; i<n_samples; i++) {
     sample = &tx_message->data.manual_list.samples[i];
@@ -1343,19 +1337,14 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
   expected_length = PKL_CommandLength(&rx_message);
   rx_command = ntohs(rx_message.command);
 
+  memset(&tx_message, 0, sizeof (tx_message));
+
   tx_message.version = PROTO_VERSION_NUMBER;
   tx_message.pkt_type = PKT_TYPE_CMD_REPLY;
-  tx_message.res1 = 0;
-  tx_message.res2 = 0;
   tx_message.command = rx_message.command;
   tx_message.reply = htons(RPY_NULL);
   tx_message.status = htons(STT_SUCCESS);
-  tx_message.pad1 = 0;
-  tx_message.pad2 = 0;
-  tx_message.pad3 = 0;
   tx_message.sequence = rx_message.sequence;
-  tx_message.pad4 = 0;
-  tx_message.pad5 = 0;
 
   if (rx_message.version != PROTO_VERSION_NUMBER) {
     DEBUG_LOG("Command packet has invalid version (%d != %d)",
