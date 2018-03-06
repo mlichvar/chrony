@@ -1326,11 +1326,9 @@ static int proto_version = PROTO_VERSION_NUMBER;
 static int
 submit_request(CMD_Request *request, CMD_Reply *reply)
 {
-  int bad_length, bad_sequence, bad_header;
   int select_status;
   int recv_status;
   int read_length;
-  int expected_length;
   int command_length;
   int padding_length;
   struct timespec ts_now, ts_start;
@@ -1429,34 +1427,18 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
         DEBUG_LOG("Received %d bytes", recv_status);
         
         read_length = recv_status;
-        if (read_length >= offsetof(CMD_Reply, data)) {
-          expected_length = PKL_ReplyLength(reply);
-        } else {
-          expected_length = 0;
-        }
-
-        bad_length = (read_length < expected_length ||
-                      expected_length < offsetof(CMD_Reply, data));
         
-        if (!bad_length) {
-          bad_sequence = reply->sequence != request->sequence;
-        } else {
-          bad_sequence = 0;
-        }
-        
-        if (bad_length || bad_sequence) {
-          continue;
-        }
-        
-        bad_header = ((reply->version != proto_version &&
-                       !(reply->version >= PROTO_VERSION_MISMATCH_COMPAT_CLIENT &&
-                         ntohs(reply->status) == STT_BADPKTVERSION)) ||
-                      (reply->pkt_type != PKT_TYPE_CMD_REPLY) ||
-                      (reply->res1 != 0) ||
-                      (reply->res2 != 0) ||
-                      (reply->command != request->command));
-        
-        if (bad_header) {
+        /* Check if the header is valid */
+        if (read_length < offsetof(CMD_Reply, data) ||
+            (reply->version != proto_version &&
+             !(reply->version >= PROTO_VERSION_MISMATCH_COMPAT_CLIENT &&
+               ntohs(reply->status) == STT_BADPKTVERSION)) ||
+            reply->pkt_type != PKT_TYPE_CMD_REPLY ||
+            reply->res1 != 0 ||
+            reply->res2 != 0 ||
+            reply->command != request->command ||
+            reply->sequence != request->sequence) {
+          DEBUG_LOG("Invalid reply");
           continue;
         }
         
@@ -1474,6 +1456,15 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
 #else
 #error unknown compatibility with PROTO_VERSION - 1
 #endif
+
+        /* Check that the packet contains all data it is supposed to have.
+           Unknown responses will always pass this test as their expected
+           length is zero. */
+        if (read_length < PKL_ReplyLength(reply)) {
+          DEBUG_LOG("Reply too short");
+          new_attempt = 1;
+          continue;
+        }
 
         /* Good packet received, print out results */
         DEBUG_LOG("Reply cmd=%d reply=%d stat=%d",
@@ -1580,6 +1571,9 @@ request_reply(CMD_Request *request, CMD_Reply *reply, int requested_reply, int v
     printf("508 Bad reply from daemon\n");
     return 0;
   }
+
+  /* Make sure an unknown response was not requested */
+  assert(PKL_ReplyLength(reply));
 
   return 1;
 }
