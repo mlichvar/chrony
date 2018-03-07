@@ -303,6 +303,7 @@ test_unit(void)
       source.params.interleaved = 1;
     if (random() % 2)
       source.params.authkey = 1;
+    source.params.version = random() % 4 + 1;
 
     UTI_ZeroTimespec(&current_time);
     advance_time(TST_GetRandomDouble(1.0, 1e9));
