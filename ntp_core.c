@@ -2053,7 +2053,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   NTP_Mode pkt_mode, my_mode;
   NTP_int64 *local_ntp_rx, *local_ntp_tx;
   NTP_Local_Timestamp local_tx, *tx_ts;
-  int valid_auth, log_index, interleaved, poll;
+  int pkt_version, valid_auth, log_index, interleaved, poll;
   AuthenticationMode auth_mode;
   uint32_t key_id;
 
@@ -2074,6 +2074,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   }
 
   pkt_mode = NTP_LVM_TO_MODE(message->lvm);
+  pkt_version = NTP_LVM_TO_VERSION(message->lvm);
 
   switch (pkt_mode) {
     case MODE_ACTIVE:
@@ -2084,6 +2085,15 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
       /* Reply with server packet */
       my_mode = MODE_SERVER;
       break;
+    case MODE_UNDEFINED:
+      /* Check if it is an NTPv1 client request (NTPv1 packets have a reserved
+         field instead of the mode field and the actual mode is determined from
+         the port numbers).  Don't ever respond with a mode 0 packet! */
+      if (pkt_version == 1 && remote_addr->port != NTP_PORT) {
+        my_mode = MODE_SERVER;
+        break;
+      }
+      /* Fall through */
     default:
       /* Discard */
       DEBUG_LOG("NTP packet discarded pkt_mode=%d", pkt_mode);
@@ -2147,7 +2157,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   poll = MAX(poll, message->poll);
 
   /* Send a reply */
-  transmit_packet(my_mode, interleaved, poll, NTP_LVM_TO_VERSION(message->lvm),
+  transmit_packet(my_mode, interleaved, poll, pkt_version,
                   auth_mode, key_id, &message->receive_ts, &message->transmit_ts,
                   rx_ts, tx_ts, local_ntp_rx, NULL, remote_addr, local_addr);
 
