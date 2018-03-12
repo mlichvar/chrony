@@ -1123,6 +1123,7 @@ transmit_timeout(void *arg)
       /* With online burst switch to online before last packet */
       if (inst->burst_total_samples_to_go <= 1)
         inst->opmode = MD_ONLINE;
+      break;
     case MD_BURST_WAS_OFFLINE:
       if (inst->burst_total_samples_to_go <= 0)
         take_offline(inst);
@@ -1135,6 +1136,7 @@ transmit_timeout(void *arg)
         NCR_InitiateSampleBurst(inst, BURST_GOOD_SAMPLES,
                                 MIN(1 << (inst->local_poll - inst->minpoll),
                                     MAX_BURST_TOTAL_SAMPLES));
+      break;
     default:
       break;
   }
