@@ -62,6 +62,12 @@ static const struct hash hashes[] = {
 #ifdef LTC_SHA512
   { "SHA512", "sha512", &sha512_desc },
 #endif
+#ifdef LTC_SHA3
+  { "SHA3-224", "sha3-224", &sha3_224_desc },
+  { "SHA3-256", "sha3-256", &sha3_256_desc },
+  { "SHA3-384", "sha3-384", &sha3_384_desc },
+  { "SHA3-512", "sha3-512", &sha3_512_desc },
+#endif
 #ifdef LTC_TIGER
   { "TIGER", "tiger", &tiger_desc },
 #endif
