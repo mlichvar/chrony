@@ -2007,12 +2007,18 @@ format of the file is shown below:
 +
 Each line consists of an ID, name of an authentication hash function (optional),
 and a password. The ID can be any unsigned integer in the range 1 through
-2^32-1. The default hash function is *MD5*. Depending on how *chronyd*
-was compiled, other supported functions might be *SHA1*, *SHA256*, *SHA384*,
-*SHA512*, *RMD128*, *RMD160*, *RMD256*, *RMD320*, *TIGER*, and *WHIRLPOOL*. The
-password can be specified as a string of characters not containing white space
-with an optional *ASCII:* prefix, or as a hexadecimal number with the *HEX:*
-prefix. The maximum length of the line is 2047 characters.
+2^32-1. The default hash function is *MD5*, which is always supported.
++
+If *chronyd* was built with enabled support for hashing using a crypto library
+(nettle, nss, or libtomcrypt), the following functions are available: *MD5*,
+*SHA1*, *SHA256*, *SHA384*, *SHA512*. Depending on which library and version is
+*chronyd* using, some or all of the following functions may also be available:
+*SHA3-224*, *SHA3-256*, *SHA3-384*, *SHA3-512*, *RMD128*, *RMD160*, *RMD256*,
+*RMD320*, *TIGER*, *WHIRLPOOL*.
++
+The password can be specified as a string of characters not containing white
+space with an optional *ASCII:* prefix, or as a hexadecimal number with the
+*HEX:* prefix. The maximum length of the line is 2047 characters.
 +
 The password is used with the hash function to generate and verify a message
 authentication code (MAC) in NTP packets. It is recommended to use SHA1, or
