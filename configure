@@ -85,6 +85,7 @@ For better control, use the options below.
   --with-readline-library=DIR Specify where readline lib directory is
   --with-ncurses-library=DIR Specify where ncurses lib directory is
   --disable-sechash      Disable support for hashes other than MD5
+  --without-nettle       Don't use nettle even if it is available
   --without-nss          Don't use NSS even if it is available
   --without-tomcrypt     Don't use libtomcrypt even if it is available
   --disable-cmdmon       Disable command and monitoring support
@@ -198,6 +199,7 @@ feat_readline=1
 try_readline=1
 try_editline=1
 feat_sechash=1
+try_nettle=1
 try_nss=1
 try_tomcrypt=1
 feat_rtc=1
@@ -359,6 +361,9 @@ do
     ;;
     --disable-sechash )
       feat_sechash=0
+    ;;
+    --without-nettle )
+      try_nettle=0
     ;;
     --without-nss )
       try_nss=0
@@ -857,7 +862,22 @@ fi
 HASH_OBJ="hash_intmd5.o"
 HASH_LINK=""
 
-if [ $feat_sechash = "1" ] && [ $try_nss = "1" ]; then
+if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ]  && [ $try_nettle = "1" ]; then
+  test_cflags="`pkg_config --cflags nettle`"
+  test_link="`pkg_config --libs nettle`"
+  if test_code 'nettle' 'nettle/nettle-meta.h nettle/sha2.h' \
+    "$test_cflags" "$test_link" \
+    'return nettle_get_hashes()[0]->context_size;'
+  then
+    HASH_OBJ="hash_nettle.o"
+    HASH_LINK="$test_link"
+    LIBS="$LIBS $HASH_LINK"
+    MYCPPFLAGS="$MYCPPFLAGS $test_cflags"
+    add_def FEAT_SECHASH
+  fi
+fi
+
+if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ]  && [ $try_nss = "1" ]; then
   test_cflags="`pkg_config --cflags nss`"
   test_link="`pkg_config --libs-only-L nss` -lfreebl3"
   if test_code 'NSS' 'nss.h hasht.h nsslowhash.h' \
