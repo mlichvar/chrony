@@ -6,8 +6,9 @@ for opts in \
 	"--host-system=Linux" \
 	"--host-system=NetBSD" \
 	"--host-system=FreeBSD" \
-	"--without-nss" \
-	"--without-tomcrypt --without-nss"
+	"--without-nettle" \
+	"--without-nettle --without-nss" \
+	"--without-nettle --without-nss --without-tomcrypt"
 do
 	./configure $opts
 	scan-build make "$@" || exit 1
