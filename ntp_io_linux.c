@@ -273,7 +273,7 @@ update_interface_speed(struct Interface *iface)
 {
   struct ethtool_cmd cmd;
   struct ifreq req;
-  int sock_fd;
+  int sock_fd, link_speed;
 
   sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock_fd < 0)
@@ -294,7 +294,12 @@ update_interface_speed(struct Interface *iface)
 
   close(sock_fd);
 
-  iface->link_speed = ethtool_cmd_speed(&cmd);
+  link_speed = ethtool_cmd_speed(&cmd);
+
+  if (iface->link_speed != link_speed) {
+    iface->link_speed = link_speed;
+    DEBUG_LOG("Updated speed of %s to %d Mb/s", iface->name, link_speed);
+  }
 }
 
 /* ================================================== */
