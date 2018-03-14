@@ -381,12 +381,26 @@ test_step_offset(void)
 }
 
 /* ================================================== */
+
+static void
+report_time_adjust_blockers(void)
+{
+#ifdef FEAT_PRIVDROP
+  if (CAP_IS_SUPPORTED(CAP_SYS_TIME) && cap_get_bound(CAP_SYS_TIME))
+    return;
+  LOG(LOGS_WARN, "CAP_SYS_TIME not present");
+#endif
+}
+
+/* ================================================== */
 /* Initialisation code for this module */
 
 void
 SYS_Linux_Initialise(void)
 {
   get_version_specific_details();
+
+  report_time_adjust_blockers();
 
   reset_adjtime_offset();
 
