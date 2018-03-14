@@ -2268,7 +2268,7 @@ NCR_SlewTimes(NCR_Instance inst, struct timespec *when, double dfreq, double dof
     UTI_AdjustTimespec(&inst->prev_local_tx.ts, when, &inst->prev_local_tx.ts, &delta, dfreq,
                        doffset);
   if (!UTI_IsZeroTimespec(&inst->init_local_rx.ts))
-    UTI_AdjustTimespec(&inst->init_local_rx.ts, when, &inst->local_rx.ts, &delta, dfreq,
+    UTI_AdjustTimespec(&inst->init_local_rx.ts, when, &inst->init_local_rx.ts, &delta, dfreq,
                        doffset);
 }
 
