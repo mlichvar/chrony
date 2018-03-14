@@ -157,11 +157,13 @@ This option will lock *chronyd* into RAM so that it will never be paged out.
 This mode is only supported on Linux.
 
 *-x*::
-This option disables the control of the system clock. *chronyd* will not make
-any adjustments of the clock, but it will still track its offset and frequency
-relative to the estimated true time, and be able to operate as an NTP server.
-This allows *chronyd* to run without the capability to adjust or set the system
-clock (e.g. in some containers).
+This option disables the control of the system clock. *chronyd* will not try to
+make any adjustments of the clock. It will assume the clock is free running and
+still track its offset and frequency relative to the estimated true time. This
+option allows *chronyd* to run without the capability to adjust or set the
+system clock (e.g. in some containers) in order to operate as an NTP server. It
+is not recommended to run *chronyd* (with or without *-x*) when another process
+is controlling the system clock.
 
 *-v*::
 With this option *chronyd* will print version number to the terminal and exit.
