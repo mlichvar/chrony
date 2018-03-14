@@ -138,6 +138,9 @@ Bryan Christianson <bryan@whatroute.net>
 Juliusz Chroboczek <jch@pps.jussieu.fr>
     Patch to fix install rule in Makefile if chronyd file is in use
 
+Christian Ehrhardt <christian.ehrhardt@canonical.com>
+    Patch to generate a warning message when CAP_SYS_TIME is missing
+
 Paul Elliott <pelliott@io.com>
     Entries in contrib directory
 
