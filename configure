@@ -867,7 +867,7 @@ if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ]  && [ $try_nettle = "1" ];
   test_link="`pkg_config --libs nettle`"
   if test_code 'nettle' 'nettle/nettle-meta.h nettle/sha2.h' \
     "$test_cflags" "$test_link" \
-    'return nettle_get_hashes()[0]->context_size;'
+    'return nettle_hashes[0]->context_size;'
   then
     HASH_OBJ="hash_nettle.o"
     HASH_LINK="$test_link"

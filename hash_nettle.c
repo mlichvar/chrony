@@ -58,7 +58,6 @@ static struct hash hashes[] = {
 int
 HSH_GetHashId(const char *name)
 {
-  const struct nettle_hash *const *nhashes;
   int id, nid;
 
   for (id = 0; hashes[id].name; id++) {
@@ -72,19 +71,15 @@ HSH_GetHashId(const char *name)
   if (hashes[id].context)
     return id;
 
-  nhashes = nettle_get_hashes();
-  if (!nhashes)
-    return -1;
-
-  for (nid = 0; nhashes[nid]; nid++) {
-    if (!strcmp(hashes[id].int_name, nhashes[nid]->name))
+  for (nid = 0; nettle_hashes[nid]; nid++) {
+    if (!strcmp(hashes[id].int_name, nettle_hashes[nid]->name))
       break;
   }
 
-  if (!nhashes[nid] || !nhashes[nid]->context_size || !nhashes[nid]->init)
+  if (!nettle_hashes[nid] || !nettle_hashes[nid]->context_size || !nettle_hashes[nid]->init)
     return -1;
 
-  hashes[id].nettle_hash = nhashes[nid];
+  hashes[id].nettle_hash = nettle_hashes[nid];
   hashes[id].context = Malloc(hashes[id].nettle_hash->context_size);
 
   return id;
