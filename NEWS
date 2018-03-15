@@ -1,3 +1,26 @@
+New in version 3.3
+==================
+
+Enhancements
+------------
+* Add burst option to server/pool directive
+* Add stratum and tai options to refclock directive
+* Add support for Nettle crypto library
+* Add workaround for missing kernel receive timestamps on Linux
+* Wait for late hardware transmit timestamps
+* Improve source selection with unreachable sources
+* Improve protection against replay attacks on symmetric mode
+* Allow PHC refclock to use socket in /var/run/chrony
+* Add shutdown command to stop chronyd
+* Simplify format of response to manual list command
+* Improve handling of unknown responses in chronyc
+
+Bug fixes
+---------
+* Respond to NTPv1 client requests with zero mode
+* Fix -x option to not require CAP_SYS_TIME under non-root user
+* Fix chronyc to not get stuck in infinite loop after clock step
+
 New in version 3.2
 ==================
 
