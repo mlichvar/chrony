@@ -78,7 +78,7 @@ HSH_Hash(int id, const unsigned char *in1, unsigned int in1_len,
     const unsigned char *in2, unsigned int in2_len,
     unsigned char *out, unsigned int out_len)
 {
-  unsigned int ret;
+  unsigned int ret = 0;
 
   NSSLOWHASH_Begin(hashes[id].context);
   NSSLOWHASH_Update(hashes[id].context, in1, in1_len);
