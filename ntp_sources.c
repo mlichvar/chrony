@@ -206,12 +206,13 @@ find_slot(NTP_Remote_Address *remote_addr, int *slot, int *found)
   unsigned short port;
 
   size = ARR_GetSize(records);
+
+  *slot = 0;
+  *found = 0;
   
   if (remote_addr->ip_addr.family != IPADDR_INET4 &&
-      remote_addr->ip_addr.family != IPADDR_INET6) {
-    *found = *slot = 0;
+      remote_addr->ip_addr.family != IPADDR_INET6)
     return;
-  }
 
   hash = UTI_IPToHash(&remote_addr->ip_addr);
   port = remote_addr->port;
@@ -230,8 +231,6 @@ find_slot(NTP_Remote_Address *remote_addr, int *slot, int *found)
       return;
     }
   }
-
-  *found = 0;
 }
 
 /* ================================================== */
