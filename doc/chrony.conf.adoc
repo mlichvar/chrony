@@ -91,16 +91,19 @@ to keep the average interval at or above the minimum interval, i.e. the current
 interval needs to be at least two times longer than the minimum interval in
 order to allow a burst with two requests.
 *key* _ID_:::
-The NTP protocol supports the inclusion of checksums in the packets, to prevent
+The NTP protocol supports a message authentication code (MAC) to prevent
 computers having their system time upset by rogue packets being sent to them.
-The checksums are generated as a function of a password, using the
-cryptographic hash function set in the key file, which is specified by the
-<<keyfile,*keyfile*>> directive.
+The MAC is generated as a function of a password specified in the key file,
+which is specified by the <<keyfile,*keyfile*>> directive.
 +
 The *key* option specifies which key (with an ID in the range 1 through 2^32-1)
 should *chronyd* use to authenticate requests sent to the server and verify its
 responses. The server must have the same key for this number configured,
 otherwise no relationship between the computers will be possible.
++
+If the server is running *ntpd* and the output size of the hash function used
+by the key is longer than 160 bits (e.g. SHA256), the *version* option needs to
+be set to 4 for compatibility.
 *maxdelay* _delay_:::
 *chronyd* uses the network round-trip delay to the server to determine how
 accurate a particular measurement is likely to be. Long round-trip delays
