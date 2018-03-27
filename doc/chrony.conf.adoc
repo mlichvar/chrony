@@ -771,9 +771,10 @@ driftfile @CHRONYVARDIR@/drift
 
 [[fallbackdrift]]*fallbackdrift* _min-interval_ _max-interval_::
 Fallback drifts are long-term averages of the system clock drift calculated
-over exponentially increasing intervals. They are used when the clock is no
-longer synchronised to avoid quickly drifting away from true time if there was
-a short-term deviation in the drift before the synchronisation was lost.
+over exponentially increasing intervals. They are used to avoid quickly
+drifting away from true time when the clock was not updated for a longer period
+of time and there was a short-term deviation in the drift before the updates
+stopped.
 +
 The directive specifies the minimum and maximum interval since the last clock
 update to switch between fallback drifts. They are defined as a power of 2 (in
@@ -785,8 +786,10 @@ fallbackdrift 16 19
 +
 In this example, the minimum interval is 16 (18 hours) and the maximum interval is
 19 (6 days). The system clock frequency will be set to the first fallback 18
-hours after last clock update, to the second after 36 hours, etc. This might be
-a good setting to cover daily and weekly temperature fluctuations.
+hours after last clock update, to the second after 36 hours, and so on. This
+might be a good setting to cover frequency changes due to daily and weekly
+temperature fluctuations. When the frequency is set to a fallback, the state of
+the clock will change to '`Not synchronised`'.
 +
 By default (or if the specified maximum or minimum is 0), no fallbacks are used
 and the clock frequency changes only with new measurements from NTP sources,
