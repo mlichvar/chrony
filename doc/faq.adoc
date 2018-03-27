@@ -393,16 +393,31 @@ things
 
 Some other program running on the system may be using the device.
 
+=== What if my computer does not have an RTC or backup battery?
+
+In this case you can still use the `-s` option to set the system clock to the
+last modification time of the drift file, which should correspond to the system
+time when `chronyd` was previously stopped. The initial system time will be
+increasing across reboots and applications started after `chronyd` will not
+observe backward steps.
+
 == NTP-specific issues
 
-=== Can `chronyd` be driven from broadcast NTP servers?
+=== Can `chronyd` be driven from broadcast/multicast NTP servers?
 
-No, the broadcast client mode is not supported and there is currently no plan
-to implement it. The broadcast and multicast modes are inherently less
-accurate and less secure (even with authentication) than the ordinary
-server/client mode and they are not as useful as they used to be. Even with
-very modest hardware a single NTP server can serve time to hundreds of
-thousands of clients using the ordinary mode.
+No, the broadcast/multicast client mode is not supported and there is currently
+no plan to implement it. While the mode may be useful to simplify configuration
+of clients in large networks, it is inherently less accurate and less secure
+(even with authentication) than the ordinary client/server mode.
+
+When configuring a large number of clients in a network, it is recommended to
+use the `pool` directive with a DNS name which resolves to addresses of
+multiple NTP servers. The clients will automatically replace the servers when
+they become unreachable, or otherwise unsuitable for synchronisation, with new
+servers from the pool.
+
+Even with very modest hardware, an NTP server can serve time to hundreds of
+thousands of clients using the ordinary client/server mode.
 
 === Can `chronyd` transmit broadcast NTP packets?
 
