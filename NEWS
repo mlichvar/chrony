@@ -19,6 +19,8 @@ Bug fixes
 ---------
 * Respond to NTPv1 client requests with zero mode
 * Fix -x option to not require CAP_SYS_TIME under non-root user
+* Fix acquisitionport directive to work with privilege separation
+* Fix handling of socket errors on Linux to avoid high CPU usage
 * Fix chronyc to not get stuck in infinite loop after clock step
 
 New in version 3.2
