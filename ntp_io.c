@@ -717,6 +717,20 @@ read_from_socket(int sock_fd, int event, void *anything)
 #endif
 
   if (status < 0) {
+#ifdef HAVE_LINUX_TIMESTAMPING
+    /* If reading from the error queue failed, the exception should be
+       for a socket error.  Clear the error to avoid a busy loop. */
+    if (flags & MSG_ERRQUEUE) {
+      int error = 0;
+      socklen_t len = sizeof (error);
+
+      if (getsockopt(sock_fd, SOL_SOCKET, SO_ERROR, &error, &len))
+        DEBUG_LOG("Could not get SO_ERROR");
+      if (error)
+        errno = error;
+    }
+#endif
+
     DEBUG_LOG("Could not receive from fd %d : %s", sock_fd,
               strerror(errno));
     return;
