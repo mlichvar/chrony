@@ -42,11 +42,6 @@
 #include <sys/resource.h>
 #endif
 
-#ifdef FEAT_PRIVDROP
-#include <sys/prctl.h>
-#include <sys/capability.h>
-#endif
-
 #if defined(FEAT_PHC) || defined(HAVE_LINUX_TIMESTAMPING)
 #include <linux/ptp_clock.h>
 #endif
@@ -64,6 +59,11 @@
 #ifdef HAVE_LINUX_TIMESTAMPING
 #include <linux/sockios.h>
 #endif
+#endif
+
+#ifdef FEAT_PRIVDROP
+#include <sys/prctl.h>
+#include <sys/capability.h>
 #endif
 
 #include "sys_linux.h"
@@ -385,7 +385,7 @@ test_step_offset(void)
 static void
 report_time_adjust_blockers(void)
 {
-#ifdef FEAT_PRIVDROP
+#if defined(FEAT_PRIVDROP) && defined(CAP_IS_SUPPORTED)
   if (CAP_IS_SUPPORTED(CAP_SYS_TIME) && cap_get_bound(CAP_SYS_TIME))
     return;
   LOG(LOGS_WARN, "CAP_SYS_TIME not present");
