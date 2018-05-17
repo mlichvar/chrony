@@ -1224,7 +1224,7 @@ get_random_bytes_getrandom(char *buf, unsigned int len)
       if (disabled)
         break;
 
-      if (getrandom(rand_buf, sizeof (rand_buf), 0) != sizeof (rand_buf)) {
+      if (getrandom(rand_buf, sizeof (rand_buf), GRND_NONBLOCK) != sizeof (rand_buf)) {
         disabled = 1;
         break;
       }
