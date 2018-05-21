@@ -142,6 +142,10 @@ prepare_socket(int family, int port_number, int client_only)
   /* Close on exec */
   UTI_FdSetCloexec(sock_fd);
 
+  /* Enable non-blocking mode on server sockets */
+  if (!client_only && fcntl(sock_fd, F_SETFL, O_NONBLOCK))
+    DEBUG_LOG("Could not set O_NONBLOCK : %s", strerror(errno));
+
   /* Prepare local address */
   memset(&my_addr, 0, sizeof (my_addr));
   my_addr_len = 0;
