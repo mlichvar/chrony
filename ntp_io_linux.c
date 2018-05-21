@@ -171,6 +171,12 @@ add_interface(CNF_HwTsInterface *conf_iface)
     return 0;
   }
 
+  if (ts_info.phc_index < 0) {
+    DEBUG_LOG("PHC missing on %s", req.ifr_name);
+    close(sock_fd);
+    return 0;
+  }
+
   ts_config.flags = 0;
   ts_config.tx_type = HWTSTAMP_TX_ON;
 
