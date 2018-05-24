@@ -603,7 +603,9 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->rx_timeout_id = 0;
   result->tx_timeout_id = 0;
   result->tx_suspended = 1;
-  result->opmode = params->connectivity == SRC_ONLINE ? MD_ONLINE : MD_OFFLINE;
+  result->opmode = params->connectivity == SRC_ONLINE ||
+                   (params->connectivity == SRC_MAYBE_ONLINE &&
+                    NIO_IsServerConnectable(remote_addr)) ? MD_ONLINE : MD_OFFLINE;
   result->local_poll = result->minpoll;
   result->poll_score = 0.0;
   zero_local_timestamp(&result->local_tx);
@@ -2280,6 +2282,9 @@ NCR_SetConnectivity(NCR_Instance inst, SRC_Connectivity connectivity)
   char *s;
 
   s = UTI_IPToString(&inst->remote_addr.ip_addr);
+
+  if (connectivity == SRC_MAYBE_ONLINE)
+    connectivity = NIO_IsServerConnectable(&inst->remote_addr) ? SRC_ONLINE : SRC_OFFLINE;
 
   switch (connectivity) {
     case SRC_ONLINE:

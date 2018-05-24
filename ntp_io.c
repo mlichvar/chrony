@@ -574,6 +574,23 @@ NIO_IsServerSocket(int sock_fd)
 
 /* ================================================== */
 
+int
+NIO_IsServerConnectable(NTP_Remote_Address *remote_addr)
+{
+  int sock_fd, r;
+
+  sock_fd = prepare_separate_client_socket(remote_addr->ip_addr.family);
+  if (sock_fd == INVALID_SOCK_FD)
+    return 0;
+
+  r = connect_socket(sock_fd, remote_addr);
+  close_socket(sock_fd);
+
+  return r;
+}
+
+/* ================================================== */
+
 static void
 process_message(struct msghdr *hdr, int length, int sock_fd)
 {

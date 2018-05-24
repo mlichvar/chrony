@@ -32,6 +32,7 @@
 typedef enum {
   SRC_OFFLINE,
   SRC_ONLINE,
+  SRC_MAYBE_ONLINE,
 } SRC_Connectivity;
 
 typedef struct {
