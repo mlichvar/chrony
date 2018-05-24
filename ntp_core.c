@@ -89,8 +89,8 @@ struct NCR_Instance_Record {
   int tx_suspended;             /* Boolean indicating we can't transmit yet */
 
   int auto_burst;               /* If 1, initiate a burst on each poll */
-  int auto_offline;             /* If 1, automatically go offline if server/peer
-                                   isn't responding */
+  int auto_offline;             /* If 1, automatically go offline when requests
+                                   cannot be sent */
 
   int local_poll;               /* Log2 of polling interval at our end */
   int remote_poll;              /* Log2 of server/peer's polling interval (recovered
@@ -1143,10 +1143,6 @@ transmit_timeout(void *arg)
       break;
   }
 
-  /* With auto_offline take the source offline on 2nd missed reply */
-  if (inst->auto_offline && inst->tx_count >= 2)
-    NCR_SetConnectivity(inst, SRC_OFFLINE);
-
   if (inst->opmode == MD_OFFLINE) {
     return;
   }
@@ -1230,6 +1226,10 @@ transmit_timeout(void *arg)
     SRC_UpdateReachability(inst->source, 0);
   }
 
+  /* With auto_offline take the source offline if sending failed */
+  if (!sent && inst->auto_offline)
+    NCR_SetConnectivity(inst, SRC_OFFLINE);
+
   switch (inst->opmode) {
     case MD_BURST_WAS_ONLINE:
       /* When not reachable, don't stop online burst until sending succeeds */
@@ -1239,6 +1239,8 @@ transmit_timeout(void *arg)
     case MD_BURST_WAS_OFFLINE:
       --inst->burst_total_samples_to_go;
       break;
+    case MD_OFFLINE:
+      return;
     default:
       break;
   }

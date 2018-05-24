@@ -164,13 +164,12 @@ option can be specified. *chronyd* will not try to poll the server until it is
 enabled to do so (by using the <<chronyc.adoc#online,*online*>> command in
 *chronyc*).
 *auto_offline*:::
-With this option, the server will be assumed to have gone offline when two
-requests have been sent to it without receiving a response. This option avoids
+With this option, the server will be assumed to have gone offline when sending
+a request fails, e.g. due to a missing route to the network. This option avoids
 the need to run the <<chronyc.adoc#offline,*offline*>> command from *chronyc*
-when disconnecting the network link, if it is safe to assume that the requests
-and responses will not be dropped in the network, e.g. in a trusted local
-network. (It will still be necessary to use the <<chronyc.adoc#online,*online*>>
-command when the link has been established, to enable measurements to start.)
+when disconnecting the network link. (It will still be necessary to use the
+<<chronyc.adoc#online,*online*>> command when the link has been established, to
+enable measurements to start.)
 *prefer*:::
 Prefer this source over sources without the *prefer* option.
 *noselect*:::
