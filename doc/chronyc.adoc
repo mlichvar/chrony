@@ -722,6 +722,13 @@ particular source or sources has been restored.
 +
 The syntax is identical to that of the <<offline,*offline*>> command.
 
+[[onoffline]]
+*onoffline*::
+The *onoffline* command tells *chronyd* to switch all sources to the online or
+offline status according to the current network configuration. A source is
+considered online if it is possible to send requests to it, i.e. a route to the
+network is present.
+
 [[polltarget]]*polltarget* _address_ _polltarget_::
 The *polltarget* command is used to modify the poll target for one of the
 current set of sources. It is equivalent to the *polltarget* option in the

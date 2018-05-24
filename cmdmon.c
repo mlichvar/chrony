@@ -139,6 +139,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* ADD_SERVER3 */
   PERMIT_AUTH, /* ADD_PEER3 */
   PERMIT_AUTH, /* SHUTDOWN */
+  PERMIT_AUTH, /* ONOFFLINE */
 };
 
 /* ================================================== */
@@ -439,6 +440,18 @@ handle_offline(CMD_Request *rx_message, CMD_Reply *tx_message)
   UTI_IPNetworkToHost(&rx_message->data.offline.address, &address);
   if (!NSR_SetConnectivity(&mask, &address, SRC_OFFLINE))
     tx_message->status = htons(STT_NOSUCHSOURCE);
+}
+
+/* ================================================== */
+
+static void
+handle_onoffline(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  IPAddr address, mask;
+
+  address.family = mask.family = IPADDR_UNSPEC;
+  if (!NSR_SetConnectivity(&mask, &address, SRC_MAYBE_ONLINE))
+    ;
 }
 
 /* ================================================== */
@@ -1635,6 +1648,10 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
         case REQ_SHUTDOWN:
           handle_shutdown(&rx_message, &tx_message);
+          break;
+
+        case REQ_ONOFFLINE:
+          handle_onoffline(&rx_message, &tx_message);
           break;
 
         default:

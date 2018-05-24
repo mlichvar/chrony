@@ -426,6 +426,14 @@ process_cmd_online(CMD_Request *msg, char *line)
 
 /* ================================================== */
 
+static void
+process_cmd_onoffline(CMD_Request *msg, char *line)
+{
+  msg->command = htons(REQ_ONOFFLINE);
+}
+
+/* ================================================== */
+
 static int
 read_address_integer(char *line, IPAddr *address, int *value)
 {
@@ -1208,6 +1216,8 @@ give_help(void)
     "minstratum <address> <stratum>\0Modify minimum stratum\0"
     "offline [<mask>/<address>]\0Set sources in subnet to offline status\0"
     "online [<mask>/<address>]\0Set sources in subnet to online status\0"
+    "onoffline\0Set all sources to online or offline status\0"
+    "\0according to network configuration\0"
     "polltarget <address> <target>\0Modify poll target\0"
     "refresh\0Refresh IP addresses\0"
     "\0\0"
@@ -1279,7 +1289,7 @@ command_name_generator(const char *text, int state)
     "deny", "dns", "dump", "exit", "help", "keygen", "local", "makestep",
     "manual on", "manual off", "manual delete", "manual list", "manual reset",
     "maxdelay", "maxdelaydevratio", "maxdelayratio", "maxpoll",
-    "maxupdateskew", "minpoll", "minstratum", "ntpdata", "offline", "online",
+    "maxupdateskew", "minpoll", "minstratum", "ntpdata", "offline", "online", "onoffline",
     "polltarget", "quit", "refresh", "rekey", "reselect", "reselectdist",
     "retries", "rtcdata", "serverstats", "settime", "shutdown", "smoothing",
     "smoothtime", "sources", "sources -v", "sourcestats", "sourcestats -v",
@@ -2984,6 +2994,8 @@ process_line(char *line)
     do_normal_submit = process_cmd_offline(&tx_message, line);
   } else if (!strcmp(command, "online")) {
     do_normal_submit = process_cmd_online(&tx_message, line);
+  } else if (!strcmp(command, "onoffline")) {
+    process_cmd_onoffline(&tx_message, line);
   } else if (!strcmp(command, "polltarget")) {
     do_normal_submit = process_cmd_polltarget(&tx_message, line);
   } else if (!strcmp(command, "quit")) {
