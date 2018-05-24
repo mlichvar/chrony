@@ -102,14 +102,9 @@ extern void NSR_Initialise(void);
 extern void NSR_Finalise(void);
 
 /* This routine is used to indicate that sources whose IP addresses
-   match a particular subnet should be set online again.  Returns a
-   flag indicating whether any hosts matched the address */
-extern int NSR_TakeSourcesOnline(IPAddr *mask, IPAddr *address);
-
-/* This routine is used to indicate that sources whose IP addresses
-   match a particular subnet should be set offline.  Returns a flag
-   indicating whether any hosts matched the address */
-extern int NSR_TakeSourcesOffline(IPAddr *mask, IPAddr *address);
+   match a particular subnet should be set online or offline.  It returns
+   a flag indicating whether any hosts matched the address. */
+extern int NSR_SetConnectivity(IPAddr *mask, IPAddr *address, SRC_Connectivity connectivity);
 
 extern int NSR_ModifyMinpoll(IPAddr *address, int new_minpoll);
 

@@ -29,10 +29,15 @@
 
 #include "sources.h"
 
+typedef enum {
+  SRC_OFFLINE,
+  SRC_ONLINE,
+} SRC_Connectivity;
+
 typedef struct {
   int minpoll;
   int maxpoll;
-  int online;
+  SRC_Connectivity connectivity;
   int auto_offline;
   int presend_minpoll;
   int burst;

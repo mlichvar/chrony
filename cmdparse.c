@@ -48,7 +48,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   src->port = SRC_DEFAULT_PORT;
   src->params.minpoll = SRC_DEFAULT_MINPOLL;
   src->params.maxpoll = SRC_DEFAULT_MAXPOLL;
-  src->params.online = 1;
+  src->params.connectivity = SRC_ONLINE;
   src->params.auto_offline = 0;
   src->params.presend_minpoll = SRC_DEFAULT_PRESEND_MINPOLL;
   src->params.burst = 0;
@@ -90,7 +90,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
     } else if (!strcasecmp(cmd, "iburst")) {
       src->params.iburst = 1;
     } else if (!strcasecmp(cmd, "offline")) {
-      src->params.online = 0;
+      src->params.connectivity = SRC_OFFLINE;
     } else if (!strcasecmp(cmd, "noselect")) {
       src->params.sel_options |= SRC_SELECT_NOSELECT;
     } else if (!strcasecmp(cmd, "prefer")) {

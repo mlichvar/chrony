@@ -99,12 +99,9 @@ extern void NCR_ProcessTxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Addr
 /* Slew receive and transmit times in instance records */
 extern void NCR_SlewTimes(NCR_Instance inst, struct timespec *when, double dfreq, double doffset);
 
-/* Take a particular source online (i.e. start sampling it) */
-extern void NCR_TakeSourceOnline(NCR_Instance inst);
-
-/* Take a particular source offline (i.e. stop sampling it, without
-   marking it unreachable in the source selection stuff) */
-extern void NCR_TakeSourceOffline(NCR_Instance inst);
+/* Take a particular source online (i.e. start sampling it) or offline
+   (i.e. stop sampling it) */
+extern void NCR_SetConnectivity(NCR_Instance inst, SRC_Connectivity connectivity);
 
 extern void NCR_ModifyMinpoll(NCR_Instance inst, int new_minpoll);
 

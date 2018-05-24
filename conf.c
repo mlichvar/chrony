@@ -1411,7 +1411,7 @@ CNF_AddInitSources(void)
     ntp_addr.ip_addr = *(IPAddr *)ARR_GetElement(init_sources, i);
     ntp_addr.port = cps_source.port;
     cps_source.params.iburst = 1;
-    cps_source.params.online = 0;
+    cps_source.params.connectivity = SRC_OFFLINE;
 
     NSR_AddSource(&ntp_addr, NTP_SERVER, &cps_source.params);
   }

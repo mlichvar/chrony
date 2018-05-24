@@ -424,7 +424,7 @@ handle_online(CMD_Request *rx_message, CMD_Reply *tx_message)
 
   UTI_IPNetworkToHost(&rx_message->data.online.mask, &mask);
   UTI_IPNetworkToHost(&rx_message->data.online.address, &address);
-  if (!NSR_TakeSourcesOnline(&mask, &address))
+  if (!NSR_SetConnectivity(&mask, &address, SRC_ONLINE))
     tx_message->status = htons(STT_NOSUCHSOURCE);
 }
 
@@ -437,7 +437,7 @@ handle_offline(CMD_Request *rx_message, CMD_Reply *tx_message)
 
   UTI_IPNetworkToHost(&rx_message->data.offline.mask, &mask);
   UTI_IPNetworkToHost(&rx_message->data.offline.address, &address);
-  if (!NSR_TakeSourcesOffline(&mask, &address))
+  if (!NSR_SetConnectivity(&mask, &address, SRC_OFFLINE))
     tx_message->status = htons(STT_NOSUCHSOURCE);
 }
 
@@ -797,7 +797,8 @@ handle_add_source(NTP_Source_Type type, CMD_Request *rx_message, CMD_Reply *tx_m
   params.asymmetry = UTI_FloatNetworkToHost(rx_message->data.ntp_source.asymmetry);
   params.offset = UTI_FloatNetworkToHost(rx_message->data.ntp_source.offset);
 
-  params.online  = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_ONLINE ? 1 : 0;
+  params.connectivity = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_ONLINE ?
+                        SRC_ONLINE : SRC_OFFLINE;
   params.auto_offline = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_AUTOOFFLINE ? 1 : 0;
   params.iburst = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_IBURST ? 1 : 0;
   params.interleaved = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_INTERLEAVED ? 1 : 0;

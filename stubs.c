@@ -254,13 +254,7 @@ NSR_GetLocalRefid(IPAddr *address)
 }
 
 int
-NSR_TakeSourcesOnline(IPAddr *mask, IPAddr *address)
-{
-  return 0;
-}
-
-int
-NSR_TakeSourcesOffline(IPAddr *mask, IPAddr *address)
+NSR_SetConnectivity(IPAddr *mask, IPAddr *address, SRC_Connectivity connectivity)
 {
   return 0;
 }

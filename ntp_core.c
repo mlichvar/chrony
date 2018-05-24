@@ -603,7 +603,7 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->rx_timeout_id = 0;
   result->tx_timeout_id = 0;
   result->tx_suspended = 1;
-  result->opmode = params->online ? MD_ONLINE : MD_OFFLINE;
+  result->opmode = params->connectivity == SRC_ONLINE ? MD_ONLINE : MD_OFFLINE;
   result->local_poll = result->minpoll;
   result->poll_score = 0.0;
   zero_local_timestamp(&result->local_tx);
@@ -1143,7 +1143,7 @@ transmit_timeout(void *arg)
 
   /* With auto_offline take the source offline on 2nd missed reply */
   if (inst->auto_offline && inst->tx_count >= 2)
-    NCR_TakeSourceOffline(inst);
+    NCR_SetConnectivity(inst, SRC_OFFLINE);
 
   if (inst->opmode == MD_OFFLINE) {
     return;
@@ -2275,48 +2275,56 @@ NCR_SlewTimes(NCR_Instance inst, struct timespec *when, double dfreq, double dof
 /* ================================================== */
 
 void
-NCR_TakeSourceOnline(NCR_Instance inst)
+NCR_SetConnectivity(NCR_Instance inst, SRC_Connectivity connectivity)
 {
-  switch (inst->opmode) {
-    case MD_ONLINE:
-      /* Nothing to do */
+  char *s;
+
+  s = UTI_IPToString(&inst->remote_addr.ip_addr);
+
+  switch (connectivity) {
+    case SRC_ONLINE:
+      switch (inst->opmode) {
+        case MD_ONLINE:
+          /* Nothing to do */
+          break;
+        case MD_OFFLINE:
+          LOG(LOGS_INFO, "Source %s online", s);
+          inst->opmode = MD_ONLINE;
+          NCR_ResetInstance(inst);
+          start_initial_timeout(inst);
+          break;
+        case MD_BURST_WAS_ONLINE:
+          /* Will revert */
+          break;
+        case MD_BURST_WAS_OFFLINE:
+          inst->opmode = MD_BURST_WAS_ONLINE;
+          LOG(LOGS_INFO, "Source %s online", s);
+          break;
+        default:
+          assert(0);
+      }
       break;
-    case MD_OFFLINE:
-      LOG(LOGS_INFO, "Source %s online", UTI_IPToString(&inst->remote_addr.ip_addr));
-      inst->opmode = MD_ONLINE;
-      NCR_ResetInstance(inst);
-      start_initial_timeout(inst);
+    case SRC_OFFLINE:
+      switch (inst->opmode) {
+        case MD_ONLINE:
+          LOG(LOGS_INFO, "Source %s offline", s);
+          take_offline(inst);
+          break;
+        case MD_OFFLINE:
+          break;
+        case MD_BURST_WAS_ONLINE:
+          inst->opmode = MD_BURST_WAS_OFFLINE;
+          LOG(LOGS_INFO, "Source %s offline", s);
+          break;
+        case MD_BURST_WAS_OFFLINE:
+          break;
+        default:
+          assert(0);
+      }
       break;
-    case MD_BURST_WAS_ONLINE:
-      /* Will revert */
-      break;
-    case MD_BURST_WAS_OFFLINE:
-      inst->opmode = MD_BURST_WAS_ONLINE;
-      LOG(LOGS_INFO, "Source %s online", UTI_IPToString(&inst->remote_addr.ip_addr));
-      break;
+    default:
+      assert(0);
   }
-}
-
-/* ================================================== */
-
-void
-NCR_TakeSourceOffline(NCR_Instance inst)
-{
-  switch (inst->opmode) {
-    case MD_ONLINE:
-      LOG(LOGS_INFO, "Source %s offline", UTI_IPToString(&inst->remote_addr.ip_addr));
-      take_offline(inst);
-      break;
-    case MD_OFFLINE:
-      break;
-    case MD_BURST_WAS_ONLINE:
-      inst->opmode = MD_BURST_WAS_OFFLINE;
-      LOG(LOGS_INFO, "Source %s offline", UTI_IPToString(&inst->remote_addr.ip_addr));
-      break;
-    case MD_BURST_WAS_OFFLINE:
-      break;
-  }
-
 }
 
 /* ================================================== */

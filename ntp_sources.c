@@ -860,47 +860,13 @@ slew_sources(struct timespec *raw,
 /* ================================================== */
 
 int
-NSR_TakeSourcesOnline(IPAddr *mask, IPAddr *address)
-{
-  SourceRecord *record;
-  unsigned int i;
-  int any;
-
-  NSR_ResolveSources();
-
-  any = 0;
-  for (i = 0; i < ARR_GetSize(records); i++) {
-    record = get_record(i);
-    if (record->remote_addr) {
-      if (address->family == IPADDR_UNSPEC ||
-          !UTI_CompareIPs(&record->remote_addr->ip_addr, address, mask)) {
-        any = 1;
-        NCR_TakeSourceOnline(record->data);
-      }
-    }
-  }
-
-  if (address->family == IPADDR_UNSPEC) {
-    struct UnresolvedSource *us;
-
-    for (us = unresolved_sources; us; us = us->next) {
-      if (us->replacement)
-        continue;
-      any = 1;
-      us->new_source.params.online = 1;
-    }
-  }
-
-  return any;
-}
-
-/* ================================================== */
-
-int
-NSR_TakeSourcesOffline(IPAddr *mask, IPAddr *address)
+NSR_SetConnectivity(IPAddr *mask, IPAddr *address, SRC_Connectivity connectivity)
 {
   SourceRecord *record, *syncpeer;
   unsigned int i, any;
+
+  if (connectivity != SRC_OFFLINE)
+    NSR_ResolveSources();
 
   any = 0;
   syncpeer = NULL;
@@ -914,15 +880,14 @@ NSR_TakeSourcesOffline(IPAddr *mask, IPAddr *address)
           syncpeer = record;
           continue;
         }
-        NCR_TakeSourceOffline(record->data);
+        NCR_SetConnectivity(record->data, connectivity);
       }
     }
   }
 
-  /* Take sync peer offline as last to avoid reference switching */
-  if (syncpeer) {
-    NCR_TakeSourceOffline(syncpeer->data);
-  }
+  /* Set the sync peer last to avoid unnecessary reference switching */
+  if (syncpeer)
+    NCR_SetConnectivity(syncpeer->data, connectivity);
 
   if (address->family == IPADDR_UNSPEC) {
     struct UnresolvedSource *us;
@@ -931,7 +896,7 @@ NSR_TakeSourcesOffline(IPAddr *mask, IPAddr *address)
       if (us->replacement)
         continue;
       any = 1;
-      us->new_source.params.online = 0;
+      us->new_source.params.connectivity = connectivity;
     }
   }
 
