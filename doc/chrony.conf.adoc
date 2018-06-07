@@ -2045,10 +2045,11 @@ significant impact on performance as *chronyd's* memory usage is modest. The
 *mlockall(2)* man page has more details.
 
 [[pidfile]]*pidfile* _file_::
-*chronyd* always writes its process ID (PID) to a file, and checks this file on
-startup to see if another *chronyd* might already be running on the system. By
-default, the file used is _@DEFAULT_PID_FILE@_. The *pidfile* directive
-allows the name to be changed, e.g.:
+Unless *chronyd* is started with the *-Q* option, it writes its process ID
+(PID) to a file, and checks this file on startup to see if another *chronyd*
+might already be running on the system. By default, the file used is
+_@DEFAULT_PID_FILE@_. The *pidfile* directive allows the name to be changed,
+e.g.:
 +
 ----
 pidfile /run/chronyd.pid
