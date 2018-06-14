@@ -111,7 +111,7 @@ read_line(void)
     char *cmd;
 
     rl_attempted_completion_function = command_name_completion;
-    rl_basic_word_break_characters = "\t\n\r";
+    rl_basic_word_break_characters = " \t\n\r";
 
     /* save line only if not empty */
     cmd = readline(prompt);
@@ -1280,30 +1280,52 @@ give_help(void)
 /* Tab-completion when editline/readline is available */
 
 #ifdef FEAT_READLINE
+
+enum {
+  TAB_COMPLETE_BASE_CMDS,
+  TAB_COMPLETE_ADD_OPTS,
+  TAB_COMPLETE_MANUAL_OPTS,
+  TAB_COMPLETE_SOURCES_OPTS,
+  TAB_COMPLETE_SOURCESTATS_OPTS,
+  TAB_COMPLETE_MAX_INDEX
+};
+
+static int tab_complete_index;
+
 static char *
 command_name_generator(const char *text, int state)
 {
-  const char *name, *names[] = {
-    "accheck", "activity", "add peer", "add server", "allow", "burst",
+  const char *name, **names[TAB_COMPLETE_MAX_INDEX];
+  const char *base_commands[] = {
+    "accheck", "activity", "add", "allow", "burst",
     "clients", "cmdaccheck", "cmdallow", "cmddeny", "cyclelogs", "delete",
     "deny", "dns", "dump", "exit", "help", "keygen", "local", "makestep",
-    "manual on", "manual off", "manual delete", "manual list", "manual reset",
-    "maxdelay", "maxdelaydevratio", "maxdelayratio", "maxpoll",
+    "manual", "maxdelay", "maxdelaydevratio", "maxdelayratio", "maxpoll",
     "maxupdateskew", "minpoll", "minstratum", "ntpdata", "offline", "online", "onoffline",
     "polltarget", "quit", "refresh", "rekey", "reselect", "reselectdist",
     "retries", "rtcdata", "serverstats", "settime", "shutdown", "smoothing",
-    "smoothtime", "sources", "sources -v", "sourcestats", "sourcestats -v",
+    "smoothtime", "sources", "sourcestats",
     "timeout", "tracking", "trimrtc", "waitsync", "writertc",
     NULL
   };
+  const char *add_options[] = { "peer", "server", NULL };
+  const char *manual_options[] = { "on", "off", "delete", "list", "reset", NULL };
+  const char *sources_options[] = { "-v", NULL };
+  const char *sourcestats_options[] = { "-v", NULL };
   static int list_index, len;
+
+  names[TAB_COMPLETE_BASE_CMDS] = base_commands;
+  names[TAB_COMPLETE_ADD_OPTS] = add_options;
+  names[TAB_COMPLETE_MANUAL_OPTS] = manual_options;
+  names[TAB_COMPLETE_SOURCES_OPTS] = sources_options;
+  names[TAB_COMPLETE_SOURCESTATS_OPTS] = sourcestats_options;
 
   if (!state) {
     list_index = 0;
     len = strlen(text);
   }
 
-  while ((name = names[list_index++])) {
+  while ((name = names[tab_complete_index][list_index++])) {
     if (strncmp(name, text, len) == 0) {
       return strdup(name);
     }
@@ -1317,7 +1339,25 @@ command_name_generator(const char *text, int state)
 static char **
 command_name_completion(const char *text, int start, int end)
 {
+  char first[32];
+
+  snprintf(first, MIN(sizeof (first), start + 1), "%s", rl_line_buffer);
   rl_attempted_completion_over = 1;
+
+  if (!strcmp(first, "add ")) {
+    tab_complete_index = TAB_COMPLETE_ADD_OPTS;
+  } else if (!strcmp(first, "manual ")) {
+    tab_complete_index = TAB_COMPLETE_MANUAL_OPTS;
+  } else if (!strcmp(first, "sources ")) {
+    tab_complete_index = TAB_COMPLETE_SOURCES_OPTS;
+  } else if (!strcmp(first, "sourcestats ")) {
+    tab_complete_index = TAB_COMPLETE_SOURCESTATS_OPTS;
+  } else if (first[0] == '\0') {
+    tab_complete_index = TAB_COMPLETE_BASE_CMDS;
+  } else {
+    return NULL;
+  }
+
   return rl_completion_matches(text, command_name_generator);
 }
 #endif
