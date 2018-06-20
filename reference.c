@@ -545,6 +545,8 @@ maybe_log_offset(double offset, time_t now)
       if (gethostname(host, sizeof(host)) < 0) {
         strcpy(host, "<UNKNOWN>");
       }
+      host[sizeof (host) - 1] = '\0';
+
       fprintf(p, "Subject: chronyd reports change to system clock on node [%s]\n", host);
       fputs("\n", p);
 
