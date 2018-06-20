@@ -69,20 +69,19 @@ static void read_sample(int sockfd, int event, void *anything)
   s = recv(sockfd, &sample, sizeof (sample), 0);
 
   if (s < 0) {
-    LOG(LOGS_ERR, "Could not read SOCK sample : %s",
-        strerror(errno));
+    DEBUG_LOG("Could not read SOCK sample : %s", strerror(errno));
     return;
   }
 
   if (s != sizeof (sample)) {
-    LOG(LOGS_WARN, "Unexpected length of SOCK sample : %d != %ld",
-        s, (long)sizeof (sample));
+    DEBUG_LOG("Unexpected length of SOCK sample : %d != %ld",
+              s, (long)sizeof (sample));
     return;
   }
 
   if (sample.magic != SOCK_MAGIC) {
-    LOG(LOGS_WARN, "Unexpected magic number in SOCK sample : %x != %x",
-        (unsigned int)sample.magic, (unsigned int)SOCK_MAGIC);
+    DEBUG_LOG("Unexpected magic number in SOCK sample : %x != %x",
+              (unsigned int)sample.magic, (unsigned int)SOCK_MAGIC);
     return;
   }
 
