@@ -82,7 +82,7 @@ test_unit(void)
         double passed_lo = DBL_MAX, passed_hi = DBL_MIN;
 
         SRC_SelectSource(srcs[k]);
-        DEBUG_LOG("source %d status %d", k, sources[k]->status);
+        DEBUG_LOG("source %d status %u", k, sources[k]->status);
 
         for (l = 0; l <= j; l++) {
           TEST_CHECK(sources[l]->status > SRC_OK && sources[l]->status <= SRC_SELECTED);

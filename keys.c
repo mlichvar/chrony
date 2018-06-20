@@ -214,7 +214,7 @@ KEY_Reload(void)
       continue;
 
     if (!CPS_ParseKey(line, &key_id, &hashname, &keyval)) {
-      LOG(LOGS_WARN, "Could not parse key at line %d in file %s", line_number, key_file);
+      LOG(LOGS_WARN, "Could not parse key at line %u in file %s", line_number, key_file);
       continue;
     }
 

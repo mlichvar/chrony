@@ -65,7 +65,7 @@ test_unit(void)
     }
   }
 
-  DEBUG_LOG("records %d", ARR_GetSize(records));
+  DEBUG_LOG("records %u", ARR_GetSize(records));
   TEST_CHECK(ARR_GetSize(records) == 64);
 
   for (i = j = 0; i < 10000; i++) {
@@ -76,7 +76,7 @@ test_unit(void)
       j++;
   }
 
-  DEBUG_LOG("requests %u responses %u", i, j);
+  DEBUG_LOG("requests %d responses %d", i, j);
   TEST_CHECK(j * 4 < i && j * 6 > i);
 
   CLG_Finalise();

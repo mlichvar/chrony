@@ -2043,7 +2043,7 @@ NCR_ProcessRxKnown(NCR_Instance inst, NTP_Local_Address *local_addr,
     /* It's not a reply to our request, don't return success */
     return 0;
   } else {
-    DEBUG_LOG("NTP packet discarded pkt_mode=%d our_mode=%d", pkt_mode, inst->mode);
+    DEBUG_LOG("NTP packet discarded pkt_mode=%d our_mode=%u", pkt_mode, inst->mode);
     return 0;
   }
 }
@@ -2102,7 +2102,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
       /* Fall through */
     default:
       /* Discard */
-      DEBUG_LOG("NTP packet discarded pkt_mode=%d", pkt_mode);
+      DEBUG_LOG("NTP packet discarded pkt_mode=%u", pkt_mode);
       return;
   }
 
@@ -2128,7 +2128,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
         break;
       default:
         /* Discard packets in other modes */
-        DEBUG_LOG("NTP packet discarded auth_mode=%d", auth_mode);
+        DEBUG_LOG("NTP packet discarded auth_mode=%u", auth_mode);
         return;
     }
   }

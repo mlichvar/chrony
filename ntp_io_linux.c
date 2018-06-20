@@ -321,7 +321,7 @@ check_timestamping_option(int option)
     return 0;
 
   if (setsockopt(sock_fd, SOL_SOCKET, SO_TIMESTAMPING, &option, sizeof (option)) < 0) {
-    DEBUG_LOG("Could not enable timestamping option %x", option);
+    DEBUG_LOG("Could not enable timestamping option %x", (unsigned int)option);
     close(sock_fd);
     return 0;
   }
@@ -790,7 +790,7 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
   l2_length = length;
   length = extract_udp_data(hdr->msg_iov[0].iov_base, remote_addr, length);
 
-  DEBUG_LOG("Received %d (%d) bytes from error queue for %s:%d fd=%d if=%d tss=%d",
+  DEBUG_LOG("Received %d (%d) bytes from error queue for %s:%d fd=%d if=%d tss=%u",
             l2_length, length, UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
             local_addr->sock_fd, local_addr->if_index, local_ts->source);
 

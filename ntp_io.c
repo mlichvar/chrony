@@ -684,7 +684,7 @@ process_message(struct msghdr *hdr, int length, int sock_fd)
     return;
 #endif
 
-  DEBUG_LOG("Received %d bytes from %s:%d to %s fd=%d if=%d tss=%d delay=%.9f",
+  DEBUG_LOG("Received %d bytes from %s:%d to %s fd=%d if=%d tss=%u delay=%.9f",
             length, UTI_IPToString(&remote_addr.ip_addr), remote_addr.port,
             UTI_IPToString(&local_addr.ip_addr), local_addr.sock_fd, local_addr.if_index,
             local_ts.source, UTI_DiffTimespecsToDouble(&sched_ts, &local_ts.ts));

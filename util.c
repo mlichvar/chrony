@@ -298,16 +298,17 @@ UTI_IPToString(IPAddr *addr)
       b = (ip>>16) & 0xff;
       c = (ip>> 8) & 0xff;
       d = (ip>> 0) & 0xff;
-      snprintf(result, BUFFER_LENGTH, "%ld.%ld.%ld.%ld", a, b, c, d);
+      snprintf(result, BUFFER_LENGTH, "%lu.%lu.%lu.%lu", a, b, c, d);
       break;
     case IPADDR_INET6:
       ip6 = addr->addr.in6;
 #ifdef FEAT_IPV6
       inet_ntop(AF_INET6, ip6, result, BUFFER_LENGTH);
 #else
-      snprintf(result, BUFFER_LENGTH, "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x",
-               ip6[0], ip6[1], ip6[2], ip6[3], ip6[4], ip6[5], ip6[6], ip6[7],
-               ip6[8], ip6[9], ip6[10], ip6[11], ip6[12], ip6[13], ip6[14], ip6[15]);
+      assert(BUFFER_LENGTH >= 40);
+      for (a = 0; a < 8; a++)
+        snprintf(result + a * 5, 40 - a * 5, "%04x:",
+                 (unsigned int)(ip6[2 * a] << 8 | ip6[2 * a + 1]));
 #endif
       break;
     default:
@@ -1160,12 +1161,12 @@ UTI_CheckDirPermissions(const char *path, mode_t perm, uid_t uid, gid_t gid)
   }
 
   if (buf.st_uid != uid) {
-    LOG(LOGS_ERR, "Wrong owner of %s (%s != %d)", path, "UID", uid);
+    LOG(LOGS_ERR, "Wrong owner of %s (%s != %u)", path, "UID", uid);
     return 0;
   }
 
   if (buf.st_gid != gid) {
-    LOG(LOGS_ERR, "Wrong owner of %s (%s != %d)", path, "GID", gid);
+    LOG(LOGS_ERR, "Wrong owner of %s (%s != %u)", path, "GID", gid);
     return 0;
   }
 
@@ -1183,13 +1184,13 @@ UTI_DropRoot(uid_t uid, gid_t gid)
 
   /* Set effective, saved and real group ID */
   if (setgid(gid))
-    LOG_FATAL("setgid(%d) failed : %s", gid, strerror(errno));
+    LOG_FATAL("setgid(%u) failed : %s", gid, strerror(errno));
 
   /* Set effective, saved and real user ID */
   if (setuid(uid))
-    LOG_FATAL("setuid(%d) failed : %s", uid, strerror(errno));
+    LOG_FATAL("setuid(%u) failed : %s", uid, strerror(errno));
 
-  DEBUG_LOG("Dropped root privileges: UID %d GID %d", uid, gid);
+  DEBUG_LOG("Dropped root privileges: UID %u GID %u", uid, gid);
 }
 
 /* ================================================== */

@@ -1638,17 +1638,17 @@ print_seconds(unsigned long s)
   if (s == (uint32_t)-1) {
     printf("   -");
   } else if (s < 1200) {
-    printf("%4ld", s);
+    printf("%4lu", s);
   } else if (s < 36000) {
-    printf("%3ldm", s / 60);
+    printf("%3lum", s / 60);
   } else if (s < 345600) {
-    printf("%3ldh", s / 3600);
+    printf("%3luh", s / 3600);
   } else {
     d = s / 86400;
     if (d > 999) {
-      printf("%3ldy", d / 365);
+      printf("%3luy", d / 365);
     } else {
-      printf("%3ldd", d);
+      printf("%3lud", d);
     }
   }
 }
@@ -2890,7 +2890,7 @@ process_cmd_keygen(char *line)
   snprintf(hash_name, sizeof (hash_name), "MD5");
 #endif
 
-  if (sscanf(line, "%u %16s %d", &id, hash_name, &bits))
+  if (sscanf(line, "%u %16s %u", &id, hash_name, &bits))
     ;
 
   length = CLAMP(10, (bits + 7) / 8, sizeof (key));

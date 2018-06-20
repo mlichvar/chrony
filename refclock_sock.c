@@ -82,7 +82,7 @@ static void read_sample(int sockfd, int event, void *anything)
 
   if (sample.magic != SOCK_MAGIC) {
     LOG(LOGS_WARN, "Unexpected magic number in SOCK sample : %x != %x",
-        sample.magic, SOCK_MAGIC);
+        (unsigned int)sample.magic, (unsigned int)SOCK_MAGIC);
     return;
   }
 

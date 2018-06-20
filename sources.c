@@ -778,8 +778,8 @@ SRC_SelectSource(SRC_Instance updated_inst)
   }
 
   DEBUG_LOG("badstat=%d sel=%d badstat_reach=%x sel_reach=%x max_reach_ago=%f",
-            n_badstats_sources, n_sel_sources, max_badstat_reach,
-            max_sel_reach, max_reach_sample_ago);
+            n_badstats_sources, n_sel_sources, (unsigned int)max_badstat_reach,
+            (unsigned int)max_sel_reach, max_reach_sample_ago);
 
   /* Wait for the next call if we have no source selected and there is
      a source with bad stats (has less than 3 samples) with reachability
@@ -1015,7 +1015,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
       sources[i]->sel_score = 1.0 / distance;
     }
 
-    DEBUG_LOG("select score=%f refid=%"PRIx32" match_refid=%"PRIx32" status=%d dist=%f",
+    DEBUG_LOG("select score=%f refid=%"PRIx32" match_refid=%"PRIx32" status=%u dist=%f",
               sources[i]->sel_score, sources[i]->ref_id,
               updated_inst ? updated_inst->ref_id : 0,
               sources[i]->status, distance);
