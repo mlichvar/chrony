@@ -132,14 +132,16 @@ void LOG_Message(LOG_Severity severity,
   char buf[2048];
   va_list other_args;
   time_t t;
-  struct tm stm;
+  struct tm *tm;
 
   if (!system_log && file_log) {
     /* Don't clutter up syslog with timestamps and internal debugging info */
     time(&t);
-    stm = *gmtime(&t);
-    strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &stm);
-    fprintf(file_log, "%s ", buf);
+    tm = gmtime(&t);
+    if (tm) {
+      strftime(buf, sizeof (buf), "%Y-%m-%dT%H:%M:%SZ", tm);
+      fprintf(file_log, "%s ", buf);
+    }
 #if DEBUG > 0
     if (debug_level >= DEBUG_LEVEL_PRINT_FUNCTION)
       fprintf(file_log, "%s:%d:(%s) ", filename, line_number, function_name);

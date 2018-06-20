@@ -528,7 +528,7 @@ maybe_log_offset(double offset, time_t now)
   double abs_offset;
   FILE *p;
   char buffer[BUFLEN], host[BUFLEN];
-  struct tm stm;
+  struct tm *tm;
 
   abs_offset = fabs(offset);
 
@@ -547,9 +547,14 @@ maybe_log_offset(double offset, time_t now)
       }
       fprintf(p, "Subject: chronyd reports change to system clock on node [%s]\n", host);
       fputs("\n", p);
-      stm = *localtime(&now);
-      strftime(buffer, sizeof(buffer), "On %A, %d %B %Y\n  with the system clock reading %H:%M:%S (%Z)", &stm);
-      fputs(buffer, p);
+
+      tm = localtime(&now);
+      if (tm) {
+        strftime(buffer, sizeof (buffer),
+                 "On %A, %d %B %Y\n  with the system clock reading %H:%M:%S (%Z)", tm);
+        fputs(buffer, p);
+      }
+
       /* If offset < 0 the local clock is slow, so we are applying a
          positive change to it to bring it into line, hence the
          negation of 'offset' in the next statement (and earlier) */

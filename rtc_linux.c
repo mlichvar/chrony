@@ -352,7 +352,7 @@ rtc_from_t(const time_t *t)
 
 static time_t
 t_from_rtc(struct tm *stm) {
-  struct tm temp1, temp2;
+  struct tm temp1, temp2, *tm;
   long diff;
   time_t t1, t2;
 
@@ -360,12 +360,14 @@ t_from_rtc(struct tm *stm) {
   temp1.tm_isdst = 0;
   
   t1 = mktime(&temp1);
-  if (rtc_on_utc) {
-    temp2 = *gmtime(&t1);
-  } else {
-    temp2 = *localtime(&t1);
+
+  tm = rtc_on_utc ? gmtime(&t1) : localtime(&t1);
+  if (!tm) {
+    DEBUG_LOG("gmtime()/localtime() failed");
+    return -1;
   }
-  
+
+  temp2 = *tm;
   temp2.tm_isdst = 0;
   t2 = mktime(&temp2);
   diff = t2 - t1;
