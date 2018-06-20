@@ -539,7 +539,7 @@ maybe_log_offset(double offset, time_t now)
 
   if (do_mail_change &&
       (abs_offset > mail_change_threshold)) {
-    snprintf(buffer, sizeof(buffer), "%s %." S_MAX_USER_LEN "s", MAIL_PROGRAM, mail_change_user);
+    snprintf(buffer, sizeof (buffer), "%s -t", MAIL_PROGRAM);
     p = popen(buffer, "w");
     if (p) {
       if (gethostname(host, sizeof(host)) < 0) {
@@ -547,6 +547,7 @@ maybe_log_offset(double offset, time_t now)
       }
       host[sizeof (host) - 1] = '\0';
 
+      fprintf(p, "To: %s\n", mail_change_user);
       fprintf(p, "Subject: chronyd reports change to system clock on node [%s]\n", host);
       fputs("\n", p);
 
