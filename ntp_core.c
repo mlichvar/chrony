@@ -226,12 +226,10 @@ static ARR_Instance broadcasts;
 /* Adjustment of the peer polling interval */
 #define PEER_SAMPLING_ADJ 1.1
 
-/* Spacing between samples in burst mode for one server/peer */
-#define BURST_INTERVAL 2.0
-
-/* Time to wait before retransmitting in burst mode, if we did not get
-   a reply to the previous probe */
-#define BURST_TIMEOUT 2.0
+/* Maximum spacing between samples in the burst mode as an absolute
+   value and ratio to the normal polling interval */
+#define MAX_BURST_INTERVAL 2.0
+#define MAX_BURST_POLL_RATIO 0.25
 
 /* Number of samples in initial burst */
 #define IBURST_GOOD_SAMPLES 4
@@ -852,7 +850,7 @@ get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx)
     case MD_BURST_WAS_ONLINE:
     case MD_BURST_WAS_OFFLINE:
       /* Burst modes */
-      delay_time = on_tx ? BURST_TIMEOUT : BURST_INTERVAL;
+      delay_time = MIN(MAX_BURST_INTERVAL, MAX_BURST_POLL_RATIO * delay_time);
       break;
     default:
       assert(0);
