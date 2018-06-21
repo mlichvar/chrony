@@ -268,6 +268,11 @@ static ARR_Instance broadcasts;
 #define MIN_MAXPOLL 0
 #define MAX_POLL 24
 
+/* Enable sub-second polling intervals only when the peer delay is not
+   longer than 10 milliseconds to restrict them to local networks */
+#define MIN_NONLAN_POLL 0
+#define MAX_LAN_PEER_DELAY 0.01
+
 /* Kiss-o'-Death codes */
 #define KOD_RATE 0x52415445UL /* RATE */
 
@@ -742,6 +747,13 @@ adjust_poll(NCR_Instance inst, double adj)
     inst->local_poll = inst->maxpoll;
     inst->poll_score = 1.0;
   }
+
+  /* Don't allow a sub-second polling interval if the source is not reachable
+     or it is not in a local network according to the measured delay */
+  if (inst->local_poll < MIN_NONLAN_POLL &&
+      (!SRC_IsReachable(inst->source) ||
+       SST_MinRoundTripDelay(SRC_GetSourcestats(inst->source)) > MAX_LAN_PEER_DELAY))
+    inst->local_poll = MIN_NONLAN_POLL;
 }
 
 /* ================================================== */
