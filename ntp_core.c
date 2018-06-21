@@ -264,8 +264,7 @@ static ARR_Instance broadcasts;
 #define MAX_MAXDELAYDEVRATIO 1.0e6
 
 /* Minimum and maximum allowed poll interval */
-#define MIN_MINPOLL -4
-#define MIN_MAXPOLL 0
+#define MIN_POLL -4
 #define MAX_POLL 24
 
 /* Enable sub-second polling intervals only when the peer delay is not
@@ -540,12 +539,13 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
   result->interleaved = params->interleaved;
 
   result->minpoll = params->minpoll;
-  if (result->minpoll < MIN_MINPOLL)
+  if (result->minpoll < MIN_POLL)
     result->minpoll = SRC_DEFAULT_MINPOLL;
   else if (result->minpoll > MAX_POLL)
     result->minpoll = MAX_POLL;
+
   result->maxpoll = params->maxpoll;
-  if (result->maxpoll < MIN_MAXPOLL)
+  if (result->maxpoll < MIN_POLL)
     result->maxpoll = SRC_DEFAULT_MAXPOLL;
   else if (result->maxpoll > MAX_POLL)
     result->maxpoll = MAX_POLL;
@@ -2349,7 +2349,7 @@ NCR_SetConnectivity(NCR_Instance inst, SRC_Connectivity connectivity)
 void
 NCR_ModifyMinpoll(NCR_Instance inst, int new_minpoll)
 {
-  if (new_minpoll < MIN_MINPOLL || new_minpoll > MAX_POLL)
+  if (new_minpoll < MIN_POLL || new_minpoll > MAX_POLL)
     return;
   inst->minpoll = new_minpoll;
   LOG(LOGS_INFO, "Source %s new minpoll %d", UTI_IPToString(&inst->remote_addr.ip_addr), new_minpoll);
@@ -2362,7 +2362,7 @@ NCR_ModifyMinpoll(NCR_Instance inst, int new_minpoll)
 void
 NCR_ModifyMaxpoll(NCR_Instance inst, int new_maxpoll)
 {
-  if (new_maxpoll < MIN_MAXPOLL || new_maxpoll > MAX_POLL)
+  if (new_maxpoll < MIN_POLL || new_maxpoll > MAX_POLL)
     return;
   inst->maxpoll = new_maxpoll;
   LOG(LOGS_INFO, "Source %s new maxpoll %d", UTI_IPToString(&inst->remote_addr.ip_addr), new_maxpoll);
