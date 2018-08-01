@@ -27,6 +27,8 @@
 #ifndef GOT_MEMORY_H
 #define GOT_MEMORY_H
 
+#include "sysincl.h"
+
 /* Wrappers checking for errors */
 extern void *Malloc(size_t size);
 extern void *Realloc(void *ptr, size_t size);
