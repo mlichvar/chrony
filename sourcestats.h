@@ -63,7 +63,7 @@ extern void SST_SetRefid(SST_Stats inst, uint32_t refid, IPAddr *addr);
    stratum is the stratum of the source from which the sample came.
   */
 
-extern void SST_AccumulateSample(SST_Stats inst, struct timespec *sample_time, double offset, double peer_delay, double peer_dispersion, double root_delay, double root_dispersion, int stratum);
+extern void SST_AccumulateSample(SST_Stats inst, struct timespec *sample_time, double offset, double peer_delay, double peer_dispersion, double root_delay, double root_dispersion, int stratum, NTP_Leap leap);
 
 /* This function runs the linear regression operation on the data.  It
    finds the set of most recent samples that give the tightest
@@ -80,7 +80,7 @@ extern void SST_GetFrequencyRange(SST_Stats inst, double *lo, double *hi);
 /* Get data needed for selection */
 extern void
 SST_GetSelectionData(SST_Stats inst, struct timespec *now,
-                     int *stratum,
+                     int *stratum, NTP_Leap *leap,
                      double *offset_lo_limit,
                      double *offset_hi_limit,
                      double *root_distance,

@@ -54,6 +54,7 @@ static int initialised = 0;
 /* ================================================== */
 /* Structure used to hold info for selecting between sources */
 struct SelectInfo {
+  NTP_Leap leap;
   int stratum;
   int select_ok;
   double std_dev;
@@ -91,7 +92,6 @@ typedef enum {
    source */
 struct SRC_Instance_Record {
   SST_Stats stats;
-  NTP_Leap leap_status;         /* Leap status */
   int index;                    /* Index back into the array of source */
   uint32_t ref_id;              /* The reference ID of this source
                                    (i.e. from its IP address, NOT the
@@ -291,7 +291,6 @@ void SRC_DestroyInstance(SRC_Instance instance)
 void
 SRC_ResetInstance(SRC_Instance instance)
 {
-  instance->leap_status = LEAP_Normal;
   instance->active = 0;
   instance->updates = 0;
   instance->reachability = 0;
@@ -349,8 +348,6 @@ void SRC_AccumulateSample
 
   assert(initialised);
 
-  inst->leap_status = leap_status;
-
   DEBUG_LOG("ip=[%s] t=%s ofs=%f del=%f disp=%f str=%d",
             source_to_string(inst), UTI_TimespecToString(sample_time), -offset,
             root_delay, root_dispersion, stratum);
@@ -362,7 +359,8 @@ void SRC_AccumulateSample
 
   /* WE HAVE TO NEGATE OFFSET IN THIS CALL, IT IS HERE THAT THE SENSE OF OFFSET
      IS FLIPPED */
-  SST_AccumulateSample(inst->stats, sample_time, -offset, peer_delay, peer_dispersion, root_delay, root_dispersion, stratum);
+  SST_AccumulateSample(inst->stats, sample_time, -offset, peer_delay, peer_dispersion,
+                       root_delay, root_dispersion, stratum, leap_status);
   SST_DoNewRegression(inst->stats);
 }
 
@@ -652,7 +650,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     }
 
     si = &sources[i]->sel_info;
-    SST_GetSelectionData(sources[i]->stats, &now, &si->stratum,
+    SST_GetSelectionData(sources[i]->stats, &now, &si->stratum, &si->leap,
                          &si->lo_limit, &si->hi_limit, &si->root_distance,
                          &si->std_dev, &first_sample_ago,
                          &si->last_sample_ago, &si->select_ok);
@@ -929,9 +927,9 @@ SRC_SelectSource(SRC_Instance updated_inst)
     if (best_trust_depth && !(sources[index]->sel_options & SRC_SELECT_TRUST))
       continue;
     leap_votes++;
-    if (sources[index]->leap_status == LEAP_InsertSecond)
+    if (sources[index]->sel_info.leap == LEAP_InsertSecond)
       leap_ins++;
-    else if (sources[index]->leap_status == LEAP_DeleteSecond)
+    else if (sources[index]->sel_info.leap == LEAP_DeleteSecond)
       leap_del++;
   }
 
