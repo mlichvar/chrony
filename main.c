@@ -586,7 +586,7 @@ int main
   /* From now on, it is safe to do finalisation on exit */
   initialised = 1;
 
-  UTI_SetQuitSignalsHandler(signal_cleanup);
+  UTI_SetQuitSignalsHandler(signal_cleanup, 1);
 
   CAM_OpenUnixSocket();
 

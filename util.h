@@ -161,7 +161,7 @@ extern Float UTI_FloatHostToNetwork(double x);
 /* Set FD_CLOEXEC on descriptor */
 extern int UTI_FdSetCloexec(int fd);
 
-extern void UTI_SetQuitSignalsHandler(void (*handler)(int));
+extern void UTI_SetQuitSignalsHandler(void (*handler)(int), int ignore_sigpipe);
 
 /* Get directory (as an allocated string) for a path */
 extern char *UTI_PathToDir(const char *path);

@@ -996,7 +996,7 @@ UTI_FdSetCloexec(int fd)
 /* ================================================== */
 
 void
-UTI_SetQuitSignalsHandler(void (*handler)(int))
+UTI_SetQuitSignalsHandler(void (*handler)(int), int ignore_sigpipe)
 {
   struct sigaction sa;
 
@@ -1021,6 +1021,12 @@ UTI_SetQuitSignalsHandler(void (*handler)(int))
   if (sigaction(SIGHUP, &sa, NULL) < 0)
     LOG_FATAL("sigaction(%d) failed", SIGHUP);
 #endif
+
+  if (ignore_sigpipe)
+    sa.sa_handler = SIG_IGN;
+
+  if (sigaction(SIGPIPE, &sa, NULL) < 0)
+    LOG_FATAL("sigaction(%d) failed", SIGPIPE);
 }
 
 /* ================================================== */

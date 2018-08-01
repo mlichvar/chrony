@@ -700,7 +700,7 @@ PRV_StartHelper(void)
     }
 
     /* ignore signals, the process will exit on OP_QUIT request */
-    UTI_SetQuitSignalsHandler(SIG_IGN);
+    UTI_SetQuitSignalsHandler(SIG_IGN, 1);
 
     helper_main(sock_pair[1]);
 

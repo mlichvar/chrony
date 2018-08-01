@@ -3258,7 +3258,7 @@ main(int argc, char **argv)
     hostnames = DEFAULT_COMMAND_SOCKET",127.0.0.1,::1";
   }
 
-  UTI_SetQuitSignalsHandler(signal_handler);
+  UTI_SetQuitSignalsHandler(signal_handler, 0);
 
   sockaddrs = get_sockaddrs(hostnames, port);
 
