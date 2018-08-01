@@ -995,7 +995,7 @@ UTI_FdSetCloexec(int fd)
 
 /* ================================================== */
 
-int
+void
 UTI_SetQuitSignalsHandler(void (*handler)(int))
 {
   struct sigaction sa;
@@ -1003,26 +1003,24 @@ UTI_SetQuitSignalsHandler(void (*handler)(int))
   sa.sa_handler = handler;
   sa.sa_flags = SA_RESTART;
   if (sigemptyset(&sa.sa_mask) < 0)
-    return 0;
+    LOG_FATAL("sigemptyset() failed");
 
 #ifdef SIGINT
   if (sigaction(SIGINT, &sa, NULL) < 0)
-    return 0;
+    LOG_FATAL("sigaction(%d) failed", SIGINT);
 #endif
 #ifdef SIGTERM
   if (sigaction(SIGTERM, &sa, NULL) < 0)
-    return 0;
+    LOG_FATAL("sigaction(%d) failed", SIGTERM);
 #endif
 #ifdef SIGQUIT
   if (sigaction(SIGQUIT, &sa, NULL) < 0)
-    return 0;
+    LOG_FATAL("sigaction(%d) failed", SIGQUIT);
 #endif
 #ifdef SIGHUP
   if (sigaction(SIGHUP, &sa, NULL) < 0)
-    return 0;
+    LOG_FATAL("sigaction(%d) failed", SIGHUP);
 #endif
-
-  return 1;
 }
 
 /* ================================================== */
