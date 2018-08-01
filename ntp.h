@@ -121,4 +121,19 @@ typedef struct {
 #define NTP_REFID_LOCAL 0x7F7F0101UL /* 127.127.1.1 */
 #define NTP_REFID_SMOOTH 0x7F7F01FFUL /* 127.127.1.255 */
 
+/* Structure used to save NTP measurements.  time is the local time at which
+   the sample is to be considered to have been made and offset is the offset at
+   the time (positive indicates that the local clock is slow relative to the
+   source).  root_delay/root_dispersion include peer_delay/peer_dispersion. */
+typedef struct {
+  struct timespec time;
+  double offset;
+  double peer_delay;
+  double peer_dispersion;
+  double root_delay;
+  double root_dispersion;
+  int stratum;
+  NTP_Leap leap;
+} NTP_Sample;
+
 #endif /* GOT_NTP_H */

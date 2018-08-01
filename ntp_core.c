@@ -1455,6 +1455,7 @@ static int
 receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
                NTP_Local_Timestamp *rx_ts, NTP_Packet *message, int length)
 {
+  NTP_Sample sample;
   SST_Stats stats;
 
   int pkt_leap, pkt_version;
@@ -1462,24 +1463,6 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
   double pkt_root_delay;
   double pkt_root_dispersion;
   AuthenticationMode pkt_auth_mode;
-
-  /* The local time to which the (offset, delay, dispersion) triple will
-     be taken to relate.  For client/server operation this is practically
-     the same as either the transmit or receive time.  The difference comes
-     in symmetric active mode, when the receive may come minutes after the
-     transmit, and this time will be midway between the two */
-  struct timespec sample_time;
-
-  /* The estimated offset in seconds, a positive value indicates that the local
-     clock is SLOW of the remote source and a negative value indicates that the
-     local clock is FAST of the remote source */
-  double offset;
-
-  /* The estimated peer delay, dispersion and distance */
-  double delay, dispersion, distance;
-
-  /* The total root delay and dispersion */
-  double root_delay, root_dispersion;
 
   /* The skew and estimated frequency offset relative to the remote source */
   double skew, source_freq_lo, source_freq_hi;
@@ -1622,23 +1605,23 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     precision = LCL_GetSysPrecisionAsQuantum() + UTI_Log2ToDouble(message->precision);
 
     /* Calculate delay */
-    delay = fabs(local_interval - remote_interval);
-    if (delay < precision)
-      delay = precision;
+    sample.peer_delay = fabs(local_interval - remote_interval);
+    if (sample.peer_delay < precision)
+      sample.peer_delay = precision;
     
     /* Calculate offset.  Following the NTP definition, this is negative
        if we are fast of the remote source. */
-    offset = UTI_DiffTimespecsToDouble(&remote_average, &local_average);
+    sample.offset = UTI_DiffTimespecsToDouble(&remote_average, &local_average);
 
     /* Apply configured correction */
-    offset += inst->offset_correction;
+    sample.offset += inst->offset_correction;
 
     /* We treat the time of the sample as being midway through the local
        measurement period.  An analysis assuming constant relative
        frequency and zero network delay shows this is the only possible
        choice to estimate the frequency difference correctly for every
        sample pair. */
-    sample_time = local_average;
+    sample.time = local_average;
     
     SST_GetFrequencyRange(stats, &source_freq_lo, &source_freq_hi);
 
@@ -1646,8 +1629,8 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     skew = (source_freq_hi - source_freq_lo) / 2.0;
     
     /* and then calculate peer dispersion */
-    dispersion = MAX(precision, MAX(local_transmit.err, local_receive.err)) +
-                 skew * fabs(local_interval);
+    sample.peer_dispersion = MAX(precision, MAX(local_transmit.err, local_receive.err)) +
+                             skew * fabs(local_interval);
     
     /* If the source is an active peer, this is the minimum assumed interval
        between previous two transmissions (if not constrained by minpoll) */
@@ -1661,10 +1644,11 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
        processing time is sane, and in interleaved symmetric mode that the
        measured delay and intervals between remote timestamps don't indicate
        a missed response */
-    testA = delay - dispersion <= inst->max_delay && precision <= inst->max_delay &&
+    testA = sample.peer_delay - sample.peer_dispersion <= inst->max_delay &&
+            precision <= inst->max_delay &&
             !(inst->mode == MODE_CLIENT && response_time > MAX_SERVER_INTERVAL) &&
             !(inst->mode == MODE_ACTIVE && interleaved_packet &&
-              (delay > 0.5 * prev_remote_poll_interval ||
+              (sample.peer_delay > 0.5 * prev_remote_poll_interval ||
                UTI_CompareNtp64(&message->receive_ts, &message->transmit_ts) <= 0 ||
                (inst->remote_poll <= inst->prev_local_poll &&
                 UTI_DiffTimespecsToDouble(&remote_transmit, &prev_remote_transmit) >
@@ -1673,14 +1657,14 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     /* Test B requires in client mode that the ratio of the round trip delay
        to the minimum one currently in the stats data register is less than an
        administrator-defined value */
-    testB = check_delay_ratio(inst, stats, &sample_time, delay);
+    testB = check_delay_ratio(inst, stats, &sample.time, sample.peer_delay);
 
     /* Test C requires that the ratio of the increase in delay from the minimum
        one in the stats data register to the standard deviation of the offsets
        in the register is less than an administrator-defined value or the
        difference between measured offset and predicted offset is larger than
        the increase in delay */
-    testC = check_delay_dev_ratio(inst, stats, &sample_time, offset, delay);
+    testC = check_delay_dev_ratio(inst, stats, &sample.time, sample.offset, sample.peer_delay);
 
     /* Test D requires that the remote peer is not synchronised to us to
        prevent a synchronisation loop */
@@ -1688,8 +1672,8 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
             pkt_refid != UTI_IPToRefid(&local_addr->ip_addr);
   } else {
     remote_interval = local_interval = response_time = 0.0;
-    offset = delay = dispersion = 0.0;
-    sample_time = rx_ts->ts;
+    sample.offset = sample.peer_delay = sample.peer_dispersion = 0.0;
+    sample.time = rx_ts->ts;
     local_receive = *rx_ts;
     local_transmit = inst->local_tx;
     testA = testB = testC = testD = 0;
@@ -1699,9 +1683,10 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
      the additional tests passed */
   good_packet = testA && testB && testC && testD;
 
-  root_delay = pkt_root_delay + delay;
-  root_dispersion = pkt_root_dispersion + dispersion;
-  distance = dispersion + 0.5 * delay;
+  sample.root_delay = pkt_root_delay + sample.peer_delay;
+  sample.root_dispersion = pkt_root_dispersion + sample.peer_dispersion;
+  sample.stratum = MAX(message->stratum, inst->min_stratum);
+  sample.leap = (NTP_Leap)pkt_leap;
 
   /* Update the NTP timestamps.  If it's a valid packet from a synchronised
      source, the timestamps may be used later when processing a packet in the
@@ -1770,7 +1755,8 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
             UTI_Ntp64ToString(&message->receive_ts),
             UTI_Ntp64ToString(&message->transmit_ts));
   DEBUG_LOG("offset=%.9f delay=%.9f dispersion=%f root_delay=%f root_dispersion=%f",
-            offset, delay, dispersion, root_delay, root_dispersion);
+            sample.offset, sample.peer_delay, sample.peer_dispersion,
+            sample.root_delay, sample.root_dispersion);
   DEBUG_LOG("remote_interval=%.9f local_interval=%.9f response_time=%.9f txs=%c rxs=%c",
             remote_interval, local_interval, response_time,
             tss_chars[local_transmit.source], tss_chars[local_receive.source]);
@@ -1793,25 +1779,20 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
 
     if (good_packet) {
       /* Do this before we accumulate a new sample into the stats registers, obviously */
-      estimated_offset = SST_PredictOffset(stats, &sample_time);
+      estimated_offset = SST_PredictOffset(stats, &sample.time);
 
-      SRC_AccumulateSample(inst->source,
-                           &sample_time,
-                           offset, delay, dispersion,
-                           root_delay, root_dispersion,
-                           MAX(message->stratum, inst->min_stratum),
-                           (NTP_Leap) pkt_leap);
-
+      SRC_AccumulateSample(inst->source, &sample);
       SRC_SelectSource(inst->source);
 
       /* Now examine the registers.  First though, if the prediction is
          not even within +/- the peer distance of the peer, we are clearly
          not tracking the peer at all well, so we back off the sampling
          rate depending on just how bad the situation is. */
-      error_in_estimate = fabs(-offset - estimated_offset);
+      error_in_estimate = fabs(-sample.offset - estimated_offset);
 
       /* Now update the polling interval */
-      adjust_poll(inst, get_poll_adj(inst, error_in_estimate, distance));
+      adjust_poll(inst, get_poll_adj(inst, error_in_estimate,
+                                     sample.peer_dispersion + 0.5 * sample.peer_delay));
 
       /* If we're in burst mode, check whether the burst is completed and
          revert to the previous mode */
@@ -1878,9 +1859,9 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     inst->report.root_dispersion = pkt_root_dispersion;
     inst->report.ref_id = pkt_refid;
     UTI_Ntp64ToTimespec(&message->reference_ts, &inst->report.ref_time);
-    inst->report.offset = offset;
-    inst->report.peer_delay = delay;
-    inst->report.peer_dispersion = dispersion;
+    inst->report.offset = sample.offset;
+    inst->report.peer_delay = sample.peer_delay;
+    inst->report.peer_dispersion = sample.peer_dispersion;
     inst->report.response_time = response_time;
     inst->report.jitter_asymmetry = SST_GetJitterAsymmetry(stats);
     inst->report.tests = ((((((((test1 << 1 | test2) << 1 | test3) << 1 |
@@ -1897,14 +1878,14 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
   /* Do measurement logging */
   if (logfileid != -1 && (log_raw_measurements || synced_packet)) {
     LOG_FileWrite(logfileid, "%s %-15s %1c %2d %1d%1d%1d %1d%1d%1d %1d%1d%1d%d  %2d %2d %4.2f %10.3e %10.3e %10.3e %10.3e %10.3e %08"PRIX32" %1d%1c %1c %1c",
-            UTI_TimeToLogForm(sample_time.tv_sec),
+            UTI_TimeToLogForm(sample.time.tv_sec),
             UTI_IPToString(&inst->remote_addr.ip_addr),
             leap_chars[pkt_leap],
             message->stratum,
             test1, test2, test3, test5, test6, test7, testA, testB, testC, testD,
             inst->local_poll, message->poll,
             inst->poll_score,
-            offset, delay, dispersion,
+            sample.offset, sample.peer_delay, sample.peer_dispersion,
             pkt_root_delay, pkt_root_dispersion, pkt_refid,
             NTP_LVM_TO_MODE(message->lvm), interleaved_packet ? 'I' : 'B',
             tss_chars[local_transmit.source],

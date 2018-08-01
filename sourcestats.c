@@ -289,11 +289,7 @@ prune_register(SST_Stats inst, int new_oldest)
 /* ================================================== */
 
 void
-SST_AccumulateSample(SST_Stats inst, struct timespec *sample_time,
-                     double offset,
-                     double peer_delay, double peer_dispersion,
-                     double root_delay, double root_dispersion,
-                     int stratum, NTP_Leap leap)
+SST_AccumulateSample(SST_Stats inst, NTP_Sample *sample)
 {
   int n, m;
 
@@ -305,7 +301,7 @@ SST_AccumulateSample(SST_Stats inst, struct timespec *sample_time,
 
   /* Make sure it's newer than the last sample */
   if (inst->n_samples &&
-      UTI_CompareTimespecs(&inst->sample_times[inst->last_sample], sample_time) >= 0) {
+      UTI_CompareTimespecs(&inst->sample_times[inst->last_sample], &sample->time) >= 0) {
     LOG(LOGS_WARN, "Out of order sample detected, discarding history for %s",
         inst->ip_addr ? UTI_IPToString(inst->ip_addr) : UTI_RefidToString(inst->refid));
     SST_ResetInstance(inst);
@@ -315,15 +311,17 @@ SST_AccumulateSample(SST_Stats inst, struct timespec *sample_time,
     (MAX_SAMPLES * REGRESS_RUNS_RATIO);
   m = n % MAX_SAMPLES;
 
-  inst->sample_times[n] = *sample_time;
-  inst->offsets[n] = offset;
-  inst->orig_offsets[m] = offset;
-  inst->peer_delays[n] = peer_delay;
-  inst->peer_dispersions[m] = peer_dispersion;
-  inst->root_delays[m] = root_delay;
-  inst->root_dispersions[m] = root_dispersion;
-  inst->stratum = stratum;
-  inst->leap = leap;
+  /* WE HAVE TO NEGATE OFFSET IN THIS CALL, IT IS HERE THAT THE SENSE OF OFFSET
+     IS FLIPPED */
+  inst->sample_times[n] = sample->time;
+  inst->offsets[n] = -sample->offset;
+  inst->orig_offsets[m] = -sample->offset;
+  inst->peer_delays[n] = sample->peer_delay;
+  inst->peer_dispersions[m] = sample->peer_dispersion;
+  inst->root_delays[m] = sample->root_delay;
+  inst->root_dispersions[m] = sample->root_dispersion;
+  inst->stratum = sample->stratum;
+  inst->leap = sample->leap;
  
   if (inst->peer_delays[n] < inst->fixed_min_delay)
     inst->peer_delays[n] = 2.0 * inst->fixed_min_delay - inst->peer_delays[n];

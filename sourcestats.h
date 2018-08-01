@@ -51,19 +51,8 @@ extern void SST_ResetInstance(SST_Stats inst);
 /* This function changes the reference ID and IP address */
 extern void SST_SetRefid(SST_Stats inst, uint32_t refid, IPAddr *addr);
 
-/* This function accumulates a single sample into the statistics handler
-
-   sample_time is the epoch at which the sample is to be considered to
-   have been made.
-
-   offset is the offset of the local clock relative to the source in
-   seconds.  Positive indicates that the local clock if FAST (contrary
-   to the NTP parts of the software)
-
-   stratum is the stratum of the source from which the sample came.
-  */
-
-extern void SST_AccumulateSample(SST_Stats inst, struct timespec *sample_time, double offset, double peer_delay, double peer_dispersion, double root_delay, double root_dispersion, int stratum, NTP_Leap leap);
+/* This function accumulates a single sample into the statistics handler */
+extern void SST_AccumulateSample(SST_Stats inst, NTP_Sample *sample);
 
 /* This function runs the linear regression operation on the data.  It
    finds the set of most recent samples that give the tightest

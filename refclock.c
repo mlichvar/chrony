@@ -651,26 +651,30 @@ poll_timeout(void *arg)
   }
   
   if (!(inst->driver->poll && inst->driver_polled < (1 << (inst->poll - inst->driver_poll)))) {
-    double offset, dispersion;
-    struct timespec sample_time;
-    int sample_ok, stratum;
+    NTP_Sample sample;
+    int sample_ok;
 
-    sample_ok = filter_get_sample(&inst->filter, &sample_time, &offset, &dispersion);
+    sample_ok = filter_get_sample(&inst->filter, &sample.time,
+                                  &sample.offset, &sample.peer_dispersion);
     inst->driver_polled = 0;
 
     if (sample_ok) {
+      sample.peer_delay = inst->delay;
+      sample.root_delay = sample.peer_delay;
+      sample.root_dispersion = sample.peer_dispersion;
+      sample.leap = inst->leap_status;
+
       if (inst->pps_active && inst->lock_ref == -1)
         /* Handle special case when PPS is used with local stratum */
-        stratum = pps_stratum(inst, &sample_time);
+        sample.stratum = pps_stratum(inst, &sample.time);
       else
-        stratum = inst->stratum;
+        sample.stratum = inst->stratum;
 
       SRC_UpdateReachability(inst->source, 1);
-      SRC_AccumulateSample(inst->source, &sample_time, offset,
-          inst->delay, dispersion, inst->delay, dispersion, stratum, inst->leap_status);
+      SRC_AccumulateSample(inst->source, &sample);
       SRC_SelectSource(inst->source);
 
-      log_sample(inst, &sample_time, 1, 0, 0.0, offset, dispersion);
+      log_sample(inst, &sample.time, 1, 0, 0.0, sample.offset, sample.peer_dispersion);
     } else {
       SRC_UpdateReachability(inst->source, 0);
     }

@@ -329,38 +329,24 @@ SRC_GetSourcestats(SRC_Instance instance)
    This function causes the frequency estimation to be re-run for the
    designated source, and the clock selection procedure to be re-run
    afterwards.
-
-   Parameters are described in sources.h
-
    */
 
-void SRC_AccumulateSample
-(SRC_Instance inst, 
- struct timespec *sample_time,
- double offset, 
- double peer_delay,
- double peer_dispersion,
- double root_delay, 
- double root_dispersion, 
- int stratum,
- NTP_Leap leap_status)
+void
+SRC_AccumulateSample(SRC_Instance inst, NTP_Sample *sample)
 {
 
   assert(initialised);
 
   DEBUG_LOG("ip=[%s] t=%s ofs=%f del=%f disp=%f str=%d",
-            source_to_string(inst), UTI_TimespecToString(sample_time), -offset,
-            root_delay, root_dispersion, stratum);
+            source_to_string(inst), UTI_TimespecToString(&sample->time), -sample->offset,
+            sample->root_delay, sample->root_dispersion, sample->stratum);
 
   if (REF_IsLeapSecondClose()) {
     LOG(LOGS_INFO, "Dropping sample around leap second");
     return;
   }
 
-  /* WE HAVE TO NEGATE OFFSET IN THIS CALL, IT IS HERE THAT THE SENSE OF OFFSET
-     IS FLIPPED */
-  SST_AccumulateSample(inst->stats, sample_time, -offset, peer_delay, peer_dispersion,
-                       root_delay, root_dispersion, stratum, leap_status);
+  SST_AccumulateSample(inst->stats, sample);
   SST_DoNewRegression(inst->stats);
 }
 

@@ -80,34 +80,8 @@ extern void SRC_SetRefid(SRC_Instance instance, uint32_t ref_id, IPAddr *addr);
 extern SST_Stats SRC_GetSourcestats(SRC_Instance instance);
 
 /* This function is called by one of the source drivers when it has
-   a new sample that is to be accumulated.
-
-   This function causes the frequency estimation to be re-run for the
-   designated source, and the clock selection procedure to be re-run
-   afterwards.
-
-   sample_time is the local time at which the sample is to be
-   considered to have been made, in terms of doing a regression fit of
-   offset against local time.
-
-   offset is the offset at the time, in seconds.  Positive indicates
-   that the local clock is SLOW relative to the source, negative
-   indicates that the local clock is FAST relative to it.
-
-   root_delay and root_dispersion are in seconds, and are as per
-   RFC 5905.  root_dispersion only includes the peer's root dispersion
-   + local sampling precision + skew dispersion accrued during the
-   measurement.  It is the job of the source statistics algorithms +
-   track.c to add on the extra dispersion due to the residual standard
-   deviation of the offsets from this source after regression, to form
-   the root_dispersion field in the packets transmitted to clients or
-   peers.
-
-   stratum is the stratum of the source that supplied the sample.
-
-   */
-
-extern void SRC_AccumulateSample(SRC_Instance instance, struct timespec *sample_time, double offset, double peer_delay, double peer_dispersion, double root_delay, double root_dispersion, int stratum, NTP_Leap leap_status);
+   a new sample that is to be accumulated */
+extern void SRC_AccumulateSample(SRC_Instance instance, NTP_Sample *sample);
 
 /* This routine sets the source as receiving reachability updates */
 extern void SRC_SetActive(SRC_Instance inst);
