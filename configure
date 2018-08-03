@@ -707,11 +707,11 @@ fi
 
 timepps_h=""
 if [ $feat_refclock = "1" ] && [ $feat_pps = "1" ]; then
-  if test_code '<sys/timepps.h>' 'sys/timepps.h' '' '' ''; then
+  if test_code '<sys/timepps.h>' 'inttypes.h sys/timepps.h' '' '' ''; then
     timepps_h="sys/timepps.h"
     add_def HAVE_SYS_TIMEPPS_H
   else
-    if test_code '<timepps.h>' 'timepps.h' '' '' ''; then
+    if test_code '<timepps.h>' 'inttypes.h timepps.h' '' '' ''; then
       timepps_h="timepps.h"
       add_def HAVE_TIMEPPS_H
     fi
@@ -719,7 +719,7 @@ if [ $feat_refclock = "1" ] && [ $feat_pps = "1" ]; then
 fi
 
 if [ "x$timepps_h" != "x" ] && \
-  test_code 'PPSAPI' "string.h $timepps_h" '' '' '
+  test_code 'PPSAPI' "inttypes.h string.h $timepps_h" '' '' '
     pps_handle_t h = 0;
     pps_info_t i;
     struct timespec ts;
