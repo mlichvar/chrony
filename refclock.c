@@ -37,6 +37,7 @@
 #include "sources.h"
 #include "logging.h"
 #include "regress.h"
+#include "samplefilt.h"
 #include "sched.h"
 
 /* list of refclock drivers */
@@ -81,13 +82,13 @@ struct RCL_Instance_Record {
   int max_lock_age;
   int stratum;
   int tai;
-  struct MedianFilter filter;
   uint32_t ref_id;
   uint32_t lock_ref;
   double offset;
   double delay;
   double precision;
   double pulse_width;
+  SPF_Instance filter;
   SCH_TimeoutID timeout_id;
   SRC_Instance source;
 };
@@ -104,18 +105,6 @@ static void slew_samples(struct timespec *raw, struct timespec *cooked, double d
              double doffset, LCL_ChangeType change_type, void *anything);
 static void add_dispersion(double dispersion, void *anything);
 static void log_sample(RCL_Instance instance, struct timespec *sample_time, int filtered, int pulse, double raw_offset, double cooked_offset, double dispersion);
-
-static void filter_init(struct MedianFilter *filter, int length, double max_dispersion);
-static void filter_fini(struct MedianFilter *filter);
-static void filter_reset(struct MedianFilter *filter);
-static double filter_get_avg_sample_dispersion(struct MedianFilter *filter);
-static void filter_add_sample(struct MedianFilter *filter, struct timespec *sample_time, double offset, double dispersion);
-static int filter_get_last_sample(struct MedianFilter *filter, struct timespec *sample_time, double *offset, double *dispersion);
-static int filter_get_samples(struct MedianFilter *filter);
-static int filter_select_samples(struct MedianFilter *filter);
-static int filter_get_sample(struct MedianFilter *filter, struct timespec *sample_time, double *offset, double *dispersion);
-static void filter_slew_samples(struct MedianFilter *filter, struct timespec *when, double dfreq, double doffset);
-static void filter_add_dispersion(struct MedianFilter *filter, double dispersion);
 
 static RCL_Instance
 get_refclock(unsigned int index)
@@ -151,7 +140,7 @@ RCL_Finalise(void)
     if (inst->driver->fini)
       inst->driver->fini(inst);
 
-    filter_fini(&inst->filter);
+    SPF_DestroyInstance(inst->filter);
     Free(inst->driver_parameter);
     SRC_DestroyInstance(inst->source);
     Free(inst);
@@ -258,7 +247,11 @@ RCL_AddRefclock(RefclockParameters *params)
   if (inst->driver->init && !inst->driver->init(inst))
     LOG_FATAL("refclock %s initialisation failed", params->driver_name);
 
-  filter_init(&inst->filter, params->filter_length, params->max_dispersion);
+  /* Require the filter to have at least 4 samples to produce a filtered
+     sample, or be full for shorter lengths, and combine 60% of samples
+     closest to the median */
+  inst->filter = SPF_CreateInstance(MIN(params->filter_length, 4), params->filter_length,
+                                    params->max_dispersion, 0.6);
 
   inst->source = SRC_CreateNewInstance(inst->ref_id, SRC_REFCLOCK, params->sel_options, NULL,
                                        params->min_samples, params->max_samples, 0.0, 0.0);
@@ -379,6 +372,28 @@ convert_tai_offset(struct timespec *sample_time, double *offset)
   return 1;
 }
 
+static void
+accumulate_sample(RCL_Instance instance, struct timespec *sample_time, double offset, double dispersion)
+{
+  NTP_Sample sample;
+
+  sample.time = *sample_time;
+  sample.offset = offset;
+  sample.peer_delay = instance->delay;
+  sample.root_delay = instance->delay;
+  sample.peer_dispersion = dispersion;
+  sample.root_dispersion = dispersion;
+  sample.leap = instance->leap_status;
+
+  /* Handle special case when PPS is used with the local reference */
+  if (instance->pps_active && instance->lock_ref == -1)
+    sample.stratum = pps_stratum(instance, &sample.time);
+  else
+    sample.stratum = instance->stratum;
+
+  SPF_AccumulateSample(instance->filter, &sample);
+}
+
 int
 RCL_AddSample(RCL_Instance instance, struct timespec *sample_time, double offset, int leap)
 {
@@ -413,7 +428,7 @@ RCL_AddSample(RCL_Instance instance, struct timespec *sample_time, double offset
     return 0;
   }
 
-  filter_add_sample(&instance->filter, &cooked_time, offset - correction + instance->offset, dispersion);
+  accumulate_sample(instance, &cooked_time, offset - correction + instance->offset, dispersion);
   instance->pps_active = 0;
 
   log_sample(instance, &cooked_time, 0, 0, offset, offset - correction + instance->offset, dispersion);
@@ -489,20 +504,19 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
 
   if (instance->lock_ref != -1) {
     RCL_Instance lock_refclock;
-    struct timespec ref_sample_time;
-    double sample_diff, ref_offset, ref_dispersion, shift;
+    NTP_Sample ref_sample;
+    double sample_diff, shift;
 
     lock_refclock = get_refclock(instance->lock_ref);
 
-    if (!filter_get_last_sample(&lock_refclock->filter,
-          &ref_sample_time, &ref_offset, &ref_dispersion)) {
+    if (!SPF_GetLastSample(lock_refclock->filter, &ref_sample)) {
       DEBUG_LOG("refclock pulse ignored no ref sample");
       return 0;
     }
 
-    ref_dispersion += filter_get_avg_sample_dispersion(&lock_refclock->filter);
+    ref_sample.root_dispersion += SPF_GetAvgSampleDispersion(lock_refclock->filter);
 
-    sample_diff = UTI_DiffTimespecsToDouble(cooked_time, &ref_sample_time);
+    sample_diff = UTI_DiffTimespecsToDouble(cooked_time, &ref_sample.time);
     if (fabs(sample_diff) >= (double)instance->max_lock_age / rate) {
       DEBUG_LOG("refclock pulse ignored samplediff=%.9f",
           sample_diff);
@@ -510,26 +524,27 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
     }
 
     /* Align the offset to the reference sample */
-    if ((ref_offset - offset) >= 0.0)
-      shift = (long)((ref_offset - offset) * rate + 0.5) / (double)rate;
+    if ((ref_sample.offset - offset) >= 0.0)
+      shift = (long)((ref_sample.offset - offset) * rate + 0.5) / (double)rate;
     else
-      shift = (long)((ref_offset - offset) * rate - 0.5) / (double)rate;
+      shift = (long)((ref_sample.offset - offset) * rate - 0.5) / (double)rate;
 
     offset += shift;
 
-    if (fabs(ref_offset - offset) + ref_dispersion + dispersion >= 0.2 / rate) {
+    if (fabs(ref_sample.offset - offset) +
+        ref_sample.root_dispersion + dispersion >= 0.2 / rate) {
       DEBUG_LOG("refclock pulse ignored offdiff=%.9f refdisp=%.9f disp=%.9f",
-          ref_offset - offset, ref_dispersion, dispersion);
+                ref_sample.offset - offset, ref_sample.root_dispersion, dispersion);
       return 0;
     }
 
-    if (!check_pulse_edge(instance, ref_offset - offset, 0.0))
+    if (!check_pulse_edge(instance, ref_sample.offset - offset, 0.0))
       return 0;
 
     leap = lock_refclock->leap_status;
 
     DEBUG_LOG("refclock pulse offset=%.9f offdiff=%.9f samplediff=%.9f",
-              offset, ref_offset - offset, sample_diff);
+              offset, ref_sample.offset - offset, sample_diff);
   } else {
     struct timespec ref_time;
     int is_synchronised, stratum;
@@ -547,7 +562,7 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
       DEBUG_LOG("refclock pulse ignored offset=%.9f sync=%d dist=%.9f",
                 offset, leap != LEAP_Unsynchronised, distance);
       /* Drop also all stored samples */
-      filter_reset(&instance->filter);
+      SPF_DropSamples(instance->filter);
       return 0;
     }
 
@@ -555,7 +570,7 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
       return 0;
   }
 
-  filter_add_sample(&instance->filter, cooked_time, offset, dispersion);
+  accumulate_sample(instance, cooked_time, offset, dispersion);
   instance->leap_status = leap;
   instance->pps_active = 1;
 
@@ -584,17 +599,17 @@ RCL_GetDriverPoll(RCL_Instance instance)
 static int
 valid_sample_time(RCL_Instance instance, struct timespec *sample_time)
 {
-  struct timespec now, last_sample_time;
-  double diff, last_offset, last_dispersion;
+  NTP_Sample last_sample;
+  struct timespec now;
+  double diff;
 
   LCL_ReadCookedTime(&now, NULL);
   diff = UTI_DiffTimespecsToDouble(&now, sample_time);
 
   if (diff < 0.0 || diff > UTI_Log2ToDouble(instance->poll + 1) ||
-      (filter_get_samples(&instance->filter) > 0 &&
-       filter_get_last_sample(&instance->filter, &last_sample_time,
-                              &last_offset, &last_dispersion) &&
-       UTI_CompareTimespecs(&last_sample_time, sample_time) >= 0)) {
+      (SPF_GetNumberOfSamples(instance->filter) > 0 &&
+       SPF_GetLastSample(instance->filter, &last_sample) &&
+       UTI_CompareTimespecs(&last_sample.time, sample_time) >= 0)) {
     DEBUG_LOG("%s refclock sample time %s not valid age=%.6f",
               UTI_RefidToString(instance->ref_id),
               UTI_TimespecToString(sample_time), diff);
@@ -638,6 +653,7 @@ pps_stratum(RCL_Instance instance, struct timespec *ts)
 static void
 poll_timeout(void *arg)
 {
+  NTP_Sample sample;
   int poll;
 
   RCL_Instance inst = (RCL_Instance)arg;
@@ -651,25 +667,9 @@ poll_timeout(void *arg)
   }
   
   if (!(inst->driver->poll && inst->driver_polled < (1 << (inst->poll - inst->driver_poll)))) {
-    NTP_Sample sample;
-    int sample_ok;
-
-    sample_ok = filter_get_sample(&inst->filter, &sample.time,
-                                  &sample.offset, &sample.peer_dispersion);
     inst->driver_polled = 0;
 
-    if (sample_ok) {
-      sample.peer_delay = inst->delay;
-      sample.root_delay = sample.peer_delay;
-      sample.root_dispersion = sample.peer_dispersion;
-      sample.leap = inst->leap_status;
-
-      if (inst->pps_active && inst->lock_ref == -1)
-        /* Handle special case when PPS is used with local stratum */
-        sample.stratum = pps_stratum(inst, &sample.time);
-      else
-        sample.stratum = inst->stratum;
-
+    if (SPF_GetFilteredSample(inst->filter, &sample)) {
       SRC_UpdateReachability(inst->source, 1);
       SRC_AccumulateSample(inst->source, &sample);
       SRC_SelectSource(inst->source);
@@ -691,9 +691,9 @@ slew_samples(struct timespec *raw, struct timespec *cooked, double dfreq,
 
   for (i = 0; i < ARR_GetSize(refclocks); i++) {
     if (change_type == LCL_ChangeUnknownStep)
-      filter_reset(&get_refclock(i)->filter);
+      SPF_DropSamples(get_refclock(i)->filter);
     else
-      filter_slew_samples(&get_refclock(i)->filter, cooked, dfreq, doffset);
+      SPF_SlewSamples(get_refclock(i)->filter, cooked, dfreq, doffset);
   }
 }
 
@@ -703,7 +703,7 @@ add_dispersion(double dispersion, void *anything)
   unsigned int i;
 
   for (i = 0; i < ARR_GetSize(refclocks); i++)
-    filter_add_dispersion(&get_refclock(i)->filter, dispersion);
+    SPF_AddDispersion(get_refclock(i)->filter, dispersion);
 }
 
 static void
@@ -733,322 +733,5 @@ log_sample(RCL_Instance instance, struct timespec *sample_time, int filtered, in
       sync_stats[instance->leap_status],
       cooked_offset,
       dispersion);
-  }
-}
-
-static void
-filter_init(struct MedianFilter *filter, int length, double max_dispersion)
-{
-  if (length < 1)
-    length = 1;
-
-  filter->length = length;
-  filter->index = -1;
-  filter->used = 0;
-  filter->last = -1;
-  /* set first estimate to system precision */
-  filter->avg_var_n = 0;
-  filter->avg_var = LCL_GetSysPrecisionAsQuantum() * LCL_GetSysPrecisionAsQuantum();
-  filter->max_var = max_dispersion * max_dispersion;
-  filter->samples = MallocArray(struct FilterSample, filter->length);
-  filter->selected = MallocArray(int, filter->length);
-  filter->x_data = MallocArray(double, filter->length);
-  filter->y_data = MallocArray(double, filter->length);
-  filter->w_data = MallocArray(double, filter->length);
-}
-
-static void
-filter_fini(struct MedianFilter *filter)
-{
-  Free(filter->samples);
-  Free(filter->selected);
-  Free(filter->x_data);
-  Free(filter->y_data);
-  Free(filter->w_data);
-}
-
-static void
-filter_reset(struct MedianFilter *filter)
-{
-  filter->index = -1;
-  filter->used = 0;
-}
-
-static double
-filter_get_avg_sample_dispersion(struct MedianFilter *filter)
-{
-  return sqrt(filter->avg_var);
-}
-
-static void
-filter_add_sample(struct MedianFilter *filter, struct timespec *sample_time, double offset, double dispersion)
-{
-  filter->index++;
-  filter->index %= filter->length;
-  filter->last = filter->index;
-  if (filter->used < filter->length)
-    filter->used++;
-
-  filter->samples[filter->index].sample_time = *sample_time;
-  filter->samples[filter->index].offset = offset;
-  filter->samples[filter->index].dispersion = dispersion;
-
-  DEBUG_LOG("filter sample %d t=%s offset=%.9f dispersion=%.9f",
-      filter->index, UTI_TimespecToString(sample_time), offset, dispersion);
-}
-
-static int
-filter_get_last_sample(struct MedianFilter *filter, struct timespec *sample_time, double *offset, double *dispersion)
-{
-  if (filter->last < 0)
-    return 0;
-
-  *sample_time = filter->samples[filter->last].sample_time;
-  *offset = filter->samples[filter->last].offset;
-  *dispersion = filter->samples[filter->last].dispersion;
-  return 1;
-}
-
-static int
-filter_get_samples(struct MedianFilter *filter)
-{
-  return filter->used;
-}
-
-static const struct FilterSample *tmp_sorted_array;
-
-static int
-sample_compare(const void *a, const void *b)
-{
-  const struct FilterSample *s1, *s2;
-
-  s1 = &tmp_sorted_array[*(int *)a];
-  s2 = &tmp_sorted_array[*(int *)b];
-
-  if (s1->offset < s2->offset)
-    return -1;
-  else if (s1->offset > s2->offset)
-    return 1;
-  return 0;
-}
-
-int
-filter_select_samples(struct MedianFilter *filter)
-{
-  int i, j, k, o, from, to, *selected;
-  double min_dispersion;
-
-  if (filter->used < 1)
-    return 0;
-
-  /* for lengths below 4 require full filter,
-     for 4 and above require at least 4 samples */
-  if ((filter->length < 4 && filter->used != filter->length) ||
-      (filter->length >= 4 && filter->used < 4))
-    return 0;
-
-  selected = filter->selected;
-
-  if (filter->used > 4) {
-    /* select samples with dispersion better than 1.5 * minimum */
-
-    for (i = 1, min_dispersion = filter->samples[0].dispersion; i < filter->used; i++) {
-      if (min_dispersion > filter->samples[i].dispersion)
-        min_dispersion = filter->samples[i].dispersion;
-    }
-
-    for (i = j = 0; i < filter->used; i++) {
-      if (filter->samples[i].dispersion <= 1.5 * min_dispersion)
-        selected[j++] = i;
-    }
-  } else {
-    j = 0;
-  }
-
-  if (j < 4) {
-    /* select all samples */
-
-    for (j = 0; j < filter->used; j++)
-      selected[j] = j;
-  }
-
-  /* and sort their indices by offset */
-  tmp_sorted_array = filter->samples;
-  qsort(selected, j, sizeof (int), sample_compare);
-
-  /* select 60 percent of the samples closest to the median */ 
-  if (j > 2) {
-    from = j / 5;
-    if (from < 1)
-      from = 1;
-    to = j - from;
-  } else {
-    from = 0;
-    to = j;
-  }
-
-  /* mark unused samples and sort the rest from oldest to newest */
-
-  o = filter->used - filter->index - 1;
-
-  for (i = 0; i < from; i++)
-    selected[i] = -1;
-  for (; i < to; i++)
-    selected[i] = (selected[i] + o) % filter->used;
-  for (; i < filter->used; i++)
-    selected[i] = -1;
-
-  for (i = from; i < to; i++) {
-    j = selected[i];
-    selected[i] = -1;
-    while (j != -1 && selected[j] != j) {
-      k = selected[j];
-      selected[j] = j;
-      j = k;
-    }
-  }
-
-  for (i = j = 0, k = -1; i < filter->used; i++) {
-    if (selected[i] != -1)
-      selected[j++] = (selected[i] + filter->used - o) % filter->used;
-  }
-
-  return j;
-}
-
-static int
-filter_get_sample(struct MedianFilter *filter, struct timespec *sample_time, double *offset, double *dispersion)
-{
-  struct FilterSample *s, *ls;
-  int i, n, dof;
-  double x, y, d, e, var, prev_avg_var;
-
-  n = filter_select_samples(filter);
-
-  if (n < 1)
-    return 0;
-
-  ls = &filter->samples[filter->selected[n - 1]];
-
-  /* prepare data */
-  for (i = 0; i < n; i++) {
-    s = &filter->samples[filter->selected[i]];
-
-    filter->x_data[i] = UTI_DiffTimespecsToDouble(&s->sample_time, &ls->sample_time);
-    filter->y_data[i] = s->offset;
-    filter->w_data[i] = s->dispersion;
-  }
-
-  /* mean offset, sample time and sample dispersion */ 
-  for (i = 0, x = y = e = 0.0; i < n; i++) {
-    x += filter->x_data[i];
-    y += filter->y_data[i];
-    e += filter->w_data[i];
-  }
-  x /= n;
-  y /= n;
-  e /= n;
-
-  if (n >= 4) {
-    double b0, b1, s2, sb0, sb1;
-
-    /* set y axis to the mean sample time */
-    for (i = 0; i < n; i++)
-      filter->x_data[i] -= x;
-
-    /* make a linear fit and use the estimated standard deviation of intercept
-       as dispersion */
-    RGR_WeightedRegression(filter->x_data, filter->y_data, filter->w_data, n,
-        &b0, &b1, &s2, &sb0, &sb1);
-    var = s2;
-    d = sb0;
-    dof = n - 2;
-  } else if (n >= 2) {
-    for (i = 0, d = 0.0; i < n; i++)
-      d += (filter->y_data[i] - y) * (filter->y_data[i] - y);
-    var = d / (n - 1);
-    d = sqrt(var);
-    dof = n - 1;
-  } else {
-    var = filter->avg_var;
-    d = sqrt(var);
-    dof = 1;
-  }
-
-  /* avoid having zero dispersion */
-  if (var < 1e-20) {
-    var = 1e-20;
-    d = sqrt(var);
-  }
-
-  /* drop the sample if variance is larger than allowed maximum */
-  if (filter->max_var > 0.0 && var > filter->max_var) {
-    DEBUG_LOG("filter dispersion too large disp=%.9f max=%.9f",
-        sqrt(var), sqrt(filter->max_var));
-    return 0;
-  }
-
-  prev_avg_var = filter->avg_var;
-
-  /* update exponential moving average of the variance */
-  if (filter->avg_var_n > 50) {
-    filter->avg_var += dof / (dof + 50.0) * (var - filter->avg_var);
-  } else {
-    filter->avg_var = (filter->avg_var * filter->avg_var_n + var * dof) /
-      (dof + filter->avg_var_n);
-    if (filter->avg_var_n == 0)
-      prev_avg_var = filter->avg_var;
-    filter->avg_var_n += dof;
-  }
-
-  /* reduce noise in sourcestats weights by using the long-term average
-     instead of the estimated variance if it's not significantly lower */
-  if (var * dof / RGR_GetChi2Coef(dof) < prev_avg_var)
-    d = sqrt(filter->avg_var) * d / sqrt(var);
-
-  if (d < e)
-    d = e;
-
-  UTI_AddDoubleToTimespec(&ls->sample_time, x, sample_time);
-  *offset = y;
-  *dispersion = d;
-
-  filter_reset(filter);
-
-  return 1;
-}
-
-static void
-filter_slew_samples(struct MedianFilter *filter, struct timespec *when, double dfreq, double doffset)
-{
-  int i, first, last;
-  double delta_time;
-  struct timespec *sample;
-
-  if (filter->last < 0)
-    return;
-
-  /* always slew the last sample as it may be needed by PPS refclocks */
-  if (filter->used > 0) {
-    first = 0;
-    last = filter->used - 1;
-  } else {
-    first = last = filter->last;
-  }
-
-  for (i = first; i <= last; i++) {
-    sample = &filter->samples[i].sample_time;
-    UTI_AdjustTimespec(sample, when, sample, &delta_time, dfreq, doffset);
-    filter->samples[i].offset -= delta_time;
-  }
-}
-
-static void
-filter_add_dispersion(struct MedianFilter *filter, double dispersion)
-{
-  int i;
-
-  for (i = 0; i < filter->used; i++) {
-    filter->samples[i].dispersion += dispersion;
   }
 }
