@@ -529,7 +529,7 @@ SYS_Linux_EnableSystemCallFilter(int level)
 #endif
   };
 
-  const static int fcntls[] = { F_GETFD, F_SETFD };
+  const static int fcntls[] = { F_GETFD, F_SETFD, F_SETFL };
 
   const static unsigned long ioctls[] = {
     FIONREAD, TCGETS,
