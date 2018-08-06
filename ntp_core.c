@@ -1144,7 +1144,7 @@ transmit_timeout(void *arg)
       /* Start a new burst if the burst option is enabled and the average
          polling interval including the burst will not fall below the
          minimum polling interval */
-      if (inst->auto_burst && inst->local_poll > inst->minpoll && inst->local_poll > 1)
+      if (inst->auto_burst && inst->local_poll > inst->minpoll)
         NCR_InitiateSampleBurst(inst, BURST_GOOD_SAMPLES,
                                 MIN(1 << (inst->local_poll - inst->minpoll),
                                     MAX_BURST_TOTAL_SAMPLES));
