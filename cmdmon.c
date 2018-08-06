@@ -800,6 +800,7 @@ handle_add_source(NTP_Source_Type type, CMD_Request *rx_message, CMD_Reply *tx_m
   params.max_sources = ntohl(rx_message->data.ntp_source.max_sources);
   params.min_samples = ntohl(rx_message->data.ntp_source.min_samples);
   params.max_samples = ntohl(rx_message->data.ntp_source.max_samples);
+  params.filter_length = 0;
   params.authkey = ntohl(rx_message->data.ntp_source.authkey);
   params.max_delay = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay);
   params.max_delay_ratio =

@@ -59,6 +59,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   src->params.max_sources = SRC_DEFAULT_MAXSOURCES;
   src->params.min_samples = SRC_DEFAULT_MINSAMPLES;
   src->params.max_samples = SRC_DEFAULT_MAXSAMPLES;
+  src->params.filter_length = 0;
   src->params.interleaved = 0;
   src->params.sel_options = 0;
   src->params.authkey = INACTIVE_AUTHKEY;
@@ -105,6 +106,9 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
         return 0;
     } else if (!strcasecmp(cmd, "asymmetry")) {
       if (sscanf(line, "%lf%n", &src->params.asymmetry, &n) != 1)
+        return 0;
+    } else if (!strcasecmp(cmd, "filter")) {
+      if (sscanf(line, "%d%n", &src->params.filter_length, &n) != 1)
         return 0;
     } else if (!strcasecmp(cmd, "maxdelay")) {
       if (sscanf(line, "%lf%n", &src->params.max_delay, &n) != 1)

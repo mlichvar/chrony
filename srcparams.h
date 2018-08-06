@@ -49,6 +49,7 @@ typedef struct {
   int max_sources;
   int min_samples;
   int max_samples;
+  int filter_length;
   int interleaved;
   int sel_options;
   uint32_t authkey;

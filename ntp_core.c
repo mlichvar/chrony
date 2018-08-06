@@ -37,6 +37,7 @@
 #include "sched.h"
 #include "reference.h"
 #include "local.h"
+#include "samplefilt.h"
 #include "smooth.h"
 #include "sources.h"
 #include "util.h"
@@ -194,6 +195,9 @@ struct NCR_Instance_Record {
      performs the statistical analysis on the samples we generate */
 
   SRC_Instance source;
+
+  /* Optional median filter for NTP measurements */
+  SPF_Instance filter;
 
   int burst_good_samples_to_go;
   int burst_total_samples_to_go;
@@ -603,6 +607,12 @@ NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourcePar
                                          params->min_samples, params->max_samples,
                                          params->min_delay, params->asymmetry);
 
+  if (params->filter_length >= 1)
+    result->filter = SPF_CreateInstance(params->filter_length, params->filter_length,
+                                        NTP_MAX_DISPERSION, 0.0);
+  else
+    result->filter = NULL;
+
   result->rx_timeout_id = 0;
   result->tx_timeout_id = 0;
   result->tx_suspended = 1;
@@ -636,6 +646,9 @@ NCR_DestroyInstance(NCR_Instance instance)
 
   if (instance->mode == MODE_ACTIVE)
     NIO_CloseServerSocket(instance->local_addr.sock_fd);
+
+  if (instance->filter)
+    SPF_DestroyInstance(instance->filter);
 
   /* This will destroy the source instance inside the
      structure, which will cause reselection if this was the
@@ -682,6 +695,9 @@ NCR_ResetInstance(NCR_Instance instance)
   instance->updated_init_timestamps = 0;
   UTI_ZeroNtp64(&instance->init_remote_ntp_tx);
   zero_local_timestamp(&instance->init_local_rx);
+
+  if (instance->filter)
+    SPF_DropSamples(instance->filter);
 }
 
 /* ================================================== */
@@ -765,6 +781,9 @@ get_poll_adj(NCR_Instance inst, double error_in_estimate, double peer_distance)
   int samples;
 
   if (error_in_estimate > peer_distance) {
+    /* If the prediction is not even within +/- the peer distance of the peer,
+       we are clearly not tracking the peer at all well, so we back off the
+       sampling rate depending on just how bad the situation is */
     poll_adj = -log(error_in_estimate / peer_distance) / log(2.0);
   } else {
     samples = SST_Samples(SRC_GetSourcestats(inst->source));
@@ -1451,6 +1470,52 @@ check_delay_dev_ratio(NCR_Instance inst, SST_Stats stats,
 
 /* ================================================== */
 
+static void
+process_sample(NCR_Instance inst, NTP_Sample *sample)
+{
+  double estimated_offset, error_in_estimate, filtered_sample_ago;
+  NTP_Sample filtered_sample;
+  int filtered_samples;
+
+  /* Accumulate the sample to the median filter if it is enabled.  When the
+     filter produces a result, check if it is not too old, i.e. the filter did
+     not miss too many samples due to missing responses or failing tests. */
+  if (inst->filter) {
+    SPF_AccumulateSample(inst->filter, sample);
+
+    filtered_samples = SPF_GetNumberOfSamples(inst->filter);
+
+    if (!SPF_GetFilteredSample(inst->filter, &filtered_sample))
+      return;
+
+    filtered_sample_ago = UTI_DiffTimespecsToDouble(&sample->time, &filtered_sample.time);
+
+    if (filtered_sample_ago > SOURCE_REACH_BITS / 2 * filtered_samples *
+                              UTI_Log2ToDouble(inst->local_poll)) {
+      DEBUG_LOG("filtered sample dropped ago=%f poll=%d", filtered_sample_ago,
+                inst->local_poll);
+      return;
+    }
+
+    sample = &filtered_sample;
+  }
+
+  /* Get the estimated offset predicted from previous samples.  The
+     convention here is that positive means local clock FAST of
+     reference, i.e. backwards to the way that 'offset' is defined. */
+  estimated_offset = SST_PredictOffset(SRC_GetSourcestats(inst->source), &sample->time);
+
+  error_in_estimate = fabs(-sample->offset - estimated_offset);
+
+  SRC_AccumulateSample(inst->source, sample);
+  SRC_SelectSource(inst->source);
+
+  adjust_poll(inst, get_poll_adj(inst, error_in_estimate,
+                                 sample->peer_dispersion + 0.5 * sample->peer_delay));
+}
+
+/* ================================================== */
+
 static int
 receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
                NTP_Local_Timestamp *rx_ts, NTP_Packet *message, int length)
@@ -1477,15 +1542,6 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
 
   /* Kiss-o'-Death codes */
   int kod_rate;
-
-  /* The estimated offset predicted from previous samples.  The
-     convention here is that positive means local clock FAST of
-     reference, i.e. backwards to the way that 'offset' is defined. */
-  double estimated_offset;
-
-  /* The absolute difference between the offset estimate and
-     measurement in seconds */
-  double error_in_estimate;
 
   NTP_Local_Timestamp local_receive, local_transmit;
   double remote_interval, local_interval, response_time;
@@ -1778,21 +1834,8 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
     SRC_UpdateReachability(inst->source, synced_packet);
 
     if (good_packet) {
-      /* Do this before we accumulate a new sample into the stats registers, obviously */
-      estimated_offset = SST_PredictOffset(stats, &sample.time);
-
-      SRC_AccumulateSample(inst->source, &sample);
-      SRC_SelectSource(inst->source);
-
-      /* Now examine the registers.  First though, if the prediction is
-         not even within +/- the peer distance of the peer, we are clearly
-         not tracking the peer at all well, so we back off the sampling
-         rate depending on just how bad the situation is. */
-      error_in_estimate = fabs(-sample.offset - estimated_offset);
-
-      /* Now update the polling interval */
-      adjust_poll(inst, get_poll_adj(inst, error_in_estimate,
-                                     sample.peer_dispersion + 0.5 * sample.peer_delay));
+      /* Adjust the polling interval, accumulate the sample, etc. */
+      process_sample(inst, &sample);
 
       /* If we're in burst mode, check whether the burst is completed and
          revert to the previous mode */
@@ -2265,6 +2308,9 @@ NCR_SlewTimes(NCR_Instance inst, struct timespec *when, double dfreq, double dof
   if (!UTI_IsZeroTimespec(&inst->init_local_rx.ts))
     UTI_AdjustTimespec(&inst->init_local_rx.ts, when, &inst->init_local_rx.ts, &delta, dfreq,
                        doffset);
+
+  if (inst->filter)
+    SPF_SlewSamples(inst->filter, when, dfreq, doffset);
 }
 
 /* ================================================== */
