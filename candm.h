@@ -276,7 +276,8 @@ typedef struct {
   Float asymmetry;
   Float offset;
   uint32_t flags;
-  uint32_t reserved[4];
+  int32_t filter_length;
+  uint32_t reserved[3];
   int32_t EOR;
 } REQ_NTP_Source;
 
