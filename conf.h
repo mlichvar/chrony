@@ -128,6 +128,8 @@ typedef enum {
 typedef struct {
   char *name;
   int minpoll;
+  int min_samples;
+  int max_samples;
   int nocrossts;
   CNF_HwTs_RxFilter rxfilter;
   double precision;
