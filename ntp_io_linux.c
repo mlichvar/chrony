@@ -236,7 +236,8 @@ add_interface(CNF_HwTsInterface *conf_iface)
   iface->tx_comp = conf_iface->tx_comp;
   iface->rx_comp = conf_iface->rx_comp;
 
-  iface->clock = HCL_CreateInstance(UTI_Log2ToDouble(MAX(conf_iface->minpoll, MIN_PHC_POLL)));
+  iface->clock = HCL_CreateInstance(0, 16, UTI_Log2ToDouble(MAX(conf_iface->minpoll,
+                                                                MIN_PHC_POLL)));
 
   LOG(LOGS_INFO, "Enabled HW timestamping %son %s",
       ts_config.rx_filter == HWTSTAMP_FILTER_NONE ? "(TX only) " : "", iface->name);

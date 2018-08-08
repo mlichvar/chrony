@@ -80,7 +80,7 @@ static int phc_initialise(RCL_Instance instance)
     s = RCL_GetDriverOption(instance, "channel");
     phc->channel = s ? atoi(s) : 0;
     rising_edge = RCL_GetDriverOption(instance, "clear") ? 0 : 1;
-    phc->clock = HCL_CreateInstance(UTI_Log2ToDouble(RCL_GetDriverPoll(instance)));
+    phc->clock = HCL_CreateInstance(0, 16, UTI_Log2ToDouble(RCL_GetDriverPoll(instance)));
 
     if (!SYS_Linux_SetPHCExtTimestamping(phc->fd, phc->pin, phc->channel,
                                          rising_edge, !rising_edge, 1))

@@ -31,7 +31,7 @@ test_unit(void)
 
   LCL_Initialise();
 
-  clock = HCL_CreateInstance(1.0);
+  clock = HCL_CreateInstance(0, 16, 1.0);
 
   for (i = 0, count = 0, sum = 0.0; i < 2000; i++) {
     UTI_ZeroTimespec(&start_hw_ts);
