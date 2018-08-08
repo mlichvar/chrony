@@ -221,7 +221,7 @@ static ARR_Instance broadcasts;
 
 /* Spacing required between samples for any two servers/peers (to
    minimise risk of network collisions) (in seconds) */
-#define MIN_SAMPLING_SEPARATION 0.02
+#define MIN_SAMPLING_SEPARATION 0.002
 #define MAX_SAMPLING_SEPARATION 0.2
 
 /* Randomness added to spacing between samples for one server/peer */
@@ -268,7 +268,7 @@ static ARR_Instance broadcasts;
 #define MAX_MAXDELAYDEVRATIO 1.0e6
 
 /* Minimum and maximum allowed poll interval */
-#define MIN_POLL -4
+#define MIN_POLL -6
 #define MAX_POLL 24
 
 /* Enable sub-second polling intervals only when the peer delay is not

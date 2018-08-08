@@ -69,7 +69,7 @@ options:
 This option specifies the minimum interval between requests sent to the server
 as a power of 2 in seconds. For example, *minpoll 5* would mean that the
 polling interval should not drop below 32 seconds. The default is 6 (64
-seconds), the minimum is -4 (1/16th of a second), and the maximum is 24 (6
+seconds), the minimum is -6 (1/64th of a second), and the maximum is 24 (6
 months). Note that intervals shorter than 6 (64 seconds) should generally not
 be used with public servers on the Internet, because it might be considered
 abuse. A sub-second interval will be enabled only when the server is reachable
@@ -79,7 +79,7 @@ should be in a local network.
 This option specifies the maximum interval between requests sent to the server
 as a power of 2 in seconds. For example, *maxpoll 9* indicates that the polling
 interval should stay at or below 9 (512 seconds). The default is 10 (1024
-seconds), the minimum is -4 (1/16th of a second), and the maximum is 24 (6
+seconds), the minimum is -6 (1/64th of a second), and the maximum is 24 (6
 months).
 *iburst*:::
 With this option, the interval between the first four requests sent to the
