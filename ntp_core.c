@@ -899,6 +899,8 @@ get_separation(int poll)
 {
   double separation;
 
+  assert(poll >= MIN_POLL && poll <= MAX_POLL);
+
   /* Allow up to 8 sources using the same short interval to not be limited
      by the separation */
   separation = UTI_Log2ToDouble(poll - 3);
