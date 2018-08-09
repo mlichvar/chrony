@@ -105,7 +105,7 @@ static int sock_initialise(RCL_Instance instance)
  
   s.sun_family = AF_UNIX;
   if (snprintf(s.sun_path, sizeof (s.sun_path), "%s", path) >= sizeof (s.sun_path)) {
-    LOG_FATAL("path %s is too long", path);
+    LOG_FATAL("Path %s too long", path);
     return 0;
   }
 
@@ -119,7 +119,7 @@ static int sock_initialise(RCL_Instance instance)
 
   unlink(path);
   if (bind(sockfd, (struct sockaddr *)&s, sizeof (s)) < 0) {
-    LOG_FATAL("bind() failed");
+    LOG_FATAL("bind(%s) failed : %s", path, strerror(errno));
     return 0;
   }
 

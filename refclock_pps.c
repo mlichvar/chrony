@@ -59,24 +59,24 @@ static int pps_initialise(RCL_Instance instance) {
 
   fd = open(path, O_RDWR);
   if (fd < 0) {
-    LOG_FATAL("open() failed on %s", path);
+    LOG_FATAL("Could not open %s : %s", path, strerror(errno));
     return 0;
   }
 
   UTI_FdSetCloexec(fd);
 
   if (time_pps_create(fd, &handle) < 0) {
-    LOG_FATAL("time_pps_create() failed on %s", path);
+    LOG_FATAL("time_pps_create() failed on %s : %s", path, strerror(errno));
     return 0;
   }
 
   if (time_pps_getcap(handle, &mode) < 0) {
-    LOG_FATAL("time_pps_getcap() failed on %s", path);
+    LOG_FATAL("time_pps_getcap() failed on %s : %s", path, strerror(errno));
     return 0;
   }
 
   if (time_pps_getparams(handle, &params) < 0) {
-    LOG_FATAL("time_pps_getparams() failed on %s", path);
+    LOG_FATAL("time_pps_getparams() failed on %s : %s", path, strerror(errno));
     return 0;
   }
 
@@ -97,7 +97,7 @@ static int pps_initialise(RCL_Instance instance) {
   }
 
   if (time_pps_setparams(handle, &params) < 0) {
-    LOG_FATAL("time_pps_setparams() failed on %s", path);
+    LOG_FATAL("time_pps_setparams() failed on %s : %s", path, strerror(errno));
     return 0;
   }
 
