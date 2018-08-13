@@ -2405,7 +2405,7 @@ void
 NCR_ModifyMaxdelay(NCR_Instance inst, double new_max_delay)
 {
   inst->max_delay = CLAMP(0.0, new_max_delay, MAX_MAXDELAY);
-  LOG(LOGS_INFO, "Source %s new max delay %f",
+  LOG(LOGS_INFO, "Source %s new maxdelay %f",
       UTI_IPToString(&inst->remote_addr.ip_addr), inst->max_delay);
 }
 
@@ -2415,7 +2415,7 @@ void
 NCR_ModifyMaxdelayratio(NCR_Instance inst, double new_max_delay_ratio)
 {
   inst->max_delay_ratio = CLAMP(0.0, new_max_delay_ratio, MAX_MAXDELAYRATIO);
-  LOG(LOGS_INFO, "Source %s new max delay ratio %f",
+  LOG(LOGS_INFO, "Source %s new maxdelayratio %f",
       UTI_IPToString(&inst->remote_addr.ip_addr), inst->max_delay_ratio);
 }
 
@@ -2425,7 +2425,7 @@ void
 NCR_ModifyMaxdelaydevratio(NCR_Instance inst, double new_max_delay_dev_ratio)
 {
   inst->max_delay_dev_ratio = CLAMP(0.0, new_max_delay_dev_ratio, MAX_MAXDELAYDEVRATIO);
-  LOG(LOGS_INFO, "Source %s new max delay dev ratio %f",
+  LOG(LOGS_INFO, "Source %s new maxdelaydevratio %f",
       UTI_IPToString(&inst->remote_addr.ip_addr), inst->max_delay_dev_ratio);
 }
 
