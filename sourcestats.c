@@ -132,6 +132,7 @@ struct SST_Stats_Record {
      source per unit local time.  (Positive => local clock fast,
      negative => local clock slow) */
   double estimated_frequency;
+  double estimated_frequency_sd;
 
   /* This is the assumed worst case bounds on the estimated frequency.
      We assume that the true frequency lies within +/- half this much
@@ -245,6 +246,7 @@ SST_ResetInstance(SST_Stats inst)
   inst->best_single_sample = 0;
   inst->min_delay_sample = 0;
   inst->estimated_frequency = 0;
+  inst->estimated_frequency_sd = WORST_CASE_FREQ_BOUND;
   inst->skew = WORST_CASE_FREQ_BOUND;
   inst->estimated_offset = 0.0;
   inst->estimated_offset_sd = 86400.0; /* Assume it's at least within a day! */
@@ -571,6 +573,7 @@ SST_DoNewRegression(SST_Stats inst)
     old_freq = inst->estimated_frequency;
   
     inst->estimated_frequency = est_slope;
+    inst->estimated_frequency_sd = CLAMP(MIN_SKEW, est_slope_sd, MAX_SKEW);
     inst->skew = est_slope_sd * RGR_GetTCoef(degrees_of_freedom);
     inst->estimated_offset = est_intercept;
     inst->offset_time = inst->sample_times[inst->last_sample];
@@ -601,6 +604,7 @@ SST_DoNewRegression(SST_Stats inst)
     prune_register(inst, best_start);
   } else {
     inst->estimated_frequency = 0.0;
+    inst->estimated_frequency_sd = WORST_CASE_FREQ_BOUND;
     inst->skew = WORST_CASE_FREQ_BOUND;
     times_back_start = 0;
   }
@@ -700,7 +704,7 @@ SST_GetSelectionData(SST_Stats inst, struct timespec *now,
 void
 SST_GetTrackingData(SST_Stats inst, struct timespec *ref_time,
                     double *average_offset, double *offset_sd,
-                    double *frequency, double *skew,
+                    double *frequency, double *frequency_sd, double *skew,
                     double *root_delay, double *root_dispersion)
 {
   int i, j;
@@ -715,6 +719,7 @@ SST_GetTrackingData(SST_Stats inst, struct timespec *ref_time,
   *average_offset = inst->estimated_offset;
   *offset_sd = inst->estimated_offset_sd;
   *frequency = inst->estimated_frequency;
+  *frequency_sd = inst->estimated_frequency_sd;
   *skew = inst->skew;
   *root_delay = inst->root_delays[j];
 

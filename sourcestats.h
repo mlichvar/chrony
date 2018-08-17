@@ -82,7 +82,7 @@ SST_GetSelectionData(SST_Stats inst, struct timespec *now,
 extern void
 SST_GetTrackingData(SST_Stats inst, struct timespec *ref_time,
                     double *average_offset, double *offset_sd,
-                    double *frequency, double *skew,
+                    double *frequency, double *frequency_sd, double *skew,
                     double *root_delay, double *root_dispersion);
 
 /* This routine is called when the local machine clock parameters are

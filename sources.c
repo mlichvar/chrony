@@ -499,7 +499,7 @@ combine_sources(int n_sel_sources, struct timespec *ref_time, double *offset,
                 double *offset_sd, double *frequency, double *skew)
 {
   struct timespec src_ref_time;
-  double src_offset, src_offset_sd, src_frequency, src_skew;
+  double src_offset, src_offset_sd, src_frequency, src_frequency_sd, src_skew;
   double src_root_delay, src_root_dispersion, sel_src_distance, elapsed;
   double offset_weight, sum_offset_weight, sum_offset, sum2_offset_sd;
   double frequency_weight, sum_frequency_weight, sum_frequency, inv_sum2_skew;
@@ -519,7 +519,7 @@ combine_sources(int n_sel_sources, struct timespec *ref_time, double *offset,
     index = sel_sources[i];
     SST_GetTrackingData(sources[index]->stats, &src_ref_time,
                         &src_offset, &src_offset_sd,
-                        &src_frequency, &src_skew,
+                        &src_frequency, &src_frequency_sd, &src_skew,
                         &src_root_delay, &src_root_dispersion);
 
     /* Don't include this source if its distance is longer than the distance of
@@ -591,7 +591,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   int depth, best_depth, trust_depth, best_trust_depth;
   int combined, stratum, min_stratum, max_score_index;
   int orphan_stratum, orphan_source, leap_votes, leap_ins, leap_del;
-  double src_offset, src_offset_sd, src_frequency, src_skew;
+  double src_offset, src_offset_sd, src_frequency, src_frequency_sd, src_skew;
   double src_root_delay, src_root_dispersion;
   double best_lo, best_hi, distance, sel_src_distance, max_score;
   double first_sample_ago, max_reach_sample_ago;
@@ -1062,7 +1062,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
   SST_GetTrackingData(sources[selected_source_index]->stats, &ref_time,
                       &src_offset, &src_offset_sd,
-                      &src_frequency, &src_skew,
+                      &src_frequency, &src_frequency_sd, &src_skew,
                       &src_root_delay, &src_root_dispersion);
 
   combined = combine_sources(n_sel_sources, &ref_time, &src_offset,
