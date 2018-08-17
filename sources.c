@@ -549,7 +549,7 @@ combine_sources(int n_sel_sources, struct timespec *ref_time, double *offset,
     elapsed = UTI_DiffTimespecsToDouble(ref_time, &src_ref_time);
     src_offset += elapsed * src_frequency;
     offset_weight = 1.0 / sources[index]->sel_info.root_distance;
-    frequency_weight = 1.0 / src_skew;
+    frequency_weight = 1.0 / (src_frequency_sd * src_frequency_sd);
 
     DEBUG_LOG("combining index=%d oweight=%e offset=%e osd=%e fweight=%e freq=%e fsd=%e skew=%e",
               index, offset_weight, src_offset, src_offset_sd,
