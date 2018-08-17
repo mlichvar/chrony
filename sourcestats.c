@@ -245,7 +245,7 @@ SST_ResetInstance(SST_Stats inst)
   inst->best_single_sample = 0;
   inst->min_delay_sample = 0;
   inst->estimated_frequency = 0;
-  inst->skew = 2000.0e-6;
+  inst->skew = WORST_CASE_FREQ_BOUND;
   inst->estimated_offset = 0.0;
   inst->estimated_offset_sd = 86400.0; /* Assume it's at least within a day! */
   UTI_ZeroTimespec(&inst->offset_time);
