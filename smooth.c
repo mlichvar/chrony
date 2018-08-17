@@ -144,7 +144,7 @@ update_stages(void)
      is equal to the offset that should be smoothed out */
 
   s1 = smooth_offset / max_wander;
-  s2 = smooth_freq * smooth_freq / (2.0 * max_wander * max_wander);
+  s2 = SQUARE(smooth_freq) / (2.0 * SQUARE(max_wander));
   
   /* Calculate the lengths of the 1st and 3rd stage assuming there is no
      frequency limit.  The direction of the 1st stage is selected so that

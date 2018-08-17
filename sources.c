@@ -550,7 +550,7 @@ combine_sources(int n_sel_sources, struct timespec *ref_time, double *offset,
     src_offset += elapsed * src_frequency;
     src_offset_sd += elapsed * src_frequency_sd;
     offset_weight = 1.0 / sources[index]->sel_info.root_distance;
-    frequency_weight = 1.0 / (src_frequency_sd * src_frequency_sd);
+    frequency_weight = 1.0 / SQUARE(src_frequency_sd);
 
     DEBUG_LOG("combining index=%d oweight=%e offset=%e osd=%e fweight=%e freq=%e fsd=%e skew=%e",
               index, offset_weight, src_offset, src_offset_sd,
@@ -558,13 +558,13 @@ combine_sources(int n_sel_sources, struct timespec *ref_time, double *offset,
 
     sum_offset_weight += offset_weight;
     sum_offset += offset_weight * src_offset;
-    sum2_offset_sd += offset_weight * (src_offset_sd * src_offset_sd +
+    sum2_offset_sd += offset_weight * (SQUARE(src_offset_sd) +
         (src_offset - *offset) * (src_offset - *offset));
 
     sum_frequency_weight += frequency_weight;
     sum_frequency += frequency_weight * src_frequency;
-    inv_sum2_frequency_sd += 1.0 / (src_frequency_sd * src_frequency_sd);
-    inv_sum2_skew += 1.0 / (src_skew * src_skew);
+    inv_sum2_frequency_sd += 1.0 / SQUARE(src_frequency_sd);
+    inv_sum2_skew += 1.0 / SQUARE(src_skew);
 
     combined++;
   }

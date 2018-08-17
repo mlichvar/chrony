@@ -553,7 +553,7 @@ SST_DoNewRegression(SST_Stats inst)
       sd_weight = 1.0;
       if (peer_distances[i] > min_distance)
         sd_weight += (peer_distances[i] - min_distance) / sd;
-      weights[i] = sd_weight * sd_weight;
+      weights[i] = SQUARE(sd_weight);
     }
   }
 

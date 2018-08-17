@@ -326,23 +326,6 @@ REF_GetLeapMode(void)
 }
 
 /* ================================================== */
-
-static double
-Sqr(double x)
-{
-  return x*x;
-}
-
-/* ================================================== */
-#if 0
-static double
-Cube(double x)
-{
-  return x*x*x;
-}
-#endif
-
-/* ================================================== */
 /* Update the drift coefficients to the file. */
 
 static void
@@ -1055,8 +1038,8 @@ REF_SetReference(int stratum,
     /* Set new frequency based on weighted average of old and new skew. With
        manual reference the old frequency has no weight. */
 
-    old_weight = leap != LEAP_Unsynchronised ? 1.0 / Sqr(previous_skew) : 0.0;
-    new_weight = 3.0 / Sqr(new_skew);
+    old_weight = leap != LEAP_Unsynchronised ? 1.0 / SQUARE(previous_skew) : 0.0;
+    new_weight = 3.0 / SQUARE(new_skew);
 
     sum_weight = old_weight + new_weight;
 
@@ -1065,7 +1048,7 @@ REF_SetReference(int stratum,
     delta_freq1 = previous_freq - our_frequency;
     delta_freq2 = new_freq - our_frequency;
 
-    skew1 = sqrt((Sqr(delta_freq1) * old_weight + Sqr(delta_freq2) * new_weight) / sum_weight);
+    skew1 = sqrt((SQUARE(delta_freq1) * old_weight + SQUARE(delta_freq2) * new_weight) / sum_weight);
     skew2 = (previous_skew * old_weight + new_skew * new_weight) / sum_weight;
     our_skew = skew1 + skew2;
 
@@ -1125,11 +1108,11 @@ REF_SetReference(int stratum,
 
   /* Update the moving average of squares of offset, quickly on start */
   if (avg2_moving) {
-    avg2_offset += 0.1 * (our_offset * our_offset - avg2_offset);
+    avg2_offset += 0.1 * (SQUARE(our_offset) - avg2_offset);
   } else {
-    if (avg2_offset > 0.0 && avg2_offset < our_offset * our_offset)
+    if (avg2_offset > 0.0 && avg2_offset < SQUARE(our_offset))
       avg2_moving = 1;
-    avg2_offset = our_offset * our_offset;
+    avg2_offset = SQUARE(our_offset);
   }
 }
 

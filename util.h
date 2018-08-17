@@ -200,4 +200,6 @@ extern void UTI_GetRandomBytes(void *buf, unsigned int len);
 /* Macro to clamp a value between two values */
 #define CLAMP(min, x, max) (MAX((min), MIN((x), (max))))
 
+#define SQUARE(x) ((x) * (x))
+
 #endif /* GOT_UTIL_H */
