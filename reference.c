@@ -1072,7 +1072,8 @@ REF_SetReference(int stratum,
       LOG(LOGS_WARN, "System clock was stepped by %.6f seconds", -step_offset);
   }
 
-  LCL_SetSyncStatus(are_we_synchronised, offset_sd, offset_sd + root_delay / 2.0 + root_dispersion);
+  LCL_SetSyncStatus(are_we_synchronised, offset_sd,
+                    root_delay / 2.0 + get_root_dispersion(&now));
 
   /* Add a random error of up to one second to the reference time to make it
      less useful when disclosed to NTP and cmdmon clients for estimating
