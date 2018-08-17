@@ -985,6 +985,7 @@ REF_SetReference(int stratum,
 
   elapsed = UTI_DiffTimespecsToDouble(&now, ref_time);
   our_offset = offset + elapsed * frequency;
+  offset_sd += elapsed * frequency_sd;
 
   if (!is_offset_ok(our_offset))
     return;
