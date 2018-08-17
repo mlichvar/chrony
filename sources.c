@@ -496,20 +496,21 @@ mark_ok_sources(SRC_Status status)
 
 static int
 combine_sources(int n_sel_sources, struct timespec *ref_time, double *offset,
-                double *offset_sd, double *frequency, double *skew)
+                double *offset_sd, double *frequency, double *frequency_sd, double *skew)
 {
   struct timespec src_ref_time;
   double src_offset, src_offset_sd, src_frequency, src_frequency_sd, src_skew;
   double src_root_delay, src_root_dispersion, sel_src_distance, elapsed;
   double offset_weight, sum_offset_weight, sum_offset, sum2_offset_sd;
-  double frequency_weight, sum_frequency_weight, sum_frequency, inv_sum2_skew;
+  double frequency_weight, sum_frequency_weight, sum_frequency;
+  double inv_sum2_frequency_sd, inv_sum2_skew;
   int i, index, combined;
 
   if (n_sel_sources == 1)
     return 1;
 
   sum_offset_weight = sum_offset = sum2_offset_sd = 0.0;
-  sum_frequency_weight = sum_frequency = inv_sum2_skew = 0.0;
+  sum_frequency_weight = sum_frequency = inv_sum2_frequency_sd = inv_sum2_skew = 0.0;
 
   sel_src_distance = sources[selected_source_index]->sel_info.root_distance;
   if (sources[selected_source_index]->type == SRC_NTP)
@@ -550,8 +551,9 @@ combine_sources(int n_sel_sources, struct timespec *ref_time, double *offset,
     offset_weight = 1.0 / sources[index]->sel_info.root_distance;
     frequency_weight = 1.0 / src_skew;
 
-    DEBUG_LOG("combining index=%d oweight=%e offset=%e sd=%e fweight=%e freq=%e skew=%e",
-        index, offset_weight, src_offset, src_offset_sd, frequency_weight, src_frequency, src_skew);
+    DEBUG_LOG("combining index=%d oweight=%e offset=%e osd=%e fweight=%e freq=%e fsd=%e skew=%e",
+              index, offset_weight, src_offset, src_offset_sd,
+              frequency_weight, src_frequency, src_frequency_sd, src_skew);
 
     sum_offset_weight += offset_weight;
     sum_offset += offset_weight * src_offset;
@@ -560,6 +562,7 @@ combine_sources(int n_sel_sources, struct timespec *ref_time, double *offset,
 
     sum_frequency_weight += frequency_weight;
     sum_frequency += frequency_weight * src_frequency;
+    inv_sum2_frequency_sd += 1.0 / (src_frequency_sd * src_frequency_sd);
     inv_sum2_skew += 1.0 / (src_skew * src_skew);
 
     combined++;
@@ -569,10 +572,11 @@ combine_sources(int n_sel_sources, struct timespec *ref_time, double *offset,
   *offset = sum_offset / sum_offset_weight;
   *offset_sd = sqrt(sum2_offset_sd / sum_offset_weight);
   *frequency = sum_frequency / sum_frequency_weight;
+  *frequency_sd = 1.0 / sqrt(inv_sum2_frequency_sd);
   *skew = 1.0 / sqrt(inv_sum2_skew);
 
-  DEBUG_LOG("combined result offset=%e sd=%e freq=%e skew=%e",
-      *offset, *offset_sd, *frequency, *skew);
+  DEBUG_LOG("combined result offset=%e osd=%e freq=%e fsd=%e skew=%e",
+            *offset, *offset_sd, *frequency, *frequency_sd, *skew);
 
   return combined;
 }
@@ -1065,15 +1069,15 @@ SRC_SelectSource(SRC_Instance updated_inst)
                       &src_frequency, &src_frequency_sd, &src_skew,
                       &src_root_delay, &src_root_dispersion);
 
-  combined = combine_sources(n_sel_sources, &ref_time, &src_offset,
-                             &src_offset_sd, &src_frequency, &src_skew);
+  combined = combine_sources(n_sel_sources, &ref_time, &src_offset, &src_offset_sd,
+                             &src_frequency, &src_frequency_sd, &src_skew);
 
   REF_SetReference(sources[selected_source_index]->sel_info.stratum,
                    leap_status, combined,
                    sources[selected_source_index]->ref_id,
                    sources[selected_source_index]->ip_addr,
                    &ref_time, src_offset, src_offset_sd,
-                   src_frequency, src_skew,
+                   src_frequency, src_frequency_sd, src_skew,
                    src_root_delay, src_root_dispersion);
 }
 

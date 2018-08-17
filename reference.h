@@ -144,6 +144,7 @@ extern void REF_SetReference
  double offset,
  double offset_sd,
  double frequency,
+ double frequency_sd,
  double skew,
  double root_delay,
  double root_dispersion

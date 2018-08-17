@@ -947,6 +947,7 @@ REF_SetReference(int stratum,
                  double offset,
                  double offset_sd,
                  double frequency,
+                 double frequency_sd,
                  double skew,
                  double root_delay,
                  double root_dispersion
@@ -1146,7 +1147,7 @@ REF_SetManualReference
      only supposed to be used with the local source option, really.
      Log as MANU in the tracking log, packets will have NTP_REFID_LOCAL. */
   REF_SetReference(0, LEAP_Unsynchronised, 1, 0x4D414E55UL, NULL,
-                   ref_time, offset, 0.0, frequency, skew, 0.0, 0.0);
+                   ref_time, offset, 0.0, frequency, skew, skew, 0.0, 0.0);
 }
 
 /* ================================================== */
