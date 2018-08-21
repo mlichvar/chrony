@@ -340,8 +340,8 @@ get_version_specific_details(void)
     have_setoffset = 1;
   }
 
-  DEBUG_LOG("hz=%d nominal_tick=%d max_tick_bias=%d",
-      hz, nominal_tick, max_tick_bias);
+  DEBUG_LOG("hz=%d nominal_tick=%d max_tick_bias=%d tick_update_hz=%d",
+            hz, nominal_tick, max_tick_bias, tick_update_hz);
 }
 
 /* ================================================== */
