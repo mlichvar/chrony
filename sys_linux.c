@@ -309,9 +309,9 @@ get_version_specific_details(void)
   nominal_tick = (1000000L + (hz/2))/hz; /* Mirror declaration in kernel */
   max_tick_bias = nominal_tick / 10;
 
-  /* We can't reliably detect the internal kernel HZ, it may not even be fixed
-     (CONFIG_NO_HZ aka tickless), assume the lowest commonly used fixed rate */
-  tick_update_hz = 100;
+  /* In modern kernels the frequency of the clock is updated immediately in the
+     adjtimex() system call.  Assume a maximum delay of 10 microseconds. */
+  tick_update_hz = 100000;
 
   get_kernel_version(&major, &minor, &patch);
   DEBUG_LOG("Linux kernel major=%d minor=%d patch=%d", major, minor, patch);
@@ -322,9 +322,15 @@ get_version_specific_details(void)
 
   if (kernelvercmp(major, minor, patch, 2, 6, 27) >= 0 &&
       kernelvercmp(major, minor, patch, 2, 6, 33) < 0) {
-    /* Tickless kernels before 2.6.33 accumulated ticks only in
-       half-second intervals */
+    /* In tickless kernels before 2.6.33 the frequency is updated in
+       a half-second interval */
     tick_update_hz = 2;
+  } else if (kernelvercmp(major, minor, patch, 4, 19, 0) < 0) {
+    /* In kernels before 4.19 the frequency is updated only on internal ticks
+       (CONFIG_HZ).  As their rate cannot be reliably detected from the user
+       space, and it may not even be constant (CONFIG_NO_HZ - aka tickless),
+       assume the lowest commonly used constant rate */
+    tick_update_hz = 100;
   }
 
   /* ADJ_SETOFFSET support */
