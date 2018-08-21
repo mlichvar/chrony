@@ -10,6 +10,7 @@ server 192.168.123.1
 server 192.168.123.2
 server 192.168.123.3"
 max_sync_time=500
+client_start=140
 chronyc_start=300
 chronyc_conf="tracking"
 time_rms_limit=5e-4
