@@ -920,35 +920,58 @@ special_mode_sync(int valid, double offset)
 
 /* ================================================== */
 
-void
-REF_SetReference(int stratum,
-                 NTP_Leap leap,
-                 int combined_sources,
-                 uint32_t ref_id,
-                 IPAddr *ref_ip,
-                 struct timespec *ref_time,
-                 double offset,
-                 double offset_sd,
-                 double frequency,
-                 double frequency_sd,
-                 double skew,
-                 double root_delay,
-                 double root_dispersion
-                 )
+static void
+get_clock_estimates(int manual,
+                    double measured_freq, double measured_skew,
+                    double *estimated_freq, double *estimated_skew,
+                    double *residual_freq)
 {
-  double previous_skew, new_skew;
-  double previous_freq, new_freq;
-  double old_weight, new_weight, sum_weight;
-  double delta_freq1, delta_freq2;
-  double skew1, skew2;
-  double our_offset;
-  double our_frequency;
-  double abs_freq_ppm;
-  double update_interval;
-  double elapsed, correction_rate, orig_root_distance;
+  double gain, expected_freq, expected_skew, extra_skew;
+
+  /* We assume that the local clock is running according to our previously
+     determined value */
+  expected_freq = 0.0;
+  expected_skew = our_skew;
+
+  /* Set new frequency based on weighted average of the expected and measured
+     skew.  Disable updates that are based on totally unreliable frequency
+     information unless it is a manual reference. */
+  if (manual) {
+    gain = 1.0;
+  } else if (fabs(measured_skew) > max_update_skew) {
+    DEBUG_LOG("Skew %f too large to track", measured_skew);
+    gain = 0.0;
+  } else {
+    gain = 3.0 * SQUARE(expected_skew) /
+           (3.0 * SQUARE(expected_skew) + SQUARE(measured_skew));
+  }
+
+  gain = CLAMP(0.0, gain, 1.0);
+
+  *estimated_freq = expected_freq + gain * (measured_freq - expected_freq);
+  *residual_freq = measured_freq - *estimated_freq;
+
+  extra_skew = sqrt(SQUARE(expected_freq - *estimated_freq) * (1.0 - gain) +
+                    SQUARE(measured_freq - *estimated_freq) * gain);
+
+  *estimated_skew = expected_skew + gain * (measured_skew - expected_skew) + extra_skew;
+}
+
+/* ================================================== */
+
+void
+REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
+                 uint32_t ref_id, IPAddr *ref_ip, struct timespec *ref_time,
+                 double offset, double offset_sd,
+                 double frequency, double frequency_sd, double skew,
+                 double root_delay, double root_dispersion)
+{
   double uncorrected_offset, accumulate_offset, step_offset;
+  double residual_frequency, local_abs_frequency;
+  double elapsed, update_interval, correction_rate, orig_root_distance;
   struct timespec now, raw_now;
   NTP_int64 ref_fuzz;
+  int manual;
 
   assert(initialised);
 
@@ -958,24 +981,33 @@ REF_SetReference(int stratum,
     return;
   }
 
-  /* Guard against dividing by zero and NaN */
-  if (!(skew > MIN_SKEW))
-    skew = MIN_SKEW;
+  manual = leap == LEAP_Unsynchronised;
 
   LCL_ReadRawTime(&raw_now);
   LCL_GetOffsetCorrection(&raw_now, &uncorrected_offset, NULL);
   UTI_AddDoubleToTimespec(&raw_now, uncorrected_offset, &now);
 
   elapsed = UTI_DiffTimespecsToDouble(&now, ref_time);
-  our_offset = offset + elapsed * frequency;
+  offset += elapsed * frequency;
   offset_sd += elapsed * frequency_sd;
 
-  if (!is_offset_ok(our_offset))
+  if (last_ref_update.tv_sec) {
+    update_interval = UTI_DiffTimespecsToDouble(&now, &last_ref_update);
+    update_interval = MAX(update_interval, 0.0);
+  } else {
+    update_interval = 0.0;
+  }
+
+  /* Get new estimates of the frequency and skew including the new data */
+  get_clock_estimates(manual, frequency, skew,
+                      &frequency, &skew, &residual_frequency);
+
+  if (!is_offset_ok(offset))
     return;
 
   orig_root_distance = our_root_delay / 2.0 + get_root_dispersion(&now);
 
-  are_we_synchronised = leap != LEAP_Unsynchronised ? 1 : 0;
+  are_we_synchronised = leap != LEAP_Unsynchronised;
   our_stratum = stratum + 1;
   our_ref_id = ref_id;
   if (ref_ip)
@@ -983,17 +1015,13 @@ REF_SetReference(int stratum,
   else
     our_ref_ip.family = IPADDR_UNSPEC;
   our_ref_time = *ref_time;
+  our_skew = skew;
+  our_residual_freq = residual_frequency;
   our_root_delay = root_delay;
   our_root_dispersion = root_dispersion;
-
-  if (last_ref_update.tv_sec) {
-    update_interval = UTI_DiffTimespecsToDouble(&now, &last_ref_update);
-    if (update_interval < 0.0)
-      update_interval = 0.0;
-  } else {
-    update_interval = 0.0;
-  }
   last_ref_update = now;
+  last_ref_update_interval = update_interval;
+  last_offset = offset;
 
   /* We want to correct the offset quickly, but we also want to keep the
      frequency error caused by the correction itself low.
@@ -1011,61 +1039,20 @@ REF_SetReference(int stratum,
   correction_rate = correction_time_ratio * 0.5 * offset_sd * update_interval;
 
   /* Check if the clock should be stepped */
-  if (is_step_limit_reached(our_offset, uncorrected_offset)) {
+  if (is_step_limit_reached(offset, uncorrected_offset)) {
     /* Cancel the uncorrected offset and correct the total offset by step */
     accumulate_offset = uncorrected_offset;
-    step_offset = our_offset - uncorrected_offset;
+    step_offset = offset - uncorrected_offset;
   } else {
-    accumulate_offset = our_offset;
+    accumulate_offset = offset;
     step_offset = 0.0;
   }
 
-  /* Eliminate updates that are based on totally unreliable frequency
-     information. Ignore this limit with manual reference. */
-
-  if (fabs(skew) < max_update_skew || leap == LEAP_Unsynchronised) {
-
-    previous_skew = our_skew;
-    new_skew = skew;
-
-    previous_freq = 0.0; /* We assume that the local clock is running
-                          according to our previously determined
-                          value; note that this is a delta frequency
-                          --- absolute frequencies are only known in
-                          the local module. */
-    new_freq = frequency;
-
-    /* Set new frequency based on weighted average of old and new skew. With
-       manual reference the old frequency has no weight. */
-
-    old_weight = leap != LEAP_Unsynchronised ? 1.0 / SQUARE(previous_skew) : 0.0;
-    new_weight = 3.0 / SQUARE(new_skew);
-
-    sum_weight = old_weight + new_weight;
-
-    our_frequency = (previous_freq * old_weight + new_freq * new_weight) / sum_weight;
-
-    delta_freq1 = previous_freq - our_frequency;
-    delta_freq2 = new_freq - our_frequency;
-
-    skew1 = sqrt((SQUARE(delta_freq1) * old_weight + SQUARE(delta_freq2) * new_weight) / sum_weight);
-    skew2 = (previous_skew * old_weight + new_skew * new_weight) / sum_weight;
-    our_skew = skew1 + skew2;
-
-    our_residual_freq = new_freq - our_frequency;
-
-    LCL_AccumulateFrequencyAndOffset(our_frequency, accumulate_offset, correction_rate);
+  /* Adjust the clock */
+  LCL_AccumulateFrequencyAndOffset(frequency, accumulate_offset, correction_rate);
     
-  } else {
-    DEBUG_LOG("Skew %f too large to track, offset=%f", skew, accumulate_offset);
-
-    LCL_AccumulateOffset(accumulate_offset, correction_rate);
-
-    our_residual_freq = frequency;
-  }
-
   update_leap_status(leap, raw_now.tv_sec, 0);
-  maybe_log_offset(our_offset, raw_now.tv_sec);
+  maybe_log_offset(offset, raw_now.tv_sec);
 
   if (step_offset != 0.0) {
     if (LCL_ApplyStepOffset(step_offset))
@@ -1084,36 +1071,33 @@ REF_SetReference(int stratum,
   if (UTI_CompareTimespecs(&our_ref_time, ref_time) >= 0)
     our_ref_time.tv_sec--;
 
-  abs_freq_ppm = LCL_ReadAbsoluteFrequency();
+  local_abs_frequency = LCL_ReadAbsoluteFrequency();
 
-  write_log(&now, combined_sources, abs_freq_ppm, our_offset, offset_sd,
-            uncorrected_offset, orig_root_distance);
+  write_log(&now, combined_sources, local_abs_frequency,
+            offset, offset_sd, uncorrected_offset, orig_root_distance);
 
   if (drift_file) {
     /* Update drift file at most once per hour */
     drift_file_age += update_interval;
     if (drift_file_age < 0.0 || drift_file_age > 3600.0) {
-      update_drift_file(abs_freq_ppm, our_skew);
+      update_drift_file(local_abs_frequency, our_skew);
       drift_file_age = 0.0;
     }
   }
 
   /* Update fallback drifts */
   if (fb_drifts && are_we_synchronised) {
-    update_fb_drifts(abs_freq_ppm, update_interval);
+    update_fb_drifts(local_abs_frequency, update_interval);
     schedule_fb_drift(&now);
   }
 
-  last_ref_update_interval = update_interval;
-  last_offset = our_offset;
-
   /* Update the moving average of squares of offset, quickly on start */
   if (avg2_moving) {
-    avg2_offset += 0.1 * (SQUARE(our_offset) - avg2_offset);
+    avg2_offset += 0.1 * (SQUARE(offset) - avg2_offset);
   } else {
-    if (avg2_offset > 0.0 && avg2_offset < SQUARE(our_offset))
+    if (avg2_offset > 0.0 && avg2_offset < SQUARE(offset))
       avg2_moving = 1;
-    avg2_offset = SQUARE(our_offset);
+    avg2_offset = SQUARE(offset);
   }
 }
 
