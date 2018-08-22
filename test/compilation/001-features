@@ -4,6 +4,8 @@
 
 cd ../..
 
+export CFLAGS="-O2 -Werror -Wpointer-arith -Wformat-signedness -Wno-unknown-warning-option -D_FORTIFY_SOURCE=2"
+
 for opts in \
 	"--enable-debug" \
 	"--enable-ntp-signd" \
