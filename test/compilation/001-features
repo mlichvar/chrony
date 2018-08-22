@@ -25,6 +25,6 @@ for opts in \
 	"--disable-cmdmon --disable-refclock" \
 	"--disable-cmdmon --disable-ntp --disable-refclock"
 do
-	./configure $opts
+	./configure $opts || exit 1
 	make "$@" || exit 1
 done
