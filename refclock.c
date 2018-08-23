@@ -372,7 +372,7 @@ convert_tai_offset(struct timespec *sample_time, double *offset)
   return 1;
 }
 
-static void
+static int
 accumulate_sample(RCL_Instance instance, struct timespec *sample_time, double offset, double dispersion)
 {
   NTP_Sample sample;
@@ -391,7 +391,7 @@ accumulate_sample(RCL_Instance instance, struct timespec *sample_time, double of
   else
     sample.stratum = instance->stratum;
 
-  SPF_AccumulateSample(instance->filter, &sample);
+  return SPF_AccumulateSample(instance->filter, &sample);
 }
 
 int
@@ -428,7 +428,10 @@ RCL_AddSample(RCL_Instance instance, struct timespec *sample_time, double offset
     return 0;
   }
 
-  accumulate_sample(instance, &cooked_time, offset - correction + instance->offset, dispersion);
+  if (!accumulate_sample(instance, &cooked_time,
+                         offset - correction + instance->offset, dispersion))
+    return 0;
+
   instance->pps_active = 0;
 
   log_sample(instance, &cooked_time, 0, 0, offset, offset - correction + instance->offset, dispersion);
@@ -570,7 +573,9 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
       return 0;
   }
 
-  accumulate_sample(instance, cooked_time, offset, dispersion);
+  if (!accumulate_sample(instance, cooked_time, offset, dispersion))
+    return 0;
+
   instance->leap_status = leap;
   instance->pps_active = 1;
 
@@ -599,17 +604,13 @@ RCL_GetDriverPoll(RCL_Instance instance)
 static int
 valid_sample_time(RCL_Instance instance, struct timespec *sample_time)
 {
-  NTP_Sample last_sample;
   struct timespec now;
   double diff;
 
   LCL_ReadCookedTime(&now, NULL);
   diff = UTI_DiffTimespecsToDouble(&now, sample_time);
 
-  if (diff < 0.0 || diff > UTI_Log2ToDouble(instance->poll + 1) ||
-      (SPF_GetNumberOfSamples(instance->filter) > 0 &&
-       SPF_GetLastSample(instance->filter, &last_sample) &&
-       UTI_CompareTimespecs(&last_sample.time, sample_time) >= 0)) {
+  if (diff < 0.0 || diff > UTI_Log2ToDouble(instance->poll + 1)) {
     DEBUG_LOG("%s refclock sample time %s not valid age=%.6f",
               UTI_RefidToString(instance->ref_id),
               UTI_TimespecToString(sample_time), diff);

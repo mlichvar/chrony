@@ -102,9 +102,30 @@ SPF_DestroyInstance(SPF_Instance filter)
 
 /* ================================================== */
 
-void
+/* Check that samples times are strictly increasing */
+
+static int
+check_sample(SPF_Instance filter, NTP_Sample *sample)
+{
+  if (filter->used <= 0)
+    return 1;
+
+  if (UTI_CompareTimespecs(&filter->samples[filter->last].time, &sample->time) >= 0) {
+    DEBUG_LOG("filter non-increasing sample time %s", UTI_TimespecToString(&sample->time));
+    return 0;
+  }
+
+  return 1;
+}
+
+/* ================================================== */
+
+int
 SPF_AccumulateSample(SPF_Instance filter, NTP_Sample *sample)
 {
+  if (!check_sample(filter, sample))
+      return 0;
+
   filter->index++;
   filter->index %= filter->max_samples;
   filter->last = filter->index;
@@ -116,6 +137,7 @@ SPF_AccumulateSample(SPF_Instance filter, NTP_Sample *sample)
   DEBUG_LOG("filter sample %d t=%s offset=%.9f peer_disp=%.9f",
             filter->index, UTI_TimespecToString(&sample->time),
             sample->offset, sample->peer_dispersion);
+  return 1;
 }
 
 /* ================================================== */
