@@ -559,7 +559,7 @@ combine_sources(int n_sel_sources, struct timespec *ref_time, double *offset,
     sum_offset_weight += offset_weight;
     sum_offset += offset_weight * src_offset;
     sum2_offset_sd += offset_weight * (SQUARE(src_offset_sd) +
-        (src_offset - *offset) * (src_offset - *offset));
+                                       SQUARE(src_offset - *offset));
 
     sum_frequency_weight += frequency_weight;
     sum_frequency += frequency_weight * src_frequency;
