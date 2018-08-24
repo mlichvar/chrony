@@ -3,13 +3,17 @@
 
 void test_unit(void) {
   NTP_int64 ntp_ts, ntp_fuzz;
+  NTP_int32 ntp32_ts;
   struct timespec ts, ts2;
   struct timeval tv;
   struct sockaddr_un sun;
-  double x, y;
+  double x, y, nan, inf;
+  Timespec tspec;
   Float f;
   int i, j, c;
   char buf[16], *s;
+  uid_t uid;
+  gid_t gid;
 
   for (i = -31; i < 31; i++) {
     x = pow(2.0, i);
@@ -31,6 +35,11 @@ void test_unit(void) {
     UTI_GetRandomBytes(&f, sizeof (f));
     x = UTI_FloatNetworkToHost(f);
     TEST_CHECK(x > 0.0 || x <= 0.0);
+  }
+
+  for (i = 0; i < 100000; i++) {
+    UTI_GetRandomBytes(&ntp32_ts, sizeof (ntp32_ts));
+    TEST_CHECK(UTI_DoubleToNtp32(UTI_Ntp32ToDouble(ntp32_ts)) == ntp32_ts);
   }
 
   TEST_CHECK(UTI_DoubleToNtp32(1.0) == htonl(65536));
@@ -175,6 +184,23 @@ void test_unit(void) {
       TEST_CHECK(c > 400 && c < 600);
   }
 
+  ts.tv_nsec = 0;
+
+  ts.tv_sec = 10;
+  TEST_CHECK(!UTI_IsTimeOffsetSane(&ts, -20.0));
+
+#ifdef HAVE_LONG_TIME_T
+  ts.tv_sec = NTP_ERA_SPLIT + (1LL << 32);
+#else
+  ts.tv_sec = 0x7fffffff - MIN_ENDOFTIME_DISTANCE;
+#endif
+  TEST_CHECK(!UTI_IsTimeOffsetSane(&ts, 10.0));
+  TEST_CHECK(UTI_IsTimeOffsetSane(&ts, -20.0));
+
+  UTI_TimespecHostToNetwork(&ts, &tspec);
+  UTI_TimespecNetworkToHost(&tspec, &ts2);
+  TEST_CHECK(!UTI_CompareTimespecs(&ts, &ts2));
+
   for (i = c = 0; i < 100000; i++) {
     j = random() % (sizeof (buf) + 1);
     UTI_GetRandomBytes(buf, j);
@@ -196,4 +222,47 @@ void test_unit(void) {
       TEST_CHECK(s[BUFFER_LENGTH - 2] == '>');
     }
   }
+
+  s = UTI_PathToDir("/aaa/bbb/ccc/ddd");
+  TEST_CHECK(!strcmp(s, "/aaa/bbb/ccc"));
+  Free(s);
+  s = UTI_PathToDir("aaa");
+  TEST_CHECK(!strcmp(s, "."));
+  Free(s);
+  s = UTI_PathToDir("/aaaa");
+  TEST_CHECK(!strcmp(s, "/"));
+  Free(s);
+
+  nan = strtod("nan", NULL);
+  inf = strtod("inf", NULL);
+
+  TEST_CHECK(MIN(2.0, -1.0) == -1.0);
+  TEST_CHECK(MIN(-1.0, 2.0) == -1.0);
+  TEST_CHECK(MIN(inf, 2.0) == 2.0);
+
+  TEST_CHECK(MAX(2.0, -1.0) == 2.0);
+  TEST_CHECK(MAX(-1.0, 2.0) == 2.0);
+  TEST_CHECK(MAX(inf, 2.0) == inf);
+
+  TEST_CHECK(CLAMP(1.0, -1.0, 2.0) == 1.0);
+  TEST_CHECK(CLAMP(1.0, 3.0, 2.0) == 2.0);
+  TEST_CHECK(CLAMP(1.0, inf, 2.0) == 2.0);
+  TEST_CHECK(CLAMP(1.0, nan, 2.0) == 2.0);
+
+  TEST_CHECK(SQUARE(3.0) == 3.0 * 3.0);
+
+  /* Suppress log messages */
+  unlink("test.log");
+  LOG_OpenFileLog("test.log");
+
+  rmdir("testdir");
+
+  uid = geteuid();
+  gid = getegid();
+
+  TEST_CHECK(UTI_CreateDirAndParents("testdir", 0700, uid, gid));
+  TEST_CHECK(UTI_CheckDirPermissions("testdir", 0700, uid, gid));
+  TEST_CHECK(!UTI_CheckDirPermissions("testdir", 0300, uid, gid));
+  TEST_CHECK(!UTI_CheckDirPermissions("testdir", 0700, uid + 1, gid));
+  TEST_CHECK(!UTI_CheckDirPermissions("testdir", 0700, uid, gid + 1));
 }
