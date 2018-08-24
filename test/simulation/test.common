@@ -75,10 +75,9 @@ default_client_min_mean_out_interval=0.0
 default_client_max_min_out_interval=inf
 
 # Initialize test settings from their defaults
-for defopt in $(declare | grep '^default_'); do
-	defoptname=${defopt%%=*}
+for defoptname in ${!default_*}; do
 	optname=${defoptname#default_}
-	eval "[ -z \"\${$optname:+a}\" ] && $optname=\"\$$defoptname\""
+	declare "$optname"="${!defoptname}"
 done
 
 test_start() {
@@ -358,14 +357,13 @@ check_packet_port() {
 
 # Print test settings which differ from default value
 print_nondefaults() {
-	local defopt defoptname optname
+	local defoptname optname
 
 	test_message 2 1 "non-default settings:"
-	declare | grep '^default_*' | while read defopt; do
-		defoptname=${defopt%%=*}
+	for defoptname in ${!default_*}; do
 		optname=${defoptname#default_}
-		eval "[ \"\$$optname\" = \"\$$defoptname\" ]" || \
-			test_message 3 1 $(eval "echo $optname=\$$optname")
+		[ "${!defoptname}" = "${!optname}" ] || \
+			test_message 3 1 $optname=${!optname}
 	done
 }
 
