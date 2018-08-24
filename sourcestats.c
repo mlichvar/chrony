@@ -726,10 +726,9 @@ SST_GetTrackingData(SST_Stats inst, struct timespec *ref_time,
   elapsed_sample = UTI_DiffTimespecsToDouble(&inst->offset_time, &inst->sample_times[i]);
   *root_dispersion = inst->root_dispersions[j] + inst->skew * elapsed_sample + *offset_sd;
 
-  DEBUG_LOG("n=%d freq=%f (%.3fppm) skew=%f (%.3fppm) avoff=%f offsd=%f disp=%f",
-            inst->n_samples, *frequency, 1.0e6* *frequency, *skew, 1.0e6* *skew,
-            *average_offset, *offset_sd, *root_dispersion);
-
+  DEBUG_LOG("n=%d off=%f offsd=%f freq=%e freqsd=%e skew=%e delay=%f disp=%f",
+            inst->n_samples, *average_offset, *offset_sd,
+            *frequency, *frequency_sd, *skew, *root_delay, *root_dispersion);
 }
 
 /* ================================================== */
