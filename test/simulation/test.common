@@ -62,7 +62,8 @@ default_client_rpeer_options=""
 default_server_conf=""
 default_client_conf=""
 default_chronyc_conf=""
-default_chronyd_options=""
+default_server_chronyd_options=""
+default_client_chronyd_options=""
 
 default_time_max_limit=1e-3
 default_freq_max_limit=5e-4
@@ -380,7 +381,7 @@ run_simulation() {
 }
 
 run_test() {
-	local i j n stratum node nodes step start freq offset conf
+	local i j n stratum node nodes step start freq offset conf options
 
 	test_message 1 1 "network with $servers*$server_strata servers and $clients clients:"
 	print_nondefaults
@@ -409,16 +410,19 @@ run_test() {
 				start=$server_start
 				freq=""
 				[ $i -le $falsetickers ] && offset=$i.0 || offset=0.0
+				options=$server_chronyd_options
 			elif [ $stratum -le $server_strata ]; then
 				step=$server_step
 				start=$server_start
 				freq=$(get_wander_expr)
 				offset=0.0
+				options=$server_chronyd_options
 			else
 				step=$client_step
 				start=$client_start
 				freq=$(get_wander_expr)
 				offset=$time_offset
+				options=$client_chronyd_options
 			fi
 
 			conf=$(get_chronyd_conf $stratum $i $n)
@@ -429,7 +433,7 @@ run_test() {
 				echo "node${node}_refclock = $(get_refclock_expr)" >> tmp/conf
 			echo "node${node}_offset = $offset" >> tmp/conf
 			echo "node${node}_start = $start" >> tmp/conf
-			start_client $node chronyd "$conf" "" "$chronyd_options" && \
+			start_client $node chronyd "$conf" "" "$options" && \
 				test_ok || test_error
 
 			[ $? -ne 0 ] && return 1
