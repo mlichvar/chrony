@@ -81,9 +81,9 @@ started without root privileges.
 
 *-r*::
 This option will try to reload and then delete files containing sample
-histories for each of the servers and reference clocks being used. These
-histories are created by using the <<chronyc.adoc#dump,*dump*>> command in
-*chronyc*, or by setting the <<chrony.conf.adoc#dumponexit,*dumponexit*>>
+histories for each of the servers and reference clocks being used. The
+files are expected to be in the directory specified by the
+<<chrony.conf.adoc#dumpdir,*dumpdir*>>
 directive in the configuration file. This option is useful if you want to stop
 and restart *chronyd* briefly for any reason, e.g. to install a new version.
 However, it should be used only on systems where the kernel can maintain clock
