@@ -63,6 +63,18 @@ advance_time(double x)
   UTI_AddDoubleToTimespec(&current_time, x, &current_time);
 }
 
+static uint32_t
+get_random_key_id(void)
+{
+  uint32_t id;
+
+  do {
+    id = random() % 6 + 2;
+  } while (!KEY_KeyKnown(id));
+
+  return id;
+}
+
 static void
 send_request(NCR_Instance inst)
 {
@@ -122,6 +134,7 @@ static void
 send_response(int interleaved, int authenticated, int allow_update, int valid_ts, int valid_auth)
 {
   NTP_Packet *req, *res;
+  int auth_len = 0;
 
   req = &req_buffer.ntp_pkt;
   res = &res_buffer.ntp_pkt;
@@ -168,24 +181,41 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
   }
 
   if (authenticated) {
-    res->auth_keyid = req->auth_keyid;
-    KEY_GenerateAuth(ntohl(res->auth_keyid), (unsigned char *)res, NTP_NORMAL_PACKET_LENGTH,
-                     res->auth_data, 16);
-    res_length = NTP_NORMAL_PACKET_LENGTH + 4 + 16;
+    res->auth_keyid = req->auth_keyid ? req->auth_keyid : htonl(get_random_key_id());
+    auth_len = KEY_GetAuthLength(ntohl(res->auth_keyid));
+    assert(auth_len);
+    if (NTP_LVM_TO_VERSION(res->lvm) == 4 && random() % 2)
+      auth_len = MIN(auth_len, NTP_MAX_V4_MAC_LENGTH - 4);
+
+    if (KEY_GenerateAuth(ntohl(res->auth_keyid), (unsigned char *)res,
+                         NTP_NORMAL_PACKET_LENGTH, res->auth_data, auth_len) != auth_len)
+      assert(0);
+    res_length = NTP_NORMAL_PACKET_LENGTH + 4 + auth_len;
   } else {
     res_length = NTP_NORMAL_PACKET_LENGTH;
   }
 
-  if (!valid_auth) {
-    switch (random() % 3) {
+  if (!valid_auth && authenticated) {
+    assert(auth_len);
+
+    switch (random() % 4) {
       case 0:
-        res->auth_keyid++;
+        res->auth_keyid = htonl(ntohl(res->auth_keyid) + 1);
         break;
       case 1:
-        res->auth_data[random() % 16]++;
+        res->auth_keyid = htonl(ntohl(res->auth_keyid) ^ 1);
+        if (KEY_GenerateAuth(ntohl(res->auth_keyid), (unsigned char *)res,
+                             NTP_NORMAL_PACKET_LENGTH, res->auth_data, auth_len) != auth_len)
+          assert(0);
         break;
       case 2:
-        res_length = NTP_NORMAL_PACKET_LENGTH;
+        res->auth_data[random() % auth_len]++;
+        break;
+      case 3:
+        res_length = NTP_NORMAL_PACKET_LENGTH + 4 * (random() % ((4 + auth_len) / 4));
+        if (NTP_LVM_TO_VERSION(res->lvm) == 4 &&
+            res_length == NTP_NORMAL_PACKET_LENGTH + NTP_MAX_V4_MAC_LENGTH)
+          res_length -= 4;
         break;
       default:
         assert(0);
@@ -292,7 +322,10 @@ test_unit(void)
   NIO_Initialise(IPADDR_UNSPEC);
   NCR_Initialise();
   REF_Initialise();
+
+  TST_SuspendLogging();
   KEY_Initialise();
+  TST_ResumeLogging();
 
   CNF_SetupAccessRestrictions();
 
@@ -302,7 +335,7 @@ test_unit(void)
     if (random() % 2)
       source.params.interleaved = 1;
     if (random() % 2)
-      source.params.authkey = 1;
+      source.params.authkey = get_random_key_id();
     source.params.version = random() % 4 + 1;
 
     UTI_ZeroTimespec(&current_time);
