@@ -30,4 +30,25 @@ check_chronyd_exit || test_fail
 check_source_selection || test_fail
 check_sync || test_fail
 
+base_delay="(+ 1e-4 (* -1 (equal 0.1 from 3) (equal 0.1 to 1)))"
+client_peer_options=""
+
+while read lminpoll lmaxpoll rminpoll rmaxpoll max_sync_time; do
+	client_lpeer_options="minpoll $lminpoll maxpoll $lmaxpoll"
+	client_rpeer_options="minpoll $rminpoll maxpoll $rmaxpoll"
+	limit=$[$max_sync_time * 10]
+
+	run_test || test_fail
+	check_chronyd_exit || test_fail
+	check_sync || test_fail
+done <<-EOF
+	3 6 3 6 400
+	3 3 6 6 450
+	6 6 3 3 450
+	3 6 6 6 450
+	6 6 3 6 450
+	-2 -2 2 2 220
+	2 2 -2 -2 220
+EOF
+
 test_pass
