@@ -338,8 +338,9 @@ register has 8 bits and is updated on every received or missed packet from
 the source. A value of 377 indicates that a valid reply was received for all
 from the last eight transmissions.
 *LastRx*:::
-This column shows how long ago the last sample was received from the source.
-This is normally in seconds. The letters _m_, _h_, _d_ or _y_ indicate
+This column shows how long ago the last good sample (which is shown in the next
+column) was received from the source. Measurements that failed some tests are
+ignored. This is normally in seconds. The letters _m_, _h_, _d_ or _y_ indicate
 minutes, hours, days, or years.
 *Last sample*:::
 This column shows the offset between the local clock and the source at the
