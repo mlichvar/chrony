@@ -106,7 +106,7 @@ test_unit(void)
       if (j >= tests[i].length)
         TEST_CHECK(length == tests[i].length);
       else
-        TEST_CHECK(length == 0 || length == j || length == tests[i].length);
+        TEST_CHECK(length == j);
 
       TEST_CHECK(!memcmp(out, tests[i].out, length));
     }
