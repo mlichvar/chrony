@@ -49,18 +49,17 @@ HSH_Hash(int id, const unsigned char *in1, unsigned int in1_len,
     const unsigned char *in2, unsigned int in2_len,
     unsigned char *out, unsigned int out_len)
 {
-  if (out_len < 16)
-    return 0;
-
   MD5Init(&ctx);
   MD5Update(&ctx, in1, in1_len);
   if (in2)
     MD5Update(&ctx, in2, in2_len);
   MD5Final(&ctx);
 
-  memcpy(out, ctx.digest, 16);
+  out_len = MIN(out_len, 16);
 
-  return 16;
+  memcpy(out, ctx.digest, out_len);
+
+  return out_len;
 }
 
 void

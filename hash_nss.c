@@ -32,6 +32,7 @@
 #include <nsslowhash.h>
 
 #include "hash.h"
+#include "util.h"
 
 static NSSLOWInitContext *ictx;
 
@@ -78,13 +79,17 @@ HSH_Hash(int id, const unsigned char *in1, unsigned int in1_len,
     const unsigned char *in2, unsigned int in2_len,
     unsigned char *out, unsigned int out_len)
 {
+  unsigned char buf[MAX_HASH_LENGTH];
   unsigned int ret = 0;
 
   NSSLOWHASH_Begin(hashes[id].context);
   NSSLOWHASH_Update(hashes[id].context, in1, in1_len);
   if (in2)
     NSSLOWHASH_Update(hashes[id].context, in2, in2_len);
-  NSSLOWHASH_End(hashes[id].context, out, &ret, out_len);
+  NSSLOWHASH_End(hashes[id].context, buf, &ret, sizeof (buf));
+
+  ret = MIN(ret, out_len);
+  memcpy(out, buf, ret);
 
   return ret;
 }

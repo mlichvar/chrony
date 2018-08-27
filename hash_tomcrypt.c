@@ -29,6 +29,7 @@
 
 #include "config.h"
 #include "hash.h"
+#include "util.h"
 
 struct hash {
   const char *name;
@@ -105,18 +106,23 @@ HSH_Hash(int id, const unsigned char *in1, unsigned int in1_len,
     const unsigned char *in2, unsigned int in2_len,
     unsigned char *out, unsigned int out_len)
 {
+  unsigned char buf[MAX_HASH_LENGTH];
   unsigned long len;
   int r;
 
-  len = out_len;
+  len = sizeof (buf);
   if (in2)
-    r = hash_memory_multi(id, out, &len,
-        in1, (unsigned long)in1_len, in2, (unsigned long)in2_len, NULL, 0);
+    r = hash_memory_multi(id, buf, &len,
+                          in1, (unsigned long)in1_len,
+                          in2, (unsigned long)in2_len, NULL, 0);
   else
-    r = hash_memory(id, in1, in1_len, out, &len);
+    r = hash_memory(id, in1, in1_len, buf, &len);
 
   if (r != CRYPT_OK)
     return 0;
+
+  len = MIN(len, out_len);
+  memcpy(out, buf, len);
 
   return len;
 }
