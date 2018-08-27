@@ -78,7 +78,7 @@ default_client_max_min_out_interval=inf
 # Initialize test settings from their defaults
 for defoptname in ${!default_*}; do
 	optname=${defoptname#default_}
-	declare "$optname"="${!defoptname}"
+	[ -z "${!optname}" ] && declare "$optname"="${!defoptname}"
 done
 
 test_start() {
