@@ -944,7 +944,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 )
 {
   NTP_Packet message;
-  int auth_len, mac_len, length, ret, precision;
+  int auth_len, max_auth_len, length, ret, precision;
   struct timespec local_receive, local_transmit;
   double smooth_offset, local_transmit_err;
   NTP_int64 ts_fuzz;
@@ -1082,24 +1082,21 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                           &message.transmit_ts, &ts_fuzz);
 
       if (auth_mode == AUTH_SYMMETRIC) {
+        /* Truncate long MACs in NTPv4 packets to allow deterministic parsing
+           of extension fields (RFC 7822) */
+        max_auth_len = version == 4 ?
+                       NTP_MAX_V4_MAC_LENGTH - 4 : sizeof (message.auth_data);
+
         auth_len = KEY_GenerateAuth(key_id, (unsigned char *) &message,
                                     offsetof(NTP_Packet, auth_keyid),
-                                    (unsigned char *)&message.auth_data,
-                                    sizeof (message.auth_data));
+                                    (unsigned char *)&message.auth_data, max_auth_len);
         if (!auth_len) {
           DEBUG_LOG("Could not generate auth data with key %"PRIu32, key_id);
           return 0;
         }
 
         message.auth_keyid = htonl(key_id);
-        mac_len = sizeof (message.auth_keyid) + auth_len;
-
-        /* Truncate MACs in NTPv4 packets to allow deterministic parsing
-           of extension fields (RFC 7822) */
-        if (version == 4 && mac_len > NTP_MAX_V4_MAC_LENGTH)
-          mac_len = NTP_MAX_V4_MAC_LENGTH;
-
-        length += mac_len;
+        length += sizeof (message.auth_keyid) + auth_len;
       } else if (auth_mode == AUTH_MSSNTP) {
         /* MS-SNTP packets are signed (asynchronously) by ntp_signd */
         return NSD_SignAndSendPacket(key_id, &message, where_to, from, length);
