@@ -282,9 +282,6 @@ static ARR_Instance broadcasts;
 /* Maximum poll interval set by KoD RATE */
 #define MAX_KOD_RATE_POLL SRC_DEFAULT_MAXPOLL
 
-/* Maximum number of missed responses to follow peer's polling interval */
-#define MAX_PEER_POLL_TX 8
-
 /* Maximum number of missed responses to accept samples using old timestamps
    in the interleaved client/server mode */
 #define MAX_CLIENT_INTERLEAVED_TX 4
@@ -813,7 +810,7 @@ get_transmit_poll(NCR_Instance inst)
   /* In symmetric mode, if the peer is responding, use shorter of the local
      and remote poll interval, but not shorter than the minimum */
   if (inst->mode == MODE_ACTIVE && poll > inst->remote_poll &&
-      inst->tx_count < MAX_PEER_POLL_TX)
+      SRC_IsReachable(inst->source))
     poll = MAX(inst->remote_poll, inst->minpoll);
 
   return poll;
