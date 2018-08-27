@@ -591,8 +591,8 @@ SRC_SelectSource(SRC_Instance updated_inst)
 {
   struct SelectInfo *si;
   struct timespec now, ref_time;
-  int i, j, j1, j2, index, sel_prefer, n_endpoints, n_sel_sources;
-  int n_badstats_sources, max_sel_reach, max_badstat_reach, sel_req_source;
+  int i, j, j1, j2, index, sel_prefer, n_endpoints, n_sel_sources, sel_req_source;
+  int n_badstats_sources, max_sel_reach, max_sel_reach_size, max_badstat_reach;
   int depth, best_depth, trust_depth, best_trust_depth;
   int combined, stratum, min_stratum, max_score_index;
   int orphan_stratum, orphan_source, leap_votes, leap_ins, leap_del;
@@ -624,6 +624,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   n_badstats_sources = 0;
   sel_req_source = 0;
   max_sel_reach = max_badstat_reach = 0;
+  max_sel_reach_size = 0;
   max_reach_sample_ago = 0.0;
 
   for (i = 0; i < n_sources; i++) {
@@ -683,6 +684,9 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
     if (max_sel_reach < sources[i]->reachability)
       max_sel_reach = sources[i]->reachability;
+
+    if (max_sel_reach_size < sources[i]->reachability_size)
+      max_sel_reach_size = sources[i]->reachability_size;
   }
 
   orphan_stratum = REF_GetOrphanStratum();
@@ -766,18 +770,17 @@ SRC_SelectSource(SRC_Instance updated_inst)
     n_endpoints += 2;
   }
 
-  DEBUG_LOG("badstat=%d sel=%d badstat_reach=%x sel_reach=%x max_reach_ago=%f",
+  DEBUG_LOG("badstat=%d sel=%d badstat_reach=%x sel_reach=%x size=%d max_reach_ago=%f",
             n_badstats_sources, n_sel_sources, (unsigned int)max_badstat_reach,
-            (unsigned int)max_sel_reach, max_reach_sample_ago);
+            (unsigned int)max_sel_reach, max_sel_reach_size, max_reach_sample_ago);
 
   /* Wait for the next call if we have no source selected and there is
      a source with bad stats (has less than 3 samples) with reachability
      equal to shifted maximum reachability of sources with valid stats.
      This delays selecting source on start with servers using the same
      polling interval until they all have valid stats. */
-  if (n_badstats_sources && n_sel_sources &&
-      selected_source_index == INVALID_SOURCE &&
-      max_sel_reach >> 1 == max_badstat_reach) {
+  if (n_badstats_sources && n_sel_sources && selected_source_index == INVALID_SOURCE &&
+      max_sel_reach_size < SOURCE_REACH_BITS && max_sel_reach >> 1 == max_badstat_reach) {
     mark_ok_sources(SRC_WAITS_STATS);
     return;
   }
