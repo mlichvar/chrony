@@ -99,7 +99,7 @@ extern void LOG_Message(LOG_Severity severity, const char *format, ...);
    */
 extern void LOG_SetDebugLevel(int level);
 
-/* Log messages to a file instead of stderr */
+/* Log messages to a file instead of stderr, or stderr again if NULL */
 extern void LOG_OpenFileLog(const char *log_file);
 
 /* Log messages to syslog instead of stderr */
