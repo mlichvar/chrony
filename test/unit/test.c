@@ -75,6 +75,16 @@ main(int argc, char **argv)
   return 0;
 }
 
+void TST_SuspendLogging(void)
+{
+  LOG_OpenFileLog("/dev/null");
+}
+
+void TST_ResumeLogging(void)
+{
+  LOG_OpenFileLog(NULL);
+}
+
 double
 TST_GetRandomDouble(double min, double max)
 {
