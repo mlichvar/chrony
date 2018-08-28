@@ -191,6 +191,9 @@ LOG_OpenFileLog(const char *log_file)
   /* Enable line buffering */
   setvbuf(f, NULL, _IOLBF, BUFSIZ);
 
+  if (file_log && file_log != stderr)
+    fclose(file_log);
+
   file_log = f;
 }
 
