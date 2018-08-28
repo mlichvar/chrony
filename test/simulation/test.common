@@ -337,6 +337,24 @@ check_chronyc_output() {
 	return $ret
 }
 
+# Check the number of messages matching a matter in the client logs
+check_log_messages() {
+	local i count ret=0 pattern=$1 min=$2 max=$3
+
+	test_message 2 1 "checking number of messages \"$pattern\":"
+
+	for i in $(seq $[$servers * $server_strata + 1] $(get_chronyd_nodes)); do
+		count=$(grep "$pattern" tmp/log.$i | wc -l)
+		test_message 3 0 "node $i: $count"
+
+		[ "$min" -le "$count" ] && [ "$count" -le "$max" ] && \
+			test_ok || test_bad
+		[ $? -eq 0 ] || ret=1
+	done
+
+	return $ret
+}
+
 # Check if only NTP port (123) was used
 check_packet_port() {
 	local i ret=0 port=123
