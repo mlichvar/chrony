@@ -827,6 +827,8 @@ NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,
 
     ipi = (struct in_pktinfo *) CMSG_DATA(cmsg);
     ipi->ipi_spec_dst.s_addr = htonl(local_addr->ip_addr.addr.in4);
+    if (local_addr->if_index != INVALID_IF_INDEX)
+      ipi->ipi_ifindex = local_addr->if_index;
   }
 #endif
 
@@ -845,6 +847,8 @@ NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,
     ipi = (struct in6_pktinfo *) CMSG_DATA(cmsg);
     memcpy(&ipi->ipi6_addr.s6_addr, &local_addr->ip_addr.addr.in6,
         sizeof(ipi->ipi6_addr.s6_addr));
+    if (local_addr->if_index != INVALID_IF_INDEX)
+      ipi->ipi6_ifindex = local_addr->if_index;
   }
 #endif
 
