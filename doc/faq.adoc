@@ -171,6 +171,11 @@ network latency and stability of the system clock (which mainly depends on the
 temperature sensitivity of the crystal oscillator and the maximum rate of the
 temperature change).
 
+Generally, if the `sourcestats` command usually reports a small number of
+samples retained for a source (e.g. fewer than 16), a shorter polling interval
+should be considered. If the number of samples is usually at the maximum of 64,
+a longer polling interval may work better.
+
 An example of the directive for an NTP server on the Internet that you are
 allowed to poll frequently could be
 
@@ -178,15 +183,15 @@ allowed to poll frequently could be
 server foo.example.net minpoll 4 maxpoll 6 polltarget 16
 ----
 
-An example using very short polling intervals for a server located in the same
+An example using shorter polling intervals with a server located in the same
 LAN could be
 
 ----
 server ntp.local minpoll 2 maxpoll 4 polltarget 30
 ----
 
-The maxdelay options are useful to ignore measurements with larger delay (e.g.
-due to congestion in the network) and improve the stability of the
+The maxdelay options are useful to ignore measurements with an unusally large
+delay (e.g. due to congestion in the network) and improve the stability of the
 synchronisation. The `maxdelaydevratio` option could be added to the example
 with local NTP server
 
@@ -194,15 +199,32 @@ with local NTP server
 server ntp.local minpoll 2 maxpoll 4 polltarget 30 maxdelaydevratio 2
 ----
 
-If your server supports the interleaved mode, the `xleave` option should be
-added to the `server` directive in order to allow the server to send the
-client more accurate hardware or kernel transmit timestamps. When combined with
-local hardware timestamping, sub-microsecond accuracy may be possible. An
-example could be
+If your server supports the interleaved mode (e.g. it is running `chronyd`),
+the `xleave` option should be added to the `server` directive in order to allow
+the server to send the client more accurate transmit timestamps (kernel or
+preferably hardware). For example:
 
 ----
-server ntp.local minpoll 2 maxpoll 2 xleave
+server ntp.local minpoll 2 maxpoll 4 xleave
+----
+
+When combined with local hardware timestamping, good network switches, and even
+shorter polling intervals, a sub-microsecond accuracy and stability of a few
+tens of nanoseconds may be possible. For example:
+
+----
+server ntp.local minpoll 0 maxpoll 0 xleave
 hwtimestamp eth0
+----
+
+If it is acceptable for NTP clients in the network to send requests at an
+excessive rate, a sub-second polling interval may be specified. A median filter
+can be enabled in order to update the clock at a reduced rate with more stable
+measurements. For example:
+
+----
+server ntp.local minpoll -6 maxpoll -6 filter 15 xleave
+hwtimestamp eth0 minpoll -6
 ----
 
 === Does `chronyd` have an ntpdate mode?
