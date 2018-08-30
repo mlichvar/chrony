@@ -231,11 +231,11 @@ prepare_socket(int family, int port_number, int client_only)
 
   if (family == AF_INET) {
 #ifdef HAVE_IN_PKTINFO
-    /* We want the local IP info on server sockets */
-    if (setsockopt(sock_fd, IPPROTO_IP, IP_PKTINFO, (char *)&on_off, sizeof(on_off)) < 0) {
+    if (setsockopt(sock_fd, IPPROTO_IP, IP_PKTINFO, (char *)&on_off, sizeof(on_off)) < 0)
       LOG(LOGS_ERR, "Could not set %s socket option", "IP_PKTINFO");
-      /* Don't quit - we might survive anyway */
-    }
+#elif defined(IP_RECVDSTADDR)
+    if (setsockopt(sock_fd, IPPROTO_IP, IP_RECVDSTADDR, (char *)&on_off, sizeof(on_off)) < 0)
+      LOG(LOGS_ERR, "Could not set %s socket option", "IP_RECVDSTADDR");
 #endif
   }
 #ifdef FEAT_IPV6
@@ -642,6 +642,14 @@ process_message(struct msghdr *hdr, int length, int sock_fd)
       local_addr.ip_addr.family = IPADDR_INET4;
       local_addr.if_index = ipi.ipi_ifindex;
     }
+#elif defined(IP_RECVDSTADDR)
+    if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_RECVDSTADDR) {
+      struct in_addr addr;
+
+      memcpy(&addr, CMSG_DATA(cmsg), sizeof (addr));
+      local_addr.ip_addr.addr.in4 = ntohl(addr.s_addr);
+      local_addr.ip_addr.family = IPADDR_INET4;
+    }
 #endif
 
 #ifdef HAVE_IN6_PKTINFO
@@ -813,8 +821,8 @@ NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,
   msg.msg_flags = 0;
   cmsglen = 0;
 
-#ifdef HAVE_IN_PKTINFO
   if (local_addr->ip_addr.family == IPADDR_INET4) {
+#ifdef HAVE_IN_PKTINFO
     struct in_pktinfo *ipi;
 
     cmsg = CMSG_FIRSTHDR(&msg);
@@ -829,8 +837,21 @@ NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,
     ipi->ipi_spec_dst.s_addr = htonl(local_addr->ip_addr.addr.in4);
     if (local_addr->if_index != INVALID_IF_INDEX)
       ipi->ipi_ifindex = local_addr->if_index;
-  }
+#elif defined(IP_SENDSRCADDR)
+    struct in_addr *addr;
+
+    cmsg = CMSG_FIRSTHDR(&msg);
+    memset(cmsg, 0, CMSG_SPACE(sizeof (struct in_addr)));
+    cmsglen += CMSG_SPACE(sizeof (struct in_addr));
+
+    cmsg->cmsg_level = IPPROTO_IP;
+    cmsg->cmsg_type = IP_SENDSRCADDR;
+    cmsg->cmsg_len = CMSG_LEN(sizeof (struct in_addr));
+
+    addr = (struct in_addr *)CMSG_DATA(cmsg);
+    addr->s_addr = htonl(local_addr->ip_addr.addr.in4);
 #endif
+  }
 
 #ifdef HAVE_IN6_PKTINFO
   if (local_addr->ip_addr.family == IPADDR_INET6) {
