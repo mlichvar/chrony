@@ -1,3 +1,28 @@
+New in version 3.4
+==================
+
+Enhancements
+------------
+* Add filter option to server/pool/peer directive
+* Add minsamples and maxsamples options to hwtimestamp directive
+* Add support for faster frequency adjustments in Linux 4.19
+* Change default pidfile to /var/run/chrony/chronyd.pid to allow
+  chronyd without root privileges to remove it on exit
+* Disable sub-second polling intervals for distant NTP sources
+* Extend range of supported sub-second polling intervals
+* Get/set IPv4 destination/source address of NTP packets on FreeBSD
+* Make burst options and command useful with short polling intervals
+* Modify auto_offline option to activate when sending request failed
+* Respond from interface that received NTP request if possible
+* Add onoffline command to switch between online and offline state
+  according to current system network configuration
+* Improve example NetworkManager dispatcher script
+
+Bug fixes
+---------
+* Avoid waiting in Linux getrandom system call
+* Fix PPS support on FreeBSD and NetBSD
+
 New in version 3.3
 ==================
 
