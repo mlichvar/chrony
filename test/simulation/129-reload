@@ -9,7 +9,8 @@ limit=100
 min_sync_time=100
 max_sync_time=104
 client_chronyd_options="-r"
-client_conf="dumpdir tmp"
+client_conf="dumpdir tmp
+maxupdateskew 10000"
 
 run_test || test_fail
 
