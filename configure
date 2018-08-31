@@ -647,7 +647,7 @@ fi
 
 if [ $feat_asyncdns = "1" ] && \
   test_code 'pthread' 'pthread.h' '-pthread' '' \
-    'return pthread_create((void *)1, NULL, (void *)1, NULL);'
+    'return (int)pthread_create((void *)1, NULL, (void *)1, NULL);'
 then
   add_def FEAT_ASYNCDNS
   add_def USE_PTHREAD_ASYNCDNS
