@@ -18,8 +18,12 @@
  **********************************************************************
  */
 
-#include <samplefilt.c>
+#include <local.h>
 #include "test.h"
+
+#define LCL_GetSysPrecisionAsQuantum() (1.0e-6)
+
+#include <samplefilt.c>
 
 void
 test_unit(void)
