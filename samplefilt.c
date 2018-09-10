@@ -75,7 +75,7 @@ SPF_CreateInstance(int min_samples, int max_samples, double max_dispersion, doub
   filter->last = -1;
   /* Set the first estimate to the system precision */
   filter->avg_var_n = 0;
-  filter->avg_var = LCL_GetSysPrecisionAsQuantum() * LCL_GetSysPrecisionAsQuantum();
+  filter->avg_var = SQUARE(LCL_GetSysPrecisionAsQuantum());
   filter->max_var = SQUARE(max_dispersion);
   filter->combine_ratio = combine_ratio;
   filter->samples = MallocArray(NTP_Sample, filter->max_samples);
