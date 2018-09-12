@@ -95,6 +95,8 @@ for chronyc_conf in \
 	"delete 10.0.0.0" \
 	"deny 1.2.3.4" \
 	"deny all 1.2.3.0/24" \
+	"dfreq 1.0e-3" \
+	"doffset -1.0" \
 	"dump" \
 	"local stratum 5 distance 1.0 orphan" \
 	"local off" \
@@ -126,6 +128,7 @@ for chronyc_conf in \
 	"settime 16:30" \
 	"settime 16:30:05" \
 	"settime Nov 21, 2015 16:30:05" \
+	"serverstats" \
 	"shutdown" \
 	"smoothtime reset" \
 	"smoothtime activate" \
@@ -136,5 +139,25 @@ do
 	check_chronyd_exit || test_fail
 	check_chronyc_output "501 Not authorised" || test_fail
 done
+
+chronyc_conf="dns -n
+dns +n
+dns -4
+dns -6
+dns -46
+timeout 200
+retries 1
+keygen
+keygen 10 MD5 128
+help
+quit
+nosuchcommand"
+
+run_test || test_fail
+
+check_chronyc_output "^1 (MD5|SHA1) HEX:........................................
+10 MD5 HEX:................................
+System clock:.*this help
+ *$" || test_fail
 
 test_pass
