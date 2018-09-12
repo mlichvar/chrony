@@ -2049,6 +2049,10 @@ that has password shorter than 80 bits.
 The <<chronyc.adoc#keygen,*keygen*>> command of *chronyc* can be used to
 generate random keys for the key file. By default, it generates 160-bit MD5 or
 SHA1 keys.
++
+For security reasons, the file should be readable only by root and the user
+under which *chronyd* is normally running (to allow *chronyd* to re-read the
+file when the <<chronyc.adoc#rekey,*rekey*>> command is issued by *chronyc*).
 
 [[lock_all]]*lock_all*::
 The *lock_all* directive will lock chronyd into RAM so that it will never be
