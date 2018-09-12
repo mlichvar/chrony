@@ -1,9 +1,12 @@
 .deps
 .vimrc
+*.gcda
+*.gcno
 *.o
 *.swp
 *.dSYM
 *.DS_Store
+core.*
 tags
 /RELEASES
 /Makefile
