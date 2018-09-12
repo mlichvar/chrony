@@ -3,7 +3,7 @@
 
  **********************************************************************
  * Copyright (C) Richard P. Curnow  1997-2003
- * Copyright (C) Lonnie Abelbeck  2016
+ * Copyright (C) Lonnie Abelbeck  2016, 2018
  * Copyright (C) Miroslav Lichvar  2009-2018
  * 
  * This program is free software; you can redistribute it and/or modify
