@@ -1,6 +1,7 @@
-# This is an example chrony keys file.  It is used for NTP authentication with
-# symmetric keys.  It should be readable only by root or the user to which
-# chronyd is configured to switch to after start.
+# This is an example chrony keys file.  It enables authentication of NTP
+# packets with symmetric keys when its location is specified by the keyfile
+# directive in chrony.conf(5).  It should be readable only by root and the
+# user under which chronyd is running.
 #
 # Don't use the example keys!  It's recommended to generate random keys using
 # the chronyc keygen command.
