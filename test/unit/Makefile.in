@@ -30,7 +30,7 @@ check: $(TESTS)
 	exit $$ret
 
 clean:
-	rm -f *.o $(TESTS)
+	rm -f *.o *.gcda *.gcno core.* $(TESTS)
 	rm -rf .deps
 
 distclean: clean
