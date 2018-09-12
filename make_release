@@ -36,8 +36,6 @@ cd RELEASES/$subdir || exit 1
 
 echo $version > version.txt
 
-sed -i -e "s%@@VERSION@@%${version}%" examples/chrony.spec
-
 ./configure && make -C doc man txt || exit 1
 
 iconv -f utf-8 -t ascii//TRANSLIT < doc/installation.txt > INSTALL
