@@ -11,13 +11,13 @@ SHARED_OBJS = test.o
 TEST_OBJS := $(sort $(patsubst %.c,%.o,$(wildcard *.c)))
 TESTS := $(patsubst %.o,%.test,$(filter-out $(SHARED_OBJS),$(TEST_OBJS)))
 
-FILTER_OBJS = %/main.o %/client.o %/getdate.o
-CHRONY_OBJS := $(filter-out $(FILTER_OBJS),$(wildcard $(CHRONY_SRCDIR)/*.o))
+CHRONYD_OBJS := $(patsubst %.o,$(CHRONY_SRCDIR)/%.o,$(filter-out main.o,\
+		  $(shell $(MAKE) -s -C $(CHRONY_SRCDIR) print-chronyd-objects)))
 
 all: $(TESTS)
 
 %.test: %.o $(SHARED_OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(CHRONY_OBJS:%/$*.o=) $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $^ $(CHRONYD_OBJS:%/$*.o=) $(LDFLAGS)
 
 %.o: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $<

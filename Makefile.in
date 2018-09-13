@@ -118,6 +118,9 @@ check : chronyd chronyc
 	$(MAKE) -C test/unit check
 	cd test/simulation && ./run -i 20 -m 2
 
+print-chronyd-objects :
+	@echo $(OBJS) $(EXTRA_OBJS)
+
 Makefile : Makefile.in configure
 	@echo
 	@echo Makefile needs to be regenerated, run ./configure
