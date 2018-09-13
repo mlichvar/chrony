@@ -16,8 +16,10 @@ CHRONYD_OBJS := $(patsubst %.o,$(CHRONY_SRCDIR)/%.o,$(filter-out main.o,\
 
 all: $(TESTS)
 
-%.test: %.o $(SHARED_OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(CHRONYD_OBJS:%/$*.o=) $(LDFLAGS)
+$(CHRONY_OBJS): ;
+
+%.test: %.o $(SHARED_OBJS) $(CHRONYD_OBJS)
+	$(CC) $(CFLAGS) -o $@ $(filter-out $(CHRONY_SRCDIR)/$<,$^) $(LDFLAGS)
 
 %.o: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $<
