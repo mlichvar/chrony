@@ -661,6 +661,13 @@ The *minsamples* directive sets the default minimum number of samples that
 *chronyd* should keep for each source. This setting can be overridden for
 individual sources in the <<server,*server*>> and <<refclock,*refclock*>>
 directives. The default value is 6. The useful range is 4 to 64.
++
+Forcing *chronyd* to keep more samples than it would normally keep reduces
+noise in the estimated frequency and offset, but slows down the response to
+changes in the frequency and offset of the clock. The offsets in the
+<<chronyc.adoc#tracking,*tracking*>> and
+<<chronyc.adoc#sourcestats,*sourcestats*>> reports (and the _tracking.log_ and
+_statistics.log_ files) may be smaller than the actual offsets.
 
 === Source selection
 
