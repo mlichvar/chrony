@@ -238,6 +238,29 @@ specified on the command line. For example:
 # chronyd -q 'pool pool.ntp.org iburst'
 ----
 
+=== Can `chronyd` be configured to control the clock like `ntpd`?
+
+It is not possible to perfectly emulate `ntpd`, but there are some options that
+can configure `chronyd` to behave more like `ntpd`.
+
+In the following example the `minsamples` directive slows down the response to
+changes in the frequency and offset of the clock. The `maxslewrate` and
+`corrtimeratio` directives reduce the maximum frequency error due to an offset
+correction and the `maxdrift` directive reduces the maximum assumed frequency
+error of the clock. The `makestep` directive enables a step threshold and the
+`maxchange` directive enables a panic threshold. The `maxclockerror` directive
+increases the minimum dispersion rate.
+
+----
+minsamples 32
+maxslewrate 500
+corrtimeratio 100
+maxdrift 500
+makestep 0.128 -1
+maxchange 1000 1 1
+maxclockerror 15
+----
+
 === What happened to the `commandkey` and `generatecommandkey` directives?
 
 They were removed in version 2.2. Authentication is no longer supported in the
