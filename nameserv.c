@@ -30,6 +30,9 @@
 
 #include "sysincl.h"
 
+#include <netdb.h>
+#include <resolv.h>
+
 #include "nameserv.h"
 #include "util.h"
 
