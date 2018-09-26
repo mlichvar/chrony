@@ -22,6 +22,7 @@
 #include <sysincl.h>
 #include <logging.h>
 #include <localp.h>
+#include <util.h>
 
 #include "test.h"
 
