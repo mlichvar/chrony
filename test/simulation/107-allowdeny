@@ -4,6 +4,8 @@
 
 test_start "allow/deny directives"
 
+check_config_h 'FEAT_CMDMON 1' || test_skip
+
 limit=500
 
 # Note that start_client in clknetsim.bash always adds allow to the config

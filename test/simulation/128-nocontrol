@@ -4,6 +4,8 @@
 
 test_start "-x option"
 
+check_config_h 'FEAT_CMDMON 1' || test_skip
+
 wander=0.0
 time_offset=0.0
 freq_offset=0.0

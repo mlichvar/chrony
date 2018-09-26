@@ -84,6 +84,8 @@ done
 test_start() {
 	rm -f tmp/*
 	echo "Testing $@:"
+
+	check_config_h 'FEAT_NTP 1' || test_skip
 }
 
 test_pass() {

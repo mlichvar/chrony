@@ -1,7 +1,10 @@
 #!/bin/bash
 
 . ./test.common
+
 test_start "tai option"
+
+check_config_h 'FEAT_REFCLOCK 1' || test_skip
 
 export CLKNETSIM_START_DATE=$(TZ=UTC date -d 'Dec 31 2008 23:50:00' +'%s')
 

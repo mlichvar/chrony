@@ -4,6 +4,8 @@
 
 test_start "orphan option"
 
+check_config_h 'FEAT_CMDMON 1' || test_skip
+
 server_strata=3
 server_conf="local stratum 5 orphan
 server 192.168.123.1

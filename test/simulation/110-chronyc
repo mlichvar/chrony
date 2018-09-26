@@ -4,6 +4,9 @@
 
 test_start "chronyc"
 
+check_config_h 'FEAT_REFCLOCK 1' || test_skip
+check_config_h 'FEAT_CMDMON 1' || test_skip
+
 refclock_jitter=$jitter
 client_conf="
 refclock SHM 0 noselect

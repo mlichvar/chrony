@@ -18,10 +18,14 @@
  **********************************************************************
  */
 
+#include <config.h>
+#include "test.h"
+
+#ifdef FEAT_NTP
+
 #include <ntp_sources.c>
 #include <conf.h>
 #include <ntp_io.h>
-#include "test.h"
 
 void
 test_unit(void)
@@ -98,3 +102,11 @@ test_unit(void)
   CNF_Finalise();
   HSH_Finalise();
 }
+
+#else
+void
+test_unit(void)
+{
+  TEST_REQUIRE(0);
+}
+#endif

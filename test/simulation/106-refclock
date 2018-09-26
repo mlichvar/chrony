@@ -3,6 +3,10 @@
 . ./test.common
 test_start "SHM refclock"
 
+check_config_h 'FEAT_REFCLOCK 1' || test_skip
+check_config_h 'FEAT_PHC 1' || test_skip
+check_config_h 'FEAT_CMDMON 1' || test_skip
+
 servers=0
 limit=1000
 refclock_jitter=$jitter

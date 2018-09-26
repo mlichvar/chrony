@@ -1,7 +1,10 @@
 #!/bin/bash
 
 . ./test.common
+
 test_start "smoothtime option"
+
+check_config_h 'FEAT_REFCLOCK 1' || test_skip
 
 server_strata=2
 server_conf="smoothtime 400 0.001"

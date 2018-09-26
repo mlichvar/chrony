@@ -1,7 +1,10 @@
 #!/bin/bash
 
 . ./test.common
+
 test_start "log directive"
+
+check_config_h 'FEAT_PHC 1' || test_skip
 
 refclock_jitter=$jitter
 client_server_options="maxpoll 6"

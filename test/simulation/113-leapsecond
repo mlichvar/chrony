@@ -1,7 +1,10 @@
 #!/bin/bash
 
 . ./test.common
+
 test_start "leap second"
+
+check_config_h 'FEAT_REFCLOCK 1' || test_skip
 
 export CLKNETSIM_START_DATE=$(TZ=UTC date -d 'Dec 30 2008 0:00:00' +'%s')
 

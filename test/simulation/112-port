@@ -4,6 +4,8 @@
 
 test_start "port and acquisitionport directives"
 
+check_config_h 'FEAT_CMDMON 1' || test_skip
+
 run_test || test_fail
 check_chronyd_exit || test_fail
 check_source_selection || test_fail

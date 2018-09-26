@@ -4,6 +4,8 @@
 
 test_start "hwtimestamp directive"
 
+check_config_h 'HAVE_LINUX_TIMESTAMPING 1' || test_skip
+
 export CLKNETSIM_TIMESTAMPING=2
 
 refclock_jitter=1e-8
