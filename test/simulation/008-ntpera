@@ -16,7 +16,7 @@ check_packet_interval || test_fail
 check_sync || test_fail
 
 # The following tests need 64-bit time_t
-grep -q 'HAVE_LONG_TIME_T 1' ../../config.h || test_skip
+check_config_h 'HAVE_LONG_TIME_T 1' || test_skip
 
 for year in 1990 2090; do
 	export CLKNETSIM_START_DATE=$(date -d "Jan  1 00:00:00 UTC $year" +'%s')

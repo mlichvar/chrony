@@ -5,7 +5,7 @@
 test_start "cmdmon timestamps"
 
 # The following tests need 64-bit time_t
-grep -q 'HAVE_LONG_TIME_T 1' ../../config.h || test_skip
+check_config_h 'HAVE_LONG_TIME_T 1' || test_skip
 
 limit=2
 client_server_options="noselect"

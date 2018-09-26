@@ -23,7 +23,7 @@ EOF
 
 keys=4
 
-if grep -q 'FEAT_SECHASH 1' ../../config.h; then
+if check_config_h 'FEAT_SECHASH 1'; then
 	hashes="MD5 SHA1 SHA256 SHA384 SHA512"
 else
 	hashes="MD5"

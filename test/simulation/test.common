@@ -211,6 +211,12 @@ get_chronyd_conf() {
 	fi
 }
 
+# Check if chrony was built with specified option in config.h
+check_config_h() {
+	local pattern=$1
+	grep -q "^#define $pattern" ../../config.h
+}
+
 # Check if the clock was well synchronized
 check_sync() {
 	local i sync_time max_time_error max_freq_error ret=0
