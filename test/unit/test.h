@@ -33,7 +33,16 @@ extern void test_unit(void);
     } \
   } while (0)
 
+#define TEST_REQUIRE(expr) \
+  do { \
+    if (!(expr)) { \
+      TST_Skip(__LINE__); \
+      exit(0); \
+    } \
+  } while (0)
+
 extern void TST_Fail(int line);
+extern void TST_Skip(int line);
 
 extern void TST_SuspendLogging(void);
 extern void TST_ResumeLogging(void);

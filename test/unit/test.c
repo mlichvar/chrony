@@ -33,6 +33,13 @@ TST_Fail(int line)
   exit(1);
 }
 
+void
+TST_Skip(int line)
+{
+  printf("SKIP (on line %d)\n", line);
+  exit(0);
+}
+
 int
 main(int argc, char **argv)
 {
