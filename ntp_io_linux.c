@@ -584,7 +584,11 @@ process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
   if (rx_ntp_length && iface->link_speed) {
     if (!l2_length)
       l2_length = (family == IPADDR_INET4 ? iface->l2_udp4_ntp_start :
-                   iface->l2_udp6_ntp_start) + rx_ntp_length + 4;
+                   iface->l2_udp6_ntp_start) + rx_ntp_length;
+
+    /* Include the frame check sequence (FCS) */
+    l2_length += 4;
+
     rx_correction = l2_length / (1.0e6 / 8 * iface->link_speed);
 
     UTI_AddDoubleToTimespec(hw_ts, rx_correction, hw_ts);
