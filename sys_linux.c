@@ -701,35 +701,17 @@ SYS_Linux_CheckKernelVersion(int req_major, int req_minor)
 #define PHC_READINGS 10
 
 static int
-get_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
-               struct timespec *sys_ts, double *err)
+process_phc_readings(struct timespec ts[][3], int n, double precision,
+                     struct timespec *phc_ts, struct timespec *sys_ts, double *err)
 {
-  struct ptp_sys_offset sys_off;
-  struct timespec ts1, ts2, ts3, phc_tss[PHC_READINGS], sys_tss[PHC_READINGS];
-  double min_delay = 0.0, delays[PHC_READINGS], phc_sum, sys_sum, sys_prec;
-  int i, n;
+  double min_delay = 0.0, delays[PTP_MAX_SAMPLES], phc_sum, sys_sum, sys_prec;
+  int i, combined;
 
-  /* Silence valgrind */
-  memset(&sys_off, 0, sizeof (sys_off));
-
-  sys_off.n_samples = PHC_READINGS;
-
-  if (ioctl(phc_fd, PTP_SYS_OFFSET, &sys_off)) {
-    DEBUG_LOG("ioctl(%s) failed : %s", "PTP_SYS_OFFSET", strerror(errno));
+  if (n > PTP_MAX_SAMPLES)
     return 0;
-  }
 
-  for (i = 0; i < PHC_READINGS; i++) {
-    ts1.tv_sec = sys_off.ts[i * 2].sec;
-    ts1.tv_nsec = sys_off.ts[i * 2].nsec;
-    ts2.tv_sec = sys_off.ts[i * 2 + 1].sec;
-    ts2.tv_nsec = sys_off.ts[i * 2 + 1].nsec;
-    ts3.tv_sec = sys_off.ts[i * 2 + 2].sec;
-    ts3.tv_nsec = sys_off.ts[i * 2 + 2].nsec;
-
-    sys_tss[i] = ts1;
-    phc_tss[i] = ts2;
-    delays[i] = UTI_DiffTimespecsToDouble(&ts3, &ts1);
+  for (i = 0; i < n; i++) {
+    delays[i] = UTI_DiffTimespecsToDouble(&ts[i][2], &ts[i][0]);
 
     if (delays[i] < 0.0) {
       /* Step in the middle of a PHC reading? */
@@ -744,23 +726,56 @@ get_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
   sys_prec = LCL_GetSysPrecisionAsQuantum();
 
   /* Combine best readings */
-  for (i = n = 0, phc_sum = sys_sum = 0.0; i < PHC_READINGS; i++) {
+  for (i = combined = 0, phc_sum = sys_sum = 0.0; i < n; i++) {
     if (delays[i] > min_delay + MAX(sys_prec, precision))
       continue;
 
-    phc_sum += UTI_DiffTimespecsToDouble(&phc_tss[i], &phc_tss[0]);
-    sys_sum += UTI_DiffTimespecsToDouble(&sys_tss[i], &sys_tss[0]) + delays[i] / 2.0;
-    n++;
+    phc_sum += UTI_DiffTimespecsToDouble(&ts[i][1], &ts[0][1]);
+    sys_sum += UTI_DiffTimespecsToDouble(&ts[i][0], &ts[0][0]) + delays[i] / 2.0;
+    combined++;
   }
 
-  assert(n);
+  assert(combined);
 
-  UTI_AddDoubleToTimespec(&phc_tss[0], phc_sum / n, phc_ts);
-  UTI_AddDoubleToTimespec(&sys_tss[0], sys_sum / n, sys_ts);
+  UTI_AddDoubleToTimespec(&ts[0][1], phc_sum / combined, phc_ts);
+  UTI_AddDoubleToTimespec(&ts[0][0], sys_sum / combined, sys_ts);
   *err = MAX(min_delay / 2.0, precision);
 
   return 1;
 }
+
+/* ================================================== */
+
+static int
+get_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
+               struct timespec *sys_ts, double *err)
+{
+  struct timespec ts[PHC_READINGS][3];
+  struct ptp_sys_offset sys_off;
+  int i;
+
+  /* Silence valgrind */
+  memset(&sys_off, 0, sizeof (sys_off));
+
+  sys_off.n_samples = PHC_READINGS;
+
+  if (ioctl(phc_fd, PTP_SYS_OFFSET, &sys_off)) {
+    DEBUG_LOG("ioctl(%s) failed : %s", "PTP_SYS_OFFSET", strerror(errno));
+    return 0;
+  }
+
+  for (i = 0; i < PHC_READINGS; i++) {
+    ts[i][0].tv_sec = sys_off.ts[i * 2].sec;
+    ts[i][0].tv_nsec = sys_off.ts[i * 2].nsec;
+    ts[i][1].tv_sec = sys_off.ts[i * 2 + 1].sec;
+    ts[i][1].tv_nsec = sys_off.ts[i * 2 + 1].nsec;
+    ts[i][2].tv_sec = sys_off.ts[i * 2 + 2].sec;
+    ts[i][2].tv_nsec = sys_off.ts[i * 2 + 2].nsec;
+  }
+
+  return process_phc_readings(ts, PHC_READINGS, precision, phc_ts, sys_ts, err);
+}
+
 /* ================================================== */
 
 static int
