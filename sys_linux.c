@@ -544,6 +544,9 @@ SYS_Linux_EnableSystemCallFilter(int level)
 #ifdef PTP_PIN_SETFUNC
     PTP_PIN_SETFUNC,
 #endif
+#ifdef PTP_SYS_OFFSET_EXTENDED
+    PTP_SYS_OFFSET_EXTENDED,
+#endif
 #ifdef PTP_SYS_OFFSET_PRECISE
     PTP_SYS_OFFSET_PRECISE,
 #endif
@@ -779,6 +782,42 @@ get_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
 /* ================================================== */
 
 static int
+get_extended_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
+                        struct timespec *sys_ts, double *err)
+{
+#ifdef PTP_SYS_OFFSET_EXTENDED
+  struct timespec ts[PHC_READINGS][3];
+  struct ptp_sys_offset_extended sys_off;
+  int i;
+
+  /* Silence valgrind */
+  memset(&sys_off, 0, sizeof (sys_off));
+
+  sys_off.n_samples = PHC_READINGS;
+
+  if (ioctl(phc_fd, PTP_SYS_OFFSET_EXTENDED, &sys_off)) {
+    DEBUG_LOG("ioctl(%s) failed : %s", "PTP_SYS_OFFSET_EXTENDED", strerror(errno));
+    return 0;
+  }
+
+  for (i = 0; i < PHC_READINGS; i++) {
+    ts[i][0].tv_sec = sys_off.ts[i][0].sec;
+    ts[i][0].tv_nsec = sys_off.ts[i][0].nsec;
+    ts[i][1].tv_sec = sys_off.ts[i][1].sec;
+    ts[i][1].tv_nsec = sys_off.ts[i][1].nsec;
+    ts[i][2].tv_sec = sys_off.ts[i][2].sec;
+    ts[i][2].tv_nsec = sys_off.ts[i][2].nsec;
+  }
+
+  return process_phc_readings(ts, PHC_READINGS, precision, phc_ts, sys_ts, err);
+#else
+  return 0;
+#endif
+}
+
+/* ================================================== */
+
+static int
 get_precise_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
 		       struct timespec *sys_ts, double *err)
 {
@@ -848,6 +887,10 @@ SYS_Linux_GetPHCSample(int fd, int nocrossts, double precision, int *reading_mod
   if ((*reading_mode == 2 || !*reading_mode) && !nocrossts &&
       get_precise_phc_sample(fd, precision, phc_ts, sys_ts, err)) {
     *reading_mode = 2;
+    return 1;
+  } else if ((*reading_mode == 3 || !*reading_mode) &&
+      get_extended_phc_sample(fd, precision, phc_ts, sys_ts, err)) {
+    *reading_mode = 3;
     return 1;
   } else if ((*reading_mode == 1 || !*reading_mode) &&
       get_phc_sample(fd, precision, phc_ts, sys_ts, err)) {
