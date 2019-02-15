@@ -1067,7 +1067,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     if (smooth_time)
       UTI_AddDoubleToTimespec(&local_transmit, smooth_offset, &local_transmit);
 
-    length = NTP_NORMAL_PACKET_LENGTH;
+    length = NTP_HEADER_LENGTH;
 
     /* Authenticate the packet */
 
@@ -1083,19 +1083,18 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
       if (auth_mode == AUTH_SYMMETRIC) {
         /* Truncate long MACs in NTPv4 packets to allow deterministic parsing
            of extension fields (RFC 7822) */
-        max_auth_len = version == 4 ?
-                       NTP_MAX_V4_MAC_LENGTH - 4 : sizeof (message.auth_data);
+        max_auth_len = (version == 4 ?
+                        NTP_MAX_V4_MAC_LENGTH : (sizeof (message) - length)) - 4;
 
-        auth_len = KEY_GenerateAuth(key_id, (unsigned char *) &message,
-                                    offsetof(NTP_Packet, auth_keyid),
-                                    (unsigned char *)&message.auth_data, max_auth_len);
+        auth_len = KEY_GenerateAuth(key_id, (unsigned char *)&message, length,
+                                    (unsigned char *)&message + length + 4, max_auth_len);
         if (!auth_len) {
           DEBUG_LOG("Could not generate auth data with key %"PRIu32, key_id);
           return 0;
         }
 
-        message.auth_keyid = htonl(key_id);
-        length += sizeof (message.auth_keyid) + auth_len;
+        *(uint32_t *)((unsigned char *)&message + length) = htonl(key_id);
+        length += 4 + auth_len;
       } else if (auth_mode == AUTH_MSSNTP) {
         /* MS-SNTP packets are signed (asynchronously) by ntp_signd */
         return NSD_SignAndSendPacket(key_id, &message, where_to, from, length);
@@ -1294,7 +1293,7 @@ check_packet_format(NTP_Packet *message, int length)
     return 0;
   } 
 
-  if (length < NTP_NORMAL_PACKET_LENGTH || (unsigned int)length % 4) {
+  if (length < NTP_HEADER_LENGTH || (unsigned int)length % 4) {
     DEBUG_LOG("NTP packet has invalid length %d", length);
     return 0;
   }
@@ -1331,7 +1330,7 @@ check_packet_auth(NTP_Packet *pkt, int length,
   /* Go through extension fields and see if there is a valid MAC */
 
   version = NTP_LVM_TO_VERSION(pkt->lvm);
-  i = NTP_NORMAL_PACKET_LENGTH;
+  i = NTP_HEADER_LENGTH;
   data = (void *)pkt;
 
   while (1) {
@@ -1355,7 +1354,7 @@ check_packet_auth(NTP_Packet *pkt, int length,
 
         /* If it's an NTPv4 packet with long MAC and no extension fields,
            rewrite the version in the packet to respond with long MAC too */
-        if (version == 4 && NTP_NORMAL_PACKET_LENGTH + remainder == length &&
+        if (version == 4 && NTP_HEADER_LENGTH + remainder == length &&
             remainder > NTP_MAX_V4_MAC_LENGTH)
           pkt->lvm = NTP_LVM(NTP_LVM_TO_LEAP(pkt->lvm), 3, NTP_LVM_TO_MODE(pkt->lvm));
 
@@ -1365,9 +1364,9 @@ check_packet_auth(NTP_Packet *pkt, int length,
 
     /* Check if this is a valid NTPv4 extension field and skip it.  It should
        have a 16-bit type, 16-bit length, and data padded to 32 bits. */
-    if (version == 4 && remainder >= NTP_MIN_EXTENSION_LENGTH) {
+    if (version == 4 && remainder >= NTP_MIN_EF_LENGTH) {
       ext_length = ntohs(*(uint16_t *)(data + i + 2));
-      if (ext_length >= NTP_MIN_EXTENSION_LENGTH &&
+      if (ext_length >= NTP_MIN_EF_LENGTH &&
           ext_length <= remainder && ext_length % 4 == 0) {
         i += ext_length;
         continue;

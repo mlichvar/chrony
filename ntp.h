@@ -47,17 +47,17 @@ typedef uint32_t NTP_int32;
 /* Maximum stratum number (infinity) */
 #define NTP_MAX_STRATUM 16
 
-/* The minimum valid length of an extension field */
-#define NTP_MIN_EXTENSION_LENGTH 16
-
-/* The maximum assumed length of all extension fields in received
-   packets (RFC 5905 doesn't specify a limit on length or number of
-   extension fields in one packet) */
-#define NTP_MAX_EXTENSIONS_LENGTH 1024
-
 /* The minimum and maximum supported length of MAC */
 #define NTP_MIN_MAC_LENGTH (4 + 16)
 #define NTP_MAX_MAC_LENGTH (4 + MAX_HASH_LENGTH)
+
+/* The minimum valid length of an extension field */
+#define NTP_MIN_EF_LENGTH 16
+
+/* The maximum assumed length of all extension fields in an NTP packet,
+   including a MAC (RFC 5905 doesn't specify a limit on length or number of
+   extension fields in one packet) */
+#define NTP_MAX_EXTENSIONS_LENGTH (1024 + NTP_MAX_MAC_LENGTH)
 
 /* The maximum length of MAC in NTPv4 packets which allows deterministic
    parsing of extension fields (RFC 7822) */
@@ -93,21 +93,10 @@ typedef struct {
   NTP_int64 receive_ts;
   NTP_int64 transmit_ts;
 
-  /* Optional extension fields, we don't send packets with them yet */
-  /* uint8_t extensions[] */
-
-  /* Optional message authentication code (MAC) */
-  NTP_int32 auth_keyid;
-  uint8_t auth_data[NTP_MAX_MAC_LENGTH - 4];
+  uint8_t extensions[NTP_MAX_EXTENSIONS_LENGTH];
 } NTP_Packet;
 
-#define NTP_NORMAL_PACKET_LENGTH (int)offsetof(NTP_Packet, auth_keyid)
-
-/* The buffer used to hold a datagram read from the network */
-typedef struct {
-  NTP_Packet ntp_pkt;
-  uint8_t extensions[NTP_MAX_EXTENSIONS_LENGTH];
-} NTP_Receive_Buffer;
+#define NTP_HEADER_LENGTH (int)offsetof(NTP_Packet, extensions)
 
 /* Macros to work with the lvm field */
 #define NTP_LVM_TO_LEAP(lvm) (((lvm) >> 6) & 0x3)

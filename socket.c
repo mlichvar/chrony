@@ -59,7 +59,7 @@ struct Message {
   struct iovec iov;
   /* Buffer of sufficient length for all expected messages */
   union {
-    NTP_Receive_Buffer ntp_msg;
+    NTP_Packet ntp_msg;
     CMD_Request cmd_request;
     CMD_Reply cmd_reply;
   } msg_buf;

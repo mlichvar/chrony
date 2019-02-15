@@ -391,8 +391,7 @@ process_message(SCK_Message *message, int sock_fd, int event)
               UTI_DiffTimespecsToDouble(&sched_ts, &local_ts.ts), local_ts.source);
 
   /* Just ignore the packet if it's not of a recognized length */
-  if (message->length < NTP_NORMAL_PACKET_LENGTH ||
-      message->length > sizeof (NTP_Receive_Buffer)) {
+  if (message->length < NTP_HEADER_LENGTH || message->length > sizeof (NTP_Packet)) {
     DEBUG_LOG("Unexpected length");
     return;
   }

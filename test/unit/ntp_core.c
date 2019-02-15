@@ -31,7 +31,7 @@
 #ifdef FEAT_NTP
 
 static struct timespec current_time;
-static NTP_Receive_Buffer req_buffer, res_buffer;
+static NTP_Packet req_buffer, res_buffer;
 static int req_length, res_length;
 
 #define NIO_OpenServerSocket(addr) ((addr)->ip_addr.family != IPADDR_UNSPEC ? 100 : 0)
@@ -101,7 +101,7 @@ send_request(NCR_Instance inst)
     local_ts.err = 0.0;
     local_ts.source = NTP_TS_KERNEL;
 
-    NCR_ProcessTxKnown(inst, &local_addr, &local_ts, &req_buffer.ntp_pkt, req_length);
+    NCR_ProcessTxKnown(inst, &local_addr, &local_ts, &req_buffer, req_length);
   }
 }
 
@@ -120,7 +120,7 @@ process_request(NTP_Remote_Address *remote_addr)
 
   res_length = 0;
   NCR_ProcessRxUnknown(remote_addr, &local_addr, &local_ts,
-                       &req_buffer.ntp_pkt, req_length);
+                       &req_buffer, req_length);
   res_length = req_length;
   res_buffer = req_buffer;
 
@@ -129,7 +129,7 @@ process_request(NTP_Remote_Address *remote_addr)
   if (random() % 2) {
     local_ts.ts = current_time;
     NCR_ProcessTxUnknown(remote_addr, &local_addr, &local_ts,
-                         &res_buffer.ntp_pkt, res_length);
+                         &res_buffer, res_length);
   }
 }
 
@@ -138,11 +138,12 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
 {
   NTP_Packet *req, *res;
   int auth_len = 0;
+  uint32_t key_id;
 
-  req = &req_buffer.ntp_pkt;
-  res = &res_buffer.ntp_pkt;
+  req = &req_buffer;
+  res = &res_buffer;
 
-  TEST_CHECK(req_length >= NTP_NORMAL_PACKET_LENGTH);
+  TEST_CHECK(req_length >= NTP_HEADER_LENGTH);
 
   res->lvm = NTP_LVM(LEAP_Normal, NTP_LVM_TO_VERSION(req->lvm),
                      NTP_LVM_TO_MODE(req->lvm) == MODE_CLIENT ? MODE_SERVER : MODE_ACTIVE);
@@ -184,18 +185,20 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
   }
 
   if (authenticated) {
-    res->auth_keyid = req->auth_keyid ? req->auth_keyid : htonl(get_random_key_id());
-    auth_len = KEY_GetAuthLength(ntohl(res->auth_keyid));
+    key_id = ntohl(*(uint32_t *)req->extensions);
+    if (key_id == 0)
+      key_id = get_random_key_id();
+    auth_len = KEY_GetAuthLength(key_id);
     assert(auth_len);
     if (NTP_LVM_TO_VERSION(res->lvm) == 4 && random() % 2)
       auth_len = MIN(auth_len, NTP_MAX_V4_MAC_LENGTH - 4);
 
-    if (KEY_GenerateAuth(ntohl(res->auth_keyid), (unsigned char *)res,
-                         NTP_NORMAL_PACKET_LENGTH, res->auth_data, auth_len) != auth_len)
+    if (KEY_GenerateAuth(key_id, (unsigned char *)res, NTP_HEADER_LENGTH,
+                         res->extensions + 4, auth_len) != auth_len)
       assert(0);
-    res_length = NTP_NORMAL_PACKET_LENGTH + 4 + auth_len;
+    res_length = NTP_HEADER_LENGTH + 4 + auth_len;
   } else {
-    res_length = NTP_NORMAL_PACKET_LENGTH;
+    res_length = NTP_HEADER_LENGTH;
   }
 
   if (!valid_auth && authenticated) {
@@ -203,27 +206,29 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
 
     switch (random() % 4) {
       case 0:
-        res->auth_keyid = htonl(ntohl(res->auth_keyid) + 1);
+        key_id++;
         break;
       case 1:
-        res->auth_keyid = htonl(ntohl(res->auth_keyid) ^ 1);
-        if (KEY_GenerateAuth(ntohl(res->auth_keyid), (unsigned char *)res,
-                             NTP_NORMAL_PACKET_LENGTH, res->auth_data, auth_len) != auth_len)
+        key_id ^= 1;
+        if (KEY_GenerateAuth(key_id, (unsigned char *)res, NTP_HEADER_LENGTH,
+                             res->extensions + 4, auth_len) != auth_len)
           assert(0);
         break;
       case 2:
-        res->auth_data[random() % auth_len]++;
+        res->extensions[4 + random() % auth_len]++;
         break;
       case 3:
-        res_length = NTP_NORMAL_PACKET_LENGTH + 4 * (random() % ((4 + auth_len) / 4));
+        res_length = NTP_HEADER_LENGTH + 4 * (random() % ((4 + auth_len) / 4));
         if (NTP_LVM_TO_VERSION(res->lvm) == 4 &&
-            res_length == NTP_NORMAL_PACKET_LENGTH + NTP_MAX_V4_MAC_LENGTH)
+            res_length == NTP_HEADER_LENGTH + NTP_MAX_V4_MAC_LENGTH)
           res_length -= 4;
         break;
       default:
         assert(0);
     }
   }
+
+  *(uint32_t *)res->extensions = htonl(key_id);
 }
 
 static void
@@ -236,7 +241,7 @@ process_response(NCR_Instance inst, int good, int valid, int updated_sync, int u
   struct timespec prev_rx_ts, prev_init_rx_ts;
   int prev_open_socket, ret;
 
-  res = &res_buffer.ntp_pkt;
+  res = &res_buffer;
 
   local_addr.ip_addr.family = IPADDR_UNSPEC;
   local_addr.if_index = INVALID_IF_INDEX;
@@ -285,13 +290,12 @@ process_response(NCR_Instance inst, int good, int valid, int updated_sync, int u
 }
 
 static void
-process_replay(NCR_Instance inst, NTP_Receive_Buffer *packet_queue,
+process_replay(NCR_Instance inst, NTP_Packet *packet_queue,
                int queue_length, int updated_init)
 {
   do {
     res_buffer = packet_queue[random() % queue_length];
-  } while (!UTI_CompareNtp64(&res_buffer.ntp_pkt.transmit_ts,
-                             &inst->remote_ntp_tx));
+  } while (!UTI_CompareNtp64(&res_buffer.transmit_ts, &inst->remote_ntp_tx));
   process_response(inst, 0, 0, 0, updated_init);
   advance_time(1e-6);
 }
@@ -312,7 +316,7 @@ test_unit(void)
   CPS_NTP_Source source;
   NTP_Remote_Address remote_addr;
   NCR_Instance inst1, inst2;
-  NTP_Receive_Buffer packet_queue[PACKET_QUEUE_LENGTH];
+  NTP_Packet packet_queue[PACKET_QUEUE_LENGTH];
 
   CNF_Initialise(0, 0);
   for (i = 0; i < sizeof conf / sizeof conf[0]; i++)

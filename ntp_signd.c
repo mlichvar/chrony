@@ -323,7 +323,7 @@ NSD_SignAndSendPacket(uint32_t key_id, NTP_Packet *packet, NTP_Remote_Address *r
     return 0;
   }
 
-  if (length != NTP_NORMAL_PACKET_LENGTH) {
+  if (length != NTP_HEADER_LENGTH) {
     DEBUG_LOG("Invalid packet length");
     return 0;
   }
