@@ -1131,6 +1131,7 @@ process_cmd_add_source(CMD_Request *msg, char *line)
       msg->data.ntp_source.min_samples = htonl(data.params.min_samples);
       msg->data.ntp_source.max_samples = htonl(data.params.max_samples);
       msg->data.ntp_source.authkey = htonl(data.params.authkey);
+      msg->data.ntp_source.nts_port = htonl(data.params.nts_port);
       msg->data.ntp_source.max_delay = UTI_FloatHostToNetwork(data.params.max_delay);
       msg->data.ntp_source.max_delay_ratio = UTI_FloatHostToNetwork(data.params.max_delay_ratio);
       msg->data.ntp_source.max_delay_dev_ratio =
@@ -1144,6 +1145,7 @@ process_cmd_add_source(CMD_Request *msg, char *line)
           (data.params.iburst ? REQ_ADDSRC_IBURST : 0) |
           (data.params.interleaved ? REQ_ADDSRC_INTERLEAVED : 0) |
           (data.params.burst ? REQ_ADDSRC_BURST : 0) |
+          (data.params.nts ? REQ_ADDSRC_NTS : 0) |
           (data.params.sel_options & SRC_SELECT_PREFER ? REQ_ADDSRC_PREFER : 0) |
           (data.params.sel_options & SRC_SELECT_NOSELECT ? REQ_ADDSRC_NOSELECT : 0) |
           (data.params.sel_options & SRC_SELECT_TRUST ? REQ_ADDSRC_TRUST : 0) |

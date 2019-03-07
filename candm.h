@@ -262,6 +262,7 @@ typedef struct {
 #define REQ_ADDSRC_REQUIRE 0x40
 #define REQ_ADDSRC_INTERLEAVED 0x80
 #define REQ_ADDSRC_BURST 0x100
+#define REQ_ADDSRC_NTS 0x200
 
 typedef struct {
   uint32_t type;
@@ -277,6 +278,7 @@ typedef struct {
   int32_t min_samples;
   int32_t max_samples;
   uint32_t authkey;
+  uint32_t nts_port;
   Float max_delay;
   Float max_delay_ratio;
   Float max_delay_dev_ratio;

@@ -723,6 +723,7 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.max_samples = ntohl(rx_message->data.ntp_source.max_samples);
   params.filter_length = ntohl(rx_message->data.ntp_source.filter_length);
   params.authkey = ntohl(rx_message->data.ntp_source.authkey);
+  params.nts_port = ntohl(rx_message->data.ntp_source.nts_port);
   params.max_delay = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay);
   params.max_delay_ratio =
     UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_ratio);
@@ -738,13 +739,12 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.iburst = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_IBURST ? 1 : 0;
   params.interleaved = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_INTERLEAVED ? 1 : 0;
   params.burst = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_BURST ? 1 : 0;
+  params.nts = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_NTS ? 1 : 0;
   params.sel_options =
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_PREFER ? SRC_SELECT_PREFER : 0) |
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_NOSELECT ? SRC_SELECT_NOSELECT : 0) |
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_TRUST ? SRC_SELECT_TRUST : 0) |
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_REQUIRE ? SRC_SELECT_REQUIRE : 0);
-  params.nts = 0;
-  params.nts_port = 0;
 
   status = NSR_AddSourceByName(name, port, pool, type, &params);
   switch (status) {
