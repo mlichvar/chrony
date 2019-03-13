@@ -345,7 +345,8 @@ test_unit(void)
     TST_GetRandomAddress(&remote_addr.ip_addr, IPADDR_UNSPEC, -1);
     remote_addr.port = 123;
 
-    inst1 = NCR_GetInstance(&remote_addr, random() % 2 ? NTP_SERVER : NTP_PEER, &source.params);
+    inst1 = NCR_CreateInstance(&remote_addr, random() % 2 ? NTP_SERVER : NTP_PEER,
+                               &source.params, NULL);
     NCR_StartInstance(inst1);
     has_updated = 0;
 
@@ -400,7 +401,8 @@ test_unit(void)
 
     NCR_DestroyInstance(inst1);
 
-    inst1 = NCR_GetInstance(&remote_addr, random() % 2 ? NTP_SERVER : NTP_PEER, &source.params);
+    inst1 = NCR_CreateInstance(&remote_addr, random() % 2 ? NTP_SERVER : NTP_PEER,
+                               &source.params, NULL);
     NCR_StartInstance(inst1);
 
     for (j = 0; j < 20; j++) {
@@ -414,9 +416,9 @@ test_unit(void)
 
     NCR_DestroyInstance(inst1);
 
-    inst1 = NCR_GetInstance(&remote_addr, NTP_PEER, &source.params);
+    inst1 = NCR_CreateInstance(&remote_addr, NTP_PEER, &source.params, NULL);
     NCR_StartInstance(inst1);
-    inst2 = NCR_GetInstance(&remote_addr, NTP_PEER, &source.params);
+    inst2 = NCR_CreateInstance(&remote_addr, NTP_PEER, &source.params, NULL);
     NCR_StartInstance(inst2);
 
     res_length = req_length = 0;

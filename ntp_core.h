@@ -59,7 +59,8 @@ extern void NCR_Initialise(void);
 extern void NCR_Finalise(void);
 
 /* Get a new instance for a server or peer */
-extern NCR_Instance NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParameters *params);
+extern NCR_Instance NCR_CreateInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
+                                       SourceParameters *params, const char *name);
 
 /* Destroy an instance */
 extern void NCR_DestroyInstance(NCR_Instance instance);

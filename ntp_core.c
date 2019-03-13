@@ -504,7 +504,8 @@ take_offline(NCR_Instance inst)
 /* ================================================== */
 
 NCR_Instance
-NCR_GetInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParameters *params)
+NCR_CreateInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
+                   SourceParameters *params, const char *name)
 {
   NCR_Instance result;
 

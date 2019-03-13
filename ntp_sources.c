@@ -320,7 +320,7 @@ add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type, So
 
       assert(!found);
       record = get_record(slot);
-      record->data = NCR_GetInstance(remote_addr, type, params);
+      record->data = NCR_CreateInstance(remote_addr, type, params, name);
       record->remote_addr = NCR_GetRemoteAddress(record->data);
       record->name = name ? Strdup(name) : NULL;
       record->pool = pool;
