@@ -499,9 +499,11 @@ SYS_Linux_EnableSystemCallFilter(int level)
     SCMP_SYS(mprotect), SCMP_SYS(mremap), SCMP_SYS(munmap), SCMP_SYS(shmdt),
     /* Filesystem */
     SCMP_SYS(_llseek), SCMP_SYS(access), SCMP_SYS(chmod), SCMP_SYS(chown),
-    SCMP_SYS(chown32), SCMP_SYS(fstat), SCMP_SYS(fstat64), SCMP_SYS(getdents),
-    SCMP_SYS(getdents64), SCMP_SYS(lseek), SCMP_SYS(rename), SCMP_SYS(stat),
-    SCMP_SYS(stat64), SCMP_SYS(statfs), SCMP_SYS(statfs64), SCMP_SYS(unlink),
+    SCMP_SYS(chown32), SCMP_SYS(faccessat), SCMP_SYS(fchmodat), SCMP_SYS(fchownat),
+    SCMP_SYS(fstat), SCMP_SYS(fstat64), SCMP_SYS(getdents), SCMP_SYS(getdents64),
+    SCMP_SYS(lseek), SCMP_SYS(newfstatat), SCMP_SYS(rename), SCMP_SYS(renameat),
+    SCMP_SYS(stat), SCMP_SYS(stat64), SCMP_SYS(statfs), SCMP_SYS(statfs64),
+    SCMP_SYS(unlink), SCMP_SYS(unlinkat),
     /* Socket */
     SCMP_SYS(bind), SCMP_SYS(connect), SCMP_SYS(getsockname), SCMP_SYS(getsockopt),
     SCMP_SYS(recv), SCMP_SYS(recvfrom), SCMP_SYS(recvmmsg), SCMP_SYS(recvmsg),
@@ -510,8 +512,8 @@ SYS_Linux_EnableSystemCallFilter(int level)
     SCMP_SYS(socketcall),
     /* General I/O */
     SCMP_SYS(_newselect), SCMP_SYS(close), SCMP_SYS(open), SCMP_SYS(openat), SCMP_SYS(pipe),
-    SCMP_SYS(poll), SCMP_SYS(read), SCMP_SYS(futex), SCMP_SYS(select),
-    SCMP_SYS(set_robust_list), SCMP_SYS(write),
+    SCMP_SYS(pipe2), SCMP_SYS(poll), SCMP_SYS(ppoll), SCMP_SYS(pselect6), SCMP_SYS(read),
+    SCMP_SYS(futex), SCMP_SYS(select), SCMP_SYS(set_robust_list), SCMP_SYS(write),
     /* Miscellaneous */
     SCMP_SYS(getrandom), SCMP_SYS(sysinfo), SCMP_SYS(uname),
   };
