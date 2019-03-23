@@ -74,7 +74,8 @@ extern void NCR_ResetInstance(NCR_Instance inst);
 extern void NCR_ResetPoll(NCR_Instance instance);
 
 /* Change the remote address of an instance */
-extern void NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remote_addr);
+extern void NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remote_addr,
+                                    int ntp_only);
 
 /* This routine is called when a new packet arrives off the network,
    and it relates to a source we have an ongoing protocol exchange with */

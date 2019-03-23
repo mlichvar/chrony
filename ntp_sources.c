@@ -343,7 +343,8 @@ add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type, So
 /* ================================================== */
 
 static NSR_Status
-replace_source(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr)
+change_source_address(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr,
+                      int replacement)
 {
   int slot1, slot2, found;
   SourceRecord *record;
@@ -361,7 +362,7 @@ replace_source(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr)
     return NSR_AlreadyInUse;
 
   record = get_record(slot1);
-  NCR_ChangeRemoteAddress(record->data, new_addr);
+  NCR_ChangeRemoteAddress(record->data, new_addr, !replacement);
   record->remote_addr = NCR_GetRemoteAddress(record->data);
   if (!UTI_IsIPReal(&old_addr->ip_addr) && UTI_IsIPReal(&new_addr->ip_addr)) {
     if (auto_start_sources)
@@ -384,7 +385,8 @@ replace_source(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr)
     /* The hash table must be rebuilt for the changed address */
     rehash_records();
 
-    LOG(severity, "Source %s replaced with %s (%s)", UTI_IPToString(&old_addr->ip_addr),
+    LOG(severity, "Source %s %s %s (%s)", UTI_IPToString(&old_addr->ip_addr),
+        replacement ? "replaced with" : "changed to",
         UTI_IPToString(&new_addr->ip_addr), name ? name : "");
   } else {
     LOG(severity, "Source %s (%s) changed port to %d",
@@ -404,7 +406,7 @@ replace_source_connectable(NTP_Remote_Address *old_addr, NTP_Remote_Address *new
     return 0;
   }
 
-  if (replace_source(old_addr, new_addr) == NSR_AlreadyInUse)
+  if (change_source_address(old_addr, new_addr, 1) == NSR_AlreadyInUse)
     return 0;
 
   return 1;
@@ -860,6 +862,17 @@ NSR_RefreshAddresses(void)
 
     resolve_source_replacement(record);
   }
+}
+
+/* ================================================== */
+
+NSR_Status
+NSR_UpdateSourceNtpAddress(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr)
+{
+  if (new_addr->ip_addr.family == IPADDR_UNSPEC)
+    return NSR_InvalidAF;
+
+  return change_source_address(old_addr, new_addr, 0);
 }
 
 /* ================================================== */
