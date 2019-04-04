@@ -227,6 +227,7 @@ feat_timestamping=1
 try_timestamping=0
 feat_ntp_signd=0
 ntp_era_split=""
+use_pthread=0
 default_user="root"
 default_hwclockfile=""
 default_pidfile="/var/run/chrony/chronyd.pid"
@@ -652,7 +653,7 @@ then
   add_def FEAT_ASYNCDNS
   add_def USE_PTHREAD_ASYNCDNS
   EXTRA_OBJECTS="$EXTRA_OBJECTS nameserv_async.o"
-  MYCFLAGS="$MYCFLAGS -pthread"
+  use_pthread=1
 fi
 
 if test_code 'arc4random_buf()' 'stdlib.h' '' '' 'arc4random_buf(NULL, 0);'; then
@@ -786,13 +787,14 @@ fi
 
 if [ $try_setsched = "1" ] && \
   test_code \
-    'sched_setscheduler()' \
-    'sched.h' '' '' '
+    'pthread_setschedparam()' \
+    'pthread.h sched.h' '-pthread' '' '
      struct sched_param sched;
      sched_get_priority_max(SCHED_FIFO);
-     sched_setscheduler(0, SCHED_FIFO, &sched);'
+     pthread_setschedparam(pthread_self(), SCHED_FIFO, &sched);'
 then
-  add_def HAVE_SCHED_SETSCHEDULER
+  add_def HAVE_PTHREAD_SETSCHEDPARAM
+  use_pthread=1
 fi
 
 if [ $try_lockmem = "1" ] && \
@@ -894,6 +896,10 @@ if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ] && [ $try_tomcrypt = "1" ]
     MYCPPFLAGS="$MYCPPFLAGS -I/usr/include/tomcrypt"
     add_def FEAT_SECHASH
   fi
+fi
+
+if [ $use_pthread = "1" ]; then
+  MYCFLAGS="$MYCFLAGS -pthread"
 fi
 
 SYSCONFDIR=/etc

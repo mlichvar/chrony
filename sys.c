@@ -124,7 +124,7 @@ void SYS_EnableSystemCallFilter(int level)
 
 void SYS_SetScheduler(int SchedPriority)
 {
-#if defined(LINUX) && defined(HAVE_SCHED_SETSCHEDULER)
+#if defined(LINUX) && defined(HAVE_PTHREAD_SETSCHEDPARAM)
   SYS_Linux_SetScheduler(SchedPriority);
 #elif defined(MACOSX)
   SYS_MacOSX_SetScheduler(SchedPriority);

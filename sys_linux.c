@@ -33,7 +33,8 @@
 
 #include <sys/utsname.h>
 
-#if defined(HAVE_SCHED_SETSCHEDULER)
+#if defined(HAVE_PTHREAD_SETSCHEDPARAM)
+#  include <pthread.h>
 #  include <sched.h>
 #endif
 
@@ -632,7 +633,7 @@ add_failed:
 
 /* ================================================== */
 
-#if defined(HAVE_SCHED_SETSCHEDULER)
+#if defined(HAVE_PTHREAD_SETSCHEDPARAM)
   /* Install SCHED_FIFO real-time scheduler with specified priority */
 void SYS_Linux_SetScheduler(int SchedPriority)
 {
@@ -651,8 +652,8 @@ void SYS_Linux_SetScheduler(int SchedPriority)
     else if ( SchedPriority < pmin ) {
       sched.sched_priority = pmin;
     }
-    if ( sched_setscheduler(0, SCHED_FIFO, &sched) == -1 ) {
-      LOG(LOGS_ERR, "sched_setscheduler() failed");
+    if ( pthread_setschedparam(pthread_self(), SCHED_FIFO, &sched) == -1 ) {
+      LOG(LOGS_ERR, "pthread_setschedparam() failed");
     }
     else {
       DEBUG_LOG("Enabled SCHED_FIFO with priority %d",
@@ -660,7 +661,7 @@ void SYS_Linux_SetScheduler(int SchedPriority)
     }
   }
 }
-#endif /* HAVE_SCHED_SETSCHEDULER */
+#endif /* HAVE_PTHREAD_SETSCHEDPARAM  */
 
 #if defined(HAVE_MLOCKALL)
 /* Lock the process into RAM so that it will never be swapped out */ 
