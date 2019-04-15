@@ -1120,6 +1120,12 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
            UTI_IsEqualAnyNtp64(&message.transmit_ts, &message.receive_ts,
                                &message.originate_ts, local_ntp_tx));
 
+  if (request_info && request_info->length < info.length) {
+    DEBUG_LOG("Response longer than request req_len=%d res_len=%d",
+              request_info->length, info.length);
+    return 0;
+  }
+
   ret = NIO_SendPacket(&message, where_to, from, info.length, local_tx != NULL);
 
   if (local_tx) {
