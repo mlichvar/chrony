@@ -113,10 +113,12 @@ install-docs :
 quickcheck : chronyd chronyc
 	$(MAKE) -C test/unit check
 	cd test/simulation && ./run
+	cd test/system && ./run
 
 check : chronyd chronyc
 	$(MAKE) -C test/unit check
 	cd test/simulation && ./run -i 20 -m 2
+	cd test/system && ./run
 
 print-chronyd-objects :
 	@echo $(OBJS) $(EXTRA_OBJS)
