@@ -72,6 +72,7 @@ extern void RCL_ReportSource(RPT_SourceReport *report, struct timespec *now);
 extern void RCL_SetDriverData(RCL_Instance instance, void *data);
 extern void *RCL_GetDriverData(RCL_Instance instance);
 extern char *RCL_GetDriverParameter(RCL_Instance instance);
+extern void RCL_CheckDriverOptions(RCL_Instance instance, const char **options);
 extern char *RCL_GetDriverOption(RCL_Instance instance, char *name);
 extern int RCL_AddSample(RCL_Instance instance, struct timespec *sample_time, double offset, int leap);
 extern int RCL_AddPulse(RCL_Instance instance, struct timespec *pulse_time, double second);

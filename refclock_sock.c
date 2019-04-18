@@ -101,6 +101,8 @@ static int sock_initialise(RCL_Instance instance)
   int sockfd;
   char *path;
 
+  RCL_CheckDriverOptions(instance, NULL);
+
   path = RCL_GetDriverParameter(instance);
  
   s.sun_family = AF_UNIX;

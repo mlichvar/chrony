@@ -48,11 +48,14 @@ struct pps_instance {
 };
 
 static int pps_initialise(RCL_Instance instance) {
+  const char *options[] = {"clear", NULL};
   pps_handle_t handle;
   pps_params_t params;
   struct pps_instance *pps;
   int fd, edge_clear, mode;
   char *path;
+
+  RCL_CheckDriverOptions(instance, options);
 
   path = RCL_GetDriverParameter(instance);
   edge_clear = RCL_GetDriverOption(instance, "clear") ? 1 : 0;

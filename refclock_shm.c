@@ -59,9 +59,12 @@ struct shmTime {
 };
 
 static int shm_initialise(RCL_Instance instance) {
+  const char *options[] = {"perm", NULL};
   int id, param, perm;
   char *s;
   struct shmTime *shm;
+
+  RCL_CheckDriverOptions(instance, options);
 
   param = atoi(RCL_GetDriverParameter(instance));
   s = RCL_GetDriverOption(instance, "perm");

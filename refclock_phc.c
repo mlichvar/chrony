@@ -56,9 +56,12 @@ static void read_ext_pulse(int sockfd, int event, void *anything);
 
 static int phc_initialise(RCL_Instance instance)
 {
+  const char *options[] = {"nocrossts", "extpps", "pin", "channel", "clear", NULL};
   struct phc_instance *phc;
   int phc_fd, rising_edge;
   char *path, *s;
+
+  RCL_CheckDriverOptions(instance, options);
 
   path = RCL_GetDriverParameter(instance);
  
