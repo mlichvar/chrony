@@ -374,12 +374,12 @@ for *initstepslew* to finish before exiting. This is useful to prevent programs
 started in the boot sequence after *chronyd* from reading the clock before it
 has been stepped.
 
-[[refclock]]*refclock* _driver_ _parameter_[:__option__,...] [_option_]...::
+[[refclock]]*refclock* _driver_ _parameter_[:__option__]... [_option_]...::
 The *refclock* directive specifies a hardware reference clock to be used as a
 time source. It has two mandatory parameters, a driver name and a
 driver-specific parameter. The two parameters are followed by zero or more
 refclock options. Some drivers have special options, which can be appended to
-the driver-specific parameter (separated by the *:* and *,* characters).
+the driver-specific parameter using the *:* character.
 +
 There are four drivers included in *chronyd*:
 +
@@ -476,7 +476,7 @@ Examples:
 ----
 refclock PHC /dev/ptp0 poll 0 dpoll -2 offset -37
 refclock PHC /dev/ptp1:nocrossts poll 3 pps
-refclock PHC /dev/ptp2:extpps,pin=1 width 0.2 poll 2
+refclock PHC /dev/ptp2:extpps:pin=1 width 0.2 poll 2
 ----
 +
 ::
