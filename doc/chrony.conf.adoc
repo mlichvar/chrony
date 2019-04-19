@@ -2063,11 +2063,11 @@ file when the <<chronyc.adoc#rekey,*rekey*>> command is issued by *chronyc*).
 
 [[lock_all]]*lock_all*::
 The *lock_all* directive will lock chronyd into RAM so that it will never be
-paged out. This mode is only supported on Linux. This directive uses the Linux
-*mlockall()* system call to prevent *chronyd* from ever being swapped out. This
-should result in lower and more consistent latency. It should not have
-significant impact on performance as *chronyd's* memory usage is modest. The
-*mlockall(2)* man page has more details.
+paged out. This mode is supported on Linux, FreeBSD, NetBSD, and Solaris.  This
+directive uses the POSIX *mlockall()* system call to prevent *chronyd* from
+ever being swapped out. This should result in lower and more consistent
+latency. It should not have significant impact on performance as *chronyd's*
+memory usage is modest. The *mlockall(2)* man page has more details.
 
 [[pidfile]]*pidfile* _file_::
 Unless *chronyd* is started with the *-Q* option, it writes its process ID
@@ -2081,26 +2081,26 @@ pidfile /run/chronyd.pid
 ----
 
 [[sched_priority]]*sched_priority* _priority_::
-On Linux, the *sched_priority* directive will select the SCHED_FIFO real-time
-scheduler at the specified priority (which must be between 0 and 100). On
-macOS, this option must have either a value of 0 (the default) to disable the
-thread time constraint policy or 1 for the policy to be enabled. Other systems
-do not support this option.
+On Linux, FreeBSD, NetBSD, and Solaris, the *sched_priority* directive will
+select the SCHED_FIFO real-time scheduler at the specified priority (which must
+be between 0 and 100). On macOS, this option must have either a value of 0 (the
+default) to disable the thread time constraint policy or 1 for the policy to be
+enabled.
 +
-On Linux, this directive uses the *sched_setscheduler()* system call to
-instruct the kernel to use the SCHED_FIFO first-in, first-out real-time
-scheduling policy for *chronyd* with the specified priority. This means that
-whenever *chronyd* is ready to run it will run, interrupting whatever else is
-running unless it is a higher priority real-time process. This should not
-impact performance as *chronyd* resource requirements are modest, but it should
-result in lower and more consistent latency since *chronyd* will not need to
-wait for the scheduler to get around to running it. You should not use this
-unless you really need it. The *sched_setscheduler(2)* man page has more
-details.
+On systems other than macOS, this directive uses the *pthread_setschedparam()*
+system call to instruct the kernel to use the SCHED_FIFO first-in, first-out
+real-time scheduling policy for *chronyd* with the specified priority. This
+means that whenever *chronyd* is ready to run it will run, interrupting
+whatever else is running unless it is a higher priority real-time process. This
+should not impact performance as *chronyd* resource requirements are modest,
+but it should result in lower and more consistent latency since *chronyd* will
+not need to wait for the scheduler to get around to running it. You should not
+use this unless you really need it. The *pthread_setschedparam(3)* man page has
+more details.
 +
 On macOS, this directive uses the *thread_policy_set()* kernel call to
-specify real-time scheduling. As noted for Linux, you should not use this
-directive unless you really need it.
+specify real-time scheduling. As noted above, you should not use this directive
+unless you really need it.
 
 [[user]]*user* _user_::
 The *user* directive sets the name of the system user to which *chronyd* will

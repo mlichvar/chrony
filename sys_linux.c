@@ -33,16 +33,6 @@
 
 #include <sys/utsname.h>
 
-#if defined(HAVE_PTHREAD_SETSCHEDPARAM)
-#  include <pthread.h>
-#  include <sched.h>
-#endif
-
-#if defined(HAVE_MLOCKALL)
-#  include <sys/mman.h>
-#include <sys/resource.h>
-#endif
-
 #if defined(FEAT_PHC) || defined(HAVE_LINUX_TIMESTAMPING)
 #include <linux/ptp_clock.h>
 #endif
@@ -630,63 +620,6 @@ add_failed:
   LOG_FATAL("Failed to add seccomp rules");
 }
 #endif
-
-/* ================================================== */
-
-#if defined(HAVE_PTHREAD_SETSCHEDPARAM)
-  /* Install SCHED_FIFO real-time scheduler with specified priority */
-void SYS_Linux_SetScheduler(int SchedPriority)
-{
-  int pmax, pmin;
-  struct sched_param sched;
-
-  if (SchedPriority < 1 || SchedPriority > 99) {
-    LOG_FATAL("Bad scheduler priority: %d", SchedPriority);
-  } else {
-    sched.sched_priority = SchedPriority;
-    pmax = sched_get_priority_max(SCHED_FIFO);
-    pmin = sched_get_priority_min(SCHED_FIFO);
-    if ( SchedPriority > pmax ) {
-      sched.sched_priority = pmax;
-    }
-    else if ( SchedPriority < pmin ) {
-      sched.sched_priority = pmin;
-    }
-    if ( pthread_setschedparam(pthread_self(), SCHED_FIFO, &sched) == -1 ) {
-      LOG(LOGS_ERR, "pthread_setschedparam() failed");
-    }
-    else {
-      DEBUG_LOG("Enabled SCHED_FIFO with priority %d",
-          sched.sched_priority);
-    }
-  }
-}
-#endif /* HAVE_PTHREAD_SETSCHEDPARAM  */
-
-#if defined(HAVE_MLOCKALL)
-/* Lock the process into RAM so that it will never be swapped out */ 
-void SYS_Linux_MemLockAll(int LockAll)
-{
-  struct rlimit rlim;
-  if (LockAll == 1 ) {
-    /* Make sure that we will be able to lock all the memory we need */
-    /* even after dropping privileges.  This does not actually reaerve any memory */
-    rlim.rlim_max = RLIM_INFINITY;
-    rlim.rlim_cur = RLIM_INFINITY;
-    if (setrlimit(RLIMIT_MEMLOCK, &rlim) < 0) {
-      LOG(LOGS_ERR, "setrlimit() failed: not locking into RAM");
-    }
-    else {
-      if (mlockall(MCL_CURRENT|MCL_FUTURE) < 0) {
-	LOG(LOGS_ERR, "mlockall() failed");
-      }
-      else {
-	DEBUG_LOG("Successfully locked into RAM");
-      }
-    }
-  }
-}
-#endif /* HAVE_MLOCKALL */
 
 /* ================================================== */
 

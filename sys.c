@@ -35,10 +35,13 @@
 
 #if defined(LINUX)
 #include "sys_linux.h"
+#include "sys_posix.h"
 #elif defined(SOLARIS)
 #include "sys_solaris.h"
+#include "sys_posix.h"
 #elif defined(NETBSD) || defined(FREEBSD)
 #include "sys_netbsd.h"
+#include "sys_posix.h"
 #elif defined(MACOSX)
 #include "sys_macosx.h"
 #endif
@@ -124,10 +127,10 @@ void SYS_EnableSystemCallFilter(int level)
 
 void SYS_SetScheduler(int SchedPriority)
 {
-#if defined(LINUX) && defined(HAVE_PTHREAD_SETSCHEDPARAM)
-  SYS_Linux_SetScheduler(SchedPriority);
-#elif defined(MACOSX)
+#if defined(MACOSX)
   SYS_MacOSX_SetScheduler(SchedPriority);
+#elif defined(HAVE_PTHREAD_SETSCHEDPARAM)
+  SYS_Posix_SetScheduler(SchedPriority);
 #else
   LOG_FATAL("scheduler priority setting not supported");
 #endif
@@ -137,8 +140,8 @@ void SYS_SetScheduler(int SchedPriority)
 
 void SYS_LockMemory(void)
 {
-#if defined(LINUX) && defined(HAVE_MLOCKALL)
-  SYS_Linux_MemLockAll(1);
+#if defined(HAVE_MLOCKALL)
+  SYS_Posix_MemLockAll();
 #else
   LOG_FATAL("memory locking not supported");
 #endif

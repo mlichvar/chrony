@@ -396,7 +396,7 @@ SYSTEM=${OPERATINGSYSTEM}-${MACHINE}
 
 case $OPERATINGSYSTEM in
     Linux)
-        EXTRA_OBJECTS="sys_generic.o sys_linux.o sys_timex.o"
+        EXTRA_OBJECTS="sys_generic.o sys_linux.o sys_timex.o sys_posix.o"
         [ $try_libcap != "0" ] && try_libcap=1
         try_rtc=1
         [ $try_seccomp != "0" ] && try_seccomp=1
@@ -411,7 +411,9 @@ case $OPERATINGSYSTEM in
         # recvmmsg() seems to be broken on FreeBSD 11.0 and it's just
         # a wrapper around recvmsg()
         try_recvmmsg=0
-        EXTRA_OBJECTS="sys_generic.o sys_netbsd.o sys_timex.o"
+        EXTRA_OBJECTS="sys_generic.o sys_netbsd.o sys_timex.o sys_posix.o"
+        try_setsched=1
+        try_lockmem=1
         add_def FREEBSD
         if [ $feat_droproot = "1" ]; then
           add_def FEAT_PRIVDROP
@@ -420,8 +422,10 @@ case $OPERATINGSYSTEM in
         echo "Configuring for $SYSTEM"
     ;;
     NetBSD)
-        EXTRA_OBJECTS="sys_generic.o sys_netbsd.o sys_timex.o"
+        EXTRA_OBJECTS="sys_generic.o sys_netbsd.o sys_timex.o sys_posix.o"
         try_clockctl=1
+        try_setsched=1
+        try_lockmem=1
         add_def NETBSD
         echo "Configuring for $SYSTEM"
     ;;
@@ -446,9 +450,11 @@ case $OPERATINGSYSTEM in
         echo "Configuring for macOS (" $SYSTEM "macOS version" $VERSION ")"
     ;;
     SunOS)
-        EXTRA_OBJECTS="sys_generic.o sys_solaris.o sys_timex.o"
+        EXTRA_OBJECTS="sys_generic.o sys_solaris.o sys_timex.o sys_posix.o"
         EXTRA_LIBS="-lsocket -lnsl -lresolv"
         EXTRA_CLI_LIBS="-lsocket -lnsl -lresolv"
+        try_setsched=1
+        try_lockmem=1
         add_def SOLARIS
         # These are needed to have msg_control in struct msghdr
         add_def __EXTENSIONS__
@@ -800,12 +806,19 @@ fi
 if [ $try_lockmem = "1" ] && \
   test_code \
     'mlockall()' \
-    'sys/mman.h sys/resource.h' '' '' '
-     struct rlimit rlim;
-     setrlimit(RLIMIT_MEMLOCK, &rlim);
+    'sys/mman.h' '' '' '
      mlockall(MCL_CURRENT|MCL_FUTURE);'
 then
   add_def HAVE_MLOCKALL
+fi
+if [ $try_lockmem = "1" ] && \
+  test_code \
+    'setrlimit(RLIMIT_MEMLOCK, ...)' \
+    'sys/resource.h' '' '' '
+     struct rlimit rlim;
+     setrlimit(RLIMIT_MEMLOCK, &rlim);'
+then
+  add_def HAVE_SETRLIMIT_MEMLOCK
 fi
 
 if [ $feat_forcednsretry = "1" ]
