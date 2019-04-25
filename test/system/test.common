@@ -15,7 +15,7 @@
 
 export LC_ALL=C
 export PATH=${CHRONY_PATH:-../..}:$PATH
-export TEST_DIR=$(pwd)/tmp
+export TEST_DIR=${TEST_DIR:-$(pwd)/tmp}
 
 test_start() {
 	check_chronyd_features NTP CMDMON || test_skip "NTP/CMDMON support disabled"
@@ -304,7 +304,8 @@ check_chronyd_files() {
 run_chronyc() {
 	test_message 1 0 "running chronyc $*"
 
-	"$chronyc" -h "$(get_cmdsocket)" -n -m "$@" > "$TEST_DIR/chronyc.out" && test_ok || test_error
+	$CHRONYC_WRAPPER "$chronyc" -h "$(get_cmdsocket)" -n -m "$@" > "$TEST_DIR/chronyc.out" && \
+		test_ok || test_error
 }
 
 # Compare chronyc output with specified pattern
