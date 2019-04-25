@@ -193,6 +193,7 @@ generate_chrony_conf() {
 
 	echo "0.0 10000" > "$TEST_LIBDIR/driftfile"
 	echo "1 MD5 abcdefghijklmnopq" > "$TEST_DIR/keys"
+	chown "$user:$(id -g "$user")" "$TEST_LIBDIR/driftfile" "$TEST_DIR/keys"
 	echo "0.0" > "$TEST_DIR/tempcomp"
 
 	(
