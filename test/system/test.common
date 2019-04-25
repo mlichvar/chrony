@@ -227,7 +227,7 @@ start_chronyd() {
 
 	trap stop_chronyd EXIT
 
-	$CHRONYD_WRAPPER "$chronyd" $(get_chronyd_options)
+	$CHRONYD_WRAPPER "$chronyd" $(get_chronyd_options) > "$TEST_DIR/chronyd.out" 2>&1
 
 	[ $? -eq 0 ] && [ -f "$pidfile" ] && ps -p "$(cat "$pidfile")" > /dev/null && test_ok || test_error
 }
@@ -248,7 +248,7 @@ stop_chronyd() {
 
 	test_message 1 0 "stopping chronyd"
 
-	if ! kill "$pid"; then
+	if ! kill "$pid" 2> /dev/null; then
 		test_error
 		return
 	fi
