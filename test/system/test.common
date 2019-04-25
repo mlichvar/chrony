@@ -19,10 +19,20 @@ export TEST_DIR=${TEST_DIR:-$(pwd)/tmp}
 
 test_start() {
 	check_chronyd_features NTP CMDMON || test_skip "NTP/CMDMON support disabled"
-	id -u "$user" > /dev/null 2> /dev/null || test_skip "missing user $user"
-	mkdir -p "$TEST_DIR" && chmod 700 "$TEST_DIR" && chown "$user:$(id -g "$user")" "$TEST_DIR" || \
-		test_skip "could not create $TEST_DIR"
-	rm -f "$TEST_DIR"/*
+
+	[ "${#TEST_DIR}" -ge 5 ] || test_skip "invalid TEST_DIR"
+
+	rm -rf "$TEST_DIR"
+	mkdir -p "$TEST_DIR" && chmod 700 "$TEST_DIR" || test_skip "could not create $TEST_DIR"
+
+	if [ "$user" != "root" ]; then
+		id -u "$user" > /dev/null 2> /dev/null || test_skip "missing user $user"
+		chown "$user:$(id -g "$user")" "$TEST_DIR" || test_skip "could not chown $TEST_DIR"
+		su "$user" -s /bin/bash -c "touch $TEST_DIR/test" 2> /dev/null || \
+			test_skip "$user cannot access $TEST_DIR"
+		rm "$TEST_DIR/test"
+	fi
+
 	echo "Testing $*:"
 }
 
