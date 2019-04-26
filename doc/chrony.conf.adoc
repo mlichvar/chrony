@@ -681,6 +681,8 @@ The *combinelimit* directive limits which sources are included in the combining
 algorithm. Their synchronisation distance has to be shorter than the distance
 of the selected source multiplied by the value of the limit. Also, their
 measured frequencies have to be close to the frequency of the selected source.
+If the selected source was specified with the *prefer* option, it can be
+combined only with other sources specified with this option.
 +
 By default, the limit is 3. Setting the limit to 0 effectively disables the
 source combining algorithm and only the selected source will be used to control
