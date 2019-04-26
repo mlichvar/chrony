@@ -1601,8 +1601,8 @@ If the *rtconutc* directive appears, it means the RTC is required to keep UTC.
 The directive takes no arguments. It is equivalent to specifying the *-u*
 switch to the Linux *hwclock* program.
 +
-Note that this setting is overridden when the <<hwclockfile,*hwclockfile*>>
-directive is specified.
+Note that this setting is overridden by the <<hwclockfile,*hwclockfile*>> file
+and is not relevant for the <<rtcsync,*rtcsync*>> directive.
 
 [[rtcsync]]*rtcsync*::
 The *rtcsync* directive enables a mode where the system time is periodically
