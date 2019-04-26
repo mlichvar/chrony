@@ -38,7 +38,7 @@ test_start() {
 	if [ "$user" != "root" ]; then
 		id -u "$user" > /dev/null 2> /dev/null || test_skip "missing user $user"
 		chown "$user:$(id -g "$user")" "$TEST_DIR" || test_skip "could not chown $TEST_DIR"
-		su "$user" -s /bin/bash -c "touch $TEST_DIR/test" 2> /dev/null || \
+		su "$user" -s /bin/sh -c "touch $TEST_DIR/test" 2> /dev/null || \
 			test_skip "$user cannot access $TEST_DIR"
 		rm "$TEST_DIR/test"
 	fi

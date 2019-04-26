@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 TEST_LIBDIR=${CHRONY_LIBDIR:-/var/lib/chrony}
 TEST_LOGDIR=${CHRONY_LOGDIR:-/var/log/chrony}
