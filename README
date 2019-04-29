@@ -110,12 +110,17 @@ to the program :
 Lonnie Abelbeck <lonnie@abelbeck.com>
 Benny Lyne Amorsen <benny@amorsen.dk>
 Andrew Bishop <amb@gedanken.demon.co.uk>
+Vincent Blut <vincent.debian@free.fr>
 Stephan I. Boettcher <stephan@nevis1.columbia.edu>
+Goswin Brederlow <brederlo@informatik.uni-tuebingen.de>
+Leigh Brown <leigh@solinno.co.uk>
 Erik Bryer <ebryer@spots.ab.ca>
+Jonathan Cameron <jic23@cam.ac.uk>
 Bryan Christianson <bryan@whatroute.net>
 Juliusz Chroboczek <jch@pps.jussieu.fr>
 Christian Ehrhardt <christian.ehrhardt@canonical.com>
 Paul Elliott <pelliott@io.com>
+Stefan R. Filipek <srfilipek@gmail.com>
 Mike Fleetwood <mike@rockover.demon.co.uk>
 Alexander Gretencord <arutha@gmx.de>
 Andrew Griffiths <agriffit@redhat.com>
@@ -128,6 +133,12 @@ Jachym Holecek <jakym@volny.cz>
 Håkan Johansson <f96hajo@chalmers.se>
 Jim Knoble <jmknoble@pobox.com>
 Antti Jrvinen <costello@iki.fi>
+Eric Lammerts <eric@lammerts.org>
+Stefan Lucke <stefan@lucke.in-berlin.de>
+Victor Lum <viclum@vanu.com>
+Kevin Lyda <kevin@ie.suberic.net>
+Paul Menzel <paulepanter@users.sourceforge.net>
+Vladimir Michl <vladimir.michl@seznam.cz>
 Victor Moroz <vim@prv.adlum.ru>
 Kalle Olavi Niemitalo  <tosi@stekt.oulu.fi>
 Frank Otto <sandwichmacher@web.de>
@@ -136,13 +147,18 @@ Chris Perl <cperl@janestreet.com>
 Gautier PHILIPPON <gautier.philippon@ensimag.grenoble-inp.fr>
 Andreas Piesk <apiesk@virbus.de>
 Andreas Steinmetz <ast@domdv.de>
+NAKAMURA Takumi <takumi@ps.sakura.ne.jp>
 Timo Teras <timo.teras@iki.fi>
 Bill Unruh <unruh@physics.ubc.ca>
 Stephen Wadeley <swadeley@redhat.com>
+Bernhard Weiss <lisnablagh@web.de>
 Wolfgang Weisselberg <weissel@netcologne.de>
+Bernhard M. Wiedemann <bwiedemann@suse.de>
+Joachim Wiedorn <ad_debian@joonet.de>
 Ralf Wildenhues <Ralf.Wildenhues@gmx.de>
 Ulrich Windl <ulrich.windl@rz.uni-regensburg.de>
 Doug Woodward <dougw@whistler.com>
+Thomas Zajic <zlatko@zlatko.fdns.net>
 
 Many other people have contributed bug reports and suggestions.  We are sorry
 we cannot identify all of you individually.
