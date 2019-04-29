@@ -108,132 +108,41 @@ The following people have provided patches and other major contributions
 to the program :
 
 Lonnie Abelbeck <lonnie@abelbeck.com>
-    Patch to add tab-completion to chronyc
-
 Benny Lyne Amorsen <benny@amorsen.dk>
-    Patch to add minstratum option
-
 Andrew Bishop <amb@gedanken.demon.co.uk>
-    Fixes for bugs in logging when in daemon mode
-    Fixes for compiler warnings
-    Robustness improvements for drift file
-    Improve installation (directory checking etc)
-    Entries in contrib directory
-    Improvements to 'sources' and 'sourcestats' output from chronyc
-    Improvements to documentation
-    Investigation of required dosynctodr behaviour for various Solaris
-      versions
-
 Stephan I. Boettcher <stephan@nevis1.columbia.edu>
-    Entries in contrib directory
-
 Erik Bryer <ebryer@spots.ab.ca>
-    Entries in contrib directory
-
 Bryan Christianson <bryan@whatroute.net>
-    Support for macOS
-    Support for privilege separation
-    Entries in contrib directory
-
 Juliusz Chroboczek <jch@pps.jussieu.fr>
-    Patch to fix install rule in Makefile if chronyd file is in use
-
 Christian Ehrhardt <christian.ehrhardt@canonical.com>
-    Patch to generate a warning message when CAP_SYS_TIME is missing
-
 Paul Elliott <pelliott@io.com>
-    Entries in contrib directory
-
 Mike Fleetwood <mike@rockover.demon.co.uk>
-    Fixes for compiler warnings
-
 Alexander Gretencord <arutha@gmx.de>
-    Changes to installation directory system to make it easier for
-    package builders
-
 Andrew Griffiths <agriffit@redhat.com>
-    Patch to add support for seccomp filter
-
 Walter Haidinger <walter.haidinger@gmx.at>
-    Access to a Linux installation where v1.12 wouldn't compile
-    Disc space for an independent backup of the sources
-
 Juergen Hannken-Illjes <hannken@eis.cs.tu-bs.de>
-    Port to NetBSD
-
 John Hasler <john@dhh.gt.org>
-    Project and website at tuxfamily.org
-    Changes to support 64 bit machines (i.e. those where
-      sizeof(unsigned long) > 4)
-    Bug fix to initstepslew directive
-    Fix to remove potential buffer overrun errors
-    Memory locking and real-time scheduler support
-    Fix fault where chronyd enters an endless loop
-
 Tjalling Hattink <t.hattink@fugro.nl>
-    Fix scheduler to allow stepping clock from timeout handler
-    Patch to take leap second in PPS refclock from locked source
-    Patch to make reading of RTC for initial trim more reliable
-
 Liam Hatton <me@liamhatton.com>
-    Advice on configuring for Linux on PPC
-
 Jachym Holecek <jakym@volny.cz>
-    Patch to make Linux real time clock work with devfs
-
 Håkan Johansson <f96hajo@chalmers.se>
-    Patch to avoid large values in sources and sourcestats output
-
 Jim Knoble <jmknoble@pobox.com>
-    Fixes for compiler warnings
-
 Antti Jrvinen <costello@iki.fi>
-    Advice on configuring for BSD/386
-
 Victor Moroz <vim@prv.adlum.ru>
-    Patch to support Linux with HZ!=100
-
 Kalle Olavi Niemitalo  <tosi@stekt.oulu.fi>
-    Patch to add acquisitionport directive
-
 Frank Otto <sandwichmacher@web.de>
-    Handling arbitrary HZ values
-
 Denny Page <dennypage@me.com>
-    Advice on support for hardware timestamping
-
 Chris Perl <cperl@janestreet.com>
-    Patches to improve support for refclocks keeping time in TAI
-
 Gautier PHILIPPON <gautier.philippon@ensimag.grenoble-inp.fr>
-    Patch to add refresh command to chronyc
-
 Andreas Piesk <apiesk@virbus.de>
-    Patch to make chronyc use the readline library if available
-
 Andreas Steinmetz <ast@domdv.de>
-    Patch to make stratum of refclocks configurable
-
 Timo Teras <timo.teras@iki.fi>
-    Patch to reply correctly on multihomed hosts
-
 Bill Unruh <unruh@physics.ubc.ca>
-    Advice on statistics
-
 Stephen Wadeley <swadeley@redhat.com>
-    Improvements to man pages
-
 Wolfgang Weisselberg <weissel@netcologne.de>
-    Entries in contrib directory
-
 Ralf Wildenhues <Ralf.Wildenhues@gmx.de>
-    Many robustness and security improvements
-    
-Ulrich Windl <ulrich.windl@rz.uni-regensburg.de> for the
-    Information about the Linux 2.2 kernel functionality compared to 2.0
-
+Ulrich Windl <ulrich.windl@rz.uni-regensburg.de>
 Doug Woodward <dougw@whistler.com>
-    Advice on configuring for Solaris 2.8 on x86
 
 Many other people have contributed bug reports and suggestions.  We are sorry
 we cannot identify all of you individually.
