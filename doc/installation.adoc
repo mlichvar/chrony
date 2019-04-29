@@ -22,6 +22,19 @@ The software is distributed as source code which has to be compiled. The source
 code is supplied in the form of a gzipped tar file, which unpacks to a
 subdirectory identifying the name and version of the program.
 
+The following programs and libraries with their development files are needed to
+build `chrony`:
+
+* C compiler (gcc or clang recommended)
+* GNU Make
+* Nettle, NSS, or LibTomCrypt (optional)
+* Editline (optional)
+* libcap (Linux only, optional)
+* libseccomp (Linux only, optional)
+* timepps.h header (optional)
+* Asciidoctor (for HTML documentation)
+* Bash (for testing)
+
 After unpacking the source code, change directory into it, and type
 
 ----
