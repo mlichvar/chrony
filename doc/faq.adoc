@@ -217,6 +217,12 @@ server ntp.local minpoll 0 maxpoll 0 xleave
 hwtimestamp eth0
 ----
 
+For best stability, the CPU should be running at a constant frequency (i.e.
+disabled power saving and performance boosting). Energy-Efficient Ethernet
+(EEE) should be disabled in the network. The switches should be configured to
+prioritize NTP packets, especially if the network is expected to be heavily
+loaded.
+
 If it is acceptable for NTP clients in the network to send requests at an
 excessive rate, a sub-second polling interval may be specified. A median filter
 can be enabled in order to update the clock at a reduced rate with more stable
