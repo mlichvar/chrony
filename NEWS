@@ -1,3 +1,20 @@
+New in version 3.5
+==================
+
+Enhancements
+------------
+* Add support for more accurate reading of PHC on Linux 5.0
+* Add support for memory locking and real-time priority on FreeBSD,
+  NetBSD, Solaris
+* Update seccomp filter to work on more architectures
+* Validate refclock driver options
+
+Bug fixes
+---------
+* Fix bindaddress directive on FreeBSD
+* Fix transposition of hardware RX timestamp on Linux 4.13 and later
+* Fix building on non-glibc systems
+
 New in version 3.4
 ==================
 
