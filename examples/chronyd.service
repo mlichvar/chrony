@@ -7,7 +7,7 @@ ConditionCapability=CAP_SYS_TIME
 
 [Service]
 Type=forking
-PIDFile=/var/run/chrony/chronyd.pid
+PIDFile=/run/chrony/chronyd.pid
 EnvironmentFile=-/etc/sysconfig/chronyd
 ExecStart=/usr/sbin/chronyd $OPTIONS
 PrivateTmp=yes
