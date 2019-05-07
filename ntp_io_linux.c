@@ -123,7 +123,7 @@ add_interface(CNF_HwTsInterface *conf_iface)
   struct ethtool_ts_info ts_info;
   struct hwtstamp_config ts_config;
   struct ifreq req;
-  int sock_fd, if_index, phc_fd, req_hwts_flags;
+  int sock_fd, if_index, phc_fd, req_hwts_flags, rx_filter;
   unsigned int i;
   struct Interface *iface;
 
@@ -177,40 +177,51 @@ add_interface(CNF_HwTsInterface *conf_iface)
     return 0;
   }
 
-  ts_config.flags = 0;
-  ts_config.tx_type = HWTSTAMP_TX_ON;
-
   switch (conf_iface->rxfilter) {
     case CNF_HWTS_RXFILTER_ANY:
 #ifdef HAVE_LINUX_TIMESTAMPING_RXFILTER_NTP
       if (ts_info.rx_filters & (1 << HWTSTAMP_FILTER_NTP_ALL))
-        ts_config.rx_filter = HWTSTAMP_FILTER_NTP_ALL;
+        rx_filter = HWTSTAMP_FILTER_NTP_ALL;
       else
 #endif
       if (ts_info.rx_filters & (1 << HWTSTAMP_FILTER_ALL))
-        ts_config.rx_filter = HWTSTAMP_FILTER_ALL;
+        rx_filter = HWTSTAMP_FILTER_ALL;
       else
-        ts_config.rx_filter = HWTSTAMP_FILTER_NONE;
+        rx_filter = HWTSTAMP_FILTER_NONE;
       break;
     case CNF_HWTS_RXFILTER_NONE:
-      ts_config.rx_filter = HWTSTAMP_FILTER_NONE;
+      rx_filter = HWTSTAMP_FILTER_NONE;
       break;
 #ifdef HAVE_LINUX_TIMESTAMPING_RXFILTER_NTP
     case CNF_HWTS_RXFILTER_NTP:
-      ts_config.rx_filter = HWTSTAMP_FILTER_NTP_ALL;
+      rx_filter = HWTSTAMP_FILTER_NTP_ALL;
       break;
 #endif
     default:
-      ts_config.rx_filter = HWTSTAMP_FILTER_ALL;
+      rx_filter = HWTSTAMP_FILTER_ALL;
       break;
   }
 
+  ts_config.flags = 0;
+  ts_config.tx_type = HWTSTAMP_TX_ON;
+  ts_config.rx_filter = rx_filter;
   req.ifr_data = (char *)&ts_config;
 
   if (ioctl(sock_fd, SIOCSHWTSTAMP, &req)) {
     DEBUG_LOG("ioctl(%s) failed : %s", "SIOCSHWTSTAMP", strerror(errno));
-    close(sock_fd);
-    return 0;
+
+    /* Check the current timestamping configuration in case this interface
+       allows only reading of the configuration and it was already configured
+       as requested */
+    req.ifr_data = (char *)&ts_config;
+#ifdef SIOCGHWTSTAMP
+    if (ioctl(sock_fd, SIOCGHWTSTAMP, &req) ||
+        ts_config.tx_type != HWTSTAMP_TX_ON || ts_config.rx_filter != rx_filter)
+#endif
+    {
+      close(sock_fd);
+      return 0;
+    }
   }
 
   close(sock_fd);
