@@ -267,6 +267,10 @@ maxchange 1000 1 1
 maxclockerror 15
 ----
 
+Note that increasing `minsamples` may cause the offsets in the `tracking` and
+`sourcestats` reports/logs to be significantly smaller than the actual offsets
+and be unsuitable for monitoring.
+
 === What happened to the `commandkey` and `generatecommandkey` directives?
 
 They were removed in version 2.2. Authentication is no longer supported in the
