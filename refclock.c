@@ -350,7 +350,7 @@ RCL_CheckDriverOptions(RCL_Instance instance, const char **options)
        option = get_next_driver_option(instance, option)) {
     for (i = 0; options && options[i]; i++) {
       len = strlen(options[i]);
-      if (!strncmp(options[i], option, strlen(options[i])) &&
+      if (!strncmp(options[i], option, len) &&
           (option[len] == '=' || option[len] == '\0'))
         break;
     }
