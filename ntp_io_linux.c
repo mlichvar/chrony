@@ -856,7 +856,12 @@ NIO_Linux_RequestTxTimestamp(struct msghdr *msg, int cmsglen, int sock_fd)
   /* Add control message that will enable TX timestamping for this message.
      Don't use CMSG_NXTHDR as the one in glibc is buggy for creating new
      control messages. */
-  cmsg = (struct cmsghdr *)((char *)CMSG_FIRSTHDR(msg) + cmsglen);
+
+  cmsg = CMSG_FIRSTHDR(msg);
+  if (!cmsg || cmsglen + CMSG_SPACE(sizeof (ts_tx_flags)) > msg->msg_controllen)
+    return cmsglen;
+
+  cmsg = (struct cmsghdr *)((char *)cmsg + cmsglen);
   memset(cmsg, 0, CMSG_SPACE(sizeof (ts_tx_flags)));
   cmsglen += CMSG_SPACE(sizeof (ts_tx_flags));
 
