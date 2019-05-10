@@ -4,6 +4,8 @@ New in version 3.5
 Enhancements
 ------------
 * Add support for more accurate reading of PHC on Linux 5.0
+* Add support for hardware timestamping on interfaces with read-only
+  timestamping configuration
 * Add support for memory locking and real-time priority on FreeBSD,
   NetBSD, Solaris
 * Update seccomp filter to work on more architectures
