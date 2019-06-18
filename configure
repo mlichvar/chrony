@@ -654,8 +654,9 @@ then
 fi
 
 if [ $feat_asyncdns = "1" ] && \
-  test_code 'pthread' 'pthread.h' '-pthread' '' \
-    'return (int)pthread_create((void *)1, NULL, (void *)1, NULL);'
+  test_code 'pthread' 'pthread.h' '-pthread' '' '
+    pthread_t thread;
+    return (int)pthread_create(&thread, NULL, (void *)1, NULL);'
 then
   add_def FEAT_ASYNCDNS
   add_def USE_PTHREAD_ASYNCDNS
@@ -731,6 +732,7 @@ if [ "x$timepps_h" != "x" ] && \
     pps_handle_t h = 0;
     pps_info_t i;
     struct timespec ts;
+    ts.tv_sec = ts.tv_nsec = 0;
     return time_pps_fetch(h, PPS_TSFMT_TSPEC, &i, &ts);'
 then
   add_def FEAT_PPS
@@ -817,6 +819,7 @@ if [ $try_lockmem = "1" ] && \
     'setrlimit(RLIMIT_MEMLOCK, ...)' \
     'sys/resource.h' '' '' '
      struct rlimit rlim;
+     rlim.rlim_max = rlim.rlim_cur = RLIM_INFINITY;
      setrlimit(RLIMIT_MEMLOCK, &rlim);'
 then
   add_def HAVE_SETRLIMIT_MEMLOCK
