@@ -107,6 +107,12 @@ otherwise no relationship between the computers will be possible.
 If the server is running *ntpd* and the output size of the hash function used
 by the key is longer than 160 bits (e.g. SHA256), the *version* option needs to
 be set to 4 for compatibility.
+*nts*:::
+This option enables authentication using the Network Time Security (NTS)
+mechanism. Unlike with the *key* option, the server and client do not need to
+share a key in a key file. NTS has a Key Establishment (NTS-KE) protocol using
+the Transport Layer Security (TLS) protocol to get the keys and cookies
+required by NTS for authentication of NTP packets.
 *maxdelay* _delay_:::
 *chronyd* uses the network round-trip delay to the server to determine how
 accurate a particular measurement is likely to be. Long round-trip delays
@@ -220,6 +226,9 @@ intervals. The default is 8 and a useful range is from 6 to 60.
 This option allows the UDP port on which the server understands NTP requests to
 be specified. For normal servers this option should not be required (the
 default is 123, the standard NTP port).
+*ntsport* _port_:::
+This option specifies the TCP port on which the server is listening for NTS-KE
+connections when the *nts* option is enabled. The default is 11443.
 *presend* _poll_:::
 If the timing measurements being made by *chronyd* are the only network data
 passing between two computers, you might find that some measurements are badly
@@ -297,7 +306,7 @@ ephemeral symmetric associations and does not need to be configured with an
 address of this host. *chronyd* does not support ephemeral associations.
 +
 The following options of the *server* directive do not work in the *peer*
-directive: *iburst*, *burst*, *presend*.
+directive: *iburst*, *burst*, *nts*, *presend*.
 +
 When using the *xleave* option, both peers must support and have enabled the
 interleaved mode, otherwise the synchronisation will work in one direction
@@ -679,6 +688,20 @@ changes in the frequency and offset of the clock. The offsets in the
 <<chronyc.adoc#tracking,*tracking*>> and
 <<chronyc.adoc#sourcestats,*sourcestats*>> reports (and the _tracking.log_ and
 _statistics.log_ files) may be smaller than the actual offsets.
+
+[[ntsrefresh]]*ntsrefresh* _interval_::
+This directive specifies the maximum interval between NTS-KE handshakes (in
+seconds) in order to refresh the keys authenticating NTP packets. The default
+value is 2419200 (4 weeks).
+
+[[ntstrustedcerts]]*ntstrustedcerts* _file_::
+This directive specifies a file containing certificates (in the PEM format) of
+trusted certificate authorities (CA) that should be used to verify certificates
+of NTS servers in addition to the system's default trusted CAs (if the
+*nosystemcert* directive is not present).
+
+[[nosystemcert]]*nosystemcert*::
+This directive disables the system's default trusted CAs.
 
 === Source selection
 
@@ -1340,6 +1363,43 @@ An example of the directive is:
 ----
 ntpsigndsocket /var/lib/samba/ntp_signd
 ----
+
+[[ntsport]]*ntsport* _port_::
+This directive specifies the TCP port on which *chronyd* will provide the NTS
+Key Establishment (NTS-KE) service. The default port is 11443.
++
+The port will be open only when a certificate and key is specified by the
+*ntsservercert* and *ntsserverkey* directives.
+
+[[ntsservercert]]*ntsservercert* _file_::
+This directive specifies a file containing a certificate in the PEM format
+for *chronyd* to operate as an NTS server.
+
+[[ntsserverkey]]*ntsserverkey* _file_::
+This directive specifies a file containing a private key in the PEM format
+for *chronyd* to operate as an NTS server.
+
+[[ntsprocesses]]*ntsprocesses* _processes_::
+This directive specifies how many helper processes will *chronyd* operating
+as an NTS server start for handling client NTS-KE requests in order to improve
+performance with multi-core CPUs and multithreading. If set to 0, no helper
+process will be started and all NTS-KE requests will be handled by the main
+*chronyd* process. The default value is 1.
+
+[[maxntsconnections]]*maxntsconnections* _connections_::
+This directive specifies the maximum number of concurrent NTS-KE connections
+per process that the NTS server will accept. The default value is 100.
+
+[[ntscachedir]]*ntscachedir* _directory_::
+This directive specifies a directory to save the keys which the NTS server uses
+to encrypt NTS cookies in order to prevent a storm of NTS-KE handshakes when
+the server is restarted. By default, the server does not save the keys.
+
+[[ntsrotate]]*ntsrotate* _interval_::
+This directive specifies the rotation interval (in seconds) of the server key
+which encrypts cookies. The server keeps up to 3 previous keys to give the
+clients enough time to get cookies encrypted by the latest key. The default
+interval is 604800 (1 week).
 
 [[port]]*port* _port_::
 This option allows you to configure the port on which *chronyd* will listen for
