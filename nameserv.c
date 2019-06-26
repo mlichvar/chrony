@@ -69,7 +69,7 @@ DNS_Name2IPAddress(const char *name, IPAddr *ip_addrs, int max_addrs)
     default:
       hints.ai_family = AF_UNSPEC;
   }
-  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_socktype = SOCK_DGRAM;
 
   result = getaddrinfo(name, NULL, &hints, &res);
 
