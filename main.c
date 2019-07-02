@@ -510,7 +510,7 @@ int main
     LOG_OpenSystemLog();
   }
   
-  LOG_SetDebugLevel(debug);
+  LOG_SetMinSeverity(debug >= 2 ? LOGS_DEBUG : LOGS_INFO);
   
   LOG(LOGS_INFO, "chronyd version %s starting (%s)", CHRONY_VERSION, CHRONYD_FEATURES);
 

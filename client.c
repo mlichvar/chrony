@@ -77,7 +77,7 @@ static int csv_mode = 0;
 /* Log a message. This is a minimalistic replacement of the logging.c
    implementation to avoid linking with it and other modules. */
 
-int log_debug_enabled = 0;
+LOG_Severity log_min_severity = LOGS_INFO;
 
 void LOG_Message(LOG_Severity severity,
 #if DEBUG > 0
@@ -3222,7 +3222,7 @@ main(int argc, char **argv)
         csv_mode = 1;
         break;
       case 'd':
-        log_debug_enabled = 1;
+        log_min_severity = LOGS_DEBUG;
         break;
       case 'h':
         hostnames = optarg;

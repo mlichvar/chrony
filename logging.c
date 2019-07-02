@@ -34,7 +34,7 @@
 #include "util.h"
 
 /* This is used by DEBUG_LOG macro */
-int log_debug_enabled = 0;
+LOG_Severity log_min_severity = LOGS_INFO;
 
 /* ================================================== */
 /* Flag indicating we have initialised */
@@ -44,10 +44,6 @@ static FILE *file_log;
 static int system_log = 0;
 
 static int parent_fd = 0;
-
-#define DEBUG_LEVEL_PRINT_FUNCTION 2
-#define DEBUG_LEVEL_PRINT_DEBUG 2
-static int debug_level = 0;
 
 struct LogFile {
   const char *name;
@@ -134,7 +130,7 @@ void LOG_Message(LOG_Severity severity,
   time_t t;
   struct tm *tm;
 
-  if (!system_log && file_log) {
+  if (!system_log && file_log && severity >= log_min_severity) {
     /* Don't clutter up syslog with timestamps and internal debugging info */
     time(&t);
     tm = gmtime(&t);
@@ -143,7 +139,7 @@ void LOG_Message(LOG_Severity severity,
       fprintf(file_log, "%s ", buf);
     }
 #if DEBUG > 0
-    if (debug_level >= DEBUG_LEVEL_PRINT_FUNCTION)
+    if (log_min_severity <= LOGS_DEBUG)
       fprintf(file_log, "%s:%d:(%s) ", filename, line_number, function_name);
 #endif
   }
@@ -157,10 +153,12 @@ void LOG_Message(LOG_Severity severity,
     case LOGS_INFO:
     case LOGS_WARN:
     case LOGS_ERR:
-      log_message(0, severity, buf);
+      if (severity >= log_min_severity)
+        log_message(0, severity, buf);
       break;
     case LOGS_FATAL:
-      log_message(1, severity, buf);
+      if (severity >= log_min_severity)
+        log_message(1, severity, buf);
 
       /* Send the message also to the foreground process if it is
          still running, or stderr if it is still open */
@@ -213,12 +211,9 @@ LOG_OpenSystemLog(void)
 
 /* ================================================== */
 
-void LOG_SetDebugLevel(int level)
+void LOG_SetMinSeverity(LOG_Severity severity)
 {
-  debug_level = level;
-  if (level >= DEBUG_LEVEL_PRINT_DEBUG) {
-    log_debug_enabled = 1;
-  }
+  log_min_severity = CLAMP(LOGS_DEBUG, severity, LOGS_FATAL);
 }
 
 /* ================================================== */
