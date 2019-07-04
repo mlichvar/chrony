@@ -41,7 +41,7 @@ If no configuration directives are specified on the command line, *chronyd*
 will read them from a configuration file. The compiled-in default location of
 the file is _@SYSCONFDIR@/chrony.conf_.
 
-Information messages and warnings will be logged to syslog.
+Informational messages, warnings, and errors will be logged to syslog.
 
 == OPTIONS
 
@@ -55,20 +55,20 @@ IPv6 sockets will be created.
 
 *-f* _file_::
 This option can be used to specify an alternate location for the configuration
-file (default _@SYSCONFDIR@/chrony.conf_).
+file. The default value is _@SYSCONFDIR@/chrony.conf_.
 
 *-n*::
 When run in this mode, the program will not detach itself from the terminal.
 
 *-d*::
 When run in this mode, the program will not detach itself from the terminal,
-and all messages will be written to the terminal instead of syslog. When
-*chronyd* was compiled with debugging support, this option can be used twice to
-print also debugging messages.
+and all messages will be written to the terminal instead of syslog. If
+*chronyd* was compiled with enabled support for debugging, this option can be
+used twice to enable debug messages.
 
 *-l* _file_::
-This option specifies a file which should be used for logging instead of syslog
-or terminal.
+This option enables writing of log messages to a file instead of syslog or the
+terminal.
 
 *-L* _level_::
 This option specifies the minimum severity level of messages to be written to
@@ -131,7 +131,8 @@ running, but still allow it to adjust the frequency of the system clock.
 *-u* _user_::
 This option sets the name of the system user to which *chronyd* will switch
 after start in order to drop root privileges. It overrides the
-<<chrony.conf.adoc#user,*user*>> directive (default _@DEFAULT_USER@_).
+<<chrony.conf.adoc#user,*user*>> directive. The default value is
+_@DEFAULT_USER@_.
 +
 On Linux, *chronyd* needs to be compiled with support for the *libcap* library.
 On macOS, FreeBSD, NetBSD and Solaris *chronyd* forks into two processes.
@@ -142,7 +143,8 @@ range of privileged system calls on behalf of the parent.
 This option configures a system call filter when *chronyd* is compiled with
 support for the Linux secure computing (seccomp) facility. In level 1 the
 process is killed when a forbidden system call is made, in level -1 the SIGSYS
-signal is thrown instead and in level 0 the filter is disabled (default 0).
+signal is thrown instead and in level 0 the filter is disabled. The default
+value is 0.
 +
 It's recommended to enable the filter only when it's known to work on the
 version of the system where *chrony* is installed as the filter needs to allow
@@ -154,9 +156,9 @@ killed even in normal operation.
 *-P* _priority_::
 On Linux, this option will select the SCHED_FIFO real-time scheduler at the
 specified priority (which must be between 0 and 100). On macOS, this option
-must have either a value of 0 (the default) to disable the thread time
+must have either a value of 0 to disable the thread time
 constraint policy or 1 for the policy to be enabled. Other systems do not
-support this option.
+support this option. The default value is 0.
 
 *-m*::
 This option will lock *chronyd* into RAM so that it will never be paged out.
