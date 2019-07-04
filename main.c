@@ -406,7 +406,7 @@ int main
   int opt, debug = 0, nofork = 0, address_family = IPADDR_UNSPEC;
   int do_init_rtc = 0, restarted = 0, client_only = 0, timeout = 0;
   int scfilter_level = 0, lock_memory = 0, sched_priority = 0;
-  int clock_control = 1, system_log = 1;
+  int clock_control = 1, system_log = 1, log_severity = LOGS_INFO;
   int config_args = 0;
 
   do_platform_checks();
@@ -427,7 +427,7 @@ int main
   optind = 1;
 
   /* Parse short command-line options */
-  while ((opt = getopt(argc, argv, "46df:F:hl:mnP:qQrRst:u:vx")) != -1) {
+  while ((opt = getopt(argc, argv, "46df:F:hl:L:mnP:qQrRst:u:vx")) != -1) {
     switch (opt) {
       case '4':
       case '6':
@@ -446,6 +446,9 @@ int main
         break;
       case 'l':
         log_file = optarg;
+        break;
+      case 'L':
+        log_severity = parse_int_arg(optarg);
         break;
       case 'm':
         lock_memory = 1;
@@ -510,7 +513,7 @@ int main
     LOG_OpenSystemLog();
   }
   
-  LOG_SetMinSeverity(debug >= 2 ? LOGS_DEBUG : LOGS_INFO);
+  LOG_SetMinSeverity(debug >= 2 ? LOGS_DEBUG : log_severity);
   
   LOG(LOGS_INFO, "chronyd version %s starting (%s)", CHRONY_VERSION, CHRONYD_FEATURES);
 

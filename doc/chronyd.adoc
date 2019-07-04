@@ -70,6 +70,12 @@ print also debugging messages.
 This option specifies a file which should be used for logging instead of syslog
 or terminal.
 
+*-L* _level_::
+This option specifies the minimum severity level of messages to be written to
+the log file, syslog, or terminal. The following levels can be specified:
+0 (informational), 1 (warning), 2 (non-fatal error), and 3 (fatal error). The
+default value is 0.
+
 *-q*::
 When run in this mode, *chronyd* will set the system clock once and exit. It
 will not detach from the terminal.
