@@ -589,6 +589,7 @@ PRV_BindSocket(int sock, struct sockaddr *address, socklen_t address_len)
   req.op = OP_BINDSOCKET;
   req.data.bind_socket.sock = sock;
   req.data.bind_socket.sa_len = address_len;
+  assert(address_len <= sizeof (req.data.bind_socket.sa));
   memcpy(&req.data.bind_socket.sa.u, address, address_len);
 
   submit_request(&req, &res);
