@@ -313,14 +313,6 @@ CAM_Initialise(int family)
     sock_fd6 = -1;
 #endif
 
-  if (port_number && sock_fd4 < 0
-#ifdef FEAT_IPV6
-      && sock_fd6 < 0
-#endif
-      ) {
-    LOG_FATAL("Could not open any command socket");
-  }
-
   access_auth_table = ADF_CreateTable();
 
 }
