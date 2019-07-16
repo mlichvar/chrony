@@ -57,7 +57,7 @@ main(int argc, char **argv)
 
   for (i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "-d")) {
-      LOG_SetDebugLevel(2);
+      LOG_SetMinSeverity(LOGS_DEBUG);
     } else if (!strcmp(argv[i], "-s") && i + 1 < argc) {
       seed = atoi(argv[++i]);
     } else {
