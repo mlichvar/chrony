@@ -165,7 +165,7 @@ open_socket(int family)
         SCK_GetLoopbackIPAddress(family, &local_addr.ip_addr);
       local_addr.port = port;
 
-      sock_fd = SCK_OpenUdpSocket(NULL, &local_addr, 0);
+      sock_fd = SCK_OpenUdpSocket(NULL, &local_addr, SCK_FLAG_RX_DEST_ADDR);
       if (sock_fd < 0) {
         LOG(LOGS_ERR, "Could not open command socket on %s",
             UTI_IPSockAddrToString(&local_addr));
