@@ -1341,6 +1341,15 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
     return;
   }
 
+  log_index = CLG_LogCommandAccess(&remote_ip, &cooked_now);
+
+  /* Don't reply to all requests from hosts other than localhost if the rate
+     is excessive */
+  if (!localhost && log_index >= 0 && CLG_LimitCommandResponseRate(log_index)) {
+      DEBUG_LOG("Command packet discarded to limit response rate");
+      return;
+  }
+
   expected_length = PKL_CommandLength(&rx_message);
   rx_command = ntohs(rx_message.command);
 
@@ -1383,15 +1392,6 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
   }
 
   /* OK, we have a valid message.  Now dispatch on message type and process it. */
-
-  log_index = CLG_LogCommandAccess(&remote_ip, &cooked_now);
-
-  /* Don't reply to all requests from hosts other than localhost if the rate
-     is excessive */
-  if (!localhost && log_index >= 0 && CLG_LimitCommandResponseRate(log_index)) {
-      DEBUG_LOG("Command packet discarded to limit response rate");
-      return;
-  }
 
   if (rx_command >= N_REQUEST_TYPES) {
     /* This should be already handled */
