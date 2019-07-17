@@ -33,6 +33,7 @@
 #include "logging.h"
 #include "util.h"
 #include "sched.h"
+#include "socket.h"
 
 #define SOCK_MAGIC 0x534f434b
 
@@ -97,7 +98,6 @@ static void read_sample(int sockfd, int event, void *anything)
 
 static int sock_initialise(RCL_Instance instance)
 {
-  struct sockaddr_un s;
   int sockfd;
   char *path;
 
@@ -105,25 +105,9 @@ static int sock_initialise(RCL_Instance instance)
 
   path = RCL_GetDriverParameter(instance);
  
-  s.sun_family = AF_UNIX;
-  if (snprintf(s.sun_path, sizeof (s.sun_path), "%s", path) >= sizeof (s.sun_path)) {
-    LOG_FATAL("Path %s too long", path);
-    return 0;
-  }
-
-  sockfd = socket(AF_UNIX, SOCK_DGRAM, 0);
-  if (sockfd < 0) {
-    LOG_FATAL("socket() failed");
-    return 0;
-  }
-
-  UTI_FdSetCloexec(sockfd);
-
-  unlink(path);
-  if (bind(sockfd, (struct sockaddr *)&s, sizeof (s)) < 0) {
-    LOG_FATAL("bind(%s) failed : %s", path, strerror(errno));
-    return 0;
-  }
+  sockfd = SCK_OpenUnixDatagramSocket(NULL, path, 0);
+  if (sockfd < 0)
+    LOG_FATAL("Could not open socket %s", path);
 
   RCL_SetDriverData(instance, (void *)(long)sockfd);
   SCH_AddFileHandler(sockfd, SCH_FILE_INPUT, read_sample, instance);
@@ -136,7 +120,7 @@ static void sock_finalise(RCL_Instance instance)
 
   sockfd = (long)RCL_GetDriverData(instance);
   SCH_RemoveFileHandler(sockfd);
-  close(sockfd);
+  SCK_CloseSocket(sockfd);
 }
 
 RefclockDriver RCL_SOCK_driver = {
