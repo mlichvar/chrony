@@ -120,6 +120,7 @@ static void sock_finalise(RCL_Instance instance)
 
   sockfd = (long)RCL_GetDriverData(instance);
   SCH_RemoveFileHandler(sockfd);
+  SCK_RemoveSocket(sockfd);
   SCK_CloseSocket(sockfd);
 }
 
