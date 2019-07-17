@@ -39,6 +39,7 @@
 #include "getdate.h"
 #include "cmdparse.h"
 #include "pktlength.h"
+#include "socket.h"
 #include "util.h"
 
 #ifdef FEAT_READLINE
@@ -52,16 +53,15 @@
 
 /* ================================================== */
 
-union sockaddr_all {
-  struct sockaddr_in in4;
-#ifdef FEAT_IPV6
-  struct sockaddr_in6 in6;
-#endif
-  struct sockaddr_un un;
-  struct sockaddr sa;
+struct Address {
+  SCK_AddressType type;
+  union {
+    IPSockAddr ip;
+    char *path;
+  } addr;
 };
 
-static ARR_Instance sockaddrs;
+static ARR_Instance server_addresses;
 
 static int sock_fd = -1;
 
@@ -145,15 +145,15 @@ read_line(void)
 /* ================================================== */
 
 static ARR_Instance
-get_sockaddrs(const char *hostnames, int port)
+get_addresses(const char *hostnames, int port)
 {
+  struct Address *addr;
   ARR_Instance addrs;
   char *hostname, *s1, *s2;
   IPAddr ip_addrs[DNS_MAX_ADDRESSES];
-  union sockaddr_all *addr;
   int i;
 
-  addrs = ARR_CreateInstance(sizeof (union sockaddr_all));
+  addrs = ARR_CreateInstance(sizeof (*addr));
   s1 = Strdup(hostnames);
 
   /* Parse the comma-separated list of hostnames */
@@ -164,11 +164,9 @@ get_sockaddrs(const char *hostnames, int port)
 
     /* hostname starting with / is considered a path of Unix domain socket */
     if (hostname[0] == '/') {
-      addr = (union sockaddr_all *)ARR_GetNewElement(addrs);
-      if (snprintf(addr->un.sun_path, sizeof (addr->un.sun_path), "%s", hostname) >=
-          sizeof (addr->un.sun_path))
-        LOG_FATAL("Unix socket path too long");
-      addr->un.sun_family = AF_UNIX;
+      addr = ARR_GetNewElement(addrs);
+      addr->type = SCK_ADDR_UNIX;
+      addr->addr.path = Strdup(hostname);
     } else {
       if (DNS_Name2IPAddress(hostname, ip_addrs, DNS_MAX_ADDRESSES) != DNS_Success) {
         DEBUG_LOG("Could not get IP address for %s", hostname);
@@ -176,8 +174,10 @@ get_sockaddrs(const char *hostnames, int port)
       }
 
       for (i = 0; i < DNS_MAX_ADDRESSES && ip_addrs[i].family != IPADDR_UNSPEC; i++) {
-        addr = (union sockaddr_all *)ARR_GetNewElement(addrs);
-        UTI_IPAndPortToSockaddr(&ip_addrs[i], port, (struct sockaddr *)addr);
+        addr = ARR_GetNewElement(addrs);
+        addr->type = SCK_ADDR_IP;
+        addr->addr.ip.ip_addr = ip_addrs[i];
+        addr->addr.ip.port = port;
         DEBUG_LOG("Resolved %s to %s", hostname, UTI_IPToString(&ip_addrs[i]));
       }
     }
@@ -188,69 +188,59 @@ get_sockaddrs(const char *hostnames, int port)
 }
 
 /* ================================================== */
+
+static void
+free_addresses(ARR_Instance addresses)
+{
+  struct Address *addr;
+  unsigned int i;
+
+  for (i = 0; i < ARR_GetSize(addresses); i++) {
+    addr = ARR_GetElement(addresses, i);
+
+    if (addr->type == SCK_ADDR_UNIX)
+      Free(addr->addr.path);
+  }
+
+  ARR_DestroyInstance(addresses);
+}
+
+/* ================================================== */
 /* Initialise the socket used to talk to the daemon */
 
 static int
-prepare_socket(union sockaddr_all *addr)
+open_socket(struct Address *addr)
 {
-  socklen_t addr_len;
-  char *dir;
+  char *dir, *local_addr;
+  size_t local_addr_len;
 
-  switch (addr->sa.sa_family) {
-    case AF_UNIX:
-      addr_len = sizeof (addr->un);
+  switch (addr->type) {
+    case SCK_ADDR_IP:
+      sock_fd = SCK_OpenUdpSocket(&addr->addr.ip, NULL, 0);
       break;
-    case AF_INET:
-      addr_len = sizeof (addr->in4);
+    case SCK_ADDR_UNIX:
+      /* Construct path of our socket.  Use the same directory as the server
+         socket and include our process ID to allow multiple chronyc instances
+         running at the same time. */
+
+      dir = UTI_PathToDir(addr->addr.path);
+      local_addr_len = strlen(dir) + 50;
+      local_addr = Malloc(local_addr_len);
+
+      snprintf(local_addr, local_addr_len, "%s/chronyc.%d.sock", dir, (int)getpid());
+
+      sock_fd = SCK_OpenUnixDatagramSocket(addr->addr.path, local_addr,
+                                           SCK_FLAG_ALL_PERMISSIONS);
+      Free(dir);
+      Free(local_addr);
+
       break;
-#ifdef FEAT_IPV6
-    case AF_INET6:
-      addr_len = sizeof (addr->in6);
-      break;
-#endif
     default:
       assert(0);
   }
 
-  sock_fd = socket(addr->sa.sa_family, SOCK_DGRAM, 0);
-
-  if (sock_fd < 0) {
-    DEBUG_LOG("Could not create socket : %s", strerror(errno));
+  if (sock_fd < 0)
     return 0;
-  }
-
-  if (addr->sa.sa_family == AF_UNIX) {
-    struct sockaddr_un sa_un;
-
-    /* Construct path of our socket.  Use the same directory as the server
-       socket and include our process ID to allow multiple chronyc instances
-       running at the same time. */
-    dir = UTI_PathToDir(addr->un.sun_path);
-    if (snprintf(sa_un.sun_path, sizeof (sa_un.sun_path),
-                 "%s/chronyc.%d.sock", dir, (int)getpid()) >= sizeof (sa_un.sun_path))
-      LOG_FATAL("Unix socket path too long");
-    Free(dir);
-
-    sa_un.sun_family = AF_UNIX;
-    unlink(sa_un.sun_path);
-
-    /* Bind the socket to the path */
-    if (bind(sock_fd, (struct sockaddr *)&sa_un, sizeof (sa_un)) < 0) {
-      DEBUG_LOG("Could not bind socket : %s", strerror(errno));
-      return 0;
-    }
-
-    /* Allow server without root privileges to send replies to our socket */
-    if (chmod(sa_un.sun_path, 0666) < 0) {
-      DEBUG_LOG("Could not change socket permissions : %s", strerror(errno));
-      return 0;
-    }
-  }
-
-  if (connect(sock_fd, &addr->sa, addr_len) < 0) {
-    DEBUG_LOG("Could not connect socket : %s", strerror(errno));
-    return 0;
-  }
 
   return 1;
 }
@@ -260,20 +250,11 @@ prepare_socket(union sockaddr_all *addr)
 static void
 close_io(void)
 {
-  union sockaddr_all addr;
-  socklen_t addr_len = sizeof (addr);
-
   if (sock_fd < 0)
     return;
 
-  /* Remove our Unix domain socket */
-  if (getsockname(sock_fd, &addr.sa, &addr_len) < 0)
-    LOG_FATAL("getsockname() failed : %s", strerror(errno));
-  if (addr_len <= sizeof (addr) && addr_len > sizeof (addr.sa.sa_family) &&
-      addr.sa.sa_family == AF_UNIX)
-    unlink(addr.un.sun_path);
-
-  close(sock_fd);
+  SCK_RemoveSocket(sock_fd);
+  SCK_CloseSocket(sock_fd);
   sock_fd = -1;
 }
 
@@ -283,7 +264,7 @@ static int
 open_io(void)
 {
   static unsigned int address_index = 0;
-  union sockaddr_all *addr;
+  struct Address *addr;
 
   /* If a socket is already opened, close it and try the next address */
   if (sock_fd >= 0) {
@@ -292,11 +273,10 @@ open_io(void)
   }
 
   /* Find an address for which a socket can be opened and connected */
-  for (; address_index < ARR_GetSize(sockaddrs); address_index++) {
-    addr = (union sockaddr_all *)ARR_GetElement(sockaddrs, address_index);
-    DEBUG_LOG("Opening connection to %s", UTI_SockaddrToString(&addr->sa));
+  for (; address_index < ARR_GetSize(server_addresses); address_index++) {
+    addr = ARR_GetElement(server_addresses, address_index);
 
-    if (prepare_socket(addr))
+    if (open_socket(addr))
       return 1;
 
     close_io();
@@ -1426,12 +1406,8 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
         return 0;
       }
 
-      if (send(sock_fd, (void *)request, command_length, 0) < 0) {
-        DEBUG_LOG("Could not send %d bytes : %s", command_length, strerror(errno));
+      if (SCK_Send(sock_fd, (void *)request, command_length, 0) < 0)
         return 0;
-      }
-
-      DEBUG_LOG("Sent %d bytes", command_length);
     }
 
     UTI_TimevalToTimespec(&tv, &ts_now);
@@ -1467,16 +1443,11 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
       /* Timeout must have elapsed, try a resend? */
       new_attempt = 1;
     } else {
-      recv_status = recv(sock_fd, (void *)reply, sizeof(CMD_Reply), 0);
+      recv_status = SCK_Receive(sock_fd, reply, sizeof (*reply), 0);
       
       if (recv_status < 0) {
-        /* If we get connrefused here, it suggests the sendto is
-           going to a dead port */
-        DEBUG_LOG("Could not receive : %s", strerror(errno));
         new_attempt = 1;
       } else {
-        DEBUG_LOG("Received %d bytes", recv_status);
-        
         read_length = recv_status;
         
         /* Check if the header is valid */
@@ -3261,7 +3232,8 @@ main(int argc, char **argv)
 
   UTI_SetQuitSignalsHandler(signal_handler, 0);
 
-  sockaddrs = get_sockaddrs(hostnames, port);
+  SCK_Initialise();
+  server_addresses = get_addresses(hostnames, port);
 
   if (!open_io())
     LOG_FATAL("Could not open connection to daemon");
@@ -3281,8 +3253,8 @@ main(int argc, char **argv)
   }
 
   close_io();
-
-  ARR_DestroyInstance(sockaddrs);
+  free_addresses(server_addresses);
+  SCK_Finalise();
 
   return !ret;
 }
