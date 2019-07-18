@@ -6,7 +6,6 @@ void test_unit(void) {
   NTP_int32 ntp32_ts;
   struct timespec ts, ts2;
   struct timeval tv;
-  struct sockaddr_un sun;
   double x, y, nan, inf;
   Timespec tspec;
   Float f;
@@ -208,20 +207,6 @@ void test_unit(void) {
       c++;
   }
   TEST_CHECK(c > 46000 && c < 48000);
-
-  for (i = 1; i < 2 * BUFFER_LENGTH; i++) {
-    sun.sun_family = AF_UNIX;
-    for (j = 0; j + 1 < i && j + 1 < sizeof (sun.sun_path); j++)
-      sun.sun_path[j] = 'A' + j % 26;
-    sun.sun_path[j] = '\0';
-    s = UTI_SockaddrToString((struct sockaddr *)&sun);
-    if (i <= BUFFER_LENGTH) {
-      TEST_CHECK(!strcmp(s, sun.sun_path));
-    } else {
-      TEST_CHECK(!strncmp(s, sun.sun_path, BUFFER_LENGTH - 2));
-      TEST_CHECK(s[BUFFER_LENGTH - 2] == '>');
-    }
-  }
 
   s = UTI_PathToDir("/aaa/bbb/ccc/ddd");
   TEST_CHECK(!strcmp(s, "/aaa/bbb/ccc"));
