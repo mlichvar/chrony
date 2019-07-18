@@ -47,8 +47,10 @@ typedef struct {
 
 typedef struct {
   IPAddr ip_addr;
-  unsigned short port;
-} NTP_Remote_Address;
+  uint16_t port;
+} IPSockAddr;
+
+typedef IPSockAddr NTP_Remote_Address;
 
 #define INVALID_IF_INDEX -1
 
