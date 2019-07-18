@@ -38,6 +38,7 @@
 #include "ntp_sources.h"
 #include "ntp_core.h"
 #include "smooth.h"
+#include "socket.h"
 #include "sources.h"
 #include "sourcestats.h"
 #include "reference.h"
@@ -53,21 +54,12 @@
 
 /* ================================================== */
 
-union sockaddr_all {
-  struct sockaddr_in in4;
-#ifdef FEAT_IPV6
-  struct sockaddr_in6 in6;
-#endif
-  struct sockaddr_un un;
-  struct sockaddr sa;
-};
+#define INVALID_SOCK_FD (-5)
 
 /* File descriptors for command and monitoring sockets */
 static int sock_fdu;
 static int sock_fd4;
-#ifdef FEAT_IPV6
 static int sock_fd6;
-#endif
 
 /* Flag indicating whether this module has been initialised or not */
 static int initialised = 0;
@@ -155,97 +147,44 @@ static void read_from_cmd_socket(int sock_fd, int event, void *anything);
 /* ================================================== */
 
 static int
-prepare_socket(int family, int port_number)
+open_socket(int family)
 {
-  int sock_fd;
-  socklen_t my_addr_len;
-  union sockaddr_all my_addr;
-  IPAddr bind_address;
-  int on_off = 1;
-
-  sock_fd = socket(family, SOCK_DGRAM, 0);
-  if (sock_fd < 0) {
-    LOG(LOGS_ERR, "Could not open %s command socket : %s",
-        UTI_SockaddrFamilyToString(family), strerror(errno));
-    return -1;
-  }
-
-  /* Close on exec */
-  UTI_FdSetCloexec(sock_fd);
-
-  if (family != AF_UNIX) {
-    /* Allow reuse of port number */
-    if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *) &on_off, sizeof(on_off)) < 0) {
-      LOG(LOGS_ERR, "Could not set reuseaddr socket options");
-      /* Don't quit - we might survive anyway */
-    }
-
-#ifdef IP_FREEBIND
-    /* Allow binding to address that doesn't exist yet */
-    if (setsockopt(sock_fd, IPPROTO_IP, IP_FREEBIND, (char *)&on_off, sizeof(on_off)) < 0) {
-      LOG(LOGS_ERR, "Could not set free bind socket option");
-    }
-#endif
-
-#ifdef FEAT_IPV6
-    if (family == AF_INET6) {
-#ifdef IPV6_V6ONLY
-      /* Receive IPv6 packets only */
-      if (setsockopt(sock_fd, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&on_off, sizeof(on_off)) < 0) {
-        LOG(LOGS_ERR, "Could not request IPV6_V6ONLY socket option");
-      }
-#endif
-    }
-#endif
-  }
-
-  memset(&my_addr, 0, sizeof (my_addr));
+  IPSockAddr local_addr;
+  const char *local_path;
+  int sock_fd, port;
 
   switch (family) {
-    case AF_INET:
-      my_addr_len = sizeof (my_addr.in4);
-      my_addr.in4.sin_family = family;
-      my_addr.in4.sin_port = htons((unsigned short)port_number);
+    case IPADDR_INET4:
+    case IPADDR_INET6:
+      port = CNF_GetCommandPort();
+      if (port == 0)
+        return INVALID_SOCK_FD;
 
-      CNF_GetBindCommandAddress(IPADDR_INET4, &bind_address);
+      CNF_GetBindCommandAddress(family, &local_addr.ip_addr);
+      if (local_addr.ip_addr.family != family)
+        SCK_GetLoopbackIPAddress(family, &local_addr.ip_addr);
+      local_addr.port = port;
 
-      if (bind_address.family == IPADDR_INET4)
-        my_addr.in4.sin_addr.s_addr = htonl(bind_address.addr.in4);
-      else
-        my_addr.in4.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+      sock_fd = SCK_OpenUdpSocket(NULL, &local_addr, 0);
+      if (sock_fd < 0) {
+        LOG(LOGS_ERR, "Could not open command socket on %s",
+            UTI_IPSockAddrToString(&local_addr));
+        return INVALID_SOCK_FD;
+      }
+
       break;
-#ifdef FEAT_IPV6
-    case AF_INET6:
-      my_addr_len = sizeof (my_addr.in6);
-      my_addr.in6.sin6_family = family;
-      my_addr.in6.sin6_port = htons((unsigned short)port_number);
+    case IPADDR_UNSPEC:
+      local_path = CNF_GetBindCommandPath();
 
-      CNF_GetBindCommandAddress(IPADDR_INET6, &bind_address);
+      sock_fd = SCK_OpenUnixDatagramSocket(NULL, local_path, 0);
+      if (sock_fd < 0) {
+        LOG(LOGS_ERR, "Could not open command socket on %s", local_path);
+        return INVALID_SOCK_FD;
+      }
 
-      if (bind_address.family == IPADDR_INET6)
-        memcpy(my_addr.in6.sin6_addr.s6_addr, bind_address.addr.in6,
-            sizeof (my_addr.in6.sin6_addr.s6_addr));
-      else
-        my_addr.in6.sin6_addr = in6addr_loopback;
-      break;
-#endif
-    case AF_UNIX:
-      my_addr_len = sizeof (my_addr.un);
-      my_addr.un.sun_family = family;
-      if (snprintf(my_addr.un.sun_path, sizeof (my_addr.un.sun_path), "%s",
-                   CNF_GetBindCommandPath()) >= sizeof (my_addr.un.sun_path))
-        LOG_FATAL("Unix socket path too long");
-      unlink(my_addr.un.sun_path);
       break;
     default:
       assert(0);
-  }
-
-  if (bind(sock_fd, &my_addr.sa, my_addr_len) < 0) {
-    LOG(LOGS_ERR, "Could not bind %s command socket : %s",
-        UTI_SockaddrFamilyToString(family), strerror(errno));
-    close(sock_fd);
-    return -1;
   }
 
   /* Register handler for read events on the socket */
@@ -292,29 +231,22 @@ do_size_checks(void)
 void
 CAM_Initialise(int family)
 {
-  int port_number;
-
   assert(!initialised);
   assert(sizeof (permissions) / sizeof (permissions[0]) == N_REQUEST_TYPES);
   do_size_checks();
 
   initialised = 1;
-  sock_fdu = -1;
-  port_number = CNF_GetCommandPort();
+  sock_fdu = INVALID_SOCK_FD;
+  sock_fd4 = INVALID_SOCK_FD;
+  sock_fd6 = INVALID_SOCK_FD;
 
-  if (port_number && (family == IPADDR_UNSPEC || family == IPADDR_INET4))
-    sock_fd4 = prepare_socket(AF_INET, port_number);
-  else
-    sock_fd4 = -1;
-#ifdef FEAT_IPV6
-  if (port_number && (family == IPADDR_UNSPEC || family == IPADDR_INET6))
-    sock_fd6 = prepare_socket(AF_INET6, port_number);
-  else
-    sock_fd6 = -1;
-#endif
+  if (family == IPADDR_UNSPEC || family == IPADDR_INET4)
+    sock_fd4 = open_socket(IPADDR_INET4);
+
+  if (family == IPADDR_UNSPEC || family == IPADDR_INET6)
+    sock_fd6 = open_socket(IPADDR_INET6);
 
   access_auth_table = ADF_CreateTable();
-
 }
 
 /* ================================================== */
@@ -322,24 +254,24 @@ CAM_Initialise(int family)
 void
 CAM_Finalise(void)
 {
-  if (sock_fdu >= 0) {
+  if (sock_fdu != INVALID_SOCK_FD) {
     SCH_RemoveFileHandler(sock_fdu);
-    close(sock_fdu);
-    unlink(CNF_GetBindCommandPath());
+    SCK_RemoveSocket(sock_fdu);
+    SCK_CloseSocket(sock_fdu);
+    sock_fdu = INVALID_SOCK_FD;
   }
-  sock_fdu = -1;
-  if (sock_fd4 >= 0) {
+
+  if (sock_fd4 != INVALID_SOCK_FD) {
     SCH_RemoveFileHandler(sock_fd4);
-    close(sock_fd4);
+    SCK_CloseSocket(sock_fd4);
+    sock_fd4 = INVALID_SOCK_FD;
   }
-  sock_fd4 = -1;
-#ifdef FEAT_IPV6
-  if (sock_fd6 >= 0) {
+
+  if (sock_fd6 != INVALID_SOCK_FD) {
     SCH_RemoveFileHandler(sock_fd6);
-    close(sock_fd6);
+    SCK_CloseSocket(sock_fd6);
+    sock_fd6 = INVALID_SOCK_FD;
   }
-  sock_fd6 = -1;
-#endif
 
   ADF_DestroyTable(access_auth_table);
 
@@ -354,50 +286,18 @@ CAM_OpenUnixSocket(void)
   /* This is separated from CAM_Initialise() as it needs to be called when
      the process has already dropped the root privileges */
   if (CNF_GetBindCommandPath()[0])
-    sock_fdu = prepare_socket(AF_UNIX, 0);
+    sock_fdu = open_socket(IPADDR_UNSPEC);
 }
 
 /* ================================================== */
 
 static void
-transmit_reply(CMD_Reply *msg, union sockaddr_all *where_to)
+transmit_reply(int sock_fd, SCK_Message *message)
 {
-  int status;
-  int tx_message_length;
-  int sock_fd;
-  socklen_t addrlen;
+  message->length = PKL_ReplyLength((CMD_Reply *)message->data);
 
-  switch (where_to->sa.sa_family) {
-    case AF_INET:
-      sock_fd = sock_fd4;
-      addrlen = sizeof (where_to->in4);
-      break;
-#ifdef FEAT_IPV6
-    case AF_INET6:
-      sock_fd = sock_fd6;
-      addrlen = sizeof (where_to->in6);
-      break;
-#endif
-    case AF_UNIX:
-      sock_fd = sock_fdu;
-      addrlen = sizeof (where_to->un);
-      break;
-    default:
-      assert(0);
-  }
-
-  tx_message_length = PKL_ReplyLength(msg);
-  status = sendto(sock_fd, (void *) msg, tx_message_length, 0,
-                  &where_to->sa, addrlen);
-
-  if (status < 0) {
-    DEBUG_LOG("Could not send to %s fd %d : %s",
-              UTI_SockaddrToString(&where_to->sa), sock_fd, strerror(errno));
+  if (!SCK_SendMessage(sock_fd, message, 0))
     return;
-  }
-
-  DEBUG_LOG("Sent %d bytes to %s fd %d", status,
-            UTI_SockaddrToString(&where_to->sa), sock_fd);
 }
   
 /* ================================================== */
@@ -1259,84 +1159,65 @@ handle_shutdown(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 read_from_cmd_socket(int sock_fd, int event, void *anything)
 {
+  SCK_Message sck_message;
   CMD_Request rx_message;
   CMD_Reply tx_message;
-  int status, read_length, expected_length, rx_message_length;
+  IPAddr loopback_addr, remote_ip;
+  int read_length, expected_length;
   int localhost, allowed, log_index;
-  union sockaddr_all where_from;
-  socklen_t from_length;
-  IPAddr remote_ip;
-  unsigned short remote_port, rx_command;
+  unsigned short rx_command;
   struct timespec now, cooked_now;
 
-  rx_message_length = sizeof(rx_message);
-  from_length = sizeof(where_from);
-
-  status = recvfrom(sock_fd, (char *)&rx_message, rx_message_length, 0,
-                    &where_from.sa, &from_length);
-
-  if (status < 0) {
-    LOG(LOGS_WARN, "Error [%s] reading from control socket %d",
-        strerror(errno), sock_fd);
+  if (!SCK_ReceiveMessage(sock_fd, &sck_message, 0))
     return;
-  }
 
-  if (from_length > sizeof (where_from) ||
-      from_length <= sizeof (where_from.sa.sa_family)) {
-    DEBUG_LOG("Read command packet without source address");
-    return;
-  }
-
-  read_length = status;
+  read_length = sck_message.length;
 
   /* Get current time cheaply */
   SCH_GetLastEventTime(&cooked_now, NULL, &now);
 
-  UTI_SockaddrToIPAndPort(&where_from.sa, &remote_ip, &remote_port);
+  /* Check if it's from localhost (127.0.0.1, ::1, or Unix domain),
+     or an authorised address */
+  switch (sck_message.addr_type) {
+    case SCK_ADDR_IP:
+      assert(sock_fd == sock_fd4 || sock_fd == sock_fd6);
+      remote_ip = sck_message.remote_addr.ip.ip_addr;
+      SCK_GetLoopbackIPAddress(remote_ip.family, &loopback_addr);
+      localhost = UTI_CompareIPs(&remote_ip, &loopback_addr, NULL) == 0;
 
-  /* Check if it's from localhost (127.0.0.1, ::1, or Unix domain) */
-  switch (remote_ip.family) {
-    case IPADDR_INET4:
-      assert(sock_fd == sock_fd4);
-      localhost = remote_ip.addr.in4 == INADDR_LOOPBACK;
-      break;
-#ifdef FEAT_IPV6
-    case IPADDR_INET6:
-      assert(sock_fd == sock_fd6);
-      localhost = !memcmp(remote_ip.addr.in6, &in6addr_loopback,
-                          sizeof (in6addr_loopback));
-      break;
-#endif
-    case IPADDR_UNSPEC:
-      /* This should be the Unix domain socket */
-      if (where_from.sa.sa_family != AF_UNIX)
+      if (!localhost && !ADF_IsAllowed(access_auth_table, &remote_ip)) {
+        DEBUG_LOG("Unauthorised host %s",
+                  UTI_IPSockAddrToString(&sck_message.remote_addr.ip));
         return;
+      }
+
+      assert(remote_ip.family != IPADDR_UNSPEC);
+
+      break;
+    case SCK_ADDR_UNIX:
       assert(sock_fd == sock_fdu);
+      remote_ip.family = IPADDR_UNSPEC;
       localhost = 1;
       break;
     default:
-      assert(0);
-  }
-
-  DEBUG_LOG("Received %d bytes from %s fd %d",
-            status, UTI_SockaddrToString(&where_from.sa), sock_fd);
-
-  if (!(localhost || ADF_IsAllowed(access_auth_table, &remote_ip))) {
-    /* The client is not allowed access, so don't waste any more time
-       on him.  Note that localhost is always allowed access
-       regardless of the defined access rules - otherwise, we could
-       shut ourselves out completely! */
-    return;
+      DEBUG_LOG("Unexpected address type");
+      return;
   }
 
   if (read_length < offsetof(CMD_Request, data) ||
       read_length < offsetof(CMD_Reply, data) ||
-      rx_message.pkt_type != PKT_TYPE_CMD_REQUEST ||
-      rx_message.res1 != 0 ||
-      rx_message.res2 != 0) {
-
+      read_length > sizeof (CMD_Request)) {
     /* We don't know how to process anything like this or an error reply
        would be larger than the request */
+    DEBUG_LOG("Unexpected length");
+    return;
+  }
+
+  memcpy(&rx_message, sck_message.data, read_length);
+
+  if (rx_message.pkt_type != PKT_TYPE_CMD_REQUEST ||
+      rx_message.res1 != 0 ||
+      rx_message.res2 != 0) {
     DEBUG_LOG("Command packet dropped");
     return;
   }
@@ -1354,6 +1235,8 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
   rx_command = ntohs(rx_message.command);
 
   memset(&tx_message, 0, sizeof (tx_message));
+  sck_message.data = &tx_message;
+  sck_message.length = 0;
 
   tx_message.version = PROTO_VERSION_NUMBER;
   tx_message.pkt_type = PKT_TYPE_CMD_REPLY;
@@ -1368,7 +1251,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
     if (rx_message.version >= PROTO_VERSION_MISMATCH_COMPAT_SERVER) {
       tx_message.status = htons(STT_BADPKTVERSION);
-      transmit_reply(&tx_message, &where_from);
+      transmit_reply(sock_fd, &sck_message);
     }
     return;
   }
@@ -1378,7 +1261,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
     DEBUG_LOG("Command packet has invalid command %d", rx_command);
 
     tx_message.status = htons(STT_INVALID);
-    transmit_reply(&tx_message, &where_from);
+    transmit_reply(sock_fd, &sck_message);
     return;
   }
 
@@ -1387,7 +1270,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
               expected_length);
 
     tx_message.status = htons(STT_BADPKTLENGTH);
-    transmit_reply(&tx_message, &where_from);
+    transmit_reply(sock_fd, &sck_message);
     return;
   }
 
@@ -1400,7 +1283,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
     /* Check level of authority required to issue the command.  All commands
        from the Unix domain socket (which is accessible only by the root and
        chrony user/group) are allowed. */
-    if (where_from.sa.sa_family == AF_UNIX) {
+    if (remote_ip.family == IPADDR_UNSPEC) {
       assert(sock_fd == sock_fdu);
       allowed = 1;
     } else {
@@ -1664,7 +1547,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
     static int do_it=1;
 
     if (do_it) {
-      transmit_reply(&tx_message, &where_from);
+      transmit_reply(sock_fd, &sck_message);
     }
 
 #if 0
