@@ -124,4 +124,8 @@ extern int SCK_RemoveSocket(int sock_fd);
 /* Close the socket */
 extern void SCK_CloseSocket(int sock_fd);
 
+/* Convert between IPSockAddr and sockaddr_in/in6 */
+extern void SCK_SockaddrToIPSockAddr(struct sockaddr *sa, int sa_length, IPSockAddr *ip_sa);
+extern int SCK_IPSockAddrToSockaddr(IPSockAddr *ip_sa, struct sockaddr *sa, int sa_length);
+
 #endif

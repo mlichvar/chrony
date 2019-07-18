@@ -119,10 +119,23 @@ prepare_buffers(unsigned int n)
 
 /* ================================================== */
 
-static int
-ipsockaddr_to_sockaddr(IPSockAddr *addr, union sockaddr_all *saddr)
+static const char *
+domain_to_string(int domain)
 {
-  return UTI_IPAndPortToSockaddr(&addr->ip_addr, addr->port, &saddr->sa);
+  switch (domain) {
+    case AF_INET:
+      return "IPv4";
+#ifdef AF_INET6
+    case AF_INET6:
+      return "IPv6";
+#endif
+    case AF_UNIX:
+      return "Unix";
+    case AF_UNSPEC:
+      return "UNSPEC";
+    default:
+      return "?";
+  }
 }
 
 /* ================================================== */
@@ -136,7 +149,7 @@ open_socket(int domain, int type, int flags)
 
   if (sock_fd < 0) {
     DEBUG_LOG("Could not open %s socket : %s",
-              UTI_SockaddrFamilyToString(domain), strerror(errno));
+              domain_to_string(domain), strerror(errno));
     return INVALID_SOCK_FD;
   }
 
@@ -228,7 +241,7 @@ bind_ip_address(int sock_fd, IPSockAddr *addr, int flags)
     ;
 #endif
 
-  saddr_len = ipsockaddr_to_sockaddr(addr, &saddr);
+  saddr_len = SCK_IPSockAddrToSockaddr(addr, (struct sockaddr *)&saddr, sizeof (saddr));
   if (saddr_len == 0)
     return 0;
 
@@ -254,7 +267,7 @@ connect_ip_address(int sock_fd, IPSockAddr *addr)
   union sockaddr_all saddr;
   socklen_t saddr_len;
 
-  saddr_len = ipsockaddr_to_sockaddr(addr, &saddr);
+  saddr_len = SCK_IPSockAddrToSockaddr(addr, (struct sockaddr *)&saddr, sizeof (saddr));
   if (saddr_len == 0)
     return 0;
 
@@ -584,8 +597,7 @@ process_header(struct msghdr *msg, unsigned int msg_length, int sock_fd, SCK_Mes
       case AF_INET6:
 #endif
         init_message_addresses(message, SCK_ADDR_IP);
-        UTI_SockaddrToIPAndPort(msg->msg_name, &message->remote_addr.ip.ip_addr,
-                                &message->remote_addr.ip.port);
+        SCK_SockaddrToIPSockAddr(msg->msg_name, msg->msg_namelen, &message->remote_addr.ip);
         break;
       case AF_UNIX:
         init_message_addresses(message, SCK_ADDR_UNIX);
@@ -812,7 +824,8 @@ send_message(int sock_fd, SCK_Message *message, int flags)
       saddr_len = 0;
       break;
     case SCK_ADDR_IP:
-      saddr_len = ipsockaddr_to_sockaddr(&message->remote_addr.ip, &saddr);
+      saddr_len = SCK_IPSockAddrToSockaddr(&message->remote_addr.ip,
+                                           (struct sockaddr *)&saddr, sizeof (saddr));
       break;
     case SCK_ADDR_UNIX:
       memset(&saddr, 0, sizeof (saddr));
@@ -1159,4 +1172,75 @@ void
 SCK_CloseSocket(int sock_fd)
 {
   close(sock_fd);
+}
+
+/* ================================================== */
+
+void
+SCK_SockaddrToIPSockAddr(struct sockaddr *sa, int sa_length, IPSockAddr *ip_sa)
+{
+  ip_sa->ip_addr.family = IPADDR_UNSPEC;
+  ip_sa->port = 0;
+
+  switch (sa->sa_family) {
+    case AF_INET:
+      if (sa_length < sizeof (struct sockaddr_in))
+        return;
+      ip_sa->ip_addr.family = IPADDR_INET4;
+      ip_sa->ip_addr.addr.in4 = ntohl(((struct sockaddr_in *)sa)->sin_addr.s_addr);
+      ip_sa->port = ntohs(((struct sockaddr_in *)sa)->sin_port);
+      break;
+#ifdef FEAT_IPV6
+    case AF_INET6:
+      if (sa_length < sizeof (struct sockaddr_in6))
+        return;
+      ip_sa->ip_addr.family = IPADDR_INET6;
+      memcpy(&ip_sa->ip_addr.addr.in6, ((struct sockaddr_in6 *)sa)->sin6_addr.s6_addr,
+             sizeof (ip_sa->ip_addr.addr.in6));
+      ip_sa->port = ntohs(((struct sockaddr_in6 *)sa)->sin6_port);
+      break;
+#endif
+    default:
+      break;
+  }
+}
+
+/* ================================================== */
+
+int
+SCK_IPSockAddrToSockaddr(IPSockAddr *ip_sa, struct sockaddr *sa, int sa_length)
+{
+  switch (ip_sa->ip_addr.family) {
+    case IPADDR_INET4:
+      if (sa_length < sizeof (struct sockaddr_in))
+        return 0;
+      memset(sa, 0, sizeof (struct sockaddr_in));
+      sa->sa_family = AF_INET;
+      ((struct sockaddr_in *)sa)->sin_addr.s_addr = htonl(ip_sa->ip_addr.addr.in4);
+      ((struct sockaddr_in *)sa)->sin_port = htons(ip_sa->port);
+#ifdef SIN6_LEN
+      ((struct sockaddr_in *)sa)->sin_len = sizeof (struct sockaddr_in);
+#endif
+      return sizeof (struct sockaddr_in);
+#ifdef FEAT_IPV6
+    case IPADDR_INET6:
+      if (sa_length < sizeof (struct sockaddr_in6))
+        return 0;
+      memset(sa, 0, sizeof (struct sockaddr_in6));
+      sa->sa_family = AF_INET6;
+      memcpy(&((struct sockaddr_in6 *)sa)->sin6_addr.s6_addr, ip_sa->ip_addr.addr.in6,
+             sizeof (((struct sockaddr_in6 *)sa)->sin6_addr.s6_addr));
+      ((struct sockaddr_in6 *)sa)->sin6_port = htons(ip_sa->port);
+#ifdef SIN6_LEN
+      ((struct sockaddr_in6 *)sa)->sin6_len = sizeof (struct sockaddr_in6);
+#endif
+      return sizeof (struct sockaddr_in6);
+#endif
+    default:
+      if (sa_length < sizeof (struct sockaddr))
+        return 0;
+      memset(sa, 0, sizeof (struct sockaddr));
+      sa->sa_family = AF_UNSPEC;
+      return 0;
+  }
 }

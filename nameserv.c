@@ -34,6 +34,7 @@
 #include <resolv.h>
 
 #include "nameserv.h"
+#include "socket.h"
 #include "util.h"
 
 /* ================================================== */
@@ -156,10 +157,14 @@ DNS_IPAddress2Name(IPAddr *ip_addr, char *name, int len)
 
 #ifdef FEAT_IPV6
   struct sockaddr_in6 in6;
+  IPSockAddr ip_saddr;
   socklen_t slen;
   char hbuf[NI_MAXHOST];
 
-  slen = UTI_IPAndPortToSockaddr(ip_addr, 0, (struct sockaddr *)&in6);
+  ip_saddr.ip_addr = *ip_addr;
+  ip_saddr.port = 0;
+
+  slen = SCK_IPSockAddrToSockaddr(&ip_saddr, (struct sockaddr *)&in6, sizeof (in6));
   if (!getnameinfo((struct sockaddr *)&in6, slen, hbuf, sizeof (hbuf), NULL, 0, 0))
     result = hbuf;
 #else

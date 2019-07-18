@@ -110,10 +110,6 @@ extern void UTI_IPHostToNetwork(IPAddr *src, IPAddr *dest);
 extern void UTI_IPNetworkToHost(IPAddr *src, IPAddr *dest);
 extern int UTI_CompareIPs(IPAddr *a, IPAddr *b, IPAddr *mask);
 
-extern void UTI_SockaddrToIPAndPort(struct sockaddr *sa, IPAddr *ip, unsigned short *port);
-extern int UTI_IPAndPortToSockaddr(IPAddr *ip, unsigned short port, struct sockaddr *sa);
-extern const char *UTI_SockaddrFamilyToString(int family);
-
 extern char *UTI_IPSockAddrToString(IPSockAddr *sa);
 
 extern char *UTI_TimeToLogForm(time_t t);

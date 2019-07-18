@@ -33,6 +33,7 @@
 #include "nameserv.h"
 #include "logging.h"
 #include "privops.h"
+#include "socket.h"
 #include "util.h"
 
 #define OP_ADJUSTTIME     1024
@@ -257,8 +258,7 @@ do_set_time(const ReqSetTime *req, PrvResponse *res)
 static void
 do_bind_socket(ReqBindSocket *req, PrvResponse *res)
 {
-  unsigned short port;
-  IPAddr ip;
+  IPSockAddr ip_saddr;
   int sock_fd;
   struct sockaddr *sa;
   socklen_t sa_len;
@@ -267,10 +267,11 @@ do_bind_socket(ReqBindSocket *req, PrvResponse *res)
   sa_len = req->sa_len;
   sock_fd = req->sock;
 
-  UTI_SockaddrToIPAndPort(sa, &ip, &port);
-  if (port && port != CNF_GetNTPPort() && port != CNF_GetAcquisitionPort()) {
+  SCK_SockaddrToIPSockAddr(sa, sa_len, &ip_saddr);
+  if (ip_saddr.port != 0 && ip_saddr.port != CNF_GetNTPPort() &&
+      ip_saddr.port != CNF_GetAcquisitionPort()) {
     close(sock_fd);
-    res_fatal(res, "Invalid port %d", port);
+    res_fatal(res, "Invalid port %d", ip_saddr.port);
     return;
   }
 
@@ -573,13 +574,13 @@ PRV_SetTime(const struct timeval *tp, const struct timezone *tzp)
 int
 PRV_BindSocket(int sock, struct sockaddr *address, socklen_t address_len)
 {
+  IPSockAddr ip_saddr;
   PrvRequest req;
   PrvResponse res;
-  IPAddr ip;
-  unsigned short port;
 
-  UTI_SockaddrToIPAndPort(address, &ip, &port);
-  if (port && port != CNF_GetNTPPort() && port != CNF_GetAcquisitionPort())
+  SCK_SockaddrToIPSockAddr(address, address_len, &ip_saddr);
+  if (ip_saddr.port != 0 && ip_saddr.port != CNF_GetNTPPort() &&
+      ip_saddr.port != CNF_GetAcquisitionPort())
     assert(0);
 
   if (!have_helper())
