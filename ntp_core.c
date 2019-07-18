@@ -914,8 +914,7 @@ receive_timeout(void *arg)
 {
   NCR_Instance inst = (NCR_Instance)arg;
 
-  DEBUG_LOG("Receive timeout for [%s:%d]",
-            UTI_IPToString(&inst->remote_addr.ip_addr), inst->remote_addr.port);
+  DEBUG_LOG("Receive timeout for %s", UTI_IPSockAddrToString(&inst->remote_addr));
 
   inst->rx_timeout_id = 0;
   close_client_socket(inst);
@@ -1172,8 +1171,7 @@ transmit_timeout(void *arg)
     return;
   }
 
-  DEBUG_LOG("Transmit timeout for [%s:%d]",
-      UTI_IPToString(&inst->remote_addr.ip_addr), inst->remote_addr.port);
+  DEBUG_LOG("Transmit timeout for %s", UTI_IPSockAddrToString(&inst->remote_addr));
 
   /* Open new client socket */
   if (inst->mode == MODE_CLIENT) {
@@ -2103,9 +2101,8 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
     return;
 
   if (!ADF_IsAllowed(access_auth_table, &remote_addr->ip_addr)) {
-    DEBUG_LOG("NTP packet received from unauthorised host %s port %d",
-              UTI_IPToString(&remote_addr->ip_addr),
-              remote_addr->port);
+    DEBUG_LOG("NTP packet received from unauthorised host %s",
+              UTI_IPToString(&remote_addr->ip_addr));
     return;
   }
 

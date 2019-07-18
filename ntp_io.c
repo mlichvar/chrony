@@ -433,8 +433,7 @@ NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,
   assert(initialised);
 
   if (local_addr->sock_fd == INVALID_SOCK_FD) {
-    DEBUG_LOG("No socket to send to %s:%d",
-              UTI_IPToString(&remote_addr->ip_addr), remote_addr->port);
+    DEBUG_LOG("No socket to send to %s", UTI_IPSockAddrToString(remote_addr));
     return 0;
   }
 
