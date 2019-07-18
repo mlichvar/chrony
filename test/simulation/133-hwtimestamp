@@ -27,8 +27,10 @@ acquisitionport 123"; do
 	if check_config_h 'FEAT_DEBUG 1'; then
 		check_log_messages "HW clock samples" 190 200 || test_fail
 		check_log_messages "HW clock reset" 0 0 || test_fail
-		check_log_messages "Received.*tss=1" 1 1 || test_fail
-		check_log_messages "Received.*tss=2" 390 400 || test_fail
+		check_log_messages "Received message.*tss=KH" 195 200 || test_fail
+		check_log_messages "Received error.*message.*tss=KH" 195 200 || test_fail
+		check_log_messages "Updated RX timestamp.*tss=1" 1 1 || test_fail
+		check_log_messages "Updated RX timestamp.*tss=2" 195 200 || test_fail
 		check_log_messages "update_tx_timestamp.*Updated" 50 140 || test_fail
 		check_log_messages "update_tx_timestamp.*Unacceptable" 50 140 || test_fail
 	fi

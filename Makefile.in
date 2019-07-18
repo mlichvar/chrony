@@ -36,8 +36,8 @@ DESTDIR=
 HASH_OBJ = @HASH_OBJ@
 
 OBJS = array.o cmdparse.o conf.o local.o logging.o main.o memory.o \
-       reference.o regress.o rtc.o samplefilt.o sched.o sources.o sourcestats.o stubs.o \
-       smooth.o sys.o sys_null.o tempcomp.o util.o $(HASH_OBJ)
+       reference.o regress.o rtc.o samplefilt.o sched.o socket.o sources.o sourcestats.o \
+       stubs.o smooth.o sys.o sys_null.o tempcomp.o util.o $(HASH_OBJ)
 
 EXTRA_OBJS=@EXTRA_OBJECTS@
 

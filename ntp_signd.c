@@ -34,6 +34,7 @@
 #include "ntp_io.h"
 #include "ntp_signd.h"
 #include "sched.h"
+#include "socket.h"
 #include "util.h"
 
 /* Declarations per samba/source4/librpc/idl/ntp_signd.idl */
@@ -90,7 +91,7 @@ static ARR_Instance queue;
 static unsigned int queue_head;
 static unsigned int queue_tail;
 
-#define INVALID_SOCK_FD -1
+#define INVALID_SOCK_FD (-6)
 
 /* Unix domain socket connected to ntp_signd */
 static int sock_fd;
@@ -116,7 +117,7 @@ static void
 close_socket(void)
 {
   SCH_RemoveFileHandler(sock_fd);
-  close(sock_fd);
+  SCK_CloseSocket(sock_fd);
   sock_fd = INVALID_SOCK_FD;
 
   /* Empty the queue */
@@ -128,35 +129,23 @@ close_socket(void)
 static int
 open_socket(void)
 {
-  struct sockaddr_un s;
+  char path[1024];
 
-  if (sock_fd >= 0)
+  if (sock_fd != INVALID_SOCK_FD)
     return 1;
 
-  sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
-  if (sock_fd < 0) {
-    DEBUG_LOG("Could not open signd socket : %s", strerror(errno));
-    return 0;
-  }
-
-  UTI_FdSetCloexec(sock_fd);
-  SCH_AddFileHandler(sock_fd, SCH_FILE_INPUT, read_write_socket, NULL);
-
-  s.sun_family = AF_UNIX;
-  if (snprintf(s.sun_path, sizeof (s.sun_path), "%s/socket",
-               CNF_GetNtpSigndSocket()) >= sizeof (s.sun_path)) {
+  if (snprintf(path, sizeof (path), "%s/socket", CNF_GetNtpSigndSocket()) >= sizeof (path)) {
     DEBUG_LOG("signd socket path too long");
-    close_socket();
     return 0;
   }
 
-  if (connect(sock_fd, (struct sockaddr *)&s, sizeof (s)) < 0) {
-    DEBUG_LOG("Could not connect to signd : %s", strerror(errno));
-    close_socket();
+  sock_fd = SCK_OpenUnixStreamSocket(path, NULL, 0);
+  if (sock_fd < 0) {
+    sock_fd = INVALID_SOCK_FD;
     return 0;
   }
 
-  DEBUG_LOG("Connected to signd");
+  SCH_AddFileHandler(sock_fd, SCH_FILE_INPUT, read_write_socket, NULL);
 
   return 1;
 }
@@ -218,16 +207,14 @@ read_write_socket(int sock_fd, int event, void *anything)
     if (!inst->sent)
       SCH_GetLastEventTime(NULL, NULL, &inst->request_ts);
 
-    s = send(sock_fd, (char *)&inst->request + inst->sent,
-             inst->request_length - inst->sent, 0);
+    s = SCK_Send(sock_fd, (char *)&inst->request + inst->sent,
+                 inst->request_length - inst->sent, 0);
 
     if (s < 0) {
-      DEBUG_LOG("signd socket error: %s", strerror(errno));
       close_socket();
       return;
     }
 
-    DEBUG_LOG("Sent %d bytes to signd", s);
     inst->sent += s;
 
     /* Try again later if the request is not complete yet */
@@ -246,20 +233,14 @@ read_write_socket(int sock_fd, int event, void *anything)
     }
 
     assert(inst->received < sizeof (inst->response));
-    s = recv(sock_fd, (char *)&inst->response + inst->received,
-             sizeof (inst->response) - inst->received, 0);
+    s = SCK_Receive(sock_fd, (char *)&inst->response + inst->received,
+                    sizeof (inst->response) - inst->received, 0);
 
     if (s <= 0) {
-      if (s < 0)
-        DEBUG_LOG("signd socket error: %s", strerror(errno));
-      else
-        DEBUG_LOG("signd socket closed");
-
       close_socket();
       return;
     }
 
-    DEBUG_LOG("Received %d bytes from signd", s);
     inst->received += s;
 
     if (inst->received < sizeof (inst->response.length))

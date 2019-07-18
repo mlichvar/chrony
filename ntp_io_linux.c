@@ -29,7 +29,6 @@
 #include "sysincl.h"
 
 #include <ifaddrs.h>
-#include <linux/errqueue.h>
 #include <linux/ethtool.h>
 #include <linux/net_tstamp.h>
 #include <linux/sockios.h>
@@ -45,16 +44,9 @@
 #include "ntp_io_linux.h"
 #include "ntp_sources.h"
 #include "sched.h"
+#include "socket.h"
 #include "sys_linux.h"
 #include "util.h"
-
-union sockaddr_in46 {
-  struct sockaddr_in in4;
-#ifdef FEAT_IPV6
-  struct sockaddr_in6 in6;
-#endif
-  struct sockaddr u;
-};
 
 struct Interface {
   char name[IF_NAMESIZE];
@@ -133,7 +125,7 @@ add_interface(CNF_HwTsInterface *conf_iface)
       return 1;
   }
 
-  sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+  sock_fd = SCK_OpenUdpSocket(NULL, NULL, 0);
   if (sock_fd < 0)
     return 0;
 
@@ -142,13 +134,13 @@ add_interface(CNF_HwTsInterface *conf_iface)
 
   if (snprintf(req.ifr_name, sizeof (req.ifr_name), "%s", conf_iface->name) >=
       sizeof (req.ifr_name)) {
-    close(sock_fd);
+    SCK_CloseSocket(sock_fd);
     return 0;
   }
 
   if (ioctl(sock_fd, SIOCGIFINDEX, &req)) {
     DEBUG_LOG("ioctl(%s) failed : %s", "SIOCGIFINDEX", strerror(errno));
-    close(sock_fd);
+    SCK_CloseSocket(sock_fd);
     return 0;
   }
 
@@ -159,7 +151,7 @@ add_interface(CNF_HwTsInterface *conf_iface)
 
   if (ioctl(sock_fd, SIOCETHTOOL, &req)) {
     DEBUG_LOG("ioctl(%s) failed : %s", "SIOCETHTOOL", strerror(errno));
-    close(sock_fd);
+    SCK_CloseSocket(sock_fd);
     return 0;
   }
 
@@ -167,13 +159,13 @@ add_interface(CNF_HwTsInterface *conf_iface)
                    SOF_TIMESTAMPING_RAW_HARDWARE;
   if ((ts_info.so_timestamping & req_hwts_flags) != req_hwts_flags) {
     DEBUG_LOG("HW timestamping not supported on %s", req.ifr_name);
-    close(sock_fd);
+    SCK_CloseSocket(sock_fd);
     return 0;
   }
 
   if (ts_info.phc_index < 0) {
     DEBUG_LOG("PHC missing on %s", req.ifr_name);
-    close(sock_fd);
+    SCK_CloseSocket(sock_fd);
     return 0;
   }
 
@@ -219,12 +211,12 @@ add_interface(CNF_HwTsInterface *conf_iface)
         ts_config.tx_type != HWTSTAMP_TX_ON || ts_config.rx_filter != rx_filter)
 #endif
     {
-      close(sock_fd);
+      SCK_CloseSocket(sock_fd);
       return 0;
     }
   }
 
-  close(sock_fd);
+  SCK_CloseSocket(sock_fd);
 
   phc_fd = SYS_Linux_OpenPHC(NULL, ts_info.phc_index);
   if (phc_fd < 0)
@@ -293,7 +285,7 @@ update_interface_speed(struct Interface *iface)
   struct ifreq req;
   int sock_fd, link_speed;
 
-  sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+  sock_fd = SCK_OpenUdpSocket(NULL, NULL, 0);
   if (sock_fd < 0)
     return;
 
@@ -306,11 +298,11 @@ update_interface_speed(struct Interface *iface)
 
   if (ioctl(sock_fd, SIOCETHTOOL, &req)) {
     DEBUG_LOG("ioctl(%s) failed : %s", "SIOCETHTOOL", strerror(errno));
-    close(sock_fd);
+    SCK_CloseSocket(sock_fd);
     return;
   }
 
-  close(sock_fd);
+  SCK_CloseSocket(sock_fd);
 
   link_speed = ethtool_cmd_speed(&cmd);
 
@@ -328,17 +320,17 @@ check_timestamping_option(int option)
 {
   int sock_fd;
 
-  sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+  sock_fd = SCK_OpenUdpSocket(NULL, NULL, 0);
   if (sock_fd < 0)
     return 0;
 
   if (setsockopt(sock_fd, SOL_SOCKET, SO_TIMESTAMPING, &option, sizeof (option)) < 0) {
     DEBUG_LOG("Could not enable timestamping option %x", (unsigned int)option);
-    close(sock_fd);
+    SCK_CloseSocket(sock_fd);
     return 0;
   }
 
-  close(sock_fd);
+  SCK_CloseSocket(sock_fd);
   return 1;
 }
 #endif
@@ -350,19 +342,15 @@ open_dummy_socket(void)
 {
   int sock_fd, events = 0;
 
-  if ((sock_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0
-#ifdef FEAT_IPV6
-      && (sock_fd = socket(AF_INET6, SOCK_DGRAM, 0)) < 0
-#endif
-     )
+  sock_fd = SCK_OpenUdpSocket(NULL, NULL, 0);
+  if (sock_fd < 0)
     return INVALID_SOCK_FD;
 
   if (!NIO_Linux_SetTimestampSocketOptions(sock_fd, 1, &events)) {
-    close(sock_fd);
+    SCK_CloseSocket(sock_fd);
     return INVALID_SOCK_FD;
   }
 
-  UTI_FdSetCloexec(sock_fd);
   return sock_fd;
 }
 
@@ -432,7 +420,7 @@ NIO_Linux_Finalise(void)
   unsigned int i;
 
   if (dummy_rxts_socket != INVALID_SOCK_FD)
-    close(dummy_rxts_socket);
+    SCK_CloseSocket(dummy_rxts_socket);
 
   for (i = 0; i < ARR_GetSize(interfaces); i++) {
     iface = ARR_GetElement(interfaces, i);
@@ -462,14 +450,12 @@ NIO_Linux_SetTimestampSocketOptions(int sock_fd, int client_only, int *events)
   if (client_only || permanent_ts_options)
     flags |= ts_tx_flags;
 
-  if (setsockopt(sock_fd, SOL_SOCKET, SO_SELECT_ERR_QUEUE, &val, sizeof (val)) < 0) {
-    LOG(LOGS_ERR, "Could not set %s socket option", "SO_SELECT_ERR_QUEUE");
+  if (!SCK_SetIntOption(sock_fd, SOL_SOCKET, SO_SELECT_ERR_QUEUE, val)) {
     ts_flags = 0;
     return 0;
   }
 
-  if (setsockopt(sock_fd, SOL_SOCKET, SO_TIMESTAMPING, &flags, sizeof (flags)) < 0) {
-    LOG(LOGS_ERR, "Could not set %s socket option", "SO_TIMESTAMPING");
+  if (!SCK_SetIntOption(sock_fd, SOL_SOCKET, SO_TIMESTAMPING, flags)) {
     ts_flags = 0;
     return 0;
   }
@@ -633,7 +619,6 @@ static int
 extract_udp_data(unsigned char *msg, NTP_Remote_Address *remote_addr, int len)
 {
   unsigned char *msg_start = msg;
-  union sockaddr_in46 addr;
 
   remote_addr->ip_addr.family = IPADDR_UNSPEC;
   remote_addr->port = 0;
@@ -656,19 +641,21 @@ extract_udp_data(unsigned char *msg, NTP_Remote_Address *remote_addr, int len)
   /* Parse destination address and port from IPv4/IPv6 and UDP headers */
   if (len >= 20 && msg[0] >> 4 == 4) {
     int ihl = (msg[0] & 0xf) * 4;
+    uint32_t addr;
 
     if (len < ihl + 8 || msg[9] != 17)
       return 0;
 
-    memcpy(&addr.in4.sin_addr.s_addr, msg + 16, sizeof (uint32_t));
-    addr.in4.sin_port = *(uint16_t *)(msg + ihl + 2);
-    addr.in4.sin_family = AF_INET;
+    memcpy(&addr, msg + 16, sizeof (addr));
+    remote_addr->ip_addr.addr.in4 = ntohl(addr);
+    remote_addr->port = ntohs(*(uint16_t *)(msg + ihl + 2));
+    remote_addr->ip_addr.family = IPADDR_INET4;
     len -= ihl + 8, msg += ihl + 8;
 #ifdef FEAT_IPV6
   } else if (len >= 48 && msg[0] >> 4 == 6) {
     int eh_len, next_header = msg[6];
 
-    memcpy(&addr.in6.sin6_addr.s6_addr, msg + 24, 16);
+    memcpy(&remote_addr->ip_addr.addr.in6, msg + 24, sizeof (remote_addr->ip_addr.addr.in6));
     len -= 40, msg += 40;
 
     /* Skip IPv6 extension headers if present */
@@ -700,15 +687,13 @@ extract_udp_data(unsigned char *msg, NTP_Remote_Address *remote_addr, int len)
       len -= eh_len, msg += eh_len;
     }
 
-    addr.in6.sin6_port = *(uint16_t *)(msg + 2);
-    addr.in6.sin6_family = AF_INET6;
+    remote_addr->port = ntohs(*(uint16_t *)(msg + 2));
+    remote_addr->ip_addr.family = IPADDR_INET6;
     len -= 8, msg += 8;
 #endif
   } else {
     return 0;
   }
-
-  UTI_SockaddrToIPAndPort(&addr.u, &remote_addr->ip_addr, &remote_addr->port);
 
   /* Move the message to fix alignment of its fields */
   if (len > 0)
@@ -720,72 +705,39 @@ extract_udp_data(unsigned char *msg, NTP_Remote_Address *remote_addr, int len)
 /* ================================================== */
 
 int
-NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
-                         NTP_Local_Timestamp *local_ts, struct msghdr *hdr, int length)
+NIO_Linux_ProcessMessage(SCK_Message *message, NTP_Local_Address *local_addr,
+                         NTP_Local_Timestamp *local_ts, int event)
 {
   struct Interface *iface;
-  struct cmsghdr *cmsg;
   int is_tx, ts_if_index, l2_length;
 
-  is_tx = hdr->msg_flags & MSG_ERRQUEUE;
+  is_tx = event == SCH_FILE_EXCEPTION;
   iface = NULL;
-  ts_if_index = local_addr->if_index;
-  l2_length = 0;
 
-  for (cmsg = CMSG_FIRSTHDR(hdr); cmsg; cmsg = CMSG_NXTHDR(hdr, cmsg)) {
-#ifdef HAVE_LINUX_TIMESTAMPING_OPT_PKTINFO
-    if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_TIMESTAMPING_PKTINFO) {
-      struct scm_ts_pktinfo ts_pktinfo;
+  ts_if_index = message->timestamp.if_index;
+  if (ts_if_index == INVALID_IF_INDEX)
+    ts_if_index = message->if_index;
+  l2_length = message->timestamp.l2_length;
 
-      memcpy(&ts_pktinfo, CMSG_DATA(cmsg), sizeof (ts_pktinfo));
-
-      ts_if_index = ts_pktinfo.if_index;
-      l2_length = ts_pktinfo.pkt_length;
-
-      DEBUG_LOG("Received HW timestamp info if=%d length=%d", ts_if_index, l2_length);
-    }
-#endif
-
-    if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_TIMESTAMPING) {
-      struct scm_timestamping ts3;
-
-      memcpy(&ts3, CMSG_DATA(cmsg), sizeof (ts3));
-
-      if (!UTI_IsZeroTimespec(&ts3.ts[2])) {
-        iface = get_interface(ts_if_index);
-        if (iface) {
-          process_hw_timestamp(iface, &ts3.ts[2], local_ts, !is_tx ? length : 0,
-                               remote_addr->ip_addr.family, l2_length);
-        } else {
-          DEBUG_LOG("HW clock not found for interface %d", ts_if_index);
-        }
-
-        /* If a HW transmit timestamp was received, resume processing
-           of non-error messages on this socket */
-        if (is_tx)
-          resume_socket(local_addr->sock_fd);
-      }
-
-      if (local_ts->source == NTP_TS_DAEMON && !UTI_IsZeroTimespec(&ts3.ts[0]) &&
-          (!is_tx || UTI_IsZeroTimespec(&ts3.ts[2]))) {
-        LCL_CookTime(&ts3.ts[0], &local_ts->ts, &local_ts->err);
-        local_ts->source = NTP_TS_KERNEL;
-      }
+  if (!UTI_IsZeroTimespec(&message->timestamp.hw)) {
+    iface = get_interface(ts_if_index);
+    if (iface) {
+      process_hw_timestamp(iface, &message->timestamp.hw, local_ts, !is_tx ? message->length : 0,
+                           message->remote_addr.ip.ip_addr.family, l2_length);
+    } else {
+      DEBUG_LOG("HW clock not found for interface %d", ts_if_index);
     }
 
-    if ((cmsg->cmsg_level == SOL_IP && cmsg->cmsg_type == IP_RECVERR) ||
-        (cmsg->cmsg_level == SOL_IPV6 && cmsg->cmsg_type == IPV6_RECVERR)) {
-      struct sock_extended_err err;
+    /* If a HW transmit timestamp was received, resume processing
+       of non-error messages on this socket */
+    if (is_tx)
+      resume_socket(local_addr->sock_fd);
+  }
 
-      memcpy(&err, CMSG_DATA(cmsg), sizeof (err));
-
-      if (err.ee_errno != ENOMSG || err.ee_info != SCM_TSTAMP_SND ||
-          err.ee_origin != SO_EE_ORIGIN_TIMESTAMPING) {
-        DEBUG_LOG("Unknown extended error");
-        /* Drop the message */
-        return 1;
-      }
-    }
+  if (local_ts->source == NTP_TS_DAEMON && !UTI_IsZeroTimespec(&message->timestamp.kernel) &&
+      (!is_tx || UTI_IsZeroTimespec(&message->timestamp.hw))) {
+    LCL_CookTime(&message->timestamp.kernel, &local_ts->ts, &local_ts->err);
+    local_ts->source = NTP_TS_KERNEL;
   }
 
   /* If the kernel is slow with enabling RX timestamping, open a dummy
@@ -803,19 +755,19 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
   /* The data from the error queue includes all layers up to UDP.  We have to
      extract the UDP data and also the destination address with port as there
      currently doesn't seem to be a better way to get them both. */
-  l2_length = length;
-  length = extract_udp_data(hdr->msg_iov[0].iov_base, remote_addr, length);
+  l2_length = message->length;
+  message->length = extract_udp_data(message->data, &message->remote_addr.ip, message->length);
 
-  DEBUG_LOG("Received %d (%d) bytes from error queue for %s:%d fd=%d if=%d tss=%u",
-            l2_length, length, UTI_IPToString(&remote_addr->ip_addr), remote_addr->port,
-            local_addr->sock_fd, local_addr->if_index, local_ts->source);
+  DEBUG_LOG("Extracted message for %s fd=%d len=%u",
+            UTI_IPSockAddrToString(&message->remote_addr.ip),
+            local_addr->sock_fd, message->length);
 
   /* Update assumed position of UDP data at layer 2 for next received packet */
-  if (iface && length) {
-    if (remote_addr->ip_addr.family == IPADDR_INET4)
-      iface->l2_udp4_ntp_start = l2_length - length;
-    else if (remote_addr->ip_addr.family == IPADDR_INET6)
-      iface->l2_udp6_ntp_start = l2_length - length;
+  if (iface && message->length) {
+    if (message->remote_addr.ip.ip_addr.family == IPADDR_INET4)
+      iface->l2_udp4_ntp_start = l2_length - message->length;
+    else if (message->remote_addr.ip.ip_addr.family == IPADDR_INET6)
+      iface->l2_udp6_ntp_start = l2_length - message->length;
   }
 
   /* Drop the message if it has no timestamp or its processing failed */
@@ -824,24 +776,21 @@ NIO_Linux_ProcessMessage(NTP_Remote_Address *remote_addr, NTP_Local_Address *loc
     return 1;
   }
 
-  if (length < NTP_NORMAL_PACKET_LENGTH)
+  if (message->length < NTP_NORMAL_PACKET_LENGTH)
     return 1;
 
-  NSR_ProcessTx(remote_addr, local_addr, local_ts,
-                (NTP_Packet *)hdr->msg_iov[0].iov_base, length);
+  NSR_ProcessTx(&message->remote_addr.ip, local_addr, local_ts, message->data, message->length);
 
   return 1;
 }
 
 /* ================================================== */
 
-int
-NIO_Linux_RequestTxTimestamp(struct msghdr *msg, int cmsglen, int sock_fd)
+void
+NIO_Linux_RequestTxTimestamp(SCK_Message *message, int sock_fd)
 {
-  struct cmsghdr *cmsg;
-
   if (!ts_flags)
-    return cmsglen;
+    return;
 
   /* If a HW transmit timestamp is requested on a client socket, monitor
      events on the socket in order to avoid processing of a fast response
@@ -851,27 +800,9 @@ NIO_Linux_RequestTxTimestamp(struct msghdr *msg, int cmsglen, int sock_fd)
 
   /* Check if TX timestamping is disabled on this socket */
   if (permanent_ts_options || !NIO_IsServerSocket(sock_fd))
-    return cmsglen;
+    return;
 
-  /* Add control message that will enable TX timestamping for this message.
-     Don't use CMSG_NXTHDR as the one in glibc is buggy for creating new
-     control messages. */
-
-  cmsg = CMSG_FIRSTHDR(msg);
-  if (!cmsg || cmsglen + CMSG_SPACE(sizeof (ts_tx_flags)) > msg->msg_controllen)
-    return cmsglen;
-
-  cmsg = (struct cmsghdr *)((char *)cmsg + cmsglen);
-  memset(cmsg, 0, CMSG_SPACE(sizeof (ts_tx_flags)));
-  cmsglen += CMSG_SPACE(sizeof (ts_tx_flags));
-
-  cmsg->cmsg_level = SOL_SOCKET;
-  cmsg->cmsg_type = SO_TIMESTAMPING;
-  cmsg->cmsg_len = CMSG_LEN(sizeof (ts_tx_flags));
-
-  memcpy(CMSG_DATA(cmsg), &ts_tx_flags, sizeof (ts_tx_flags));
-
-  return cmsglen;
+  message->timestamp.tx_flags = ts_tx_flags;
 }
 
 /* ================================================== */

@@ -38,6 +38,7 @@
 #include "ntp_signd.h"
 #include "ntp_sources.h"
 #include "ntp_core.h"
+#include "socket.h"
 #include "sources.h"
 #include "sourcestats.h"
 #include "reference.h"
@@ -118,6 +119,7 @@ MAI_CleanupAndExit(void)
   NCR_Finalise();
   NIO_Finalise();
   CAM_Finalise();
+  SCK_Finalise();
   KEY_Finalise();
   RCL_Finalise();
   SRC_Finalise();
@@ -554,6 +556,7 @@ int main
   SRC_Initialise();
   RCL_Initialise();
   KEY_Initialise();
+  SCK_Initialise();
 
   /* Open privileged ports before dropping root */
   CAM_Initialise(address_family);
