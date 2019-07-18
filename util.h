@@ -115,6 +115,8 @@ extern int UTI_IPAndPortToSockaddr(IPAddr *ip, unsigned short port, struct socka
 extern char *UTI_SockaddrToString(struct sockaddr *sa);
 extern const char *UTI_SockaddrFamilyToString(int family);
 
+extern char *UTI_IPSockAddrToString(IPSockAddr *sa);
+
 extern char *UTI_TimeToLogForm(time_t t);
 
 /* Adjust time following a frequency/offset change */

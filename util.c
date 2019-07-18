@@ -605,6 +605,21 @@ UTI_SockaddrFamilyToString(int family)
 /* ================================================== */
 
 char *
+UTI_IPSockAddrToString(IPSockAddr *sa)
+{
+  char *result;
+
+  result = NEXT_BUFFER;
+  snprintf(result, BUFFER_LENGTH,
+           sa->ip_addr.family != IPADDR_INET6 ? "%s:%hu" : "[%s]:%hu",
+           UTI_IPToString(&sa->ip_addr), sa->port);
+
+  return result;
+}
+
+/* ================================================== */
+
+char *
 UTI_TimeToLogForm(time_t t)
 {
   struct tm *stm;
