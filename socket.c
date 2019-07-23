@@ -160,8 +160,8 @@ open_socket(int domain, int type, int flags)
     return INVALID_SOCK_FD;
   }
 
-  /* Enable non-blocking mode if requested */
-  if (flags & SCK_FLAG_NONBLOCK && fcntl(sock_fd, F_SETFL, O_NONBLOCK)) {
+  /* Enable non-blocking mode */
+  if (fcntl(sock_fd, F_SETFL, O_NONBLOCK)) {
     DEBUG_LOG("Could not set O_NONBLOCK : %s", strerror(errno));
     close(sock_fd);
     return INVALID_SOCK_FD;

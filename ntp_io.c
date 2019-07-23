@@ -98,7 +98,7 @@ open_socket(int family, int local_port, int client_only, IPSockAddr *remote_addr
 
   sock_flags = SCK_FLAG_RX_DEST_ADDR | SCK_FLAG_PRIV_BIND;
   if (!client_only)
-    sock_flags |= SCK_FLAG_NONBLOCK | SCK_FLAG_BROADCAST;
+    sock_flags |= SCK_FLAG_BROADCAST;
 
   sock_fd = SCK_OpenUdpSocket(remote_addr, &local_addr, sock_flags);
   if (sock_fd < 0) {

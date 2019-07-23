@@ -31,7 +31,6 @@
 #include "addressing.h"
 
 /* Flags for opening sockets */
-#define SCK_FLAG_NONBLOCK 1
 #define SCK_FLAG_BROADCAST 2
 #define SCK_FLAG_RX_DEST_ADDR 4
 #define SCK_FLAG_ALL_PERMISSIONS 8
