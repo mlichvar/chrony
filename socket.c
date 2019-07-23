@@ -82,6 +82,9 @@ struct MessageHeader {
 
 static int initialised;
 
+/* Flags supported by socket() */
+static int socket_flags;
+
 /* Arrays of Message and MessageHeader */
 static ARR_Instance recv_messages;
 static ARR_Instance recv_headers;
@@ -141,11 +144,34 @@ domain_to_string(int domain)
 /* ================================================== */
 
 static int
+check_socket_flag(int sock_flag, int fd_flag, int fs_flag)
+{
+  int sock_fd, fd_flags, fs_flags;
+
+  sock_fd = socket(AF_INET, SOCK_DGRAM | sock_flag, 0);
+  if (sock_fd < 0)
+    return 0;
+
+  fd_flags = fcntl(sock_fd, F_GETFD);
+  fs_flags = fcntl(sock_fd, F_GETFL);
+
+  close(sock_fd);
+
+  if (fd_flags == -1 || (fd_flags & fd_flag) != fd_flag ||
+      fs_flags == -1 || (fs_flags & fs_flag) != fs_flag)
+    return 0;
+
+  return 1;
+}
+
+/* ================================================== */
+
+static int
 open_socket(int domain, int type, int flags)
 {
   int sock_fd;
 
-  sock_fd = socket(domain, type, 0);
+  sock_fd = socket(domain, type | socket_flags, 0);
 
   if (sock_fd < 0) {
     DEBUG_LOG("Could not open %s socket : %s",
@@ -154,14 +180,22 @@ open_socket(int domain, int type, int flags)
   }
 
   /* Close the socket automatically on exec */
-  if (!UTI_FdSetCloexec(sock_fd)) {
+  if (
+#ifdef SOCK_CLOEXEC
+      (socket_flags & SOCK_CLOEXEC) == 0 &&
+#endif
+      !UTI_FdSetCloexec(sock_fd)) {
     DEBUG_LOG("Could not set O_CLOEXEC : %s", strerror(errno));
     close(sock_fd);
     return INVALID_SOCK_FD;
   }
 
   /* Enable non-blocking mode */
-  if (fcntl(sock_fd, F_SETFL, O_NONBLOCK)) {
+  if (
+#ifdef SOCK_NONBLOCK
+      (socket_flags & SOCK_NONBLOCK) == 0 &&
+#endif
+      fcntl(sock_fd, F_SETFL, O_NONBLOCK)) {
     DEBUG_LOG("Could not set O_NONBLOCK : %s", strerror(errno));
     close(sock_fd);
     return INVALID_SOCK_FD;
@@ -942,6 +976,16 @@ SCK_Initialise(void)
   received_messages = MAX_RECV_MESSAGES;
 
   priv_bind_function = NULL;
+
+  socket_flags = 0;
+#ifdef SOCK_CLOEXEC
+  if (check_socket_flag(SOCK_CLOEXEC, FD_CLOEXEC, 0))
+    socket_flags |= SOCK_CLOEXEC;
+#endif
+#ifdef SOCK_NONBLOCK
+  if (check_socket_flag(SOCK_NONBLOCK, 0, O_NONBLOCK))
+    socket_flags |= SOCK_NONBLOCK;
+#endif
 
   initialised = 1;
 }
