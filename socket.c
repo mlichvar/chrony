@@ -259,6 +259,18 @@ set_ip_options(int sock_fd, int family, int flags)
 /* ================================================== */
 
 static int
+is_any_address(IPAddr *addr)
+{
+  IPAddr any_addr;
+
+  SCK_GetAnyLocalIPAddress(addr->family, &any_addr);
+
+  return UTI_CompareIPs(&any_addr, addr, NULL) == 0;
+}
+
+/* ================================================== */
+
+static int
 bind_ip_address(int sock_fd, IPSockAddr *addr, int flags)
 {
   union sockaddr_all saddr;
@@ -352,8 +364,9 @@ open_ip_socket(IPSockAddr *remote_addr, IPSockAddr *local_addr, int type, int fl
   if (!set_ip_options(sock_fd, family, flags))
     goto error;
 
-  /* Bind the socket if a local address was specified */
+  /* Bind the socket if a non-any local address/port was specified */
   if (local_addr && local_addr->ip_addr.family != IPADDR_UNSPEC &&
+      (local_addr->port != 0 || !is_any_address(&local_addr->ip_addr)) &&
       !bind_ip_address(sock_fd, local_addr, flags))
     goto error;
 
