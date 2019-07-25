@@ -143,6 +143,7 @@ domain_to_string(int domain)
 
 /* ================================================== */
 
+#if defined(SOCK_CLOEXEC) || defined(SOCK_NONBLOCK)
 static int
 check_socket_flag(int sock_flag, int fd_flag, int fs_flag)
 {
@@ -163,6 +164,7 @@ check_socket_flag(int sock_flag, int fd_flag, int fs_flag)
 
   return 1;
 }
+#endif
 
 /* ================================================== */
 
