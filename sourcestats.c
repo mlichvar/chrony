@@ -708,6 +708,13 @@ SST_GetSelectionData(SST_Stats inst, struct timespec *now,
 
   *select_ok = inst->regression_ok;
 
+  /* If maxsamples is too small to have a successful regression, enable the
+     selection as a special case for a fast update/print-once reference mode */
+  if (!*select_ok && inst->n_samples < 3 && inst->n_samples == inst->max_samples) {
+    *std_dev = CNF_GetMaxJitter();
+    *select_ok = 1;
+  }
+
   DEBUG_LOG("n=%d off=%f dist=%f sd=%f first_ago=%f last_ago=%f selok=%d",
             inst->n_samples, offset, *root_distance, *std_dev,
             *first_sample_ago, *last_sample_ago, *select_ok);

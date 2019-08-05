@@ -655,6 +655,10 @@ The *maxsamples* directive sets the default maximum number of samples that
 individual sources in the <<server,*server*>> and <<refclock,*refclock*>>
 directives. The default value is 0, which disables the configurable limit. The
 useful range is 4 to 64.
++
+As a special case, setting *maxsamples* to 1 disables frequency tracking in
+order to make the sources immediately selectable with only one sample. This can
+be useful when *chronyd* is started with the *-q* or *-Q* option.
 
 [[minsamples]]*minsamples* _samples_::
 The *minsamples* directive sets the default minimum number of samples that
