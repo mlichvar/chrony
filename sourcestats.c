@@ -54,6 +54,9 @@
 /* The minimum standard deviation */
 #define MIN_STDDEV 1.0e-9
 
+/* The worst case bound on an unknown standard deviation of the offset */
+#define WORST_CASE_STDDEV_BOUND 4.0
+
 /* The asymmetry of network jitter when all jitter is in one direction */
 #define MAX_ASYMMETRY 0.5
 
@@ -249,9 +252,9 @@ SST_ResetInstance(SST_Stats inst)
   inst->estimated_frequency_sd = WORST_CASE_FREQ_BOUND;
   inst->skew = WORST_CASE_FREQ_BOUND;
   inst->estimated_offset = 0.0;
-  inst->estimated_offset_sd = 86400.0; /* Assume it's at least within a day! */
+  inst->estimated_offset_sd = WORST_CASE_STDDEV_BOUND;
   UTI_ZeroTimespec(&inst->offset_time);
-  inst->std_dev = 4.0;
+  inst->std_dev = WORST_CASE_STDDEV_BOUND;
   inst->nruns = 0;
   inst->asymmetry_run = 0;
   inst->asymmetry = 0.0;
@@ -603,9 +606,20 @@ SST_DoNewRegression(SST_Stats inst)
     times_back_start = inst->runs_samples + best_start;
     prune_register(inst, best_start);
   } else {
-    inst->estimated_frequency = 0.0;
     inst->estimated_frequency_sd = WORST_CASE_FREQ_BOUND;
     inst->skew = WORST_CASE_FREQ_BOUND;
+    inst->estimated_offset_sd = WORST_CASE_STDDEV_BOUND;
+    inst->std_dev = WORST_CASE_STDDEV_BOUND;
+    inst->nruns = 0;
+
+    if (inst->n_samples > 0) {
+      inst->estimated_offset = inst->offsets[inst->last_sample];
+      inst->offset_time = inst->sample_times[inst->last_sample];
+    } else {
+      inst->estimated_offset = 0.0;
+      UTI_ZeroTimespec(&inst->offset_time);
+    }
+
     times_back_start = 0;
   }
 
