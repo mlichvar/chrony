@@ -244,6 +244,18 @@ specified on the command line. For example:
 # chronyd -q 'pool pool.ntp.org iburst'
 ----
 
+The command above would normally take about 5 seconds if the servers were
+well synchronised and responding to all requests. If not synchronised or
+responding, it would take about 10 seconds for `chronyd` to give up and exit
+with a non-zero status. A faster configuration is possible. A single server can
+be used instead of four servers, the number of measurements can be reduced with
+the `maxsamples` option, and a timeout can be specified with the `-t` option.
+The following command would take only up to about 1 second.
+
+----
+# chronyd -q -t 1 'server pool.ntp.org iburst maxsamples 1'
+----
+
 === Can `chronyd` be configured to control the clock like `ntpd`?
 
 It is not possible to perfectly emulate `ntpd`, but there are some options that
