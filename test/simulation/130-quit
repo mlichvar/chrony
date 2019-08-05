@@ -16,6 +16,14 @@ check_chronyd_exit || test_fail
 check_packet_interval || test_fail
 check_sync || test_fail
 
+min_sync_time=1
+max_sync_time=1
+client_server_options="iburst maxsamples 1"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_sync || test_fail
+
 client_chronyd_options="-Q"
 run_test || test_fail
 check_sync && test_fail
