@@ -61,7 +61,7 @@ struct Message {
   union {
     NTP_Receive_Buffer ntp_msg;
     CMD_Request cmd_request;
-    CMD_Request cmd_reply;
+    CMD_Reply cmd_reply;
   } msg_buf;
   /* Aligned buffer for control messages */
   struct cmsghdr cmsg_buf[CMSG_BUF_SIZE / sizeof (struct cmsghdr)];
