@@ -1019,7 +1019,7 @@ SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report, struct ti
   report->n_samples = inst->n_samples;
   report->n_runs = inst->nruns;
 
-  if (inst->n_samples > 1) {
+  if (inst->n_samples > 0) {
     bi = get_runsbuf_index(inst, inst->best_single_sample);
     bj = get_buf_index(inst, inst->best_single_sample);
 
