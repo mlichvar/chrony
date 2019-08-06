@@ -70,6 +70,7 @@ distclean : clean
 	-rm -f Makefile config.h config.log
 
 clean :
+	$(MAKE) -C test/unit clean
 	-rm -f *.o *.s chronyc chronyd core.* *~
 	-rm -f *.gcda *.gcno
 	-rm -rf .deps
