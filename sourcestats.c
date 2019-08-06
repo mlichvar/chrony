@@ -1014,31 +1014,24 @@ SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report, struct ti
 {
   double dspan;
   double elapsed, sample_elapsed;
-  int li, lj, bi, bj;
+  int bi, bj;
 
   report->n_samples = inst->n_samples;
   report->n_runs = inst->nruns;
 
   if (inst->n_samples > 1) {
-    li = get_runsbuf_index(inst, inst->n_samples - 1);
-    lj = get_buf_index(inst, inst->n_samples - 1);
-    dspan = UTI_DiffTimespecsToDouble(&inst->sample_times[li],
-        &inst->sample_times[get_runsbuf_index(inst, 0)]);
-    report->span_seconds = (unsigned long) (dspan + 0.5);
+    bi = get_runsbuf_index(inst, inst->best_single_sample);
+    bj = get_buf_index(inst, inst->best_single_sample);
 
-    if (inst->n_samples > 3) {
-      elapsed = UTI_DiffTimespecsToDouble(now, &inst->offset_time);
-      bi = get_runsbuf_index(inst, inst->best_single_sample);
-      bj = get_buf_index(inst, inst->best_single_sample);
-      sample_elapsed = UTI_DiffTimespecsToDouble(now, &inst->sample_times[bi]);
-      report->est_offset = inst->estimated_offset + elapsed * inst->estimated_frequency;
-      report->est_offset_err = (inst->estimated_offset_sd +
-                 sample_elapsed * inst->skew +
-                 (0.5*inst->root_delays[bj] + inst->root_dispersions[bj]));
-    } else {
-      report->est_offset = inst->offsets[li];
-      report->est_offset_err = 0.5*inst->root_delays[lj] + inst->root_dispersions[lj];
-    }
+    dspan = UTI_DiffTimespecsToDouble(&inst->sample_times[inst->last_sample],
+                                      &inst->sample_times[get_runsbuf_index(inst, 0)]);
+    elapsed = UTI_DiffTimespecsToDouble(now, &inst->offset_time);
+    sample_elapsed = UTI_DiffTimespecsToDouble(now, &inst->sample_times[bi]);
+
+    report->span_seconds = round(dspan);
+    report->est_offset = inst->estimated_offset + elapsed * inst->estimated_frequency;
+    report->est_offset_err = inst->estimated_offset_sd + sample_elapsed * inst->skew +
+                             (0.5 * inst->root_delays[bj] + inst->root_dispersions[bj]);
   } else {
     report->span_seconds = 0;
     report->est_offset = 0;
