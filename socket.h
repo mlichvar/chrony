@@ -95,10 +95,17 @@ extern int SCK_OpenUnixDatagramSocket(const char *remote_addr, const char *local
 extern int SCK_OpenUnixStreamSocket(const char *remote_addr, const char *local_addr,
                                     int flags);
 
-/* Set a socket option */
-extern int SCK_SetIntOption(int sock_fd, int level, int option, int value);
+/* Set and get a socket option of int size */
+extern int SCK_SetIntOption(int sock_fd, int level, int name, int value);
+extern int SCK_GetIntOption(int sock_fd, int level, int name, int *value);
+
 /* Enable RX timestamping socket option */
 extern int SCK_EnableKernelRxTimestamping(int sock_fd);
+
+/* Operate on a stream socket - listen()/accept()/shutdown() wrappers */
+extern int SCK_ListenOnSocket(int sock_fd, int backlog);
+extern int SCK_AcceptConnection(int sock_fd, IPSockAddr *remote_addr);
+extern int SCK_ShutdownConnection(int sock_fd);
 
 /* Receive and send data on connected sockets - recv()/send() wrappers */
 extern int SCK_Receive(int sock_fd, void *buffer, unsigned int length, int flags);
