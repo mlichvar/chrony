@@ -940,7 +940,9 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 NTP_int64 *local_ntp_tx, /* The transmit timestamp from the previous packet
                                             RESULT : transmit timestamp from this packet */
                 NTP_Remote_Address *where_to, /* Where to address the reponse to */
-                NTP_Local_Address *from /* From what address to send it */
+                NTP_Local_Address *from,      /* From what address to send it */
+                NTP_Packet *request,          /* The received packet if responding */
+                NTP_PacketInfo *request_info  /* and its info */
                 )
 {
   NTP_PacketInfo info;
@@ -1231,7 +1233,7 @@ transmit_timeout(void *arg)
                          initial ? &inst->init_remote_ntp_tx : &inst->remote_ntp_tx,
                          initial ? &inst->init_local_rx : &inst->local_rx,
                          &inst->local_tx, &inst->local_ntp_rx, &inst->local_ntp_tx,
-                         &inst->remote_addr, &local_addr);
+                         &inst->remote_addr, &local_addr, NULL, NULL);
 
   ++inst->tx_count;
   if (sent)
@@ -2237,7 +2239,8 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   /* Send a reply */
   transmit_packet(my_mode, interleaved, poll, info.version,
                   auth_mode, key_id, &message->receive_ts, &message->transmit_ts,
-                  rx_ts, tx_ts, local_ntp_rx, NULL, remote_addr, local_addr);
+                  rx_ts, tx_ts, local_ntp_rx, NULL, remote_addr, local_addr,
+                  message, &info);
 
   /* Save the transmit timestamp */
   if (tx_ts)
@@ -2674,7 +2677,7 @@ broadcast_timeout(void *arg)
   zero_local_timestamp(&recv_ts);
 
   transmit_packet(MODE_BROADCAST, 0, poll, NTP_VERSION, 0, 0, &orig_ts, &orig_ts, &recv_ts,
-                  NULL, NULL, NULL, &destination->addr, &destination->local_addr);
+                  NULL, NULL, NULL, &destination->addr, &destination->local_addr, NULL, NULL);
 
   /* Requeue timeout.  We don't care if interval drifts gradually. */
   SCH_AddTimeoutInClass(destination->interval, get_separation(poll), SAMPLING_RANDOMNESS,
