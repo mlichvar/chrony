@@ -187,7 +187,6 @@ open_socket(int domain, int type, int flags)
       (socket_flags & SOCK_CLOEXEC) == 0 &&
 #endif
       !UTI_FdSetCloexec(sock_fd)) {
-    DEBUG_LOG("Could not set O_CLOEXEC : %s", strerror(errno));
     close(sock_fd);
     return INVALID_SOCK_FD;
   }

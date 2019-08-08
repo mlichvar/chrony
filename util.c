@@ -888,12 +888,19 @@ UTI_FdSetCloexec(int fd)
   int flags;
 
   flags = fcntl(fd, F_GETFD);
-  if (flags != -1) {
-    flags |= FD_CLOEXEC;
-    return !fcntl(fd, F_SETFD, flags);
+  if (flags == -1) {
+    DEBUG_LOG("fcntl() failed : %s", strerror(errno));
+    return 0;
   }
 
-  return 0;
+  flags |= FD_CLOEXEC;
+
+  if (fcntl(fd, F_SETFD, flags) < 0) {
+    DEBUG_LOG("fcntl() failed : %s", strerror(errno));
+    return 0;
+  }
+
+  return 1;
 }
 
 /* ================================================== */
