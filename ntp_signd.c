@@ -309,7 +309,8 @@ extern int NSD_GetAuthDelay(uint32_t key_id)
 /* ================================================== */
 
 int
-NSD_SignAndSendPacket(uint32_t key_id, NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length)
+NSD_SignAndSendPacket(uint32_t key_id, NTP_Packet *packet, NTP_PacketInfo *info,
+                      NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr)
 {
   SignInstance *inst;
 
@@ -323,7 +324,7 @@ NSD_SignAndSendPacket(uint32_t key_id, NTP_Packet *packet, NTP_Remote_Address *r
     return 0;
   }
 
-  if (length != NTP_HEADER_LENGTH) {
+  if (info->length != NTP_HEADER_LENGTH) {
     DEBUG_LOG("Invalid packet length");
     return 0;
   }
@@ -336,7 +337,7 @@ NSD_SignAndSendPacket(uint32_t key_id, NTP_Packet *packet, NTP_Remote_Address *r
   inst->local_addr = *local_addr;
   inst->sent = 0;
   inst->received = 0;
-  inst->request_length = offsetof(SigndRequest, packet_to_sign) + length;
+  inst->request_length = offsetof(SigndRequest, packet_to_sign) + info->length;
 
   /* The length field doesn't include itself */
   inst->request.length = htonl(inst->request_length - sizeof (inst->request.length));
@@ -346,7 +347,7 @@ NSD_SignAndSendPacket(uint32_t key_id, NTP_Packet *packet, NTP_Remote_Address *r
   inst->request._pad = 0;
   inst->request.key_id = htonl(key_id);
 
-  memcpy(&inst->request.packet_to_sign, packet, length);
+  memcpy(&inst->request.packet_to_sign, packet, info->length);
 
   /* Enable output if there was no pending request */
   if (IS_QUEUE_EMPTY())

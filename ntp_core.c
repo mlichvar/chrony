@@ -311,6 +311,7 @@ static const char tss_chars[3] = {'D', 'K', 'H'};
 static void transmit_timeout(void *arg);
 static double get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx);
 static double get_separation(int poll);
+static int parse_packet(NTP_Packet *packet, int length, NTP_PacketInfo *info);
 
 /* ================================================== */
 
@@ -942,8 +943,9 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 NTP_Local_Address *from /* From what address to send it */
                 )
 {
+  NTP_PacketInfo info;
   NTP_Packet message;
-  int auth_len, max_auth_len, length, ret, precision;
+  int auth_len, max_auth_len, ret, precision;
   struct timespec local_receive, local_transmit;
   double smooth_offset, local_transmit_err;
   NTP_int64 ts_fuzz;
@@ -1056,6 +1058,9 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   }
 
   do {
+    if (!parse_packet(&message, NTP_HEADER_LENGTH, &info))
+      return 0;
+
     /* Prepare random bits which will be added to the transmit timestamp */
     UTI_GetNtp64Fuzz(&ts_fuzz, precision);
 
@@ -1066,8 +1071,6 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
 
     if (smooth_time)
       UTI_AddDoubleToTimespec(&local_transmit, smooth_offset, &local_transmit);
-
-    length = NTP_HEADER_LENGTH;
 
     /* Authenticate the packet */
 
@@ -1084,20 +1087,20 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
         /* Truncate long MACs in NTPv4 packets to allow deterministic parsing
            of extension fields (RFC 7822) */
         max_auth_len = (version == 4 ?
-                        NTP_MAX_V4_MAC_LENGTH : (sizeof (message) - length)) - 4;
+                        NTP_MAX_V4_MAC_LENGTH : (sizeof (message) - info.length)) - 4;
 
-        auth_len = KEY_GenerateAuth(key_id, (unsigned char *)&message, length,
-                                    (unsigned char *)&message + length + 4, max_auth_len);
+        auth_len = KEY_GenerateAuth(key_id, (unsigned char *)&message, info.length,
+                                    (unsigned char *)&message + info.length + 4, max_auth_len);
         if (!auth_len) {
           DEBUG_LOG("Could not generate auth data with key %"PRIu32, key_id);
           return 0;
         }
 
-        *(uint32_t *)((unsigned char *)&message + length) = htonl(key_id);
-        length += 4 + auth_len;
+        *(uint32_t *)((unsigned char *)&message + info.length) = htonl(key_id);
+        info.length += 4 + auth_len;
       } else if (auth_mode == AUTH_MSSNTP) {
         /* MS-SNTP packets are signed (asynchronously) by ntp_signd */
-        return NSD_SignAndSendPacket(key_id, &message, where_to, from, length);
+        return NSD_SignAndSendPacket(key_id, &message, &info, where_to, from);
       }
     } else {
       UTI_TimespecToNtp64(interleaved ? &local_tx->ts : &local_transmit,
@@ -1115,7 +1118,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
            UTI_IsEqualAnyNtp64(&message.transmit_ts, &message.receive_ts,
                                &message.originate_ts, local_ntp_tx));
 
-  ret = NIO_SendPacket(&message, where_to, from, length, local_tx != NULL);
+  ret = NIO_SendPacket(&message, where_to, from, info.length, local_tx != NULL);
 
   if (local_tx) {
     local_tx->ts = local_transmit;
@@ -1281,15 +1284,16 @@ transmit_timeout(void *arg)
 /* ================================================== */
 
 static int
-check_packet_format(NTP_Packet *message, int length)
+parse_packet(NTP_Packet *packet, int length, NTP_PacketInfo *info)
 {
-  int version;
+  info->length = length;
+  info->version = NTP_LVM_TO_VERSION(packet->lvm);
+  info->mode = NTP_LVM_TO_MODE(packet->lvm);
 
   /* Check version and length */
 
-  version = NTP_LVM_TO_VERSION(message->lvm);
-  if (version < NTP_MIN_COMPAT_VERSION || version > NTP_MAX_COMPAT_VERSION) {
-    DEBUG_LOG("NTP packet has invalid version %d", version);
+  if (info->version < NTP_MIN_COMPAT_VERSION || info->version > NTP_MAX_COMPAT_VERSION) {
+    DEBUG_LOG("NTP packet has invalid version %d", info->version);
     return 0;
   } 
 
@@ -1320,21 +1324,20 @@ is_zero_data(unsigned char *data, int length)
 /* ================================================== */
 
 static int
-check_packet_auth(NTP_Packet *pkt, int length,
+check_packet_auth(NTP_Packet *pkt, NTP_PacketInfo *info,
                   AuthenticationMode *auth_mode, uint32_t *key_id)
 {
-  int i, version, remainder, ext_length, max_mac_length;
+  int i, remainder, ext_length, max_mac_length;
   unsigned char *data;
   uint32_t id;
 
   /* Go through extension fields and see if there is a valid MAC */
 
-  version = NTP_LVM_TO_VERSION(pkt->lvm);
   i = NTP_HEADER_LENGTH;
   data = (void *)pkt;
 
   while (1) {
-    remainder = length - i;
+    remainder = info->length - i;
 
     /* Check if the remaining data is a valid MAC.  There is a limit on MAC
        length in NTPv4 packets to allow deterministic parsing of extension
@@ -1342,7 +1345,7 @@ check_packet_auth(NTP_Packet *pkt, int length,
        compatibility with older chrony clients.  This needs to be done before
        trying to parse the data as an extension field. */
 
-    max_mac_length = version == 4 && remainder <= NTP_MAX_V4_MAC_LENGTH ?
+    max_mac_length = info->version == 4 && remainder <= NTP_MAX_V4_MAC_LENGTH ?
                      NTP_MAX_V4_MAC_LENGTH : NTP_MAX_MAC_LENGTH;
 
     if (remainder >= NTP_MIN_MAC_LENGTH && remainder <= max_mac_length) {
@@ -1354,9 +1357,9 @@ check_packet_auth(NTP_Packet *pkt, int length,
 
         /* If it's an NTPv4 packet with long MAC and no extension fields,
            rewrite the version in the packet to respond with long MAC too */
-        if (version == 4 && NTP_HEADER_LENGTH + remainder == length &&
+        if (info->version == 4 && NTP_HEADER_LENGTH + remainder == info->length &&
             remainder > NTP_MAX_V4_MAC_LENGTH)
-          pkt->lvm = NTP_LVM(NTP_LVM_TO_LEAP(pkt->lvm), 3, NTP_LVM_TO_MODE(pkt->lvm));
+          info->version = 3;
 
         return 1;
       }
@@ -1364,7 +1367,7 @@ check_packet_auth(NTP_Packet *pkt, int length,
 
     /* Check if this is a valid NTPv4 extension field and skip it.  It should
        have a 16-bit type, 16-bit length, and data padded to 32 bits. */
-    if (version == 4 && remainder >= NTP_MIN_EF_LENGTH) {
+    if (info->version == 4 && remainder >= NTP_MIN_EF_LENGTH) {
       ext_length = ntohs(*(uint16_t *)(data + i + 2));
       if (ext_length >= NTP_MIN_EF_LENGTH &&
           ext_length <= remainder && ext_length % 4 == 0) {
@@ -1386,7 +1389,7 @@ check_packet_auth(NTP_Packet *pkt, int length,
 
     /* Check if it is an MS-SNTP authenticator field or extended authenticator
        field with zeroes as digest */
-    if (version == 3 && *key_id) {
+    if (info->version == 3 && *key_id) {
       if (remainder == 20 && is_zero_data(data + i + 4, remainder - 4))
         *auth_mode = AUTH_MSSNTP;
       else if (remainder == 72 && is_zero_data(data + i + 8, remainder - 8))
@@ -1557,7 +1560,7 @@ process_sample(NCR_Instance inst, NTP_Sample *sample)
 
 static int
 receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
-               NTP_Local_Timestamp *rx_ts, NTP_Packet *message, int length)
+               NTP_Local_Timestamp *rx_ts, NTP_Packet *message, NTP_PacketInfo *info)
 {
   NTP_Sample sample;
   SST_Stats stats;
@@ -1629,7 +1632,7 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
      to fail.  If we don't expect the packet to be authenticated, just ignore
      the test. */
   test5 = inst->auth_mode == AUTH_NONE ||
-          (check_packet_auth(message, length, &pkt_auth_mode, &pkt_key_id) &&
+          (check_packet_auth(message, info, &pkt_auth_mode, &pkt_key_id) &&
            pkt_auth_mode == inst->auth_mode && pkt_key_id == inst->auth_key_id);
 
   /* Test 6 checks for unsynchronised server */
@@ -2009,17 +2012,17 @@ int
 NCR_ProcessRxKnown(NCR_Instance inst, NTP_Local_Address *local_addr,
                    NTP_Local_Timestamp *rx_ts, NTP_Packet *message, int length)
 {
-  int pkt_mode, proc_packet, proc_as_unknown;
+  int proc_packet, proc_as_unknown;
+  NTP_PacketInfo info;
 
-  if (!check_packet_format(message, length))
+  if (!parse_packet(message, length, &info))
     return 0;
 
-  pkt_mode = NTP_LVM_TO_MODE(message->lvm);
   proc_packet = 0;
   proc_as_unknown = 0;
 
   /* Now, depending on the mode we decide what to do */
-  switch (pkt_mode) {
+  switch (info.mode) {
     case MODE_ACTIVE:
       switch (inst->mode) {
         case MODE_ACTIVE:
@@ -2109,13 +2112,13 @@ NCR_ProcessRxKnown(NCR_Instance inst, NTP_Local_Address *local_addr,
       return 0;
     }
 
-    return receive_packet(inst, local_addr, rx_ts, message, length);
+    return receive_packet(inst, local_addr, rx_ts, message, &info);
   } else if (proc_as_unknown) {
     NCR_ProcessRxUnknown(&inst->remote_addr, local_addr, rx_ts, message, length);
     /* It's not a reply to our request, don't return success */
     return 0;
   } else {
-    DEBUG_LOG("NTP packet discarded pkt_mode=%d our_mode=%u", pkt_mode, inst->mode);
+    DEBUG_LOG("NTP packet discarded mode=%d our_mode=%u", (int)info.mode, inst->mode);
     return 0;
   }
 }
@@ -2128,10 +2131,11 @@ void
 NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
                      NTP_Local_Timestamp *rx_ts, NTP_Packet *message, int length)
 {
-  NTP_Mode pkt_mode, my_mode;
+  NTP_PacketInfo info;
+  NTP_Mode my_mode;
   NTP_int64 *local_ntp_rx, *local_ntp_tx;
   NTP_Local_Timestamp local_tx, *tx_ts;
-  int pkt_version, valid_auth, log_index, interleaved, poll;
+  int valid_auth, log_index, interleaved, poll;
   AuthenticationMode auth_mode;
   uint32_t key_id;
 
@@ -2141,7 +2145,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
     return;
   }
 
-  if (!check_packet_format(message, length))
+  if (!parse_packet(message, length, &info))
     return;
 
   if (!ADF_IsAllowed(access_auth_table, &remote_addr->ip_addr)) {
@@ -2150,10 +2154,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
     return;
   }
 
-  pkt_mode = NTP_LVM_TO_MODE(message->lvm);
-  pkt_version = NTP_LVM_TO_VERSION(message->lvm);
-
-  switch (pkt_mode) {
+  switch (info.mode) {
     case MODE_ACTIVE:
       /* We are symmetric passive, even though we don't ever lock to him */
       my_mode = MODE_PASSIVE;
@@ -2166,14 +2167,14 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
       /* Check if it is an NTPv1 client request (NTPv1 packets have a reserved
          field instead of the mode field and the actual mode is determined from
          the port numbers).  Don't ever respond with a mode 0 packet! */
-      if (pkt_version == 1 && remote_addr->port != NTP_PORT) {
+      if (info.version == 1 && remote_addr->port != NTP_PORT) {
         my_mode = MODE_SERVER;
         break;
       }
       /* Fall through */
     default:
       /* Discard */
-      DEBUG_LOG("NTP packet discarded pkt_mode=%u", pkt_mode);
+      DEBUG_LOG("NTP packet discarded mode=%d", (int)info.mode);
       return;
   }
 
@@ -2186,7 +2187,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   }
 
   /* Check if the packet includes MAC that authenticates properly */
-  valid_auth = check_packet_auth(message, length, &auth_mode, &key_id);
+  valid_auth = check_packet_auth(message, &info, &auth_mode, &key_id);
 
   /* If authentication failed, select whether and how we should respond */
   if (!valid_auth) {
@@ -2234,7 +2235,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   poll = MAX(poll, message->poll);
 
   /* Send a reply */
-  transmit_packet(my_mode, interleaved, poll, pkt_version,
+  transmit_packet(my_mode, interleaved, poll, info.version,
                   auth_mode, key_id, &message->receive_ts, &message->transmit_ts,
                   rx_ts, tx_ts, local_ntp_rx, NULL, remote_addr, local_addr);
 
@@ -2281,15 +2282,13 @@ void
 NCR_ProcessTxKnown(NCR_Instance inst, NTP_Local_Address *local_addr,
                    NTP_Local_Timestamp *tx_ts, NTP_Packet *message, int length)
 {
-  NTP_Mode pkt_mode;
+  NTP_PacketInfo info;
 
-  if (!check_packet_format(message, length))
+  if (!parse_packet(message, length, &info))
     return;
 
-  pkt_mode = NTP_LVM_TO_MODE(message->lvm);
-
   /* Server and passive mode packets are responses to unknown sources */
-  if (pkt_mode != MODE_CLIENT && pkt_mode != MODE_ACTIVE) {
+  if (info.mode != MODE_CLIENT && info.mode != MODE_ACTIVE) {
     NCR_ProcessTxUnknown(&inst->remote_addr, local_addr, tx_ts, message, length);
     return;
   }
@@ -2306,19 +2305,20 @@ NCR_ProcessTxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
 {
   NTP_int64 *local_ntp_rx, *local_ntp_tx;
   NTP_Local_Timestamp local_tx;
+  NTP_PacketInfo info;
   int log_index;
 
-  if (!check_packet_format(message, length))
+  if (!parse_packet(message, length, &info))
     return;
 
-  if (NTP_LVM_TO_MODE(message->lvm) == MODE_BROADCAST)
+  if (info.mode == MODE_BROADCAST)
     return;
 
   log_index = CLG_GetClientIndex(&remote_addr->ip_addr);
   if (log_index < 0)
     return;
 
-  if (SMT_IsEnabled() && NTP_LVM_TO_MODE(message->lvm) == MODE_SERVER)
+  if (SMT_IsEnabled() && info.mode == MODE_SERVER)
     UTI_AddDoubleToTimespec(&tx_ts->ts, SMT_GetOffset(&tx_ts->ts), &tx_ts->ts);
 
   CLG_GetNtpTimestamps(log_index, &local_ntp_rx, &local_ntp_tx);
