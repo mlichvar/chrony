@@ -110,11 +110,30 @@ typedef struct {
 #define NTP_REFID_LOCAL 0x7F7F0101UL /* 127.127.1.1 */
 #define NTP_REFID_SMOOTH 0x7F7F01FFUL /* 127.127.1.255 */
 
+/* Enumeration for authentication modes of NTP packets */
+typedef enum {
+  AUTH_NONE = 0,     /* No authentication */
+  AUTH_SYMMETRIC,    /* MAC using symmetric key (RFC 1305, RFC 5905) */
+  AUTH_MSSNTP,       /* MS-SNTP authenticator field */
+  AUTH_MSSNTP_EXT,   /* MS-SNTP extended authenticator field */
+} NTP_AuthMode;
+
 /* Structure describing an NTP packet */
 typedef struct {
   int length;
   int version;
   NTP_Mode mode;
+
+  int ext_fields;
+
+  struct {
+    NTP_AuthMode mode;
+    struct {
+      int start;
+      int length;
+      uint32_t key_id;
+    } mac;
+  } auth;
 } NTP_PacketInfo;
 
 /* Structure used to save NTP measurements.  time is the local time at which

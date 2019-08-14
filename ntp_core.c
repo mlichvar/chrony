@@ -31,6 +31,7 @@
 
 #include "array.h"
 #include "ntp_core.h"
+#include "ntp_ext.h"
 #include "ntp_io.h"
 #include "ntp_signd.h"
 #include "memory.h"
@@ -62,16 +63,6 @@ typedef enum {
   MD_BURST_WAS_OFFLINE,         /* Burst sampling, return to offline afterwards */
   MD_BURST_WAS_ONLINE,          /* Burst sampling, return to online afterwards */
 } OperatingMode;
-
-/* ================================================== */
-/* Enumeration for authentication modes of NTP packets */
-
-typedef enum {
-  AUTH_NONE = 0,                /* No authentication */
-  AUTH_SYMMETRIC,               /* MAC using symmetric key (RFC 1305, RFC 5905) */
-  AUTH_MSSNTP,                  /* MS-SNTP authenticator field */
-  AUTH_MSSNTP_EXT,              /* MS-SNTP extended authenticator field */
-} AuthenticationMode;
 
 /* ================================================== */
 /* Structure used for holding a single peer/server's
@@ -137,7 +128,7 @@ struct NCR_Instance_Record {
   double offset_correction;     /* Correction applied to measured offset
                                    (e.g. for asymmetry in network delay) */
 
-  AuthenticationMode auth_mode; /* Authentication mode of our requests */
+  NTP_AuthMode auth_mode;       /* Authentication mode of our requests */
   uint32_t auth_key_id;          /* The ID of the authentication key to
                                    use. */
 
@@ -1292,33 +1283,6 @@ transmit_timeout(void *arg)
 /* ================================================== */
 
 static int
-parse_packet(NTP_Packet *packet, int length, NTP_PacketInfo *info)
-{
-  info->length = length;
-  info->version = NTP_LVM_TO_VERSION(packet->lvm);
-  info->mode = NTP_LVM_TO_MODE(packet->lvm);
-
-  /* Check version and length */
-
-  if (info->version < NTP_MIN_COMPAT_VERSION || info->version > NTP_MAX_COMPAT_VERSION) {
-    DEBUG_LOG("NTP packet has invalid version %d", info->version);
-    return 0;
-  } 
-
-  if (length < NTP_HEADER_LENGTH || (unsigned int)length % 4) {
-    DEBUG_LOG("NTP packet has invalid length %d", length);
-    return 0;
-  }
-
-  /* We can't reliably check the packet for invalid extension fields as we
-     support MACs longer than the shortest valid extension field */
-
-  return 1;
-}
-
-/* ================================================== */
-
-static int
 is_zero_data(unsigned char *data, int length)
 {
   int i;
@@ -1332,83 +1296,155 @@ is_zero_data(unsigned char *data, int length)
 /* ================================================== */
 
 static int
-check_packet_auth(NTP_Packet *pkt, NTP_PacketInfo *info,
-                  AuthenticationMode *auth_mode, uint32_t *key_id)
+parse_packet(NTP_Packet *packet, int length, NTP_PacketInfo *info)
 {
-  int i, remainder, ext_length, max_mac_length;
+  int parsed, remainder, ef_length, ef_type;
   unsigned char *data;
-  uint32_t id;
 
-  /* Go through extension fields and see if there is a valid MAC */
+  if (length < NTP_HEADER_LENGTH || length % 4U != 0) {
+    DEBUG_LOG("NTP packet has invalid length %d", length);
+    return 0;
+  }
 
-  i = NTP_HEADER_LENGTH;
-  data = (void *)pkt;
+  info->length = length;
+  info->version = NTP_LVM_TO_VERSION(packet->lvm);
+  info->mode = NTP_LVM_TO_MODE(packet->lvm);
+  info->ext_fields = 0;
+  info->auth.mode = AUTH_NONE;
 
-  while (1) {
-    remainder = info->length - i;
+  if (info->version < NTP_MIN_COMPAT_VERSION || info->version > NTP_MAX_COMPAT_VERSION) {
+    DEBUG_LOG("NTP packet has invalid version %d", info->version);
+    return 0;
+  }
 
+  data = (void *)packet;
+  parsed = NTP_HEADER_LENGTH;
+  remainder = length - parsed;
+
+  /* Check if this is a plain NTP packet with no extension fields or MAC */
+  if (remainder == 0)
+    return 1;
+
+  /* In NTPv3 and older packets don't have extension fields.  Anything after
+     the header is assumed to be a MAC. */
+  if (info->version <= 3) {
+    info->auth.mode = AUTH_SYMMETRIC;
+    info->auth.mac.start = parsed;
+    info->auth.mac.length = remainder;
+    info->auth.mac.key_id = ntohl(*(uint32_t *)(data + parsed));
+
+    /* Check if it is an MS-SNTP authenticator field or extended authenticator
+       field with zeroes as digest */
+    if (info->version == 3 && info->auth.mac.key_id) {
+      if (remainder == 20 && is_zero_data(data + parsed + 4, remainder - 4))
+        info->auth.mode = AUTH_MSSNTP;
+      else if (remainder == 72 && is_zero_data(data + parsed + 8, remainder - 8))
+        info->auth.mode = AUTH_MSSNTP_EXT;
+    }
+
+    return 1;
+  }
+
+  /* Check for a crypto NAK */
+  if (remainder == 4 && ntohl(*(uint32_t *)(data + parsed)) == 0) {
+    info->auth.mode = AUTH_SYMMETRIC;
+    info->auth.mac.start = parsed;
+    info->auth.mac.length = remainder;
+    info->auth.mac.key_id = 0;
+    return 1;
+  }
+
+  /* Parse the rest of the NTPv4 packet */
+
+  while (remainder > 0) {
     /* Check if the remaining data is a valid MAC.  There is a limit on MAC
        length in NTPv4 packets to allow deterministic parsing of extension
        fields (RFC 7822), but we need to support longer MACs to not break
        compatibility with older chrony clients.  This needs to be done before
        trying to parse the data as an extension field. */
 
-    max_mac_length = info->version == 4 && remainder <= NTP_MAX_V4_MAC_LENGTH ?
-                     NTP_MAX_V4_MAC_LENGTH : NTP_MAX_MAC_LENGTH;
-
-    if (remainder >= NTP_MIN_MAC_LENGTH && remainder <= max_mac_length) {
-      id = ntohl(*(uint32_t *)(data + i));
-      if (KEY_CheckAuth(id, (void *)pkt, i, (void *)(data + i + 4),
-                        remainder - 4, max_mac_length - 4)) {
-        *auth_mode = AUTH_SYMMETRIC;
-        *key_id = id;
-
-        /* If it's an NTPv4 packet with long MAC and no extension fields,
-           rewrite the version in the packet to respond with long MAC too */
-        if (info->version == 4 && NTP_HEADER_LENGTH + remainder == info->length &&
-            remainder > NTP_MAX_V4_MAC_LENGTH)
-          info->version = 3;
-
-        return 1;
-      }
+    if (remainder >= NTP_MIN_MAC_LENGTH && remainder <= NTP_MAX_MAC_LENGTH) {
+      info->auth.mac.key_id = ntohl(*(uint32_t *)(data + parsed));
+      if (remainder <= NTP_MAX_V4_MAC_LENGTH ||
+          KEY_CheckAuth(info->auth.mac.key_id, data, parsed, (void *)(data + parsed + 4),
+                        remainder - 4, NTP_MAX_MAC_LENGTH - 4))
+        break;
     }
 
-    /* Check if this is a valid NTPv4 extension field and skip it.  It should
-       have a 16-bit type, 16-bit length, and data padded to 32 bits. */
-    if (info->version == 4 && remainder >= NTP_MIN_EF_LENGTH) {
-      ext_length = ntohs(*(uint16_t *)(data + i + 2));
-      if (ext_length >= NTP_MIN_EF_LENGTH &&
-          ext_length <= remainder && ext_length % 4 == 0) {
-        i += ext_length;
-        continue;
-      }
+    /* Check if this is a valid NTPv4 extension field and skip it */
+    if (!NEF_ParseField(packet, length, parsed, &ef_length, &ef_type, NULL, NULL)) {
+      /* Invalid MAC or format error */
+      DEBUG_LOG("Invalid format or MAC");
+      return 0;
     }
 
-    /* Invalid or missing MAC, or format error */
-    break;
+    assert(ef_length > 0);
+
+    switch (ef_type) {
+      default:
+        DEBUG_LOG("Unknown extension field type=%x", (unsigned int)ef_type);
+    }
+
+    info->ext_fields++;
+    parsed += ef_length;
+    remainder = length - parsed;
   }
 
-  /* This is not 100% reliable as a MAC could fail to authenticate and could
-     pass as an extension field, leaving reminder smaller than the minimum MAC
-     length */
-  if (remainder >= NTP_MIN_MAC_LENGTH) {
-    *auth_mode = AUTH_SYMMETRIC;
-    *key_id = ntohl(*(uint32_t *)(data + i));
-
-    /* Check if it is an MS-SNTP authenticator field or extended authenticator
-       field with zeroes as digest */
-    if (info->version == 3 && *key_id) {
-      if (remainder == 20 && is_zero_data(data + i + 4, remainder - 4))
-        *auth_mode = AUTH_MSSNTP;
-      else if (remainder == 72 && is_zero_data(data + i + 8, remainder - 8))
-        *auth_mode = AUTH_MSSNTP_EXT;
-    }
-  } else {
-    *auth_mode = AUTH_NONE;
-    *key_id = 0;
+  if (remainder == 0) {
+    /* No MAC */
+    return 1;
+  } else if (remainder >= NTP_MIN_MAC_LENGTH) {
+    /* This is not 100% reliable as a MAC could fail to authenticate and could
+       pass as an extension field, leaving reminder smaller than the minimum MAC
+       length */
+    info->auth.mode = AUTH_SYMMETRIC;
+    info->auth.mac.start = parsed;
+    info->auth.mac.length = remainder;
+    info->auth.mac.key_id = ntohl(*(uint32_t *)(data + parsed));
+    return 1;
   }
 
+  DEBUG_LOG("Invalid format");
   return 0;
+}
+
+/* ================================================== */
+
+static int
+check_symmetric_auth(NTP_Packet *packet, NTP_PacketInfo *info)
+{
+  int trunc_len;
+
+  if (info->auth.mac.length < NTP_MIN_MAC_LENGTH)
+    return 0;
+
+  trunc_len = info->version == 4 && info->auth.mac.length <= NTP_MAX_V4_MAC_LENGTH ?
+              NTP_MAX_V4_MAC_LENGTH : NTP_MAX_MAC_LENGTH;
+
+  if (!KEY_CheckAuth(info->auth.mac.key_id, (void *)packet, info->auth.mac.start,
+                     (unsigned char *)packet + info->auth.mac.start + 4,
+                     info->auth.mac.length - 4, trunc_len - 4))
+    return 0;
+
+  return 1;
+}
+
+/* ================================================== */
+
+static int
+check_packet_auth(NTP_Packet *packet, NTP_PacketInfo *info,
+                  NTP_AuthMode *auth_mode, uint32_t *key_id)
+{
+  *auth_mode = info->auth.mode;
+
+  if (info->auth.mode != AUTH_SYMMETRIC)
+    return 0;
+
+  if (!check_symmetric_auth(packet, info))
+    return 0;
+
+  *key_id = info->auth.mac.key_id;
+  return 1;
 }
 
 /* ================================================== */
@@ -1577,7 +1613,7 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
   uint32_t pkt_refid, pkt_key_id;
   double pkt_root_delay;
   double pkt_root_dispersion;
-  AuthenticationMode pkt_auth_mode;
+  NTP_AuthMode pkt_auth_mode;
 
   /* The skew and estimated frequency offset relative to the remote source */
   double skew, source_freq_lo, source_freq_hi;
@@ -2143,8 +2179,8 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   NTP_Mode my_mode;
   NTP_int64 *local_ntp_rx, *local_ntp_tx;
   NTP_Local_Timestamp local_tx, *tx_ts;
-  int valid_auth, log_index, interleaved, poll;
-  AuthenticationMode auth_mode;
+  int valid_auth, log_index, interleaved, poll, version;
+  NTP_AuthMode auth_mode;
   uint32_t key_id;
 
   /* Ignore the packet if it wasn't received by server socket */
@@ -2213,6 +2249,15 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
     }
   }
 
+  /* If it is an NTPv4 packet with a long MAC and no extension fields,
+     respond with a NTPv3 packet to avoid breaking RFC 7822 and keep
+     the length symmetric.  Otherwise, respond with the same version. */
+  if (info.version == 4 && info.ext_fields == 0 && info.auth.mode == AUTH_SYMMETRIC &&
+      info.auth.mac.length > NTP_MAX_V4_MAC_LENGTH)
+    version = 3;
+  else
+    version = info.version;
+
   local_ntp_rx = local_ntp_tx = NULL;
   tx_ts = NULL;
   interleaved = 0;
@@ -2243,7 +2288,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   poll = MAX(poll, message->poll);
 
   /* Send a reply */
-  transmit_packet(my_mode, interleaved, poll, info.version,
+  transmit_packet(my_mode, interleaved, poll, version,
                   auth_mode, key_id, &message->receive_ts, &message->transmit_ts,
                   rx_ts, tx_ts, local_ntp_rx, NULL, remote_addr, local_addr,
                   message, &info);
