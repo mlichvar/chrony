@@ -412,7 +412,8 @@ NSD_GetAuthDelay(uint32_t key_id)
 }
 
 int
-NSD_SignAndSendPacket(uint32_t key_id, NTP_Packet *packet, NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr, int length)
+NSD_SignAndSendPacket(uint32_t key_id, NTP_Packet *packet, NTP_PacketInfo *info,
+                      NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr)
 {
   return 0;
 }

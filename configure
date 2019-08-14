@@ -483,7 +483,7 @@ fi
 
 if [ $feat_ntp = "1" ]; then
   add_def FEAT_NTP
-  EXTRA_OBJECTS="$EXTRA_OBJECTS ntp_core.o ntp_ext.o ntp_io.o ntp_sources.o"
+  EXTRA_OBJECTS="$EXTRA_OBJECTS ntp_auth.o ntp_core.o ntp_ext.o ntp_io.o ntp_sources.o"
   if [ $feat_ntp_signd = "1" ]; then
     add_def FEAT_SIGND
     EXTRA_OBJECTS="$EXTRA_OBJECTS ntp_signd.o"
