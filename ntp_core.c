@@ -1559,8 +1559,8 @@ process_sample(NCR_Instance inst, NTP_Sample *sample)
 /* ================================================== */
 
 static int
-receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
-               NTP_Local_Timestamp *rx_ts, NTP_Packet *message, NTP_PacketInfo *info)
+process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
+                 NTP_Local_Timestamp *rx_ts, NTP_Packet *message, NTP_PacketInfo *info)
 {
   NTP_Sample sample;
   SST_Stats stats;
@@ -2112,7 +2112,7 @@ NCR_ProcessRxKnown(NCR_Instance inst, NTP_Local_Address *local_addr,
       return 0;
     }
 
-    return receive_packet(inst, local_addr, rx_ts, message, &info);
+    return process_response(inst, local_addr, rx_ts, message, &info);
   } else if (proc_as_unknown) {
     NCR_ProcessRxUnknown(&inst->remote_addr, local_addr, rx_ts, message, length);
     /* It's not a reply to our request, don't return success */

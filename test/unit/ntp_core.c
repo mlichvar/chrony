@@ -232,7 +232,7 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
 }
 
 static void
-process_response(NCR_Instance inst, int good, int valid, int updated_sync, int updated_init)
+proc_response(NCR_Instance inst, int good, int valid, int updated_sync, int updated_init)
 {
   NTP_Local_Address local_addr;
   NTP_Local_Timestamp local_ts;
@@ -296,7 +296,7 @@ process_replay(NCR_Instance inst, NTP_Packet *packet_queue,
   do {
     res_buffer = packet_queue[random() % queue_length];
   } while (!UTI_CompareNtp64(&res_buffer.transmit_ts, &inst->remote_ntp_tx));
-  process_response(inst, 0, 0, 0, updated_init);
+  proc_response(inst, 0, 0, 0, updated_init);
   advance_time(1e-6);
 }
 
@@ -375,31 +375,31 @@ test_unit(void)
 
       send_response(interleaved, authenticated, 1, 0, 1);
       DEBUG_LOG("response 1");
-      process_response(inst1, 0, 0, 0, updated);
+      proc_response(inst1, 0, 0, 0, updated);
 
       if (source.params.authkey) {
         send_response(interleaved, authenticated, 1, 1, 0);
         DEBUG_LOG("response 2");
-        process_response(inst1, 0, 0, 0, 0);
+        proc_response(inst1, 0, 0, 0, 0);
       }
 
       send_response(interleaved, authenticated, 1, 1, 1);
       DEBUG_LOG("response 3");
-      process_response(inst1, -1, valid, valid, updated);
+      proc_response(inst1, -1, valid, valid, updated);
       DEBUG_LOG("response 4");
-      process_response(inst1, 0, 0, 0, 0);
+      proc_response(inst1, 0, 0, 0, 0);
 
       advance_time(-1.0);
 
       send_response(interleaved, authenticated, 1, 1, 1);
       DEBUG_LOG("response 5");
-      process_response(inst1, 0, 0, 0, updated && valid);
+      proc_response(inst1, 0, 0, 0, updated && valid);
 
       advance_time(1.0);
 
       send_response(interleaved, authenticated, 1, 1, 1);
       DEBUG_LOG("response 6");
-      process_response(inst1, 0, 0, valid && updated, updated);
+      proc_response(inst1, 0, 0, valid && updated, updated);
     }
 
     NCR_DestroyInstance(inst1);
@@ -412,7 +412,7 @@ test_unit(void)
 
       send_request(inst1);
       process_request(&remote_addr);
-      process_response(inst1, 1, 1, 1, 0);
+      proc_response(inst1, 1, 1, 1, 0);
       advance_time(1 << inst1->local_poll);
     }
 
@@ -436,7 +436,7 @@ test_unit(void)
       TEST_CHECK(inst1->valid_timestamps == (j > 0));
 
       DEBUG_LOG("response 1->2");
-      process_response(inst2, j > source.params.interleaved, j > 0, j > 0, 1);
+      proc_response(inst2, j > source.params.interleaved, j > 0, j > 0, 1);
 
       packet_queue[(j * 2) % PACKET_QUEUE_LENGTH] = res_buffer;
 
@@ -456,7 +456,7 @@ test_unit(void)
       TEST_CHECK(inst2->valid_timestamps == (j > 0));
 
       DEBUG_LOG("response 2->1");
-      process_response(inst1, 1, 1, 1, 1);
+      proc_response(inst1, 1, 1, 1, 1);
 
       packet_queue[(j * 2 + 1) % PACKET_QUEUE_LENGTH] = res_buffer;
 
