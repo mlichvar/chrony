@@ -1278,7 +1278,7 @@ parse_packet(NTP_Packet *packet, int length, NTP_PacketInfo *info)
   info->version = NTP_LVM_TO_VERSION(packet->lvm);
   info->mode = NTP_LVM_TO_MODE(packet->lvm);
   info->ext_fields = 0;
-  info->auth.mode = AUTH_NONE;
+  info->auth.mode = NTP_AUTH_NONE;
 
   if (info->version < NTP_MIN_COMPAT_VERSION || info->version > NTP_MAX_COMPAT_VERSION) {
     DEBUG_LOG("NTP packet has invalid version %d", info->version);
@@ -2075,7 +2075,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   /* If it is an NTPv4 packet with a long MAC and no extension fields,
      respond with a NTPv3 packet to avoid breaking RFC 7822 and keep
      the length symmetric.  Otherwise, respond with the same version. */
-  if (info.version == 4 && info.ext_fields == 0 && info.auth.mode == AUTH_SYMMETRIC &&
+  if (info.version == 4 && info.ext_fields == 0 && info.auth.mode == NTP_AUTH_SYMMETRIC &&
       info.auth.mac.length > NTP_MAX_V4_MAC_LENGTH)
     version = 3;
   else
