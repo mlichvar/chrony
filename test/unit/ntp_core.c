@@ -362,6 +362,10 @@ test_unit(void)
       if (inst1->mode == MODE_CLIENT)
         updated = 0;
 
+      DEBUG_LOG("authkey=%d version=%d interleaved=%d authenticated=%d valid=%d updated=%d has_updated=%d",
+                (int)source.params.authkey, source.params.version,
+                interleaved, authenticated, valid, updated, has_updated);
+
       send_request(inst1);
 
       send_response(interleaved, authenticated, 1, 0, 1);
