@@ -32,6 +32,7 @@
 #include "logging.h"
 #include "memory.h"
 #include "ntp_auth.h"
+#include "ntp_ext.h"
 #include "ntp_signd.h"
 #include "srcparams.h"
 #include "util.h"
@@ -105,6 +106,19 @@ adjust_timestamp(NTP_AuthMode mode, uint32_t key_id, struct timespec *ts)
     default:
       break;
   }
+}
+
+/* ================================================== */
+
+static int
+is_zero_data(unsigned char *data, int length)
+{
+  int i;
+
+  for (i = 0; i < length; i++)
+    if (data[i])
+      return 0;
+  return 1;
 }
 
 /* ================================================== */
@@ -216,6 +230,107 @@ NAU_GenerateRequestAuth(NAU_Instance instance, NTP_Packet *request, NTP_PacketIn
   }
 
   return 1;
+}
+
+/* ================================================== */
+
+int
+NAU_ParsePacket(NTP_Packet *packet, NTP_PacketInfo *info)
+{
+  int parsed, remainder, ef_length, ef_type;
+  unsigned char *data;
+
+  data = (void *)packet;
+  parsed = NTP_HEADER_LENGTH;
+  remainder = info->length - parsed;
+
+  info->ext_fields = 0;
+
+  /* Check if this is a plain NTP packet with no extension fields or MAC */
+  if (remainder <= 0)
+    return 1;
+
+  /* In NTPv3 and older packets don't have extension fields.  Anything after
+     the header is assumed to be a MAC. */
+  if (info->version <= 3) {
+    info->auth.mode = AUTH_SYMMETRIC;
+    info->auth.mac.start = parsed;
+    info->auth.mac.length = remainder;
+    info->auth.mac.key_id = ntohl(*(uint32_t *)(data + parsed));
+
+    /* Check if it is an MS-SNTP authenticator field or extended authenticator
+       field with zeroes as digest */
+    if (info->version == 3 && info->auth.mac.key_id) {
+      if (remainder == 20 && is_zero_data(data + parsed + 4, remainder - 4))
+        info->auth.mode = AUTH_MSSNTP;
+      else if (remainder == 72 && is_zero_data(data + parsed + 8, remainder - 8))
+        info->auth.mode = AUTH_MSSNTP_EXT;
+    }
+
+    return 1;
+  }
+
+  /* Check for a crypto NAK */
+  if (remainder == 4 && ntohl(*(uint32_t *)(data + parsed)) == 0) {
+    info->auth.mode = AUTH_SYMMETRIC;
+    info->auth.mac.start = parsed;
+    info->auth.mac.length = remainder;
+    info->auth.mac.key_id = 0;
+    return 1;
+  }
+
+  /* Parse the rest of the NTPv4 packet */
+
+  while (remainder > 0) {
+    /* Check if the remaining data is a valid MAC.  There is a limit on MAC
+       length in NTPv4 packets to allow deterministic parsing of extension
+       fields (RFC 7822), but we need to support longer MACs to not break
+       compatibility with older chrony clients.  This needs to be done before
+       trying to parse the data as an extension field. */
+
+    if (remainder >= NTP_MIN_MAC_LENGTH && remainder <= NTP_MAX_MAC_LENGTH) {
+      info->auth.mac.key_id = ntohl(*(uint32_t *)(data + parsed));
+      if (remainder <= NTP_MAX_V4_MAC_LENGTH ||
+          KEY_CheckAuth(info->auth.mac.key_id, data, parsed, (void *)(data + parsed + 4),
+                        remainder - 4, NTP_MAX_MAC_LENGTH - 4))
+        break;
+    }
+
+    /* Check if this is a valid NTPv4 extension field and skip it */
+    if (!NEF_ParseField(packet, info->length, parsed, &ef_length, &ef_type, NULL, NULL)) {
+      /* Invalid MAC or format error */
+      DEBUG_LOG("Invalid format or MAC");
+      return 0;
+    }
+
+    assert(ef_length > 0);
+
+    switch (ef_type) {
+      default:
+        DEBUG_LOG("Unknown extension field type=%x", (unsigned int)ef_type);
+    }
+
+    info->ext_fields++;
+    parsed += ef_length;
+    remainder = info->length - parsed;
+  }
+
+  if (remainder == 0) {
+    /* No MAC */
+    return 1;
+  } else if (remainder >= NTP_MIN_MAC_LENGTH) {
+    /* This is not 100% reliable as a MAC could fail to authenticate and could
+       pass as an extension field, leaving reminder smaller than the minimum MAC
+       length */
+    info->auth.mode = AUTH_SYMMETRIC;
+    info->auth.mac.start = parsed;
+    info->auth.mac.length = remainder;
+    info->auth.mac.key_id = ntohl(*(uint32_t *)(data + parsed));
+    return 1;
+  }
+
+  DEBUG_LOG("Invalid format");
+  return 0;
 }
 
 /* ================================================== */

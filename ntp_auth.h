@@ -56,6 +56,9 @@ extern void NAU_AdjustRequestTimestamp(NAU_Instance instance, struct timespec *t
 extern int NAU_GenerateRequestAuth(NAU_Instance instance, NTP_Packet *request,
                                    NTP_PacketInfo *info);
 
+/* Parse a request or response to detect the authentication mode */
+extern int NAU_ParsePacket(NTP_Packet *packet, NTP_PacketInfo *info);
+
 /* Verify that a request is authentic */
 extern int NAU_CheckRequestAuth(NTP_Packet *request, NTP_PacketInfo *info);
 
