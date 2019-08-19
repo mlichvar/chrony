@@ -1602,8 +1602,6 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
 
   stats = SRC_GetSourcestats(inst->source);
 
-  inst->report.total_rx_count++;
-
   pkt_leap = NTP_LVM_TO_LEAP(message->lvm);
   pkt_version = NTP_LVM_TO_VERSION(message->lvm);
   pkt_refid = ntohl(message->reference_id);
@@ -2022,6 +2020,8 @@ NCR_ProcessRxKnown(NCR_Instance inst, NTP_Local_Address *local_addr,
 {
   int proc_packet, proc_as_unknown;
   NTP_PacketInfo info;
+
+  inst->report.total_rx_count++;
 
   if (!parse_packet(message, length, &info))
     return 0;

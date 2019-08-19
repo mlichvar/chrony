@@ -239,7 +239,7 @@ proc_response(NCR_Instance inst, int good, int valid, int updated_sync, int upda
   NTP_Packet *res;
   uint32_t prev_rx_count, prev_valid_count;
   struct timespec prev_rx_ts, prev_init_rx_ts;
-  int prev_open_socket, ret;
+  int ret;
 
   res = &res_buffer;
 
@@ -254,7 +254,6 @@ proc_response(NCR_Instance inst, int good, int valid, int updated_sync, int upda
   prev_valid_count = inst->report.total_valid_count;
   prev_rx_ts = inst->local_rx.ts;
   prev_init_rx_ts = inst->init_local_rx.ts;
-  prev_open_socket = inst->local_addr.sock_fd != INVALID_SOCK_FD;
 
   ret = NCR_ProcessRxKnown(inst, &local_addr, &local_ts, res, res_length);
 
@@ -263,10 +262,7 @@ proc_response(NCR_Instance inst, int good, int valid, int updated_sync, int upda
   else if (!good)
     TEST_CHECK(!ret);
 
-  if (prev_open_socket)
-    TEST_CHECK(prev_rx_count + 1 == inst->report.total_rx_count);
-  else
-    TEST_CHECK(prev_rx_count == inst->report.total_rx_count);
+  TEST_CHECK(prev_rx_count + 1 == inst->report.total_rx_count);
 
   if (valid)
     TEST_CHECK(prev_valid_count + 1 == inst->report.total_valid_count);
