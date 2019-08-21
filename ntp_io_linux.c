@@ -324,8 +324,7 @@ check_timestamping_option(int option)
   if (sock_fd < 0)
     return 0;
 
-  if (setsockopt(sock_fd, SOL_SOCKET, SO_TIMESTAMPING, &option, sizeof (option)) < 0) {
-    DEBUG_LOG("Could not enable timestamping option %x", (unsigned int)option);
+  if (!SCK_SetIntOption(sock_fd, SOL_SOCKET, SO_TIMESTAMPING, option)) {
     SCK_CloseSocket(sock_fd);
     return 0;
   }
