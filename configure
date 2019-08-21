@@ -920,6 +920,18 @@ EXTRA_OBJECTS="$EXTRA_OBJECTS $HASH_OBJ"
 EXTRA_CLI_OBJECTS="$EXTRA_CLI_OBJECTS $HASH_OBJ"
 LIBS="$LIBS $HASH_LINK"
 
+if true && \
+    echo "$HASH_LINK" | grep 'nettle' > /dev/null; then
+
+    if test_code 'SIV in nettle' \
+      'nettle/siv-cmac.h' "" "$LIBS" \
+      'siv_cmac_aes128_set_key(NULL, NULL);'
+    then
+      EXTRA_OBJECTS="$EXTRA_OBJECTS siv_nettle.o"
+      add_def HAVE_SIV
+    fi
+fi
+
 if [ $use_pthread = "1" ]; then
   MYCFLAGS="$MYCFLAGS -pthread"
 fi
