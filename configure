@@ -923,12 +923,14 @@ LIBS="$LIBS $HASH_LINK"
 if true && \
     echo "$HASH_LINK" | grep 'nettle' > /dev/null; then
 
+    EXTRA_OBJECTS="$EXTRA_OBJECTS siv_nettle.o"
+    add_def HAVE_SIV
+
     if test_code 'SIV in nettle' \
       'nettle/siv-cmac.h' "" "$LIBS" \
       'siv_cmac_aes128_set_key(NULL, NULL);'
     then
-      EXTRA_OBJECTS="$EXTRA_OBJECTS siv_nettle.o"
-      add_def HAVE_SIV
+      add_def HAVE_NETTLE_SIV_CMAC
     fi
 fi
 
