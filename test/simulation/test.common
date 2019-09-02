@@ -75,6 +75,8 @@ default_max_sync_time=210
 default_client_min_mean_out_interval=0.0
 default_client_max_min_out_interval=inf
 
+default_dns=0
+
 # Initialize test settings from their defaults
 for defoptname in ${!default_*}; do
 	optname=${defoptname#default_}
@@ -180,6 +182,16 @@ get_chronyd_nodes() {
 	echo $[$servers * $server_strata + $clients]
 }
 
+get_node_name() {
+	local index=$1
+
+	if [ $dns -ne 0 ]; then
+		echo "node$index.net1.clk"
+	else
+		echo "192.168.123.$index"
+	fi
+}
+
 get_chronyd_conf() {
 	local i stratum=$1 peer=$2
 
@@ -188,11 +200,11 @@ get_chronyd_conf() {
 		echo "$server_conf"
 	elif [ $stratum -le $server_strata ]; then
 		for i in $(seq 1 $servers); do
-			echo "server 192.168.123.$[$servers * ($stratum - 2) + $i] $server_server_options"
+			echo "server $(get_node_name $[$servers * ($stratum - 2) + $i]) $server_server_options"
 		done
 		for i in $(seq 1 $peers); do
 			[ $i -eq $peer -o $i -gt $servers ] && continue
-			echo -n "peer 192.168.123.$[$servers * ($stratum - 1) + $i] $server_peer_options "
+			echo -n "peer $(get_node_name $[$servers * ($stratum - 1) + $i]) $server_peer_options "
 			[ $i -lt $peer ] && echo "$server_lpeer_options" || echo "$server_rpeer_options"
 		done
 		echo "$server_conf"
@@ -201,12 +213,12 @@ get_chronyd_conf() {
 			echo "$client_server_conf"
 		else
 			for i in $(seq 1 $servers); do
-				echo "server 192.168.123.$[$servers * ($stratum - 2) + $i] $client_server_options"
+				echo "server $(get_node_name $[$servers * ($stratum - 2) + $i]) $client_server_options"
 			done
 		fi
 		for i in $(seq 1 $peers); do
 			[ $i -eq $peer -o $i -gt $clients ] && continue
-			echo -n "peer 192.168.123.$[$servers * ($stratum - 1) + $i] $client_peer_options "
+			echo -n "peer $(get_node_name $[$servers * ($stratum - 1) + $i]) $client_peer_options "
 			[ $i -lt $peer ] && echo "$client_lpeer_options" || echo "$client_rpeer_options"
 		done
 		echo "$client_conf"
@@ -491,7 +503,7 @@ run_test() {
 
 		echo "node${node}_start = $chronyc_start" >> tmp/conf
 		start_client $node chronyc "$chronyc_conf" "" \
-			"-n -h 192.168.123.$[$node - $clients]" && \
+			"$([ $dns -eq 0 ] && printf "%s" "-n") -h $(get_node_name $[$node - $clients])" && \
 			test_ok || test_error
 
 		[ $? -ne 0 ] && return 1
