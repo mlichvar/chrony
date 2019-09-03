@@ -66,6 +66,15 @@ try: 1, refid: C0A87B01, correction: 0\.000......, skew: .\....
 513 RTC driver not running$" \
 || test_fail
 
+chronyc_conf="tracking"
+dns=1
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+
+check_chronyc_output "^Reference ID    : C0A87B01 \(node1\.net1\.clk\)" \
+|| test_fail
+
 server_strata=0
 chronyc_start=0
 client_conf=""
@@ -75,6 +84,7 @@ for chronyc_conf in \
 	"accheck 1.2.3.4" \
 	"add peer 10.0.0.0 minpoll 2 maxpoll 6" \
 	"add server 10.0.0.0 minpoll 6 maxpoll 10 iburst burst key 1 maxdelay 1e-3 maxdelayratio 10.0 maxdelaydevratio 10.0 mindelay 1e-4 asymmetry 0.5 offset 1e-5 minsamples 6 maxsamples 6 filter 3 offline auto_offline prefer noselect trust require xleave polltarget 20 port 123 presend 7 minstratum 3 version 4" \
+	"add server node1.net1.clk" \
 	"allow 1.2.3.4" \
 	"allow 1.2" \
 	"allow 3.4.5" \
