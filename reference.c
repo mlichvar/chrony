@@ -959,6 +959,18 @@ get_clock_estimates(int manual,
 
 /* ================================================== */
 
+static void
+fuzz_ref_time(struct timespec *ts)
+{
+  uint32_t rnd;
+
+  /* Add a random value from interval [-1.0, 0.0] */
+  UTI_GetRandomBytes(&rnd, sizeof (rnd));
+  UTI_AddDoubleToTimespec(ts, -(double)rnd / (uint32_t)-1, ts);
+}
+
+/* ================================================== */
+
 void
 REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
                  uint32_t ref_id, IPAddr *ref_ip, struct timespec *ref_time,
@@ -970,7 +982,6 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
   double residual_frequency, local_abs_frequency;
   double elapsed, update_interval, correction_rate, orig_root_distance;
   struct timespec now, raw_now;
-  NTP_int64 ref_fuzz;
   int manual;
 
   assert(initialised);
@@ -1065,11 +1076,7 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
   /* Add a random error of up to one second to the reference time to make it
      less useful when disclosed to NTP and cmdmon clients for estimating
      receive timestamps in the interleaved symmetric NTP mode */
-  UTI_GetNtp64Fuzz(&ref_fuzz, 0);
-  UTI_TimespecToNtp64(&our_ref_time, &ref_fuzz, &ref_fuzz);
-  UTI_Ntp64ToTimespec(&ref_fuzz, &our_ref_time);
-  if (UTI_CompareTimespecs(&our_ref_time, ref_time) >= 0)
-    our_ref_time.tv_sec--;
+  fuzz_ref_time(&our_ref_time);
 
   local_abs_frequency = LCL_ReadAbsoluteFrequency();
 
