@@ -42,11 +42,15 @@
 /* The minimum allowed skew */
 #define MIN_SKEW 1.0e-12
 
+/* The update interval of the reference in the local reference mode */
+#define LOCAL_REF_UPDATE_INTERVAL 64.0
+
 static int are_we_synchronised;
 static int enable_local_stratum;
 static int local_stratum;
 static int local_orphan;
 static double local_distance;
+static struct timespec local_ref_time;
 static NTP_Leap our_leap_status;
 static int our_leap_sec;
 static int our_tai_offset;
@@ -234,6 +238,7 @@ REF_Initialise(void)
   correction_time_ratio = CNF_GetCorrectionTimeRatio();
 
   enable_local_stratum = CNF_AllowLocalReference(&local_stratum, &local_orphan, &local_distance);
+  UTI_ZeroTimespec(&local_ref_time);
 
   leap_timeout_id = 0;
   leap_in_progress = 0;
@@ -1178,7 +1183,7 @@ REF_GetReferenceParams
  double *root_dispersion
 )
 {
-  double dispersion;
+  double dispersion, delta;
 
   assert(initialised);
 
@@ -1210,13 +1215,17 @@ REF_GetReferenceParams
 
     *stratum = local_stratum;
     *ref_id = NTP_REFID_LOCAL;
-    /* Make the reference time be now less a second - this will
-       scarcely affect the client, but will ensure that the transmit
-       timestamp cannot come before this (which would cause test 7 to
-       fail in the client's read routine) if the local system clock's
-       read routine is broken in any way. */
-    *ref_time = *local_time;
-    --ref_time->tv_sec;
+
+    /* Keep the reference timestamp up to date.  Adjust the timestamp to make
+       sure that the transmit timestamp cannot come before this (which might
+       fail a test of an NTP client). */
+    delta = UTI_DiffTimespecsToDouble(local_time, &local_ref_time);
+    if (delta > LOCAL_REF_UPDATE_INTERVAL || delta < 1.0) {
+      UTI_AddDoubleToTimespec(local_time, -1.0, &local_ref_time);
+      fuzz_ref_time(&local_ref_time);
+    }
+
+    *ref_time = local_ref_time;
 
     /* Not much else we can do for leap second bits - maybe need to
        have a way for the administrator to feed leap bits in */
