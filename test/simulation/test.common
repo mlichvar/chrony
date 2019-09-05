@@ -449,7 +449,6 @@ run_test() {
 	for i in $(seq 1 $nodes); do
 		echo "node${i}_shift_pll = $shift_pll"
 		for j in $(seq 1 $nodes); do
-			[ $i -eq $j ] && continue
 			echo "node${i}_delay${j} = $(get_delay_expr up)"
 			echo "node${j}_delay${i} = $(get_delay_expr down)"
 		done
