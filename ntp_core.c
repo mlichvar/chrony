@@ -1464,6 +1464,52 @@ check_delay_dev_ratio(NCR_Instance inst, SST_Stats stats,
 
 /* ================================================== */
 
+static int
+check_sync_loop(NCR_Instance inst, NTP_Packet *message, NTP_Local_Address *local_addr,
+                struct timespec *local_ts)
+{
+  double our_root_delay, our_root_dispersion;
+  int are_we_synchronised, our_stratum;
+  struct timespec our_ref_time;
+  NTP_Leap leap_status;
+  uint32_t our_ref_id;
+
+  /* Check if our server may be enabled, i.e. a client or peer can actually
+     be synchronised to us */
+  if (REF_GetMode() != REF_ModeNormal)
+    return 1;
+
+  /* Check if the source indicates that it is synchronised to our address
+     (assuming it uses the same address as the one from which we send requests
+     to the source) */
+  if (message->stratum > 1 &&
+      message->reference_id == htonl(UTI_IPToRefid(&local_addr->ip_addr)))
+    return 0;
+
+  /* Compare our reference data with the source to make sure it is not us
+     (e.g. due to a misconfiguration) */
+
+  REF_GetReferenceParams(local_ts, &are_we_synchronised, &leap_status, &our_stratum,
+                         &our_ref_id, &our_ref_time, &our_root_delay, &our_root_dispersion);
+
+  if (message->stratum == our_stratum &&
+      message->reference_id == htonl(our_ref_id) &&
+      message->root_delay == UTI_DoubleToNtp32(our_root_delay) &&
+      !UTI_IsZeroNtp64(&message->reference_ts)) {
+    NTP_int64 ntp_ref_time;
+
+    UTI_TimespecToNtp64(&our_ref_time, &ntp_ref_time, NULL);
+    if (UTI_CompareNtp64(&message->reference_ts, &ntp_ref_time) == 0) {
+      DEBUG_LOG("Source %s is me", UTI_IPToString(&inst->remote_addr.ip_addr));
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+/* ================================================== */
+
 static void
 process_sample(NCR_Instance inst, NTP_Sample *sample)
 {
@@ -1716,10 +1762,9 @@ receive_packet(NCR_Instance inst, NTP_Local_Address *local_addr,
        the increase in delay */
     testC = check_delay_dev_ratio(inst, stats, &sample.time, sample.offset, sample.peer_delay);
 
-    /* Test D requires that the remote peer is not synchronised to us to
-       prevent a synchronisation loop */
-    testD = message->stratum <= 1 || REF_GetMode() != REF_ModeNormal ||
-            pkt_refid != UTI_IPToRefid(&local_addr->ip_addr);
+    /* Test D requires that the source is not synchronised to us and is not us
+       to prevent a synchronisation loop */
+    testD = check_sync_loop(inst, message, local_addr, &rx_ts->ts);
   } else {
     remote_interval = local_interval = response_time = 0.0;
     sample.offset = sample.peer_delay = sample.peer_dispersion = 0.0;
