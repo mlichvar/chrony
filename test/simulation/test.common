@@ -84,7 +84,7 @@ for defoptname in ${!default_*}; do
 done
 
 test_start() {
-	rm -f tmp/*
+	rm -rf tmp/*
 	echo "Testing $@:"
 
 	check_config_h 'FEAT_NTP 1' || test_skip
