@@ -209,6 +209,7 @@ get_chronyd_conf() {
 		done
 		echo "$server_conf"
 	else
+		echo "deny"
 		if [ -n "$client_server_conf" ]; then
 			echo "$client_server_conf"
 		else
