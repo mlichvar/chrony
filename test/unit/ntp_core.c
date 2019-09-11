@@ -39,6 +39,7 @@ static int req_length, res_length;
 #define NIO_OpenClientSocket(addr) ((addr)->ip_addr.family != IPADDR_UNSPEC ? 101 : 0)
 #define NIO_CloseClientSocket(fd) assert(fd == 101)
 #define NIO_IsServerSocket(fd) (fd == 100)
+#define NIO_IsServerSocketOpen() 1
 #define NIO_SendPacket(msg, to, from, len, process_tx) (memcpy(&req_buffer, msg, len), req_length = len, 1)
 #define SCH_AddTimeoutByDelay(delay, handler, arg) (1 ? 102 : (handler(arg), 1))
 #define SCH_AddTimeoutInClass(delay, separation, randomness, class, handler, arg) \

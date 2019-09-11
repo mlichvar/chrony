@@ -53,6 +53,9 @@ extern void NIO_CloseServerSocket(int sock_fd);
 /* Function to check if socket is a server socket */
 extern int NIO_IsServerSocket(int sock_fd);
 
+/* Function to check if a server socket is currently open */
+extern int NIO_IsServerSocketOpen(void);
+
 /* Function to check if client packets can be sent to a server */
 extern int NIO_IsServerConnectable(NTP_Remote_Address *remote_addr);
 

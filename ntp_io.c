@@ -330,6 +330,14 @@ NIO_IsServerSocket(int sock_fd)
 /* ================================================== */
 
 int
+NIO_IsServerSocketOpen(void)
+{
+  return server_sock_fd4 != INVALID_SOCK_FD || server_sock_fd6 != INVALID_SOCK_FD;
+}
+
+/* ================================================== */
+
+int
 NIO_IsServerConnectable(NTP_Remote_Address *remote_addr)
 {
   int sock_fd;
