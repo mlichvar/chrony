@@ -880,6 +880,13 @@ if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ]  && [ $try_nettle = "1" ];
     HASH_LINK="$test_link"
     MYCPPFLAGS="$MYCPPFLAGS $test_cflags"
     add_def FEAT_SECHASH
+
+    if test_code 'CMAC in nettle' 'nettle/cmac.h' "$test_cflags" "$test_link" \
+      'cmac128_update(NULL, NULL, NULL, 0, NULL);'
+    then
+      add_def HAVE_CMAC
+      EXTRA_OBJECTS="$EXTRA_OBJECTS cmac_nettle.o"
+    fi
   fi
 fi
 
