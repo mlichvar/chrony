@@ -28,6 +28,7 @@
 #include "config.h"
 
 #include "clientlog.h"
+#include "cmac.h"
 #include "cmdmon.h"
 #include "keys.h"
 #include "logging.h"
@@ -410,3 +411,31 @@ NSD_SignAndSendPacket(uint32_t key_id, NTP_Packet *packet, NTP_Remote_Address *r
 }
 
 #endif /* !FEAT_SIGND */
+
+#ifndef HAVE_CMAC
+
+unsigned int
+CMC_GetKeyLength(const char *cipher)
+{
+  return 0;
+}
+
+CMC_Instance
+CMC_CreateInstance(const char *cipher, const unsigned char *key, unsigned int length)
+{
+  return NULL;
+}
+
+unsigned int
+CMC_Hash(CMC_Instance inst, const unsigned char *in, unsigned int in_len,
+         unsigned char *out, unsigned int out_len)
+{
+  return 0;
+}
+
+void
+CMC_DestroyInstance(CMC_Instance inst)
+{
+}
+
+#endif /* !HAVE_CMAC */
