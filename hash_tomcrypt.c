@@ -39,18 +39,6 @@ struct hash {
 
 static const struct hash hashes[] = {
   { "MD5", "md5", &md5_desc },
-#ifdef LTC_RIPEMD128
-  { "RMD128", "rmd128", &rmd128_desc },
-#endif
-#ifdef LTC_RIPEMD160
-  { "RMD160", "rmd160", &rmd160_desc },
-#endif
-#ifdef LTC_RIPEMD256
-  { "RMD256", "rmd256", &rmd256_desc },
-#endif
-#ifdef LTC_RIPEMD320
-  { "RMD320", "rmd320", &rmd320_desc },
-#endif
 #ifdef LTC_SHA1
   { "SHA1", "sha1", &sha1_desc },
 #endif

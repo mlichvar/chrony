@@ -43,7 +43,6 @@ struct hash {
 
 static struct hash hashes[] = {
   { "MD5", "md5", NULL, NULL },
-  { "RMD160", "ripemd160", NULL, NULL },
   { "SHA1", "sha1", NULL, NULL },
   { "SHA256", "sha256", NULL, NULL },
   { "SHA384", "sha384", NULL, NULL },
