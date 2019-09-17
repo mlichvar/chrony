@@ -261,7 +261,7 @@ CPS_SplitWord(char *line)
 /* ================================================== */
 
 int
-CPS_ParseKey(char *line, uint32_t *id, const char **hash, char **key)
+CPS_ParseKey(char *line, uint32_t *id, const char **type, char **key)
 {
   char *s1, *s2, *s3, *s4;
 
@@ -278,10 +278,10 @@ CPS_ParseKey(char *line, uint32_t *id, const char **hash, char **key)
     return 0;
 
   if (*s3) {
-    *hash = s2;
+    *type = s2;
     *key = s3;
   } else {
-    *hash = "MD5";
+    *type = "MD5";
     *key = s2;
   }
 

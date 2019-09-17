@@ -32,6 +32,7 @@
 
 #include "array.h"
 #include "keys.h"
+#include "cmac.h"
 #include "cmdparse.h"
 #include "conf.h"
 #include "memory.h"
@@ -42,11 +43,22 @@
 /* Consider 80 bits as the absolute minimum for a secure key */
 #define MIN_SECURE_KEY_LENGTH 10
 
+typedef enum {
+  NTP_MAC,
+  CMAC,
+} KeyClass;
+
 typedef struct {
   uint32_t id;
-  char *val;
-  int len;
-  int hash_id;
+  KeyClass class;
+  union {
+    struct {
+      unsigned char *value;
+      int length;
+      int hash_id;
+    } ntp_mac;
+    CMC_Instance cmac;
+  } data;
   int auth_delay;
 } Key;
 
@@ -62,9 +74,21 @@ static void
 free_keys(void)
 {
   unsigned int i;
+  Key *key;
 
-  for (i = 0; i < ARR_GetSize(keys); i++)
-    Free(((Key *)ARR_GetElement(keys, i))->val);
+  for (i = 0; i < ARR_GetSize(keys); i++) {
+    key = ARR_GetElement(keys, i);
+    switch (key->class) {
+      case NTP_MAC:
+        Free(key->data.ntp_mac.value);
+        break;
+      case CMAC:
+        CMC_DestroyInstance(key->data.cmac);
+        break;
+      default:
+        assert(0);
+    }
+  }
 
   ARR_SetSize(keys, 0);
   cache_valid = 0;
@@ -129,10 +153,10 @@ determine_hash_delay(uint32_t key_id)
 }
 
 /* ================================================== */
-/* Decode password encoded in ASCII or HEX */
+/* Decode key encoded in ASCII or HEX */
 
 static int
-decode_password(char *key)
+decode_key(char *key)
 {
   int i, j, len = strlen(key);
   char buf[3], *p;
@@ -184,11 +208,11 @@ compare_keys_by_id(const void *a, const void *b)
 void
 KEY_Reload(void)
 {
-  unsigned int i, line_number;
+  unsigned int i, line_number, key_length, cmac_key_length;
   FILE *in;
-  uint32_t key_id;
-  char line[2048], *keyval, *key_file;
-  const char *hashname;
+  char line[2048], *key_file, *key_value;
+  const char *key_type;
+  int hash_id;
   Key key;
 
   free_keys();
@@ -212,26 +236,43 @@ KEY_Reload(void)
     if (!*line)
       continue;
 
-    if (!CPS_ParseKey(line, &key_id, &hashname, &keyval)) {
+    memset(&key, 0, sizeof (key));
+
+    if (!CPS_ParseKey(line, &key.id, &key_type, &key_value)) {
       LOG(LOGS_WARN, "Could not parse key at line %u in file %s", line_number, key_file);
       continue;
     }
 
-    key.hash_id = HSH_GetHashId(hashname);
-    if (key.hash_id < 0) {
-      LOG(LOGS_WARN, "Unknown hash function in key %"PRIu32, key_id);
+    key_length = decode_key(key_value);
+    if (key_length == 0) {
+      LOG(LOGS_WARN, "Could not decode key %"PRIu32, key.id);
       continue;
     }
 
-    key.len = decode_password(keyval);
-    if (!key.len) {
-      LOG(LOGS_WARN, "Could not decode password in key %"PRIu32, key_id);
+    hash_id = HSH_GetHashId(key_type);
+    cmac_key_length = CMC_GetKeyLength(key_type);
+
+    if (hash_id >= 0) {
+      key.class = NTP_MAC;
+      key.data.ntp_mac.value = MallocArray(unsigned char, key_length);
+      memcpy(key.data.ntp_mac.value, key_value, key_length);
+      key.data.ntp_mac.length = key_length;
+      key.data.ntp_mac.hash_id = hash_id;
+    } else if (cmac_key_length > 0) {
+      if (cmac_key_length != key_length) {
+        LOG(LOGS_WARN, "Invalid length of %s key %"PRIu32" (expected %u bits)",
+            key_type, key.id, 8 * cmac_key_length);
+        continue;
+      }
+
+      key.class = CMAC;
+      key.data.cmac = CMC_CreateInstance(key_type, (unsigned char *)key_value, key_length);
+      assert(key.data.cmac);
+    } else {
+      LOG(LOGS_WARN, "Unknown hash function or cipher in key %"PRIu32, key.id);
       continue;
     }
 
-    key.id = key_id;
-    key.val = MallocArray(char, key.len);
-    memcpy(key.val, keyval, key.len);
     ARR_AppendElement(keys, &key);
   }
 
@@ -334,7 +375,15 @@ KEY_GetAuthLength(uint32_t key_id)
   if (!key)
     return 0;
 
-  return HSH_Hash(key->hash_id, buf, 0, buf, 0, buf, sizeof (buf));
+  switch (key->class) {
+    case NTP_MAC:
+      return HSH_Hash(key->data.ntp_mac.hash_id, buf, 0, buf, 0, buf, sizeof (buf));
+    case CMAC:
+      return CMC_Hash(key->data.cmac, buf, 0, buf, sizeof (buf));
+    default:
+      assert(0);
+      return 0;
+  }
 }
 
 /* ================================================== */
@@ -349,30 +398,41 @@ KEY_CheckKeyLength(uint32_t key_id)
   if (!key)
     return 0;
 
-  return key->len >= MIN_SECURE_KEY_LENGTH;
+  switch (key->class) {
+    case NTP_MAC:
+      return key->data.ntp_mac.length >= MIN_SECURE_KEY_LENGTH;
+    default:
+      return 1;
+  }
 }
 
 /* ================================================== */
 
 static int
-generate_ntp_auth(int hash_id, const unsigned char *key, int key_len,
-                  const unsigned char *data, int data_len,
-                  unsigned char *auth, int auth_len)
+generate_auth(Key *key, const unsigned char *data, int data_len,
+              unsigned char *auth, int auth_len)
 {
-  return HSH_Hash(hash_id, key, key_len, data, data_len, auth, auth_len);
+  switch (key->class) {
+    case NTP_MAC:
+      return HSH_Hash(key->data.ntp_mac.hash_id, key->data.ntp_mac.value,
+                      key->data.ntp_mac.length, data, data_len, auth, auth_len);
+    case CMAC:
+      return CMC_Hash(key->data.cmac, data, data_len, auth, auth_len);
+    default:
+      return 0;
+  }
 }
 
 /* ================================================== */
 
 static int
-check_ntp_auth(int hash_id, const unsigned char *key, int key_len,
-               const unsigned char *data, int data_len,
-               const unsigned char *auth, int auth_len, int trunc_len)
+check_auth(Key *key, const unsigned char *data, int data_len,
+           const unsigned char *auth, int auth_len, int trunc_len)
 {
   unsigned char buf[MAX_HASH_LENGTH];
   int hash_len;
 
-  hash_len = generate_ntp_auth(hash_id, key, key_len, data, data_len, buf, sizeof (buf));
+  hash_len = generate_auth(key, data, data_len, buf, sizeof (buf));
 
   return MIN(hash_len, trunc_len) == auth_len && !memcmp(buf, auth, auth_len);
 }
@@ -381,7 +441,7 @@ check_ntp_auth(int hash_id, const unsigned char *key, int key_len,
 
 int
 KEY_GenerateAuth(uint32_t key_id, const unsigned char *data, int data_len,
-    unsigned char *auth, int auth_len)
+                 unsigned char *auth, int auth_len)
 {
   Key *key;
 
@@ -390,8 +450,7 @@ KEY_GenerateAuth(uint32_t key_id, const unsigned char *data, int data_len,
   if (!key)
     return 0;
 
-  return generate_ntp_auth(key->hash_id, (unsigned char *)key->val, key->len,
-                           data, data_len, auth, auth_len);
+  return generate_auth(key, data, data_len, auth, auth_len);
 }
 
 /* ================================================== */
@@ -407,6 +466,5 @@ KEY_CheckAuth(uint32_t key_id, const unsigned char *data, int data_len,
   if (!key)
     return 0;
 
-  return check_ntp_auth(key->hash_id, (unsigned char *)key->val, key->len,
-                        data, data_len, auth, auth_len, trunc_len);
+  return check_auth(key, data, data_len, auth, auth_len, trunc_len);
 }

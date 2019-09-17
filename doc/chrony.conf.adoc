@@ -96,7 +96,7 @@ interval in order to allow a burst with two requests.
 *key* _ID_:::
 The NTP protocol supports a message authentication code (MAC) to prevent
 computers having their system time upset by rogue packets being sent to them.
-The MAC is generated as a function of a password specified in the key file,
+The MAC is generated as a function of a key specified in the key file,
 which is specified by the <<keyfile,*keyfile*>> directive.
 +
 The *key* option specifies which key (with an ID in the range 1 through 2^32-1)
@@ -2017,8 +2017,10 @@ include @SYSCONFDIR@/chrony.d/*.conf
 ----
 
 [[keyfile]]*keyfile* _file_::
-This directive is used to specify the location of the file containing ID-key
-pairs for authentication of NTP packets.
+This directive is used to specify the location of the file containing symmetric
+keys which are shared between NTP servers and clients, or peers, in order to
+authenticate NTP packets with a message authentication code (MAC) using a
+cryptographic hash function or cipher.
 +
 The format of the directive is shown in the example below:
 +
@@ -2033,30 +2035,41 @@ format of the file is shown below:
 10 tulip
 11 hyacinth
 20 MD5 ASCII:crocus
-25 SHA1 HEX:1dc764e0791b11fa67efc7ecbc4b0d73f68a070c
+25 SHA1 HEX:933F62BE1D604E68A81B557F18CFA200483F5B70
+30 AES128 HEX:7EA62AE64D190114D46D5A082F948EC1
+31 AES256 HEX:37DDCBC67BB902BCB8E995977FAB4D2B5642F5B32EBCEEE421921D97E5CBFE39
  ...
 ----
 +
-Each line consists of an ID, name of an authentication hash function (optional),
-and a password. The ID can be any unsigned integer in the range 1 through
-2^32-1. The default hash function is *MD5*, which is always supported.
+Each line consists of an ID, optional type, and key.
 +
+The ID can be any positive integer in the range 1 through 2^32-1.
++
+The type is a name of a cryptographic hash function or cipher which is used to
+generate and verify the MAC. The default type is *MD5*, which is always
+supported.
 If *chronyd* was built with enabled support for hashing using a crypto library
 (nettle, nss, or libtomcrypt), the following functions are available: *MD5*,
 *SHA1*, *SHA256*, *SHA384*, *SHA512*. Depending on which library and version is
-*chronyd* using, some or all of the following functions may also be available:
-*SHA3-224*, *SHA3-256*, *SHA3-384*, *SHA3-512*, *TIGER*, *WHIRLPOOL*.
+*chronyd* using, some of the following hash functions and ciphers may
+also be available:
+*SHA3-224*, *SHA3-256*, *SHA3-384*, *SHA3-512*, *TIGER*, *WHIRLPOOL*, *AES128*,
+*AES256*.
 +
-The password can be specified as a string of characters not containing white
+The key can be specified as a string of ASCII characters not containing white
 space with an optional *ASCII:* prefix, or as a hexadecimal number with the
 *HEX:* prefix. The maximum length of the line is 2047 characters.
+If the type is a cipher, the length of the key must match the cipher (i.e. 128
+bits for AES128 and 256 bits for AES256).
 +
-The password is used with the hash function to generate and verify a message
-authentication code (MAC) in NTP packets. It is recommended to use SHA1, or
-stronger, hash function with random passwords specified in the hexadecimal
-format that have at least 128 bits. *chronyd* will log a warning to
-syslog on start if a source is specified in the configuration file with a key
-that has password shorter than 80 bits.
+It is recommended to use randomly generated keys, specified in the hexadecimal
+format, which are at least 128 bits long (i.e. they have at least 32 characters
+after the *HEX:* prefix). *chronyd* will log a warning to syslog on start if a
+source is specified in the configuration file with a key shorter than 80 bits.
++
+The recommended key types are AES ciphers and SHA3 hash functions. MD5 should
+be avoided unless no other type is supported on the server and client, or
+peers.
 +
 The <<chronyc.adoc#keygen,*keygen*>> command of *chronyc* can be used to
 generate random keys for the key file. By default, it generates 160-bit MD5 or
