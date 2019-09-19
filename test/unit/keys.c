@@ -27,39 +27,51 @@
 static
 uint32_t write_random_key(FILE *f)
 {
-  const char *hash_name;
+  const char *type, *prefix;
   char key[128];
   uint32_t id;
   int i, length;
 
   length = random() % sizeof (key) + 1;
   length = MAX(length, 4);
+  prefix = random() % 2 ? "HEX:" : "";
+
+  switch (random() % 8) {
+#ifdef FEAT_SECHASH
+    case 0:
+      type = "SHA1";
+      break;
+    case 1:
+      type = "SHA256";
+      break;
+    case 2:
+      type = "SHA384";
+      break;
+    case 3:
+      type = "SHA512";
+      break;
+#endif
+#ifdef HAVE_CMAC
+    case 4:
+      type = "AES128";
+      length = prefix[0] == '\0' ? 8 : 16;
+      break;
+    case 5:
+      type = "AES256";
+      length = prefix[0] == '\0' ? 16 : 32;
+      break;
+#endif
+    case 6:
+      type = "MD5";
+      break;
+    default:
+      type = "";
+  }
+
   UTI_GetRandomBytes(&id, sizeof (id));
   UTI_GetRandomBytes(key, length);
 
-  switch (random() % 6) {
-#ifdef FEAT_SECHASH
-    case 0:
-      hash_name = "SHA1";
-      break;
-    case 1:
-      hash_name = "SHA256";
-      break;
-    case 2:
-      hash_name = "SHA384";
-      break;
-    case 3:
-      hash_name = "SHA512";
-      break;
-#endif
-    case 4:
-      hash_name = "MD5";
-      break;
-    default:
-      hash_name = "";
-  }
-
-  fprintf(f, "%u %s %s", id, hash_name, random() % 2 ? "HEX:" : "");
+  fprintf(f, "%u %s %s", id, type, prefix);
   for (i = 0; i < length; i++)
     fprintf(f, "%02hhX", key[i]);
   fprintf(f, "\n");
