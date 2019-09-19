@@ -190,6 +190,7 @@ LIBS=""
 EXTRA_LIBS=""
 EXTRA_CLI_LIBS=""
 EXTRA_OBJECTS=""
+EXTRA_CLI_OBJECTS=""
 
 feat_debug=0
 feat_cmdmon=1
@@ -877,7 +878,6 @@ if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ]  && [ $try_nettle = "1" ];
   then
     HASH_OBJ="hash_nettle.o"
     HASH_LINK="$test_link"
-    LIBS="$LIBS $HASH_LINK"
     MYCPPFLAGS="$MYCPPFLAGS $test_cflags"
     add_def FEAT_SECHASH
   fi
@@ -892,7 +892,6 @@ if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ]  && [ $try_nss = "1" ]; th
   then
     HASH_OBJ="hash_nss.o"
     HASH_LINK="$test_link"
-    LIBS="$LIBS $HASH_LINK"
     MYCPPFLAGS="$MYCPPFLAGS $test_cflags"
     add_def FEAT_SECHASH
   fi
@@ -904,11 +903,14 @@ if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ] && [ $try_tomcrypt = "1" ]
   then
     HASH_OBJ="hash_tomcrypt.o"
     HASH_LINK="-ltomcrypt"
-    LIBS="$LIBS $HASH_LINK"
     MYCPPFLAGS="$MYCPPFLAGS -I/usr/include/tomcrypt"
     add_def FEAT_SECHASH
   fi
 fi
+
+EXTRA_OBJECTS="$EXTRA_OBJECTS $HASH_OBJ"
+EXTRA_CLI_OBJECTS="$EXTRA_CLI_OBJECTS $HASH_OBJ"
+LIBS="$LIBS $HASH_LINK"
 
 if [ $use_pthread = "1" ]; then
   MYCFLAGS="$MYCFLAGS -pthread"
@@ -995,7 +997,8 @@ add_def CHRONY_VERSION "\"${CHRONY_VERSION}\""
 for f in Makefile doc/Makefile test/unit/Makefile
 do
   echo Creating $f
-  sed -e "s%@EXTRA_OBJECTS@%${EXTRA_OBJECTS}%;\
+  sed -e "s%@EXTRA_OBJS@%${EXTRA_OBJECTS}%;\
+          s%@EXTRA_CLI_OBJS@%${EXTRA_CLI_OBJECTS}%;\
           s%@CC@%${MYCC}%;\
           s%@CFLAGS@%${MYCFLAGS}%;\
           s%@CPPFLAGS@%${MYCPPFLAGS}%;\
@@ -1003,7 +1006,6 @@ do
           s%@LIBS@%${LIBS}%;\
           s%@EXTRA_LIBS@%${EXTRA_LIBS}%;\
           s%@EXTRA_CLI_LIBS@%${EXTRA_CLI_LIBS}%;\
-          s%@HASH_OBJ@%${HASH_OBJ}%;\
           s%@SYSCONFDIR@%${SYSCONFDIR}%;\
           s%@BINDIR@%${BINDIR}%;\
           s%@SBINDIR@%${SBINDIR}%;\
