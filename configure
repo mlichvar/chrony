@@ -186,6 +186,7 @@ OPERATINGSYSTEM=`uname -s`
 VERSION=`uname -r`
 MACHINE=`uname -m`
 
+LIBS=""
 EXTRA_LIBS=""
 EXTRA_CLI_LIBS=""
 EXTRA_OBJECTS=""
@@ -430,8 +431,7 @@ case $OPERATINGSYSTEM in
     ;;
     Darwin)
         EXTRA_OBJECTS="sys_macosx.o"
-        EXTRA_LIBS="-lresolv"
-        EXTRA_CLI_LIBS="-lresolv"
+        LIBS="$LIBS -lresolv"
         add_def MACOSX
         if [ $feat_droproot = "1" ]; then
           add_def FEAT_PRIVDROP
@@ -450,8 +450,7 @@ case $OPERATINGSYSTEM in
     ;;
     SunOS)
         EXTRA_OBJECTS="sys_generic.o sys_solaris.o sys_timex.o sys_posix.o"
-        EXTRA_LIBS="-lsocket -lnsl -lresolv"
-        EXTRA_CLI_LIBS="-lsocket -lnsl -lresolv"
+        LIBS="$LIBS -lsocket -lnsl -lresolv"
         try_setsched=1
         try_lockmem=1
         add_def SOLARIS
@@ -590,11 +589,9 @@ then
 fi
 
 MATHCODE='return (int) pow(2.0, log(sqrt((double)argc)));'
-if test_code 'math' 'math.h' '' '' "$MATHCODE"; then
-  LIBS=""
-else
+if ! test_code 'math' 'math.h' '' '' "$MATHCODE"; then
   if test_code 'math in -lm' 'math.h' '' '-lm' "$MATHCODE"; then
-    LIBS="-lm"
+    LIBS="$LIBS -lm"
   else
     echo "error: could not compile/link a program which uses sqrt(), log(), pow()"
     exit 1
@@ -609,7 +606,7 @@ then
 fi
 
 if [ $feat_ipv6 = "1" ] && \
-  test_code 'IPv6 support' 'arpa/inet.h sys/socket.h netinet/in.h' '' "$EXTRA_LIBS" '
+  test_code 'IPv6 support' 'arpa/inet.h sys/socket.h netinet/in.h' '' "$LIBS" '
     struct sockaddr_in6 n;
     char p[100];
     n.sin6_addr = in6addr_any;
@@ -645,7 +642,7 @@ if [ $try_clock_gettime = "1" ]; then
   fi
 fi
 
-if test_code 'getaddrinfo()' 'sys/types.h sys/socket.h netdb.h' '' "$EXTRA_LIBS" \
+if test_code 'getaddrinfo()' 'sys/types.h sys/socket.h netdb.h' '' "$LIBS" \
   'return getaddrinfo(0, 0, 0, 0);'
 then
   add_def HAVE_GETADDRINFO
@@ -675,11 +672,11 @@ RECVMMSG_CODE='
   struct mmsghdr hdr;
   return !recvmmsg(0, &hdr, 1, MSG_DONTWAIT, 0);'
 if [ $try_recvmmsg = "1" ]; then
-  if test_code 'recvmmsg()' 'sys/socket.h' '' "$EXTRA_LIBS" "$RECVMMSG_CODE"; then
+  if test_code 'recvmmsg()' 'sys/socket.h' '' "$LIBS" "$RECVMMSG_CODE"; then
     add_def HAVE_RECVMMSG
   else
     if test_code 'recvmmsg() with _GNU_SOURCE' 'sys/socket.h' '-D_GNU_SOURCE' \
-      "$EXTRA_LIBS" "$RECVMMSG_CODE"
+      "$LIBS" "$RECVMMSG_CODE"
     then
       add_def _GNU_SOURCE
       add_def HAVE_RECVMMSG
@@ -1002,8 +999,8 @@ do
           s%@CC@%${MYCC}%;\
           s%@CFLAGS@%${MYCFLAGS}%;\
           s%@CPPFLAGS@%${MYCPPFLAGS}%;\
-          s%@LIBS@%${LIBS}%;\
           s%@LDFLAGS@%${MYLDFLAGS}%;\
+          s%@LIBS@%${LIBS}%;\
           s%@EXTRA_LIBS@%${EXTRA_LIBS}%;\
           s%@EXTRA_CLI_LIBS@%${EXTRA_CLI_LIBS}%;\
           s%@HASH_OBJ@%${HASH_OBJ}%;\
