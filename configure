@@ -189,8 +189,6 @@ MACHINE=`uname -m`
 EXTRA_LIBS=""
 EXTRA_CLI_LIBS=""
 EXTRA_OBJECTS=""
-EXTRA_DEFS=""
-SYSDEFS=""
 
 feat_debug=0
 feat_cmdmon=1
