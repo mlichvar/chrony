@@ -33,6 +33,7 @@
 
 #include "array.h"
 #include "candm.h"
+#include "cmac.h"
 #include "logging.h"
 #include "memory.h"
 #include "nameserv.h"
@@ -2852,28 +2853,39 @@ process_cmd_retries(const char *line)
 static int
 process_cmd_keygen(char *line)
 {
-  char hash_name[17];
   unsigned char key[512];
-  unsigned int i, length, id = 1, bits = 160;
+  char type[17];
+  unsigned int i, cmac_length, length, id = 1, bits = 160;
 
 #ifdef FEAT_SECHASH
-  snprintf(hash_name, sizeof (hash_name), "SHA1");
+  snprintf(type, sizeof (type), "SHA1");
 #else
-  snprintf(hash_name, sizeof (hash_name), "MD5");
+  snprintf(type, sizeof (type), "MD5");
 #endif
 
-  if (sscanf(line, "%u %16s %u", &id, hash_name, &bits))
+  if (sscanf(line, "%u %16s %u", &id, type, &bits))
     ;
 
-  length = CLAMP(10, (bits + 7) / 8, sizeof (key));
-  if (HSH_GetHashId(hash_name) < 0) {
-    LOG(LOGS_ERR, "Unknown hash function %s", hash_name);
+#ifdef HAVE_CMAC
+  cmac_length = CMC_GetKeyLength(type);
+#else
+  cmac_length = 0;
+#endif
+
+  if (HSH_GetHashId(type) >= 0) {
+    length = (bits + 7) / 8;
+  } else if (cmac_length > 0) {
+    length = cmac_length;
+  } else {
+    LOG(LOGS_ERR, "Unknown hash function or cipher %s", type);
     return 0;
   }
 
+  length = CLAMP(10, length, sizeof (key));
+
   UTI_GetRandomBytesUrandom(key, length);
 
-  printf("%u %s HEX:", id, hash_name);
+  printf("%u %s HEX:", id, type);
   for (i = 0; i < length; i++)
     printf("%02hhX", key[i]);
   printf("\n");

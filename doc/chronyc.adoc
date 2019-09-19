@@ -1188,10 +1188,10 @@ generated from the _/dev/urandom_ device and it is printed to standard output.
 +
 The command has three optional arguments. The first argument is the key number
 (by default 1), which will be specified with the *key* option of the *server*
-or *peer* directives in the configuration file. The second argument is the hash
-function (by default SHA1 or MD5 if SHA1 is not available) and the third
-argument is the number of bits the key should have, between 80 and 4096 bits
-(by default 160 bits).
+or *peer* directives in the configuration file. The second argument is the name
+of the hash function or cipher (by default SHA1, or MD5 if SHA1 is not
+available). The third argument is the length of the key in bits if a hash
+function was selected, between 80 and 4096 bits (by default 160 bits).
 +
 An example is:
 +

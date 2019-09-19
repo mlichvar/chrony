@@ -886,6 +886,7 @@ if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ]  && [ $try_nettle = "1" ];
     then
       add_def HAVE_CMAC
       EXTRA_OBJECTS="$EXTRA_OBJECTS cmac_nettle.o"
+      EXTRA_CLI_OBJECTS="$EXTRA_CLI_OBJECTS cmac_nettle.o"
     fi
   fi
 fi
