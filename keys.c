@@ -121,8 +121,7 @@ determine_hash_delay(uint32_t key_id)
       min_diff = diff;
   }
 
-  /* Add on a bit extra to allow for copying, conversions etc */
-  nsecs = 1.0625e9 * min_diff;
+  nsecs = 1.0e9 * min_diff;
 
   DEBUG_LOG("authentication delay for key %"PRIu32": %d nsecs", key_id, nsecs);
 
