@@ -162,6 +162,7 @@ timeout 200
 retries 1
 keygen
 keygen 10 MD5 128
+keygen 11 MD5 40
 help
 quit
 nosuchcommand"
@@ -170,7 +171,29 @@ run_test || test_fail
 
 check_chronyc_output "^1 (MD5|SHA1) HEX:........................................
 10 MD5 HEX:................................
+11 MD5 HEX:....................
 System clock:.*this help
  *$" || test_fail
+
+chronyc_conf="keygen 10 NOSUCHTYPE 128
+help"
+run_test || test_fail
+check_chronyc_output "^Unknown hash function or cipher NOSUCHTYPE\$" || test_fail
+
+if check_config_h 'FEAT_SECHASH 1'; then
+	for hash in MD5 SHA1 SHA256 SHA384 SHA512; do
+		chronyc_conf="keygen 5 $hash"
+		run_test || test_fail
+		check_chronyc_output "^5 $hash HEX:........................................\$" || test_fail
+	done
+fi
+
+if check_config_h 'HAVE_CMAC 1'; then
+	chronyc_conf="keygen 6 AES128
+keygen 7 AES256"
+	run_test || test_fail
+	check_chronyc_output "^6 AES128 HEX:................................
+7 AES256 HEX:................................................................\$" || test_fail
+fi
 
 test_pass
