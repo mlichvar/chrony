@@ -256,10 +256,8 @@ SYS_Timex_Adjust(struct timex *txc, int ignore_error)
   state = NTP_ADJTIME(txc);
 
   if (state < 0) {
-    if (!ignore_error)
-      LOG_FATAL(NTP_ADJTIME_NAME"(0x%x) failed : %s", txc->modes, strerror(errno));
-    else
-      DEBUG_LOG(NTP_ADJTIME_NAME"(0x%x) failed : %s", txc->modes, strerror(errno));
+    LOG(ignore_error ? LOGS_DEBUG : LOGS_FATAL,
+        NTP_ADJTIME_NAME"(0x%x) failed : %s", txc->modes, strerror(errno));
   }
 
   return state;
