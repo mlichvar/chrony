@@ -266,7 +266,7 @@ LOG_FileWrite(LOG_FileID id, const char *format, ...)
     return;
 
   if (!logfiles[id].file) {
-    char filename[512], *logdir = CNF_GetLogDir();
+    char filename[PATH_MAX], *logdir = CNF_GetLogDir();
 
     if (logdir[0] == '\0') {
       LOG(LOGS_WARN, "logdir not specified");

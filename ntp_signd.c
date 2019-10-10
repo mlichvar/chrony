@@ -129,7 +129,7 @@ close_socket(void)
 static int
 open_socket(void)
 {
-  char path[1024];
+  char path[PATH_MAX];
 
   if (sock_fd != INVALID_SOCK_FD)
     return 1;

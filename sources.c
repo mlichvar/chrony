@@ -1153,7 +1153,7 @@ static
 FILE *open_dumpfile(SRC_Instance inst, const char *mode)
 {
   FILE *f;
-  char filename[1024], *dumpdir;
+  char filename[PATH_MAX], *dumpdir;
 
   dumpdir = CNF_GetDumpDir();
   if (dumpdir[0] == '\0') {
@@ -1225,7 +1225,7 @@ SRC_ReloadSources(void)
 void
 SRC_RemoveDumpFiles(void)
 {
-  char pattern[1024], name[64], *dumpdir, *s;
+  char pattern[PATH_MAX], name[64], *dumpdir, *s;
   IPAddr ip_addr;
   glob_t gl;
   size_t i;

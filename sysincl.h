@@ -36,6 +36,7 @@
 #include <glob.h>
 #include <grp.h>
 #include <inttypes.h>
+#include <limits.h>
 #include <math.h>
 #include <netinet/in.h>
 #include <pwd.h>
