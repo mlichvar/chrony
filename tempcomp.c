@@ -84,7 +84,7 @@ read_timeout(void *arg)
   FILE *f;
   double temp, comp;
 
-  f = fopen(filename, "r");
+  f = UTI_OpenFile(NULL, filename, NULL, 'r', 0);
 
   if (f && fscanf(f, "%lf", &temp) == 1) {
     comp = get_tempcomp(temp);
@@ -122,11 +122,7 @@ read_points(const char *filename)
   char line[256];
   struct Point *p;
 
-  f = fopen(filename, "r");
-  if (!f) {
-    LOG_FATAL("Could not open tempcomp point file %s", filename);
-    return;
-  }
+  f = UTI_OpenFile(NULL, filename, NULL, 'R', 0);
 
   points = ARR_CreateInstance(sizeof (struct Point));
 

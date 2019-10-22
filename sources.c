@@ -1150,10 +1150,9 @@ add_dispersion(double dispersion, void *anything)
 /* ================================================== */
 
 static
-FILE *open_dumpfile(SRC_Instance inst, const char *mode)
+FILE *open_dumpfile(SRC_Instance inst, char mode)
 {
-  FILE *f;
-  char filename[PATH_MAX], *dumpdir;
+  char filename[64], *dumpdir;
 
   dumpdir = CNF_GetDumpDir();
   if (dumpdir[0] == '\0') {
@@ -1162,22 +1161,12 @@ FILE *open_dumpfile(SRC_Instance inst, const char *mode)
   }
 
   /* Include IP address in the name for NTP sources, or reference ID in hex */
-  if ((inst->type == SRC_NTP &&
-       snprintf(filename, sizeof (filename), "%s/%s.dat", dumpdir,
-                source_to_string(inst)) >= sizeof (filename)) ||
-      (inst->type != SRC_NTP &&
-       snprintf(filename, sizeof (filename), "%s/refid:%08"PRIx32".dat",
-                dumpdir, inst->ref_id) >= sizeof (filename))) {
-    LOG(LOGS_WARN, "dumpdir too long");
-    return NULL;
-  }
+  if (inst->type == SRC_NTP)
+    snprintf(filename, sizeof (filename), "%s", source_to_string(inst));
+  else
+    snprintf(filename, sizeof (filename), "refid:%08"PRIx32, inst->ref_id);
 
-  f = fopen(filename, mode);
-  if (!f && mode[0] != 'r')
-    LOG(LOGS_WARN, "Could not open dump file for %s",
-        source_to_string(inst));
-
-  return f;
+  return UTI_OpenFile(dumpdir, filename, ".dat", mode, 0644);
 }
 
 /* ================================================== */
@@ -1190,7 +1179,7 @@ SRC_DumpSources(void)
   int i;
 
   for (i = 0; i < n_sources; i++) {
-    out = open_dumpfile(sources[i], "w");
+    out = open_dumpfile(sources[i], 'w');
     if (!out)
       continue;
     SST_SaveToFile(sources[i]->stats, out);
@@ -1207,7 +1196,7 @@ SRC_ReloadSources(void)
   int i;
 
   for (i = 0; i < n_sources; i++) {
-    in = open_dumpfile(sources[i], "r");
+    in = open_dumpfile(sources[i], 'r');
     if (!in)
       continue;
     if (!SST_LoadFromFile(sources[i]->stats, in))
@@ -1252,8 +1241,8 @@ SRC_RemoveDumpFiles(void)
     if (strncmp(name, "refid:", 6) && !UTI_StringToIP(name, &ip_addr))
       continue;
 
-    DEBUG_LOG("Removing %s", gl.gl_pathv[i]);
-    unlink(gl.gl_pathv[i]);
+    if (!UTI_RemoveFile(NULL, gl.gl_pathv[i], NULL))
+      ;
   }
 
   globfree(&gl);

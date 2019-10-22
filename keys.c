@@ -223,7 +223,7 @@ KEY_Reload(void)
   if (!key_file)
     return;
 
-  in = fopen(key_file, "r");
+  in = UTI_OpenFile(NULL, key_file, NULL, 'r', 0);
   if (!in) {
     LOG(LOGS_WARN, "Could not open keyfile %s", key_file);
     return;

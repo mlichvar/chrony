@@ -419,7 +419,8 @@ bind_unix_address(int sock_fd, const char *addr, int flags)
   }
   saddr.un.sun_family = AF_UNIX;
 
-  unlink(addr);
+  if (!UTI_RemoveFile(NULL, addr, NULL))
+    ;
 
   /* PRV_BindSocket() doesn't support Unix sockets yet */
   if (bind(sock_fd, &saddr.sa, sizeof (saddr.un)) < 0) {
@@ -1299,12 +1300,8 @@ SCK_RemoveSocket(int sock_fd)
       saddr.sa.sa_family != AF_UNIX)
     return 0;
 
-  if (unlink(saddr.un.sun_path) < 0) {
-    DEBUG_LOG("unlink(%s) failed : %s", saddr.un.sun_path, strerror(errno));
+  if (!UTI_RemoveFile(NULL, saddr.un.sun_path, NULL))
     return 0;
-  }
-
-  DEBUG_LOG("Removed %s", saddr.un.sun_path);
 
   return 1;
 }

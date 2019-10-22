@@ -186,9 +186,7 @@ LOG_OpenFileLog(const char *log_file)
   FILE *f;
 
   if (log_file) {
-    f = fopen(log_file, "a");
-    if (!f)
-      LOG_FATAL("Could not open log file %s", log_file);
+    f = UTI_OpenFile(NULL, log_file, NULL, 'A', 0644);
   } else {
     f = stderr;
   }
@@ -266,7 +264,7 @@ LOG_FileWrite(LOG_FileID id, const char *format, ...)
     return;
 
   if (!logfiles[id].file) {
-    char filename[PATH_MAX], *logdir = CNF_GetLogDir();
+    char *logdir = CNF_GetLogDir();
 
     if (logdir[0] == '\0') {
       LOG(LOGS_WARN, "logdir not specified");
@@ -274,16 +272,12 @@ LOG_FileWrite(LOG_FileID id, const char *format, ...)
       return;
     }
 
-    if (snprintf(filename, sizeof(filename), "%s/%s.log",
-                 logdir, logfiles[id].name) >= sizeof (filename) ||
-        !(logfiles[id].file = fopen(filename, "a"))) {
-      LOG(LOGS_WARN, "Could not open log file %s", filename);
+    logfiles[id].file = UTI_OpenFile(logdir, logfiles[id].name, ".log", 'a', 0644);
+    if (!logfiles[id].file) {
+      /* Disable the log */
       logfiles[id].name = NULL;
       return;
     }
-
-    /* Close on exec */
-    UTI_FdSetCloexec(fileno(logfiles[id].file));
   }
 
   banner = CNF_GetLogBanner();

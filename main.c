@@ -91,8 +91,8 @@ delete_pidfile(void)
   if (!pidfile[0])
     return;
 
-  /* Don't care if this fails, there's not a lot we can do */
-  unlink(pidfile);
+  if (!UTI_RemoveFile(NULL, pidfile, NULL))
+    ;
 }
 
 /* ================================================== */
@@ -255,7 +255,7 @@ check_pidfile(void)
   FILE *in;
   int pid, count;
   
-  in = fopen(pidfile, "r");
+  in = UTI_OpenFile(NULL, pidfile, NULL, 'r', 0);
   if (!in)
     return;
 
@@ -283,13 +283,9 @@ write_pidfile(void)
   if (!pidfile[0])
     return;
 
-  out = fopen(pidfile, "w");
-  if (!out) {
-    LOG_FATAL("Could not open %s : %s", pidfile, strerror(errno));
-  } else {
-    fprintf(out, "%d\n", (int)getpid());
-    fclose(out);
-  }
+  out = UTI_OpenFile(NULL, pidfile, NULL, 'W', 0644);
+  fprintf(out, "%d\n", (int)getpid());
+  fclose(out);
 }
 
 /* ================================================== */

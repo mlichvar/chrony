@@ -402,14 +402,7 @@ CNF_ReadFile(const char *filename)
   char line[2048];
   int i;
 
-  in = fopen(filename, "r");
-  if (!in) {
-    LOG_FATAL("Could not open configuration file %s : %s",
-              filename, strerror(errno));
-    return;
-  }
-
-  DEBUG_LOG("Reading %s", filename);
+  in = UTI_OpenFile(NULL, filename, NULL, 'R', 0);
 
   for (i = 1; fgets(line, sizeof(line), in); i++) {
     CNF_ParseLine(filename, i, line);
