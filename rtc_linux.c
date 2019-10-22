@@ -466,7 +466,6 @@ read_coefs_from_file(void)
 static int
 write_coefs_to_file(int valid,time_t ref_time,double offset,double rate)
 {
-  struct stat buf;
   char *temp_coefs_file_name;
   FILE *out;
   int r1, r2;
@@ -499,17 +498,6 @@ write_coefs_to_file(int valid,time_t ref_time,double offset,double rate)
     LOG(LOGS_WARN, "Could not write to temporary RTC file %s.tmp",
         coefs_file_name);
     return RTC_ST_BADFILE;
-  }
-
-  /* Clone the file attributes from the existing file if there is one. */
-
-  if (!stat(coefs_file_name,&buf)) {
-    if (chown(temp_coefs_file_name,buf.st_uid,buf.st_gid) ||
-        chmod(temp_coefs_file_name,buf.st_mode & 0777)) {
-      LOG(LOGS_WARN,
-          "Could not change ownership or permissions of temporary RTC file %s.tmp",
-          coefs_file_name);
-    }
   }
 
   /* Rename the temporary file to the correct location (see rename(2) for details). */
