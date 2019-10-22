@@ -173,6 +173,25 @@ extern int UTI_CreateDirAndParents(const char *path, mode_t mode, uid_t uid, gid
    permissions and its uid/gid must match the specified values. */
 extern int UTI_CheckDirPermissions(const char *path, mode_t perm, uid_t uid, gid_t gid);
 
+/* Open a file.  The full path of the file is constructed from the basedir
+   (may be NULL), '/' (if basedir is not NULL), name, and suffix (may be NULL).
+   Created files have specified permissions (umasked).  Returns NULL on error.
+   The following modes are supported (if the mode is an uppercase character,
+   errors are fatal):
+   r/R - open an existing file for reading
+   w/W - open a new file for writing (remove existing file)
+   a/A - open an existing file for appending (create if does not exist) */
+extern FILE *UTI_OpenFile(const char *basedir, const char *name, const char *suffix,
+                          char mode, mode_t perm);
+
+/* Rename a temporary file by changing its suffix.  The paths are constructed as
+   in UTI_OpenFile().  If the renaming fails, the file will be removed. */
+extern int UTI_RenameTempFile(const char *basedir, const char *name,
+                              const char *old_suffix, const char *new_suffix);
+
+/* Remove a file.  The path is constructed as in UTI_OpenFile(). */
+extern int UTI_RemoveFile(const char *basedir, const char *name, const char *suffix);
+
 /* Set process user/group IDs and drop supplementary groups */
 extern void UTI_DropRoot(uid_t uid, gid_t gid);
 

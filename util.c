@@ -1089,6 +1089,152 @@ UTI_CheckDirPermissions(const char *path, mode_t perm, uid_t uid, gid_t gid)
 
 /* ================================================== */
 
+static int
+join_path(const char *basedir, const char *name, const char *suffix,
+          char *buffer, size_t length, LOG_Severity severity)
+{
+  const char *sep;
+
+  if (!basedir) {
+    basedir = "";
+    sep = "";
+  } else {
+    sep = "/";
+  }
+
+  if (!suffix)
+    suffix = "";
+
+  if (snprintf(buffer, length, "%s%s%s%s", basedir, sep, name, suffix) >= length) {
+    LOG(severity, "File path %s%s%s%s too long", basedir, sep, name, suffix);
+    return 0;
+  }
+
+  return 1;
+}
+
+/* ================================================== */
+
+FILE *
+UTI_OpenFile(const char *basedir, const char *name, const char *suffix,
+             char mode, mode_t perm)
+{
+  const char *file_mode;
+  char path[PATH_MAX];
+  LOG_Severity severity;
+  int fd, flags;
+  FILE *file;
+
+  severity = mode >= 'A' && mode <= 'Z' ? LOGS_FATAL : LOGS_ERR;
+
+  if (!join_path(basedir, name, suffix, path, sizeof (path), severity))
+    return NULL;
+
+  switch (mode) {
+    case 'r':
+    case 'R':
+      flags = O_RDONLY;
+      file_mode = "r";
+      if (severity != LOGS_FATAL)
+        severity = LOGS_DEBUG;
+      break;
+    case 'w':
+    case 'W':
+      flags = O_WRONLY | O_CREAT | O_EXCL;
+      file_mode = "w";
+      break;
+    case 'a':
+    case 'A':
+      flags = O_WRONLY | O_CREAT | O_APPEND;
+      file_mode = "a";
+      break;
+    default:
+      assert(0);
+      return NULL;
+  }
+
+try_again:
+  fd = open(path, flags, perm);
+  if (fd < 0) {
+    if (errno == EEXIST) {
+      if (unlink(path) < 0) {
+        LOG(severity, "Could not remove %s : %s", path, strerror(errno));
+        return NULL;
+      }
+      DEBUG_LOG("Removed %s", path);
+      goto try_again;
+    }
+    LOG(severity, "Could not open %s : %s", path, strerror(errno));
+    return NULL;
+  }
+
+  UTI_FdSetCloexec(fd);
+
+  file = fdopen(fd, file_mode);
+  if (!file) {
+    LOG(severity, "Could not open %s : %s", path, strerror(errno));
+    close(fd);
+    return NULL;
+  }
+
+  DEBUG_LOG("Opened %s fd=%d mode=%c", path, fd, mode);
+
+  return file;
+}
+
+/* ================================================== */
+
+int
+UTI_RenameTempFile(const char *basedir, const char *name,
+                   const char *old_suffix, const char *new_suffix)
+{
+  char old_path[PATH_MAX], new_path[PATH_MAX];
+
+  if (!join_path(basedir, name, old_suffix, old_path, sizeof (old_path), LOGS_ERR))
+    return 0;
+
+  if (!join_path(basedir, name, new_suffix, new_path, sizeof (new_path), LOGS_ERR))
+    goto error;
+
+  if (rename(old_path, new_path) < 0) {
+    LOG(LOGS_ERR, "Could not replace %s with %s : %s", new_path, old_path, strerror(errno));
+    goto error;
+  }
+
+  DEBUG_LOG("Renamed %s to %s", old_path, new_path);
+
+  return 1;
+
+error:
+  if (unlink(old_path) < 0)
+    LOG(LOGS_ERR, "Could not remove %s : %s", old_path, strerror(errno));
+
+  return 0;
+}
+
+/* ================================================== */
+
+int
+UTI_RemoveFile(const char *basedir, const char *name, const char *suffix)
+{
+  char path[PATH_MAX];
+
+  if (!join_path(basedir, name, suffix, path, sizeof (path), LOGS_ERR))
+    return 0;
+
+  if (unlink(path) < 0) {
+    LOG(errno != ENOENT ? LOGS_ERR : LOGS_DEBUG,
+        "Could not remove %s : %s", path, strerror(errno));
+    return 0;
+  }
+
+  DEBUG_LOG("Removed %s", path);
+
+  return 1;
+}
+
+/* ================================================== */
+
 void
 UTI_DropRoot(uid_t uid, gid_t gid)
 {
