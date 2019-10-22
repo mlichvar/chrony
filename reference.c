@@ -336,7 +336,6 @@ REF_GetLeapMode(void)
 static void
 update_drift_file(double freq_ppm, double skew)
 {
-  struct stat buf;
   char *temp_drift_file;
   FILE *out;
   int r1, r2;
@@ -368,16 +367,6 @@ update_drift_file(double freq_ppm, double skew)
     LOG(LOGS_WARN, "Could not write to temporary driftfile %s.tmp",
         drift_file);
     return;
-  }
-
-  /* Clone the file attributes from the existing file if there is one. */
-
-  if (!stat(drift_file,&buf)) {
-    if (chown(temp_drift_file,buf.st_uid,buf.st_gid) ||
-        chmod(temp_drift_file,buf.st_mode & 0777)) {
-      LOG(LOGS_WARN, "Could not change ownership or permissions of temporary driftfile %s.tmp",
-          drift_file);
-    }
   }
 
   /* Rename the temporary file to the correct location (see rename(2) for details). */
