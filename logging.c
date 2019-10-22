@@ -289,7 +289,7 @@ LOG_FileWrite(LOG_FileID id, const char *format, ...)
     char bannerline[256];
     int i, bannerlen;
 
-    bannerlen = strlen(logfiles[id].banner);
+    bannerlen = MIN(strlen(logfiles[id].banner), sizeof (bannerline) - 1);
 
     for (i = 0; i < bannerlen; i++)
       bannerline[i] = '=';
