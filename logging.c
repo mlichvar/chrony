@@ -29,6 +29,8 @@
 
 #include "sysincl.h"
 
+#include <syslog.h>
+
 #include "conf.h"
 #include "logging.h"
 #include "util.h"

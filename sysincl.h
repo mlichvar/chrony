@@ -21,9 +21,8 @@
 
   =======================================================================
 
-  This file includes all system header files that the software
-  requires.  This allows us to isolate system dependencies to this file
-  alone.
+  This file includes most system header files that the software
+  requires to better isolate system dependencies.
   */
 
 #ifndef GOT_SYSINCL_H
@@ -54,7 +53,6 @@
 #include <sys/un.h>
 #include <sys/shm.h>
 #include <sys/wait.h>
-#include <syslog.h>
 #include <time.h>
 #include <unistd.h>
 
