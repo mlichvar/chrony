@@ -33,6 +33,8 @@ void test_unit(void) {
   char buf[16], *s;
   uid_t uid;
   gid_t gid;
+  struct stat st;
+  FILE *file;
 
   for (i = -31; i < 31; i++) {
     x = pow(2.0, i);
@@ -269,4 +271,43 @@ void test_unit(void) {
   TEST_CHECK(!UTI_CheckDirPermissions("testdir", 0700, uid + 1, gid));
   TEST_CHECK(!UTI_CheckDirPermissions("testdir", 0700, uid, gid + 1));
   TST_ResumeLogging();
+
+  umask(0);
+
+  unlink("testfile");
+  file = UTI_OpenFile(NULL, "testfile", NULL, 'r', 0);
+  TEST_CHECK(!file);
+  TEST_CHECK(stat("testfile", &st) < 0);
+
+  file = UTI_OpenFile(NULL, "testfile", NULL, 'w', 0644);
+  TEST_CHECK(file);
+  TEST_CHECK(stat("testfile", &st) == 0);
+  TEST_CHECK((st.st_mode & 0777) == 0644);
+  fclose(file);
+
+  file = UTI_OpenFile(".", "test", "file", 'W', 0640);
+  TEST_CHECK(file);
+  TEST_CHECK(stat("testfile", &st) == 0);
+  TEST_CHECK((st.st_mode & 0777) == 0640);
+  fclose(file);
+
+  file = UTI_OpenFile(NULL, "test", "file", 'r', 0);
+  TEST_CHECK(file);
+  fclose(file);
+
+  TEST_CHECK(UTI_RenameTempFile(NULL, "testfil", "e", NULL));
+  TEST_CHECK(stat("testfil", &st) == 0);
+  file = UTI_OpenFile(NULL, "testfil", NULL, 'R', 0);
+  TEST_CHECK(file);
+  fclose(file);
+
+  TEST_CHECK(UTI_RenameTempFile(NULL, "test", "fil", "file"));
+  TEST_CHECK(stat("testfile", &st) == 0);
+  file = UTI_OpenFile(NULL, "testfile", NULL, 'R', 0);
+  TEST_CHECK(file);
+  fclose(file);
+
+  TEST_CHECK(UTI_RemoveFile(NULL, "testfile", NULL));
+  TEST_CHECK(stat("testfile", &st) < 0);
+  TEST_CHECK(!UTI_RemoveFile(NULL, "testfile", NULL));
 }
