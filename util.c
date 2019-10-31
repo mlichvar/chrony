@@ -1361,3 +1361,42 @@ UTI_GetRandomBytes(void *buf, unsigned int len)
   UTI_GetRandomBytesUrandom(buf, len);
 #endif
 }
+
+/* ================================================== */
+
+int
+UTI_BytesToHex(const void *buf, unsigned int buf_len, char *hex, unsigned int hex_len)
+{
+  unsigned int i, l;
+
+  for (i = l = 0; i < buf_len; i++, l += 2) {
+    if (l + 2 >= hex_len ||
+        snprintf(hex + l, hex_len - l, "%02hhX", ((const char *)buf)[i]) != 2)
+      return 0;
+  }
+
+  return 1;
+}
+
+/* ================================================== */
+
+unsigned int
+UTI_HexToBytes(const char *hex, void *buf, unsigned int len)
+{
+  char *p, byte[3];
+  unsigned int i;
+
+  for (i = 0; i < len && *hex != '\0'; i++) {
+    byte[0] = *hex++;
+    if (*hex == '\0')
+      return 0;
+    byte[1] = *hex++;
+    byte[2] = '\0';
+    ((char *)buf)[i] = strtol(byte, &p, 16);
+
+    if (p != byte + 2)
+      return 0;
+  }
+
+  return *hex == '\0' ? i : 0;
+}

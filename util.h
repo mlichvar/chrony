@@ -205,6 +205,13 @@ extern void UTI_GetRandomBytesUrandom(void *buf, unsigned int len);
    generating long-term keys */
 extern void UTI_GetRandomBytes(void *buf, unsigned int len);
 
+/* Print data in hexadecimal format */
+extern int UTI_BytesToHex(const void *buf, unsigned int buf_len, char *hex, unsigned int hex_len);
+
+/* Parse a string containing data in hexadecimal format.  In-place conversion
+   is supported. */
+extern unsigned int UTI_HexToBytes(const char *hex, void *buf, unsigned int len);
+
 /* Macros to get maximum and minimum of two values */
 #ifdef MAX
 #undef MAX

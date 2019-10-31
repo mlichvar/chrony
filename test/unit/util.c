@@ -318,4 +318,19 @@ void test_unit(void) {
   TEST_CHECK(UTI_RemoveFile(NULL, "testfile", NULL));
   TEST_CHECK(stat("testfile", &st) < 0);
   TEST_CHECK(!UTI_RemoveFile(NULL, "testfile", NULL));
+
+  assert(sizeof (buf) >= 16);
+  TEST_CHECK(UTI_HexToBytes("", buf, sizeof (buf)) == 0);
+  TEST_CHECK(UTI_HexToBytes("0", buf, sizeof (buf)) == 0);
+  TEST_CHECK(UTI_HexToBytes("00123456789ABCDEF", buf, sizeof (buf)) == 0);
+  TEST_CHECK(UTI_HexToBytes("00123456789ABCDEF0", buf, 8) == 0);
+  TEST_CHECK(UTI_HexToBytes("00123456789ABCDEF0", buf, sizeof (buf)) == 9);
+  TEST_CHECK(memcmp(buf, "\x00\x12\x34\x56\x78\x9A\xBC\xDE\xF0", 9) == 0);
+  memcpy(buf, "AB123456780001", 15);
+  TEST_CHECK(UTI_HexToBytes(buf, buf, sizeof (buf)) == 7);
+  TEST_CHECK(memcmp(buf, "\xAB\x12\x34\x56\x78\x00\x01", 7) == 0);
+
+  TEST_CHECK(UTI_BytesToHex("\xAB\x12\x34\x56\x78\x00\x01", 7, buf, 14) == 0);
+  TEST_CHECK(UTI_BytesToHex("\xAB\x12\x34\x56\x78\x00\x01", 7, buf, 15) == 1);
+  TEST_CHECK(strcmp(buf, "AB123456780001") == 0);
 }

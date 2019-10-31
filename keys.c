@@ -159,25 +159,13 @@ determine_hash_delay(uint32_t key_id)
 static int
 decode_key(char *key)
 {
-  int i, j, len = strlen(key);
-  char buf[3], *p;
+  int len = strlen(key);
 
   if (!strncmp(key, "ASCII:", 6)) {
     memmove(key, key + 6, len - 6);
     return len - 6;
   } else if (!strncmp(key, "HEX:", 4)) {
-    if ((len - 4) % 2)
-      return 0;
-
-    for (i = 0, j = 4; j + 1 < len; i++, j += 2) {
-      buf[0] = key[j], buf[1] = key[j + 1], buf[2] = '\0';
-      key[i] = strtol(buf, &p, 16);
-
-      if (p != buf + 2)
-        return 0;
-    }
-
-    return i;
+    return UTI_HexToBytes(key + 4, key, len);
   } else {
     /* assume ASCII */
     return len;
