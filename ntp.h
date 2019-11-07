@@ -47,6 +47,9 @@ typedef uint32_t NTP_int32;
 /* Maximum stratum number (infinity) */
 #define NTP_MAX_STRATUM 16
 
+/* Invalid stratum number */
+#define NTP_INVALID_STRATUM 0
+
 /* The minimum and maximum supported length of MAC */
 #define NTP_MIN_MAC_LENGTH (4 + 16)
 #define NTP_MAX_MAC_LENGTH (4 + MAX_HASH_LENGTH)

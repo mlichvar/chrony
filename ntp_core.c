@@ -241,9 +241,6 @@ static ARR_Instance broadcasts;
 /* Maximum allowed dispersion - as defined in RFC 5905 (16 seconds) */
 #define NTP_MAX_DISPERSION 16.0
 
-/* Invalid stratum number */
-#define NTP_INVALID_STRATUM 0
-
 /* Maximum allowed time for server to process client packet */
 #define MAX_SERVER_INTERVAL 4.0
 
