@@ -59,8 +59,9 @@ extern int NAU_GenerateRequestAuth(NAU_Instance instance, NTP_Packet *request,
 /* Parse a request or response to detect the authentication mode */
 extern int NAU_ParsePacket(NTP_Packet *packet, NTP_PacketInfo *info);
 
-/* Verify that a request is authentic */
-extern int NAU_CheckRequestAuth(NTP_Packet *request, NTP_PacketInfo *info);
+/* Verify that a request is authentic.  If it is not authentic and a non-zero
+   kod code is returned, a KoD response should be sent back. */
+extern int NAU_CheckRequestAuth(NTP_Packet *request, NTP_PacketInfo *info, uint32_t *kod);
 
 /* Adjust a transmit timestamp for an estimated minimum time it takes to call
    NAU_GenerateResponseAuth() */
@@ -73,7 +74,8 @@ extern void NAU_AdjustResponseTimestamp(NTP_Packet *request, NTP_PacketInfo *inf
 extern int NAU_GenerateResponseAuth(NTP_Packet *request, NTP_PacketInfo *request_info,
                                     NTP_Packet *response, NTP_PacketInfo *response_info,
                                     NTP_Remote_Address *remote_addr,
-                                    NTP_Local_Address *local_addr);
+                                    NTP_Local_Address *local_addr,
+                                    uint32_t kod);
 
 /* Verify that a response is authentic */
 extern int NAU_CheckResponseAuth(NAU_Instance instance, NTP_Packet *response,

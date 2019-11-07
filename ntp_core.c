@@ -904,6 +904,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 int interleaved, /* Flag enabling interleaved mode */
                 int my_poll, /* The log2 of the local poll interval */
                 int version, /* The NTP version to be set in the packet */
+                uint32_t kod, /* KoD code - 0 disabled */
                 NAU_Instance auth, /* The authentication to be used for the packet */
                 NTP_int64 *remote_ntp_rx, /* The receive timestamp from received packet */
                 NTP_int64 *remote_ntp_tx, /* The transmit timestamp from received packet */
@@ -987,6 +988,12 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     local_receive = local_rx->ts;
   }
 
+  if (kod != 0) {
+    leap_status = LEAP_Unsynchronised;
+    our_stratum = NTP_INVALID_STRATUM;
+    our_ref_id = kod;
+  }
+
   /* Generate transmit packet */
   message.lvm = NTP_LVM(leap_status, version, my_mode);
   /* Stratum 16 and larger are invalid */
@@ -1068,7 +1075,8 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
         return 0;
       }
     } else {
-      if (!NAU_GenerateResponseAuth(request, request_info, &message, &info, where_to, from)) {
+      if (!NAU_GenerateResponseAuth(request, request_info, &message, &info,
+                                    where_to, from, kod)) {
         DEBUG_LOG("Could not generate response auth");
         return 0;
       }
@@ -1208,7 +1216,7 @@ transmit_timeout(void *arg)
   }
 
   /* Send the request (which may also be a response in the symmetric mode) */
-  sent = transmit_packet(inst->mode, interleaved, inst->local_poll, inst->version,
+  sent = transmit_packet(inst->mode, interleaved, inst->local_poll, inst->version, 0,
                          inst->auth,
                          initial ? NULL : &inst->remote_ntp_rx,
                          initial ? &inst->init_remote_ntp_tx : &inst->remote_ntp_tx,
@@ -2018,6 +2026,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   NTP_int64 *local_ntp_rx, *local_ntp_tx;
   NTP_Local_Timestamp local_tx, *tx_ts;
   int log_index, interleaved, poll, version;
+  uint32_t kod;
 
   /* Ignore the packet if it wasn't received by server socket */
   if (!NIO_IsServerSocket(local_addr->sock_fd)) {
@@ -2058,6 +2067,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
       return;
   }
 
+  kod = 0;
   log_index = CLG_LogNTPAccess(&remote_addr->ip_addr, &rx_ts->ts);
 
   /* Don't reply to all requests if the rate is excessive */
@@ -2067,9 +2077,12 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   }
 
   /* Check authentication */
-  if (!NAU_CheckRequestAuth(message, &info)) {
-    DEBUG_LOG("NTP packet discarded auth mode=%d", (int)info.auth.mode);
-    return;
+  if (!NAU_CheckRequestAuth(message, &info, &kod)) {
+    DEBUG_LOG("NTP packet failed auth mode=%d kod=%"PRIx32, (int)info.auth.mode, kod);
+
+    /* Don't respond unless a non-zero KoD was returned */
+    if (kod == 0)
+      return;
   }
 
   /* If it is an NTPv4 packet with a long MAC and no extension fields,
@@ -2090,7 +2103,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
      in the interleaved mode.  This means the third reply to a new client is
      the earliest one that can be interleaved.  We don't want to waste time
      on clients that are not using the interleaved mode. */
-  if (log_index >= 0) {
+  if (kod == 0 && log_index >= 0) {
     CLG_GetNtpTimestamps(log_index, &local_ntp_rx, &local_ntp_tx);
     interleaved = !UTI_IsZeroNtp64(local_ntp_rx) &&
                   !UTI_CompareNtp64(&message->originate_ts, local_ntp_rx) &&
@@ -2111,7 +2124,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   poll = MAX(poll, message->poll);
 
   /* Send a reply */
-  transmit_packet(my_mode, interleaved, poll, version, NULL,
+  transmit_packet(my_mode, interleaved, poll, version, kod, NULL,
                   &message->receive_ts, &message->transmit_ts,
                   rx_ts, tx_ts, local_ntp_rx, NULL, remote_addr, local_addr,
                   message, &info);
@@ -2550,7 +2563,7 @@ broadcast_timeout(void *arg)
   UTI_ZeroNtp64(&orig_ts);
   zero_local_timestamp(&recv_ts);
 
-  transmit_packet(MODE_BROADCAST, 0, poll, NTP_VERSION, destination->auth,
+  transmit_packet(MODE_BROADCAST, 0, poll, NTP_VERSION, 0, destination->auth,
                   &orig_ts, &orig_ts, &recv_ts, NULL, NULL, NULL,
                   &destination->addr, &destination->local_addr, NULL, NULL);
 

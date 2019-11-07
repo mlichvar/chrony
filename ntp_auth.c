@@ -336,8 +336,10 @@ NAU_ParsePacket(NTP_Packet *packet, NTP_PacketInfo *info)
 /* ================================================== */
 
 int
-NAU_CheckRequestAuth(NTP_Packet *request, NTP_PacketInfo *info)
+NAU_CheckRequestAuth(NTP_Packet *request, NTP_PacketInfo *info, uint32_t *kod)
 {
+  *kod = 0;
+
   switch (info->auth.mode) {
     case NTP_AUTH_NONE:
       break;
@@ -368,7 +370,8 @@ NAU_AdjustResponseTimestamp(NTP_Packet *request, NTP_PacketInfo *info, struct ti
 int
 NAU_GenerateResponseAuth(NTP_Packet *request, NTP_PacketInfo *request_info,
                          NTP_Packet *response, NTP_PacketInfo *response_info,
-                         NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr)
+                         NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
+                         uint32_t kod)
 {
   switch (request_info->auth.mode) {
     case NTP_AUTH_NONE:
