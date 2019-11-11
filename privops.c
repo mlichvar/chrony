@@ -618,7 +618,6 @@ PRV_Name2IPAddress(const char *name, IPAddr *ip_addrs, int max_addrs)
   req.op = OP_NAME2IPADDRESS;
   if (snprintf(req.data.name_to_ipaddress.name, sizeof (req.data.name_to_ipaddress.name),
                "%s", name) >= sizeof (req.data.name_to_ipaddress.name)) {
-    DEBUG_LOG("Name too long");
     return DNS_Failure;
   }
 
