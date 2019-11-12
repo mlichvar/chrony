@@ -255,6 +255,9 @@ check_pidfile(void)
   FILE *in;
   int pid, count;
   
+  if (!pidfile[0])
+    return;
+
   in = UTI_OpenFile(NULL, pidfile, NULL, 'r', 0);
   if (!in)
     return;
