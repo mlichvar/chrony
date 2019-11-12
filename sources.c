@@ -249,6 +249,7 @@ SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, int sel_optio
   result->index = n_sources;
   result->type = type;
   result->sel_options = sel_options;
+  result->active = 0;
 
   SRC_SetRefid(result, ref_id, addr);
   SRC_ResetInstance(result);
@@ -291,7 +292,6 @@ void SRC_DestroyInstance(SRC_Instance instance)
 void
 SRC_ResetInstance(SRC_Instance instance)
 {
-  instance->active = 0;
   instance->updates = 0;
   instance->reachability = 0;
   instance->reachability_size = 0;
