@@ -38,6 +38,7 @@
 
 /* Flags for receiving and sending messages */
 #define SCK_FLAG_MSG_ERRQUEUE 1
+#define SCK_FLAG_MSG_DESCRIPTOR 2
 
 /* Maximum number of received messages */
 #define SCK_MAX_RECV_MESSAGES 4
@@ -70,6 +71,8 @@ typedef struct {
     int l2_length;
     int tx_flags;
   } timestamp;
+
+  int descriptor;
 } SCK_Message;
 
 /* Initialisation function */

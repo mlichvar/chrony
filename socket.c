@@ -630,12 +630,15 @@ init_message_nonaddress(SCK_Message *message)
   message->timestamp.if_index = INVALID_IF_INDEX;
   message->timestamp.l2_length = 0;
   message->timestamp.tx_flags = 0;
+
+  message->descriptor = INVALID_SOCK_FD;
 }
 
 /* ================================================== */
 
 static int
-process_header(struct msghdr *msg, unsigned int msg_length, int sock_fd, SCK_Message *message)
+process_header(struct msghdr *msg, unsigned int msg_length, int sock_fd, int flags,
+               SCK_Message *message)
 {
   struct cmsghdr *cmsg;
 
@@ -773,6 +776,18 @@ process_header(struct msghdr *msg, unsigned int msg_length, int sock_fd, SCK_Mes
       }
     }
 #endif
+
+    if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS) {
+      if (!(flags & SCK_FLAG_MSG_DESCRIPTOR) || cmsg->cmsg_len != CMSG_LEN(sizeof (int))) {
+        unsigned int i;
+
+        DEBUG_LOG("Unexpected SCM_RIGHTS");
+        for (i = 0; CMSG_LEN((i + 1) * sizeof (int)) <= cmsg->cmsg_len; i++)
+          close(((int *)CMSG_DATA(cmsg))[i]);
+        return 0;
+      }
+      message->descriptor = *(int *)CMSG_DATA(cmsg);
+    }
   }
 
   return 1;
@@ -823,7 +838,7 @@ receive_messages(int sock_fd, SCK_Message *messages, int max_messages, int flags
 
   for (i = 0; i < n; i++) {
     hdr = ARR_GetElement(recv_headers, i);
-    if (!process_header(&hdr->msg_hdr, hdr->msg_len, sock_fd, &messages[i]))
+    if (!process_header(&hdr->msg_hdr, hdr->msg_len, sock_fd, flags, &messages[i]))
       return 0;
 
     log_message(sock_fd, 1, &messages[i],
@@ -875,8 +890,6 @@ send_message(int sock_fd, SCK_Message *message, int flags)
   socklen_t saddr_len;
   struct msghdr msg;
   struct iovec iov;
-
-  assert(flags == 0);
 
   switch (message->addr_type) {
     case SCK_ADDR_UNSPEC:
@@ -973,6 +986,16 @@ send_message(int sock_fd, SCK_Message *message, int flags)
     *ts_tx_flags = message->timestamp.tx_flags;
   }
 #endif
+
+  if (flags & SCK_FLAG_MSG_DESCRIPTOR) {
+    int *fd;
+
+    fd = add_control_message(&msg, SOL_SOCKET, SCM_RIGHTS, sizeof (*fd), sizeof (cmsg_buf));
+    if (!fd)
+      return 0;
+
+    *fd = message->descriptor;
+  }
 
   /* This is apparently required on some systems */
   if (msg.msg_controllen == 0)
