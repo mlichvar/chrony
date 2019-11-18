@@ -819,7 +819,7 @@ receive_messages(int sock_fd, SCK_Message *messages, int max_messages, int flags
   recv_flags = get_recv_flags(flags);
 
 #ifdef HAVE_RECVMMSG
-  ret = recvmmsg(sock_fd, hdr, n, recv_flags | MSG_DONTWAIT, NULL);
+  ret = recvmmsg(sock_fd, hdr, n, recv_flags, NULL);
   if (ret >= 0)
     n = ret;
 #else
