@@ -694,8 +694,9 @@ PRV_StartHelper(void)
     /* child process */
     close(sock_pair[0]);
 
-    /* close other descriptors inherited from the parent process */
-    for (fd = 0; fd < 1024; fd++) {
+    /* close other descriptors inherited from the parent process, except
+       stdin, stdout, and stderr */
+    for (fd = STDERR_FILENO + 1; fd < 1024; fd++) {
       if (fd != sock_pair[1])
         close(fd);
     }
