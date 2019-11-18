@@ -83,7 +83,7 @@ struct MessageHeader {
 static int initialised;
 
 /* Flags supported by socket() */
-static int socket_flags;
+static int supported_socket_flags;
 
 /* Arrays of Message and MessageHeader */
 static ARR_Instance recv_messages;
@@ -182,11 +182,50 @@ set_socket_nonblock(int sock_fd)
 /* ================================================== */
 
 static int
+get_open_flags(int flags)
+{
+  int r = supported_socket_flags;
+
+#ifdef SOCK_NONBLOCK
+  if (flags & SCK_FLAG_BLOCK)
+    r &= ~SOCK_NONBLOCK;
+#endif
+
+  return r;
+}
+
+/* ================================================== */
+
+static int
+set_socket_flags(int sock_fd, int flags)
+{
+  /* Close the socket automatically on exec */
+  if (
+#ifdef SOCK_CLOEXEC
+      (supported_socket_flags & SOCK_CLOEXEC) == 0 &&
+#endif
+      !UTI_FdSetCloexec(sock_fd))
+    return 0;
+
+  /* Enable non-blocking mode */
+  if ((flags & SCK_FLAG_BLOCK) == 0 &&
+#ifdef SOCK_NONBLOCK
+      (supported_socket_flags & SOCK_NONBLOCK) == 0 &&
+#endif
+      !set_socket_nonblock(sock_fd))
+    return 0;
+
+  return 1;
+}
+
+/* ================================================== */
+
+static int
 open_socket(int domain, int type, int flags)
 {
   int sock_fd;
 
-  sock_fd = socket(domain, type | socket_flags, 0);
+  sock_fd = socket(domain, type | get_open_flags(flags), 0);
 
   if (sock_fd < 0) {
     DEBUG_LOG("Could not open %s socket : %s",
@@ -194,22 +233,7 @@ open_socket(int domain, int type, int flags)
     return INVALID_SOCK_FD;
   }
 
-  /* Close the socket automatically on exec */
-  if (
-#ifdef SOCK_CLOEXEC
-      (socket_flags & SOCK_CLOEXEC) == 0 &&
-#endif
-      !UTI_FdSetCloexec(sock_fd)) {
-    close(sock_fd);
-    return INVALID_SOCK_FD;
-  }
-
-  /* Enable non-blocking mode */
-  if (
-#ifdef SOCK_NONBLOCK
-      (socket_flags & SOCK_NONBLOCK) == 0 &&
-#endif
-      !set_socket_nonblock(sock_fd)) {
+  if (!set_socket_flags(sock_fd, flags)) {
     close(sock_fd);
     return INVALID_SOCK_FD;
   }
@@ -1025,14 +1049,14 @@ SCK_Initialise(void)
 
   priv_bind_function = NULL;
 
-  socket_flags = 0;
+  supported_socket_flags = 0;
 #ifdef SOCK_CLOEXEC
   if (check_socket_flag(SOCK_CLOEXEC, FD_CLOEXEC, 0))
-    socket_flags |= SOCK_CLOEXEC;
+    supported_socket_flags |= SOCK_CLOEXEC;
 #endif
 #ifdef SOCK_NONBLOCK
   if (check_socket_flag(SOCK_NONBLOCK, 0, O_NONBLOCK))
-    socket_flags |= SOCK_NONBLOCK;
+    supported_socket_flags |= SOCK_NONBLOCK;
 #endif
 
   initialised = 1;
