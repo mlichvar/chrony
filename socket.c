@@ -244,6 +244,30 @@ open_socket(int domain, int type, int flags)
 /* ================================================== */
 
 static int
+open_socket_pair(int domain, int type, int flags, int *other_fd)
+{
+  int sock_fds[2];
+
+  if (socketpair(domain, type | get_open_flags(flags), 0, sock_fds) < 0) {
+    DEBUG_LOG("Could not open %s socket : %s",
+              domain_to_string(domain), strerror(errno));
+    return INVALID_SOCK_FD;
+  }
+
+  if (!set_socket_flags(sock_fds[0], flags) || !set_socket_flags(sock_fds[1], flags)) {
+    close(sock_fds[0]);
+    close(sock_fds[1]);
+    return INVALID_SOCK_FD;
+  }
+
+  *other_fd = sock_fds[1];
+
+  return sock_fds[0];
+}
+
+/* ================================================== */
+
+static int
 set_socket_options(int sock_fd, int flags)
 {
   /* Make the socket capable of sending broadcast packets if requested */
@@ -516,6 +540,22 @@ error:
   SCK_RemoveSocket(sock_fd);
   SCK_CloseSocket(sock_fd);
   return INVALID_SOCK_FD;
+}
+
+/* ================================================== */
+
+static int
+open_unix_socket_pair(int type, int flags, int *other_fd)
+{
+  int sock_fd;
+
+  sock_fd = open_socket_pair(AF_UNIX, type, flags, other_fd);
+  if (sock_fd < 0)
+    return INVALID_SOCK_FD;
+
+  DEBUG_LOG("Opened Unix socket pair fd1=%d fd2=%d", sock_fd, *other_fd);
+
+  return sock_fd;
 }
 
 /* ================================================== */
@@ -1155,6 +1195,25 @@ int
 SCK_OpenUnixStreamSocket(const char *remote_addr, const char *local_addr, int flags)
 {
   return open_unix_socket(remote_addr, local_addr, SOCK_STREAM, flags);
+}
+
+/* ================================================== */
+
+int
+SCK_OpenUnixSocketPair(int flags, int *other_fd)
+{
+  int sock_fd;
+
+  /* Prefer SEQPACKET sockets over DGRAM in order to receive a zero-length
+     message (end of file) when the other end is unexpectedly closed */
+  if (
+#ifdef SOCK_SEQPACKET
+      (sock_fd = open_unix_socket_pair(SOCK_SEQPACKET, flags, other_fd)) < 0 &&
+#endif
+      (sock_fd = open_unix_socket_pair(SOCK_DGRAM, flags, other_fd)) < 0)
+    return INVALID_SOCK_FD;
+
+  return sock_fd;
 }
 
 /* ================================================== */

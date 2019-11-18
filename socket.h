@@ -98,6 +98,7 @@ extern int SCK_OpenUnixDatagramSocket(const char *remote_addr, const char *local
                                       int flags);
 extern int SCK_OpenUnixStreamSocket(const char *remote_addr, const char *local_addr,
                                     int flags);
+extern int SCK_OpenUnixSocketPair(int flags, int *other_fd);
 
 /* Set and get a socket option of int size */
 extern int SCK_SetIntOption(int sock_fd, int level, int name, int value);
