@@ -159,7 +159,7 @@ res_fatal(PrvResponse *res, const char *fmt, ...)
 static int
 send_response(int fd, const PrvResponse *res)
 {
-  if (send(fd, res, sizeof (*res), 0) != sizeof (*res))
+  if (SCK_Send(fd, res, sizeof (*res), 0) != sizeof (*res))
     return 0;
 
   return 1;
@@ -171,37 +171,23 @@ send_response(int fd, const PrvResponse *res)
 static int
 receive_from_daemon(int fd, PrvRequest *req)
 {
-  struct msghdr msg;
-  struct cmsghdr *cmsg;
-  struct iovec iov;
-  char cmsgbuf[256];
+  SCK_Message message;
 
-  iov.iov_base = req;
-  iov.iov_len = sizeof (*req);
-
-  msg.msg_name = NULL;
-  msg.msg_namelen = 0;
-  msg.msg_iov = &iov;
-  msg.msg_iovlen = 1;
-  msg.msg_control = (void *)cmsgbuf;
-  msg.msg_controllen = sizeof (cmsgbuf);
-  msg.msg_flags = MSG_WAITALL;
-
-  /* read the data */
-  if (recvmsg(fd, &msg, 0) != sizeof (*req))
+  if (!SCK_ReceiveMessage(fd, &message, SCK_FLAG_MSG_DESCRIPTOR) ||
+      message.length != sizeof (*req))
     return 0;
 
+  memcpy(req, message.data, sizeof (*req));
+
   if (req->op == OP_BINDSOCKET) {
-    /* extract transferred descriptor */
-    req->data.bind_socket.sock = -1;
-    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-      if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
-        memcpy(&req->data.bind_socket.sock, CMSG_DATA(cmsg), sizeof (int));
-    }
+    req->data.bind_socket.sock = message.descriptor;
 
     /* return error if valid descriptor not found */
     if (req->data.bind_socket.sock < 0)
       return 0;
+  } else if (message.descriptor >= 0) {
+    SCK_CloseSocket(message.descriptor);
+    return 0;
   }
 
   return 1;
@@ -270,7 +256,7 @@ do_bind_socket(ReqBindSocket *req, PrvResponse *res)
   SCK_SockaddrToIPSockAddr(sa, sa_len, &ip_saddr);
   if (ip_saddr.port != 0 && ip_saddr.port != CNF_GetNTPPort() &&
       ip_saddr.port != CNF_GetAcquisitionPort()) {
-    close(sock_fd);
+    SCK_CloseSocket(sock_fd);
     res_fatal(res, "Invalid port %d", ip_saddr.port);
     return;
   }
@@ -280,7 +266,7 @@ do_bind_socket(ReqBindSocket *req, PrvResponse *res)
     res->res_errno = errno;
 
   /* sock is still open on daemon side, but we're done with it in the helper */
-  close(sock_fd);
+  SCK_CloseSocket(sock_fd);
 }
 #endif
 
@@ -374,7 +360,7 @@ helper_main(int fd)
     send_response(fd, &res);
   }
 
-  close(fd);
+  SCK_CloseSocket(fd);
   exit(0);
 }
 
@@ -387,7 +373,7 @@ receive_response(PrvResponse *res)
 {
   int resp_len;
 
-  resp_len = recv(helper_fd, res, sizeof (*res), 0);
+  resp_len = SCK_Receive(helper_fd, res, sizeof (*res), 0);
   if (resp_len < 0)
     LOG_FATAL("Could not read from helper : %s", strerror(errno));
   if (resp_len != sizeof (*res))
@@ -410,41 +396,22 @@ receive_response(PrvResponse *res)
 static void
 send_request(PrvRequest *req)
 {
-  struct msghdr msg;
-  struct iovec iov;
-  char cmsgbuf[256];
+  SCK_Message message;
+  int flags;
 
-  iov.iov_base = req;
-  iov.iov_len = sizeof (*req);
+  SCK_InitMessage(&message, SCK_ADDR_UNSPEC);
 
-  msg.msg_name = NULL;
-  msg.msg_namelen = 0;
-  msg.msg_iov = &iov;
-  msg.msg_iovlen = 1;
-  msg.msg_control = NULL;
-  msg.msg_controllen = 0;
-  msg.msg_flags = 0;
+  message.data = req;
+  message.length = sizeof (*req);
+  flags = 0;
 
   if (req->op == OP_BINDSOCKET) {
     /* send file descriptor as a control message */
-    struct cmsghdr *cmsg;
-    int *ptr_send_fd;
-
-    msg.msg_control = cmsgbuf;
-    msg.msg_controllen = CMSG_SPACE(sizeof (int));
-
-    cmsg = CMSG_FIRSTHDR(&msg);
-    memset(cmsg, 0, CMSG_SPACE(sizeof (int)));
-
-    cmsg->cmsg_level = SOL_SOCKET;
-    cmsg->cmsg_type = SCM_RIGHTS;
-    cmsg->cmsg_len = CMSG_LEN(sizeof (int));
-
-    ptr_send_fd = (int *)CMSG_DATA(cmsg);
-    *ptr_send_fd = req->data.bind_socket.sock;
+    message.descriptor = req->data.bind_socket.sock;
+    flags |= SCK_FLAG_MSG_DESCRIPTOR;
   }
 
-  if (sendmsg(helper_fd, &msg, 0) < 0) {
+  if (!SCK_SendMessage(helper_fd, &message, flags)) {
     /* don't try to send another request from exit() */
     helper_fd = -1;
     LOG_FATAL("Could not send to helper : %s", strerror(errno));
@@ -671,20 +638,12 @@ void
 PRV_StartHelper(void)
 {
   pid_t pid;
-  int fd, sock_pair[2];
+  int fd, sock_fd1, sock_fd2;
 
   if (have_helper())
     LOG_FATAL("Helper already running");
 
-  if (
-#ifdef SOCK_SEQPACKET
-      socketpair(AF_UNIX, SOCK_SEQPACKET, 0, sock_pair) &&
-#endif
-      socketpair(AF_UNIX, SOCK_DGRAM, 0, sock_pair))
-    LOG_FATAL("socketpair() failed : %s", strerror(errno));
-
-  UTI_FdSetCloexec(sock_pair[0]);
-  UTI_FdSetCloexec(sock_pair[1]);
+  sock_fd1 = SCK_OpenUnixSocketPair(SCK_FLAG_BLOCK, &sock_fd2);
 
   pid = fork();
   if (pid < 0)
@@ -692,24 +651,24 @@ PRV_StartHelper(void)
 
   if (pid == 0) {
     /* child process */
-    close(sock_pair[0]);
+    SCK_CloseSocket(sock_fd1);
 
     /* close other descriptors inherited from the parent process, except
        stdin, stdout, and stderr */
     for (fd = STDERR_FILENO + 1; fd < 1024; fd++) {
-      if (fd != sock_pair[1])
+      if (fd != sock_fd2)
         close(fd);
     }
 
     /* ignore signals, the process will exit on OP_QUIT request */
     UTI_SetQuitSignalsHandler(SIG_IGN, 1);
 
-    helper_main(sock_pair[1]);
+    helper_main(sock_fd2);
 
   } else {
     /* parent process */
-    close(sock_pair[1]);
-    helper_fd = sock_pair[0];
+    SCK_CloseSocket(sock_fd2);
+    helper_fd = sock_fd1;
     helper_pid = pid;
 
     /* stop the helper even when not exiting cleanly from the main function */
