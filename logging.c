@@ -214,7 +214,8 @@ LOG_OpenSystemLog(void)
 
 void LOG_SetMinSeverity(LOG_Severity severity)
 {
-  log_min_severity = CLAMP(LOGS_DEBUG, severity, LOGS_FATAL);
+  /* Don't print any debug messages in a non-debug build */
+  log_min_severity = CLAMP(DEBUG > 0 ? LOGS_DEBUG : LOGS_INFO, severity, LOGS_FATAL);
 }
 
 /* ================================================== */

@@ -3208,7 +3208,9 @@ main(int argc, char **argv)
         csv_mode = 1;
         break;
       case 'd':
+#if DEBUG > 0
         log_min_severity = LOGS_DEBUG;
+#endif
         break;
       case 'h':
         hostnames = optarg;
