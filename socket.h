@@ -114,7 +114,7 @@ extern int SCK_ShutdownConnection(int sock_fd);
 
 /* Receive and send data on connected sockets - recv()/send() wrappers */
 extern int SCK_Receive(int sock_fd, void *buffer, unsigned int length, int flags);
-extern int SCK_Send(int sock_fd, void *buffer, unsigned int length, int flags);
+extern int SCK_Send(int sock_fd, const void *buffer, unsigned int length, int flags);
 
 /* Receive a single message or multiple messages.  The functions return the
    number of received messages, or 0 on error.  The returned data point to

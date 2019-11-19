@@ -1336,7 +1336,7 @@ SCK_Receive(int sock_fd, void *buffer, unsigned int length, int flags)
 /* ================================================== */
 
 int
-SCK_Send(int sock_fd, void *buffer, unsigned int length, int flags)
+SCK_Send(int sock_fd, const void *buffer, unsigned int length, int flags)
 {
   int r;
 
