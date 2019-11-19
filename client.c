@@ -88,6 +88,9 @@ void LOG_Message(LOG_Severity severity,
 {
   va_list ap;
 
+  if (severity < log_min_severity)
+    return;
+
   va_start(ap, format);
   vfprintf(stderr, format, ap);
   putc('\n', stderr);
