@@ -82,6 +82,9 @@ extern SCH_TimeoutID SCH_AddTimeoutInClass(double min_delay, double separation, 
 /* The next one probably ought to return a status code */
 extern void SCH_RemoveTimeout(SCH_TimeoutID);
 
+/* Remove all timeouts and close all file descriptors */
+extern void SCH_Reset(void);
+
 extern void SCH_MainLoop(void);
 
 extern void SCH_QuitProgram(void);
