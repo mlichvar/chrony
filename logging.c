@@ -42,7 +42,7 @@ LOG_Severity log_min_severity = LOGS_INFO;
 /* Flag indicating we have initialised */
 static int initialised = 0;
 
-static FILE *file_log;
+static FILE *file_log = NULL;
 static int system_log = 0;
 
 static int parent_fd = 0;
@@ -68,7 +68,7 @@ void
 LOG_Initialise(void)
 {
   initialised = 1;
-  file_log = stderr;
+  LOG_OpenFileLog(NULL);
 }
 
 /* ================================================== */
