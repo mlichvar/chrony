@@ -114,10 +114,10 @@ void SYS_DropRoot(uid_t uid, gid_t gid)
 
 /* ================================================== */
 
-void SYS_EnableSystemCallFilter(int level)
+void SYS_EnableSystemCallFilter(int level, SYS_SystemCallContext context)
 {
 #if defined(LINUX) && defined(FEAT_SCFILTER)
-  SYS_Linux_EnableSystemCallFilter(level);
+  SYS_Linux_EnableSystemCallFilter(level, context);
 #else
   LOG_FATAL("system call filter not supported");
 #endif

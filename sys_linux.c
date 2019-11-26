@@ -474,7 +474,7 @@ void check_seccomp_applicability(void)
 /* ================================================== */
 
 void
-SYS_Linux_EnableSystemCallFilter(int level)
+SYS_Linux_EnableSystemCallFilter(int level, SYS_SystemCallContext context)
 {
   const int syscalls[] = {
     /* Clock */

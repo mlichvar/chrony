@@ -596,7 +596,7 @@ int main
   CAM_OpenUnixSocket();
 
   if (scfilter_level)
-    SYS_EnableSystemCallFilter(scfilter_level);
+    SYS_EnableSystemCallFilter(scfilter_level, SYS_MAIN_PROCESS);
 
   if (ref_mode == REF_ModeNormal && CNF_GetInitSources() > 0) {
     ref_mode = REF_ModeInitStepSlew;
