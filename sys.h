@@ -40,6 +40,7 @@ extern void SYS_DropRoot(uid_t uid, gid_t gid);
 
 typedef enum {
   SYS_MAIN_PROCESS,
+  SYS_NTSKE_HELPER,
 } SYS_SystemCallContext;
 
 /* Enable a system call filter to allow only system calls

@@ -559,14 +559,16 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_SystemCallContext context)
   scmp_filter_ctx *ctx;
   int i;
 
-  /* Check if the chronyd configuration is supported */
-  check_seccomp_applicability();
+  if (context == SYS_MAIN_PROCESS) {
+    /* Check if the chronyd configuration is supported */
+    check_seccomp_applicability();
 
-  /* Start the helper process, which will run without any seccomp filter.  It
-     will be used for getaddrinfo(), for which it's difficult to maintain a
-     list of required system calls (with glibc it depends on what NSS modules
-     are installed and enabled on the system). */
-  PRV_StartHelper();
+    /* Start the helper process, which will run without any seccomp filter.  It
+       will be used for getaddrinfo(), for which it's difficult to maintain a
+       list of required system calls (with glibc it depends on what NSS modules
+       are installed and enabled on the system). */
+    PRV_StartHelper();
+  }
 
   ctx = seccomp_init(level > 0 ? SCMP_ACT_KILL : SCMP_ACT_TRAP);
   if (ctx == NULL)
@@ -578,42 +580,44 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_SystemCallContext context)
       goto add_failed;
   }
 
-  /* Allow sockets to be created only in selected domains */
-  for (i = 0; i < sizeof (socket_domains) / sizeof (*socket_domains); i++) {
-    if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(socket), 1,
-                         SCMP_A0(SCMP_CMP_EQ, socket_domains[i])) < 0)
-      goto add_failed;
-  }
+  if (context == SYS_MAIN_PROCESS) {
+    /* Allow opening sockets in selected domains */
+    for (i = 0; i < sizeof (socket_domains) / sizeof (*socket_domains); i++) {
+      if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(socket), 1,
+                           SCMP_A0(SCMP_CMP_EQ, socket_domains[i])) < 0)
+        goto add_failed;
+    }
 
-  /* Allow setting only selected sockets options */
-  for (i = 0; i < sizeof (socket_options) / sizeof (*socket_options); i++) {
-    if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setsockopt), 3,
-                         SCMP_A1(SCMP_CMP_EQ, socket_options[i][0]),
-                         SCMP_A2(SCMP_CMP_EQ, socket_options[i][1]),
-                         SCMP_A4(SCMP_CMP_LE, sizeof (int))) < 0)
-      goto add_failed;
-  }
+    /* Allow selected socket options */
+    for (i = 0; i < sizeof (socket_options) / sizeof (*socket_options); i++) {
+      if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setsockopt), 3,
+                           SCMP_A1(SCMP_CMP_EQ, socket_options[i][0]),
+                           SCMP_A2(SCMP_CMP_EQ, socket_options[i][1]),
+                           SCMP_A4(SCMP_CMP_LE, sizeof (int))) < 0)
+        goto add_failed;
+    }
 
-  /* Allow only selected fcntl calls */
-  for (i = 0; i < sizeof (fcntls) / sizeof (*fcntls); i++) {
-    if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fcntl), 1,
-                         SCMP_A1(SCMP_CMP_EQ, fcntls[i])) < 0 ||
-        seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fcntl64), 1,
-                         SCMP_A1(SCMP_CMP_EQ, fcntls[i])) < 0)
-      goto add_failed;
-  }
+    /* Allow selected fcntl calls */
+    for (i = 0; i < sizeof (fcntls) / sizeof (*fcntls); i++) {
+      if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fcntl), 1,
+                           SCMP_A1(SCMP_CMP_EQ, fcntls[i])) < 0 ||
+          seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fcntl64), 1,
+                           SCMP_A1(SCMP_CMP_EQ, fcntls[i])) < 0)
+        goto add_failed;
+    }
 
-  /* Allow only selected ioctls */
-  for (i = 0; i < sizeof (ioctls) / sizeof (*ioctls); i++) {
-    if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 1,
-                         SCMP_A1(SCMP_CMP_EQ, ioctls[i])) < 0)
-      goto add_failed;
+    /* Allow selected ioctls */
+    for (i = 0; i < sizeof (ioctls) / sizeof (*ioctls); i++) {
+      if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 1,
+                           SCMP_A1(SCMP_CMP_EQ, ioctls[i])) < 0)
+        goto add_failed;
+    }
   }
 
   if (seccomp_load(ctx) < 0)
     LOG_FATAL("Failed to load seccomp rules");
 
-  LOG(LOGS_INFO, "Loaded seccomp filter");
+  LOG(context == SYS_MAIN_PROCESS ? LOGS_INFO : LOGS_DEBUG, "Loaded seccomp filter");
   seccomp_release(ctx);
   return;
 
