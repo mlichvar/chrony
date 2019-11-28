@@ -2238,7 +2238,7 @@ actually connected to the Internet.
 === Isolated networks
 
 This section shows how to configure *chronyd* for computers that never have
-network conectivity to any computer which ultimately derives its time from a
+network connectivity to any computer which ultimately derives its time from a
 reference clock.
 
 In this situation, one computer is selected to be the master timeserver. The
