@@ -101,7 +101,8 @@
 #define REQ_ADD_PEER3 61
 #define REQ_SHUTDOWN 62
 #define REQ_ONOFFLINE 63
-#define N_REQUEST_TYPES 64
+#define REQ_ADD_SOURCE 64
+#define N_REQUEST_TYPES 65
 
 /* Structure used to exchange timespecs independent of time_t size */
 typedef struct {
@@ -245,6 +246,10 @@ typedef struct {
   int32_t EOR;
 } REQ_Ac_Check;
 
+/* Source types in NTP source requests */
+#define REQ_ADDSRC_SERVER 1
+#define REQ_ADDSRC_PEER 2
+
 /* Flags used in NTP source requests */
 #define REQ_ADDSRC_ONLINE 0x1
 #define REQ_ADDSRC_AUTOOFFLINE 0x2
@@ -257,6 +262,7 @@ typedef struct {
 #define REQ_ADDSRC_BURST 0x100
 
 typedef struct {
+  uint32_t type;
   IPAddr ip_addr;
   uint32_t port;
   int32_t minpoll;

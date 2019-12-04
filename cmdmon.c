@@ -132,6 +132,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* ADD_PEER3 */
   PERMIT_AUTH, /* SHUTDOWN */
   PERMIT_AUTH, /* ONOFFLINE */
+  PERMIT_AUTH, /* ADD_SOURCE */
 };
 
 /* ================================================== */
@@ -675,12 +676,25 @@ handle_cmdaccheck(CMD_Request *rx_message, CMD_Reply *tx_message)
 /* ================================================== */
 
 static void
-handle_add_source(NTP_Source_Type type, CMD_Request *rx_message, CMD_Reply *tx_message)
+handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   NTP_Remote_Address rem_addr;
+  NTP_Source_Type type;
   SourceParameters params;
   NSR_Status status;
   
+  switch (ntohl(rx_message->data.ntp_source.type)) {
+    case REQ_ADDSRC_SERVER:
+      type = NTP_SERVER;
+      break;
+    case REQ_ADDSRC_PEER:
+      type = NTP_PEER;
+      break;
+    default:
+      tx_message->status = htons(STT_INVALID);
+      return;
+  }
+
   UTI_IPNetworkToHost(&rx_message->data.ntp_source.ip_addr, &rem_addr.ip_addr);
   rem_addr.port = (unsigned short)(ntohl(rx_message->data.ntp_source.port));
   params.minpoll = ntohl(rx_message->data.ntp_source.minpoll);
@@ -1426,12 +1440,8 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
           handle_cmdaccheck(&rx_message, &tx_message);
           break;
 
-        case REQ_ADD_SERVER3:
-          handle_add_source(NTP_SERVER, &rx_message, &tx_message);
-          break;
-
-        case REQ_ADD_PEER3:
-          handle_add_source(NTP_PEER, &rx_message, &tx_message);
+        case REQ_ADD_SOURCE:
+          handle_add_source(&rx_message, &tx_message);
           break;
 
         case REQ_DEL_SOURCE:

@@ -116,10 +116,11 @@ static const struct request_length request_lengths[] = {
   REQ_LENGTH_ENTRY(ntp_data, ntp_data),         /* NTP_DATA */
   { 0, 0 },                                     /* ADD_SERVER2 */
   { 0, 0 },                                     /* ADD_PEER2 */
-  REQ_LENGTH_ENTRY(ntp_source, null),           /* ADD_SERVER3 */
-  REQ_LENGTH_ENTRY(ntp_source, null),           /* ADD_PEER3 */
+  { 0, 0 },                                     /* ADD_SERVER3 */
+  { 0, 0 },                                     /* ADD_PEER3 */
   REQ_LENGTH_ENTRY(null, null),                 /* SHUTDOWN */
   REQ_LENGTH_ENTRY(null, null),                 /* ONOFFLINE */
+  REQ_LENGTH_ENTRY(ntp_source, null),           /* ADD_SOURCE */
 };
 
 static const uint16_t reply_lengths[] = {

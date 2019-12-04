@@ -1053,13 +1053,27 @@ process_cmd_doffset(CMD_Request *msg, char *line)
 /* ================================================== */
 
 static int
-process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
+process_cmd_add_source(CMD_Request *msg, char *line)
 {
   CPS_NTP_Source data;
   IPAddr ip_addr;
-  int result = 0, status;
-  const char *opt_name;
+  int result = 0, status, type;
+  const char *opt_name, *word;
   
+  msg->command = htons(REQ_ADD_SOURCE);
+
+  word = line;
+  line = CPS_SplitWord(line);
+
+  if (!strcmp(word, "server")) {
+    type = REQ_ADDSRC_SERVER;
+  } else if (!strcmp(word, "peer")) {
+    type = REQ_ADDSRC_PEER;
+  } else {
+    LOG(LOGS_ERR, "Invalid syntax for add command");
+    return 0;
+  }
+
   status = CPS_ParseNTPSourceAdd(line, &data);
   switch (status) {
     case 0:
@@ -1077,6 +1091,7 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
         break;
       }
 
+      msg->data.ntp_source.type = htonl(type);
       msg->data.ntp_source.port = htonl((unsigned long) data.port);
       UTI_IPHostToNetwork(&ip_addr, &msg->data.ntp_source.ip_addr);
       msg->data.ntp_source.minpoll = htonl(data.params.minpoll);
@@ -1115,24 +1130,6 @@ process_cmd_add_server_or_peer(CMD_Request *msg, char *line)
   }
 
   return result;
-}
-
-/* ================================================== */
-
-static int
-process_cmd_add_server(CMD_Request *msg, char *line)
-{
-  msg->command = htons(REQ_ADD_SERVER3);
-  return process_cmd_add_server_or_peer(msg, line);
-}
-
-/* ================================================== */
-
-static int
-process_cmd_add_peer(CMD_Request *msg, char *line)
-{
-  msg->command = htons(REQ_ADD_PEER3);
-  return process_cmd_add_server_or_peer(msg, line);
 }
 
 /* ================================================== */
@@ -2927,10 +2924,8 @@ process_line(char *line)
   } else if (!strcmp(command, "activity")) {
     do_normal_submit = 0;
     ret = process_cmd_activity(line);
-  } else if (!strcmp(command, "add") && !strncmp(line, "peer", 4)) {
-    do_normal_submit = process_cmd_add_peer(&tx_message, CPS_SplitWord(line));
-  } else if (!strcmp(command, "add") && !strncmp(line, "server", 6)) {
-    do_normal_submit = process_cmd_add_server(&tx_message, CPS_SplitWord(line));
+  } else if (!strcmp(command, "add")) {
+    do_normal_submit = process_cmd_add_source(&tx_message, line);
   } else if (!strcmp(command, "allow")) {
     if (!strncmp(line, "all", 3)) {
       do_normal_submit = process_cmd_allowall(&tx_message, CPS_SplitWord(line));
