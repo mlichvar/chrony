@@ -1080,7 +1080,10 @@ process_cmd_add_source(CMD_Request *msg, char *line)
       LOG(LOGS_ERR, "Invalid syntax for add command");
       break;
     default:
-      if (DNS_Name2IPAddress(data.name, &ip_addr, 1) != DNS_Success) {
+      /* Verify that the address is resolvable (chronyc and chronyd are
+         assumed to be running on the same host) */
+      if (strlen(data.name) >= sizeof (msg->data.ntp_source.name) ||
+          DNS_Name2IPAddress(data.name, &ip_addr, 1) != DNS_Success) {
         LOG(LOGS_ERR, "Invalid host/IP address");
         break;
       }
@@ -1092,8 +1095,11 @@ process_cmd_add_source(CMD_Request *msg, char *line)
       }
 
       msg->data.ntp_source.type = htonl(type);
+      if (strlen(data.name) >= sizeof (msg->data.ntp_source.name))
+        assert(0);
+      strncpy((char *)msg->data.ntp_source.name, data.name,
+              sizeof (msg->data.ntp_source.name));
       msg->data.ntp_source.port = htonl((unsigned long) data.port);
-      UTI_IPHostToNetwork(&ip_addr, &msg->data.ntp_source.ip_addr);
       msg->data.ntp_source.minpoll = htonl(data.params.minpoll);
       msg->data.ntp_source.maxpoll = htonl(data.params.maxpoll);
       msg->data.ntp_source.presend_minpoll = htonl(data.params.presend_minpoll);
@@ -1186,8 +1192,8 @@ give_help(void)
     "NTP sources:\0\0"
     "activity\0Check how many NTP sources are online/offline\0"
     "ntpdata [<address>]\0Display information about last valid measurement\0"
-    "add server <address> [options]\0Add new NTP server\0"
-    "add peer <address> [options]\0Add new NTP peer\0"
+    "add server <name> [options]\0Add new NTP server\0"
+    "add peer <name> [options]\0Add new NTP peer\0"
     "delete <address>\0Remove server or peer\0"
     "burst <n-good>/<n-max> [<mask>/<address>]\0Start rapid set of measurements\0"
     "maxdelay <address> <delay>\0Modify maximum valid sample delay\0"
@@ -1578,6 +1584,9 @@ request_reply(CMD_Request *request, CMD_Reply *reply, int requested_reply, int v
         break;
       case STT_INACTIVE:
         printf("519 Client logging is not active in the daemon");
+        break;
+      case STT_INVALIDNAME:
+        printf("521 Invalid name");
         break;
       default:
         printf("520 Got unexpected error from daemon");

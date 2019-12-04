@@ -526,7 +526,7 @@ The number of all packets received from the source.
 *Total valid RX*:::
 The number of valid packets received from the source.
 
-[[add_peer]]*add peer* _address_ [_option_]...::
+[[add_peer]]*add peer* _name_ [_option_]...::
 The *add peer* command allows a new NTP peer to be added whilst
 *chronyd* is running.
 +
@@ -540,7 +540,7 @@ An example of using this command is shown below.
 add peer foo.example.net minpoll 6 maxpoll 10 key 25
 ----
 
-[[add_server]]*add server* _address_ [_option_]...::
+[[add_server]]*add server* _name_ [_option_]...::
 The *add server* command allows a new NTP server to be added whilst
 *chronyd* is running.
 +

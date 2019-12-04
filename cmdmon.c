@@ -678,10 +678,11 @@ handle_cmdaccheck(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  NTP_Remote_Address rem_addr;
   NTP_Source_Type type;
   SourceParameters params;
   NSR_Status status;
+  char *name;
+  int port;
   
   switch (ntohl(rx_message->data.ntp_source.type)) {
     case REQ_ADDSRC_SERVER:
@@ -695,8 +696,15 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
       return;
   }
 
-  UTI_IPNetworkToHost(&rx_message->data.ntp_source.ip_addr, &rem_addr.ip_addr);
-  rem_addr.port = (unsigned short)(ntohl(rx_message->data.ntp_source.port));
+  name = (char *)rx_message->data.ntp_source.name;
+
+  /* Make sure the name is terminated */
+  if (name[sizeof (rx_message->data.ntp_source.name) - 1] != '\0') {
+      tx_message->status = htons(STT_INVALIDNAME);
+      return;
+  }
+
+  port = (unsigned short)(ntohl(rx_message->data.ntp_source.port));
   params.minpoll = ntohl(rx_message->data.ntp_source.minpoll);
   params.maxpoll = ntohl(rx_message->data.ntp_source.maxpoll);
   params.presend_minpoll = ntohl(rx_message->data.ntp_source.presend_minpoll);
@@ -729,9 +737,13 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_TRUST ? SRC_SELECT_TRUST : 0) |
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_REQUIRE ? SRC_SELECT_REQUIRE : 0);
 
-  status = NSR_AddSource(&rem_addr, type, &params);
+  status = NSR_AddSourceByName(name, port, 0, type, &params);
   switch (status) {
     case NSR_Success:
+      break;
+    case NSR_UnresolvedName:
+      /* Try to resolve the name now */
+      NSR_ResolveSources();
       break;
     case NSR_AlreadyInUse:
       tx_message->status = htons(STT_SOURCEALREADYKNOWN);
@@ -739,12 +751,11 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
     case NSR_TooManySources:
       tx_message->status = htons(STT_TOOMANYSOURCES);
       break;
-    case NSR_InvalidAF:
-      tx_message->status = htons(STT_INVALIDAF);
-      break;
-    case NSR_NoSuchSource:
     case NSR_InvalidName:
-    case NSR_UnresolvedName:
+      tx_message->status = htons(STT_INVALIDNAME);
+      break;
+    case NSR_InvalidAF:
+    case NSR_NoSuchSource:
       assert(0);
       break;
   }

@@ -263,7 +263,7 @@ typedef struct {
 
 typedef struct {
   uint32_t type;
-  IPAddr ip_addr;
+  int8_t name[256];
   uint32_t port;
   int32_t minpoll;
   int32_t maxpoll;
@@ -503,6 +503,7 @@ typedef struct {
 #define STT_INVALIDAF 17
 #define STT_BADPKTVERSION 18
 #define STT_BADPKTLENGTH 19
+#define STT_INVALIDNAME 21
 
 typedef struct {
   int32_t EOR;
