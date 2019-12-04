@@ -249,6 +249,7 @@ typedef struct {
 /* Source types in NTP source requests */
 #define REQ_ADDSRC_SERVER 1
 #define REQ_ADDSRC_PEER 2
+#define REQ_ADDSRC_POOL 3
 
 /* Flags used in NTP source requests */
 #define REQ_ADDSRC_ONLINE 0x1

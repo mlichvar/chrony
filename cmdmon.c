@@ -682,14 +682,20 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
   SourceParameters params;
   NSR_Status status;
   char *name;
-  int port;
+  int pool, port;
   
   switch (ntohl(rx_message->data.ntp_source.type)) {
     case REQ_ADDSRC_SERVER:
       type = NTP_SERVER;
+      pool = 0;
       break;
     case REQ_ADDSRC_PEER:
       type = NTP_PEER;
+      pool = 0;
+      break;
+    case REQ_ADDSRC_POOL:
+      type = NTP_SERVER;
+      pool = 1;
       break;
     default:
       tx_message->status = htons(STT_INVALID);
@@ -737,7 +743,7 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_TRUST ? SRC_SELECT_TRUST : 0) |
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_REQUIRE ? SRC_SELECT_REQUIRE : 0);
 
-  status = NSR_AddSourceByName(name, port, 0, type, &params);
+  status = NSR_AddSourceByName(name, port, pool, type, &params);
   switch (status) {
     case NSR_Success:
       break;

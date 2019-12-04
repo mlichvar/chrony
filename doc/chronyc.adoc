@@ -540,6 +540,20 @@ An example of using this command is shown below.
 add peer foo.example.net minpoll 6 maxpoll 10 key 25
 ----
 
+[[add_pool]]*add pool* _name_ [_option_]...::
+The *add pool* command allows a pool of NTP servers to be added whilst
+*chronyd* is running.
++
+Following the words *add pool*, the syntax of the following parameters and
+options is identical to that for the <<chrony.conf.adoc#pool,*pool*>>
+directive in the configuration file.
++
+An example of using this command is shown below:
++
+----
+add pool foo.example.net maxsources 3 iburst
+----
+
 [[add_server]]*add server* _name_ [_option_]...::
 The *add server* command allows a new NTP server to be added whilst
 *chronyd* is running.

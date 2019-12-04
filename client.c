@@ -1069,6 +1069,8 @@ process_cmd_add_source(CMD_Request *msg, char *line)
     type = REQ_ADDSRC_SERVER;
   } else if (!strcmp(word, "peer")) {
     type = REQ_ADDSRC_PEER;
+  } else if (!strcmp(word, "pool")) {
+    type = REQ_ADDSRC_POOL;
   } else {
     LOG(LOGS_ERR, "Invalid syntax for add command");
     return 0;
@@ -1193,6 +1195,7 @@ give_help(void)
     "activity\0Check how many NTP sources are online/offline\0"
     "ntpdata [<address>]\0Display information about last valid measurement\0"
     "add server <name> [options]\0Add new NTP server\0"
+    "add pool <name> [options]\0Add new pool of NTP servers\0"
     "add peer <name> [options]\0Add new NTP peer\0"
     "delete <address>\0Remove server or peer\0"
     "burst <n-good>/<n-max> [<mask>/<address>]\0Start rapid set of measurements\0"
