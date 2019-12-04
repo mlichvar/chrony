@@ -531,10 +531,8 @@ The *add peer* command allows a new NTP peer to be added whilst
 *chronyd* is running.
 +
 Following the words *add peer*, the syntax of the following
-parameters and options is similar to that for the
+parameters and options is identical to that for the
 <<chrony.conf.adoc#peer,*peer*>> directive in the configuration file.
-The following peer options can be set in the command: *port*, *minpoll*,
-*maxpoll*, *presend*, *maxdelayratio*, *maxdelay*, *key*.
 +
 An example of using this command is shown below.
 +
@@ -547,10 +545,8 @@ The *add server* command allows a new NTP server to be added whilst
 *chronyd* is running.
 +
 Following the words *add server*, the syntax of the following parameters and
-options is similar to that for the <<chrony.conf.adoc#server,*server*>>
+options is identical to that for the <<chrony.conf.adoc#server,*server*>>
 directive in the configuration file.
-The following server options can be set in the command: *port*, *minpoll*,
-*maxpoll*, *presend*, *maxdelayratio*, *maxdelay*, *key*.
 +
 An example of using this command is shown below:
 +
