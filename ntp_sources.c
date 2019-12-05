@@ -782,6 +782,29 @@ NSR_GetLocalRefid(IPAddr *address)
 
 /* ================================================== */
 
+char *
+NSR_GetName(IPAddr *address)
+{
+  NTP_Remote_Address remote_addr;
+  int slot, found;
+  SourceRecord *record;
+
+  remote_addr.ip_addr = *address;
+  remote_addr.port = 0;
+
+  find_slot(&remote_addr, &slot, &found);
+  if (!found)
+    return NULL;
+
+  record = get_record(slot);
+  if (record->name)
+    return record->name;
+
+  return UTI_IPToString(&record->remote_addr->ip_addr); 
+}
+
+/* ================================================== */
+
 /* This routine is called by ntp_io when a new packet arrives off the network,
    possibly with an authentication tail */
 void

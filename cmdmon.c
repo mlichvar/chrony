@@ -133,6 +133,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* SHUTDOWN */
   PERMIT_AUTH, /* ONOFFLINE */
   PERMIT_AUTH, /* ADD_SOURCE */
+  PERMIT_OPEN, /* NTP_SOURCE_NAME */
 };
 
 /* ================================================== */
@@ -1189,6 +1190,33 @@ handle_shutdown(CMD_Request *rx_message, CMD_Reply *tx_message)
 }
 
 /* ================================================== */
+
+static void
+handle_ntp_source_name(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  IPAddr addr;
+  char *name;
+
+  UTI_IPNetworkToHost(&rx_message->data.ntp_data.ip_addr, &addr);
+  name = NSR_GetName(&addr);
+
+  if (!name) {
+    tx_message->status = htons(STT_NOSUCHSOURCE);
+    return;
+  }
+
+  tx_message->reply = htons(RPY_NTP_SOURCE_NAME);
+
+  /* Avoid compiler warning */
+  if (strlen(name) >= sizeof (tx_message->data.ntp_source_name.name))
+    memcpy(tx_message->data.ntp_source_name.name, name,
+           sizeof (tx_message->data.ntp_source_name.name));
+  else
+    strncpy((char *)tx_message->data.ntp_source_name.name, name,
+            sizeof (tx_message->data.ntp_source_name.name));
+}
+
+/* ================================================== */
 /* Read a packet and process it */
 
 static void
@@ -1559,6 +1587,10 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
         case REQ_ONOFFLINE:
           handle_onoffline(&rx_message, &tx_message);
+          break;
+
+        case REQ_NTP_SOURCE_NAME:
+          handle_ntp_source_name(&rx_message, &tx_message);
           break;
 
         default:

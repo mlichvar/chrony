@@ -102,7 +102,8 @@
 #define REQ_SHUTDOWN 62
 #define REQ_ONOFFLINE 63
 #define REQ_ADD_SOURCE 64
-#define N_REQUEST_TYPES 65
+#define REQ_NTP_SOURCE_NAME 65
+#define N_REQUEST_TYPES 66
 
 /* Structure used to exchange timespecs independent of time_t size */
 typedef struct {
@@ -342,6 +343,11 @@ typedef struct {
   int32_t EOR;
 } REQ_NTPData;
 
+typedef struct {
+  IPAddr ip_addr;
+  int32_t EOR;
+} REQ_NTPSourceName;
+
 /* ================================================== */
 
 #define PKT_TYPE_CMD_REQUEST 1
@@ -444,6 +450,7 @@ typedef struct {
     REQ_ReselectDistance reselect_distance;
     REQ_SmoothTime smoothtime;
     REQ_NTPData ntp_data;
+    REQ_NTPData ntp_source_name;
   } data; /* Command specific parameters */
 
   /* Padding used to prevent traffic amplification.  It only defines the
@@ -480,7 +487,8 @@ typedef struct {
 #define RPY_NTP_DATA 16
 #define RPY_MANUAL_TIMESTAMP2 17
 #define RPY_MANUAL_LIST2 18
-#define N_REPLY_TYPES 19
+#define RPY_NTP_SOURCE_NAME 19
+#define N_REPLY_TYPES 20
 
 /* Status codes */
 #define STT_SUCCESS 0
@@ -697,6 +705,11 @@ typedef struct {
 } RPY_NTPData;
 
 typedef struct {
+  int8_t name[256];
+  int32_t EOR;
+} RPY_NTPSourceName;
+
+typedef struct {
   uint8_t version;
   uint8_t pkt_type;
   uint8_t res1;
@@ -725,6 +738,7 @@ typedef struct {
     RPY_Activity activity;
     RPY_Smoothing smoothing;
     RPY_NTPData ntp_data;
+    RPY_NTPSourceName ntp_source_name;
   } data; /* Reply specific parameters */
 
 } CMD_Reply;

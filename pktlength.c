@@ -121,6 +121,8 @@ static const struct request_length request_lengths[] = {
   REQ_LENGTH_ENTRY(null, null),                 /* SHUTDOWN */
   REQ_LENGTH_ENTRY(null, null),                 /* ONOFFLINE */
   REQ_LENGTH_ENTRY(ntp_source, null),           /* ADD_SOURCE */
+  REQ_LENGTH_ENTRY(ntp_source_name,
+                   ntp_source_name),            /* NTP_SOURCE_NAME */
 };
 
 static const uint16_t reply_lengths[] = {
@@ -143,6 +145,7 @@ static const uint16_t reply_lengths[] = {
   RPY_LENGTH_ENTRY(ntp_data),                   /* NTP_DATA */
   RPY_LENGTH_ENTRY(manual_timestamp),           /* MANUAL_TIMESTAMP2 */
   RPY_LENGTH_ENTRY(manual_list),                /* MANUAL_LIST2 */
+  RPY_LENGTH_ENTRY(ntp_source_name),            /* NTP_SOURCE_NAME */
 };
 
 /* ================================================== */
