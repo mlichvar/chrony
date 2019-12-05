@@ -1213,6 +1213,7 @@ give_help(void)
     "\0according to network configuration\0"
     "polltarget <address> <target>\0Modify poll target\0"
     "refresh\0Refresh IP addresses\0"
+    "sourcename <address>\0Display original name\0"
     "\0\0"
     "Manual time input:\0\0"
     "manual off|on|reset\0Disable/enable/reset settime command\0"
@@ -2077,6 +2078,27 @@ check_for_verbose_flag(char *line)
   if (!csv_mode && !strcmp(line, "-v"))
     return 1;
   return 0;
+}
+
+/* ================================================== */
+
+static int
+process_cmd_sourcename(char *line)
+{
+  IPAddr ip_addr;
+  char name[256];
+
+  if (!UTI_StringToIP(line, &ip_addr)) {
+    LOG(LOGS_ERR, "Could not read address");
+    return 0;
+  }
+
+  if (!get_source_name(&ip_addr, name, sizeof (name)))
+    return 0;
+
+  print_report("%s\n", name, REPORT_END);
+
+  return 1;
 }
 
 /* ================================================== */
@@ -3093,6 +3115,9 @@ process_line(char *line)
     ret = process_cmd_smoothing(line);
   } else if (!strcmp(command, "smoothtime")) {
     do_normal_submit = process_cmd_smoothtime(&tx_message, line);
+  } else if (!strcmp(command, "sourcename")) {
+    do_normal_submit = 0;
+    ret = process_cmd_sourcename(line);
   } else if (!strcmp(command, "sources")) {
     do_normal_submit = 0;
     ret = process_cmd_sources(line);

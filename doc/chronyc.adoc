@@ -761,6 +761,15 @@ Sources that stop responding will be replaced with newly resolved addresses
 automatically after 8 polling intervals, but this command can still be useful
 to replace them immediately and not wait until they are marked as unreachable.
 
+[[sourcename]]*sourcename* _address_::
+The *sourcename* command prints the original hostname or address that was
+specified for an NTP source in the configuration file, or the *add* command.
+This command is an alternative to the *-N* option, which can be useful in
+scripts.
++
+Note that different NTP sources can share the same name, e.g. servers from a
+pool.
+
 === Manual time input
 
 [[manual]]
