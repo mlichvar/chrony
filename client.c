@@ -72,6 +72,8 @@ static int on_terminal = 0;
 
 static int no_dns = 0;
 
+static int source_names = 0;
+
 static int csv_mode = 0;
 
 /* ================================================== */
@@ -2022,12 +2024,40 @@ print_info_field(const char *format, ...)
 
 /* ================================================== */
 
+static int
+get_source_name(IPAddr *ip_addr, char *buf, int size)
+{
+  CMD_Request request;
+  CMD_Reply reply;
+  int i;
+
+  request.command = htons(REQ_NTP_SOURCE_NAME);
+  UTI_IPHostToNetwork(ip_addr, &request.data.ntp_source_name.ip_addr);
+  if (!request_reply(&request, &reply, RPY_NTP_SOURCE_NAME, 0) ||
+      reply.data.ntp_source_name.name[sizeof (reply.data.ntp_source_name.name) - 1] != '\0' ||
+      snprintf(buf, size, "%s", reply.data.ntp_source_name.name) >= size)
+    return 0;
+
+  /* Make sure the name is printable */
+  for (i = 0; i < size && buf[i] != '\0'; i++) {
+    if (!isgraph(buf[i]))
+      return 0;
+  }
+
+  return 1;
+}
+
+/* ================================================== */
+
 static void
 format_name(char *buf, int size, int trunc_dns, int ref, uint32_t ref_id,
-            IPAddr *ip_addr)
+            int source, IPAddr *ip_addr)
 {
   if (ref) {
     snprintf(buf, size, "%s", UTI_RefidToString(ref_id));
+  } else if (source && source_names) {
+    if (!get_source_name(ip_addr, buf, size))
+      snprintf(buf, size, "?");
   } else if (no_dns || csv_mode) {
     snprintf(buf, size, "%s", UTI_IPToString(ip_addr));
   } else {
@@ -2058,7 +2088,7 @@ process_cmd_sources(char *line)
   CMD_Reply reply;
   IPAddr ip_addr;
   uint32_t i, mode, n_sources;
-  char name[50], mode_ch, state_ch;
+  char name[256], mode_ch, state_ch;
   int verbose;
 
   /* Check whether to output verbose headers */
@@ -2097,7 +2127,7 @@ process_cmd_sources(char *line)
     UTI_IPNetworkToHost(&reply.data.source_data.ip_addr, &ip_addr);
     format_name(name, sizeof (name), 25,
                 mode == RPY_SD_MD_REF && ip_addr.family == IPADDR_INET4,
-                ip_addr.addr.in4, &ip_addr);
+                ip_addr.addr.in4, 1, &ip_addr);
 
     switch (mode) {
       case RPY_SD_MD_CLIENT:
@@ -2165,7 +2195,7 @@ process_cmd_sourcestats(char *line)
   CMD_Reply reply;
   uint32_t i, n_sources;
   int verbose = 0;
-  char name[50];
+  char name[256];
   IPAddr ip_addr;
 
   verbose = check_for_verbose_flag(line);
@@ -2201,7 +2231,7 @@ process_cmd_sourcestats(char *line)
 
     UTI_IPNetworkToHost(&reply.data.sourcestats.ip_addr, &ip_addr);
     format_name(name, sizeof (name), 25, ip_addr.family == IPADDR_UNSPEC,
-                ntohl(reply.data.sourcestats.ref_id), &ip_addr);
+                ntohl(reply.data.sourcestats.ref_id), 1, &ip_addr);
 
     print_report("%-25s %3U %3U  %I %+P %P  %+S  %S\n",
                  name,
@@ -2227,7 +2257,7 @@ process_cmd_tracking(char *line)
   CMD_Reply reply;
   IPAddr ip_addr;
   uint32_t ref_id;
-  char name[50];
+  char name[256];
   struct timespec ref_time;
   
   request.command = htons(REQ_TRACKING);
@@ -2238,7 +2268,7 @@ process_cmd_tracking(char *line)
 
   UTI_IPNetworkToHost(&reply.data.tracking.ip_addr, &ip_addr);
   format_name(name, sizeof (name), sizeof (name),
-              ip_addr.family == IPADDR_UNSPEC, ref_id, &ip_addr);
+              ip_addr.family == IPADDR_UNSPEC, ref_id, 1, &ip_addr);
 
   UTI_TimespecNetworkToHost(&reply.data.tracking.ref_time, &ref_time);
 
@@ -2534,7 +2564,7 @@ process_cmd_clients(char *line)
       if (ip.family == IPADDR_UNSPEC)
         continue;
 
-      format_name(name, sizeof (name), 25, 0, 0, &ip);
+      format_name(name, sizeof (name), 25, 0, 0, 0, &ip);
 
       print_report("%-25s  %6U  %5U  %C  %C  %I  %6U  %5U  %C  %I\n",
                    name,
@@ -3164,7 +3194,7 @@ display_gpl(void)
 static void
 print_help(const char *progname)
 {
-      printf("Usage: %s [-h HOST] [-p PORT] [-n] [-c] [-d] [-4|-6] [-m] [COMMAND]\n",
+      printf("Usage: %s [-h HOST] [-p PORT] [-n] [-N] [-c] [-d] [-4|-6] [-m] [COMMAND]\n",
              progname);
 }
 
@@ -3201,7 +3231,7 @@ main(int argc, char **argv)
   optind = 1;
 
   /* Parse short command-line options */
-  while ((opt = getopt(argc, argv, "+46acdf:h:mnp:v")) != -1) {
+  while ((opt = getopt(argc, argv, "+46acdf:h:mnNp:v")) != -1) {
     switch (opt) {
       case '4':
       case '6':
@@ -3227,6 +3257,9 @@ main(int argc, char **argv)
         break;
       case 'n':
         no_dns = 1;
+        break;
+      case 'N':
+        source_names = 1;
         break;
       case 'p':
         port = atoi(optarg);
