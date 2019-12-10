@@ -505,6 +505,17 @@ switch_interrupts(int on_off)
 int
 RTC_Linux_Initialise(void)
 {
+  /* Try to open the device */
+  fd = open(CNF_GetRtcDevice(), O_RDWR);
+  if (fd < 0) {
+    LOG(LOGS_ERR, "Could not open RTC device %s : %s",
+        CNF_GetRtcDevice(), strerror(errno));
+    return 0;
+  }
+
+  /* Close on exec */
+  UTI_FdSetCloexec(fd);
+
   rtc_sec = MallocArray(time_t, MAX_SAMPLES);
   rtc_trim = MallocArray(double, MAX_SAMPLES);
   system_times = MallocArray(struct timespec, MAX_SAMPLES);
@@ -514,18 +525,6 @@ RTC_Linux_Initialise(void)
 
   /* In case it didn't get done by pre-init */
   coefs_file_name = CNF_GetRtcFile();
-
-  /* Try to open device */
-
-  fd = open (CNF_GetRtcDevice(), O_RDWR);
-  if (fd < 0) {
-    LOG(LOGS_ERR, "Could not open RTC device %s : %s",
-        CNF_GetRtcDevice(), strerror(errno));
-    return 0;
-  }
-
-  /* Close on exec */
-  UTI_FdSetCloexec(fd);
 
   n_samples = 0;
   n_samples_since_regression = 0;

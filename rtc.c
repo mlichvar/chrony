@@ -160,7 +160,7 @@ RTC_Initialise(int initial_set)
 void
 RTC_Finalise(void)
 {
-  if (driver.fini) {
+  if (driver_initialised) {
     (driver.fini)();
   }
 }
