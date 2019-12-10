@@ -313,11 +313,8 @@ check_chronyd_message_count() {
 check_chronyd_files() {
 	test_message 1 0 "checking chronyd files"
 
-	grep -q " $server .* 111 111 1111 " "$TEST_LOGDIR/measurements.log" && \
-		grep -q " $server " "$TEST_LOGDIR/statistics.log" && \
-		grep -q " $server " "$TEST_LOGDIR/tracking.log" && \
+	grep -q " $server .* 111 111 1110 " "$TEST_LOGDIR/measurements.log" && \
 		[ -f "$TEST_LOGDIR/tempcomp.log" ] && [ "$(wc -l < "$TEST_LOGDIR/tempcomp.log")" -ge 2 ] && \
-		[ -f "$TEST_RUNDIR/$server.dat" ] && [ "$(wc -l < "$TEST_RUNDIR/$server.dat")" -ge 5 ] && \
 		test_ok || test_bad
 }
 
