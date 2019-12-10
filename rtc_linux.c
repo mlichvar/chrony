@@ -566,6 +566,7 @@ RTC_Linux_Finalise(void)
   /* Remove input file handler */
   if (fd >= 0) {
     SCH_RemoveFileHandler(fd);
+    switch_interrupts(0);
     close(fd);
 
     /* Save the RTC data */
