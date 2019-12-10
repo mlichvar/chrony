@@ -482,6 +482,20 @@ write_coefs_to_file(int valid,time_t ref_time,double offset,double rate)
   return RTC_ST_OK;
 }
 
+/* ================================================== */
+
+static void
+switch_interrupts(int on_off)
+{
+  if (ioctl(fd, on_off ? RTC_UIE_ON : RTC_UIE_OFF, 0) < 0) {
+    LOG(LOGS_ERR, "Could not %s RTC interrupt : %s",
+        on_off ? "enable" : "disable", strerror(errno));
+    return;
+  }
+
+  if (on_off)
+    skip_interrupts = 1;
+}
 
 /* ================================================== */
 /* file_name is the name of the file where we save the RTC params
@@ -555,29 +569,6 @@ RTC_Linux_Finalise(void)
   Free(rtc_trim);
   Free(system_times);
 }
-
-/* ================================================== */
-
-static void
-switch_interrupts(int onoff)
-{
-  int status;
-
-  if (onoff) {
-    status = ioctl(fd, RTC_UIE_ON, 0);
-    if (status < 0) {
-      LOG(LOGS_ERR, "Could not %s RTC interrupt : %s", "enable", strerror(errno));
-      return;
-    }
-    skip_interrupts = 1;
-  } else {
-    status = ioctl(fd, RTC_UIE_OFF, 0);
-    if (status < 0) {
-      LOG(LOGS_ERR, "Could not %s RTC interrupt : %s", "disable", strerror(errno));
-      return;
-    }
-  }
-}    
 
 /* ================================================== */
 
