@@ -516,7 +516,7 @@ RTC_Linux_Initialise(void)
   }
 
   /* Make sure the RTC supports interrupts */
-  if (!switch_interrupts(0)) {
+  if (!switch_interrupts(1) || !switch_interrupts(0)) {
     close(fd);
     return 0;
   }
