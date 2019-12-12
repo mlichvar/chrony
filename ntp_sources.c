@@ -505,19 +505,25 @@ NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParam
 
 /* ================================================== */
 
-void
+NSR_Status
 NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type, SourceParameters *params)
 {
   struct UnresolvedSource *us;
   struct SourcePool *sp;
   NTP_Remote_Address remote_addr;
+  int i;
 
   /* If the name is an IP address, don't bother with full resolving now
      or later when trying to replace the source */
   if (UTI_StringToIP(name, &remote_addr.ip_addr)) {
     remote_addr.port = port;
-    NSR_AddSource(&remote_addr, type, params);
-    return;
+    return NSR_AddSource(&remote_addr, type, params);
+  }
+
+  /* Make sure the name is at least printable and has no spaces */
+  for (i = 0; name[i] != '\0'; i++) {
+    if (!isgraph(name[i]))
+      return NSR_InvalidName;
   }
 
   us = MallocNew(struct UnresolvedSource);
@@ -540,6 +546,8 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type, Source
   }
 
   append_unresolved_source(us);
+
+  return NSR_UnresolvedName;
 }
 
 /* ================================================== */

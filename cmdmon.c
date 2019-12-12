@@ -729,6 +729,8 @@ handle_add_source(NTP_Source_Type type, CMD_Request *rx_message, CMD_Reply *tx_m
       tx_message->status = htons(STT_INVALIDAF);
       break;
     case NSR_NoSuchSource:
+    case NSR_InvalidName:
+    case NSR_UnresolvedName:
       assert(0);
       break;
   }
@@ -755,6 +757,8 @@ handle_del_source(CMD_Request *rx_message, CMD_Reply *tx_message)
     case NSR_TooManySources:
     case NSR_AlreadyInUse:
     case NSR_InvalidAF:
+    case NSR_InvalidName:
+    case NSR_UnresolvedName:
       assert(0);
       break;
   }
