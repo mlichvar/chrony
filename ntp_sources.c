@@ -329,6 +329,7 @@ replace_source(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr)
   int slot1, slot2, found;
   SourceRecord *record;
   struct SourcePool *pool;
+  char *name;
 
   find_slot(old_addr, &slot1, &found);
   if (!found)
@@ -351,12 +352,13 @@ replace_source(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr)
     }
   }
 
+  name = record->name;
+
   /* The hash table must be rebuilt for the new address */
   rehash_records();
 
-  LOG(LOGS_INFO, "Source %s replaced with %s",
-      UTI_IPToString(&old_addr->ip_addr),
-      UTI_IPToString(&new_addr->ip_addr));
+  LOG(LOGS_INFO, "Source %s replaced with %s (%s)", UTI_IPToString(&old_addr->ip_addr),
+      UTI_IPToString(&new_addr->ip_addr), name ? name : "");
 
   return NSR_Success;
 }
