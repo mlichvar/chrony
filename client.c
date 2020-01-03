@@ -1298,11 +1298,11 @@ command_name_generator(const char *text, int state)
     "maxupdateskew", "minpoll", "minstratum", "ntpdata", "offline", "online", "onoffline",
     "polltarget", "quit", "refresh", "rekey", "reselect", "reselectdist",
     "retries", "rtcdata", "serverstats", "settime", "shutdown", "smoothing",
-    "smoothtime", "sources", "sourcestats",
+    "smoothtime", "sourcename", "sources", "sourcestats",
     "timeout", "tracking", "trimrtc", "waitsync", "writertc",
     NULL
   };
-  const char *add_options[] = { "peer", "server", NULL };
+  const char *add_options[] = { "peer", "pool", "server", NULL };
   const char *manual_options[] = { "on", "off", "delete", "list", "reset", NULL };
   const char *sources_options[] = { "-v", NULL };
   const char *sourcestats_options[] = { "-v", NULL };
