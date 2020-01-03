@@ -82,6 +82,9 @@ extern void SCK_Initialise(void);
 /* Finalisation function */
 extern void SCK_Finalise(void);
 
+/* Check if support for the IP family was enabled in the build */
+extern int SCK_IsFamilySupported(int family);
+
 /* Get the 0.0.0.0/::0 or 127.0.0.1/::1 address */
 extern void SCK_GetAnyLocalIPAddress(int family, IPAddr *local_addr);
 extern void SCK_GetLoopbackIPAddress(int family, IPAddr *local_addr);

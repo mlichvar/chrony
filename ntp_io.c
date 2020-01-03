@@ -86,6 +86,9 @@ open_socket(int family, int local_port, int client_only, IPSockAddr *remote_addr
   int sock_fd, sock_flags, events = SCH_FILE_INPUT;
   IPSockAddr local_addr;
 
+  if (!SCK_IsFamilySupported(family))
+    return INVALID_SOCK_FD;
+
   if (!client_only)
     CNF_GetBindAddress(family, &local_addr.ip_addr);
   else

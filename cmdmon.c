@@ -159,7 +159,7 @@ open_socket(int family)
     case IPADDR_INET4:
     case IPADDR_INET6:
       port = CNF_GetCommandPort();
-      if (port == 0)
+      if (port == 0 || !SCK_IsFamilySupported(family))
         return INVALID_SOCK_FD;
 
       CNF_GetBindCommandAddress(family, &local_addr.ip_addr);

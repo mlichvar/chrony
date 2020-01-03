@@ -1115,6 +1115,23 @@ SCK_Finalise(void)
 
 /* ================================================== */
 
+int
+SCK_IsFamilySupported(int family)
+{
+  switch (family) {
+    case IPADDR_INET4:
+      return 1;
+    case IPADDR_INET6:
+#ifdef FEAT_IPV6
+      return 1;
+#endif
+    default:
+      return 0;
+  }
+}
+
+/* ================================================== */
+
 void
 SCK_GetAnyLocalIPAddress(int family, IPAddr *local_addr)
 {
