@@ -222,6 +222,12 @@ NSR_RefreshAddresses(void)
 {
 }
 
+char *
+NSR_GetName(IPAddr *address)
+{
+  return NULL;
+}
+
 void
 NSR_SetSourceResolvingEndHandler(NSR_SourceResolvingEndHandler handler)
 {
