@@ -14,7 +14,7 @@ fi
 if [ "$ID" = "fedora" ]; then
   echo Checking test dependencies:
   rpm -q {valgrind,gcc,clang}.x86_64 {libgcc,clang-libs}.{x86_64,i686} || exit 1
-  rpm -q {libseccomp,nettle,nss-softokn-freebl,libtomcrypt}-devel.{x86_64,i686} || exit 1
+  rpm -q {libseccomp,nettle,nss-softokn-freebl,libtomcrypt,gnutls}-devel.{x86_64,i686} || exit 1
   echo
 fi
 
@@ -34,6 +34,7 @@ for CC in gcc clang; do
     for extra_config_opts in \
       "--all-privops" \
       "--disable-scfilter" \
+      "--without-gnutls" \
       "--without-nettle" \
       "--without-nettle --without-nss" \
       "--without-nettle --without-nss --without-tomcrypt"; \

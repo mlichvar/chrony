@@ -18,6 +18,7 @@ for opts in \
 	"--disable-sechash" \
 	"--disable-cmdmon" \
 	"--disable-ntp" \
+	"--disable-nts" \
 	"--disable-refclock" \
 	"--disable-timestamping" \
 	"--disable-timestamping --disable-ntp" \
