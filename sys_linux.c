@@ -493,8 +493,8 @@ SYS_Linux_EnableSystemCallFilter(int level)
     SCMP_SYS(chown32), SCMP_SYS(faccessat), SCMP_SYS(fchmodat), SCMP_SYS(fchownat),
     SCMP_SYS(fstat), SCMP_SYS(fstat64), SCMP_SYS(getdents), SCMP_SYS(getdents64),
     SCMP_SYS(lseek), SCMP_SYS(newfstatat), SCMP_SYS(rename), SCMP_SYS(renameat),
-    SCMP_SYS(stat), SCMP_SYS(stat64), SCMP_SYS(statfs), SCMP_SYS(statfs64),
-    SCMP_SYS(unlink), SCMP_SYS(unlinkat),
+    SCMP_SYS(renameat2), SCMP_SYS(stat), SCMP_SYS(stat64), SCMP_SYS(statfs),
+    SCMP_SYS(statfs64), SCMP_SYS(unlink), SCMP_SYS(unlinkat),
     /* Socket */
     SCMP_SYS(accept), SCMP_SYS(bind), SCMP_SYS(connect), SCMP_SYS(getsockname),
     SCMP_SYS(getsockopt), SCMP_SYS(recv), SCMP_SYS(recvfrom),
