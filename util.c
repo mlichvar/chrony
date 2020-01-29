@@ -1218,13 +1218,19 @@ int
 UTI_RemoveFile(const char *basedir, const char *name, const char *suffix)
 {
   char path[PATH_MAX];
+  struct stat buf;
 
   if (!join_path(basedir, name, suffix, path, sizeof (path), LOGS_ERR))
     return 0;
 
+  /* Avoid logging an error message if the file is not accessible */
+  if (stat(path, &buf) < 0) {
+    DEBUG_LOG("Could not remove %s : %s", path, strerror(errno));
+    return 0;
+  }
+
   if (unlink(path) < 0) {
-    LOG(errno != ENOENT ? LOGS_ERR : LOGS_DEBUG,
-        "Could not remove %s : %s", path, strerror(errno));
+    LOG(LOGS_ERR, "Could not remove %s : %s", path, strerror(errno));
     return 0;
   }
 
