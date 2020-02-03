@@ -356,9 +356,9 @@ test_unit(void)
                                      inst1->tx_count < MAX_CLIENT_INTERLEAVED_TX);
       authenticated = random() % 2;
       valid = (!interleaved || (source.params.interleaved && has_updated)) &&
-              (!source.params.authkey || authenticated);
+              ((source.params.authkey == INACTIVE_AUTHKEY) == !authenticated);
       updated = (valid || inst1->mode == MODE_ACTIVE) &&
-                (!source.params.authkey || authenticated);
+                ((source.params.authkey == INACTIVE_AUTHKEY) == !authenticated);
       has_updated = has_updated || updated;
       if (inst1->mode == MODE_CLIENT)
         updated = 0;

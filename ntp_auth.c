@@ -401,11 +401,6 @@ NAU_GenerateResponseAuth(NTP_Packet *request, NTP_PacketInfo *request_info,
 int
 NAU_CheckResponseAuth(NAU_Instance instance, NTP_Packet *response, NTP_PacketInfo *info)
 {
-  /* If we don't expect the packet to be authenticated, ignore any
-     authentication data in the packet */
-  if (instance->mode == NTP_AUTH_NONE)
-    return 1;
-
   /* The authentication must match the expected mode */
   if (info->auth.mode != instance->mode)
     return 0;
