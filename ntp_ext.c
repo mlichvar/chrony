@@ -21,7 +21,7 @@
 
   =======================================================================
 
-  Functions for working with NTP extension fields
+  Functions for adding and parsing NTPv4 extension fields
   */
 
 #include "config.h"
@@ -34,6 +34,91 @@ struct ExtFieldHeader {
   uint16_t type;
   uint16_t length;
 };
+
+/* ================================================== */
+
+static int
+format_field(unsigned char *buffer, int buffer_length, int start,
+             int type, int body_length, int *length, void **body)
+{
+  struct ExtFieldHeader *header;
+
+  if (buffer_length < 0 || start < 0 || buffer_length <= start ||
+      buffer_length - start < sizeof (*header) || start % 4 != 0)
+    return 0;
+
+  header = (struct ExtFieldHeader *)(buffer + start);
+
+  if (body_length < 0 || sizeof (*header) + body_length > 0xffff ||
+      start + sizeof (*header) + body_length > buffer_length || body_length % 4 != 0)
+    return 0;
+
+  header->type = htons(type);
+  header->length = htons(sizeof (*header) + body_length);
+  *length = sizeof (*header) + body_length;
+  *body = header + 1;
+
+  return 1;
+}
+
+/* ================================================== */
+
+int
+NEF_SetField(unsigned char *buffer, int buffer_length, int start,
+             int type, void *body, int body_length, int *length)
+{
+  void *ef_body;
+
+  if (!format_field(buffer, buffer_length, start, type, body_length, length, &ef_body))
+    return 0;
+
+  memcpy(ef_body, body, body_length);
+
+  return 1;
+}
+
+/* ================================================== */
+
+int
+NEF_AddBlankField(NTP_Packet *packet, NTP_PacketInfo *info, int type, int body_length, void **body)
+{
+  int ef_length, length = info->length;
+
+  if (length < NTP_HEADER_LENGTH || length >= sizeof (*packet) || length % 4 != 0)
+    return 0;
+
+  /* Only NTPv4 packets can have extension fields */
+  if (info->version != 4)
+    return 0;
+
+  if (!format_field((unsigned char *)packet, sizeof (*packet), length,
+                    type, body_length, &ef_length, body))
+    return 0;
+
+  if (ef_length < NTP_MIN_EF_LENGTH)
+    return 0;
+
+  info->length += ef_length;
+  info->ext_fields++;
+
+  return 1;
+}
+
+/* ================================================== */
+
+int
+NEF_AddField(NTP_Packet *packet, NTP_PacketInfo *info,
+             int type, void *body, int body_length)
+{
+  void *ef_body;
+
+  if (!NEF_AddBlankField(packet, info, type, body_length, &ef_body))
+    return 0;
+
+  memcpy(ef_body, body, body_length);
+
+  return 1;
+}
 
 /* ================================================== */
 
