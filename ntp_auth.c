@@ -282,19 +282,20 @@ NAU_ParsePacket(NTP_Packet *packet, NTP_PacketInfo *info)
   /* Parse the rest of the NTPv4 packet */
 
   while (remainder > 0) {
-    /* Check if the remaining data is a valid MAC.  There is a limit on MAC
-       length in NTPv4 packets to allow deterministic parsing of extension
-       fields (RFC 7822), but we need to support longer MACs to not break
-       compatibility with older chrony clients.  This needs to be done before
-       trying to parse the data as an extension field. */
+    /* Check if the remaining data is a MAC */
+    if (remainder >= NTP_MIN_MAC_LENGTH && remainder <= NTP_MAX_V4_MAC_LENGTH)
+      break;
 
-    if (remainder >= NTP_MIN_MAC_LENGTH && remainder <= NTP_MAX_MAC_LENGTH) {
-      info->auth.mac.key_id = ntohl(*(uint32_t *)(data + parsed));
-      if (remainder <= NTP_MAX_V4_MAC_LENGTH ||
-          KEY_CheckAuth(info->auth.mac.key_id, data, parsed, (void *)(data + parsed + 4),
-                        remainder - 4, NTP_MAX_MAC_LENGTH - 4))
-        break;
-    }
+    /* The NTPv4-specific limit for MAC length enables deterministic parsing of
+       packets with extension fields (RFC 7822), but we support longer MACs in
+       packets with no extension fields for compatibility with older chrony
+       clients.  Check if the longer MAC would authenticate the packet before
+       trying to parse the data as an extension field. */
+    if (parsed == NTP_HEADER_LENGTH &&
+        remainder > NTP_MAX_V4_MAC_LENGTH && remainder <= NTP_MAX_MAC_LENGTH &&
+        KEY_CheckAuth(ntohl(*(uint32_t *)(data + parsed)), data, parsed,
+                      (void *)(data + parsed + 4), remainder - 4, NTP_MAX_MAC_LENGTH - 4))
+      break;
 
     /* Check if this is a valid NTPv4 extension field and skip it */
     if (!NEF_ParseField(packet, info->length, parsed, &ef_length, &ef_type, NULL, NULL)) {
