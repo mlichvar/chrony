@@ -40,6 +40,8 @@
 #include "ntp_io.h"
 #include "ntp_sources.h"
 #include "ntp_signd.h"
+#include "nts_ke_client.h"
+#include "nts_ke_server.h"
 #include "privops.h"
 #include "refclock.h"
 #include "sched.h"
@@ -447,3 +449,27 @@ CMC_DestroyInstance(CMC_Instance inst)
 }
 
 #endif /* !HAVE_CMAC */
+
+#ifndef FEAT_NTS
+
+void
+NKC_Initialise(void)
+{
+}
+
+void
+NKC_Finalise(void)
+{
+}
+
+void
+NKS_Initialise(int scfilter_level)
+{
+}
+
+void
+NKS_Finalise(void)
+{
+}
+
+#endif /* !FEAT_NTS */

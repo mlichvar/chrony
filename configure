@@ -89,6 +89,8 @@ For better control, use the options below.
   --without-nettle       Don't use nettle even if it is available
   --without-nss          Don't use NSS even if it is available
   --without-tomcrypt     Don't use libtomcrypt even if it is available
+  --disable-nts          Disable NTS support
+  --without-gnutls       Don't use gnutls even if it is available
   --disable-cmdmon       Disable command and monitoring support
   --disable-ntp          Disable NTP support
   --disable-refclock     Disable reference clock support
@@ -203,6 +205,8 @@ feat_sechash=1
 try_nettle=1
 try_nss=1
 try_tomcrypt=1
+feat_nts=1
+try_gnutls=1
 feat_rtc=1
 try_rtc=0
 feat_droproot=1
@@ -372,6 +376,12 @@ do
     ;;
     --without-tomcrypt )
       try_tomcrypt=0
+    ;;
+    --disable-nts )
+      feat_nts=0
+    ;;
+    --without-gnutls )
+      try_gnutls=0
     ;;
     --host-system=* )
       OPERATINGSYSTEM=`echo $option | sed -e 's/^.*=//;'`
@@ -920,18 +930,28 @@ EXTRA_OBJECTS="$EXTRA_OBJECTS $HASH_OBJ"
 EXTRA_CLI_OBJECTS="$EXTRA_CLI_OBJECTS $HASH_OBJ"
 LIBS="$LIBS $HASH_LINK"
 
-if true && \
+if [ $feat_ntp = "1" ] && [ $feat_nts = "1" ] && [ $try_gnutls = "1" ] && \
     echo "$HASH_LINK" | grep 'nettle' > /dev/null; then
-
+  test_cflags="`pkg_config --cflags gnutls`"
+  test_link="`pkg_config --libs gnutls`"
+  if test_code 'gnutls' 'gnutls/gnutls.h' \
+    "$test_cflags" "$test_link" \
+    'gnutls_init(NULL, 0);'
+  then
+    EXTRA_OBJECTS="$EXTRA_OBJECTS nts_ke_client.o nts_ke_server.o nts_ke_session.o"
     EXTRA_OBJECTS="$EXTRA_OBJECTS siv_nettle.o"
-    add_def HAVE_SIV
+    LIBS="$LIBS $test_link"
+    MYCPPFLAGS="$MYCPPFLAGS $test_cflags"
+    add_def FEAT_NTS
 
+    add_def HAVE_SIV
     if test_code 'SIV in nettle' \
       'nettle/siv-cmac.h' "" "$LIBS" \
       'siv_cmac_aes128_set_key(NULL, NULL);'
     then
       add_def HAVE_NETTLE_SIV_CMAC
     fi
+  fi
 fi
 
 if [ $use_pthread = "1" ]; then
@@ -1003,7 +1023,7 @@ add_def MAIL_PROGRAM "\"$mail_program\""
 
 common_features="`get_features SECHASH IPV6 DEBUG`"
 chronyc_features="`get_features READLINE`"
-chronyd_features="`get_features CMDMON NTP REFCLOCK RTC PRIVDROP SCFILTER SIGND ASYNCDNS`"
+chronyd_features="`get_features CMDMON NTP REFCLOCK RTC PRIVDROP SCFILTER SIGND ASYNCDNS NTS`"
 add_def CHRONYC_FEATURES "\"$chronyc_features $common_features\""
 add_def CHRONYD_FEATURES "\"$chronyd_features $common_features\""
 echo "Features : $chronyd_features $chronyc_features $common_features"

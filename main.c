@@ -38,6 +38,8 @@
 #include "ntp_signd.h"
 #include "ntp_sources.h"
 #include "ntp_core.h"
+#include "nts_ke_client.h"
+#include "nts_ke_server.h"
 #include "socket.h"
 #include "sources.h"
 #include "sourcestats.h"
@@ -113,6 +115,8 @@ MAI_CleanupAndExit(void)
   TMC_Finalise();
   MNL_Finalise();
   CLG_Finalise();
+  NKC_Finalise();
+  NKS_Finalise();
   NSD_Finalise();
   NSR_Finalise();
   SST_Finalise();
@@ -583,6 +587,8 @@ int main
   SST_Initialise();
   NSR_Initialise();
   NSD_Initialise();
+  NKS_Initialise(scfilter_level);
+  NKC_Initialise();
   CLG_Initialise();
   MNL_Initialise();
   TMC_Initialise();

@@ -223,6 +223,19 @@ static char *leapsec_tz = NULL;
 /* Name of the user to which will be dropped root privileges. */
 static char *user;
 
+/* NTS cache dir, certificates, private key, and port */
+static char *nts_cachedir = NULL;
+static char *nts_server_cert_file = NULL;
+static char *nts_server_key_file = NULL;
+static int nts_server_port = 11443;
+static int nts_server_processes = 1;
+static int nts_server_connections = 100;
+static int nts_rotate = 604800; /* 1 week */
+static char *nts_trusted_cert_file = NULL;
+
+/* Flag disabling use of system trusted certificates */
+static int no_system_cert = 0;
+
 /* Array of CNF_HwTsInterface */
 static ARR_Instance hwts_interfaces;
 
@@ -390,6 +403,10 @@ CNF_Finalise(void)
   Free(mail_user_on_change);
   Free(tempcomp_sensor_file);
   Free(tempcomp_point_file);
+  Free(nts_cachedir);
+  Free(nts_server_cert_file);
+  Free(nts_server_key_file);
+  Free(nts_trusted_cert_file);
 }
 
 /* ================================================== */
@@ -513,6 +530,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_double(p, &max_drift);
   } else if (!strcasecmp(command, "maxjitter")) {
     parse_double(p, &max_jitter);
+  } else if (!strcasecmp(command, "maxntsconnections")) {
+    parse_int(p, &nts_server_connections);
   } else if (!strcasecmp(command, "maxsamples")) {
     parse_int(p, &max_samples);
   } else if (!strcasecmp(command, "maxslewrate")) {
@@ -525,8 +544,24 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_int(p, &min_sources);
   } else if (!strcasecmp(command, "noclientlog")) {
     no_client_log = parse_null(p);
+  } else if (!strcasecmp(command, "nosystemcert")) {
+    no_system_cert = parse_null(p);
   } else if (!strcasecmp(command, "ntpsigndsocket")) {
     parse_string(p, &ntp_signd_socket);
+  } else if (!strcasecmp(command, "ntstrustedcerts")) {
+    parse_string(p, &nts_trusted_cert_file);
+  } else if (!strcasecmp(command, "ntscachedir")) {
+    parse_string(p, &nts_cachedir);
+  } else if (!strcasecmp(command, "ntsport")) {
+    parse_int(p, &nts_server_port);
+  } else if (!strcasecmp(command, "ntsprocesses")) {
+    parse_int(p, &nts_server_processes);
+  } else if (!strcasecmp(command, "ntsrotate")) {
+    parse_int(p, &nts_rotate);
+  } else if (!strcasecmp(command, "ntsservercert")) {
+    parse_string(p, &nts_server_cert_file);
+  } else if (!strcasecmp(command, "ntsserverkey")) {
+    parse_string(p, &nts_server_key_file);
   } else if (!strcasecmp(command, "peer")) {
     parse_source(p, NTP_PEER, 0);
   } else if (!strcasecmp(command, "pidfile")) {
@@ -2026,4 +2061,76 @@ CNF_GetHwTsInterface(unsigned int index, CNF_HwTsInterface **iface)
 
   *iface = (CNF_HwTsInterface *)ARR_GetElement(hwts_interfaces, index);
   return 1;
+}
+
+/* ================================================== */
+
+char *
+CNF_GetNtsCacheDir(void)
+{
+  return nts_cachedir;
+}
+
+/* ================================================== */
+
+char *
+CNF_GetNtsServerCertFile(void)
+{
+  return nts_server_cert_file;
+}
+
+/* ================================================== */
+
+char *
+CNF_GetNtsServerKeyFile(void)
+{
+  return nts_server_key_file;
+}
+
+/* ================================================== */
+
+int
+CNF_GetNtsServerPort(void)
+{
+  return nts_server_port;
+}
+
+/* ================================================== */
+
+int
+CNF_GetNtsServerProcesses(void)
+{
+  return nts_server_processes;
+}
+
+/* ================================================== */
+
+int
+CNF_GetNtsServerConnections(void)
+{
+  return nts_server_connections;
+}
+
+/* ================================================== */
+
+int
+CNF_GetNtsRotate(void)
+{
+  return nts_rotate;
+}
+
+/* ================================================== */
+
+char *
+CNF_GetNtsTrustedCertFile(void)
+{
+  return nts_trusted_cert_file;
+}
+
+/* ================================================== */
+
+int
+CNF_GetNoSystemCert(void)
+{
+  return no_system_cert;
 }
