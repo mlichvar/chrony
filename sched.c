@@ -147,6 +147,8 @@ void
 SCH_Finalise(void) {
   ARR_DestroyInstance(file_handlers);
 
+  LCL_RemoveParameterChangeHandler(handle_slew, NULL);
+
   initialised = 0;
 }
 
