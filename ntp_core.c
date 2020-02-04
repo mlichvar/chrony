@@ -710,6 +710,9 @@ NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remote_addr, int 
   SRC_SetRefid(inst->source, UTI_IPToRefid(&remote_addr->ip_addr),
                &inst->remote_addr.ip_addr);
   SRC_ResetInstance(inst->source);
+
+  if (!ntp_only)
+    NAU_ChangeAddress(inst->auth, &remote_addr->ip_addr);
 }
 
 /* ================================================== */

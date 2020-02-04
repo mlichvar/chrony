@@ -422,3 +422,17 @@ NAU_CheckResponseAuth(NAU_Instance instance, NTP_Packet *response, NTP_PacketInf
 
   return 1;
 }
+
+/* ================================================== */
+
+void
+NAU_ChangeAddress(NAU_Instance instance, IPAddr *address)
+{
+  switch (instance->mode) {
+    case NTP_AUTH_NONE:
+    case NTP_AUTH_SYMMETRIC:
+      break;
+    default:
+      assert(0);
+  }
+}
