@@ -62,6 +62,8 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   src->params.filter_length = 0;
   src->params.interleaved = 0;
   src->params.sel_options = 0;
+  src->params.nts = 0;
+  src->params.nts_port = SRC_DEFAULT_NTSPORT;
   src->params.authkey = INACTIVE_AUTHKEY;
   src->params.max_delay = SRC_DEFAULT_MAXDELAY;
   src->params.max_delay_ratio = SRC_DEFAULT_MAXDELAYRATIO;
@@ -139,6 +141,11 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
         return 0;
     } else if (!strcasecmp(cmd, "minstratum")) {
       if (sscanf(line, "%d%n", &src->params.min_stratum, &n) != 1)
+        return 0;
+    } else if (!strcasecmp(cmd, "nts")) {
+      src->params.nts = 1;
+    } else if (!strcasecmp(cmd, "ntsport")) {
+      if (sscanf(line, "%d%n", &src->params.nts_port, &n) != 1)
         return 0;
     } else if (!strcasecmp(cmd, "offset")) {
       if (sscanf(line, "%lf%n", &src->params.offset, &n) != 1)

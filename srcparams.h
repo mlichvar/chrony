@@ -52,6 +52,8 @@ typedef struct {
   int filter_length;
   int interleaved;
   int sel_options;
+  int nts;
+  int nts_port;
   uint32_t authkey;
   double max_delay;
   double max_delay_ratio;
@@ -74,6 +76,7 @@ typedef struct {
 #define SRC_DEFAULT_MINSAMPLES (-1)
 #define SRC_DEFAULT_MAXSAMPLES (-1)
 #define SRC_DEFAULT_ASYMMETRY 1.0
+#define SRC_DEFAULT_NTSPORT 11443
 #define INACTIVE_AUTHKEY 0
 
 /* Flags for source selection */

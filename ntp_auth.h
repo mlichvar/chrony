@@ -35,6 +35,8 @@ typedef struct NAU_Instance_Record *NAU_Instance;
 /* Create an authenticator instance in a specific mode */
 extern NAU_Instance NAU_CreateNoneInstance(void);
 extern NAU_Instance NAU_CreateSymmetricInstance(uint32_t key_id);
+extern NAU_Instance NAU_CreateNtsInstance(IPSockAddr *nts_address, const char *name,
+                                          const IPSockAddr *ntp_address);
 
 /* Destroy an instance */
 extern void NAU_DestroyInstance(NAU_Instance instance);

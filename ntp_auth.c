@@ -34,6 +34,9 @@
 #include "ntp_auth.h"
 #include "ntp_ext.h"
 #include "ntp_signd.h"
+#include "nts_ntp.h"
+#include "nts_ntp_client.h"
+#include "nts_ntp_server.h"
 #include "srcparams.h"
 #include "util.h"
 
@@ -42,6 +45,7 @@
 struct NAU_Instance_Record {
   NTP_AuthMode mode;            /* Authentication mode of NTP packets */
   uint32_t key_id;              /* Identifier of a symmetric key */
+  NNC_Instance nts;             /* Client NTS state */
 };
 
 /* ================================================== */
@@ -131,6 +135,7 @@ create_instance(NTP_AuthMode mode)
   instance = MallocNew(struct NAU_Instance_Record);
   instance->mode = mode;
   instance->key_id = INACTIVE_AUTHKEY;
+  instance->nts = NULL;
 
   assert(sizeof (instance->key_id) == 4);
 
@@ -164,9 +169,23 @@ NAU_CreateSymmetricInstance(uint32_t key_id)
 
 /* ================================================== */
 
+NAU_Instance
+NAU_CreateNtsInstance(IPSockAddr *nts_address, const char *name, const IPSockAddr *ntp_address)
+{
+  NAU_Instance instance = create_instance(NTP_AUTH_NTS);
+
+  instance->nts = NNC_CreateInstance(nts_address, name, ntp_address);
+
+  return instance;
+}
+
+/* ================================================== */
+
 void
 NAU_DestroyInstance(NAU_Instance instance)
 {
+  if (instance->nts)
+    NNC_DestroyInstance(instance->nts);
   Free(instance);
 }
 
@@ -198,6 +217,10 @@ int
 NAU_PrepareRequestAuth(NAU_Instance instance)
 {
   switch (instance->mode) {
+    case NTP_AUTH_NTS:
+      if (!NNC_PrepareForAuth(instance->nts))
+        return 0;
+      break;
     default:
       break;
   }
@@ -223,6 +246,10 @@ NAU_GenerateRequestAuth(NAU_Instance instance, NTP_Packet *request, NTP_PacketIn
       break;
     case NTP_AUTH_SYMMETRIC:
       if (!generate_symmetric_auth(instance->key_id, request, info))
+        return 0;
+      break;
+    case NTP_AUTH_NTS:
+      if (!NNC_GenerateRequestAuth(instance->nts, request, info))
         return 0;
       break;
     default:
@@ -307,6 +334,12 @@ NAU_ParsePacket(NTP_Packet *packet, NTP_PacketInfo *info)
     assert(ef_length > 0);
 
     switch (ef_type) {
+      case NTP_EF_NTS_UNIQUE_IDENTIFIER:
+      case NTP_EF_NTS_COOKIE:
+      case NTP_EF_NTS_COOKIE_PLACEHOLDER:
+      case NTP_EF_NTS_AUTH_AND_EEF:
+        info->auth.mode = NTP_AUTH_NTS;
+        break;
       default:
         DEBUG_LOG("Unknown extension field type=%x", (unsigned int)ef_type);
     }
@@ -351,6 +384,10 @@ NAU_CheckRequestAuth(NTP_Packet *request, NTP_PacketInfo *info, uint32_t *kod)
     case NTP_AUTH_MSSNTP:
       /* MS-SNTP requests are not authenticated */
       break;
+    case NTP_AUTH_NTS:
+      if (!NNS_CheckRequestAuth(request, info, kod))
+        return 0;
+      break;
     default:
       return 0;
   }
@@ -388,6 +425,10 @@ NAU_GenerateResponseAuth(NTP_Packet *request, NTP_PacketInfo *request_info,
         return 0;
       /* Don't send the original packet */
       return 0;
+    case NTP_AUTH_NTS:
+      if (!NNS_GenerateResponseAuth(request, request_info, response, response_info, kod))
+        return 0;
+      break;
     default:
       DEBUG_LOG("Could not authenticate response auth_mode=%d", (int)request_info->auth.mode);
       return 0;
@@ -416,6 +457,10 @@ NAU_CheckResponseAuth(NAU_Instance instance, NTP_Packet *response, NTP_PacketInf
       if (!check_symmetric_auth(response, info))
         return 0;
       break;
+    case NTP_AUTH_NTS:
+      if (!NNC_CheckResponseAuth(instance->nts, response, info))
+        return 0;
+      break;
     default:
       return 0;
   }
@@ -431,6 +476,9 @@ NAU_ChangeAddress(NAU_Instance instance, IPAddr *address)
   switch (instance->mode) {
     case NTP_AUTH_NONE:
     case NTP_AUTH_SYMMETRIC:
+      break;
+    case NTP_AUTH_NTS:
+      NNC_ChangeAddress(instance->nts, address);
       break;
     default:
       assert(0);

@@ -743,6 +743,8 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_NOSELECT ? SRC_SELECT_NOSELECT : 0) |
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_TRUST ? SRC_SELECT_TRUST : 0) |
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_REQUIRE ? SRC_SELECT_REQUIRE : 0);
+  params.nts = 0;
+  params.nts_port = 0;
 
   status = NSR_AddSourceByName(name, port, pool, type, &params);
   switch (status) {

@@ -119,6 +119,7 @@ typedef enum {
   NTP_AUTH_SYMMETRIC,           /* MAC using symmetric key (RFC 1305, RFC 5905) */
   NTP_AUTH_MSSNTP,              /* MS-SNTP authenticator field */
   NTP_AUTH_MSSNTP_EXT,          /* MS-SNTP extended authenticator field */
+  NTP_AUTH_NTS,                 /* Network Time Security (RFC ????) */
 } NTP_AuthMode;
 
 /* Structure describing an NTP packet */
