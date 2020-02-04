@@ -22,18 +22,18 @@ The software is distributed as source code which has to be compiled. The source
 code is supplied in the form of a gzipped tar file, which unpacks to a
 subdirectory identifying the name and version of the program.
 
-The following programs and libraries with their development files are needed to
-build `chrony`:
+A C compiler (e.g. `gcc` or `clang`) and GNU Make are needed to build `chrony`.
+The following libraries with their development files, and programs, are needed
+to enable optional features:
 
-* C compiler (gcc or clang recommended)
-* GNU Make
-* Nettle, NSS, or LibTomCrypt (optional)
-* Editline (optional)
-* libcap (Linux only, optional)
-* libseccomp (Linux only, optional)
-* timepps.h header (optional)
-* Asciidoctor (for HTML documentation)
-* Bash (for testing)
+* Nettle, NSS, or LibTomCrypt: secure hash functions (`SECHASH`)
+* libcap: dropping root privileges on Linux (`DROPROOT`)
+* libseccomp: system call filter on Linux (`SCFILTER`)
+* GnuTLS and Nettle: Network Time Security (`NTS`)
+* Editline: line editing in `chronyc` (`READLINE`)
+* timepps.h header: PPS reference clock
+* Asciidoctor: documentation in HTML format
+* Bash: test suite
 
 After unpacking the source code, change directory into it, and type
 
