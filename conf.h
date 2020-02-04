@@ -145,6 +145,7 @@ extern char *CNF_GetNtsServerKeyFile(void);
 extern int CNF_GetNtsServerPort(void);
 extern int CNF_GetNtsServerProcesses(void);
 extern int CNF_GetNtsServerConnections(void);
+extern int CNF_GetNtsRefresh(void);
 extern int CNF_GetNtsRotate(void);
 extern char *CNF_GetNtsTrustedCertFile(void);
 extern int CNF_GetNoSystemCert(void);

@@ -230,6 +230,7 @@ static char *nts_server_key_file = NULL;
 static int nts_server_port = 11443;
 static int nts_server_processes = 1;
 static int nts_server_connections = 100;
+static int nts_refresh = 2419200; /* 4 weeks */
 static int nts_rotate = 604800; /* 1 week */
 static char *nts_trusted_cert_file = NULL;
 
@@ -556,6 +557,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_int(p, &nts_server_port);
   } else if (!strcasecmp(command, "ntsprocesses")) {
     parse_int(p, &nts_server_processes);
+  } else if (!strcasecmp(command, "ntsrefresh")) {
+    parse_int(p, &nts_refresh);
   } else if (!strcasecmp(command, "ntsrotate")) {
     parse_int(p, &nts_rotate);
   } else if (!strcasecmp(command, "ntsservercert")) {
@@ -2109,6 +2112,14 @@ int
 CNF_GetNtsServerConnections(void)
 {
   return nts_server_connections;
+}
+
+/* ================================================== */
+
+int
+CNF_GetNtsRefresh(void)
+{
+  return nts_refresh;
 }
 
 /* ================================================== */

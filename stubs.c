@@ -42,6 +42,8 @@
 #include "ntp_signd.h"
 #include "nts_ke_client.h"
 #include "nts_ke_server.h"
+#include "nts_ntp_client.h"
+#include "nts_ntp_server.h"
 #include "privops.h"
 #include "refclock.h"
 #include "sched.h"
@@ -451,6 +453,67 @@ CMC_DestroyInstance(CMC_Instance inst)
 #endif /* !HAVE_CMAC */
 
 #ifndef FEAT_NTS
+
+void
+NNS_Initialise(void)
+{
+}
+
+void
+NNS_Finalise(void)
+{
+}
+
+int
+NNS_CheckRequestAuth(NTP_Packet *packet, NTP_PacketInfo *info, uint32_t *kod)
+{
+  *kod = 0;
+  return 0;
+}
+
+int
+NNS_GenerateResponseAuth(NTP_Packet *request, NTP_PacketInfo *req_info,
+                         NTP_Packet *response, NTP_PacketInfo *res_info,
+                         uint32_t kod)
+{
+  return 0;
+}
+
+NNC_Instance
+NNC_CreateInstance(IPSockAddr *nts_address, const char *name, const IPSockAddr *ntp_address)
+{
+  return NULL;
+}
+
+void
+NNC_DestroyInstance(NNC_Instance inst)
+{
+}
+
+int
+NNC_PrepareForAuth(NNC_Instance inst)
+{
+  return 1;
+}
+
+int
+NNC_GenerateRequestAuth(NNC_Instance inst, NTP_Packet *packet, NTP_PacketInfo *info)
+{
+  DEBUG_LOG("NTS support disabled");
+  return 0;
+}
+
+int
+NNC_CheckResponseAuth(NNC_Instance inst, NTP_Packet *packet, NTP_PacketInfo *info)
+{
+  DEBUG_LOG("NTS support disabled");
+  return 0;
+}
+
+void
+NNC_ChangeAddress(NNC_Instance inst, IPAddr *address)
+{
+}
 
 void
 NKC_Initialise(void)
