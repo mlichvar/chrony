@@ -482,7 +482,7 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_SystemCallContext context)
     SCMP_SYS(gettimeofday), SCMP_SYS(settimeofday), SCMP_SYS(time),
     /* Process */
     SCMP_SYS(clone), SCMP_SYS(exit), SCMP_SYS(exit_group), SCMP_SYS(getpid),
-    SCMP_SYS(getrlimit), SCMP_SYS(rt_sigaction), SCMP_SYS(rt_sigreturn),
+    SCMP_SYS(getrlimit), SCMP_SYS(getuid), SCMP_SYS(rt_sigaction), SCMP_SYS(rt_sigreturn),
     SCMP_SYS(rt_sigprocmask), SCMP_SYS(set_tid_address), SCMP_SYS(sigreturn),
     SCMP_SYS(wait4), SCMP_SYS(waitpid),
     /* Memory */
