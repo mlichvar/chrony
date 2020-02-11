@@ -186,7 +186,7 @@ LOG_OpenFileLog(const char *log_file)
   FILE *f;
 
   if (log_file) {
-    f = UTI_OpenFile(NULL, log_file, NULL, 'A', 0644);
+    f = UTI_OpenFile(NULL, log_file, NULL, 'A', 0640);
   } else {
     f = stderr;
   }
