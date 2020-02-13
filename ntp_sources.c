@@ -354,8 +354,10 @@ replace_source(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr)
   if (!found)
     return NSR_NoSuchSource;
 
+  /* Make sure there is no other source using the new address (with the same
+     or different port), but allow a source to have its port changed */
   find_slot(new_addr, &slot2, &found);
-  if (found)
+  if (found == 2 || (found != 0 && slot1 != slot2))
     return NSR_AlreadyInUse;
 
   record = get_record(slot1);
@@ -376,14 +378,18 @@ replace_source(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr)
   }
 
   name = record->name;
-
-  /* The hash table must be rebuilt for the new address */
-  rehash_records();
-
   severity = UTI_IsIPReal(&old_addr->ip_addr) ? LOGS_INFO : LOGS_DEBUG;
 
-  LOG(severity, "Source %s replaced with %s (%s)", UTI_IPToString(&old_addr->ip_addr),
-      UTI_IPToString(&new_addr->ip_addr), name ? name : "");
+  if (slot1 != slot2) {
+    /* The hash table must be rebuilt for the changed address */
+    rehash_records();
+
+    LOG(severity, "Source %s replaced with %s (%s)", UTI_IPToString(&old_addr->ip_addr),
+        UTI_IPToString(&new_addr->ip_addr), name ? name : "");
+  } else {
+    LOG(severity, "Source %s (%s) changed port to %d",
+        UTI_IPToString(&new_addr->ip_addr), name ? name : "", new_addr->port);
+  }
 
   return NSR_Success;
 }
