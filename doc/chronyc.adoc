@@ -291,15 +291,18 @@ milliseconds.
 
 === Time sources
 
-[[sources]]*sources* [*-v*]::
+[[sources]]*sources* [*-a*] [*-v*]::
 This command displays information about the current time sources that *chronyd*
 is accessing.
 +
-The optional argument *-v* can be specified, meaning _verbose_. In this case,
+If the *-a* option is specified, all sources are displayed, including those that
+do not have a known address yet. Such sources have an identifier in the format
+_ID#XXXXXXXXXX_, which can be used in other commands expecting a source address.
++
+The *-v* option enables a verbose output. In this case,
 extra caption lines are shown as a reminder of the meanings of the columns.
 +
 ----
-210 Number of sources = 3
 MS Name/IP address         Stratum Poll Reach LastRx Last sample
 ===============================================================================
 #* GPS0                          0   4   377    11   -479ns[ -621ns] +/-  134ns
@@ -360,18 +363,21 @@ since. The number following the _+/-_ indicator shows the margin of error in
 the measurement. Positive offsets indicate that the local clock is ahead of
 the source.
 
-[[sourcestats]]*sourcestats* [*-v*]::
+[[sourcestats]]*sourcestats* [*-a*] [*-v*]::
 The *sourcestats* command displays information about the drift rate and offset
 estimation process for each of the sources currently being examined by
 *chronyd*.
 +
-The optional argument *-v* can be specified, meaning _verbose_. In this case,
+If the *-a* option is specified, all sources are displayed, including those that
+do not have a known address yet. Such sources have an identifier in the format
+_ID#XXXXXXXXXX_, which can be used in other commands expecting a source address.
++
+The *-v* option enables a verbose output. In this case,
 extra caption lines are shown as a reminder of the meanings of the columns.
 +
 An example report is:
 +
 ----
-210 Number of sources = 1
 Name/IP Address            NP  NR  Span  Frequency  Freq Skew  Offset  Std Dev
 ===============================================================================
 foo.example.net            11   5   46m     -0.001      0.045      1us    25us
@@ -449,8 +455,9 @@ not visible in the *sources* and *sourcestats* reports.
 
 [[ntpdata]]*ntpdata* [_address_]::
 The *ntpdata* command displays the last valid measurement and other
-NTP-specific information about the specified NTP source, or all NTP sources if
-no address was specified. An example of the output is shown below.
+NTP-specific information about the specified NTP source, or all NTP sources
+(with a known address) if no address was specified. An example of the output is
+shown below.
 +
 ----
 Remote address  : 203.0.113.15 (CB00710F)

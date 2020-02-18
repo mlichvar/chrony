@@ -1205,8 +1205,8 @@ give_help(void)
                           "Wait until synchronised in specified limits\0"
     "\0\0"
     "Time sources:\0\0"
-    "sources [-v]\0Display information about current sources\0"
-    "sourcestats [-v]\0Display statistics about collected measurements\0"
+    "sources [-a] [-v]\0Display information about current sources\0"
+    "sourcestats [-a] [-v]\0Display statistics about collected measurements\0"
     "reselect\0Force reselecting synchronisation source\0"
     "reselectdist <dist>\0Modify reselection distance\0"
     "\0\0"
@@ -1321,8 +1321,8 @@ command_name_generator(const char *text, int state)
   };
   const char *add_options[] = { "peer", "pool", "server", NULL };
   const char *manual_options[] = { "on", "off", "delete", "list", "reset", NULL };
-  const char *sources_options[] = { "-v", NULL };
-  const char *sourcestats_options[] = { "-v", NULL };
+  const char *sources_options[] = { "-a", "-v", NULL };
+  const char *sourcestats_options[] = { "-a", "-v", NULL };
   static int list_index, len;
 
   names[TAB_COMPLETE_BASE_CMDS] = base_commands;
@@ -2089,12 +2089,21 @@ format_name(char *buf, int size, int trunc_dns, int ref, uint32_t ref_id,
 
 /* ================================================== */
 
-static int
-check_for_verbose_flag(char *line)
+static void
+parse_sources_options(char *line, int *all, int *verbose)
 {
-  if (!csv_mode && !strcmp(line, "-v"))
-    return 1;
-  return 0;
+  char *opt;
+
+  *all = *verbose = 0;
+
+  while (*line) {
+    opt = line;
+    line = CPS_SplitWord(line);
+    if (!strcmp(opt, "-a"))
+      *all = 1;
+    else if (!strcmp(opt, "-v"))
+      *verbose = !csv_mode;
+  }
 }
 
 /* ================================================== */
@@ -2128,17 +2137,15 @@ process_cmd_sources(char *line)
   IPAddr ip_addr;
   uint32_t i, mode, n_sources;
   char name[256], mode_ch, state_ch;
-  int verbose;
+  int all, verbose;
 
-  /* Check whether to output verbose headers */
-  verbose = check_for_verbose_flag(line);
+  parse_sources_options(line, &all, &verbose);
   
   request.command = htons(REQ_N_SOURCES);
   if (!request_reply(&request, &reply, RPY_N_SOURCES, 0))
     return 0;
 
   n_sources = ntohl(reply.data.n_sources.n_sources);
-  print_info_field("210 Number of sources = %lu\n", (unsigned long)n_sources);
 
   if (verbose) {
     printf("\n");
@@ -2164,6 +2171,9 @@ process_cmd_sources(char *line)
 
     mode = ntohs(reply.data.source_data.mode);
     UTI_IPNetworkToHost(&reply.data.source_data.ip_addr, &ip_addr);
+    if (!all && ip_addr.family == IPADDR_ID)
+      continue;
+
     format_name(name, sizeof (name), 25,
                 mode == RPY_SD_MD_REF && ip_addr.family == IPADDR_INET4,
                 ip_addr.addr.in4, 1, &ip_addr);
@@ -2233,18 +2243,17 @@ process_cmd_sourcestats(char *line)
   CMD_Request request;
   CMD_Reply reply;
   uint32_t i, n_sources;
-  int verbose = 0;
+  int all, verbose;
   char name[256];
   IPAddr ip_addr;
 
-  verbose = check_for_verbose_flag(line);
+  parse_sources_options(line, &all, &verbose);
 
   request.command = htons(REQ_N_SOURCES);
   if (!request_reply(&request, &reply, RPY_N_SOURCES, 0))
     return 0;
 
   n_sources = ntohl(reply.data.n_sources.n_sources);
-  print_info_field("210 Number of sources = %lu\n", (unsigned long)n_sources);
 
   if (verbose) {
     printf("                             .- Number of sample points in measurement set.\n");
@@ -2269,6 +2278,9 @@ process_cmd_sourcestats(char *line)
       return 0;
 
     UTI_IPNetworkToHost(&reply.data.sourcestats.ip_addr, &ip_addr);
+    if (!all && ip_addr.family == IPADDR_ID)
+      continue;
+
     format_name(name, sizeof (name), 25, ip_addr.family == IPADDR_UNSPEC,
                 ntohl(reply.data.sourcestats.ref_id), 1, &ip_addr);
 
@@ -2382,6 +2394,8 @@ process_cmd_ntpdata(char *line)
         continue;
 
       UTI_IPNetworkToHost(&reply.data.source_data.ip_addr, &remote_addr);
+      if (!UTI_IsIPReal(&remote_addr))
+        continue;
     }
 
     request.command = htons(REQ_NTP_DATA);
