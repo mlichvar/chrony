@@ -424,10 +424,6 @@ process_resolved_name(struct UnresolvedSource *us, IPAddr *ip_addrs, int n_addrs
         break;
     }
   }
-
-  /* Remove pool sources that didn't get an address */
-  if (us->pool != INVALID_POOL)
-    remove_pool_sources(us->pool, 0, 1);
 }
 
 /* ================================================== */
@@ -485,9 +481,9 @@ name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *any
 
   next = us->next;
 
-  /* Don't repeat the resolving if it didn't (temporarily) fail, it was a
+  /* Don't repeat the resolving if it (permanently) failed, it was a
      replacement of a real address, or all addresses are already resolved */
-  if (status != DNS_TryAgain || UTI_IsIPReal(&us->address.ip_addr) || is_resolved(us))
+  if (status == DNS_Failure || UTI_IsIPReal(&us->address.ip_addr) || is_resolved(us))
     remove_unresolved_source(us);
 
   resolving_source = next;

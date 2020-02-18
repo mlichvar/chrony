@@ -269,16 +269,18 @@ which might change over time.
 +
 All options valid in the <<server,*server*>> directive can be used in this
 directive too. There is one option specific to the *pool* directive:
-*maxsources* sets the maximum number of sources that can be used from the pool,
-the default value is 4.
 +
-On start, when the pool name is resolved, *chronyd* will add up to 16 sources,
-one for each resolved address. When the number of sources from which at least
-one valid reply was received reaches the number specified by the *maxsources*
-option, the other sources will be removed. When a pool source is unreachable,
+*maxsources* _sources_:::
+This option sets the desired number of sources to be used from the pool.
+*chronyd* will repeatedly try to resolve the name until it gets this number of
+sources responding to requests. The default value is 4 and the maximum value is
+16.
++
+::
+When an NTP source is unreachable,
 marked as a falseticker, or has a distance larger than the limit set by the
 <<maxdistance,*maxdistance*>> directive, *chronyd* will try to replace the
-source with a newly resolved address from the pool.
+source with a newly resolved address of the name.
 +
 An example of the *pool* directive is
 +
