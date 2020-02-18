@@ -320,9 +320,26 @@ bits_to_mask(int bits, int family, IPAddr *mask)
       for (; i < 16; i++)
         mask->addr.in6[i] = 0x0;
       break;
+    case IPADDR_ID:
+      mask->family = IPADDR_UNSPEC;
+      break;
     default:
       assert(0);
   }
+}
+
+/* ================================================== */
+
+static int
+parse_source_address(char *word, IPAddr *address)
+{
+  if (UTI_StringToIdIP(word, address))
+    return 1;
+
+  if (DNS_Name2IPAddress(word, address, 1) == DNS_Success)
+    return 1;
+
+  return 0;
 }
 
 /* ================================================== */
@@ -353,7 +370,7 @@ read_mask_address(char *line, IPAddr *mask, IPAddr *address)
         }
       }
     } else {
-      if (DNS_Name2IPAddress(p, address, 1) == DNS_Success) {
+      if (parse_source_address(p, address)) {
         bits_to_mask(-1, address->family, mask);
         return 1;
       } else {
@@ -433,7 +450,7 @@ read_address_integer(char *line, IPAddr *address, int *value)
     LOG(LOGS_ERR, "Invalid syntax for address value");
     ok = 0;
   } else {
-    if (DNS_Name2IPAddress(hostname, address, 1) != DNS_Success) {
+    if (!parse_source_address(hostname, address)) {
       LOG(LOGS_ERR, "Could not get address for hostname");
       ok = 0;
     } else {
@@ -461,7 +478,7 @@ read_address_double(char *line, IPAddr *address, double *value)
     LOG(LOGS_ERR, "Invalid syntax for address value");
     ok = 0;
   } else {
-    if (DNS_Name2IPAddress(hostname, address, 1) != DNS_Success) {
+    if (!parse_source_address(hostname, address)) {
       LOG(LOGS_ERR, "Could not get address for hostname");
       ok = 0;
     } else {
@@ -1159,7 +1176,7 @@ process_cmd_delete(CMD_Request *msg, char *line)
     LOG(LOGS_ERR, "Invalid syntax for address");
     ok = 0;
   } else {
-    if (DNS_Name2IPAddress(hostname, &address, 1) != DNS_Success) {
+    if (!parse_source_address(hostname, &address)) {
       LOG(LOGS_ERR, "Could not get address for hostname");
       ok = 0;
     } else {
@@ -2350,7 +2367,7 @@ process_cmd_ntpdata(char *line)
 
   for (i = 0; i < n_sources; i++) {
     if (specified_addr) {
-      if (DNS_Name2IPAddress(line, &remote_addr, 1) != DNS_Success) {
+      if (!parse_source_address(line, &remote_addr)) {
         LOG(LOGS_ERR, "Could not get address for hostname");
         return 0;
       }
