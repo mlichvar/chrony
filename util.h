@@ -104,6 +104,8 @@ extern char *UTI_RefidToString(uint32_t ref_id);
 extern char *UTI_IPToString(IPAddr *ip);
 
 extern int UTI_StringToIP(const char *addr, IPAddr *ip);
+extern int UTI_StringToIdIP(const char *addr, IPAddr *ip);
+extern int UTI_IsIPReal(IPAddr *ip);
 extern uint32_t UTI_IPToRefid(IPAddr *ip);
 extern uint32_t UTI_IPToHash(IPAddr *ip);
 extern void UTI_IPHostToNetwork(IPAddr *src, IPAddr *dest);

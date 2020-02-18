@@ -311,6 +311,9 @@ UTI_IPToString(IPAddr *addr)
                  (unsigned int)(ip6[2 * a] << 8 | ip6[2 * a + 1]));
 #endif
       break;
+    case IPADDR_ID:
+      snprintf(result, BUFFER_LENGTH, "ID#%010"PRIu32, addr->addr.id);
+      break;
     default:
       snprintf(result, BUFFER_LENGTH, "[UNKNOWN]");
   }
@@ -357,6 +360,34 @@ UTI_StringToIP(const char *addr, IPAddr *ip)
 
 /* ================================================== */
 
+int
+UTI_StringToIdIP(const char *addr, IPAddr *ip)
+{
+  if (sscanf(addr, "ID#%"SCNu32, &ip->addr.id) == 1) {
+    ip->family = IPADDR_ID;
+    ip->_pad = 0;
+    return 1;
+  }
+
+  return 0;
+}
+
+/* ================================================== */
+
+int
+UTI_IsIPReal(IPAddr *ip)
+{
+  switch (ip->family) {
+    case IPADDR_INET4:
+    case IPADDR_INET6:
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+/* ================================================== */
+
 uint32_t
 UTI_IPToRefid(IPAddr *ip)
 {
@@ -399,6 +430,10 @@ UTI_IPToHash(IPAddr *ip)
       addr = ip->addr.in6;
       len = sizeof (ip->addr.in6);
       break;
+    case IPADDR_ID:
+      addr = (unsigned char *)&ip->addr.id;
+      len = sizeof (ip->addr.id);
+      break;
     default:
       return 0;
   }
@@ -431,6 +466,9 @@ UTI_IPHostToNetwork(IPAddr *src, IPAddr *dest)
     case IPADDR_INET6:
       memcpy(dest->addr.in6, src->addr.in6, sizeof (dest->addr.in6));
       break;
+    case IPADDR_ID:
+      dest->addr.id = htonl(src->addr.id);
+      break;
     default:
       dest->family = htons(IPADDR_UNSPEC);
   }
@@ -450,6 +488,9 @@ UTI_IPNetworkToHost(IPAddr *src, IPAddr *dest)
       break;
     case IPADDR_INET6:
       memcpy(dest->addr.in6, src->addr.in6, sizeof (dest->addr.in6));
+      break;
+    case IPADDR_ID:
+      dest->addr.id = ntohl(src->addr.id);
       break;
     default:
       dest->family = IPADDR_UNSPEC;
@@ -486,6 +527,8 @@ UTI_CompareIPs(IPAddr *a, IPAddr *b, IPAddr *mask)
           d = a->addr.in6[i] - b->addr.in6[i];
       }
       return d;
+    case IPADDR_ID:
+      return a->addr.id - b->addr.id;
   }
   return 0;
 }
