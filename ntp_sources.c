@@ -115,7 +115,7 @@ static ARR_Instance pools;
 /* ================================================== */
 /* Forward prototypes */
 
-static void resolve_sources(void *arg);
+static void resolve_sources(void);
 static void rehash_records(void);
 static void clean_source_record(SourceRecord *record);
 static void remove_pool_sources(int pool, int tentative, int unresolved);
@@ -420,6 +420,15 @@ process_resolved_name(struct UnresolvedSource *us, IPAddr *ip_addrs, int n_addrs
 /* ================================================== */
 
 static void
+resolve_sources_timeout(void *arg)
+{
+  resolving_id = 0;
+  resolve_sources();
+}
+
+/* ================================================== */
+
+static void
 name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *anything)
 {
   struct UnresolvedSource *us, **i, *next;
@@ -427,6 +436,7 @@ name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *any
   us = (struct UnresolvedSource *)anything;
 
   assert(us == resolving_source);
+  assert(resolving_id == 0);
 
   DEBUG_LOG("%s resolved to %d addrs", us->name, n_addrs);
 
@@ -468,12 +478,10 @@ name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *any
     /* This was the last source in the list. If some sources couldn't
        be resolved, try again in exponentially increasing interval. */
     if (unresolved_sources) {
-      if (resolving_interval < MIN_RESOLVE_INTERVAL)
-        resolving_interval = MIN_RESOLVE_INTERVAL;
-      else if (resolving_interval < MAX_RESOLVE_INTERVAL)
-        resolving_interval++;
-      resolving_id = SCH_AddTimeoutByDelay(RESOLVE_INTERVAL_UNIT *
-          (1 << resolving_interval), resolve_sources, NULL);
+      resolving_interval = CLAMP(MIN_RESOLVE_INTERVAL, resolving_interval + 1,
+                                 MAX_RESOLVE_INTERVAL);
+      resolving_id = SCH_AddTimeoutByDelay(RESOLVE_INTERVAL_UNIT * (1 << resolving_interval),
+                                           resolve_sources_timeout, NULL);
     } else {
       resolving_interval = 0;
     }
@@ -487,7 +495,7 @@ name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *any
 /* ================================================== */
 
 static void
-resolve_sources(void *arg)
+resolve_sources(void)
 {
   struct UnresolvedSource *us;
 
@@ -598,11 +606,12 @@ NSR_ResolveSources(void)
   if (unresolved_sources) {
     /* Make sure no resolving is currently running */
     if (!resolving_source) {
-      if (resolving_interval) {
+      if (resolving_id != 0) {
         SCH_RemoveTimeout(resolving_id);
+        resolving_id = 0;
         resolving_interval--;
       }
-      resolve_sources(NULL);
+      resolve_sources();
     }
   } else {
     /* No unresolved sources, we are done */
