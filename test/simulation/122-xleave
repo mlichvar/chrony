@@ -4,12 +4,19 @@
 test_start "interleaved mode"
 
 client_server_options="xleave"
+client_conf="
+logdir tmp
+log rawmeasurements"
 
 run_test || test_fail
 check_chronyd_exit || test_fail
 check_source_selection || test_fail
 check_packet_interval || test_fail
 check_sync || test_fail
+
+check_file_messages "111 111 1111.* 4B [DKH] [DKH]\$" 2 2 measurements.log || test_fail
+check_file_messages "111 111 1111.* 4I [DKH] [DKH]\$" 30 200 measurements.log || test_fail
+rm -f tmp/measurements.log
 
 clients=2
 peers=2
@@ -25,6 +32,8 @@ check_chronyd_exit || test_fail
 check_source_selection && test_fail
 check_sync && test_fail
 
+rm -f tmp/measurements.log
+
 for rpoll in 4 5 6; do
 	client_rpeer_options="xleave minpoll $rpoll maxpoll $rpoll"
 
@@ -32,6 +41,15 @@ for rpoll in 4 5 6; do
 	check_chronyd_exit || test_fail
 	check_source_selection || test_fail
 	check_sync || test_fail
+
+	if [ $rpoll -le 5 ]; then
+		check_file_messages "111 111 1111.* 1B [DKH] [DKH]\$" 0 0 measurements.log || test_fail
+		check_file_messages "111 111 1111.* 1I [DKH] [DKH]\$" 200 310 measurements.log || test_fail
+	else
+		check_file_messages "111 111 1111.* 1B [DKH] [DKH]\$" 125 135 measurements.log || test_fail
+		check_file_messages "111 111 1111.* 1I [DKH] [DKH]\$" 20 30 measurements.log || test_fail
+	fi
+	rm -f tmp/measurements.log
 done
 
 test_pass
