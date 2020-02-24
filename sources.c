@@ -1161,10 +1161,12 @@ FILE *open_dumpfile(SRC_Instance inst, char mode)
   }
 
   /* Include IP address in the name for NTP sources, or reference ID in hex */
-  if (inst->type == SRC_NTP)
+  if (inst->type == SRC_NTP && UTI_IsIPReal(inst->ip_addr))
     snprintf(filename, sizeof (filename), "%s", source_to_string(inst));
-  else
+  else if (inst->type == SRC_REFCLOCK)
     snprintf(filename, sizeof (filename), "refid:%08"PRIx32, inst->ref_id);
+  else
+    return NULL;
 
   return UTI_OpenFile(dumpdir, filename, ".dat", mode, 0644);
 }
