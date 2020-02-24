@@ -34,6 +34,7 @@
 #include "array.h"
 #include "ntp_sources.h"
 #include "ntp_core.h"
+#include "ntp_io.h"
 #include "util.h"
 #include "logging.h"
 #include "local.h"
@@ -389,6 +390,22 @@ replace_source(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr)
 
 /* ================================================== */
 
+static int
+replace_source_connectable(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr)
+{
+  if (!NIO_IsServerConnectable(new_addr)) {
+    DEBUG_LOG("%s not connectable", UTI_IPToString(&new_addr->ip_addr));
+    return 0;
+  }
+
+  if (replace_source(old_addr, new_addr) == NSR_AlreadyInUse)
+    return 0;
+
+  return 1;
+}
+
+/* ================================================== */
+
 static void
 process_resolved_name(struct UnresolvedSource *us, IPAddr *ip_addrs, int n_addrs)
 {
@@ -415,12 +432,12 @@ process_resolved_name(struct UnresolvedSource *us, IPAddr *ip_addrs, int n_addrs
           continue;
         old_addr = *record->remote_addr;
         new_addr.port = old_addr.port;
-        if (replace_source(&old_addr, &new_addr) != NSR_AlreadyInUse)
+        if (replace_source_connectable(&old_addr, &new_addr))
           break;
       }
     } else {
       new_addr.port = us->address.port;
-      if (replace_source(&us->address, &new_addr) != NSR_AlreadyInUse)
+      if (replace_source_connectable(&us->address, &new_addr))
         break;
     }
   }
