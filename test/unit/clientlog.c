@@ -18,8 +18,12 @@
  **********************************************************************
  */
 
-#include <clientlog.c>
+#include <config.h>
 #include "test.h"
+
+#if defined(FEAT_NTP) || defined(FEAT_CMDMON)
+
+#include <clientlog.c>
 
 void
 test_unit(void)
@@ -82,3 +86,10 @@ test_unit(void)
   CLG_Finalise();
   CNF_Finalise();
 }
+#else
+void
+test_unit(void)
+{
+  TEST_REQUIRE(0);
+}
+#endif
