@@ -5,7 +5,7 @@
 test_start "logchange directive"
 
 time_offset=2
-min_sync_time=600
+min_sync_time=590
 max_sync_time=700
 client_server_options="maxsamples 6"
 client_conf="logchange 0.1"
