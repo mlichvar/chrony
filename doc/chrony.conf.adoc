@@ -194,14 +194,13 @@ authenticated source to be safely combined with unauthenticated sources in
 order to improve the accuracy of the clock. They can be selected and used for
 synchronisation only if they agree with the trusted and required source.
 *xleave*:::
-This option enables an interleaved mode which allows the server or the peer to
+This option enables an interleaved mode which enables the server to
 send transmit timestamps captured after the actual transmission (e.g. when the
-server or the peer is running *chronyd* with software (kernel) or hardware
+server is running *chronyd* with software (kernel) or hardware
 timestamping). This can significantly improve the accuracy of the measurements.
 +
 The interleaved mode is compatible with servers that support only the basic
-mode, but peers must both support and have enabled the interleaved mode,
-otherwise the synchronisation will work only in one direction. Note that even
+mode. Note that even
 servers that support the interleaved mode might respond in the basic mode as
 the interleaved mode requires the servers to keep some state for each client
 and the state might be dropped when there are too many clients (e.g.
@@ -243,8 +242,8 @@ when the polling interval is 512 seconds or more, an extra NTP client packet
 will be sent to the server a short time (2 seconds) before making the actual
 measurement.
 +
-The *presend* option cannot be used in the *peer* directive. If it is used
-with the *xleave* option, *chronyd* will send two extra packets instead of one.
+If the *presend* option is used together with the *xleave* option, *chronyd*
+will send two extra packets instead of one.
 *minstratum* _stratum_:::
 When the synchronisation source is selected from available sources, sources
 with lower stratum are normally slightly preferred. This option can be used to
@@ -297,6 +296,12 @@ is mainly useful when the NTP implementation of the peer (e.g. *ntpd*) supports
 ephemeral symmetric associations and does not need to be configured with an
 address of this host. *chronyd* does not support ephemeral associations.
 +
+The following options of the *server* directive do not work in the *peer*
+directive: *iburst*, *burst*, *presend*.
++
+When using the *xleave* option, both peers must support and have enabled the
+interleaved mode, otherwise the synchronisation will work in one direction
+only.
 When a key is specified by the *key* option to enable authentication, both
 peers must use the same key and the same key number.
 +
