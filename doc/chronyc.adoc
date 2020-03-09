@@ -712,7 +712,8 @@ the loaded periods. The *offline* and *online* commands can be used to achieve
 this.
 +
 There are four forms of the *offline* command. The first form is a wildcard,
-meaning all sources. The second form allows an IP address mask and a masked
+meaning all sources (including sources that do not have a known address yet).
+The second form allows an IP address mask and a masked
 address to be specified. The third form uses CIDR notation. The fourth form
 uses an IP address or a hostname. These forms are illustrated below.
 +
@@ -749,10 +750,11 @@ The syntax is identical to that of the <<offline,*offline*>> command.
 
 [[onoffline]]
 *onoffline*::
-The *onoffline* command tells *chronyd* to switch all sources to the online or
+The *onoffline* command tells *chronyd* to switch all sources that have a known
+address to the online or
 offline status according to the current network configuration. A source is
-considered online if it is possible to send requests to it, i.e. a route to the
-network is present.
+considered online if it is possible to send requests to it, i.e. a network
+route to the source is present.
 
 [[polltarget]]*polltarget* _address_ _polltarget_::
 The *polltarget* command is used to modify the poll target for one of the
