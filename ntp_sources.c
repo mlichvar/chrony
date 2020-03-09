@@ -1047,7 +1047,10 @@ NSR_SetConnectivity(IPAddr *mask, IPAddr *address, SRC_Connectivity connectivity
   for (i = 0; i < ARR_GetSize(records); i++) {
     record = get_record(i);
     if (record->remote_addr) {
-      if (address->family == IPADDR_UNSPEC ||
+      /* Ignore SRC_MAYBE_ONLINE connectivity change for unspecified unresolved
+         sources as they would always end up in the offline state */
+      if ((address->family == IPADDR_UNSPEC &&
+           (connectivity != SRC_MAYBE_ONLINE || UTI_IsIPReal(&record->remote_addr->ip_addr))) ||
           !UTI_CompareIPs(&record->remote_addr->ip_addr, address, mask)) {
         any = 1;
         if (NCR_IsSyncPeer(record->data)) {
