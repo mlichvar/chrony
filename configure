@@ -971,8 +971,12 @@ if [ $feat_ntp = "1" ] && [ $feat_nts = "1" ] && [ $try_gnutls = "1" ] && \
   test_cflags="`pkg_config --cflags gnutls`"
   test_link="`pkg_config --libs gnutls`"
   if test_code 'gnutls' 'gnutls/gnutls.h' \
-    "$test_cflags" "$test_link" \
-    'gnutls_init(NULL, 0);'
+    "$test_cflags" "$test_link" '
+      return gnutls_init(NULL, 0) +
+        gnutls_priority_init2(NULL, "", NULL, GNUTLS_PRIORITY_INIT_DEF_APPEND) +
+        gnutls_prf_rfc5705(NULL, 0, "", 0, "", 16, NULL);' &&
+    test_code 'AES128 in nettle' 'nettle/aes.h' '' "$LIBS" \
+      'aes128_set_encrypt_key(NULL, NULL);'
   then
     EXTRA_OBJECTS="$EXTRA_OBJECTS nts_ke_client.o nts_ke_server.o nts_ke_session.o"
     EXTRA_OBJECTS="$EXTRA_OBJECTS nts_ntp_auth.o nts_ntp_client.o nts_ntp_server.o"
