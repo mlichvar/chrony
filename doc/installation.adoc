@@ -26,6 +26,7 @@ A C compiler (e.g. `gcc` or `clang`) and GNU Make are needed to build `chrony`.
 The following libraries with their development files, and programs, are needed
 to enable optional features:
 
+* pkg-config: detection of development libraries
 * Nettle, NSS, or LibTomCrypt: secure hash functions (`SECHASH`)
 * libcap: dropping root privileges on Linux (`DROPROOT`)
 * libseccomp: system call filter on Linux (`SCFILTER`)
@@ -34,6 +35,12 @@ to enable optional features:
 * timepps.h header: PPS reference clock
 * Asciidoctor: documentation in HTML format
 * Bash: test suite
+
+The following programs are needed when building `chrony` from the git
+repository instead of a released tar file:
+
+* Asciidoctor: manual pages
+* Bison: parser for chronyc settime command
 
 After unpacking the source code, change directory into it, and type
 
