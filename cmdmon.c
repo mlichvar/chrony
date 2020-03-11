@@ -134,6 +134,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* ONOFFLINE */
   PERMIT_AUTH, /* ADD_SOURCE */
   PERMIT_OPEN, /* NTP_SOURCE_NAME */
+  PERMIT_AUTH, /* RESET */
 };
 
 /* ================================================== */
@@ -1219,6 +1220,18 @@ handle_ntp_source_name(CMD_Request *rx_message, CMD_Reply *tx_message)
 }
 
 /* ================================================== */
+
+static void
+handle_reset(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  struct timespec cooked_now, now;
+
+  SRC_ResetSources();
+  SCH_GetLastEventTime(&cooked_now, NULL, &now);
+  LCL_NotifyExternalTimeStep(&now, &cooked_now, 0.0, 0.0);
+}
+
+/* ================================================== */
 /* Read a packet and process it */
 
 static void
@@ -1593,6 +1606,10 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
         case REQ_NTP_SOURCE_NAME:
           handle_ntp_source_name(&rx_message, &tx_message);
+          break;
+
+        case REQ_RESET:
+          handle_reset(&rx_message, &tx_message);
           break;
 
         default:

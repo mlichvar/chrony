@@ -1252,6 +1252,17 @@ SRC_RemoveDumpFiles(void)
 
 /* ================================================== */
 
+void
+SRC_ResetSources(void)
+{
+  int i;
+
+  for (i = 0; i < n_sources; i++)
+    SRC_ResetInstance(sources[i]);
+}
+
+/* ================================================== */
+
 int
 SRC_IsSyncPeer(SRC_Instance inst)
 {

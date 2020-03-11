@@ -1269,6 +1269,7 @@ give_help(void)
     "cyclelogs\0Close and re-open log files\0"
     "dump\0Dump all measurements to save files\0"
     "rekey\0Re-read keys from key file\0"
+    "reset\0Drop all measurements\0"
     "shutdown\0Stop daemon\0"
     "\0\0"
     "Client commands:\0\0"
@@ -1315,7 +1316,7 @@ command_name_generator(const char *text, int state)
     "deny", "dns", "dump", "exit", "help", "keygen", "local", "makestep",
     "manual", "maxdelay", "maxdelaydevratio", "maxdelayratio", "maxpoll",
     "maxupdateskew", "minpoll", "minstratum", "ntpdata", "offline", "online", "onoffline",
-    "polltarget", "quit", "refresh", "rekey", "reselect", "reselectdist",
+    "polltarget", "quit", "refresh", "rekey", "reselect", "reselectdist", "reset",
     "retries", "rtcdata", "serverstats", "settime", "shutdown", "smoothing",
     "smoothtime", "sourcename", "sources", "sourcestats",
     "timeout", "tracking", "trimrtc", "waitsync", "writertc",
@@ -2835,6 +2836,14 @@ process_cmd_shutdown(CMD_Request *msg, char *line)
 
 /* ================================================== */
 
+static void
+process_cmd_reset(CMD_Request *msg, char *line)
+{
+  msg->command = htons(REQ_RESET);
+}
+
+/* ================================================== */
+
 static int
 process_cmd_waitsync(char *line)
 {
@@ -3129,6 +3138,8 @@ process_line(char *line)
     process_cmd_reselect(&tx_message, line);
   } else if (!strcmp(command, "reselectdist")) {
     do_normal_submit = process_cmd_reselectdist(&tx_message, line);
+  } else if (!strcmp(command, "reset")) {
+    process_cmd_reset(&tx_message, line);
   } else if (!strcmp(command, "retries")) {
     ret = process_cmd_retries(line);
     do_normal_submit = 0;

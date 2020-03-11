@@ -103,7 +103,8 @@
 #define REQ_ONOFFLINE 63
 #define REQ_ADD_SOURCE 64
 #define REQ_NTP_SOURCE_NAME 65
-#define N_REQUEST_TYPES 66
+#define REQ_RESET 66
+#define N_REQUEST_TYPES 67
 
 /* Structure used to exchange timespecs independent of time_t size */
 typedef struct {

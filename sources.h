@@ -114,6 +114,8 @@ extern void SRC_DumpSources(void);
 extern void SRC_ReloadSources(void);
 extern void SRC_RemoveDumpFiles(void);
 
+extern void SRC_ResetSources(void);
+
 extern int SRC_IsSyncPeer(SRC_Instance inst);
 extern int SRC_IsReachable(SRC_Instance inst);
 extern int SRC_ReadNumberOfSources(void);

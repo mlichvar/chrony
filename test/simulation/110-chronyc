@@ -138,6 +138,7 @@ for chronyc_conf in \
 	"rekey" \
 	"reselect" \
 	"reselectdist 1e-3" \
+	"reset" \
 	"settime 16:30" \
 	"settime 16:30:05" \
 	"settime Nov 21, 2015 16:30:05" \
