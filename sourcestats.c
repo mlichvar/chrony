@@ -180,9 +180,6 @@ struct SST_Stats_Record {
 
   /* The stratum from the last accumulated sample */
   int stratum;
-
-  /* The leap status from the last accumulated sample */
-  NTP_Leap leap;
 };
 
 /* ================================================== */
@@ -258,7 +255,6 @@ SST_ResetInstance(SST_Stats inst)
   inst->nruns = 0;
   inst->asymmetry_run = 0;
   inst->asymmetry = 0.0;
-  inst->leap = LEAP_Unsynchronised;
 }
 
 /* ================================================== */
@@ -326,7 +322,6 @@ SST_AccumulateSample(SST_Stats inst, NTP_Sample *sample)
   inst->root_delays[m] = sample->root_delay;
   inst->root_dispersions[m] = sample->root_dispersion;
   inst->stratum = sample->stratum;
-  inst->leap = sample->leap;
  
   if (inst->peer_delays[n] < inst->fixed_min_delay)
     inst->peer_delays[n] = 2.0 * inst->fixed_min_delay - inst->peer_delays[n];
@@ -655,7 +650,7 @@ SST_GetFrequencyRange(SST_Stats inst,
 
 void
 SST_GetSelectionData(SST_Stats inst, struct timespec *now,
-                     int *stratum, NTP_Leap *leap,
+                     int *stratum,
                      double *offset_lo_limit,
                      double *offset_hi_limit,
                      double *root_distance,
@@ -676,7 +671,6 @@ SST_GetSelectionData(SST_Stats inst, struct timespec *now,
   j = get_buf_index(inst, inst->best_single_sample);
 
   *stratum = inst->stratum;
-  *leap = inst->leap;
   *std_dev = inst->std_dev;
 
   sample_elapsed = fabs(UTI_DiffTimespecsToDouble(now, &inst->sample_times[i]));

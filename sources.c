@@ -54,7 +54,6 @@ static int initialised = 0;
 /* ================================================== */
 /* Structure used to hold info for selecting between sources */
 struct SelectInfo {
-  NTP_Leap leap;
   int stratum;
   int select_ok;
   double std_dev;
@@ -126,6 +125,9 @@ struct SRC_Instance_Record {
   double sel_score;
 
   struct SelectInfo sel_info;
+
+  /* Latest leap status */
+  NTP_Leap leap;
 };
 
 /* ================================================== */
@@ -298,6 +300,7 @@ SRC_ResetInstance(SRC_Instance instance)
   instance->distant = 0;
   instance->status = SRC_BAD_STATS;
   instance->sel_score = 1.0;
+  instance->leap = LEAP_Unsynchronised;
 
   SST_ResetInstance(instance->stats);
 }
@@ -348,6 +351,7 @@ SRC_AccumulateSample(SRC_Instance inst, NTP_Sample *sample)
 
   SST_AccumulateSample(inst->stats, sample);
   SST_DoNewRegression(inst->stats);
+  inst->leap = sample->leap;
 }
 
 /* ================================================== */
@@ -642,7 +646,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     }
 
     si = &sources[i]->sel_info;
-    SST_GetSelectionData(sources[i]->stats, &now, &si->stratum, &si->leap,
+    SST_GetSelectionData(sources[i]->stats, &now, &si->stratum,
                          &si->lo_limit, &si->hi_limit, &si->root_distance,
                          &si->std_dev, &first_sample_ago,
                          &si->last_sample_ago, &si->select_ok);
@@ -921,9 +925,9 @@ SRC_SelectSource(SRC_Instance updated_inst)
     if (best_trust_depth && !(sources[index]->sel_options & SRC_SELECT_TRUST))
       continue;
     leap_votes++;
-    if (sources[index]->sel_info.leap == LEAP_InsertSecond)
+    if (sources[index]->leap == LEAP_InsertSecond)
       leap_ins++;
-    else if (sources[index]->sel_info.leap == LEAP_DeleteSecond)
+    else if (sources[index]->leap == LEAP_DeleteSecond)
       leap_del++;
   }
 

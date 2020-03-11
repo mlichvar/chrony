@@ -69,7 +69,7 @@ extern void SST_GetFrequencyRange(SST_Stats inst, double *lo, double *hi);
 /* Get data needed for selection */
 extern void
 SST_GetSelectionData(SST_Stats inst, struct timespec *now,
-                     int *stratum, NTP_Leap *leap,
+                     int *stratum,
                      double *offset_lo_limit,
                      double *offset_hi_limit,
                      double *root_distance,
