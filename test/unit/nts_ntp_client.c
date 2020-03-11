@@ -85,7 +85,7 @@ get_request(NNC_Instance inst)
   TEST_CHECK(!NNC_GenerateRequestAuth(inst, &packet, &info));
 
   while (!NNC_PrepareForAuth(inst)) {
-    inst->last_nke_attempt.tv_sec = random();
+    inst->last_nke_attempt = random() % 100000 - 50000;
   }
 
   TEST_CHECK(inst->num_cookies > 0);

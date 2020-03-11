@@ -54,8 +54,8 @@ struct NNC_Instance_Record {
   SIV_Instance siv_s2c;
   NKC_Instance nke;
 
-  struct timespec last_nke_attempt;
-  struct timespec last_nke_success;
+  double last_nke_attempt;
+  double last_nke_success;
   NKE_Cookie cookies[NTS_MAX_COOKIES];
   int num_cookies;
   int cookie_index;
@@ -70,8 +70,8 @@ struct NNC_Instance_Record {
 static void
 reset_instance(NNC_Instance inst)
 {
-  UTI_ZeroTimespec(&inst->last_nke_attempt);
-  UTI_ZeroTimespec(&inst->last_nke_success);
+  inst->last_nke_attempt = -MIN_NKE_RETRY_INTERVAL;
+  inst->last_nke_success = 0.0;
   inst->num_cookies = 0;
   inst->cookie_index = 0;
   inst->nak_response = 0;
@@ -122,8 +122,6 @@ NNC_DestroyInstance(NNC_Instance inst)
 static int
 is_nke_needed(NNC_Instance inst)
 {
-  struct timespec now;
-
   /* Force NKE if a NAK was received since last valid auth */
   if (inst->nak_response && !inst->ok_response && inst->num_cookies > 0) {
     inst->num_cookies = 0;
@@ -131,11 +129,9 @@ is_nke_needed(NNC_Instance inst)
   }
 
   /* Force NKE if the keys encrypting the cookies are too old */
-  if (inst->num_cookies > 0) {
-    SCH_GetLastEventTime(&now, NULL, NULL);
-    if (fabs(UTI_DiffTimespecsToDouble(&inst->last_nke_success, &now)) > CNF_GetNtsRefresh())
-      inst->num_cookies = 0;
-  }
+  if (inst->num_cookies > 0 &&
+      SCH_GetLastEventMonoTime() - inst->last_nke_success > CNF_GetNtsRefresh())
+    inst->num_cookies = 0;
 
   return inst->num_cookies == 0;
 }
@@ -177,15 +173,15 @@ get_nke_data(NNC_Instance inst)
   NTP_Remote_Address ntp_address;
   SIV_Algorithm siv;
   NKE_Key c2s, s2c;
-  struct timespec now;
+  double now;
   int got_data;
 
   assert(is_nke_needed(inst));
 
+  now = SCH_GetLastEventMonoTime();
+
   if (!inst->nke) {
-    SCH_GetLastEventTime(&now, NULL, NULL);
-    if (fabs(UTI_DiffTimespecsToDouble(&inst->last_nke_attempt, &now)) <
-          MIN_NKE_RETRY_INTERVAL) {
+    if (now - inst->last_nke_attempt < MIN_NKE_RETRY_INTERVAL) {
       DEBUG_LOG("Limiting NTS-KE request rate");
       return 0;
     }
@@ -242,7 +238,7 @@ get_nke_data(NNC_Instance inst)
 
   inst->nak_response = 0;
 
-  SCH_GetLastEventTime(&inst->last_nke_success, NULL, NULL);
+  inst->last_nke_success = now;
 
   return 1;
 }
@@ -422,7 +418,7 @@ NNC_CheckResponseAuth(NNC_Instance inst, NTP_Packet *packet,
 
   /* At this point we know the client interoperates with the server.  Allow a
      new NTS-KE session to be started as soon as the cookies run out. */
-  UTI_ZeroTimespec(&inst->last_nke_attempt);
+  inst->last_nke_attempt = -MIN_NKE_RETRY_INTERVAL;
 
   return 1;
 }
