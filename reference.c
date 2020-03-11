@@ -1131,6 +1131,21 @@ REF_SetUnsynchronised(void)
 /* ================================================== */
 
 void
+REF_UpdateLeapStatus(NTP_Leap leap)
+{
+  struct timespec raw_now;
+
+  /* Wait for a full reference update if not already synchronised */
+  if (!are_we_synchronised)
+    return;
+
+  SCH_GetLastEventTime(NULL, NULL, &raw_now);
+  update_leap_status(leap, raw_now.tv_sec, 0);
+}
+
+/* ================================================== */
+
+void
 REF_GetReferenceParams
 (
  struct timespec *local_time,

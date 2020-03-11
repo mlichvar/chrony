@@ -128,6 +128,9 @@ struct SRC_Instance_Record {
 
   /* Latest leap status */
   NTP_Leap leap;
+
+  /* Flag indicating the source has a leap second vote */
+  int leap_vote;
 };
 
 /* ================================================== */
@@ -301,6 +304,7 @@ SRC_ResetInstance(SRC_Instance instance)
   instance->status = SRC_BAD_STATS;
   instance->sel_score = 1.0;
   instance->leap = LEAP_Unsynchronised;
+  instance->leap_vote = 0;
 
   SST_ResetInstance(instance->stats);
 }
@@ -326,6 +330,34 @@ SRC_GetSourcestats(SRC_Instance instance)
 
 /* ================================================== */
 
+static NTP_Leap
+get_leap_status(void)
+{
+  int i, leap_votes, leap_ins, leap_del;
+
+  /* Accept a leap second if more than half of the sources with a vote agree */
+
+  for (i = leap_ins = leap_del = leap_votes = 0; i < n_sources; i++) {
+    if (!sources[i]->leap_vote)
+      continue;
+
+    leap_votes++;
+    if (sources[i]->leap == LEAP_InsertSecond)
+      leap_ins++;
+    else if (sources[i]->leap == LEAP_DeleteSecond)
+      leap_del++;
+  }
+
+  if (leap_ins > leap_votes / 2)
+    return LEAP_InsertSecond;
+  else if (leap_del > leap_votes / 2)
+    return LEAP_DeleteSecond;
+  else
+    return LEAP_Normal;
+}
+
+/* ================================================== */
+
 void
 SRC_SetLeapStatus(SRC_Instance inst, NTP_Leap leap)
 {
@@ -333,6 +365,9 @@ SRC_SetLeapStatus(SRC_Instance inst, NTP_Leap leap)
     return;
 
   inst->leap = leap;
+
+  if (inst->leap_vote)
+    REF_UpdateLeapStatus(get_leap_status());
 }
 
 /* ================================================== */
@@ -609,7 +644,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   int n_badstats_sources, max_sel_reach, max_sel_reach_size, max_badstat_reach;
   int depth, best_depth, trust_depth, best_trust_depth;
   int combined, stratum, min_stratum, max_score_index;
-  int orphan_stratum, orphan_source, leap_votes, leap_ins, leap_del;
+  int orphan_stratum, orphan_source;
   double src_offset, src_offset_sd, src_frequency, src_frequency_sd, src_skew;
   double src_root_delay, src_root_dispersion;
   double best_lo, best_hi, distance, sel_src_distance, max_score;
@@ -692,6 +727,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     }
 
     sources[i]->status = SRC_OK; /* For now */
+    sources[i]->leap_vote = 0;
 
     if (sources[i]->reachability && max_reach_sample_ago < first_sample_ago)
       max_reach_sample_ago = first_sample_ago;
@@ -928,25 +964,14 @@ SRC_SelectSource(SRC_Instance updated_inst)
     return;
   }
 
-  /* Accept leap second status if more than half of selectable (and trusted
-     if there are any) sources agree */
-  for (i = leap_ins = leap_del = leap_votes = 0; i < n_sel_sources; i++) {
+  /* Enable the selectable sources (and trusted if there are any) to
+     vote on leap seconds */
+  for (i = 0; i < n_sel_sources; i++) {
     index = sel_sources[i];
     if (best_trust_depth && !(sources[index]->sel_options & SRC_SELECT_TRUST))
       continue;
-    leap_votes++;
-    if (sources[index]->leap == LEAP_InsertSecond)
-      leap_ins++;
-    else if (sources[index]->leap == LEAP_DeleteSecond)
-      leap_del++;
+    sources[index]->leap_vote = 1;
   }
-
-  if (leap_ins > leap_votes / 2)
-    leap_status = LEAP_InsertSecond;
-  else if (leap_del > leap_votes / 2)
-    leap_status = LEAP_DeleteSecond;
-  else
-    leap_status = LEAP_Normal;
 
   /* If there are any sources with prefer option, reduce the list again
      only to the preferred sources */
@@ -1078,6 +1103,8 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
   for (i = 0; i < n_sources; i++)
     sources[i]->updates = 0;
+
+  leap_status = get_leap_status();
 
   /* Now just use the statistics of the selected source combined with
      the other selectable sources for trimming the local clock */
