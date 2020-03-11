@@ -1128,7 +1128,7 @@ slew_sources(struct timespec *raw, struct timespec *cooked, double dfreq,
   }
 
   if (change_type == LCL_ChangeUnknownStep) {
-    /* After resetting no source is selectable, set reference unsynchronised */
+    /* Update selection status */
     SRC_SelectSource(NULL);
   }
 }

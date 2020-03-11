@@ -168,6 +168,7 @@ handle_slew(struct timespec *raw,
 
   if (change_type == LCL_ChangeUnknownStep) {
     last_ref_update = 0.0;
+    REF_SetUnsynchronised();
   }
 
   /* When the clock was stepped, check if that doesn't change our leap status
