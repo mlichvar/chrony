@@ -152,7 +152,6 @@ typedef struct {
   double root_delay;
   double root_dispersion;
   int stratum;
-  NTP_Leap leap;
 } NTP_Sample;
 
 #endif /* GOT_NTP_H */

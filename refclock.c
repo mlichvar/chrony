@@ -415,7 +415,6 @@ accumulate_sample(RCL_Instance instance, struct timespec *sample_time, double of
   sample.root_delay = instance->delay;
   sample.peer_dispersion = dispersion;
   sample.root_dispersion = dispersion;
-  sample.leap = instance->leap_status;
 
   /* Handle special case when PPS is used with the local reference */
   if (instance->pps_active && instance->lock_ref == -1)
@@ -704,6 +703,7 @@ poll_timeout(void *arg)
 
     if (SPF_GetFilteredSample(inst->filter, &sample)) {
       SRC_UpdateReachability(inst->source, 1);
+      SRC_SetLeapStatus(inst->source, inst->leap_status);
       SRC_AccumulateSample(inst->source, &sample);
       SRC_SelectSource(inst->source);
 

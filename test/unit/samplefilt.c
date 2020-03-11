@@ -35,6 +35,9 @@ test_unit(void)
 
   LCL_Initialise();
 
+  memset(&sample_in, 0, sizeof (sample_in));
+  memset(&sample_out, 0, sizeof (sample_out));
+
   for (i = 0; i <= 100; i++) {
     max_samples = random() % 20 + 1;
     min_samples = random() % (max_samples) + 1;
@@ -57,7 +60,6 @@ test_unit(void)
         sample_in.peer_delay = TST_GetRandomDouble(1.0e-2, 2.0e-2);
         sample_in.root_delay = TST_GetRandomDouble(1.0e-1, 2.0e-1);
         sample_in.stratum = random() % 16;
-        sample_in.leap = random() % 4;
 
         TEST_CHECK(SPF_AccumulateSample(filter, &sample_in));
         TEST_CHECK(!SPF_AccumulateSample(filter, &sample_in));
@@ -95,7 +97,6 @@ test_unit(void)
                    sample_out.peer_delay <= 2.0e-2);
         TEST_CHECK(sample_out.root_delay >= 1.0e-1 &&
                    sample_out.root_delay <= 2.0e-1);
-        TEST_CHECK(sample_out.leap >= 0 && sample_out.leap <= 3);
         TEST_CHECK(sample_out.stratum >= 0 && sample_out.stratum <= 15);
 
         if (max_samples == 1)

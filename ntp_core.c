@@ -1682,7 +1682,6 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
   sample.root_delay = pkt_root_delay + sample.peer_delay;
   sample.root_dispersion = pkt_root_dispersion + sample.peer_dispersion;
   sample.stratum = MAX(message->stratum, inst->min_stratum);
-  sample.leap = (NTP_Leap)pkt_leap;
 
   /* Update the NTP timestamps.  If it's a valid packet from a synchronised
      source, the timestamps may be used later when processing a packet in the
@@ -1772,6 +1771,7 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
     inst->tx_count = 0;
 
     SRC_UpdateReachability(inst->source, synced_packet);
+    SRC_SetLeapStatus(inst->source, pkt_leap);
 
     if (good_packet) {
       /* Adjust the polling interval, accumulate the sample, etc. */

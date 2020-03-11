@@ -326,6 +326,17 @@ SRC_GetSourcestats(SRC_Instance instance)
 
 /* ================================================== */
 
+void
+SRC_SetLeapStatus(SRC_Instance inst, NTP_Leap leap)
+{
+  if (REF_IsLeapSecondClose())
+    return;
+
+  inst->leap = leap;
+}
+
+/* ================================================== */
+
 /* This function is called by one of the source drivers when it has
    a new sample that is to be accumulated.
 
@@ -351,7 +362,6 @@ SRC_AccumulateSample(SRC_Instance inst, NTP_Sample *sample)
 
   SST_AccumulateSample(inst->stats, sample);
   SST_DoNewRegression(inst->stats);
-  inst->leap = sample->leap;
 }
 
 /* ================================================== */

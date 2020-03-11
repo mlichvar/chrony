@@ -71,7 +71,6 @@ test_unit(void)
         sample.root_delay = sample.peer_delay;
         sample.root_dispersion = sample.peer_dispersion;
         sample.stratum = 1;
-        sample.leap = LEAP_Normal;
 
         DEBUG_LOG("source %d sample %d offset %f delay %f disp %f", j, k,
                   sample.offset, sample.peer_delay, sample.peer_dispersion);
