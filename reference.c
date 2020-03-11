@@ -45,6 +45,9 @@
 /* The update interval of the reference in the local reference mode */
 #define LOCAL_REF_UPDATE_INTERVAL 64.0
 
+/* Interval between updates of the drift file */
+#define MAX_DRIFTFILE_AGE 3600.0
+
 static int are_we_synchronised;
 static int enable_local_stratum;
 static int local_stratum;
@@ -138,8 +141,8 @@ static struct fb_drift *fb_drifts = NULL;
 static int next_fb_drift;
 static SCH_TimeoutID fb_drift_timeout_id;
 
-/* Timestamp of last reference update */
-static struct timespec last_ref_update;
+/* Monotonic timestamp of the last reference update */
+static double last_ref_update;
 static double last_ref_update_interval;
 
 /* ================================================== */
@@ -164,9 +167,7 @@ handle_slew(struct timespec *raw,
     UTI_AdjustTimespec(&our_ref_time, cooked, &our_ref_time, &delta, dfreq, doffset);
 
   if (change_type == LCL_ChangeUnknownStep) {
-    UTI_ZeroTimespec(&last_ref_update);
-  } else if (last_ref_update.tv_sec) {
-    UTI_AdjustTimespec(&last_ref_update, cooked, &last_ref_update, &delta, dfreq, doffset);
+    last_ref_update = 0.0;
   }
 
   /* When the clock was stepped, check if that doesn't change our leap status
@@ -274,7 +275,7 @@ REF_Initialise(void)
   }
 
   UTI_ZeroTimespec(&our_ref_time);
-  UTI_ZeroTimespec(&last_ref_update);
+  last_ref_update = 0.0;
   last_ref_update_interval = 0.0;
 
   LCL_AddParameterChangeHandler(handle_slew, NULL);
@@ -415,16 +416,16 @@ fb_drift_timeout(void *arg)
 /* ================================================== */
 
 static void
-schedule_fb_drift(struct timespec *now)
+schedule_fb_drift(void)
 {
   int i, c, secs;
-  double unsynchronised;
-  struct timespec when;
+  double unsynchronised, now;
 
   if (fb_drift_timeout_id)
     return; /* already scheduled */
 
-  unsynchronised = UTI_DiffTimespecsToDouble(now, &last_ref_update);
+  now = SCH_GetLastEventMonoTime();
+  unsynchronised = now - last_ref_update;
 
   for (c = secs = 0, i = fb_drift_min; i <= fb_drift_max; i++) {
     secs = 1 << i;
@@ -446,8 +447,7 @@ schedule_fb_drift(struct timespec *now)
 
   if (i <= fb_drift_max) {
     next_fb_drift = i;
-    UTI_AddDoubleToTimespec(now, secs - unsynchronised, &when);
-    fb_drift_timeout_id = SCH_AddTimeout(&when, fb_drift_timeout, NULL);
+    fb_drift_timeout_id = SCH_AddTimeoutByDelay(secs - unsynchronised, fb_drift_timeout, NULL);
     DEBUG_LOG("Fallback drift %d scheduled", i);
   }
 }
@@ -944,7 +944,7 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
 {
   double uncorrected_offset, accumulate_offset, step_offset;
   double residual_frequency, local_abs_frequency;
-  double elapsed, update_interval, correction_rate, orig_root_distance;
+  double elapsed, mono_now, update_interval, correction_rate, orig_root_distance;
   struct timespec now, raw_now;
   int manual;
 
@@ -958,6 +958,7 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
 
   manual = leap == LEAP_Unsynchronised;
 
+  mono_now = SCH_GetLastEventMonoTime();
   LCL_ReadRawTime(&raw_now);
   LCL_GetOffsetCorrection(&raw_now, &uncorrected_offset, NULL);
   UTI_AddDoubleToTimespec(&raw_now, uncorrected_offset, &now);
@@ -966,9 +967,8 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
   offset += elapsed * frequency;
   offset_sd += elapsed * frequency_sd;
 
-  if (last_ref_update.tv_sec) {
-    update_interval = UTI_DiffTimespecsToDouble(&now, &last_ref_update);
-    update_interval = MAX(update_interval, 0.0);
+  if (last_ref_update != 0.0) {
+    update_interval = mono_now - last_ref_update;
   } else {
     update_interval = 0.0;
   }
@@ -994,7 +994,7 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
   our_residual_freq = residual_frequency;
   our_root_delay = root_delay;
   our_root_dispersion = root_dispersion;
-  last_ref_update = now;
+  last_ref_update = mono_now;
   last_ref_update_interval = update_interval;
   last_offset = offset;
 
@@ -1050,7 +1050,7 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
   if (drift_file) {
     /* Update drift file at most once per hour */
     drift_file_age += update_interval;
-    if (drift_file_age < 0.0 || drift_file_age > 3600.0) {
+    if (drift_file_age >= MAX_DRIFTFILE_AGE) {
       update_drift_file(local_abs_frequency, our_skew);
       drift_file_age = 0.0;
     }
@@ -1059,7 +1059,7 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
   /* Update fallback drifts */
   if (fb_drifts && are_we_synchronised) {
     update_fb_drifts(local_abs_frequency, update_interval);
-    schedule_fb_drift(&now);
+    schedule_fb_drift();
   }
 
   /* Update the moving average of squares of offset, quickly on start */
@@ -1112,7 +1112,7 @@ REF_SetUnsynchronised(void)
   UTI_AddDoubleToTimespec(&now_raw, uncorrected_offset, &now);
 
   if (fb_drifts) {
-    schedule_fb_drift(&now);
+    schedule_fb_drift();
   }
 
   update_leap_status(LEAP_Unsynchronised, 0, 0);
