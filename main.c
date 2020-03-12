@@ -411,7 +411,7 @@ int main
   char *user = NULL, *log_file = NULL;
   struct passwd *pw;
   int opt, debug = 0, nofork = 0, address_family = IPADDR_UNSPEC;
-  int do_init_rtc = 0, restarted = 0, client_only = 0, timeout = 0;
+  int do_init_rtc = 0, restarted = 0, client_only = 0, timeout = -1;
   int scfilter_level = 0, lock_memory = 0, sched_priority = 0;
   int clock_control = 1, system_log = 1, log_severity = LOGS_INFO;
   int config_args = 0;
@@ -614,7 +614,7 @@ int main
   REF_SetModeEndHandler(reference_mode_end);
   REF_SetMode(ref_mode);
 
-  if (timeout > 0)
+  if (timeout >= 0)
     SCH_AddTimeoutByDelay(timeout, quit_timeout, NULL);
 
   if (do_init_rtc) {
