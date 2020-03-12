@@ -65,6 +65,8 @@ static double our_skew;
 static double our_residual_freq;
 static double our_root_delay;
 static double our_root_dispersion;
+static double our_offset_sd;
+static double our_frequency_sd;
 
 static double max_update_skew;
 
@@ -200,6 +202,8 @@ REF_Initialise(void)
   our_frequency_ppm = 0.0;
   our_skew = 1.0; /* i.e. rather bad */
   our_residual_freq = 0.0;
+  our_frequency_sd = 0.0;
+  our_offset_sd = 0.0;
   drift_file_age = 0.0;
 
   /* Now see if we can get the drift file opened */
@@ -803,6 +807,20 @@ get_root_dispersion(struct timespec *ts)
 /* ================================================== */
 
 static void
+update_sync_status(struct timespec *now)
+{
+  double elapsed;
+
+  elapsed = fabs(UTI_DiffTimespecsToDouble(now, &our_ref_time));
+
+  LCL_SetSyncStatus(are_we_synchronised,
+                    our_offset_sd + elapsed * our_frequency_sd,
+                    our_root_delay / 2.0 + get_root_dispersion(now));
+}
+
+/* ================================================== */
+
+static void
 write_log(struct timespec *now, int combined_sources, double freq,
           double offset, double offset_sd, double uncorrected_offset,
           double orig_root_distance)
@@ -966,7 +984,6 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
 
   elapsed = UTI_DiffTimespecsToDouble(&now, ref_time);
   offset += elapsed * frequency;
-  offset_sd += elapsed * frequency_sd;
 
   if (last_ref_update != 0.0) {
     update_interval = mono_now - last_ref_update;
@@ -995,6 +1012,8 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
   our_residual_freq = residual_frequency;
   our_root_delay = root_delay;
   our_root_dispersion = root_dispersion;
+  our_frequency_sd = offset_sd;
+  our_offset_sd = offset_sd;
   last_ref_update = mono_now;
   last_ref_update_interval = update_interval;
   last_offset = offset;
@@ -1027,7 +1046,6 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
   /* Adjust the clock */
   LCL_AccumulateFrequencyAndOffset(frequency, accumulate_offset, correction_rate);
     
-  update_leap_status(leap, raw_now.tv_sec, 0);
   maybe_log_offset(offset, raw_now.tv_sec);
 
   if (step_offset != 0.0) {
@@ -1035,8 +1053,8 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
       LOG(LOGS_WARN, "System clock was stepped by %.6f seconds", -step_offset);
   }
 
-  LCL_SetSyncStatus(are_we_synchronised, offset_sd,
-                    root_delay / 2.0 + get_root_dispersion(&now));
+  update_leap_status(leap, raw_now.tv_sec, 0);
+  update_sync_status(&now);
 
   /* Add a random error of up to one second to the reference time to make it
      less useful when disclosed to NTP and cmdmon clients for estimating
@@ -1133,14 +1151,18 @@ REF_SetUnsynchronised(void)
 void
 REF_UpdateLeapStatus(NTP_Leap leap)
 {
-  struct timespec raw_now;
+  struct timespec raw_now, now;
 
   /* Wait for a full reference update if not already synchronised */
   if (!are_we_synchronised)
     return;
 
-  SCH_GetLastEventTime(NULL, NULL, &raw_now);
+  SCH_GetLastEventTime(&now, NULL, &raw_now);
+
   update_leap_status(leap, raw_now.tv_sec, 0);
+
+  /* Update also the synchronisation status */
+  update_sync_status(&now);
 }
 
 /* ================================================== */
