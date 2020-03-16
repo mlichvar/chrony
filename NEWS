@@ -13,7 +13,7 @@ Enhancements
 * Update seccomp filter
 * Add "add pool" command
 * Add -N option and sourcename command to print original names of sources
-* Add -a option to source/sourcestats command to print unresolved sources
+* Add -a option to sources/sourcestats command to print unresolved sources
 * Add reset command to drop all measurements
 
 Bug fixes
