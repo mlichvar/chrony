@@ -43,7 +43,7 @@ check_chronyd_exit || test_fail
 check_source_selection || test_fail
 check_sync || test_fail
 
-check_file_messages "20.*123\.1.* 111 111 1111" 91 93 measurements.log || test_fail
+check_file_messages "20.*123\.1.* 111 111 1111" 90 93 measurements.log || test_fail
 check_file_messages "20.*123\.1.* 111 001 0000" 30 32 measurements.log || test_fail
 rm -f tmp/measurements.log
 
@@ -55,11 +55,12 @@ check_chronyd_exit || test_fail
 check_source_selection || test_fail
 check_sync || test_fail
 
-check_file_messages "20.*123\.1.* 111 111 1111" 101 103 measurements.log || test_fail
+check_file_messages "20.*123\.1.* 111 111 1111" 99 103 measurements.log || test_fail
 check_file_messages "20.*123\.1.* 111 001 0000" 0 0 measurements.log || test_fail
 rm -f tmp/measurements.log
 
-client_conf=""
+client_conf="
+nosystemcert"
 
 run_test || test_fail
 check_chronyd_exit || test_fail
