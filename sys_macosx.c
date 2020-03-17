@@ -46,8 +46,9 @@
 #include "privops.h"
 #include "util.h"
 
-#ifdef HAVE_MACOS_SYS_TIMEX
 #include <dlfcn.h>
+
+#ifdef HAVE_MACOS_SYS_TIMEX
 #include "sys_netbsd.h"
 
 static int have_ntp_adjtime = 0;
