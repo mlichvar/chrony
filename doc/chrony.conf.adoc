@@ -888,7 +888,7 @@ slightly different rates when it is necessary to keep them close together, the
 enable a server leap smear.
 +
 When smearing a leap second, the leap status is suppressed on the server and
-the served time is corrected slowly be slewing instead of stepping. The clients
+the served time is corrected slowly by slewing instead of stepping. The clients
 do not need any special configuration as they do not know there is any leap
 second and they follow the server time which eventually brings them back to
 UTC. Care must be taken to ensure they use only NTP servers which smear the
