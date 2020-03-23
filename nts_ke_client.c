@@ -318,6 +318,7 @@ int
 NKC_Start(NKC_Instance inst)
 {
   IPSockAddr local_addr;
+  char label[512];
   int sock_fd;
 
   assert(!NKC_IsActive(inst));
@@ -338,9 +339,13 @@ NKC_Start(NKC_Instance inst)
   if (sock_fd < 0)
     return 0;
 
+  /* Make a label containing both the address and name of the server */
+  if (snprintf(label, sizeof (label), "%s (%s)",
+               UTI_IPSockAddrToString(&inst->address), inst->name) >= sizeof (label))
+    ;
+
   /* Start a NTS-KE session */
-  if (!NKSN_StartSession(inst->session, sock_fd, inst->name,
-                         client_credentials, CLIENT_TIMEOUT)) {
+  if (!NKSN_StartSession(inst->session, sock_fd, label, client_credentials, CLIENT_TIMEOUT)) {
     SCK_CloseSocket(sock_fd);
     return 0;
   }
