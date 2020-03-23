@@ -342,6 +342,14 @@ bind_ip_address(int sock_fd, IPSockAddr *addr, int flags)
   if (addr->port > 0 && !SCK_SetIntOption(sock_fd, SOL_SOCKET, SO_REUSEADDR, 1))
     ;
 
+#if defined(LINUX) && defined(SO_REUSEPORT)
+  /* Allow multiple instances to bind to the same port in order to enable load
+     balancing.  Don't enable this option on non-Linux systems as it has
+     a slightly different meaning there (with some important implications). */
+  if (addr->port > 0 && !SCK_SetIntOption(sock_fd, SOL_SOCKET, SO_REUSEPORT, 1))
+    ;
+#endif
+
 #ifdef IP_FREEBIND
   /* Allow binding to an address that doesn't exist yet */
   if (!SCK_SetIntOption(sock_fd, IPPROTO_IP, IP_FREEBIND, 1))
