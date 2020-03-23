@@ -142,7 +142,7 @@ test_unit(void)
   for (i = 0; i < 50; i++) {
     SCH_Initialise();
 
-    server = NKSN_CreateInstance(1, "client", handle_request, NULL);
+    server = NKSN_CreateInstance(1, NULL, handle_request, NULL);
     client = NKSN_CreateInstance(0, "test", handle_response, NULL);
 
     server_cred = NKSN_CreateCertCredentials("nts_ke.crt", "nts_ke.key", NULL);
@@ -152,8 +152,8 @@ test_unit(void)
     TEST_CHECK(fcntl(sock_fds[0], F_SETFL, O_NONBLOCK) == 0);
     TEST_CHECK(fcntl(sock_fds[1], F_SETFL, O_NONBLOCK) == 0);
 
-    TEST_CHECK(NKSN_StartSession(server, sock_fds[0], server_cred, 4.0));
-    TEST_CHECK(NKSN_StartSession(client, sock_fds[1], client_cred, 4.0));
+    TEST_CHECK(NKSN_StartSession(server, sock_fds[0], "client", server_cred, 4.0));
+    TEST_CHECK(NKSN_StartSession(client, sock_fds[1], "server", client_cred, 4.0));
 
     send_message(client);
 

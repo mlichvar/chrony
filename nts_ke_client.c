@@ -339,7 +339,8 @@ NKC_Start(NKC_Instance inst)
     return 0;
 
   /* Start a NTS-KE session */
-  if (!NKSN_StartSession(inst->session, sock_fd, client_credentials, CLIENT_TIMEOUT)) {
+  if (!NKSN_StartSession(inst->session, sock_fd, inst->name,
+                         client_credentials, CLIENT_TIMEOUT)) {
     SCK_CloseSocket(sock_fd);
     return 0;
   }

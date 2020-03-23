@@ -156,7 +156,7 @@ test_unit(void)
   unlink("ntskeys");
   NKS_Initialise(0);
 
-  session = NKSN_CreateInstance(1, "", handle_message, NULL);
+  session = NKSN_CreateInstance(1, NULL, handle_message, NULL);
 
   for (i = 0; i < 10000; i++) {
     valid = random() % 2;

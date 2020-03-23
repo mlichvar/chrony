@@ -66,12 +66,13 @@ typedef enum {
 
 struct NKSN_Instance_Record {
   int server;
-  char *name;
+  char *server_name;
   NKSN_MessageHandler handler;
   void *handler_arg;
 
   KeState state;
   int sock_fd;
+  char *label;
   gnutls_session_t tls_session;
   SCH_TimeoutID timeout_id;
 
@@ -261,6 +262,9 @@ stop_session(NKSN_Instance inst)
   SCK_CloseSocket(inst->sock_fd);
   inst->sock_fd = INVALID_SOCK_FD;
 
+  Free(inst->label);
+  inst->label = NULL;
+
   gnutls_deinit(inst->tls_session);
   inst->tls_session = NULL;
 
@@ -275,7 +279,7 @@ session_timeout(void *arg)
 {
   NKSN_Instance inst = arg;
 
-  LOG(inst->server ? LOGS_DEBUG : LOGS_ERR, "NTS-KE session with %s timed out", inst->name);
+  LOG(inst->server ? LOGS_DEBUG : LOGS_ERR, "NTS-KE session with %s timed out", inst->label);
 
   inst->timeout_id = 0;
   stop_session(inst);
@@ -360,12 +364,12 @@ handle_event(NKSN_Instance inst, int event)
       r = get_socket_error(inst->sock_fd);
 
       if (r) {
-        LOG(LOGS_ERR, "Could not connect to %s : %s", inst->name, strerror(r));
+        LOG(LOGS_ERR, "Could not connect to %s : %s", inst->label, strerror(r));
         stop_session(inst);
         return 0;
       }
 
-      DEBUG_LOG("Connected to %s", inst->name);
+      DEBUG_LOG("Connected to %s", inst->label);
 
       change_state(inst, KE_HANDSHAKE);
       return 0;
@@ -376,7 +380,7 @@ handle_event(NKSN_Instance inst, int event)
       if (r < 0) {
         if (gnutls_error_is_fatal(r)) {
           LOG(inst->server ? LOGS_DEBUG : LOGS_ERR,
-              "TLS handshake with %s failed : %s", inst->name, gnutls_strerror(r));
+              "TLS handshake with %s failed : %s", inst->label, gnutls_strerror(r));
           stop_session(inst);
           return 0;
         }
@@ -390,12 +394,12 @@ handle_event(NKSN_Instance inst, int event)
       if (DEBUG) {
         char *description = gnutls_session_get_desc(inst->tls_session);
         DEBUG_LOG("Handshake with %s completed %s",
-                  inst->name, description ? description : "");
+                  inst->label, description ? description : "");
         gnutls_free(description);
       }
 
       if (!check_alpn(inst)) {
-        LOG(inst->server ? LOGS_DEBUG : LOGS_ERR, "NTS-KE not supported by %s", inst->name);
+        LOG(inst->server ? LOGS_DEBUG : LOGS_ERR, "NTS-KE not supported by %s", inst->label);
         stop_session(inst);
         return 0;
       }
@@ -413,13 +417,13 @@ handle_event(NKSN_Instance inst, int event)
       if (r < 0) {
         if (gnutls_error_is_fatal(r)) {
           LOG(inst->server ? LOGS_DEBUG : LOGS_ERR,
-              "Could not send NTS-KE message to %s : %s", inst->name, gnutls_strerror(r));
+              "Could not send NTS-KE message to %s : %s", inst->label, gnutls_strerror(r));
           stop_session(inst);
         }
         return 0;
       }
 
-      DEBUG_LOG("Sent %d bytes to %s", r, inst->name);
+      DEBUG_LOG("Sent %d bytes to %s", r, inst->label);
 
       message->sent += r;
       if (message->sent < message->length)
@@ -448,13 +452,13 @@ handle_event(NKSN_Instance inst, int event)
           if (gnutls_error_is_fatal(r) || r == GNUTLS_E_REHANDSHAKE) {
             LOG(inst->server ? LOGS_DEBUG : LOGS_ERR,
                 "Could not receive NTS-KE message from %s : %s",
-                inst->name, gnutls_strerror(r));
+                inst->label, gnutls_strerror(r));
             stop_session(inst);
           }
           return 0;
         }
 
-        DEBUG_LOG("Received %d bytes from %s", r, inst->name);
+        DEBUG_LOG("Received %d bytes from %s", r, inst->label);
 
         message->length += r;
 
@@ -462,7 +466,7 @@ handle_event(NKSN_Instance inst, int event)
 
       if (!check_message_format(message, r == 0)) {
         LOG(inst->server ? LOGS_DEBUG : LOGS_ERR,
-            "Received invalid NTS-KE message from %s", inst->name);
+            "Received invalid NTS-KE message from %s", inst->label);
         stop_session(inst);
         return 0;
       }
@@ -480,7 +484,7 @@ handle_event(NKSN_Instance inst, int event)
 
       if (r < 0) {
         if (gnutls_error_is_fatal(r)) {
-          DEBUG_LOG("Shutdown with %s failed : %s", inst->name, gnutls_strerror(r));
+          DEBUG_LOG("Shutdown with %s failed : %s", inst->label, gnutls_strerror(r));
           stop_session(inst);
           return 0;
         }
@@ -620,7 +624,7 @@ NKSN_DestroyCertCredentials(void *credentials)
 /* ================================================== */
 
 NKSN_Instance
-NKSN_CreateInstance(int server_mode, const char *name,
+NKSN_CreateInstance(int server_mode, const char *server_name,
                     NKSN_MessageHandler handler, void *handler_arg)
 {
   NKSN_Instance inst;
@@ -628,7 +632,7 @@ NKSN_CreateInstance(int server_mode, const char *name,
   inst = MallocNew(struct NKSN_Instance_Record);
 
   inst->server = server_mode;
-  inst->name = Strdup(name);
+  inst->server_name = server_name ? Strdup(server_name) : NULL;
   inst->handler = handler;
   inst->handler_arg = handler_arg;
   /* Replace NULL arg with the session itself */
@@ -637,6 +641,7 @@ NKSN_CreateInstance(int server_mode, const char *name,
 
   inst->state = KE_STOPPED;
   inst->sock_fd = INVALID_SOCK_FD;
+  inst->label = NULL;
   inst->tls_session = NULL;
   inst->timeout_id = 0;
 
@@ -650,19 +655,19 @@ NKSN_DestroyInstance(NKSN_Instance inst)
 {
   stop_session(inst);
 
-  Free(inst->name);
+  Free(inst->server_name);
   Free(inst);
 }
 
 /* ================================================== */
 
 int
-NKSN_StartSession(NKSN_Instance inst, int sock_fd, void *credentials, double timeout)
+NKSN_StartSession(NKSN_Instance inst, int sock_fd, const char *label,
+                  void *credentials, double timeout)
 {
   assert(inst->state == KE_STOPPED);
 
-  inst->tls_session = create_tls_session(inst->server, sock_fd,
-                                         inst->server ? NULL : inst->name,
+  inst->tls_session = create_tls_session(inst->server, sock_fd, inst->server_name,
                                          credentials, priority_cache);
   if (!inst->tls_session)
     return 0;
@@ -670,6 +675,7 @@ NKSN_StartSession(NKSN_Instance inst, int sock_fd, void *credentials, double tim
   inst->sock_fd = sock_fd;
   SCH_AddFileHandler(sock_fd, SCH_FILE_INPUT, read_write_socket, inst);
 
+  inst->label = Strdup(label);
   inst->timeout_id = SCH_AddTimeoutByDelay(timeout, session_timeout, inst);
 
   reset_message(&inst->message);

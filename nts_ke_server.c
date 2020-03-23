@@ -113,7 +113,7 @@ handle_client(int sock_fd, IPSockAddr *addr)
     instp = ARR_GetElement(sessions, i);
     if (!*instp) {
       /* NULL handler arg will be replaced with the session instance */
-      inst = NKSN_CreateInstance(1, UTI_IPSockAddrToString(addr), handle_message, NULL);
+      inst = NKSN_CreateInstance(1, NULL, handle_message, NULL);
       *instp = inst;
       break;
     } else if (NKSN_IsStopped(*instp)) {
@@ -128,7 +128,8 @@ handle_client(int sock_fd, IPSockAddr *addr)
     return 0;
   }
 
-  if (!NKSN_StartSession(inst, sock_fd, server_credentials, SERVER_TIMEOUT))
+  if (!NKSN_StartSession(inst, sock_fd, UTI_IPSockAddrToString(addr),
+                         server_credentials, SERVER_TIMEOUT))
     return 0;
 
   return 1;
