@@ -68,7 +68,7 @@ struct Message {
 };
 
 #ifdef HAVE_RECVMMSG
-#define MAX_RECV_MESSAGES 4
+#define MAX_RECV_MESSAGES 16
 #define MessageHeader mmsghdr
 #else
 /* Compatible with mmsghdr */
