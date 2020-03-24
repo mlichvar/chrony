@@ -404,9 +404,6 @@ process_message(SCK_Message *message, int sock_fd, int event)
 static void
 read_from_socket(int sock_fd, int event, void *anything)
 {
-  /* This should only be called when there is something
-     to read, otherwise it may block */
-
   SCK_Message *messages;
   int i, received, flags = 0;
 
