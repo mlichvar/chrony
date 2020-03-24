@@ -613,7 +613,7 @@ log_message(int sock_fd, int direction, SCK_Message *message, const char *prefix
   const char *local_addr, *remote_addr;
   char if_index[20], tss[10], tsif[20], tslen[20];
 
-  if (DEBUG <= 0 || log_min_severity < LOGS_DEBUG)
+  if (DEBUG <= 0 || log_min_severity > LOGS_DEBUG)
     return;
 
   remote_addr = NULL;
