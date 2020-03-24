@@ -139,28 +139,29 @@ handle_client(int sock_fd, IPSockAddr *addr)
 static void
 handle_helper_request(int fd, int event, void *arg)
 {
-  SCK_Message message;
+  SCK_Message *message;
   HelperRequest *req;
   IPSockAddr client_addr;
   int sock_fd;
 
-  if (!SCK_ReceiveMessage(fd, &message, SCK_FLAG_MSG_DESCRIPTOR))
+  message = SCK_ReceiveMessage(fd, SCK_FLAG_MSG_DESCRIPTOR);
+  if (!message)
     return;
 
-  sock_fd = message.descriptor;
+  sock_fd = message->descriptor;
   if (sock_fd < 0) {
     /* Message with no descriptor is a shutdown command */
     SCH_QuitProgram();
     return;
   }
 
-  if (message.length != sizeof (HelperRequest)) {
+  if (message->length != sizeof (HelperRequest)) {
     DEBUG_LOG("Unexpected message length");
     SCK_CloseSocket(sock_fd);
     return;
   }
 
-  req = message.data;
+  req = message->data;
 
   /* Extract the server key and client address from the request */
   server_keys[current_server_key].id = ntohl(req->key_id);

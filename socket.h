@@ -41,9 +41,6 @@
 #define SCK_FLAG_MSG_ERRQUEUE 1
 #define SCK_FLAG_MSG_DESCRIPTOR 2
 
-/* Maximum number of received messages */
-#define SCK_MAX_RECV_MESSAGES 4
-
 typedef enum {
   SCK_ADDR_UNSPEC = 0,
   SCK_ADDR_IP,
@@ -119,12 +116,11 @@ extern int SCK_ShutdownConnection(int sock_fd);
 extern int SCK_Receive(int sock_fd, void *buffer, unsigned int length, int flags);
 extern int SCK_Send(int sock_fd, const void *buffer, unsigned int length, int flags);
 
-/* Receive a single message or multiple messages.  The functions return the
-   number of received messages, or 0 on error.  The returned data point to
-   static buffers, which are valid until another call of these functions.  */
-extern int SCK_ReceiveMessage(int sock_fd, SCK_Message *message, int flags);
-extern int SCK_ReceiveMessages(int sock_fd, SCK_Message *messages, int max_messages,
-                               int flags);
+/* Receive a single message or multiple messages.  The functions return
+   a pointer to static buffers, or NULL on error.  The buffers are valid until
+   another call of the functions and can be reused for sending messages. */
+extern SCK_Message *SCK_ReceiveMessage(int sock_fd, int flags);
+extern SCK_Message *SCK_ReceiveMessages(int sock_fd, int flags, int *num_messages);
 
 /* Initialise a new message (e.g. before sending) */
 extern void SCK_InitMessage(SCK_Message *message, SCK_AddressType addr_type);

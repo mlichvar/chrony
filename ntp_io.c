@@ -407,7 +407,7 @@ read_from_socket(int sock_fd, int event, void *anything)
   /* This should only be called when there is something
      to read, otherwise it may block */
 
-  SCK_Message messages[SCK_MAX_RECV_MESSAGES];
+  SCK_Message *messages;
   int i, received, flags = 0;
 
 #ifdef HAVE_LINUX_TIMESTAMPING
@@ -423,8 +423,8 @@ read_from_socket(int sock_fd, int event, void *anything)
 #endif
   }
 
-  received = SCK_ReceiveMessages(sock_fd, messages, SCK_MAX_RECV_MESSAGES, flags);
-  if (received <= 0)
+  messages = SCK_ReceiveMessages(sock_fd, flags, &received);
+  if (!messages)
     return;
 
   for (i = 0; i < received; i++)

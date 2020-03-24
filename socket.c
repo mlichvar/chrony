@@ -68,7 +68,7 @@ struct Message {
 };
 
 #ifdef HAVE_RECVMMSG
-#define MAX_RECV_MESSAGES SCK_MAX_RECV_MESSAGES
+#define MAX_RECV_MESSAGES 4
 #define MessageHeader mmsghdr
 #else
 /* Compatible with mmsghdr */
@@ -85,9 +85,10 @@ static int initialised;
 /* Flags supported by socket() */
 static int supported_socket_flags;
 
-/* Arrays of Message and MessageHeader */
+/* Arrays of Message, MessageHeader, and SCK_Message */
 static ARR_Instance recv_messages;
 static ARR_Instance recv_headers;
+static ARR_Instance recv_sck_messages;
 
 static unsigned int received_messages;
 
@@ -867,21 +868,26 @@ process_header(struct msghdr *msg, unsigned int msg_length, int sock_fd, int fla
 
 /* ================================================== */
 
-static int
-receive_messages(int sock_fd, SCK_Message *messages, int max_messages, int flags)
+static SCK_Message *
+receive_messages(int sock_fd, int flags, int max_messages, int *num_messages)
 {
   struct MessageHeader *hdr;
+  SCK_Message *messages;
   unsigned int i, n;
   int ret, recv_flags = 0;
 
   assert(initialised);
 
+  *num_messages = 0;
+
   if (max_messages < 1)
-    return 0;
+    return NULL;
 
   /* Prepare used buffers for new messages */
   prepare_buffers(received_messages);
   received_messages = 0;
+
+  messages = ARR_GetElements(recv_sck_messages);
 
   hdr = ARR_GetElements(recv_headers);
   n = ARR_GetSize(recv_headers);
@@ -903,7 +909,7 @@ receive_messages(int sock_fd, SCK_Message *messages, int max_messages, int flags
 
   if (ret < 0) {
     handle_recv_error(sock_fd, flags);
-    return 0;
+    return NULL;
   }
 
   received_messages = n;
@@ -911,13 +917,15 @@ receive_messages(int sock_fd, SCK_Message *messages, int max_messages, int flags
   for (i = 0; i < n; i++) {
     hdr = ARR_GetElement(recv_headers, i);
     if (!process_header(&hdr->msg_hdr, hdr->msg_len, sock_fd, flags, &messages[i]))
-      return 0;
+      return NULL;
 
     log_message(sock_fd, 1, &messages[i],
                 flags & SCK_FLAG_MSG_ERRQUEUE ? "Received error" : "Received", NULL);
   }
 
-  return n;
+  *num_messages = n;
+
+  return messages;
 }
 
 /* ================================================== */
@@ -1092,6 +1100,8 @@ SCK_Initialise(void)
   ARR_SetSize(recv_messages, MAX_RECV_MESSAGES);
   recv_headers = ARR_CreateInstance(sizeof (struct MessageHeader));
   ARR_SetSize(recv_headers, MAX_RECV_MESSAGES);
+  recv_sck_messages = ARR_CreateInstance(sizeof (SCK_Message));
+  ARR_SetSize(recv_sck_messages, MAX_RECV_MESSAGES);
 
   received_messages = MAX_RECV_MESSAGES;
 
@@ -1115,6 +1125,7 @@ SCK_Initialise(void)
 void
 SCK_Finalise(void)
 {
+  ARR_DestroyInstance(recv_sck_messages);
   ARR_DestroyInstance(recv_headers);
   ARR_DestroyInstance(recv_messages);
 
@@ -1381,18 +1392,20 @@ SCK_Send(int sock_fd, const void *buffer, unsigned int length, int flags)
 
 /* ================================================== */
 
-int
-SCK_ReceiveMessage(int sock_fd, SCK_Message *message, int flags)
+SCK_Message *
+SCK_ReceiveMessage(int sock_fd, int flags)
 {
-  return SCK_ReceiveMessages(sock_fd, message, 1, flags);
+  int num_messages;
+
+  return receive_messages(sock_fd, flags, 1, &num_messages);
 }
 
 /* ================================================== */
 
-int
-SCK_ReceiveMessages(int sock_fd, SCK_Message *messages, int max_messages, int flags)
+SCK_Message *
+SCK_ReceiveMessages(int sock_fd, int flags, int *num_messages)
 {
-  return receive_messages(sock_fd, messages, max_messages, flags);
+  return receive_messages(sock_fd, flags, MAX_RECV_MESSAGES, num_messages);
 }
 
 /* ================================================== */

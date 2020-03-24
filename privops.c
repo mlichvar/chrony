@@ -171,22 +171,22 @@ send_response(int fd, const PrvResponse *res)
 static int
 receive_from_daemon(int fd, PrvRequest *req)
 {
-  SCK_Message message;
+  SCK_Message *message;
 
-  if (!SCK_ReceiveMessage(fd, &message, SCK_FLAG_MSG_DESCRIPTOR) ||
-      message.length != sizeof (*req))
+  message = SCK_ReceiveMessage(fd, SCK_FLAG_MSG_DESCRIPTOR);
+  if (!message || message->length != sizeof (*req))
     return 0;
 
-  memcpy(req, message.data, sizeof (*req));
+  memcpy(req, message->data, sizeof (*req));
 
   if (req->op == OP_BINDSOCKET) {
-    req->data.bind_socket.sock = message.descriptor;
+    req->data.bind_socket.sock = message->descriptor;
 
     /* return error if valid descriptor not found */
     if (req->data.bind_socket.sock < 0)
       return 0;
-  } else if (message.descriptor >= 0) {
-    SCK_CloseSocket(message.descriptor);
+  } else if (message->descriptor >= 0) {
+    SCK_CloseSocket(message->descriptor);
     return 0;
   }
 
