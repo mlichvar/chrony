@@ -184,9 +184,9 @@ extern void REF_ModifyMakestep(int limit, double threshold);
 extern void REF_EnableLocal(int stratum, double distance, int orphan);
 extern void REF_DisableLocal(void);
 
-/* Check if current raw or cooked time is close to a leap second
-   and is better to discard any measurements */
-extern int REF_IsLeapSecondClose(void);
+/* Check if either of the current raw and cooked time, and optionally a
+   provided timestamp with an offset, is close to a leap second */
+extern int REF_IsLeapSecondClose(struct timespec *ts, double offset);
 
 /* Return TAI-UTC offset corresponding to a time in UTC if available */
 extern int REF_GetTaiOffset(struct timespec *ts);

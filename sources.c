@@ -361,7 +361,7 @@ get_leap_status(void)
 void
 SRC_SetLeapStatus(SRC_Instance inst, NTP_Leap leap)
 {
-  if (REF_IsLeapSecondClose())
+  if (REF_IsLeapSecondClose(NULL, 0.0))
     return;
 
   inst->leap = leap;
@@ -390,7 +390,7 @@ SRC_AccumulateSample(SRC_Instance inst, NTP_Sample *sample)
             source_to_string(inst), UTI_TimespecToString(&sample->time), -sample->offset,
             sample->root_delay, sample->root_dispersion, sample->stratum);
 
-  if (REF_IsLeapSecondClose()) {
+  if (REF_IsLeapSecondClose(&sample->time, sample->offset)) {
     LOG(LOGS_INFO, "Dropping sample around leap second");
     return;
   }

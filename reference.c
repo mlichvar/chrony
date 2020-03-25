@@ -112,6 +112,9 @@ static void update_drift_file(double, double);
 /* Leap second handling mode */
 static REF_LeapMode leap_mode;
 
+/* Time of UTC midnight of the upcoming or previous leap second */
+static time_t leap_when;
+
 /* Flag indicating the clock was recently corrected for leap second and it may
    not have correct time yet (missing 23:59:60 in the UTC time scale) */
 static int leap_in_progress;
@@ -246,6 +249,7 @@ REF_Initialise(void)
   enable_local_stratum = CNF_AllowLocalReference(&local_stratum, &local_orphan, &local_distance);
   UTI_ZeroTimespec(&local_ref_time);
 
+  leap_when = 0;
   leap_timeout_id = 0;
   leap_in_progress = 0;
   leap_mode = CNF_GetLeapSecMode();
@@ -720,10 +724,12 @@ set_leap_timeout(time_t now)
   if (!our_leap_sec)
     return;
 
+  leap_when = (now / (24 * 3600) + 1) * (24 * 3600);
+
   /* Insert leap second at 0:00:00 UTC, delete at 23:59:59 UTC.  If the clock
      will be corrected by the system, timeout slightly sooner to be sure it
      will happen before the system correction. */
-  when.tv_sec = (now / (24 * 3600) + 1) * (24 * 3600);
+  when.tv_sec = leap_when;
   when.tv_nsec = 0;
   if (our_leap_sec < 0)
     when.tv_sec--;
@@ -767,7 +773,7 @@ update_leap_status(NTP_Leap leap, time_t now, int reset)
   }
   
   if ((leap_sec != our_leap_sec || tai_offset != our_tai_offset)
-      && !REF_IsLeapSecondClose()) {
+      && !REF_IsLeapSecondClose(NULL, 0.0)) {
     our_leap_sec = leap_sec;
     our_tai_offset = tai_offset;
 
@@ -1324,22 +1330,24 @@ REF_DisableLocal(void)
 
 #define LEAP_SECOND_CLOSE 5
 
-int REF_IsLeapSecondClose(void)
+static int
+is_leap_close(time_t t)
+{
+  return t >= leap_when - LEAP_SECOND_CLOSE && t < leap_when + LEAP_SECOND_CLOSE;
+}
+
+/* ================================================== */
+
+int REF_IsLeapSecondClose(struct timespec *ts, double offset)
 {
   struct timespec now, now_raw;
-  time_t t;
-
-  if (!our_leap_sec)
-    return 0;
 
   SCH_GetLastEventTime(&now, NULL, &now_raw);
 
-  t = now.tv_sec > 0 ? now.tv_sec : -now.tv_sec;
-  if ((t + LEAP_SECOND_CLOSE) % (24 * 3600) < 2 * LEAP_SECOND_CLOSE)
+  if (is_leap_close(now.tv_sec) || is_leap_close(now_raw.tv_sec))
     return 1;
 
-  t = now_raw.tv_sec > 0 ? now_raw.tv_sec : -now_raw.tv_sec;
-  if ((t + LEAP_SECOND_CLOSE) % (24 * 3600) < 2 * LEAP_SECOND_CLOSE)
+  if (ts && (is_leap_close(ts->tv_sec) || is_leap_close(ts->tv_sec + offset)))
     return 1;
 
   return 0;
