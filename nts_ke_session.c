@@ -75,6 +75,7 @@ struct NKSN_Instance_Record {
   char *label;
   gnutls_session_t tls_session;
   SCH_TimeoutID timeout_id;
+  int retry_factor;
 
   struct Message message;
   int new_message;
@@ -382,6 +383,12 @@ handle_event(NKSN_Instance inst, int event)
           LOG(inst->server ? LOGS_DEBUG : LOGS_ERR,
               "TLS handshake with %s failed : %s", inst->label, gnutls_strerror(r));
           stop_session(inst);
+
+          /* Increase the retry interval if the handshake did not fail due
+             to the other end closing the connection */
+          if (r != GNUTLS_E_PULL_ERROR && r != GNUTLS_E_PREMATURE_TERMINATION)
+            inst->retry_factor = NKE_RETRY_FACTOR2_TLS;
+
           return 0;
         }
 
@@ -390,6 +397,8 @@ handle_event(NKSN_Instance inst, int event)
                                 gnutls_record_get_direction(inst->tls_session));
         return 0;
       }
+
+      inst->retry_factor = NKE_RETRY_FACTOR2_TLS;
 
       if (DEBUG) {
         char *description = gnutls_session_get_desc(inst->tls_session);
@@ -644,6 +653,7 @@ NKSN_CreateInstance(int server_mode, const char *server_name,
   inst->label = NULL;
   inst->tls_session = NULL;
   inst->timeout_id = 0;
+  inst->retry_factor = NKE_RETRY_FACTOR2_CONNECT;
 
   return inst;
 }
@@ -677,6 +687,7 @@ NKSN_StartSession(NKSN_Instance inst, int sock_fd, const char *label,
 
   inst->label = Strdup(label);
   inst->timeout_id = SCH_AddTimeoutByDelay(timeout, session_timeout, inst);
+  inst->retry_factor = NKE_RETRY_FACTOR2_CONNECT;
 
   reset_message(&inst->message);
   inst->new_message = 0;
@@ -782,4 +793,12 @@ void
 NKSN_StopSession(NKSN_Instance inst)
 {
   stop_session(inst);
+}
+
+/* ================================================== */
+
+int
+NKSN_GetRetryFactor(NKSN_Instance inst)
+{
+  return inst->retry_factor;
 }

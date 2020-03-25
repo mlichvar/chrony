@@ -54,7 +54,8 @@ struct NNC_Instance_Record {
   SIV_Instance siv_s2c;
   NKC_Instance nke;
 
-  double last_nke_attempt;
+  int nke_attempts;
+  double next_nke_attempt;
   double last_nke_success;
   NKE_Cookie cookies[NTS_MAX_COOKIES];
   int num_cookies;
@@ -70,7 +71,8 @@ struct NNC_Instance_Record {
 static void
 reset_instance(NNC_Instance inst)
 {
-  inst->last_nke_attempt = -MIN_NKE_RETRY_INTERVAL;
+  inst->nke_attempts = 0;
+  inst->next_nke_attempt = 0.0;
   inst->last_nke_success = 0.0;
   inst->num_cookies = 0;
   inst->cookie_index = 0;
@@ -167,6 +169,21 @@ set_ntp_address(NNC_Instance inst, NTP_Remote_Address *negotiated_address)
 
 /* ================================================== */
 
+static void
+update_next_nke_attempt(NNC_Instance inst, double now)
+{
+  int factor, interval;
+
+  if (!inst->nke)
+    return;
+
+  factor = NKC_GetRetryFactor(inst->nke);
+  interval = MIN(factor + inst->nke_attempts - 1, NKE_MAX_RETRY_INTERVAL2);
+  inst->next_nke_attempt = now + UTI_Log2ToDouble(interval);
+}
+
+/* ================================================== */
+
 static int
 get_nke_data(NNC_Instance inst)
 {
@@ -181,8 +198,9 @@ get_nke_data(NNC_Instance inst)
   now = SCH_GetLastEventMonoTime();
 
   if (!inst->nke) {
-    if (now - inst->last_nke_attempt < MIN_NKE_RETRY_INTERVAL) {
-      DEBUG_LOG("Limiting NTS-KE request rate");
+    if (now < inst->next_nke_attempt) {
+      DEBUG_LOG("Limiting NTS-KE request rate (%f seconds)",
+                inst->next_nke_attempt - now);
       return 0;
     }
 
@@ -194,11 +212,14 @@ get_nke_data(NNC_Instance inst)
 
     inst->nke = NKC_CreateInstance(&inst->nts_address, inst->name);
 
+    inst->nke_attempts++;
+    update_next_nke_attempt(inst, now);
+
     if (!NKC_Start(inst->nke))
       return 0;
-
-    inst->last_nke_attempt = now;
   }
+
+  update_next_nke_attempt(inst, now);
 
   if (NKC_IsActive(inst->nke))
     return 0;
@@ -418,7 +439,8 @@ NNC_CheckResponseAuth(NNC_Instance inst, NTP_Packet *packet,
 
   /* At this point we know the client interoperates with the server.  Allow a
      new NTS-KE session to be started as soon as the cookies run out. */
-  inst->last_nke_attempt = -MIN_NKE_RETRY_INTERVAL;
+  inst->nke_attempts = 0;
+  inst->next_nke_attempt = 0.0;
 
   return 1;
 }

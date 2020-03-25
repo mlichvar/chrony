@@ -55,4 +55,7 @@ extern int NKC_GetNtsData(NKC_Instance inst,
                           NKE_Cookie *cookies, int *num_cookies, int max_cookies,
                           IPSockAddr *ntp_address);
 
+/* Get a factor to calculate retry interval (in log2 seconds) */
+extern int NKC_GetRetryFactor(NKC_Instance inst);
+
 #endif

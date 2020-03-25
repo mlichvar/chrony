@@ -56,6 +56,10 @@
 #define NKE_MAX_COOKIES                 8
 #define NKE_MAX_KEY_LENGTH SIV_MAX_KEY_LENGTH
 
+#define NKE_RETRY_FACTOR2_CONNECT       4
+#define NKE_RETRY_FACTOR2_TLS           10
+#define NKE_MAX_RETRY_INTERVAL2         19
+
 typedef struct {
   int length;
   unsigned char key[NKE_MAX_KEY_LENGTH];

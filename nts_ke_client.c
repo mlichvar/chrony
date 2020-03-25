@@ -393,3 +393,11 @@ NKC_GetNtsData(NKC_Instance inst,
 
   return i;
 }
+
+/* ================================================== */
+
+int
+NKC_GetRetryFactor(NKC_Instance inst)
+{
+  return NKSN_GetRetryFactor(inst->session);
+}

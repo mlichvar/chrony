@@ -80,4 +80,8 @@ extern int NKSN_IsStopped(NKSN_Instance inst);
 /* Stop the session */
 extern void NKSN_StopSession(NKSN_Instance inst);
 
+/* Get a factor to calculate retry interval (in log2 seconds)
+   based on the session state or how it was terminated */
+extern int NKSN_GetRetryFactor(NKSN_Instance inst);
+
 #endif
