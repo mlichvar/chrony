@@ -381,7 +381,7 @@ change_source_address(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr
   name = record->name;
   severity = UTI_IsIPReal(&old_addr->ip_addr) ? LOGS_INFO : LOGS_DEBUG;
 
-  if (slot1 != slot2) {
+  if (found == 0) {
     /* The hash table must be rebuilt for the changed address */
     rehash_records();
 
