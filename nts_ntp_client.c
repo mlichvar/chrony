@@ -44,7 +44,6 @@
 #include "util.h"
 
 #define MAX_TOTAL_COOKIE_LENGTH (8 * 108)
-#define MIN_NKE_RETRY_INTERVAL 1000
 
 struct NNC_Instance_Record {
   const IPSockAddr *ntp_address;
