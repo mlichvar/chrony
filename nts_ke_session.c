@@ -551,8 +551,9 @@ init_gnutls(void)
   if (r < 0)
     LOG_FATAL("Could not initialise %s : %s", "gnutls", gnutls_strerror(r));
 
-  /* NTS specification requires TLS1.2 or later */
-  r = gnutls_priority_init2(&priority_cache, "-VERS-SSL3.0:-VERS-TLS1.0:-VERS-TLS1.1",
+  /* NTS specification requires TLS1.3 or later */
+  r = gnutls_priority_init2(&priority_cache,
+                            "-VERS-SSL3.0:-VERS-TLS1.0:-VERS-TLS1.1:-VERS-TLS1.2",
                             NULL, GNUTLS_PRIORITY_INIT_DEF_APPEND);
   if (r < 0)
     LOG_FATAL("Could not initialise %s : %s", "priority cache", gnutls_strerror(r));
