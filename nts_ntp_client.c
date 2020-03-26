@@ -288,6 +288,7 @@ NNC_GenerateRequestAuth(NNC_Instance inst, NTP_Packet *packet,
 {
   NKE_Cookie *cookie;
   int i, req_cookies;
+  void *ef_body;
 
   if (inst->num_cookies == 0 || !inst->siv_c2s)
     return 0;
@@ -308,9 +309,10 @@ NNC_GenerateRequestAuth(NNC_Instance inst, NTP_Packet *packet,
     return 0;
 
   for (i = 0; i < req_cookies - 1; i++) {
-    if (!NEF_AddField(packet, info, NTP_EF_NTS_COOKIE_PLACEHOLDER,
-                      cookie->cookie, cookie->length))
+    if (!NEF_AddBlankField(packet, info, NTP_EF_NTS_COOKIE_PLACEHOLDER,
+                           cookie->length, &ef_body))
       return 0;
+    memset(ef_body, 0, cookie->length);
   }
 
   if (!NNA_GenerateAuthEF(packet, info, inst->siv_c2s, inst->nonce, sizeof (inst->nonce),
