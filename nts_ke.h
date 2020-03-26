@@ -46,7 +46,7 @@
 #define NKE_ERROR_INTERNAL_SERVER_ERROR 2
 
 #define NKE_ALPN_NAME                   "ntske/1"
-#define NKE_EXPORTER_LABEL              "EXPORTER-network-time-security/1"
+#define NKE_EXPORTER_LABEL              "EXPORTER-network-time-security"
 #define NKE_EXPORTER_CONTEXT_C2S        "\x0\x0\x0\xf\x0"
 #define NKE_EXPORTER_CONTEXT_S2C        "\x0\x0\x0\xf\x1"
 
