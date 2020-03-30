@@ -32,17 +32,18 @@ static void
 prepare_request(NTP_Packet *packet, NTP_PacketInfo *info, int valid, int nak)
 {
   unsigned char uniq_id[NTS_MIN_UNIQ_ID_LENGTH], nonce[NTS_MIN_UNPADDED_NONCE_LENGTH];
-  NKE_Key c2s, s2c;
   SIV_Instance siv;
+  NKE_Context context;
   NKE_Cookie cookie;
   int i, index, cookie_start, auth_start;
 
-  c2s.length = SIV_GetKeyLength(AEAD_AES_SIV_CMAC_256);
-  UTI_GetRandomBytes(&c2s.key, c2s.length);
-  s2c.length = SIV_GetKeyLength(AEAD_AES_SIV_CMAC_256);
-  UTI_GetRandomBytes(&s2c.key, s2c.length);
+  context.algorithm = SERVER_SIV;
+  context.c2s.length = SIV_GetKeyLength(context.algorithm);
+  UTI_GetRandomBytes(&context.c2s.key, context.c2s.length);
+  context.s2c.length = SIV_GetKeyLength(context.algorithm);
+  UTI_GetRandomBytes(&context.s2c.key, context.s2c.length);
 
-  TEST_CHECK(NKS_GenerateCookie(&c2s, &s2c, &cookie));
+  TEST_CHECK(NKS_GenerateCookie(&context, &cookie));
 
   UTI_GetRandomBytes(uniq_id, sizeof (uniq_id));
   UTI_GetRandomBytes(nonce, sizeof (nonce));
@@ -78,8 +79,8 @@ prepare_request(NTP_Packet *packet, NTP_PacketInfo *info, int valid, int nak)
   auth_start = info->length;
 
   if (index != 2) {
-    siv = SIV_CreateInstance(AEAD_AES_SIV_CMAC_256);
-    TEST_CHECK(SIV_SetKey(siv, c2s.key, c2s.length));
+    siv = SIV_CreateInstance(context.algorithm);
+    TEST_CHECK(SIV_SetKey(siv, context.c2s.key, context.c2s.length));
     TEST_CHECK(NNA_GenerateAuthEF(packet, info, siv, nonce, sizeof (nonce),
                                   (const unsigned char *)"", 0, 0));
     SIV_DestroyInstance(siv);

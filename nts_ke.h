@@ -66,6 +66,12 @@ typedef struct {
 } NKE_Key;
 
 typedef struct {
+  SIV_Algorithm algorithm;
+  NKE_Key c2s;
+  NKE_Key s2c;
+} NKE_Context;
+
+typedef struct {
   int length;
   unsigned char cookie[NKE_MAX_COOKIE_LENGTH];
 } NKE_Cookie;

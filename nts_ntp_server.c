@@ -41,6 +41,8 @@
 #include "siv.h"
 #include "util.h"
 
+#define SERVER_SIV AEAD_AES_SIV_CMAC_256
+
 struct NtsServer {
   SIV_Instance siv;
   unsigned char nonce[NTS_MIN_UNPADDED_NONCE_LENGTH];
@@ -64,7 +66,7 @@ NNS_Initialise(void)
   }
 
   server = Malloc(sizeof (struct NtsServer));
-  server->siv = SIV_CreateInstance(AEAD_AES_SIV_CMAC_256);
+  server->siv = SIV_CreateInstance(SERVER_SIV);
 }
 
 /* ================================================== */
@@ -88,8 +90,8 @@ NNS_CheckRequestAuth(NTP_Packet *packet, NTP_PacketInfo *info, uint32_t *kod)
   int ef_type, ef_body_length, ef_length, has_uniq_id = 0, has_auth = 0, has_cookie = 0;
   int i, plaintext_length, parsed, requested_cookies, cookie_length = -1, auth_start = 0;
   unsigned char plaintext[NTP_MAX_EXTENSIONS_LENGTH];
+  NKE_Context context;
   NKE_Cookie cookie;
-  NKE_Key c2s, s2c;
   void *ef_body;
 
   if (!server)
@@ -144,12 +146,17 @@ NNS_CheckRequestAuth(NTP_Packet *packet, NTP_PacketInfo *info, uint32_t *kod)
     return 0;
   }
 
-  if (!NKS_DecodeCookie(&cookie, &c2s, &s2c)) {
+  if (!NKS_DecodeCookie(&cookie, &context)) {
     *kod = NTP_KOD_NTS_NAK;
     return 0;
   }
 
-  if (!SIV_SetKey(server->siv, c2s.key, c2s.length)) {
+  if (context.algorithm != SERVER_SIV) {
+    DEBUG_LOG("Unexpected SIV");
+    return 0;
+  }
+
+  if (!SIV_SetKey(server->siv, context.c2s.key, context.c2s.length)) {
     DEBUG_LOG("Could not set C2S key");
     return 0;
   }
@@ -178,7 +185,7 @@ NNS_CheckRequestAuth(NTP_Packet *packet, NTP_PacketInfo *info, uint32_t *kod)
     }
   }
 
-  if (!SIV_SetKey(server->siv, s2c.key, s2c.length)) {
+  if (!SIV_SetKey(server->siv, context.s2c.key, context.s2c.length)) {
     DEBUG_LOG("Could not set S2C key");
     return 0;
   }
@@ -187,7 +194,7 @@ NNS_CheckRequestAuth(NTP_Packet *packet, NTP_PacketInfo *info, uint32_t *kod)
 
   server->num_cookies = MIN(NTS_MAX_COOKIES, requested_cookies);
   for (i = 0; i < server->num_cookies; i++)
-    if (!NKS_GenerateCookie(&c2s, &s2c, &server->cookies[i]))
+    if (!NKS_GenerateCookie(&context, &server->cookies[i]))
       return 0;
 
   return 1;

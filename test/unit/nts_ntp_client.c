@@ -32,27 +32,29 @@
 #define NKC_Start(inst) (random() % 2)
 #define NKC_IsActive(inst) (random() % 2)
 
-static int get_nts_data(NKC_Instance inst, SIV_Algorithm *siv_algorithm, NKE_Key *c2s, NKE_Key *s2c,
-                        NKE_Cookie *cookies, int *num_cookies, int max_cookies, IPSockAddr *ntp_address);
+static int get_nts_data(NKC_Instance inst, NKE_Context *context,
+                        NKE_Cookie *cookies, int *num_cookies, int max_cookies,
+                        IPSockAddr *ntp_address);
 #define NKC_GetNtsData get_nts_data
 
 #include <nts_ntp_client.c>
 
 static int
-get_nts_data(NKC_Instance inst, SIV_Algorithm *siv_algorithm, NKE_Key *c2s, NKE_Key *s2c,
-             NKE_Cookie *cookies, int *num_cookies, int max_cookies, IPSockAddr *ntp_address)
+get_nts_data(NKC_Instance inst, NKE_Context *context,
+             NKE_Cookie *cookies, int *num_cookies, int max_cookies,
+             IPSockAddr *ntp_address)
 {
   int i;
 
   if (random() % 2)
     return 0;
 
-  *siv_algorithm = AEAD_AES_SIV_CMAC_256;
+  context->algorithm = AEAD_AES_SIV_CMAC_256;
 
-  c2s->length = SIV_GetKeyLength(*siv_algorithm);
-  UTI_GetRandomBytes(c2s->key, c2s->length);
-  s2c->length = SIV_GetKeyLength(*siv_algorithm);
-  UTI_GetRandomBytes(s2c->key, s2c->length);
+  context->c2s.length = SIV_GetKeyLength(context->algorithm);
+  UTI_GetRandomBytes(context->c2s.key, context->c2s.length);
+  context->s2c.length = SIV_GetKeyLength(context->algorithm);
+  UTI_GetRandomBytes(context->s2c.key, context->s2c.length);
 
   *num_cookies = random() % max_cookies + 1;
   for (i = 0; i < *num_cookies; i++) {
@@ -89,8 +91,7 @@ get_request(NNC_Instance inst)
   }
 
   TEST_CHECK(inst->num_cookies > 0);
-  TEST_CHECK(inst->siv_c2s);
-  TEST_CHECK(inst->siv_s2c);
+  TEST_CHECK(inst->siv);
 
   memcpy(nonce, inst->nonce, sizeof (nonce));
   memcpy(uniq_id, inst->uniq_id, sizeof (uniq_id));
@@ -103,7 +104,7 @@ get_request(NNC_Instance inst)
                       (inst->cookies[inst->cookie_index].length + 4));
   expected_length = info.length + 4 + sizeof (inst->uniq_id) +
                     req_cookies * (4 + inst->cookies[inst->cookie_index].length) +
-                    4 + 4 + sizeof (inst->nonce) + SIV_GetTagLength(inst->siv_c2s);
+                    4 + 4 + sizeof (inst->nonce) + SIV_GetTagLength(inst->siv);
   DEBUG_LOG("length=%d cookie_length=%d expected_length=%d",
             info.length, inst->cookies[inst->cookie_index].length, expected_length);
 
@@ -126,6 +127,7 @@ prepare_response(NNC_Instance inst, NTP_Packet *packet, NTP_PacketInfo *info, in
   unsigned char cookie[508], plaintext[512], nonce[512];
   int nonce_length, cookie_length, plaintext_length, min_auth_length;
   int index, auth_start;
+  SIV_Instance siv;
 
   memset(packet, 0, sizeof (*packet));
   packet->lvm = NTP_LVM(0, 4, MODE_SERVER);
@@ -175,10 +177,15 @@ prepare_response(NNC_Instance inst, NTP_Packet *packet, NTP_PacketInfo *info, in
     TEST_CHECK(NEF_SetField(plaintext, sizeof (plaintext), 0, NTP_EF_NTS_COOKIE,
                             cookie, cookie_length, &plaintext_length));
   auth_start = info->length;
-  if (index != 4)
-    TEST_CHECK(NNA_GenerateAuthEF(packet, info, inst->siv_s2c,
+  if (index != 4) {
+    siv = SIV_CreateInstance(inst->context.algorithm);
+    TEST_CHECK(siv);
+    TEST_CHECK(SIV_SetKey(siv, inst->context.s2c.key, inst->context.s2c.length));
+    TEST_CHECK(NNA_GenerateAuthEF(packet, info, siv,
                                   nonce, nonce_length, plaintext, plaintext_length,
                                   min_auth_length));
+    SIV_DestroyInstance(siv);
+  }
   if (index == 5)
     ((unsigned char *)packet)[auth_start + 8]++;
 }

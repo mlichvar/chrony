@@ -293,8 +293,8 @@ helper_signal(int x)
 static int
 prepare_response(NKSN_Instance session, int error, int next_protocol, int aead_algorithm)
 {
+  NKE_Context context;
   NKE_Cookie cookie;
-  NKE_Key c2s, s2c;
   uint16_t datum;
   int i;
 
@@ -329,11 +329,13 @@ prepare_response(NKSN_Instance session, int error, int next_protocol, int aead_a
         return 0;
     }
 
-    if (!NKSN_GetKeys(session, aead_algorithm, &c2s, &s2c))
+    context.algorithm = aead_algorithm;
+
+    if (!NKSN_GetKeys(session, aead_algorithm, &context.c2s, &context.s2c))
       return 0;
 
     for (i = 0; i < NKE_MAX_COOKIES; i++) {
-      if (!NKS_GenerateCookie(&c2s, &s2c, &cookie))
+      if (!NKS_GenerateCookie(&context, &cookie))
         return 0;
       if (!NKSN_AddRecord(session, 0, NKE_RECORD_COOKIE, cookie.cookie, cookie.length))
         return 0;
@@ -679,7 +681,7 @@ NKS_Finalise(void)
 /* A server cookie consists of key ID, nonce, and encrypted C2S+S2C keys */
 
 int
-NKS_GenerateCookie(NKE_Key *c2s, NKE_Key *s2c, NKE_Cookie *cookie)
+NKS_GenerateCookie(NKE_Context *context, NKE_Cookie *cookie)
 {
   unsigned char plaintext[2 * NKE_MAX_KEY_LENGTH], *ciphertext;
   int plaintext_length, tag_length;
@@ -691,8 +693,14 @@ NKS_GenerateCookie(NKE_Key *c2s, NKE_Key *s2c, NKE_Cookie *cookie)
     return 0;
   }
 
-  if (c2s->length < 0 || c2s->length > NKE_MAX_KEY_LENGTH ||
-      s2c->length < 0 || s2c->length > NKE_MAX_KEY_LENGTH) {
+  /* The algorithm is hardcoded for now */
+  if (context->algorithm != AEAD_AES_SIV_CMAC_256) {
+    DEBUG_LOG("Unexpected SIV algorithm");
+    return 0;
+  }
+
+  if (context->c2s.length < 0 || context->c2s.length > NKE_MAX_KEY_LENGTH ||
+      context->s2c.length < 0 || context->s2c.length > NKE_MAX_KEY_LENGTH) {
     DEBUG_LOG("Invalid key length");
     return 0;
   }
@@ -705,10 +713,10 @@ NKS_GenerateCookie(NKE_Key *c2s, NKE_Key *s2c, NKE_Cookie *cookie)
   header->key_id = key->id;
   UTI_GetRandomBytes(header->nonce, sizeof (header->nonce));
 
-  plaintext_length = c2s->length + s2c->length;
+  plaintext_length = context->c2s.length + context->s2c.length;
   assert(plaintext_length <= sizeof (plaintext));
-  memcpy(plaintext, c2s->key, c2s->length);
-  memcpy(plaintext + c2s->length, s2c->key, s2c->length);
+  memcpy(plaintext, context->c2s.key, context->c2s.length);
+  memcpy(plaintext + context->c2s.length, context->s2c.key, context->s2c.length);
 
   tag_length = SIV_GetTagLength(key->siv);
   cookie->length = sizeof (*header) + plaintext_length + tag_length;
@@ -729,7 +737,7 @@ NKS_GenerateCookie(NKE_Key *c2s, NKE_Key *s2c, NKE_Cookie *cookie)
 /* ================================================== */
 
 int
-NKS_DecodeCookie(NKE_Cookie *cookie, NKE_Key *c2s, NKE_Key *s2c)
+NKS_DecodeCookie(NKE_Cookie *cookie, NKE_Context *context)
 {
   unsigned char plaintext[2 * NKE_MAX_KEY_LENGTH], *ciphertext;
   int ciphertext_length, plaintext_length, tag_length;
@@ -776,12 +784,14 @@ NKS_DecodeCookie(NKE_Cookie *cookie, NKE_Key *c2s, NKE_Key *s2c)
     return 0;
   }
 
-  c2s->length = plaintext_length / 2;
-  s2c->length = plaintext_length / 2;
-  assert(c2s->length <= sizeof (c2s->key));
+  context->algorithm = AEAD_AES_SIV_CMAC_256;
 
-  memcpy(c2s->key, plaintext, c2s->length);
-  memcpy(s2c->key, plaintext + c2s->length, s2c->length);
+  context->c2s.length = plaintext_length / 2;
+  context->s2c.length = plaintext_length / 2;
+  assert(context->c2s.length <= sizeof (context->c2s.key));
+
+  memcpy(context->c2s.key, plaintext, context->c2s.length);
+  memcpy(context->s2c.key, plaintext + context->c2s.length, context->s2c.length);
 
   return 1;
 }

@@ -49,13 +49,14 @@ struct NNC_Instance_Record {
   const IPSockAddr *ntp_address;
   IPSockAddr nts_address;
   char *name;
-  SIV_Instance siv_c2s;
-  SIV_Instance siv_s2c;
   NKC_Instance nke;
+  SIV_Instance siv;
 
   int nke_attempts;
   double next_nke_attempt;
   double last_nke_success;
+
+  NKE_Context context;
   NKE_Cookie cookies[NTS_MAX_COOKIES];
   int num_cookies;
   int cookie_index;
@@ -73,6 +74,8 @@ reset_instance(NNC_Instance inst)
   inst->nke_attempts = 0;
   inst->next_nke_attempt = 0.0;
   inst->last_nke_success = 0.0;
+
+  memset(&inst->context, 0, sizeof (inst->context));
   inst->num_cookies = 0;
   inst->cookie_index = 0;
   inst->nak_response = 0;
@@ -93,8 +96,7 @@ NNC_CreateInstance(IPSockAddr *nts_address, const char *name, const IPSockAddr *
   inst->ntp_address = ntp_address;
   inst->nts_address = *nts_address;
   inst->name = name ? Strdup(name) : NULL;
-  inst->siv_c2s = NULL;
-  inst->siv_s2c = NULL;
+  inst->siv = NULL;
   inst->nke = NULL;
 
   reset_instance(inst);
@@ -109,10 +111,8 @@ NNC_DestroyInstance(NNC_Instance inst)
 {
   if (inst->nke)
     NKC_DestroyInstance(inst->nke);
-  if (inst->siv_c2s)
-    SIV_DestroyInstance(inst->siv_c2s);
-  if (inst->siv_s2c)
-    SIV_DestroyInstance(inst->siv_s2c);
+  if (inst->siv)
+    SIV_DestroyInstance(inst->siv);
 
   Free(inst->name);
   Free(inst);
@@ -187,8 +187,6 @@ static int
 get_nke_data(NNC_Instance inst)
 {
   NTP_Remote_Address ntp_address;
-  SIV_Algorithm siv;
-  NKE_Key c2s, s2c;
   double now;
   int got_data;
 
@@ -223,7 +221,7 @@ get_nke_data(NNC_Instance inst)
   if (NKC_IsActive(inst->nke))
     return 0;
 
-  got_data = NKC_GetNtsData(inst->nke, &siv, &c2s, &s2c,
+  got_data = NKC_GetNtsData(inst->nke, &inst->context,
                             inst->cookies, &inst->num_cookies, NTS_MAX_COOKIES,
                             &ntp_address);
 
@@ -240,17 +238,12 @@ get_nke_data(NNC_Instance inst)
 
   inst->cookie_index = 0;
 
-  if (inst->siv_c2s)
-    SIV_DestroyInstance(inst->siv_c2s);
-  if (inst->siv_s2c)
-    SIV_DestroyInstance(inst->siv_s2c);
+  if (inst->siv)
+    SIV_DestroyInstance(inst->siv);
 
-  inst->siv_c2s = SIV_CreateInstance(siv);
-  inst->siv_s2c = SIV_CreateInstance(siv);
+  inst->siv = SIV_CreateInstance(inst->context.algorithm);
 
-  if (!inst->siv_c2s || !inst->siv_s2c ||
-      !SIV_SetKey(inst->siv_c2s, c2s.key, c2s.length) ||
-      !SIV_SetKey(inst->siv_s2c, s2c.key, s2c.length)) {
+  if (!inst->siv) {
     DEBUG_LOG("Could not initialise SIV");
     inst->num_cookies = 0;
     return 0;
@@ -273,6 +266,11 @@ NNC_PrepareForAuth(NNC_Instance inst)
       return 0;
   }
 
+  if (!SIV_SetKey(inst->siv, inst->context.c2s.key, inst->context.c2s.length)) {
+    DEBUG_LOG("Could not set SIV key");
+    return 0;
+  }
+
   UTI_GetRandomBytes(&inst->uniq_id, sizeof (inst->uniq_id));
   UTI_GetRandomBytes(&inst->nonce, sizeof (inst->nonce));
 
@@ -289,7 +287,7 @@ NNC_GenerateRequestAuth(NNC_Instance inst, NTP_Packet *packet,
   int i, req_cookies;
   void *ef_body;
 
-  if (inst->num_cookies == 0 || !inst->siv_c2s)
+  if (inst->num_cookies == 0 || !inst->siv)
     return 0;
 
   if (info->mode != MODE_CLIENT)
@@ -314,7 +312,7 @@ NNC_GenerateRequestAuth(NNC_Instance inst, NTP_Packet *packet,
     memset(ef_body, 0, cookie->length);
   }
 
-  if (!NNA_GenerateAuthEF(packet, info, inst->siv_c2s, inst->nonce, sizeof (inst->nonce),
+  if (!NNA_GenerateAuthEF(packet, info, inst->siv, inst->nonce, sizeof (inst->nonce),
                           (const unsigned char *)"", 0, NTP_MAX_V4_MAC_LENGTH + 4))
     return 0;
 
@@ -384,8 +382,11 @@ NNC_CheckResponseAuth(NNC_Instance inst, NTP_Packet *packet,
   if (inst->ok_response)
     return 0;
 
-  if (!inst->siv_s2c)
+  if (!inst->siv ||
+      !SIV_SetKey(inst->siv, inst->context.s2c.key, inst->context.s2c.length)) {
+    DEBUG_LOG("Could not set SIV key");
     return 0;
+  }
 
   for (parsed = NTP_HEADER_LENGTH; parsed < info->length; parsed += ef_length) {
     if (!NEF_ParseField(packet, info->length, parsed,
@@ -410,7 +411,7 @@ NNC_CheckResponseAuth(NNC_Instance inst, NTP_Packet *packet,
           return 0;
         }
 
-        if (!NNA_DecryptAuthEF(packet, info, inst->siv_s2c, parsed,
+        if (!NNA_DecryptAuthEF(packet, info, inst->siv, parsed,
                                plaintext, sizeof (plaintext), &plaintext_length))
           return 0;
 

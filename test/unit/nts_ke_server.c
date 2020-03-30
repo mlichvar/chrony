@@ -132,8 +132,8 @@ void
 test_unit(void)
 {
   NKSN_Instance session;
+  NKE_Context context, context2;
   NKE_Cookie cookie;
-  NKE_Key c2s, s2c, c2s2, s2c2;
   int i, valid, l;
   uint32_t sum, sum2;
 
@@ -167,14 +167,16 @@ test_unit(void)
 
 
   for (i = 0; i < 10000; i++) {
-    get_keys(session, AEAD_AES_SIV_CMAC_256, &c2s, &s2c);
+    context.algorithm = AEAD_AES_SIV_CMAC_256;
+    get_keys(session, context.algorithm, &context.c2s, &context.s2c);
     memset(&cookie, 0, sizeof (cookie));
-    TEST_CHECK(NKS_GenerateCookie(&c2s, &s2c, &cookie));
-    TEST_CHECK(NKS_DecodeCookie(&cookie, &c2s2, &s2c2));
-    TEST_CHECK(c2s.length == c2s2.length);
-    TEST_CHECK(s2c.length == s2c2.length);
-    TEST_CHECK(memcmp(c2s.key, c2s2.key, c2s.length) == 0);
-    TEST_CHECK(memcmp(s2c.key, s2c2.key, s2c.length) == 0);
+    TEST_CHECK(NKS_GenerateCookie(&context, &cookie));
+    TEST_CHECK(NKS_DecodeCookie(&cookie, &context2));
+    TEST_CHECK(context.algorithm == context2.algorithm);
+    TEST_CHECK(context.c2s.length == context2.c2s.length);
+    TEST_CHECK(context.s2c.length == context2.s2c.length);
+    TEST_CHECK(memcmp(context.c2s.key, context2.c2s.key, context.c2s.length) == 0);
+    TEST_CHECK(memcmp(context.s2c.key, context2.s2c.key, context.s2c.length) == 0);
 
     if (random() % 4) {
       cookie.cookie[random() % (cookie.length)]++;
@@ -185,7 +187,7 @@ test_unit(void)
       while (l == cookie.length)
         cookie.length = random() % (sizeof (cookie.cookie) + 1);
     }
-    TEST_CHECK(!NKS_DecodeCookie(&cookie, &c2s2, &s2c2));
+    TEST_CHECK(!NKS_DecodeCookie(&cookie, &context2));
   }
 
   unlink("ntskeys");
