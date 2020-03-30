@@ -51,7 +51,8 @@ running under a non-root user), it will try to connect to 127.0.0.1 and then
 
 Only the following monitoring commands, which do not affect the behaviour of
 *chronyd*, are allowed from the network: *activity*, *manual list*,
-*rtcdata*, *smoothing*, *sources*, *sourcestats*, *tracking*, *waitsync*. The
+*rtcdata*, *smoothing*, *sourcename*, *sources*, *sourcestats*, *tracking*,
+*waitsync*. The
 set of hosts from which *chronyd* will accept these commands can be configured
 with the <<chrony.conf.adoc#cmdallow,*cmdallow*>> directive in the *chronyd*'s
 configuration file or the <<cmdallow,*cmdallow*>> command in *chronyc*. By
