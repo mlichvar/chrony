@@ -41,13 +41,13 @@ extern void UTI_ZeroTimespec(struct timespec *ts);
 extern int UTI_IsZeroTimespec(struct timespec *ts);
 
 /* Convert a timeval into a timespec */
-extern void UTI_TimevalToTimespec(struct timeval *tv, struct timespec *ts);
+extern void UTI_TimevalToTimespec(const struct timeval *tv, struct timespec *ts);
 
 /* Convert a timespec into a timeval */
-extern void UTI_TimespecToTimeval(struct timespec *ts, struct timeval *tv);
+extern void UTI_TimespecToTimeval(const struct timespec *ts, struct timeval *tv);
 
 /* Convert a timespec into a floating point number of seconds */
-extern double UTI_TimespecToDouble(struct timespec *ts);
+extern double UTI_TimespecToDouble(const struct timespec *ts);
 
 /* Convert a number of seconds expressed in floating point into a
    timespec */
@@ -58,7 +58,7 @@ extern void UTI_DoubleToTimespec(double d, struct timespec *ts);
 extern void UTI_NormaliseTimespec(struct timespec *ts);
 
 /* Convert a timeval into a floating point number of seconds */
-extern double UTI_TimevalToDouble(struct timeval *tv);
+extern double UTI_TimevalToDouble(const struct timeval *tv);
 
 /* Convert a number of seconds expressed in floating point into a
    timeval */
@@ -70,54 +70,60 @@ extern void UTI_NormaliseTimeval(struct timeval *x);
 
 /* Returns -1 if a comes earlier than b, 0 if a is the same time as b,
    and +1 if a comes after b */
-extern int UTI_CompareTimespecs(struct timespec *a, struct timespec *b);
+extern int UTI_CompareTimespecs(const struct timespec *a, const struct timespec *b);
 
 /* Calculate result = a - b */
-extern void UTI_DiffTimespecs(struct timespec *result, struct timespec *a, struct timespec *b);
+extern void UTI_DiffTimespecs(struct timespec *result,
+                              const struct timespec *a, const struct timespec *b);
 
 /* Calculate result = a - b and return as a double */
-extern double UTI_DiffTimespecsToDouble(struct timespec *a, struct timespec *b);
+extern double UTI_DiffTimespecsToDouble(const struct timespec *a, const struct timespec *b);
 
 /* Add a double increment to a timespec to get a new one. 'start' is
    the starting time, 'end' is the result that we return.  This is
    safe to use if start and end are the same */
-extern void UTI_AddDoubleToTimespec(struct timespec *start, double increment, struct timespec *end);
+extern void UTI_AddDoubleToTimespec(const struct timespec *start, double increment,
+                                    struct timespec *end);
 
 /* Calculate the average and difference (as a double) of two timespecs */
-extern void UTI_AverageDiffTimespecs(struct timespec *earlier, struct timespec *later, struct timespec *average, double *diff);
+extern void UTI_AverageDiffTimespecs(const struct timespec *earlier, const struct timespec *later,
+                                     struct timespec *average, double *diff);
 
 /* Calculate result = a - b + c */
-extern void UTI_AddDiffToTimespec(struct timespec *a, struct timespec *b, struct timespec *c, struct timespec *result);
+extern void UTI_AddDiffToTimespec(const struct timespec *a, const struct timespec *b,
+                                  const struct timespec *c, struct timespec *result);
 
 /* Convert a timespec into a temporary string, largely for diagnostic
    display */
-extern char *UTI_TimespecToString(struct timespec *ts);
+extern char *UTI_TimespecToString(const struct timespec *ts);
 
 /* Convert an NTP timestamp into a temporary string, largely for
    diagnostic display */
-extern char *UTI_Ntp64ToString(NTP_int64 *ts);
+extern char *UTI_Ntp64ToString(const NTP_int64 *ts);
 
 /* Convert ref_id into a temporary string, for diagnostics */
 extern char *UTI_RefidToString(uint32_t ref_id);
 
 /* Convert an IP address to string, for diagnostics */
-extern char *UTI_IPToString(IPAddr *ip);
+extern char *UTI_IPToString(const IPAddr *ip);
 
 extern int UTI_StringToIP(const char *addr, IPAddr *ip);
 extern int UTI_StringToIdIP(const char *addr, IPAddr *ip);
-extern int UTI_IsIPReal(IPAddr *ip);
-extern uint32_t UTI_IPToRefid(IPAddr *ip);
-extern uint32_t UTI_IPToHash(IPAddr *ip);
-extern void UTI_IPHostToNetwork(IPAddr *src, IPAddr *dest);
-extern void UTI_IPNetworkToHost(IPAddr *src, IPAddr *dest);
-extern int UTI_CompareIPs(IPAddr *a, IPAddr *b, IPAddr *mask);
+extern int UTI_IsIPReal(const IPAddr *ip);
+extern uint32_t UTI_IPToRefid(const IPAddr *ip);
+extern uint32_t UTI_IPToHash(const IPAddr *ip);
+extern void UTI_IPHostToNetwork(const IPAddr *src, IPAddr *dest);
+extern void UTI_IPNetworkToHost(const IPAddr *src, IPAddr *dest);
+extern int UTI_CompareIPs(const IPAddr *a, const IPAddr *b, const IPAddr *mask);
 
-extern char *UTI_IPSockAddrToString(IPSockAddr *sa);
+extern char *UTI_IPSockAddrToString(const IPSockAddr *sa);
 
 extern char *UTI_TimeToLogForm(time_t t);
 
 /* Adjust time following a frequency/offset change */
-extern void UTI_AdjustTimespec(struct timespec *old_ts, struct timespec *when, struct timespec *new_ts, double *delta_time, double dfreq, double doffset);
+extern void UTI_AdjustTimespec(const struct timespec *old_ts, const struct timespec *when,
+                               struct timespec *new_ts, double *delta_time,
+                               double dfreq, double doffset);
 
 /* Get zero NTP timestamp with random bits below precision */
 extern void UTI_GetNtp64Fuzz(NTP_int64 *ts, int precision);
@@ -129,30 +135,32 @@ extern NTP_int32 UTI_DoubleToNtp32(double x);
 extern void UTI_ZeroNtp64(NTP_int64 *ts);
 
 /* Check if an NTP timestamp is zero */
-extern int UTI_IsZeroNtp64(NTP_int64 *ts);
+extern int UTI_IsZeroNtp64(const NTP_int64 *ts);
 
 /* Compare two NTP timestamps.  Returns -1 if a is before b, 0 if a is equal to
    b, and 1 if a is after b. */
-extern int UTI_CompareNtp64(NTP_int64 *a, NTP_int64 *b);
+extern int UTI_CompareNtp64(const NTP_int64 *a, const NTP_int64 *b);
 
 /* Compare an NTP timestamp with up to three other timestamps.  Returns 0
    if a is not equal to any of b1, b2, and b3, 1 otherwise. */
-extern int UTI_IsEqualAnyNtp64(NTP_int64 *a, NTP_int64 *b1, NTP_int64 *b2, NTP_int64 *b3);
+extern int UTI_IsEqualAnyNtp64(const NTP_int64 *a, const NTP_int64 *b1,
+                               const NTP_int64 *b2, const NTP_int64 *b3);
 
 /* Convert a timespec into an NTP timestamp */
-extern void UTI_TimespecToNtp64(struct timespec *src, NTP_int64 *dest, NTP_int64 *fuzz);
+extern void UTI_TimespecToNtp64(const struct timespec *src, NTP_int64 *dest,
+                                const NTP_int64 *fuzz);
 
 /* Convert an NTP timestamp into a timespec */
-extern void UTI_Ntp64ToTimespec(NTP_int64 *src, struct timespec *dest);
+extern void UTI_Ntp64ToTimespec(const NTP_int64 *src, struct timespec *dest);
 
 /* Check if time + offset is sane */
-extern int UTI_IsTimeOffsetSane(struct timespec *ts, double offset);
+extern int UTI_IsTimeOffsetSane(const struct timespec *ts, double offset);
 
 /* Get 2 raised to power of a signed integer */
 extern double UTI_Log2ToDouble(int l);
 
-extern void UTI_TimespecNetworkToHost(Timespec *src, struct timespec *dest);
-extern void UTI_TimespecHostToNetwork(struct timespec *src, Timespec *dest);
+extern void UTI_TimespecNetworkToHost(const Timespec *src, struct timespec *dest);
+extern void UTI_TimespecHostToNetwork(const struct timespec *src, Timespec *dest);
 
 extern double UTI_FloatNetworkToHost(Float x);
 extern Float UTI_FloatHostToNetwork(double x);

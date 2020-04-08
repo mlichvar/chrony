@@ -56,7 +56,7 @@ UTI_IsZeroTimespec(struct timespec *ts)
 /* ================================================== */
 
 void
-UTI_TimevalToTimespec(struct timeval *tv, struct timespec *ts)
+UTI_TimevalToTimespec(const struct timeval *tv, struct timespec *ts)
 {
   ts->tv_sec = tv->tv_sec;
   ts->tv_nsec = 1000 * tv->tv_usec;
@@ -65,7 +65,7 @@ UTI_TimevalToTimespec(struct timeval *tv, struct timespec *ts)
 /* ================================================== */
 
 void
-UTI_TimespecToTimeval(struct timespec *ts, struct timeval *tv)
+UTI_TimespecToTimeval(const struct timespec *ts, struct timeval *tv)
 {
   tv->tv_sec = ts->tv_sec;
   tv->tv_usec = ts->tv_nsec / 1000;
@@ -74,7 +74,7 @@ UTI_TimespecToTimeval(struct timespec *ts, struct timeval *tv)
 /* ================================================== */
 
 double
-UTI_TimespecToDouble(struct timespec *ts)
+UTI_TimespecToDouble(const struct timespec *ts)
 {
   return ts->tv_sec + 1.0e-9 * ts->tv_nsec;
 }
@@ -109,7 +109,7 @@ UTI_NormaliseTimespec(struct timespec *ts)
 /* ================================================== */
 
 double
-UTI_TimevalToDouble(struct timeval *tv)
+UTI_TimevalToDouble(const struct timeval *tv)
 {
   return tv->tv_sec + 1.0e-6 * tv->tv_usec;
 }
@@ -149,7 +149,7 @@ UTI_NormaliseTimeval(struct timeval *x)
 /* ================================================== */
 
 int
-UTI_CompareTimespecs(struct timespec *a, struct timespec *b)
+UTI_CompareTimespecs(const struct timespec *a, const struct timespec *b)
 {
   if (a->tv_sec < b->tv_sec)
     return -1;
@@ -165,7 +165,7 @@ UTI_CompareTimespecs(struct timespec *a, struct timespec *b)
 /* ================================================== */
 
 void
-UTI_DiffTimespecs(struct timespec *result, struct timespec *a, struct timespec *b)
+UTI_DiffTimespecs(struct timespec *result, const struct timespec *a, const struct timespec *b)
 {
   result->tv_sec = a->tv_sec - b->tv_sec;
   result->tv_nsec = a->tv_nsec - b->tv_nsec;
@@ -176,7 +176,7 @@ UTI_DiffTimespecs(struct timespec *result, struct timespec *a, struct timespec *
 
 /* Calculate result = a - b and return as a double */
 double
-UTI_DiffTimespecsToDouble(struct timespec *a, struct timespec *b)
+UTI_DiffTimespecsToDouble(const struct timespec *a, const struct timespec *b)
 {
   return ((double)a->tv_sec - (double)b->tv_sec) + 1.0e-9 * (a->tv_nsec - b->tv_nsec);
 }
@@ -184,7 +184,7 @@ UTI_DiffTimespecsToDouble(struct timespec *a, struct timespec *b)
 /* ================================================== */
 
 void
-UTI_AddDoubleToTimespec(struct timespec *start, double increment, struct timespec *end)
+UTI_AddDoubleToTimespec(const struct timespec *start, double increment, struct timespec *end)
 {
   time_t int_part;
 
@@ -198,7 +198,7 @@ UTI_AddDoubleToTimespec(struct timespec *start, double increment, struct timespe
 
 /* Calculate the average and difference (as a double) of two timespecs */
 void
-UTI_AverageDiffTimespecs(struct timespec *earlier, struct timespec *later,
+UTI_AverageDiffTimespecs(const struct timespec *earlier, const struct timespec *later,
                          struct timespec *average, double *diff)
 {
   *diff = UTI_DiffTimespecsToDouble(later, earlier);
@@ -208,8 +208,8 @@ UTI_AverageDiffTimespecs(struct timespec *earlier, struct timespec *later,
 /* ================================================== */
 
 void
-UTI_AddDiffToTimespec(struct timespec *a, struct timespec *b,
-                      struct timespec *c, struct timespec *result)
+UTI_AddDiffToTimespec(const struct timespec *a, const struct timespec *b,
+                      const struct timespec *c, struct timespec *result)
 {
   double diff;
 
@@ -230,7 +230,7 @@ static int  pool_ptr = 0;
 /* Convert a timespec into a temporary string, largely for diagnostic display */
 
 char *
-UTI_TimespecToString(struct timespec *ts)
+UTI_TimespecToString(const struct timespec *ts)
 {
   char *result;
 
@@ -250,7 +250,7 @@ UTI_TimespecToString(struct timespec *ts)
    for diagnostic display */
 
 char *
-UTI_Ntp64ToString(NTP_int64 *ntp_ts)
+UTI_Ntp64ToString(const NTP_int64 *ntp_ts)
 {
   struct timespec ts;
   UTI_Ntp64ToTimespec(ntp_ts, &ts);
@@ -281,10 +281,10 @@ UTI_RefidToString(uint32_t ref_id)
 /* ================================================== */
 
 char *
-UTI_IPToString(IPAddr *addr)
+UTI_IPToString(const IPAddr *addr)
 {
   unsigned long a, b, c, d, ip;
-  uint8_t *ip6;
+  const uint8_t *ip6;
   char *result;
 
   result = NEXT_BUFFER;
@@ -375,7 +375,7 @@ UTI_StringToIdIP(const char *addr, IPAddr *ip)
 /* ================================================== */
 
 int
-UTI_IsIPReal(IPAddr *ip)
+UTI_IsIPReal(const IPAddr *ip)
 {
   switch (ip->family) {
     case IPADDR_INET4:
@@ -389,7 +389,7 @@ UTI_IsIPReal(IPAddr *ip)
 /* ================================================== */
 
 uint32_t
-UTI_IPToRefid(IPAddr *ip)
+UTI_IPToRefid(const IPAddr *ip)
 {
   static int MD5_hash = -1;
   unsigned char buf[16];
@@ -414,10 +414,10 @@ UTI_IPToRefid(IPAddr *ip)
 /* ================================================== */
 
 uint32_t
-UTI_IPToHash(IPAddr *ip)
+UTI_IPToHash(const IPAddr *ip)
 {
   static uint32_t seed = 0;
-  unsigned char *addr;
+  const unsigned char *addr;
   unsigned int i, len;
   uint32_t hash;
 
@@ -452,7 +452,7 @@ UTI_IPToHash(IPAddr *ip)
 /* ================================================== */
 
 void
-UTI_IPHostToNetwork(IPAddr *src, IPAddr *dest)
+UTI_IPHostToNetwork(const IPAddr *src, IPAddr *dest)
 {
   /* Don't send uninitialized bytes over network */
   memset(dest, 0, sizeof (IPAddr));
@@ -477,7 +477,7 @@ UTI_IPHostToNetwork(IPAddr *src, IPAddr *dest)
 /* ================================================== */
 
 void
-UTI_IPNetworkToHost(IPAddr *src, IPAddr *dest)
+UTI_IPNetworkToHost(const IPAddr *src, IPAddr *dest)
 {
   dest->family = ntohs(src->family);
   dest->_pad = 0;
@@ -500,7 +500,7 @@ UTI_IPNetworkToHost(IPAddr *src, IPAddr *dest)
 /* ================================================== */
 
 int
-UTI_CompareIPs(IPAddr *a, IPAddr *b, IPAddr *mask)
+UTI_CompareIPs(const IPAddr *a, const IPAddr *b, const IPAddr *mask)
 {
   int i, d;
 
@@ -536,7 +536,7 @@ UTI_CompareIPs(IPAddr *a, IPAddr *b, IPAddr *mask)
 /* ================================================== */
 
 char *
-UTI_IPSockAddrToString(IPSockAddr *sa)
+UTI_IPSockAddrToString(const IPSockAddr *sa)
 {
   char *result;
 
@@ -571,7 +571,8 @@ UTI_TimeToLogForm(time_t t)
 /* ================================================== */
 
 void
-UTI_AdjustTimespec(struct timespec *old_ts, struct timespec *when, struct timespec *new_ts, double *delta_time, double dfreq, double doffset)
+UTI_AdjustTimespec(const struct timespec *old_ts, const struct timespec *when,
+                   struct timespec *new_ts, double *delta_time, double dfreq, double doffset)
 {
   double elapsed;
 
@@ -644,7 +645,7 @@ UTI_ZeroNtp64(NTP_int64 *ts)
 /* ================================================== */
 
 int
-UTI_IsZeroNtp64(NTP_int64 *ts)
+UTI_IsZeroNtp64(const NTP_int64 *ts)
 {
   return !ts->hi && !ts->lo;
 }
@@ -652,7 +653,7 @@ UTI_IsZeroNtp64(NTP_int64 *ts)
 /* ================================================== */
 
 int
-UTI_CompareNtp64(NTP_int64 *a, NTP_int64 *b)
+UTI_CompareNtp64(const NTP_int64 *a, const NTP_int64 *b)
 {
   int32_t diff;
 
@@ -672,7 +673,8 @@ UTI_CompareNtp64(NTP_int64 *a, NTP_int64 *b)
 /* ================================================== */
 
 int
-UTI_IsEqualAnyNtp64(NTP_int64 *a, NTP_int64 *b1, NTP_int64 *b2, NTP_int64 *b3)
+UTI_IsEqualAnyNtp64(const NTP_int64 *a, const NTP_int64 *b1, const NTP_int64 *b2,
+                    const NTP_int64 *b3)
 {
   if (b1 && a->lo == b1->lo && a->hi == b1->hi)
     return 1;
@@ -694,7 +696,7 @@ UTI_IsEqualAnyNtp64(NTP_int64 *a, NTP_int64 *b1, NTP_int64 *b2, NTP_int64 *b3)
 #define NSEC_PER_NTP64 4.294967296
 
 void
-UTI_TimespecToNtp64(struct timespec *src, NTP_int64 *dest, NTP_int64 *fuzz)
+UTI_TimespecToNtp64(const struct timespec *src, NTP_int64 *dest, const NTP_int64 *fuzz)
 {
   uint32_t hi, lo, sec, nsec;
 
@@ -723,7 +725,7 @@ UTI_TimespecToNtp64(struct timespec *src, NTP_int64 *dest, NTP_int64 *fuzz)
 /* ================================================== */
 
 void
-UTI_Ntp64ToTimespec(NTP_int64 *src, struct timespec *dest)
+UTI_Ntp64ToTimespec(const NTP_int64 *src, struct timespec *dest)
 {
   uint32_t ntp_sec, ntp_frac;
 
@@ -755,7 +757,7 @@ UTI_Ntp64ToTimespec(NTP_int64 *src, struct timespec *dest)
 #define MIN_ENDOFTIME_DISTANCE (365 * 24 * 3600)
 
 int
-UTI_IsTimeOffsetSane(struct timespec *ts, double offset)
+UTI_IsTimeOffsetSane(const struct timespec *ts, double offset)
 {
   double t;
 
@@ -801,7 +803,7 @@ UTI_Log2ToDouble(int l)
 /* ================================================== */
 
 void
-UTI_TimespecNetworkToHost(Timespec *src, struct timespec *dest)
+UTI_TimespecNetworkToHost(const Timespec *src, struct timespec *dest)
 {
   uint32_t sec_low, nsec;
 #ifdef HAVE_LONG_TIME_T
@@ -826,7 +828,7 @@ UTI_TimespecNetworkToHost(Timespec *src, struct timespec *dest)
 /* ================================================== */
 
 void
-UTI_TimespecHostToNetwork(struct timespec *src, Timespec *dest)
+UTI_TimespecHostToNetwork(const struct timespec *src, Timespec *dest)
 {
   dest->tv_nsec = htonl(src->tv_nsec);
 #ifdef HAVE_LONG_TIME_T
