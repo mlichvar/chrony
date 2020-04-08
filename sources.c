@@ -483,7 +483,7 @@ SRC_ResetReachability(SRC_Instance inst)
 /* ================================================== */
 
 static void
-log_selection_message(char *format, char *arg)
+log_selection_message(const char *format, const char *arg)
 {
   if (REF_GetMode() != REF_ModeNormal)
     return;
