@@ -447,14 +447,14 @@ save_keys(void)
 {
   char hex_key[SIV_MAX_KEY_LENGTH * 2 + 1];
   int i, index, key_length;
-  char *cachedir;
+  char *dump_dir;
   FILE *f;
 
-  cachedir = CNF_GetNtsCacheDir();
-  if (!cachedir)
+  dump_dir = CNF_GetNtsDumpDir();
+  if (!dump_dir)
     return;
 
-  f = UTI_OpenFile(cachedir, "ntskeys", ".tmp", 'w', 0600);
+  f = UTI_OpenFile(dump_dir, "ntskeys", ".tmp", 'w', 0600);
   if (!f)
     return;
 
@@ -474,7 +474,7 @@ save_keys(void)
 
   fclose(f);
 
-  if (!UTI_RenameTempFile(cachedir, "ntskeys", ".tmp", NULL))
+  if (!UTI_RenameTempFile(dump_dir, "ntskeys", ".tmp", NULL))
     ;
 }
 
@@ -484,15 +484,15 @@ static void
 load_keys(void)
 {
   int i, index, line_length, key_length, n;
-  char *cachedir, line[1024];
+  char *dump_dir, line[1024];
   FILE *f;
   uint32_t id;
 
-  cachedir = CNF_GetNtsCacheDir();
-  if (!cachedir)
+  dump_dir = CNF_GetNtsDumpDir();
+  if (!dump_dir)
     return;
 
-  f = UTI_OpenFile(cachedir, "ntskeys", NULL, 'r', 0);
+  f = UTI_OpenFile(dump_dir, "ntskeys", NULL, 'r', 0);
   if (!f)
     return;
 

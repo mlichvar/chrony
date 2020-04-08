@@ -1390,7 +1390,7 @@ process will be started and all NTS-KE requests will be handled by the main
 This directive specifies the maximum number of concurrent NTS-KE connections
 per process that the NTS server will accept. The default value is 100.
 
-[[ntscachedir]]*ntscachedir* _directory_::
+[[ntsdumpdir]]*ntsdumpdir* _directory_::
 This directive specifies a directory to save the keys which the NTS server uses
 to encrypt NTS cookies in order to prevent a storm of NTS-KE handshakes when
 the server is restarted. By default, the server does not save the keys.

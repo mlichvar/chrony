@@ -138,7 +138,7 @@ test_unit(void)
   uint32_t sum, sum2;
 
   char conf[][100] = {
-    "ntscachedir .",
+    "ntsdumpdir .",
     "ntsport 0",
     "ntsprocesses 0",
     "ntsserverkey nts_ke.key",
