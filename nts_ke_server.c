@@ -53,6 +53,9 @@
 
 #define MIN_KEY_ROTATE_INTERVAL 1.0
 
+#define DUMP_FILENAME "ntskeys"
+#define DUMP_IDENTIFIER "NKS0\n"
+
 #define INVALID_SOCK_FD (-7)
 
 typedef struct {
@@ -78,6 +81,7 @@ typedef struct {
 
 static ServerKey server_keys[MAX_SERVER_KEYS];
 static int current_server_key;
+static double last_server_key_ts;
 
 static int server_sock_fd4;
 static int server_sock_fd6;
@@ -438,6 +442,8 @@ generate_key(int index)
   server_keys[index].id |= index;
 
   DEBUG_LOG("Generated server key %"PRIX32, server_keys[index].id);
+
+  last_server_key_ts = SCH_GetLastEventMonoTime();
 }
 
 /* ================================================== */
@@ -445,46 +451,61 @@ generate_key(int index)
 static void
 save_keys(void)
 {
-  char hex_key[SIV_MAX_KEY_LENGTH * 2 + 1];
+  char buf[SIV_MAX_KEY_LENGTH * 2 + 1], *dump_dir;
   int i, index, key_length;
-  char *dump_dir;
+  double last_key_age;
   FILE *f;
 
   dump_dir = CNF_GetNtsDumpDir();
   if (!dump_dir)
     return;
 
-  f = UTI_OpenFile(dump_dir, "ntskeys", ".tmp", 'w', 0600);
+  f = UTI_OpenFile(dump_dir, DUMP_FILENAME, ".tmp", 'w', 0600);
   if (!f)
     return;
 
   key_length = SIV_GetKeyLength(SERVER_COOKIE_SIV);
+  last_key_age = SCH_GetLastEventMonoTime() - last_server_key_ts;
+
+  if (fprintf(f, "%s%d %.1f\n", DUMP_IDENTIFIER, SERVER_COOKIE_SIV, last_key_age) < 0)
+    goto error;
 
   for (i = 0; i < MAX_SERVER_KEYS; i++) {
     index = (current_server_key + i + 1) % MAX_SERVER_KEYS;
 
     if (key_length > sizeof (server_keys[index].key) ||
-        !UTI_BytesToHex(server_keys[index].key, key_length, hex_key, sizeof (hex_key))) {
-      assert(0);
-      break;
-    }
-
-    fprintf(f, "%08"PRIX32" %s\n", server_keys[index].id, hex_key);
+        !UTI_BytesToHex(server_keys[index].key, key_length, buf, sizeof (buf)) ||
+        fprintf(f, "%08"PRIX32" %s\n", server_keys[index].id, buf) < 0)
+      goto error;
   }
 
   fclose(f);
 
-  if (!UTI_RenameTempFile(dump_dir, "ntskeys", ".tmp", NULL))
+  if (!UTI_RenameTempFile(dump_dir, DUMP_FILENAME, ".tmp", NULL)) {
+    if (!UTI_RemoveFile(dump_dir, DUMP_FILENAME, ".tmp"))
+      ;
+  }
+
+  return;
+
+error:
+  DEBUG_LOG("Could not %s server keys", "save");
+  fclose(f);
+
+  if (!UTI_RemoveFile(dump_dir, DUMP_FILENAME, NULL))
     ;
 }
 
 /* ================================================== */
 
+#define MAX_WORDS 2
+
 static void
 load_keys(void)
 {
-  int i, index, line_length, key_length, n;
-  char *dump_dir, line[1024];
+  char *dump_dir, line[1024], *words[MAX_WORDS];
+  int i, index, key_length, algorithm;
+  double key_age;
   FILE *f;
   uint32_t id;
 
@@ -492,30 +513,29 @@ load_keys(void)
   if (!dump_dir)
     return;
 
-  f = UTI_OpenFile(dump_dir, "ntskeys", NULL, 'r', 0);
+  f = UTI_OpenFile(dump_dir, DUMP_FILENAME, NULL, 'r', 0);
   if (!f)
     return;
 
+  if (!fgets(line, sizeof (line), f) || strcmp(line, DUMP_IDENTIFIER) != 0 ||
+      !fgets(line, sizeof (line), f) || UTI_SplitString(line, words, MAX_WORDS) != 2 ||
+        sscanf(words[0], "%d", &algorithm) != 1 || algorithm != SERVER_COOKIE_SIV ||
+        sscanf(words[1], "%lf", &key_age) != 1)
+    goto error;
+
   key_length = SIV_GetKeyLength(SERVER_COOKIE_SIV);
+  last_server_key_ts = SCH_GetLastEventMonoTime() - MAX(key_age, 0.0);
 
-  for (i = 0; i < MAX_SERVER_KEYS; i++) {
-    if (!fgets(line, sizeof (line), f))
-      break;
-
-    line_length = strlen(line);
-    if (line_length < 10)
-      break;
-    /* Drop '\n' */
-    line[line_length - 1] = '\0';
-
-    if (sscanf(line, "%"PRIX32"%n", &id, &n) != 1 || line[n] != ' ')
-      break;
+  for (i = 0; i < MAX_SERVER_KEYS && fgets(line, sizeof (line), f); i++) {
+    if (UTI_SplitString(line, words, MAX_WORDS) != 2 ||
+        sscanf(words[0], "%"PRIX32, &id) != 1)
+      goto error;
 
     index = id % MAX_SERVER_KEYS;
 
-    if (UTI_HexToBytes(line + n + 1, server_keys[index].key,
+    if (UTI_HexToBytes(words[1], server_keys[index].key,
                        sizeof (server_keys[index].key)) != key_length)
-      break;
+      goto error;
 
     server_keys[index].id = id;
     if (!SIV_SetKey(server_keys[index].siv, server_keys[index].key, key_length))
@@ -526,6 +546,12 @@ load_keys(void)
     current_server_key = index;
   }
 
+  fclose(f);
+
+  return;
+
+error:
+  DEBUG_LOG("Could not %s server keys", "load");
   fclose(f);
 }
 
@@ -586,6 +612,7 @@ NKS_Initialise(int scfilter_level)
 {
   char *cert, *key;
   int i, processes;
+  double key_delay;
 
   server_sock_fd4 = INVALID_SOCK_FD;
   server_sock_fd6 = INVALID_SOCK_FD;
@@ -619,7 +646,9 @@ NKS_Initialise(int scfilter_level)
 
   load_keys();
 
-  key_timeout(NULL);
+  key_delay = MAX(CNF_GetNtsRotate(), MIN_KEY_ROTATE_INTERVAL) -
+                (SCH_GetLastEventMonoTime() - last_server_key_ts);
+  SCH_AddTimeoutByDelay(MAX(key_delay, 0.0), key_timeout, NULL);
 
   processes = CNF_GetNtsServerProcesses();
 
