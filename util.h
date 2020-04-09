@@ -220,6 +220,11 @@ extern int UTI_BytesToHex(const void *buf, unsigned int buf_len, char *hex, unsi
    is supported. */
 extern unsigned int UTI_HexToBytes(const char *hex, void *buf, unsigned int len);
 
+/* Split a string into words separated by whitespace characters.  It returns
+   the number of words found in the string, but saves only up to the specified
+   number of pointers to the words. */
+extern int UTI_SplitString(char *string, char **words, int max_saved_words);
+
 /* Macros to get maximum and minimum of two values */
 #ifdef MAX
 #undef MAX

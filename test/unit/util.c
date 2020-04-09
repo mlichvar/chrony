@@ -30,7 +30,7 @@ void test_unit(void) {
   Timespec tspec;
   Float f;
   int i, j, c;
-  char buf[16], *s;
+  char buf[16], *s, *words[3];
   uid_t uid;
   gid_t gid;
   struct stat st;
@@ -333,4 +333,37 @@ void test_unit(void) {
   TEST_CHECK(UTI_BytesToHex("\xAB\x12\x34\x56\x78\x00\x01", 7, buf, 14) == 0);
   TEST_CHECK(UTI_BytesToHex("\xAB\x12\x34\x56\x78\x00\x01", 7, buf, 15) == 1);
   TEST_CHECK(strcmp(buf, "AB123456780001") == 0);
+
+  TEST_CHECK(snprintf(buf, sizeof (buf), "%s", "") < sizeof (buf));
+  TEST_CHECK(UTI_SplitString(buf, words, 3) == 0);
+  TEST_CHECK(!words[0]);
+  TEST_CHECK(snprintf(buf, sizeof (buf), "%s", "     ") < sizeof (buf));
+  TEST_CHECK(UTI_SplitString(buf, words, 3) == 0);
+  TEST_CHECK(!words[0]);
+  TEST_CHECK(snprintf(buf, sizeof (buf), "%s", "a  \n ") < sizeof (buf));
+  TEST_CHECK(UTI_SplitString(buf, words, 3) == 1);
+  TEST_CHECK(words[0] == buf + 0);
+  TEST_CHECK(strcmp(words[0], "a") == 0);
+  TEST_CHECK(snprintf(buf, sizeof (buf), "%s", "  a  ") < sizeof (buf));
+  TEST_CHECK(UTI_SplitString(buf, words, 3) == 1);
+  TEST_CHECK(words[0] == buf + 2);
+  TEST_CHECK(strcmp(words[0], "a") == 0);
+  TEST_CHECK(snprintf(buf, sizeof (buf), "%s", " \n  a") < sizeof (buf));
+  TEST_CHECK(UTI_SplitString(buf, words, 3) == 1);
+  TEST_CHECK(words[0] == buf + 4);
+  TEST_CHECK(strcmp(words[0], "a") == 0);
+  TEST_CHECK(snprintf(buf, sizeof (buf), "%s", "a   b") < sizeof (buf));
+  TEST_CHECK(UTI_SplitString(buf, words, 1) == 2);
+  TEST_CHECK(snprintf(buf, sizeof (buf), "%s", "a   b") < sizeof (buf));
+  TEST_CHECK(UTI_SplitString(buf, words, 2) == 2);
+  TEST_CHECK(words[0] == buf + 0);
+  TEST_CHECK(words[1] == buf + 4);
+  TEST_CHECK(strcmp(words[0], "a") == 0);
+  TEST_CHECK(strcmp(words[1], "b") == 0);
+  TEST_CHECK(snprintf(buf, sizeof (buf), "%s", " a b ") < sizeof (buf));
+  TEST_CHECK(UTI_SplitString(buf, words, 3) == 2);
+  TEST_CHECK(words[0] == buf + 1);
+  TEST_CHECK(words[1] == buf + 3);
+  TEST_CHECK(strcmp(words[0], "a") == 0);
+  TEST_CHECK(strcmp(words[1], "b") == 0);
 }

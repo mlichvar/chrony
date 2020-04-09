@@ -1402,3 +1402,33 @@ UTI_HexToBytes(const char *hex, void *buf, unsigned int len)
 
   return *hex == '\0' ? i : 0;
 }
+
+/* ================================================== */
+
+int
+UTI_SplitString(char *string, char **words, int max_saved_words)
+{
+  char *s = string;
+  int i;
+
+  for (i = 0; i < max_saved_words; i++)
+    words[i] = NULL;
+
+  for (i = 0; ; i++) {
+    /* Zero white-space characters before the word */
+    while (*s != '\0' && isspace((unsigned char)*s))
+      *s++ = '\0';
+
+    if (*s == '\0')
+      break;
+
+    if (i < max_saved_words)
+      words[i] = s;
+
+    /* Find the next word */
+    while (*s != '\0' && !isspace((unsigned char)*s))
+      s++;
+  }
+
+  return i;
+}
