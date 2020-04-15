@@ -52,8 +52,6 @@
 #define MAX_SERVER_KEYS (1U << KEY_ID_INDEX_BITS)
 #define FUTURE_KEYS 1
 
-#define MIN_KEY_ROTATE_INTERVAL 1.0
-
 #define DUMP_FILENAME "ntskeys"
 #define DUMP_IDENTIFIER "NKS0\n"
 
@@ -83,6 +81,7 @@ typedef struct {
 static ServerKey server_keys[MAX_SERVER_KEYS];
 static int current_server_key;
 static double last_server_key_ts;
+static int key_rotation_interval;
 
 static int server_sock_fd4;
 static int server_sock_fd6;
@@ -457,6 +456,11 @@ save_keys(void)
   double last_key_age;
   FILE *f;
 
+  /* Don't save the keys if rotation is disabled to enable an external
+     management of the keys (e.g. share them with another server) */
+  if (key_rotation_interval == 0)
+    return;
+
   dump_dir = CNF_GetNtsDumpDir();
   if (!dump_dir)
     return;
@@ -565,8 +569,7 @@ key_timeout(void *arg)
   generate_key((current_server_key + FUTURE_KEYS) % MAX_SERVER_KEYS);
   save_keys();
 
-  SCH_AddTimeoutByDelay(MAX(CNF_GetNtsRotate(), MIN_KEY_ROTATE_INTERVAL),
-                        key_timeout, NULL);
+  SCH_AddTimeoutByDelay(key_rotation_interval, key_timeout, NULL);
 }
 
 /* ================================================== */
@@ -647,9 +650,12 @@ NKS_Initialise(int scfilter_level)
 
   load_keys();
 
-  key_delay = MAX(CNF_GetNtsRotate(), MIN_KEY_ROTATE_INTERVAL) -
-                (SCH_GetLastEventMonoTime() - last_server_key_ts);
-  SCH_AddTimeoutByDelay(MAX(key_delay, 0.0), key_timeout, NULL);
+  key_rotation_interval = MAX(CNF_GetNtsRotate(), 0);
+
+  if (key_rotation_interval > 0) {
+    key_delay = key_rotation_interval - (SCH_GetLastEventMonoTime() - last_server_key_ts);
+    SCH_AddTimeoutByDelay(MAX(key_delay, 0.0), key_timeout, NULL);
+  }
 
   processes = CNF_GetNtsServerProcesses();
 
