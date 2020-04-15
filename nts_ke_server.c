@@ -746,8 +746,7 @@ NKS_GenerateCookie(NKE_Context *context, NKE_Cookie *cookie)
 
   header = (ServerCookieHeader *)cookie->cookie;
 
-  /* Keep the fields in the host byte order */
-  header->key_id = key->id;
+  header->key_id = htonl(key->id);
   UTI_GetRandomBytes(header->nonce, sizeof (header->nonce));
 
   plaintext_length = context->c2s.length + context->s2c.length;
@@ -780,6 +779,7 @@ NKS_DecodeCookie(NKE_Cookie *cookie, NKE_Context *context)
   int ciphertext_length, plaintext_length, tag_length;
   ServerCookieHeader *header;
   ServerKey *key;
+  uint32_t key_id;
 
   if (!initialised) {
     DEBUG_LOG("NTS server disabled");
@@ -795,9 +795,10 @@ NKS_DecodeCookie(NKE_Cookie *cookie, NKE_Context *context)
   ciphertext = cookie->cookie + sizeof (*header);
   ciphertext_length = cookie->length - sizeof (*header);
 
-  key = &server_keys[header->key_id % MAX_SERVER_KEYS];
-  if (header->key_id != key->id) {
-    DEBUG_LOG("Unknown key %"PRIX32, header->key_id);
+  key_id = ntohl(header->key_id);
+  key = &server_keys[key_id % MAX_SERVER_KEYS];
+  if (key_id != key->id) {
+    DEBUG_LOG("Unknown key %"PRIX32, key_id);
     return 0;
   }
 
