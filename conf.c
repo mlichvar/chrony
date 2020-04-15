@@ -223,8 +223,9 @@ static char *leapsec_tz = NULL;
 /* Name of the user to which will be dropped root privileges. */
 static char *user;
 
-/* NTS dump dir, certificates, private key, and port */
+/* NTS server and client configuration */
 static char *nts_dump_dir = NULL;
+static char *nts_ntp_server = NULL;
 static char *nts_server_cert_file = NULL;
 static char *nts_server_key_file = NULL;
 static int nts_server_port = 11443;
@@ -405,6 +406,7 @@ CNF_Finalise(void)
   Free(tempcomp_sensor_file);
   Free(tempcomp_point_file);
   Free(nts_dump_dir);
+  Free(nts_ntp_server);
   Free(nts_server_cert_file);
   Free(nts_server_key_file);
   Free(nts_trusted_cert_file);
@@ -554,6 +556,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "ntscachedir") ||
              !strcasecmp(command, "ntsdumpdir")) {
     parse_string(p, &nts_dump_dir);
+  } else if (!strcasecmp(command, "ntsntpserver")) {
+    parse_string(p, &nts_ntp_server);
   } else if (!strcasecmp(command, "ntsport")) {
     parse_int(p, &nts_server_port);
   } else if (!strcasecmp(command, "ntsprocesses")) {
@@ -2073,6 +2077,14 @@ char *
 CNF_GetNtsDumpDir(void)
 {
   return nts_dump_dir;
+}
+
+/* ================================================== */
+
+char *
+CNF_GetNtsNtpServer(void)
+{
+  return nts_ntp_server;
 }
 
 /* ================================================== */

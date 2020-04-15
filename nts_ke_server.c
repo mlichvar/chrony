@@ -299,6 +299,7 @@ prepare_response(NKSN_Instance session, int error, int next_protocol, int aead_a
 {
   NKE_Context context;
   NKE_Cookie cookie;
+  char *ntp_server;
   uint16_t datum;
   int i;
 
@@ -325,11 +326,10 @@ prepare_response(NKSN_Instance session, int error, int next_protocol, int aead_a
         return 0;
     }
 
-    /* This should be configurable */
-    if (0) {
-      const char server[] = "::1";
-      if (!NKSN_AddRecord(session, 1, NKE_RECORD_NTPV4_SERVER_NEGOTIATION, server,
-                          sizeof (server) - 1))
+    ntp_server = CNF_GetNtsNtpServer();
+    if (ntp_server) {
+      if (!NKSN_AddRecord(session, 1, NKE_RECORD_NTPV4_SERVER_NEGOTIATION,
+                          ntp_server, strlen(ntp_server)))
         return 0;
     }
 
