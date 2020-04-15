@@ -50,6 +50,7 @@
 
 #define KEY_ID_INDEX_BITS 2
 #define MAX_SERVER_KEYS (1U << KEY_ID_INDEX_BITS)
+#define FUTURE_KEYS 1
 
 #define MIN_KEY_ROTATE_INTERVAL 1.0
 
@@ -471,7 +472,7 @@ save_keys(void)
     goto error;
 
   for (i = 0; i < MAX_SERVER_KEYS; i++) {
-    index = (current_server_key + i + 1) % MAX_SERVER_KEYS;
+    index = (current_server_key + i + 1 + FUTURE_KEYS) % MAX_SERVER_KEYS;
 
     if (key_length > sizeof (server_keys[index].key) ||
         !UTI_BytesToHex(server_keys[index].key, key_length, buf, sizeof (buf)) ||
@@ -543,7 +544,7 @@ load_keys(void)
 
     DEBUG_LOG("Loaded key %"PRIX32, id);
 
-    current_server_key = index;
+    current_server_key = (index + MAX_SERVER_KEYS - FUTURE_KEYS) % MAX_SERVER_KEYS;
   }
 
   fclose(f);
@@ -561,7 +562,7 @@ static void
 key_timeout(void *arg)
 {
   current_server_key = (current_server_key + 1) % MAX_SERVER_KEYS;
-  generate_key(current_server_key);
+  generate_key((current_server_key + FUTURE_KEYS) % MAX_SERVER_KEYS);
   save_keys();
 
   SCH_AddTimeoutByDelay(MAX(CNF_GetNtsRotate(), MIN_KEY_ROTATE_INTERVAL),

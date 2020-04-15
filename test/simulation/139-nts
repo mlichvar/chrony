@@ -29,7 +29,7 @@ server_conf="
 ntsserverkey tmp/server.key
 ntsservercert tmp/server.crt
 ntsprocesses 0
-ntsrotate 64
+ntsrotate 66
 ntsdumpdir tmp
 "
 client_server_options="minpoll 6 maxpoll 6 nts"
@@ -44,9 +44,9 @@ check_chronyd_exit || test_fail
 check_source_selection || test_fail
 check_sync || test_fail
 
-check_file_messages "20.*123\.1.* 111 111 1111" 89 93 measurements.log || test_fail
-check_file_messages "20.*123\.1.* 111 001 0000" 30 32 measurements.log || test_fail
-check_file_messages "	2	1	.*	11443	" 200 240 log.packets || test_fail
+check_file_messages "20.*123\.1.* 111 111 1111" 75 80 measurements.log || test_fail
+check_file_messages "20.*123\.1.* 111 001 0000" 37 39 measurements.log || test_fail
+check_file_messages "	2	1	.*	11443	" 260 300 log.packets || test_fail
 check_file_messages "." 6 6 ntskeys || test_fail
 rm -f tmp/measurements.log
 
