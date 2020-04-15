@@ -620,6 +620,7 @@ static void
 handle_rekey(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   KEY_Reload();
+  NKS_ReloadKeys();
 }
 
 /* ================================================== */

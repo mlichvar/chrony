@@ -550,4 +550,9 @@ NKS_DumpKeys(void)
 {
 }
 
+void
+NKS_ReloadKeys(void)
+{
+}
+
 #endif /* !FEAT_NTS */

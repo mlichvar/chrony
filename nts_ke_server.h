@@ -36,6 +36,9 @@ extern void NKS_Finalise(void);
 /* Save the current server keys */
 extern void NKS_DumpKeys(void);
 
+/* Reload the keys */
+extern void NKS_ReloadKeys(void);
+
 /* Generate an NTS cookie with a given context */
 extern int NKS_GenerateCookie(NKE_Context *context, NKE_Cookie *cookie);
 
