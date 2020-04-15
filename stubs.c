@@ -331,6 +331,11 @@ NSR_GetActivityReport(RPT_ActivityReport *report)
   memset(report, 0, sizeof (*report));
 }
 
+void
+NSR_DumpAuthData(void)
+{
+}
+
 #ifndef FEAT_CMDMON
 
 void
@@ -516,6 +521,11 @@ NNC_ChangeAddress(NNC_Instance inst, IPAddr *address)
 }
 
 void
+NNC_DumpData(NNC_Instance inst)
+{
+}
+
+void
 NKC_Initialise(void)
 {
 }
@@ -532,6 +542,11 @@ NKS_Initialise(int scfilter_level)
 
 void
 NKS_Finalise(void)
+{
+}
+
+void
+NKS_DumpKeys(void)
 {
 }
 

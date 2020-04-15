@@ -86,4 +86,7 @@ extern int NAU_CheckResponseAuth(NAU_Instance instance, NTP_Packet *response,
 /* Change an authentication-specific address (e.g. after replacing a source) */
 extern void NAU_ChangeAddress(NAU_Instance instance, IPAddr *address);
 
+/* Save authentication-specific data to speed up the next start */
+extern void NAU_DumpData(NAU_Instance instance);
+
 #endif

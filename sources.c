@@ -1197,7 +1197,6 @@ FILE *open_dumpfile(SRC_Instance inst, char mode)
 
   dumpdir = CNF_GetDumpDir();
   if (dumpdir[0] == '\0') {
-    LOG(LOGS_WARN, "dumpdir not specified");
     return NULL;
   }
 

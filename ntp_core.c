@@ -2562,6 +2562,14 @@ int NCR_IsSyncPeer(NCR_Instance inst)
 
 /* ================================================== */
 
+void
+NCR_DumpAuthData(NCR_Instance inst)
+{
+  NAU_DumpData(inst->auth);
+}
+
+/* ================================================== */
+
 static void
 broadcast_timeout(void *arg)
 {

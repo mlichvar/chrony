@@ -707,6 +707,14 @@ NKS_Finalise(void)
 
 /* ================================================== */
 
+void
+NKS_DumpKeys(void)
+{
+  save_keys();
+}
+
+/* ================================================== */
+
 /* A server cookie consists of key ID, nonce, and encrypted C2S+S2C keys */
 
 int

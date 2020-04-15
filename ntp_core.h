@@ -136,6 +136,8 @@ extern uint32_t NCR_GetLocalRefid(NCR_Instance inst);
 
 extern int NCR_IsSyncPeer(NCR_Instance instance);
 
+extern void NCR_DumpAuthData(NCR_Instance inst);
+
 extern void NCR_AddBroadcastDestination(IPAddr *addr, unsigned short port, int interval);
 
 #endif /* GOT_NTP_CORE_H */

@@ -484,3 +484,17 @@ NAU_ChangeAddress(NAU_Instance instance, IPAddr *address)
       assert(0);
   }
 }
+
+/* ================================================== */
+
+void
+NAU_DumpData(NAU_Instance instance)
+{
+  switch (instance->mode) {
+    case NTP_AUTH_NTS:
+      NNC_DumpData(instance->nts);
+      break;
+    default:
+      break;
+  }
+}

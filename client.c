@@ -1267,7 +1267,7 @@ give_help(void)
     "\0\0"
     "Other daemon commands:\0\0"
     "cyclelogs\0Close and re-open log files\0"
-    "dump\0Dump all measurements to save files\0"
+    "dump\0Dump measurements and NTS keys/cookies\0"
     "rekey\0Re-read keys from key file\0"
     "reset\0Drop all measurements\0"
     "shutdown\0Stop daemon\0"

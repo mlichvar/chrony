@@ -44,6 +44,7 @@
 #include "reference.h"
 #include "manual.h"
 #include "memory.h"
+#include "nts_ke_server.h"
 #include "local.h"
 #include "addrfilt.h"
 #include "conf.h"
@@ -309,6 +310,8 @@ static void
 handle_dump(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   SRC_DumpSources();
+  NSR_DumpAuthData();
+  NKS_DumpKeys();
 }
 
 /* ================================================== */

@@ -140,4 +140,6 @@ extern int NSR_GetNTPReport(RPT_NTPReport *report);
 
 extern void NSR_GetActivityReport(RPT_ActivityReport *report);
 
+extern void NSR_DumpAuthData(void);
+
 #endif /* GOT_NTP_SOURCES_H */

@@ -1297,6 +1297,18 @@ NSR_GetActivityReport(RPT_ActivityReport *report)
   }
 }
 
-
 /* ================================================== */
 
+void
+NSR_DumpAuthData(void)
+{
+  SourceRecord *record;
+  int i;
+
+  for (i = 0; i < ARR_GetSize(records); i++) {
+    record = get_record(i);
+    if (!record->remote_addr)
+      continue;
+    NCR_DumpAuthData(record->data);
+  }
+}

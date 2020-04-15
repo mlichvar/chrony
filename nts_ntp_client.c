@@ -619,3 +619,11 @@ error:
   memset(&inst->context, 0, sizeof (inst->context));
   inst->num_cookies = 0;
 }
+
+/* ================================================== */
+
+void
+NNC_DumpData(NNC_Instance inst)
+{
+  save_cookies(inst);
+}

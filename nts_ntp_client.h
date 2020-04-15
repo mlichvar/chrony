@@ -43,4 +43,6 @@ extern int NNC_CheckResponseAuth(NNC_Instance inst, NTP_Packet *packet,
 
 extern void NNC_ChangeAddress(NNC_Instance inst, IPAddr *address);
 
+extern void NNC_DumpData(NNC_Instance inst);
+
 #endif

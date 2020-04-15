@@ -33,6 +33,9 @@
 extern void NKS_Initialise(int scfilter_level);
 extern void NKS_Finalise(void);
 
+/* Save the current server keys */
+extern void NKS_DumpKeys(void);
+
 /* Generate an NTS cookie with a given context */
 extern int NKS_GenerateCookie(NKE_Context *context, NKE_Cookie *cookie);
 
