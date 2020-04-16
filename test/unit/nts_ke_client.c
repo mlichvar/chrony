@@ -24,6 +24,7 @@
 #ifdef FEAT_NTS
 
 #include <nts_ke_client.c>
+#include <local.h>
 
 static void
 prepare_response(NKSN_Instance session, int valid)
@@ -110,6 +111,7 @@ test_unit(void)
   for (i = 0; i < sizeof conf / sizeof conf[0]; i++)
     CNF_ParseLine(NULL, i + 1, conf[i]);
 
+  LCL_Initialise();
   NKC_Initialise();
 
   SCK_GetLoopbackIPAddress(AF_INET, &addr.ip_addr);
@@ -128,6 +130,7 @@ test_unit(void)
   NKC_DestroyInstance(inst);
 
   NKC_Finalise();
+  LCL_Finalise();
   CNF_Finalise();
 }
 #else

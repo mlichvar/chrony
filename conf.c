@@ -235,6 +235,9 @@ static int nts_refresh = 2419200; /* 4 weeks */
 static int nts_rotate = 604800; /* 1 week */
 static char *nts_trusted_cert_file = NULL;
 
+/* Number of clock updates needed to enable certificate time checks */
+static int no_cert_time_check = 0;
+
 /* Flag disabling use of system trusted certificates */
 static int no_system_cert = 0;
 
@@ -545,6 +548,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_int(p, &min_samples);
   } else if (!strcasecmp(command, "minsources")) {
     parse_int(p, &min_sources);
+  } else if (!strcasecmp(command, "nocerttimecheck")) {
+    parse_int(p, &no_cert_time_check);
   } else if (!strcasecmp(command, "noclientlog")) {
     no_client_log = parse_null(p);
   } else if (!strcasecmp(command, "nosystemcert")) {
@@ -2157,4 +2162,12 @@ int
 CNF_GetNoSystemCert(void)
 {
   return no_system_cert;
+}
+
+/* ================================================== */
+
+int
+CNF_GetNoCertTimeCheck(void)
+{
+  return no_cert_time_check;
 }

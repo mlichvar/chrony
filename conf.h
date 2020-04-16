@@ -150,5 +150,6 @@ extern int CNF_GetNtsRefresh(void);
 extern int CNF_GetNtsRotate(void);
 extern char *CNF_GetNtsTrustedCertFile(void);
 extern int CNF_GetNoSystemCert(void);
+extern int CNF_GetNoCertTimeCheck(void);
 
 #endif /* GOT_CONF_H */

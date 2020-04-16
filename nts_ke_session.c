@@ -40,6 +40,7 @@
 #include "util.h"
 
 #include <gnutls/gnutls.h>
+#include <gnutls/x509.h>
 
 #define INVALID_SOCK_FD (-8)
 
@@ -88,6 +89,8 @@ struct NKSN_Instance_Record {
 static gnutls_priority_t priority_cache;
 
 static int credentials_counter = 0;
+
+static int clock_updates = 0;
 
 /* ================================================== */
 
@@ -209,6 +212,7 @@ create_tls_session(int server_mode, int sock_fd, const char *server_name,
   unsigned char alpn_name[sizeof (NKE_ALPN_NAME)];
   gnutls_session_t session;
   gnutls_datum_t alpn;
+  unsigned int flags;
   int r;
 
   r = gnutls_init(&session, GNUTLS_NONBLOCK | (server_mode ? GNUTLS_SERVER : GNUTLS_CLIENT));
@@ -221,7 +225,15 @@ create_tls_session(int server_mode, int sock_fd, const char *server_name,
     r = gnutls_server_name_set(session, GNUTLS_NAME_DNS, server_name, strlen(server_name));
     if (r < 0)
       goto error;
-    gnutls_session_set_verify_cert(session, server_name, 0);
+
+    flags = 0;
+
+    if (clock_updates < CNF_GetNoCertTimeCheck()) {
+      flags |= GNUTLS_VERIFY_DISABLE_TIME_CHECKS | GNUTLS_VERIFY_DISABLE_TRUSTED_TIME_CHECKS;
+      DEBUG_LOG("Disabled time checks");
+    }
+
+    gnutls_session_set_verify_cert(session, server_name, flags);
   }
 
   r = gnutls_priority_set(session, priority);
@@ -552,6 +564,16 @@ get_time(time_t *t)
 
 /* ================================================== */
 
+static void
+handle_step(struct timespec *raw, struct timespec *cooked, double dfreq,
+            double doffset, LCL_ChangeType change_type, void *anything)
+{
+  if (change_type != LCL_ChangeUnknownStep && clock_updates < INT_MAX)
+    clock_updates++;
+}
+
+/* ================================================== */
+
 static int gnutls_initialised = 0;
 
 static void
@@ -576,6 +598,8 @@ init_gnutls(void)
   gnutls_global_set_time_function(get_time);
 
   gnutls_initialised = 1;
+
+  LCL_AddParameterChangeHandler(handle_step, NULL);
 }
 
 /* ================================================== */
@@ -584,6 +608,8 @@ static void
 deinit_gnutls(void)
 {
   assert(gnutls_initialised);
+
+  LCL_RemoveParameterChangeHandler(handle_step, NULL);
 
   gnutls_priority_deinit(priority_cache);
   gnutls_global_deinit();
