@@ -31,6 +31,7 @@
 #include "nts_ke_session.h"
 
 #include "conf.h"
+#include "local.h"
 #include "logging.h"
 #include "memory.h"
 #include "siv.h"
@@ -537,6 +538,20 @@ read_write_socket(int fd, int event, void *arg)
 
 /* ================================================== */
 
+static time_t
+get_time(time_t *t)
+{
+  struct timespec now;
+
+  LCL_ReadCookedTime(&now, NULL);
+  if (t)
+    *t = now.tv_sec;
+
+  return now.tv_sec;
+}
+
+/* ================================================== */
+
 static int gnutls_initialised = 0;
 
 static void
@@ -557,6 +572,8 @@ init_gnutls(void)
                             NULL, GNUTLS_PRIORITY_INIT_DEF_APPEND);
   if (r < 0)
     LOG_FATAL("Could not initialise %s : %s", "priority cache", gnutls_strerror(r));
+
+  gnutls_global_set_time_function(get_time);
 
   gnutls_initialised = 1;
 }
