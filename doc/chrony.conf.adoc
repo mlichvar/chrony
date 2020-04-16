@@ -689,6 +689,21 @@ changes in the frequency and offset of the clock. The offsets in the
 <<chronyc.adoc#sourcestats,*sourcestats*>> reports (and the _tracking.log_ and
 _statistics.log_ files) may be smaller than the actual offsets.
 
+[[ntsdumpdir1]]*ntsdumpdir* _directory_::
+This directive specifies a directory for the client to save NTS cookies it
+received from the server in order to avoid making an NTS-KE request when
+*chronyd* is started again. The cookies are saved separately for each NTP
+source in files named by the IP address of the NTS-KE server (e.g.
+_1.2.3.4.nts_). By default, the client does not save the cookies.
++
+An example of the directive is:
++
+----
+ntsdumpdir @CHRONYVARDIR@
+----
++
+This directory is used also by the <<ntsdumpdir2,NTS server>> to save keys.
+
 [[ntsrefresh]]*ntsrefresh* _interval_::
 This directive specifies the maximum interval between NTS-KE handshakes (in
 seconds) in order to refresh the keys authenticating NTP packets. The default
@@ -702,6 +717,25 @@ of NTS servers in addition to the system's default trusted CAs (if the
 
 [[nosystemcert]]*nosystemcert*::
 This directive disables the system's default trusted CAs.
+
+[[nocerttimecheck]]*nocerttimecheck* _limit_::
+This directive disables the checks of the activation and expiration times of
+certificates for the specified number of clock updates. It allows the NTS
+authentication mechanism to be used on computers which start with wrong time
+(e.g. due to not having an RTC or backup battery). Disabling the time checks
+has important security implications, e.g. if an NTP server was ever
+compromised, its certificate could be used in an attack after the expiration
+time. The default value is 0, which means the time checks are always enabled.
+
+An example of the directive is:
++
+----
+nocerttimecheck 1
+----
++
+This would disable the time checks until the clock is updated for the first
+time, assuming the first update corrects the clock and later checks can work
+with correct time.
 
 === Source selection
 
@@ -1390,16 +1424,50 @@ process will be started and all NTS-KE requests will be handled by the main
 This directive specifies the maximum number of concurrent NTS-KE connections
 per process that the NTS server will accept. The default value is 100.
 
-[[ntsdumpdir]]*ntsdumpdir* _directory_::
-This directive specifies a directory to save the keys which the NTS server uses
-to encrypt NTS cookies in order to prevent a storm of NTS-KE handshakes when
-the server is restarted. By default, the server does not save the keys.
+[[ntsdumpdir2]]*ntsdumpdir* _directory_::
+This directive specifies a directory where *chronyd* operating as an NTS server
+can save the keys which encrypt NTS cookies provided to clients. The keys are
+saved to a single file named _ntskeys_. When *chronyd* is restarted, reloading
+the keys allows the clients to continue using old cookies and avoids a storm of
+NTS-KE requests. By default, the server does not save the keys.
++
+An example of the directive is:
++
+----
+ntsdumpdir @CHRONYVARDIR@
+----
++
+This directory is used also by the <<ntsdumpdir1,NTS client>> to save NTS cookies.
+
+[[ntsntpserver]]*ntsntpserver* _hostname_::
+This directive specifies the hostname or address of the NTP server(s) which is
+provided in the NTS-KE response to the clients. It allows the NTS-KE server to
+be separated from the NTP server. However, the servers need to share the keys,
+i.e. external key management needs to be enabled by setting
+<<ntsrotate,*ntsrotate*>> to 0. By default, no hostname or address is provided
+to the clients, which means they should use the same server for NTS-KE and NTP.
 
 [[ntsrotate]]*ntsrotate* _interval_::
 This directive specifies the rotation interval (in seconds) of the server key
-which encrypts cookies. The server keeps up to 3 previous keys to give the
-clients enough time to get cookies encrypted by the latest key. The default
-interval is 604800 (1 week).
+which encrypts the NTS cookies. New keys are generated automatically. The
+server keeps two previous keys to give the clients time to get new cookies
+encrypted by the latest key. The default interval is 604800 seconds (1 week).
++
+The automatic rotation of the keys can be disabled by setting *ntsrotate* to 0.
+In this case the keys are assumed to be managed externally. *chronyd* will not
+save the keys to the _ntskeys_ file and will reload the keys from the file when
+the <<chronyc.adoc#rekey,*rekey*>> command is issued in *chronyc*. The file can
+be periodically copied from another server running *chronyd* (which does
+not have *ntsrotate* set to 0) in order to have one or more servers dedicated
+to NTS-KE. The NTS-KE servers need to be configured with the
+<<ntsntpname,*ntsntpname*>> directive to point the clients to the right NTP
+server.
++
+An example of the directive is:
++
+----
+ntsrotate 2592000
+----
 
 [[port]]*port* _port_::
 This option allows you to configure the port on which *chronyd* will listen for

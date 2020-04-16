@@ -1164,13 +1164,18 @@ purged. An example of how to do this is shown below.
 The *dump* command causes *chronyd* to write its current history of
 measurements for each of its sources to dump files in the directory specified
 in the configuration file by the <<chrony.conf.adoc#dumpdir,*dumpdir*>>
+directive and also write server NTS keys and client NTS cookies to the
+directory specified by the <<chrony.conf.adoc#ntsdumpdir1,*ntsdumpdir*>>
 directive. Note that *chronyd* does this automatically when it exits. This
-command is mainly useful for inspection of the history whilst *chronyd* is
-running.
+command is mainly useful for inspection whilst *chronyd* is running.
 
 [[rekey]]*rekey*::
 The *rekey* command causes *chronyd* to re-read the key file specified in the
-configuration file by the <<chrony.conf.adoc#keyfile,*keyfile*>> directive.
+configuration file by the <<chrony.conf.adoc#keyfile,*keyfile*>> directive. It
+also re-reads the server NTS keys if
+<<chrony.conf.adoc#ntsdumpdir2,*ntsdumpdir*>> is specified and
+<<chrony.conf.adoc#ntsrotate,automatic rotation>> is disabled in the
+configuration file.
 
 [[reset]]*reset*::
 The *reset* command causes *chronyd* to drop all measurements and switch to the
