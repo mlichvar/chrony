@@ -7,7 +7,8 @@ Enhancements
 * Add support for AES-CMAC keys (AES128, AES256) with Nettle
 * Add support for maxsamples of 1 for faster update with -q/-Q option
 * Add -L option to limit log messages by severity
-* Avoid replacing NTP sources with unreachable addresses
+* Avoid replacing NTP sources with sources that have unreachable address
+* Improve pools to repeat name resolution to get "maxsources" sources
 * Improve NTP loop test to prevent synchronisation to itself
 * Update clock synchronisation status and leap status more frequently
 * Update seccomp filter
