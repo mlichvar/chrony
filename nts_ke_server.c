@@ -663,6 +663,8 @@ NKS_Initialise(int scfilter_level)
     int sock_fd1, sock_fd2;
 
     sock_fd1 = SCK_OpenUnixSocketPair(0, &sock_fd2);
+    if (sock_fd1 < 0)
+      LOG_FATAL("Could not open socket pair");
 
     for (i = 0; i < processes; i++)
       start_helper(i + 1, scfilter_level, sock_fd1, sock_fd2);

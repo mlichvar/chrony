@@ -644,6 +644,8 @@ PRV_StartHelper(void)
     LOG_FATAL("Helper already running");
 
   sock_fd1 = SCK_OpenUnixSocketPair(SCK_FLAG_BLOCK, &sock_fd2);
+  if (sock_fd1 < 0)
+    LOG_FATAL("Could not open socket pair");
 
   pid = fork();
   if (pid < 0)
