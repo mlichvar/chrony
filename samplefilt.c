@@ -267,7 +267,7 @@ select_samples(SPF_Instance filter)
     }
   }
 
-  for (i = j = 0, k = -1; i < filter->used; i++) {
+  for (i = j = 0; i < filter->used; i++) {
     if (selected[i] != -1)
       selected[j++] = (selected[i] + filter->used - o) % filter->used;
   }
