@@ -118,7 +118,13 @@ struct SRC_Instance_Record {
   /* Type of the source */
   SRC_Type type;
 
-  /* Options used when selecting sources */ 
+  /* Flag indicating that the source is authenticated */
+  int authenticated;
+
+  /* Configured selection options */
+  int conf_sel_options;
+
+  /* Effective selection options */
   int sel_options;
 
   /* Score against currently selected source */
@@ -172,6 +178,7 @@ static double combine_limit;
 /* ================================================== */
 /* Forward prototype */
 
+static void update_sel_options(void);
 static void slew_sources(struct timespec *raw, struct timespec *cooked, double dfreq,
                          double doffset, LCL_ChangeType change_type, void *anything);
 static void add_dispersion(double dispersion, void *anything);
@@ -215,9 +222,9 @@ void SRC_Finalise(void)
 /* Function to create a new instance.  This would be called by one of
    the individual source-type instance creation routines. */
 
-SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, int sel_options,
-                                   IPAddr *addr, int min_samples, int max_samples,
-                                   double min_delay, double asymmetry)
+SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, int authenticated,
+                                   int sel_options, IPAddr *addr, int min_samples,
+                                   int max_samples, double min_delay, double asymmetry)
 {
   SRC_Instance result;
 
@@ -250,6 +257,8 @@ SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, int sel_optio
 
   result->index = n_sources;
   result->type = type;
+  result->authenticated = authenticated;
+  result->conf_sel_options = sel_options;
   result->sel_options = sel_options;
   result->active = 0;
 
@@ -257,6 +266,8 @@ SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, int sel_optio
   SRC_ResetInstance(result);
 
   n_sources++;
+
+  update_sel_options();
 
   return result;
 }
@@ -281,6 +292,8 @@ void SRC_DestroyInstance(SRC_Instance instance)
   }
   --n_sources;
   Free(instance);
+
+  update_sel_options();
 
   /* If this was the previous reference source, we have to reselect! */
   if (selected_source_index == dead_index)
@@ -475,6 +488,18 @@ SRC_ResetReachability(SRC_Instance inst)
   inst->reachability = 0;
   inst->reachability_size = 0;
   SRC_UpdateReachability(inst, 0);
+}
+
+/* ================================================== */
+
+static void
+update_sel_options(void)
+{
+  int i;
+
+  for (i = 0; i < n_sources; i++) {
+    sources[i]->sel_options = sources[i]->conf_sel_options;
+  }
 }
 
 /* ================================================== */

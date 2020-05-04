@@ -51,7 +51,7 @@ test_unit(void)
                                     SRC_SELECT_TRUST | SRC_SELECT_REQUIRE);
 
       DEBUG_LOG("added source %d options %d", j, sel_options);
-      srcs[j] = SRC_CreateNewInstance(UTI_IPToRefid(&addr), SRC_NTP, sel_options, &addr,
+      srcs[j] = SRC_CreateNewInstance(UTI_IPToRefid(&addr), SRC_NTP, 0, sel_options, &addr,
                                       SRC_DEFAULT_MINSAMPLES, SRC_DEFAULT_MAXSAMPLES,
                                       0.0, 1.0);
       SRC_UpdateReachability(srcs[j], 1);
