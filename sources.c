@@ -172,13 +172,10 @@ static double combine_limit;
 /* ================================================== */
 /* Forward prototype */
 
-static void
-slew_sources(struct timespec *raw, struct timespec *cooked, double dfreq,
-             double doffset, LCL_ChangeType change_type, void *anything);
-static void
-add_dispersion(double dispersion, void *anything);
-static char *
-source_to_string(SRC_Instance inst);
+static void slew_sources(struct timespec *raw, struct timespec *cooked, double dfreq,
+                         double doffset, LCL_ChangeType change_type, void *anything);
+static void add_dispersion(double dispersion, void *anything);
+static char *source_to_string(SRC_Instance inst);
 
 /* ================================================== */
 /* Initialisation function */
