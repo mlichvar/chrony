@@ -51,6 +51,14 @@ extern void SRC_Initialise(void);
 /* Finalisation function */
 extern void SRC_Finalise(void);
 
+/* Modes for selecting NTP sources based on their authentication status */
+typedef enum {
+  SRC_AUTHSELECT_IGNORE,
+  SRC_AUTHSELECT_MIX,
+  SRC_AUTHSELECT_PREFER,
+  SRC_AUTHSELECT_REQUIRE,
+} SRC_AuthSelectMode;
+
 typedef enum {
   SRC_NTP,                      /* NTP client/peer */
   SRC_REFCLOCK                  /* Rerefence clock */

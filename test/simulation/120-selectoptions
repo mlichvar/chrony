@@ -65,4 +65,28 @@ check_packet_interval || test_fail
 check_source_selection && test_fail
 check_sync && test_fail
 
+cat > tmp/keys <<-EOF
+1 MD5 HEX:1B81CBF88D4A73F2E8CE59647F6E5C1719B6CAF5
+EOF
+
+server_conf="keyfile tmp/keys"
+client_server_conf="
+server 192.168.123.1 key 1
+server 192.168.123.2
+server 192.168.123.3"
+
+for authselectmode in require prefer mix ignore; do
+	client_conf="keyfile tmp/keys
+		     authselectmode $authselectmode"
+	run_test || test_fail
+	check_chronyd_exit || test_fail
+	check_source_selection || test_fail
+	check_packet_interval || test_fail
+	if [ $authselectmode = ignore ]; then
+		check_sync || test_fail
+	else
+		check_sync && test_fail
+	fi
+done
+
 test_pass

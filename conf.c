@@ -51,6 +51,7 @@ static int parse_double(char *line, double *result);
 static int parse_null(char *line);
 
 static void parse_allow_deny(char *line, ARR_Instance restrictions, int allow);
+static void parse_authselectmode(char *);
 static void parse_bindacqaddress(char *);
 static void parse_bindaddress(char *);
 static void parse_bindcmdaddress(char *);
@@ -89,6 +90,7 @@ static double max_clock_error = 1.0; /* in ppm */
 static double max_drift = 500000.0; /* in ppm */
 static double max_slew_rate = 1e6 / 12.0; /* in ppm */
 
+static SRC_AuthSelectMode authselect_mode = SRC_AUTHSELECT_MIX;
 static double max_distance = 3.0;
 static double max_jitter = 1.0;
 static double reselect_distance = 1e-4;
@@ -461,6 +463,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_int(p, &acquisition_port);
   } else if (!strcasecmp(command, "allow")) {
     parse_allow_deny(p, ntp_restrictions, 1);
+  } else if (!strcasecmp(command, "authselectmode")) {
+    parse_authselectmode(p);
   } else if (!strcasecmp(command, "bindacqaddress")) {
     parse_bindacqaddress(p);
   } else if (!strcasecmp(command, "bindaddress")) {
@@ -1142,6 +1146,23 @@ parse_allow_deny(char *line, ARR_Instance restrictions, int allow)
 /* ================================================== */
 
 static void
+parse_authselectmode(char *line)
+{
+  if (!strcasecmp(line, "require"))
+    authselect_mode = SRC_AUTHSELECT_REQUIRE;
+  else if (!strcasecmp(line, "prefer"))
+    authselect_mode = SRC_AUTHSELECT_PREFER;
+  else if (!strcasecmp(line, "mix"))
+    authselect_mode = SRC_AUTHSELECT_MIX;
+  else if (!strcasecmp(line, "ignore"))
+    authselect_mode = SRC_AUTHSELECT_IGNORE;
+  else
+    command_parse_error();
+}
+
+/* ================================================== */
+
+static void
 parse_bindacqaddress(char *line)
 {
   IPAddr ip;
@@ -1676,6 +1697,14 @@ double
 CNF_GetCorrectionTimeRatio(void)
 {
   return correction_time_ratio;
+}
+
+/* ================================================== */
+
+SRC_AuthSelectMode
+CNF_GetAuthSelectMode(void)
+{
+  return authselect_mode;
 }
 
 /* ================================================== */

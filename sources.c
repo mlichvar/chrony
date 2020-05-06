@@ -495,10 +495,62 @@ SRC_ResetReachability(SRC_Instance inst)
 static void
 update_sel_options(void)
 {
-  int i;
+  int options, auth_ntp_options, unauth_ntp_options, refclk_options;
+  int i, auth_ntp_sources, unauth_ntp_sources;
+
+  auth_ntp_sources = unauth_ntp_sources = 0;
 
   for (i = 0; i < n_sources; i++) {
-    sources[i]->sel_options = sources[i]->conf_sel_options;
+    if (sources[i]->type != SRC_NTP)
+      continue;
+    if (sources[i]->authenticated)
+      auth_ntp_sources++;
+    else
+      unauth_ntp_sources++;
+  }
+
+  auth_ntp_options = unauth_ntp_options = refclk_options = 0;
+
+  /* Determine which selection options need to be added to authenticated NTP
+     sources, unauthenticated NTP sources, and refclocks, to follow the
+     configured selection mode */
+  switch (CNF_GetAuthSelectMode()) {
+    case SRC_AUTHSELECT_IGNORE:
+      break;
+    case SRC_AUTHSELECT_MIX:
+      if (auth_ntp_sources > 0 && unauth_ntp_sources > 0)
+        auth_ntp_options = refclk_options = SRC_SELECT_REQUIRE | SRC_SELECT_TRUST;
+      break;
+    case SRC_AUTHSELECT_PREFER:
+      if (auth_ntp_sources > 0)
+        unauth_ntp_options = SRC_SELECT_NOSELECT;
+      break;
+    case SRC_AUTHSELECT_REQUIRE:
+      unauth_ntp_options = SRC_SELECT_NOSELECT;
+      break;
+    default:
+      assert(0);
+  }
+
+  for (i = 0; i < n_sources; i++) {
+    options = sources[i]->conf_sel_options;
+
+    switch (sources[i]->type) {
+      case SRC_NTP:
+        options |= sources[i]->authenticated ? auth_ntp_options : unauth_ntp_options;
+        break;
+      case SRC_REFCLOCK:
+        options |= refclk_options;
+        break;
+      default:
+        assert(0);
+    }
+
+    if (sources[i]->sel_options != options) {
+      DEBUG_LOG("changing %s from %x to %x", source_to_string(sources[i]),
+                (unsigned int)sources[i]->sel_options, (unsigned int)options);
+      sources[i]->sel_options = options;
+    }
   }
 }
 

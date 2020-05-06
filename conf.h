@@ -30,6 +30,7 @@
 
 #include "addressing.h"
 #include "reference.h"
+#include "sources.h"
 
 extern void CNF_Initialise(int restarted, int client_only);
 extern void CNF_Finalise(void);
@@ -87,6 +88,7 @@ extern double CNF_GetMaxDrift(void);
 extern double CNF_GetCorrectionTimeRatio(void);
 extern double CNF_GetMaxSlewRate(void);
 
+extern SRC_AuthSelectMode CNF_GetAuthSelectMode(void);
 extern double CNF_GetMaxDistance(void);
 extern double CNF_GetMaxJitter(void);
 extern double CNF_GetReselectDistance(void);

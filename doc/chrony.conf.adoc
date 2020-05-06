@@ -739,6 +739,74 @@ with correct time.
 
 === Source selection
 
+[[authselectmode]]*authselectmode* _mode_::
+NTP sources can be specified with the *key* or *nts* option to enable
+authentication to limit the impact of man-in-the-middle attacks. The
+attackers can drop or delay NTP packets (up to the *maxdelay* and
+<<maxdistance,*maxdistance*>> limits), but they cannot modify the timestamps
+contained in the packets. The attack can cause only a limited slew or step, and
+also cause the clock to run faster or slower than real time (up to double of
+the <<maxdrift,*maxdrift*>> limit).
++
+When authentication is enabled for an NTP source, it is important to disable
+unauthenticated NTP sources which could be exploited in the attack, e.g. if
+they are not reachable only over a trusted network. Alternatively, the source
+selection can be configured with the *require* and *trust* options to
+synchronise to the unauthenticated sources only if they agree with the
+authenticated sources and might have a positive impact on the accuracy of the
+clock. Note that in this case the impact of the attack is higher. The attackers
+cannot cause an arbitrarily large step or slew, but they have more control over
+the frequency of the clock and can cause *chronyd* to report false information,
+e.g. a significantly smaller root delay and dispersion.
++
+This directive determines the default selection options for authenticated and
+unauthenticated sources in order to simplify the configuration with the
+configuration file and *chronyc* commands. It sets a policy for authentication.
++
+There are four modes:
++
+*require*:::
+Authentication is strictly required for NTP sources in this mode. If any
+unauthenticated NTP sources are specified, they will automatically get the
+*noselect* option to prevent them from being selected for synchronisation.
+*prefer*:::
+In this mode, authentication is optional and preferred. If it is enabled for at
+least one NTP source, all unauthenticated NTP sources will get the *noselect*
+option.
+*mix*:::
+In this mode, authentication is optional and synchronisation to a mix of
+authenticated and unauthenticated NTP sources is allowed. If both authenticated
+and unauthenticated NTP sources are specified, all authenticated NTP sources
+and reference clocks will get the *require* and *trust* options to prevent
+synchronisation to unauthenticated NTP sources if they do not agree with a
+majority of the authenticated sources and reference clocks. This is the default
+mode.
+*ignore*:::
+In this mode, authentication is ignored in the source selection. All sources
+will have only the selection options that were specified in the configuration
+file, or *chronyc* command. This was the behaviour of *chronyd* in versions
+before 4.0.
+::
++
+As an example, the following configuration using the default *mix* mode:
++
+----
+server foo.example.net nts
+server bar.example.net nts
+server baz.example.net
+refclock SHM 0
+----
++
+is equivalent to the following configuration using the *ignore* mode:
++
+----
+authselectmode ignore
+server foo.example.net nts require trust
+server bar.example.net nts require trust
+server baz.example.net
+refclock SHM 0 require trust
+----
+
 [[combinelimit]]*combinelimit* _limit_::
 When *chronyd* has multiple sources available for synchronisation, it has to
 select one source as the synchronisation source. The measured offsets and
