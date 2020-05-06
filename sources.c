@@ -396,7 +396,7 @@ SRC_AccumulateSample(SRC_Instance inst, NTP_Sample *sample)
 
   assert(initialised);
 
-  DEBUG_LOG("ip=[%s] t=%s ofs=%f del=%f disp=%f str=%d",
+  DEBUG_LOG("src=%s ts=%s offset=%e delay=%e disp=%e stratum=%d",
             source_to_string(inst), UTI_TimespecToString(&sample->time), -sample->offset,
             sample->root_delay, sample->root_dispersion, sample->stratum);
 
@@ -604,6 +604,19 @@ source_to_string(SRC_Instance inst)
 /* ================================================== */
 
 static void
+mark_source(SRC_Instance inst, SRC_Status status)
+{
+  inst->status = status;
+
+  DEBUG_LOG("%s status=%d options=%x reach=%o/%d updates=%d distant=%d leap=%d vote=%d",
+            source_to_string(inst), (int)inst->status, (unsigned int)inst->sel_options,
+            (unsigned int)inst->reachability, inst->reachability_size, inst->updates,
+            inst->distant, (int)inst->leap, inst->leap_vote);
+}
+
+/* ================================================== */
+
+static void
 mark_ok_sources(SRC_Status status)
 {
   int i;
@@ -611,7 +624,7 @@ mark_ok_sources(SRC_Status status)
   for (i = 0; i < n_sources; i++) {
     if (sources[i]->status != SRC_OK)
       continue;
-    sources[i]->status = status;
+    mark_source(sources[i], status);
   }
 }
 
@@ -662,12 +675,12 @@ combine_sources(int n_sel_sources, struct timespec *ref_time, double *offset,
     }
 
     if (sources[index]->distant) {
-      sources[index]->status = SRC_DISTANT;
+      mark_source(sources[index], SRC_DISTANT);
       continue;
     }
 
     if (sources[index]->status == SRC_OK)
-      sources[index]->status = SRC_UNSELECTED;
+      mark_source(sources[index], SRC_UNSELECTED);
 
     elapsed = UTI_DiffTimespecsToDouble(ref_time, &src_ref_time);
     src_offset += elapsed * src_frequency;
@@ -760,7 +773,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
     /* Ignore sources which were added with the noselect option */
     if (sources[i]->sel_options & SRC_SELECT_NOSELECT) {
-      sources[i]->status = SRC_UNSELECTABLE;
+      mark_source(sources[i], SRC_UNSELECTABLE);
       continue;
     }
 
@@ -772,7 +785,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
     if (!si->select_ok) {
       ++n_badstats_sources;
-      sources[i]->status = SRC_BAD_STATS;
+      mark_source(sources[i], SRC_BAD_STATS);
       if (max_badstat_reach < sources[i]->reachability)
         max_badstat_reach = sources[i]->reachability;
       continue;
@@ -790,13 +803,13 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
     /* Require the root distance to be below the allowed maximum */
     if (si->root_distance > max_distance) {
-      sources[i]->status = SRC_BAD_DISTANCE;
+      mark_source(sources[i], SRC_BAD_DISTANCE);
       continue;
     }
 
     /* And the same applies for the estimated standard deviation */
     if (si->std_dev > max_jitter) {
-      sources[i]->status = SRC_JITTERY;
+      mark_source(sources[i], SRC_JITTERY);
       continue;
     }
 
@@ -826,7 +839,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
        can still be selected if its newest sample is not older than the oldest
        sample from reachable sources. */
     if (!sources[i]->reachability && max_reach_sample_ago < si->last_sample_ago) {
-      sources[i]->status = SRC_STALE;
+      mark_source(sources[i], SRC_STALE);
       continue;
     }
 
@@ -848,7 +861,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
        local unsychronised time and others are synchronised to it. */
 
     if (si->stratum >= orphan_stratum && sources[i]->type == SRC_NTP) {
-      sources[i]->status = SRC_ORPHAN;
+      mark_source(sources[i], SRC_ORPHAN);
 
       if (si->stratum == orphan_stratum && sources[i]->reachability &&
           (orphan_source == INVALID_SOURCE ||
@@ -894,7 +907,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     n_endpoints += 2;
   }
 
-  DEBUG_LOG("badstat=%d sel=%d badstat_reach=%x sel_reach=%x size=%d max_reach_ago=%f",
+  DEBUG_LOG("badstat=%d sel=%d badstat_reach=%o sel_reach=%o size=%d max_reach_ago=%f",
             n_badstats_sources, n_sel_sources, (unsigned int)max_badstat_reach,
             (unsigned int)max_sel_reach, max_sel_reach_size, max_reach_sample_ago);
 
@@ -1021,9 +1034,9 @@ SRC_SelectSource(SRC_Instance updated_inst)
         sel_req_source = 0;
     } else if (sources[i]->sel_info.lo_limit <= best_lo &&
                sources[i]->sel_info.hi_limit >= best_hi) {
-      sources[i]->status = SRC_UNTRUSTED;
+      mark_source(sources[i], SRC_UNTRUSTED);
     } else {
-      sources[i]->status = SRC_FALSETICKER;
+      mark_source(sources[i], SRC_FALSETICKER);
     }
   }
 
@@ -1056,7 +1069,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   if (i < n_sel_sources) {
     for (i = j = 0; i < n_sel_sources; i++) {
       if (!(sources[sel_sources[i]]->sel_options & SRC_SELECT_PREFER))
-        sources[sel_sources[i]]->status = SRC_NONPREFERRED;
+        mark_source(sources[sel_sources[i]], SRC_NONPREFERRED);
       else
         sel_sources[j++] = sel_sources[i];
     }
@@ -1120,10 +1133,8 @@ SRC_SelectSource(SRC_Instance updated_inst)
       sources[i]->sel_score = 1.0 / distance;
     }
 
-    DEBUG_LOG("select score=%f refid=%"PRIx32" match_refid=%"PRIx32" status=%u dist=%f",
-              sources[i]->sel_score, sources[i]->ref_id,
-              updated_inst ? updated_inst->ref_id : 0,
-              sources[i]->status, distance);
+    DEBUG_LOG("%s score=%f dist=%f",
+              source_to_string(sources[i]), sources[i]->sel_score, distance);
 
     if (max_score < sources[i]->sel_score) {
       max_score = sources[i]->sel_score;
@@ -1144,7 +1155,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
     if (sources[max_score_index]->updates == 0) {
       selected_source_index = INVALID_SOURCE;
       mark_ok_sources(SRC_WAITS_UPDATE);
-      DEBUG_LOG("best source has no updates");
       return;
     }
 
@@ -1159,7 +1169,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     }
   }
 
-  sources[selected_source_index]->status = SRC_SELECTED;
+  mark_source(sources[selected_source_index], SRC_SELECTED);
 
   /* Don't update reference when the selected source has no new samples */
 
@@ -1169,8 +1179,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     for (i = 0; i < n_sel_sources; i++) {
       index = sel_sources[i];
       if (sources[index]->status == SRC_OK)
-        sources[index]->status = sources[index]->distant ?
-                                 SRC_DISTANT : SRC_UNSELECTED;
+        mark_source(sources[index], sources[index]->distant ? SRC_DISTANT : SRC_UNSELECTED);
     }
     return;
   }
