@@ -43,6 +43,11 @@
 #include "util.h"
 
 /* ================================================== */
+
+#define MAX_LINE_LENGTH 2048
+#define MAX_CONF_DIRS 10
+
+/* ================================================== */
 /* Forward prototypes */
 
 static int parse_string(char *line, char **result);
@@ -57,6 +62,7 @@ static void parse_bindaddress(char *);
 static void parse_bindcmdaddress(char *);
 static void parse_broadcast(char *);
 static void parse_clientloglimit(char *);
+static void parse_confdirs(char *);
 static void parse_fallbackdrift(char *);
 static void parse_hwtimestamp(char *);
 static void parse_include(char *);
@@ -424,7 +430,7 @@ void
 CNF_ReadFile(const char *filename)
 {
   FILE *in;
-  char line[2048];
+  char line[MAX_LINE_LENGTH];
   int i;
 
   in = UTI_OpenFile(NULL, filename, NULL, 'R', 0);
@@ -486,6 +492,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
                     &cmd_ratelimit_burst, &cmd_ratelimit_leak);
   } else if (!strcasecmp(command, "combinelimit")) {
     parse_double(p, &combine_limit);
+  } else if (!strcasecmp(command, "confdirs")) {
+    parse_confdirs(p);
   } else if (!strcasecmp(command, "corrtimeratio")) {
     parse_double(p, &correction_time_ratio);
   } else if (!strcasecmp(command, "deny")) {
@@ -1403,6 +1411,77 @@ parse_hwtimestamp(char *line)
 
   if (*p)
     command_parse_error();
+}
+
+/* ================================================== */
+
+static const char *
+get_basename(const char *path)
+{
+  const char *b = strrchr(path, '/');
+  return b ? b + 1 : path;
+}
+
+/* ================================================== */
+
+static int
+compare_basenames(const void *a, const void *b)
+{
+  return strcmp(get_basename(*(const char * const *)a),
+                get_basename(*(const char * const *)b));
+}
+
+/* ================================================== */
+
+static void
+parse_confdirs(char *line)
+{
+  char *dirs[MAX_CONF_DIRS], buf[MAX_LINE_LENGTH], *path;
+  size_t i, j, k, locations, n_dirs;
+  glob_t gl;
+
+  n_dirs = UTI_SplitString(line, dirs, MAX_CONF_DIRS);
+  if (n_dirs < 1 || n_dirs > MAX_CONF_DIRS) {
+    command_parse_error();
+    return;
+  }
+
+  /* Get the paths of all config files in the specified directories */
+  for (i = 0; i < n_dirs; i++) {
+    if (snprintf(buf, sizeof (buf), "%s/%s", dirs[i], "*.conf") >= sizeof (buf))
+      assert(0);
+    if (glob(buf, GLOB_NOSORT | (i > 0 ? GLOB_APPEND : 0), NULL, &gl) != 0)
+      ;
+  }
+
+  if (gl.gl_pathc > 0) {
+    /* Sort the paths by filenames */
+    qsort(gl.gl_pathv, gl.gl_pathc, sizeof (gl.gl_pathv[0]), compare_basenames);
+
+    for (i = 0; i < gl.gl_pathc; i += locations) {
+      /* Count directories containing files with this name */
+      for (j = i + 1, locations = 1; j < gl.gl_pathc; j++, locations++) {
+        if (compare_basenames(&gl.gl_pathv[i], &gl.gl_pathv[j]) != 0)
+          break;
+      }
+
+      /* Read the first file of this name in the order of the directive */
+      for (j = 0; j < n_dirs; j++) {
+        for (k = 0; k < locations; k++) {
+          path = gl.gl_pathv[i + k];
+          if (strncmp(path, dirs[j], strlen(dirs[j])) == 0 &&
+              strlen(dirs[j]) + 1 + strlen(get_basename(path)) == strlen(path)) {
+            CNF_ReadFile(path);
+            break;
+          }
+        }
+        if (k < locations)
+          break;
+      }
+    }
+  }
+
+  globfree(&gl);
 }
 
 /* ================================================== */

@@ -2121,6 +2121,32 @@ sendmail binary.
 
 === Miscellaneous
 
+[[confdirs]]*confdirs* _directory_...::
+The *confdirs* directive includes configuration files with the _.conf_ suffix
+from up to 10 directories. The files are included in the lexicographical order
+(ignoring the names of the directories). If multiple directories contain a file
+with the same name, only the first file in the order of the specified
+directories will be included. This enables a fragmented configuration, where
+existing fragments can be replaced by adding files to a different directory.
++
+An example of the directive is:
++
+----
+confdirs @SYSCONFDIR@/chrony.d /var/run/chrony.d /usr/lib/chrony.d
+----
+
+[[include]]*include* _pattern_::
+The *include* directive includes a configuration file, or multiple configuration
+files if a wildcard pattern is specified. Unlike with the *confdirs* directive,
+the full name of the files needs to be specified and at least one file is
+required to exist.
++
+An example of the directive is:
++
+----
+include @SYSCONFDIR@/chrony.d/*.conf
+----
+
 [[hwtimestamp]]*hwtimestamp* _interface_ [_option_]...::
 This directive enables hardware timestamping of NTP packets sent to and
 received from the specified network interface. The network interface controller
@@ -2206,17 +2232,6 @@ Examples of the directive are:
 hwtimestamp eth0
 hwtimestamp eth1 txcomp 300e-9 rxcomp 645e-9
 hwtimestamp *
-----
-
-[[include]]*include* _pattern_::
-The *include* directive includes a configuration file or multiple configuration
-files if a wildcard pattern is specified. This can be useful when maintaining
-configuration on multiple hosts to keep the differences in separate files.
-+
-An example of the directive is:
-+
-----
-include @SYSCONFDIR@/chrony.d/*.conf
 ----
 
 [[keyfile]]*keyfile* _file_::
