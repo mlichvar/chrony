@@ -46,6 +46,7 @@
 
 #define MAX_LINE_LENGTH 2048
 #define MAX_CONF_DIRS 10
+#define MAX_INCLUDE_LEVEL 10
 
 /* ================================================== */
 /* Forward prototypes */
@@ -291,6 +292,8 @@ static int line_number;
 static const char *processed_file;
 static const char *processed_command;
 
+static int include_level = 0;
+
 /* ================================================== */
 
 static void
@@ -433,6 +436,10 @@ CNF_ReadFile(const char *filename)
   char line[MAX_LINE_LENGTH];
   int i;
 
+  include_level++;
+  if (include_level > MAX_INCLUDE_LEVEL)
+    LOG_FATAL("Maximum include level reached");
+
   in = UTI_OpenFile(NULL, filename, NULL, 'R', 0);
 
   for (i = 1; fgets(line, sizeof(line), in); i++) {
@@ -440,6 +447,8 @@ CNF_ReadFile(const char *filename)
   }
 
   fclose(in);
+
+  include_level--;
 }
 
 /* ================================================== */
