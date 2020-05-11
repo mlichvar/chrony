@@ -489,8 +489,7 @@ maybe_log_offset(double offset, time_t now)
   abs_offset = fabs(offset);
 
   if (abs_offset > log_change_threshold) {
-    LOG(LOGS_WARN, "System clock wrong by %.6f seconds, adjustment started",
-        -offset);
+    LOG(LOGS_WARN, "System clock wrong by %.6f seconds", -offset);
   }
 
   if (do_mail_change &&
