@@ -453,7 +453,7 @@ typedef struct {
     REQ_ReselectDistance reselect_distance;
     REQ_SmoothTime smoothtime;
     REQ_NTPData ntp_data;
-    REQ_NTPData ntp_source_name;
+    REQ_NTPSourceName ntp_source_name;
   } data; /* Command specific parameters */
 
   /* Padding used to prevent traffic amplification.  It only defines the
