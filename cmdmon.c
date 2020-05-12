@@ -135,7 +135,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* ONOFFLINE */
   PERMIT_AUTH, /* ADD_SOURCE */
   PERMIT_OPEN, /* NTP_SOURCE_NAME */
-  PERMIT_AUTH, /* RESET */
+  PERMIT_AUTH, /* RESET_SOURCES */
 };
 
 /* ================================================== */
@@ -1226,7 +1226,7 @@ handle_ntp_source_name(CMD_Request *rx_message, CMD_Reply *tx_message)
 /* ================================================== */
 
 static void
-handle_reset(CMD_Request *rx_message, CMD_Reply *tx_message)
+handle_reset_sources(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   struct timespec cooked_now, now;
 
@@ -1613,8 +1613,8 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
           handle_ntp_source_name(&rx_message, &tx_message);
           break;
 
-        case REQ_RESET:
-          handle_reset(&rx_message, &tx_message);
+        case REQ_RESET_SOURCES:
+          handle_reset_sources(&rx_message, &tx_message);
           break;
 
         default:

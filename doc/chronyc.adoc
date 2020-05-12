@@ -1177,12 +1177,12 @@ also re-reads the server NTS keys if
 <<chrony.conf.adoc#ntsrotate,automatic rotation>> is disabled in the
 configuration file.
 
-[[reset]]*reset*::
-The *reset* command causes *chronyd* to drop all measurements and switch to the
-unsynchronised state. This command can help *chronyd* with recovery when the
-measurements are known to be no longer valid or accurate, e.g. due to moving
-the computer to a different network, or resuming the computer from a low-power
-state (which resets the system clock).
+[[reset]]*reset* *sources*::
+The *reset sources* command causes *chronyd* to drop all measurements and
+switch to the unsynchronised state. This command can help *chronyd* with
+recovery when the measurements are known to be no longer valid or accurate,
+e.g. due to moving the computer to a different network, or resuming the
+computer from a low-power state (which resets the system clock).
 
 [[shutdown]]*shutdown*::
 The *shutdown* command causes *chronyd* to exit. This is equivalent to sending

@@ -123,7 +123,7 @@ static const struct request_length request_lengths[] = {
   REQ_LENGTH_ENTRY(ntp_source, null),           /* ADD_SOURCE */
   REQ_LENGTH_ENTRY(ntp_source_name,
                    ntp_source_name),            /* NTP_SOURCE_NAME */
-  REQ_LENGTH_ENTRY(null, null),                 /* RESET */
+  REQ_LENGTH_ENTRY(null, null),                 /* RESET_SOURCES */
 };
 
 static const uint16_t reply_lengths[] = {
