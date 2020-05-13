@@ -36,10 +36,10 @@
 static MD5_CTX ctx;
 
 int
-HSH_GetHashId(const char *name)
+HSH_GetHashId(HSH_Algorithm algorithm)
 {
   /* only MD5 is supported */
-  if (strcmp(name, "MD5"))
+  if (algorithm != HSH_MD5)
     return -1;
 
   return 0;

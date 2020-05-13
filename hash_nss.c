@@ -38,30 +38,30 @@ static NSSLOWInitContext *ictx;
 
 struct hash {
   HASH_HashType type;
-  const char *name;
+  HSH_Algorithm algorithm;
   NSSLOWHASHContext *context;
 };
 
 static struct hash hashes[] = {
-  { HASH_AlgMD5, "MD5", NULL },
-  { HASH_AlgSHA1, "SHA1", NULL },
-  { HASH_AlgSHA256, "SHA256", NULL },
-  { HASH_AlgSHA384, "SHA384", NULL },
-  { HASH_AlgSHA512, "SHA512", NULL },
-  { 0, NULL, NULL }
+  { HASH_AlgMD5, HSH_MD5, NULL },
+  { HASH_AlgSHA1, HSH_SHA1, NULL },
+  { HASH_AlgSHA256, HSH_SHA256, NULL },
+  { HASH_AlgSHA384, HSH_SHA384, NULL },
+  { HASH_AlgSHA512, HSH_SHA512, NULL },
+  { 0, 0, NULL }
 };
 
 int
-HSH_GetHashId(const char *name)
+HSH_GetHashId(HSH_Algorithm algorithm)
 {
   int i;
 
-  for (i = 0; hashes[i].name; i++) {
-    if (!strcmp(name, hashes[i].name))
+  for (i = 0; hashes[i].algorithm != 0; i++) {
+    if (hashes[i].algorithm == algorithm)
       break;
   }
 
-  if (!hashes[i].name)
+  if (hashes[i].algorithm == 0)
     return -1; /* not found */
 
   if (!ictx && !(ictx = NSSLOW_Init()))
@@ -99,7 +99,7 @@ HSH_Finalise(void)
 {
   int i;
 
-  for (i = 0; hashes[i].name; i++) {
+  for (i = 0; hashes[i].algorithm != 0; i++) {
     if (hashes[i].context)
       NSSLOWHASH_Destroy(hashes[i].context);
   }

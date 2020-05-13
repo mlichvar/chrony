@@ -165,6 +165,8 @@ extern void UTI_TimespecHostToNetwork(const struct timespec *src, Timespec *dest
 extern double UTI_FloatNetworkToHost(Float x);
 extern Float UTI_FloatHostToNetwork(double x);
 
+extern HSH_Algorithm UTI_HashNameToAlgorithm(const char *name);
+
 /* Set FD_CLOEXEC on descriptor */
 extern int UTI_FdSetCloexec(int fd);
 

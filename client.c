@@ -2990,7 +2990,7 @@ process_cmd_keygen(char *line)
   cmac_length = 0;
 #endif
 
-  if (HSH_GetHashId(type) >= 0) {
+  if (HSH_GetHashId(UTI_HashNameToAlgorithm(type)) >= 0) {
     length = (bits + 7) / 8;
   } else if (cmac_length > 0) {
     length = cmac_length;

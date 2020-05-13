@@ -22,6 +22,7 @@
 #include <sysincl.h>
 #include <hash.h>
 #include <logging.h>
+#include <util.h>
 #include "test.h"
 
 struct hash_test {
@@ -69,18 +70,23 @@ test_unit(void)
     { "", "", 0 }
   };
 
+  HSH_Algorithm algorithm;
   unsigned int length;
   int i, j, hash_id;
 
+  TEST_CHECK(HSH_INVALID == 0);
+
   for (i = 0; tests[i].name[0] != '\0'; i++) {
-    hash_id = HSH_GetHashId(tests[i].name);
+    algorithm = UTI_HashNameToAlgorithm(tests[i].name);
+    TEST_CHECK(algorithm != 0);
+    hash_id = HSH_GetHashId(algorithm);
     if (hash_id < 0) {
-      TEST_CHECK(strcmp(tests[i].name, "MD5"));
+      TEST_CHECK(algorithm != HSH_MD5);
 #ifdef FEAT_SECHASH
-      TEST_CHECK(strcmp(tests[i].name, "SHA1"));
-      TEST_CHECK(strcmp(tests[i].name, "SHA256"));
-      TEST_CHECK(strcmp(tests[i].name, "SHA384"));
-      TEST_CHECK(strcmp(tests[i].name, "SHA512"));
+      TEST_CHECK(algorithm != HSH_SHA1);
+      TEST_CHECK(algorithm != HSH_SHA256);
+      TEST_CHECK(algorithm != HSH_SHA384);
+      TEST_CHECK(algorithm != HSH_SHA512);
 #endif
       continue;
     }
@@ -88,8 +94,8 @@ test_unit(void)
     DEBUG_LOG("testing %s", tests[i].name);
 
     for (j = 0; j <= sizeof (out); j++) {
-      TEST_CHECK(HSH_GetHashId(tests[i].name) == hash_id);
-      TEST_CHECK(HSH_GetHashId("nosuchhash") < 0);
+      TEST_CHECK(HSH_GetHashId(algorithm) == hash_id);
+      TEST_CHECK(HSH_GetHashId(0) < 0);
 
       memset(out, 0, sizeof (out));
       length = HSH_Hash(hash_id, data1, sizeof (data1) - 1, data2, sizeof (data2) - 1,

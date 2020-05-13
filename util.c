@@ -399,7 +399,7 @@ UTI_IPToRefid(const IPAddr *ip)
       return ip->addr.in4;
     case IPADDR_INET6:
       if (MD5_hash < 0)
-        MD5_hash = HSH_GetHashId("MD5");
+        MD5_hash = HSH_GetHashId(HSH_MD5);
 
       if (MD5_hash < 0 ||
           HSH_Hash(MD5_hash, (const unsigned char *)ip->addr.in6, sizeof (ip->addr.in6),
@@ -923,6 +923,36 @@ UTI_FloatHostToNetwork(double x)
 
   f.f = htonl((uint32_t)exp << FLOAT_COEF_BITS | coef);
   return f;
+}
+
+/* ================================================== */
+
+HSH_Algorithm
+UTI_HashNameToAlgorithm(const char *name)
+{
+  if (strcmp(name, "MD5") == 0)
+    return HSH_MD5;
+  else if (strcmp(name, "SHA1") == 0)
+    return HSH_SHA1;
+  else if (strcmp(name, "SHA256") == 0)
+    return HSH_SHA256;
+  else if (strcmp(name, "SHA384") == 0)
+    return HSH_SHA384;
+  else if (strcmp(name, "SHA512") == 0)
+    return HSH_SHA512;
+  else if (strcmp(name, "SHA3-224") == 0)
+    return HSH_SHA3_224;
+  else if (strcmp(name, "SHA3-256") == 0)
+    return HSH_SHA3_256;
+  else if (strcmp(name, "SHA3-384") == 0)
+    return HSH_SHA3_384;
+  else if (strcmp(name, "SHA3-512") == 0)
+    return HSH_SHA3_512;
+  else if (strcmp(name, "TIGER") == 0)
+    return HSH_TIGER;
+  else if (strcmp(name, "WHIRLPOOL") == 0)
+    return HSH_WHIRLPOOL;
+  return HSH_INVALID;
 }
 
 /* ================================================== */

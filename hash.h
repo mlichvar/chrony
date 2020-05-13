@@ -31,7 +31,22 @@
 /* length of hash values produced by SHA512 */
 #define MAX_HASH_LENGTH 64
 
-extern int HSH_GetHashId(const char *name);
+typedef enum {
+  HSH_INVALID = 0,
+  HSH_MD5 = 1,
+  HSH_SHA1 = 2,
+  HSH_SHA256 = 3,
+  HSH_SHA384 = 4,
+  HSH_SHA512 = 5,
+  HSH_SHA3_224 = 6,
+  HSH_SHA3_256 = 7,
+  HSH_SHA3_384 = 8,
+  HSH_SHA3_512 = 9,
+  HSH_TIGER = 10,
+  HSH_WHIRLPOOL = 11,
+} HSH_Algorithm;
+
+extern int HSH_GetHashId(HSH_Algorithm algorithm);
 
 extern unsigned int HSH_Hash(int id,
     const unsigned char *in1, unsigned int in1_len,

@@ -201,6 +201,7 @@ KEY_Reload(void)
   FILE *in;
   char line[2048], *key_file, *key_value;
   const char *key_type;
+  HSH_Algorithm hash_algorithm;
   int hash_id;
   Key key;
 
@@ -238,10 +239,15 @@ KEY_Reload(void)
       continue;
     }
 
-    hash_id = HSH_GetHashId(key_type);
     cmac_key_length = CMC_GetKeyLength(key_type);
+    hash_algorithm = UTI_HashNameToAlgorithm(key_type);
 
-    if (hash_id >= 0) {
+    if (hash_algorithm != 0) {
+      hash_id = HSH_GetHashId(hash_algorithm);
+      if (hash_id < 0) {
+        LOG(LOGS_WARN, "Unsupported %s in key %"PRIu32, "hash function", key.id);
+        continue;
+      }
       key.class = NTP_MAC;
       key.data.ntp_mac.value = MallocArray(unsigned char, key_length);
       memcpy(key.data.ntp_mac.value, key_value, key_length);
