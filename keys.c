@@ -50,11 +50,12 @@ typedef enum {
 
 typedef struct {
   uint32_t id;
+  int type;
+  int length;
   KeyClass class;
   union {
     struct {
       unsigned char *value;
-      int length;
       int hash_id;
     } ntp_mac;
     CMC_Instance cmac;
@@ -250,9 +251,10 @@ KEY_Reload(void)
         continue;
       }
       key.class = NTP_MAC;
+      key.type = hash_algorithm;
+      key.length = key_length;
       key.data.ntp_mac.value = MallocArray(unsigned char, key_length);
       memcpy(key.data.ntp_mac.value, key_value, key_length);
-      key.data.ntp_mac.length = key_length;
       key.data.ntp_mac.hash_id = hash_id;
     } else if (cmac_algorithm != 0) {
       cmac_key_length = CMC_GetKeyLength(cmac_algorithm);
@@ -266,6 +268,8 @@ KEY_Reload(void)
       }
 
       key.class = CMAC;
+      key.type = cmac_algorithm;
+      key.length = key_length;
       key.data.cmac = CMC_CreateInstance(cmac_algorithm, (unsigned char *)key_value,
                                          key_length);
       assert(key.data.cmac);
@@ -399,12 +403,25 @@ KEY_CheckKeyLength(uint32_t key_id)
   if (!key)
     return 0;
 
-  switch (key->class) {
-    case NTP_MAC:
-      return key->data.ntp_mac.length >= MIN_SECURE_KEY_LENGTH;
-    default:
-      return 1;
-  }
+  return key->length >= MIN_SECURE_KEY_LENGTH;
+}
+
+/* ================================================== */
+
+int
+KEY_GetKeyInfo(uint32_t key_id, int *type, int *bits)
+{
+  Key *key;
+
+  key = get_key_by_id(key_id);
+
+  if (!key)
+    return 0;
+
+  *type = key->type;
+  *bits = 8 * key->length;
+
+  return 1;
 }
 
 /* ================================================== */
@@ -416,7 +433,7 @@ generate_auth(Key *key, const unsigned char *data, int data_len,
   switch (key->class) {
     case NTP_MAC:
       return HSH_Hash(key->data.ntp_mac.hash_id, key->data.ntp_mac.value,
-                      key->data.ntp_mac.length, data, data_len, auth, auth_len);
+                      key->length, data, data_len, auth, auth_len);
     case CMAC:
       return CMC_Hash(key->data.cmac, data, data_len, auth, auth_len);
     default:

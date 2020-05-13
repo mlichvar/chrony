@@ -99,7 +99,7 @@ generate_key_file(const char *name, uint32_t *keys)
 void
 test_unit(void)
 {
-  int i, j, data_len, auth_len;
+  int i, j, data_len, auth_len, type, bits;
   uint32_t keys[KEYS], key;
   unsigned char data[100], auth[MAX_HASH_LENGTH];
   char conf[][100] = {
@@ -144,12 +144,16 @@ test_unit(void)
 
       auth[auth_len - 1]++;
       TEST_CHECK(!KEY_CheckAuth(keys[j], data, data_len, auth, auth_len, auth_len));
+
+      TEST_CHECK(KEY_GetKeyInfo(keys[j], &type, &bits));
+      TEST_CHECK(type > 0 && bits > 0);
     }
 
     for (j = 0; j < 1000; j++) {
       UTI_GetRandomBytes(&key, sizeof (key));
       if (KEY_KeyKnown(key))
         continue;
+      TEST_CHECK(!KEY_GetKeyInfo(key, &type, &bits));
       TEST_CHECK(!KEY_GenerateAuth(key, data, data_len, auth, sizeof (auth)));
       TEST_CHECK(!KEY_CheckAuth(key, data, data_len, auth, auth_len, auth_len));
     }

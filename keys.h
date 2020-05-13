@@ -38,6 +38,7 @@ extern int KEY_KeyKnown(uint32_t key_id);
 extern int KEY_GetAuthDelay(uint32_t key_id);
 extern int KEY_GetAuthLength(uint32_t key_id);
 extern int KEY_CheckKeyLength(uint32_t key_id);
+extern int KEY_GetKeyInfo(uint32_t key_id, int *type, int *bits);
 
 extern int KEY_GenerateAuth(uint32_t key_id, const unsigned char *data,
     int data_len, unsigned char *auth, int auth_len);
