@@ -2985,7 +2985,7 @@ process_cmd_keygen(char *line)
     ;
 
 #ifdef HAVE_CMAC
-  cmac_length = CMC_GetKeyLength(type);
+  cmac_length = CMC_GetKeyLength(UTI_CmacNameToAlgorithm(type));
 #else
   cmac_length = 0;
 #endif

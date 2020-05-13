@@ -28,10 +28,17 @@
 #ifndef GOT_CMAC_H
 #define GOT_CMAC_H
 
+/* Avoid overlapping with the hash enumeration */
+typedef enum {
+  CMC_INVALID = 0,
+  CMC_AES128 = 13,
+  CMC_AES256 = 14,
+} CMC_Algorithm;
+
 typedef struct CMC_Instance_Record *CMC_Instance;
 
-extern unsigned int CMC_GetKeyLength(const char *cipher);
-extern CMC_Instance CMC_CreateInstance(const char *cipher, const unsigned char *key,
+extern unsigned int CMC_GetKeyLength(CMC_Algorithm algorithm);
+extern CMC_Instance CMC_CreateInstance(CMC_Algorithm algorithm, const unsigned char *key,
                                        unsigned int length);
 extern unsigned int CMC_Hash(CMC_Instance inst, const unsigned char *in, unsigned int in_len,
                              unsigned char *out, unsigned int out_len);

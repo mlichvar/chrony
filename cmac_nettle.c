@@ -45,11 +45,11 @@ struct CMC_Instance_Record {
 /* ================================================== */
 
 unsigned int
-CMC_GetKeyLength(const char *cipher)
+CMC_GetKeyLength(CMC_Algorithm algorithm)
 {
-  if (strcmp(cipher, "AES128") == 0)
+  if (algorithm == CMC_AES128)
     return AES128_KEY_SIZE;
-  else if (strcmp(cipher, "AES256") == 0)
+  else if (algorithm == CMC_AES256)
     return AES256_KEY_SIZE;
   return 0;
 }
@@ -57,11 +57,11 @@ CMC_GetKeyLength(const char *cipher)
 /* ================================================== */
 
 CMC_Instance
-CMC_CreateInstance(const char *cipher, const unsigned char *key, unsigned int length)
+CMC_CreateInstance(CMC_Algorithm algorithm, const unsigned char *key, unsigned int length)
 {
   CMC_Instance inst;
 
-  if (length == 0 || length != CMC_GetKeyLength(cipher))
+  if (length == 0 || length != CMC_GetKeyLength(algorithm))
     return NULL;
 
   inst = MallocNew(struct CMC_Instance_Record);

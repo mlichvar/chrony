@@ -32,6 +32,7 @@
 #include "addressing.h"
 #include "ntp.h"
 #include "candm.h"
+#include "cmac.h"
 #include "hash.h"
 
 /* Zero a timespec */
@@ -165,6 +166,7 @@ extern void UTI_TimespecHostToNetwork(const struct timespec *src, Timespec *dest
 extern double UTI_FloatNetworkToHost(Float x);
 extern Float UTI_FloatHostToNetwork(double x);
 
+extern CMC_Algorithm UTI_CmacNameToAlgorithm(const char *name);
 extern HSH_Algorithm UTI_HashNameToAlgorithm(const char *name);
 
 /* Set FD_CLOEXEC on descriptor */

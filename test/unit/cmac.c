@@ -22,6 +22,7 @@
 #include <sysincl.h>
 #include <cmac.h>
 #include <logging.h>
+#include <util.h>
 #include "test.h"
 
 #define MAX_KEY_LENGTH 64
@@ -49,6 +50,7 @@ test_unit(void)
     { "", "", 0, "", 0 }
   };
 
+  CMC_Algorithm algorithm;
   CMC_Instance inst;
   unsigned int length;
   int i, j;
@@ -57,21 +59,25 @@ test_unit(void)
   TEST_REQUIRE(0);
 #endif
 
+  TEST_CHECK(CMC_INVALID == 0);
+
   for (i = 0; tests[i].name[0] != '\0'; i++) {
-    TEST_CHECK(CMC_GetKeyLength(tests[i].name) == tests[i].key_length);
+    algorithm = UTI_CmacNameToAlgorithm(tests[i].name);
+    TEST_CHECK(algorithm != 0);
+    TEST_CHECK(CMC_GetKeyLength(algorithm) == tests[i].key_length);
 
     DEBUG_LOG("testing %s", tests[i].name);
 
     for (j = 0; j <= 128; j++) {
       if (j == tests[i].key_length)
         continue;
-      TEST_CHECK(!CMC_CreateInstance(tests[i].name, tests[i].key, j));
+      TEST_CHECK(!CMC_CreateInstance(algorithm, tests[i].key, j));
     }
 
-    inst = CMC_CreateInstance(tests[i].name, tests[i].key, tests[i].key_length);
+    inst = CMC_CreateInstance(algorithm, tests[i].key, tests[i].key_length);
     TEST_CHECK(inst);
 
-    TEST_CHECK(!CMC_CreateInstance("nosuchcipher", tests[i].key, tests[i].key_length));
+    TEST_CHECK(!CMC_CreateInstance(0, tests[i].key, tests[i].key_length));
 
     for (j = 0; j <= sizeof (hash); j++) {
       memset(hash, 0, sizeof (hash));

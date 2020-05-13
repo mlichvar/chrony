@@ -202,6 +202,7 @@ KEY_Reload(void)
   char line[2048], *key_file, *key_value;
   const char *key_type;
   HSH_Algorithm hash_algorithm;
+  CMC_Algorithm cmac_algorithm;
   int hash_id;
   Key key;
 
@@ -239,8 +240,8 @@ KEY_Reload(void)
       continue;
     }
 
-    cmac_key_length = CMC_GetKeyLength(key_type);
     hash_algorithm = UTI_HashNameToAlgorithm(key_type);
+    cmac_algorithm = UTI_CmacNameToAlgorithm(key_type);
 
     if (hash_algorithm != 0) {
       hash_id = HSH_GetHashId(hash_algorithm);
@@ -253,18 +254,23 @@ KEY_Reload(void)
       memcpy(key.data.ntp_mac.value, key_value, key_length);
       key.data.ntp_mac.length = key_length;
       key.data.ntp_mac.hash_id = hash_id;
-    } else if (cmac_key_length > 0) {
-      if (cmac_key_length != key_length) {
+    } else if (cmac_algorithm != 0) {
+      cmac_key_length = CMC_GetKeyLength(cmac_algorithm);
+      if (cmac_key_length == 0) {
+        LOG(LOGS_WARN, "Unsupported %s in key %"PRIu32, "cipher", key.id);
+        continue;
+      } else if (cmac_key_length != key_length) {
         LOG(LOGS_WARN, "Invalid length of %s key %"PRIu32" (expected %u bits)",
             key_type, key.id, 8 * cmac_key_length);
         continue;
       }
 
       key.class = CMAC;
-      key.data.cmac = CMC_CreateInstance(key_type, (unsigned char *)key_value, key_length);
+      key.data.cmac = CMC_CreateInstance(cmac_algorithm, (unsigned char *)key_value,
+                                         key_length);
       assert(key.data.cmac);
     } else {
-      LOG(LOGS_WARN, "Unknown hash function or cipher in key %"PRIu32, key.id);
+      LOG(LOGS_WARN, "Invalid type in key %"PRIu32, key.id);
       continue;
     }
 

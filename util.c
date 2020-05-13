@@ -927,6 +927,18 @@ UTI_FloatHostToNetwork(double x)
 
 /* ================================================== */
 
+CMC_Algorithm
+UTI_CmacNameToAlgorithm(const char *name)
+{
+  if (strcmp(name, "AES128") == 0)
+    return CMC_AES128;
+  else if (strcmp(name, "AES256") == 0)
+    return CMC_AES256;
+  return CMC_INVALID;
+}
+
+/* ================================================== */
+
 HSH_Algorithm
 UTI_HashNameToAlgorithm(const char *name)
 {
