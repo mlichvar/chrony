@@ -60,6 +60,7 @@ struct NNC_Instance_Record {
   double last_nke_success;
 
   NKE_Context context;
+  unsigned int context_id;
   NKE_Cookie cookies[NTS_MAX_COOKIES];
   int num_cookies;
   int cookie_index;
@@ -85,6 +86,7 @@ reset_instance(NNC_Instance inst)
   inst->last_nke_success = 0.0;
 
   memset(&inst->context, 0, sizeof (inst->context));
+  inst->context_id = 0;
   inst->num_cookies = 0;
   inst->cookie_index = 0;
   inst->nak_response = 0;
@@ -245,6 +247,8 @@ get_cookies(NNC_Instance inst)
   if (inst->siv)
     SIV_DestroyInstance(inst->siv);
   inst->siv = NULL;
+
+  inst->context_id++;
 
   if (!set_ntp_address(inst, &ntp_address)) {
     inst->num_cookies = 0;
@@ -507,9 +511,9 @@ save_cookies(NNC_Instance inst)
   context_time = inst->last_nke_success - SCH_GetLastEventMonoTime();
   context_time += UTI_TimespecToDouble(&now);
 
-  if (fprintf(f, "%s%.1f\n%s %d\n%d ",
+  if (fprintf(f, "%s%.1f\n%s %d\n%u %d ",
               DUMP_IDENTIFIER, context_time, UTI_IPToString(&inst->ntp_address->ip_addr),
-              inst->ntp_address->port, (int)inst->context.algorithm) < 0 ||
+              inst->ntp_address->port, inst->context_id, (int)inst->context.algorithm) < 0 ||
       !UTI_BytesToHex(inst->context.s2c.key, inst->context.s2c.length, buf, sizeof (buf)) ||
       fprintf(f, "%s ", buf) < 0 ||
       !UTI_BytesToHex(inst->context.c2s.key, inst->context.c2s.length, buf, sizeof (buf)) ||
@@ -538,12 +542,13 @@ error:
 
 /* ================================================== */
 
-#define MAX_WORDS 3
+#define MAX_WORDS 4
 
 static void
 load_cookies(NNC_Instance inst)
 {
   char line[2 * NKE_MAX_COOKIE_LENGTH + 2], *dump_dir, *filename, *words[MAX_WORDS];
+  unsigned int context_id;
   int i, algorithm, port;
   double context_time;
   struct timespec now;
@@ -573,14 +578,14 @@ load_cookies(NNC_Instance inst)
         sscanf(words[0], "%lf", &context_time) != 1 ||
       !fgets(line, sizeof (line), f) || UTI_SplitString(line, words, MAX_WORDS) != 2 ||
         !UTI_StringToIP(words[0], &ntp_addr.ip_addr) || sscanf(words[1], "%d", &port) != 1 ||
-      !fgets(line, sizeof (line), f) || UTI_SplitString(line, words, MAX_WORDS) != 3 ||
-        sscanf(words[0], "%d", &algorithm) != 1)
+      !fgets(line, sizeof (line), f) || UTI_SplitString(line, words, MAX_WORDS) != 4 ||
+        sscanf(words[0], "%u", &context_id) != 1 || sscanf(words[1], "%d", &algorithm) != 1)
     goto error;
 
   inst->context.algorithm = algorithm;
-  inst->context.s2c.length = UTI_HexToBytes(words[1], inst->context.s2c.key,
+  inst->context.s2c.length = UTI_HexToBytes(words[2], inst->context.s2c.key,
                                             sizeof (inst->context.s2c.key));
-  inst->context.c2s.length = UTI_HexToBytes(words[2], inst->context.c2s.key,
+  inst->context.c2s.length = UTI_HexToBytes(words[3], inst->context.c2s.key,
                                             sizeof (inst->context.c2s.key));
 
   if (inst->context.s2c.length != SIV_GetKeyLength(algorithm) ||
@@ -608,6 +613,7 @@ load_cookies(NNC_Instance inst)
   if (context_time > 0)
     context_time = 0;
   inst->last_nke_success = context_time + SCH_GetLastEventMonoTime();
+  inst->context_id = context_id;
 
   DEBUG_LOG("Loaded %d cookies for %s", i, filename);
   return;
