@@ -498,3 +498,28 @@ NAU_DumpData(NAU_Instance instance)
       break;
   }
 }
+
+/* ================================================== */
+
+void
+NAU_GetReport(NAU_Instance instance, RPT_AuthReport *report)
+{
+  memset(report, 0, sizeof (*report));
+
+  report->mode = instance->mode;
+  report->last_ke_ago = -1;
+
+  switch (instance->mode) {
+    case NTP_AUTH_NONE:
+      break;
+    case NTP_AUTH_SYMMETRIC:
+      report->key_id = instance->key_id;
+      KEY_GetKeyInfo(instance->key_id, &report->key_type, &report->key_length);
+      break;
+    case NTP_AUTH_NTS:
+      NNC_GetReport(instance->nts, report);
+      break;
+    default:
+      assert(0);
+  }
+}

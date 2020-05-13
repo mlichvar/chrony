@@ -104,7 +104,8 @@
 #define REQ_ADD_SOURCE 64
 #define REQ_NTP_SOURCE_NAME 65
 #define REQ_RESET_SOURCES 66
-#define N_REQUEST_TYPES 67
+#define REQ_AUTH_DATA 67
+#define N_REQUEST_TYPES 68
 
 /* Structure used to exchange timespecs independent of time_t size */
 typedef struct {
@@ -351,6 +352,11 @@ typedef struct {
   int32_t EOR;
 } REQ_NTPSourceName;
 
+typedef struct {
+  IPAddr ip_addr;
+  int32_t EOR;
+} REQ_AuthData;
+
 /* ================================================== */
 
 #define PKT_TYPE_CMD_REQUEST 1
@@ -454,6 +460,7 @@ typedef struct {
     REQ_SmoothTime smoothtime;
     REQ_NTPData ntp_data;
     REQ_NTPSourceName ntp_source_name;
+    REQ_AuthData auth_data;
   } data; /* Command specific parameters */
 
   /* Padding used to prevent traffic amplification.  It only defines the
@@ -491,7 +498,8 @@ typedef struct {
 #define RPY_MANUAL_TIMESTAMP2 17
 #define RPY_MANUAL_LIST2 18
 #define RPY_NTP_SOURCE_NAME 19
-#define N_REPLY_TYPES 20
+#define RPY_AUTH_DATA 20
+#define N_REPLY_TYPES 21
 
 /* Status codes */
 #define STT_SUCCESS 0
@@ -712,6 +720,22 @@ typedef struct {
   int32_t EOR;
 } RPY_NTPSourceName;
 
+#define RPY_AD_MD_NONE 0
+#define RPY_AD_MD_SYMMETRIC 1
+#define RPY_AD_MD_NTS 2
+
+typedef struct {
+  uint16_t mode;
+  uint16_t key_type;
+  uint32_t key_id;
+  uint16_t key_length;
+  uint16_t ke_attempts;
+  uint32_t last_ke_ago;
+  uint16_t cookies;
+  uint16_t nak;
+  int32_t EOR;
+} RPY_AuthData;
+
 typedef struct {
   uint8_t version;
   uint8_t pkt_type;
@@ -742,6 +766,7 @@ typedef struct {
     RPY_Smoothing smoothing;
     RPY_NTPData ntp_data;
     RPY_NTPSourceName ntp_source_name;
+    RPY_AuthData auth_data;
   } data; /* Reply specific parameters */
 
 } CMD_Reply;

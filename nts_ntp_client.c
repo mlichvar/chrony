@@ -633,3 +633,20 @@ NNC_DumpData(NNC_Instance inst)
 {
   save_cookies(inst);
 }
+
+/* ================================================== */
+
+void
+NNC_GetReport(NNC_Instance inst, RPT_AuthReport *report)
+{
+  report->key_id = inst->context_id;
+  report->key_type = inst->context.algorithm;
+  report->key_length = 8 * inst->context.s2c.length;
+  report->ke_attempts = inst->nke_attempts;
+  if (report->key_length > 0)
+    report->last_ke_ago = SCH_GetLastEventMonoTime() - inst->last_nke_success;
+  else
+    report->last_ke_ago = -1;
+  report->cookies = inst->num_cookies;
+  report->nak = inst->nak_response;
+}

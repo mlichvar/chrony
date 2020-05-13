@@ -76,6 +76,7 @@ check_chronyc_output "^Reference ID    : C0A87B01 \(node1\.net1\.clk\)" \
 server_strata=0
 chronyc_start=0
 client_conf=""
+server_conf="server 192.168.123.1"
 limit=1
 
 for chronyc_conf in \
@@ -93,6 +94,7 @@ for chronyc_conf in \
 	"allow ::/0" \
 	"allow" \
 	"allow all 10/24" \
+	"authdata" \
 	"burst 5/10" \
 	"burst 3/5 255.255.255.0/1.2.3.0" \
 	"burst 1/2 1.2.3.0/24" \

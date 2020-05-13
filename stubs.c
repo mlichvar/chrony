@@ -526,6 +526,11 @@ NNC_DumpData(NNC_Instance inst)
 }
 
 void
+NNC_GetReport(NNC_Instance inst, RPT_AuthReport *report)
+{
+}
+
+void
 NKC_Initialise(void)
 {
 }

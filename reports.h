@@ -160,4 +160,15 @@ typedef struct {
   uint32_t total_valid_count;
 } RPT_NTPReport;
 
+typedef struct {
+  NTP_AuthMode mode;
+  uint32_t key_id;
+  int key_type;
+  int key_length;
+  int ke_attempts;
+  uint32_t last_ke_ago;
+  int cookies;
+  int nak;
+} RPT_AuthReport;
+
 #endif /* GOT_REPORTS_H */

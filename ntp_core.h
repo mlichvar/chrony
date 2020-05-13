@@ -122,6 +122,7 @@ extern void NCR_ModifyPolltarget(NCR_Instance inst, int new_poll_target);
 extern void NCR_InitiateSampleBurst(NCR_Instance inst, int n_good_samples, int n_total_samples);
 
 extern void NCR_ReportSource(NCR_Instance inst, RPT_SourceReport *report, struct timespec *now);
+extern void NCR_GetAuthReport(NCR_Instance inst, RPT_AuthReport *report);
 extern void NCR_GetNTPReport(NCR_Instance inst, RPT_NTPReport *report);
 
 extern int NCR_AddAccessRestriction(IPAddr *ip_addr, int subnet_bits, int allow, int all);

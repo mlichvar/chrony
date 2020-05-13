@@ -2445,6 +2445,14 @@ NCR_ReportSource(NCR_Instance inst, RPT_SourceReport *report, struct timespec *n
 /* ================================================== */
 
 void
+NCR_GetAuthReport(NCR_Instance inst, RPT_AuthReport *report)
+{
+  NAU_GetReport(inst->auth, report);
+}
+
+/* ================================================== */
+
+void
 NCR_GetNTPReport(NCR_Instance inst, RPT_NTPReport *report)
 {
   *report = inst->report;

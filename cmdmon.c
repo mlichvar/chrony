@@ -136,6 +136,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* ADD_SOURCE */
   PERMIT_OPEN, /* NTP_SOURCE_NAME */
   PERMIT_AUTH, /* RESET_SOURCES */
+  PERMIT_AUTH, /* AUTH_DATA */
 };
 
 /* ================================================== */
@@ -1236,6 +1237,46 @@ handle_reset_sources(CMD_Request *rx_message, CMD_Reply *tx_message)
 }
 
 /* ================================================== */
+
+static void
+handle_auth_data(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  RPT_AuthReport report;
+  IPAddr ip_addr;
+
+  UTI_IPNetworkToHost(&rx_message->data.auth_data.ip_addr, &ip_addr);
+
+  if (!NSR_GetAuthReport(&ip_addr, &report)) {
+    tx_message->status = htons(STT_NOSUCHSOURCE);
+    return;
+  }
+
+  tx_message->reply = htons(RPY_AUTH_DATA);
+
+  switch (report.mode) {
+    case NTP_AUTH_NONE:
+      tx_message->data.auth_data.mode = htons(RPY_AD_MD_NONE);
+      break;
+    case NTP_AUTH_SYMMETRIC:
+      tx_message->data.auth_data.mode = htons(RPY_AD_MD_SYMMETRIC);
+      break;
+    case NTP_AUTH_NTS:
+      tx_message->data.auth_data.mode = htons(RPY_AD_MD_NTS);
+      break;
+    default:
+      break;
+  }
+
+  tx_message->data.auth_data.key_type = htons(report.key_type);
+  tx_message->data.auth_data.key_id = htonl(report.key_id);
+  tx_message->data.auth_data.key_length = htons(report.key_length);
+  tx_message->data.auth_data.ke_attempts = htons(report.ke_attempts);
+  tx_message->data.auth_data.last_ke_ago = htonl(report.last_ke_ago);
+  tx_message->data.auth_data.cookies = htons(report.cookies);
+  tx_message->data.auth_data.nak = htons(report.nak);
+}
+
+/* ================================================== */
 /* Read a packet and process it */
 
 static void
@@ -1615,6 +1656,10 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
         case REQ_RESET_SOURCES:
           handle_reset_sources(&rx_message, &tx_message);
+          break;
+
+        case REQ_AUTH_DATA:
+          handle_auth_data(&rx_message, &tx_message);
           break;
 
         default:

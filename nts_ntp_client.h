@@ -29,6 +29,7 @@
 
 #include "addressing.h"
 #include "ntp.h"
+#include "reports.h"
 
 typedef struct NNC_Instance_Record *NNC_Instance;
 
@@ -44,5 +45,7 @@ extern int NNC_CheckResponseAuth(NNC_Instance inst, NTP_Packet *packet,
 extern void NNC_ChangeAddress(NNC_Instance inst, IPAddr *address);
 
 extern void NNC_DumpData(NNC_Instance inst);
+
+extern void NNC_GetReport(NNC_Instance inst, RPT_AuthReport *report);
 
 #endif

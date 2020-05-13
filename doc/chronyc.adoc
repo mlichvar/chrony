@@ -454,6 +454,73 @@ the offline state.
 the name of the server or peer was not resolved to an address yet; this source is
 not visible in the *sources* and *sourcestats* reports.
 
+[[authdata]]*authdata* [*-a*]::
+The *authdata* command displays information specific to authentication of NTP
+sources. If the *-a* option is specified, all sources are displayed, including
+those that do not have a known address yet. An example of the output is
+shown below.
++
+----
+Name/IP address             Mode KeyID Type  Len Last Atmp Cook  NAK
+====================================================================
+foo.example.com              NTS     1   15  256 135m    0    8    0
+bar.example.com               SK    30   13  128    -    0    0    0
+baz.example.com                -     0    0    0    -    0    0    0
+----
++
+The columns are as follows:
++
+*Name/IP address*:::
+This column shows the name or the IP address of the source.
+*Mode*:::
+This column shows which mechanism authenticates NTP packets received from the
+source. _NTS_ means Network Time Security, _SK_ means a symmetric key, and _-_
+means authentication is disabled.
+*KeyID*:::
+This column shows an identifier of the key used for authentication. With a
+symmetric key, it is the ID from the <<chrony.conf.adoc#keyfile,key file>>.
+With NTS, it is a number starting at zero and incremented by one with each
+successful key establishment using the NTS-KE protocol, i.e. it shows how many
+times the key establishment was performed with this source.
+*Type*:::
+This columns shows an identifier of the algorithm used for authentication.
+With a symmetric key, it is the hash function or cipher specified in the key
+file. With NTS, it is an authenticated encryption with associated data (AEAD)
+algorithm, which is negotiated in the NTS-KE protocol. The following values can
+be reported:
+* 1: MD5
+* 2: SHA1
+* 3: SHA256
+* 4: SHA384
+* 5: SHA512
+* 6: SHA3-224
+* 7: SHA3-256
+* 8: SHA3-384
+* 9: SHA3-512
+* 10: TIGER
+* 11: WHIRLPOOL
+* 13: AES128
+* 14: AES256
+* 15: AEAD-AES-SIV-CMAC-256
+*Len*:::
+This column shows the length of the key in bits.
+*Last*:::
+This column shows how long ago the last successful key establishment was
+performed. It is in seconds, or letters _m_, _h_, _d_ or _y_ indicate minutes,
+hours, days, or years.
+*Atmp*:::
+This column shows the number of attempts to perform the key establishment since
+the last successful key establishment. A number larger than 1 indicates a
+problem with the network or server.
+*Cook*:::
+This column shows the number of NTS cookies that *chronyd* currently has. If
+the key establishment was successful, a number smaller than 8 indicates a
+problem with the network or server.
+*NAK*:::
+This column shows whether an NTS NAK was received since the last authenticated
+response. A non-zero number indicates that *chronyd* has used a cookie which is
+no longer valid, or it might be under a denial-of-service attack.
+
 [[ntpdata]]*ntpdata* [_address_]::
 The *ntpdata* command displays the last valid measurement and other
 NTP-specific information about the specified NTP source, or all NTP sources

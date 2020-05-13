@@ -1214,6 +1214,7 @@ give_help(void)
     "\0\0"
     "NTP sources:\0\0"
     "activity\0Check how many NTP sources are online/offline\0"
+    "authdata [-a]\0Display information about authentication\0"
     "ntpdata [<address>]\0Display information about last valid measurement\0"
     "add server <name> [options]\0Add new NTP server\0"
     "add pool <name> [options]\0Add new pool of NTP servers\0"
@@ -1312,7 +1313,7 @@ command_name_generator(const char *text, int state)
 {
   const char *name, **names[TAB_COMPLETE_MAX_INDEX];
   const char *base_commands[] = {
-    "accheck", "activity", "add", "allow", "burst",
+    "accheck", "activity", "add", "allow", "authdata", "burst",
     "clients", "cmdaccheck", "cmdallow", "cmddeny", "cyclelogs", "delete",
     "deny", "dns", "dump", "exit", "help", "keygen", "local", "makestep",
     "manual", "maxdelay", "maxdelaydevratio", "maxdelayratio", "maxpoll",
@@ -2364,6 +2365,82 @@ process_cmd_tracking(char *line)
 /* ================================================== */
 
 static int
+process_cmd_authdata(char *line)
+{
+  CMD_Request request;
+  CMD_Reply reply;
+  IPAddr ip_addr;
+  uint32_t i, source_mode, n_sources;
+  int all, verbose;
+  const char *mode_str;
+  char name[256];
+
+  parse_sources_options(line, &all, &verbose);
+
+  request.command = htons(REQ_N_SOURCES);
+  if (!request_reply(&request, &reply, RPY_N_SOURCES, 0))
+    return 0;
+
+  n_sources = ntohl(reply.data.n_sources.n_sources);
+
+  print_header("Name/IP address             Mode KeyID Type  Len Last Atmp Cook  NAK");
+
+  /*           "NNNNNNNNNNNNNNNNNNNNNNNNNNN MMMM KKKKK AAAA LLLL LLLL AAAA CCCC NNNN" */
+
+  for (i = 0; i < n_sources; i++) {
+    request.command = htons(REQ_SOURCE_DATA);
+    request.data.source_data.index = htonl(i);
+    if (!request_reply(&request, &reply, RPY_SOURCE_DATA, 0))
+      return 0;
+
+    source_mode = ntohs(reply.data.source_data.mode);
+    if (source_mode != RPY_SD_MD_CLIENT && source_mode != RPY_SD_MD_PEER)
+      continue;
+
+    UTI_IPNetworkToHost(&reply.data.source_data.ip_addr, &ip_addr);
+    if (!all && ip_addr.family == IPADDR_ID)
+      continue;
+
+    request.command = htons(REQ_AUTH_DATA);
+    request.data.auth_data.ip_addr = reply.data.source_data.ip_addr;
+    if (!request_reply(&request, &reply, RPY_AUTH_DATA, 0))
+      return 0;
+
+    format_name(name, sizeof (name), 25, 0, 0, 1, &ip_addr);
+
+    switch (ntohs(reply.data.auth_data.mode)) {
+      case RPY_AD_MD_NONE:
+        mode_str = "-";
+        break;
+      case RPY_AD_MD_SYMMETRIC:
+        mode_str = "SK";
+        break;
+      case RPY_AD_MD_NTS:
+        mode_str = "NTS";
+        break;
+      default:
+        mode_str = "?";
+        break;
+    }
+
+    print_report("%-27s %4s %5U %4d %4d %I %4d %4d %4d\n",
+                 name, mode_str,
+                 (unsigned long)ntohl(reply.data.auth_data.key_id),
+                 ntohs(reply.data.auth_data.key_type),
+                 ntohs(reply.data.auth_data.key_length),
+                 (unsigned long)ntohl(reply.data.auth_data.last_ke_ago),
+                 ntohs(reply.data.auth_data.ke_attempts),
+                 ntohs(reply.data.auth_data.cookies),
+                 ntohs(reply.data.auth_data.nak),
+                 REPORT_END);
+  }
+
+  return 1;
+}
+
+/* ================================================== */
+
+static int
 process_cmd_ntpdata(char *line)
 {
   CMD_Request request;
@@ -3050,6 +3127,9 @@ process_line(char *line)
     } else {
       do_normal_submit = process_cmd_allow(&tx_message, line);
     }
+  } else if (!strcmp(command, "authdata")) {
+    do_normal_submit = 0;
+    ret = process_cmd_authdata(line);
   } else if (!strcmp(command, "burst")) {
     do_normal_submit = process_cmd_burst(&tx_message, line);
   } else if (!strcmp(command, "clients")) {

@@ -136,6 +136,8 @@ extern int NSR_InitiateSampleBurst(int n_good_samples, int n_total_samples, IPAd
 
 extern void NSR_ReportSource(RPT_SourceReport *report, struct timespec *now);
 
+extern int NSR_GetAuthReport(IPAddr *address, RPT_AuthReport *report);
+
 extern int NSR_GetNTPReport(RPT_NTPReport *report);
 
 extern void NSR_GetActivityReport(RPT_ActivityReport *report);

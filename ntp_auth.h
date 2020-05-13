@@ -29,6 +29,7 @@
 
 #include "addressing.h"
 #include "ntp.h"
+#include "reports.h"
 
 typedef struct NAU_Instance_Record *NAU_Instance;
 
@@ -88,5 +89,8 @@ extern void NAU_ChangeAddress(NAU_Instance instance, IPAddr *address);
 
 /* Save authentication-specific data to speed up the next start */
 extern void NAU_DumpData(NAU_Instance instance);
+
+/* Provide a report about the current authentication state */
+extern void NAU_GetReport(NAU_Instance instance, RPT_AuthReport *report);
 
 #endif
