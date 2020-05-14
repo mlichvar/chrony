@@ -726,7 +726,7 @@ authentication mechanism to be used on computers which start with wrong time
 has important security implications, e.g. if an NTP server was ever
 compromised, its certificate could be used in an attack after the expiration
 time. The default value is 0, which means the time checks are always enabled.
-
++
 An example of the directive is:
 +
 ----
