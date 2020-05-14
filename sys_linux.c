@@ -480,7 +480,13 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_SystemCallContext context)
     /* Clock */
     SCMP_SYS(adjtimex),
     SCMP_SYS(clock_adjtime),
+#ifdef __NR_clock_adjtime64
+    SCMP_SYS(clock_adjtime64),
+#endif
     SCMP_SYS(clock_gettime),
+#ifdef __NR_clock_gettime64
+    SCMP_SYS(clock_gettime64),
+#endif
     SCMP_SYS(gettimeofday),
     SCMP_SYS(settimeofday),
     SCMP_SYS(time),
@@ -544,6 +550,9 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_SystemCallContext context)
     SCMP_SYS(recv),
     SCMP_SYS(recvfrom),
     SCMP_SYS(recvmmsg),
+#ifdef __NR_recvmmsg_time64
+    SCMP_SYS(recvmmsg_time64),
+#endif
     SCMP_SYS(recvmsg),
     SCMP_SYS(send),
     SCMP_SYS(sendmmsg),
@@ -562,9 +571,18 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_SystemCallContext context)
     SCMP_SYS(pipe2),
     SCMP_SYS(poll),
     SCMP_SYS(ppoll),
+#ifdef __NR_ppoll_time64
+    SCMP_SYS(ppoll_time64),
+#endif
     SCMP_SYS(pselect6),
+#ifdef __NR_pselect6_time64
+    SCMP_SYS(pselect6_time64),
+#endif
     SCMP_SYS(read),
     SCMP_SYS(futex),
+#ifdef __NR_futex_time64
+    SCMP_SYS(futex_time64),
+#endif
     SCMP_SYS(select),
     SCMP_SYS(set_robust_list),
     SCMP_SYS(write),
