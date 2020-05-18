@@ -653,11 +653,12 @@ static uint32_t get_last_ago(uint32_t x, uint32_t y)
 /* ================================================== */
 
 int
-CLG_GetClientAccessReportByIndex(int index, int reset,
+CLG_GetClientAccessReportByIndex(int index, int reset, uint32_t min_hits,
                                  RPT_ClientAccessByIndex_Report *report, struct timespec *now)
 {
   Record *record;
   uint32_t now_ts;
+  int r;
 
   if (!active || index < 0 || index >= ARR_GetSize(records))
     return 0;
@@ -667,25 +668,30 @@ CLG_GetClientAccessReportByIndex(int index, int reset,
   if (record->ip_addr.family == IPADDR_UNSPEC)
     return 0;
 
-  now_ts = get_ts_from_timespec(now);
+  r = min_hits == 0 ||
+      record->ntp_hits >= min_hits || record->cmd_hits >= min_hits;
 
-  report->ip_addr = record->ip_addr;
-  report->ntp_hits = record->ntp_hits;
-  report->cmd_hits = record->cmd_hits;
-  report->ntp_drops = record->ntp_drops;
-  report->cmd_drops = record->cmd_drops;
-  report->ntp_interval = get_interval(record->ntp_rate);
-  report->cmd_interval = get_interval(record->cmd_rate);
-  report->ntp_timeout_interval = get_interval(record->ntp_timeout_rate);
-  report->last_ntp_hit_ago = get_last_ago(now_ts, record->last_ntp_hit);
-  report->last_cmd_hit_ago = get_last_ago(now_ts, record->last_cmd_hit);
+  if (r) {
+    now_ts = get_ts_from_timespec(now);
+
+    report->ip_addr = record->ip_addr;
+    report->ntp_hits = record->ntp_hits;
+    report->cmd_hits = record->cmd_hits;
+    report->ntp_drops = record->ntp_drops;
+    report->cmd_drops = record->cmd_drops;
+    report->ntp_interval = get_interval(record->ntp_rate);
+    report->cmd_interval = get_interval(record->cmd_rate);
+    report->ntp_timeout_interval = get_interval(record->ntp_timeout_rate);
+    report->last_ntp_hit_ago = get_last_ago(now_ts, record->last_ntp_hit);
+    report->last_cmd_hit_ago = get_last_ago(now_ts, record->last_cmd_hit);
+  }
 
   if (reset) {
     record->ntp_hits = record->cmd_hits = 0;
     record->ntp_drops = record->cmd_drops = 0;
   }
 
-  return 1;
+  return r;
 }
 
 /* ================================================== */

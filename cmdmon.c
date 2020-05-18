@@ -1002,7 +1002,7 @@ handle_client_accesses_by_index(CMD_Request *rx_message, CMD_Reply *tx_message)
   RPT_ClientAccessByIndex_Report report;
   RPY_ClientAccesses_Client *client;
   int n_indices;
-  uint32_t i, j, req_first_index, req_n_clients, req_reset;
+  uint32_t i, j, req_first_index, req_n_clients, req_min_hits, req_reset;
   struct timespec now;
 
   SCH_GetLastEventTime(&now, NULL, NULL);
@@ -1011,6 +1011,7 @@ handle_client_accesses_by_index(CMD_Request *rx_message, CMD_Reply *tx_message)
   req_n_clients = ntohl(rx_message->data.client_accesses_by_index.n_clients);
   if (req_n_clients > MAX_CLIENT_ACCESSES)
     req_n_clients = MAX_CLIENT_ACCESSES;
+  req_min_hits = ntohl(rx_message->data.client_accesses_by_index.min_hits);
   req_reset = ntohl(rx_message->data.client_accesses_by_index.reset);
 
   n_indices = CLG_GetNumberOfIndices();
@@ -1023,7 +1024,7 @@ handle_client_accesses_by_index(CMD_Request *rx_message, CMD_Reply *tx_message)
   tx_message->data.client_accesses_by_index.n_indices = htonl(n_indices);
 
   for (i = req_first_index, j = 0; i < (uint32_t)n_indices && j < req_n_clients; i++) {
-    if (!CLG_GetClientAccessReportByIndex(i, req_reset, &report, &now))
+    if (!CLG_GetClientAccessReportByIndex(i, req_reset, req_min_hits, &report, &now))
       continue;
 
     client = &tx_message->data.client_accesses_by_index.clients[j++];

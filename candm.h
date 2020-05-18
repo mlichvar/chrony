@@ -322,6 +322,7 @@ typedef struct {
 typedef struct {
   uint32_t first_index;
   uint32_t n_clients;
+  uint32_t min_hits;
   uint32_t reset;
   int32_t EOR;
 } REQ_ClientAccessesByIndex;

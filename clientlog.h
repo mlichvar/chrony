@@ -44,7 +44,7 @@ extern int CLG_GetNtpMinPoll(void);
 /* And some reporting functions, for use by chronyc. */
 
 extern int CLG_GetNumberOfIndices(void);
-extern int CLG_GetClientAccessReportByIndex(int index, int reset,
+extern int CLG_GetClientAccessReportByIndex(int index, int reset, uint32_t min_hits,
                                             RPT_ClientAccessByIndex_Report *report,
                                             struct timespec *now);
 extern void CLG_GetServerStatsReport(RPT_ServerStatsReport *report);
