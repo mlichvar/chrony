@@ -2383,9 +2383,9 @@ process_cmd_authdata(char *line)
 
   n_sources = ntohl(reply.data.n_sources.n_sources);
 
-  print_header("Name/IP address             Mode KeyID Type  Len Last Atmp Cook  NAK");
+  print_header("Name/IP address             Mode KeyID Type KLen Last Atmp  NAK Cook CLen");
 
-  /*           "NNNNNNNNNNNNNNNNNNNNNNNNNNN MMMM KKKKK AAAA LLLL LLLL AAAA CCCC NNNN" */
+  /*           "NNNNNNNNNNNNNNNNNNNNNNNNNNN MMMM KKKKK AAAA LLLL LLLL AAAA NNNN CCCC LLLL" */
 
   for (i = 0; i < n_sources; i++) {
     request.command = htons(REQ_SOURCE_DATA);
@@ -2423,15 +2423,16 @@ process_cmd_authdata(char *line)
         break;
     }
 
-    print_report("%-27s %4s %5U %4d %4d %I %4d %4d %4d\n",
+    print_report("%-27s %4s %5U %4d %4d %I %4d %4d %4d %4d\n",
                  name, mode_str,
                  (unsigned long)ntohl(reply.data.auth_data.key_id),
                  ntohs(reply.data.auth_data.key_type),
                  ntohs(reply.data.auth_data.key_length),
                  (unsigned long)ntohl(reply.data.auth_data.last_ke_ago),
                  ntohs(reply.data.auth_data.ke_attempts),
-                 ntohs(reply.data.auth_data.cookies),
                  ntohs(reply.data.auth_data.nak),
+                 ntohs(reply.data.auth_data.cookies),
+                 ntohs(reply.data.auth_data.cookie_length),
                  REPORT_END);
   }
 

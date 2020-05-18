@@ -735,7 +735,9 @@ typedef struct {
   uint16_t ke_attempts;
   uint32_t last_ke_ago;
   uint16_t cookies;
+  uint16_t cookie_length;
   uint16_t nak;
+  uint16_t pad;
   int32_t EOR;
 } RPY_AuthData;
 

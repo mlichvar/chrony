@@ -648,5 +648,6 @@ NNC_GetReport(NNC_Instance inst, RPT_AuthReport *report)
   else
     report->last_ke_ago = -1;
   report->cookies = inst->num_cookies;
+  report->cookie_length = inst->num_cookies > 0 ? inst->cookies[inst->cookie_index].length : 0;
   report->nak = inst->nak_response;
 }

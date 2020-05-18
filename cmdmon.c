@@ -1276,6 +1276,7 @@ handle_auth_data(CMD_Request *rx_message, CMD_Reply *tx_message)
   tx_message->data.auth_data.ke_attempts = htons(report.ke_attempts);
   tx_message->data.auth_data.last_ke_ago = htonl(report.last_ke_ago);
   tx_message->data.auth_data.cookies = htons(report.cookies);
+  tx_message->data.auth_data.cookie_length = htons(report.cookie_length);
   tx_message->data.auth_data.nak = htons(report.nak);
 }
 

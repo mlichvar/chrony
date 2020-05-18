@@ -461,11 +461,11 @@ those that do not have a known address yet. An example of the output is
 shown below.
 +
 ----
-Name/IP address             Mode KeyID Type  Len Last Atmp Cook  NAK
-====================================================================
-foo.example.com              NTS     1   15  256 135m    0    8    0
-bar.example.com               SK    30   13  128    -    0    0    0
-baz.example.com                -     0    0    0    -    0    0    0
+Name/IP address             Mode KeyID Type KLen Last Atmp  NAK Cook CLen
+=========================================================================
+foo.example.net              NTS     1   15  256 135m    0    0    8  100
+bar.example.net               SK    30   13  128    -    0    0    0    0
+baz.example.net                -     0    0    0    -    0    0    0    0
 ----
 +
 The columns are as follows:
@@ -502,7 +502,7 @@ be reported:
 * 13: AES128
 * 14: AES256
 * 15: AEAD-AES-SIV-CMAC-256
-*Len*:::
+*KLen*:::
 This column shows the length of the key in bits.
 *Last*:::
 This column shows how long ago the last successful key establishment was
@@ -512,14 +512,18 @@ hours, days, or years.
 This column shows the number of attempts to perform the key establishment since
 the last successful key establishment. A number larger than 1 indicates a
 problem with the network or server.
+*NAK*:::
+This column shows whether an NTS NAK was received since the last authenticated
+response. A NAK indicates that authentication failed on the server side due to
+*chronyd* using a cookie which is no longer valid and that it needs to perform
+the key establishment again in order to get new cookies.
 *Cook*:::
 This column shows the number of NTS cookies that *chronyd* currently has. If
 the key establishment was successful, a number smaller than 8 indicates a
 problem with the network or server.
-*NAK*:::
-This column shows whether an NTS NAK was received since the last authenticated
-response. A non-zero number indicates that *chronyd* has used a cookie which is
-no longer valid, or it might be under a denial-of-service attack.
+*CLen*:::
+This column shows the length in bytes of the NTS cookie which will be used in
+the next request.
 
 [[ntpdata]]*ntpdata* [_address_]::
 The *ntpdata* command displays the last valid measurement and other

@@ -168,6 +168,7 @@ typedef struct {
   int ke_attempts;
   uint32_t last_ke_ago;
   int cookies;
+  int cookie_length;
   int nak;
 } RPT_AuthReport;
 
