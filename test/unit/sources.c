@@ -40,7 +40,7 @@ test_unit(void)
   SRC_Instance srcs[16];
   RPT_SourceReport report;
   NTP_Sample sample;
-  int i, j, k, l, n1, n2, n3, samples, sel_options;
+  int i, j, k, l, n1, n2, n3, n4, samples, sel_options;
   char conf[128];
 
   CNF_Initialise(0, 0);
@@ -168,12 +168,12 @@ test_unit(void)
     CNF_ParseLine(NULL, 0, conf);
     TEST_CHECK(CNF_GetAuthSelectMode() == sel_mode);
 
-    sel_options = random() & (SRC_SELECT_NOSELECT | SRC_SELECT_PREFER |
-                              SRC_SELECT_TRUST | SRC_SELECT_REQUIRE);
+    sel_options = random() & (SRC_SELECT_PREFER | SRC_SELECT_TRUST | SRC_SELECT_REQUIRE);
 
     n1 = random() % 3;
     n2 = random() % 3;
     n3 = random() % 3;
+    n4 = random() % 3;
     assert(n1 + n2 + n3 < sizeof (srcs) / sizeof (srcs[0]));
 
     for (j = 0; j < n1; j++)
@@ -182,6 +182,9 @@ test_unit(void)
       srcs[j] = create_source(SRC_NTP, 1, sel_options);
     for (; j < n1 + n2 + n3; j++)
       srcs[j] = create_source(SRC_NTP, 0, sel_options);
+    for (; j < n1 + n2 + n3 + n4; j++)
+      srcs[j] = create_source(random() % 2 ? SRC_REFCLOCK : SRC_NTP,
+                              random() % 2, sel_options | SRC_SELECT_NOSELECT);
 
     switch (sel_mode) {
       case SRC_AUTHSELECT_IGNORE:
@@ -210,6 +213,9 @@ test_unit(void)
       default:
         assert(0);
     }
+
+    for (j = n1 + n2 + n3; j < n1 + n2 + n3 + n4; j++)
+      TEST_CHECK(srcs[j]->sel_options == (sel_options | SRC_SELECT_NOSELECT));
 
     for (j = n1 + n2 + n3 - 1; j >= 0; j--) {
       if (j < n1 + n2)

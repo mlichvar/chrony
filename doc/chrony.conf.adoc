@@ -763,6 +763,10 @@ This directive determines the default selection options for authenticated and
 unauthenticated sources in order to simplify the configuration with the
 configuration file and *chronyc* commands. It sets a policy for authentication.
 +
+Sources specified with the *noselect* option are ignored (not counted as either
+authenticated or unauthenticated), and they always have only the selection
+options specified in the configuration.
++
 There are four modes:
 +
 *require*:::

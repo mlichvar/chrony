@@ -501,6 +501,8 @@ update_sel_options(void)
   auth_ntp_sources = unauth_ntp_sources = 0;
 
   for (i = 0; i < n_sources; i++) {
+    if (sources[i]->conf_sel_options & SRC_SELECT_NOSELECT)
+      continue;
     if (sources[i]->type != SRC_NTP)
       continue;
     if (sources[i]->authenticated)
@@ -534,6 +536,9 @@ update_sel_options(void)
 
   for (i = 0; i < n_sources; i++) {
     options = sources[i]->conf_sel_options;
+
+    if (options & SRC_SELECT_NOSELECT)
+      continue;
 
     switch (sources[i]->type) {
       case SRC_NTP:
