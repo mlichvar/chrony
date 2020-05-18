@@ -954,10 +954,13 @@ This command can be used to examine the effect of a series of *allow*, *allow
 all*, *deny*, and *deny all* commands specified either via *chronyc*, or in
 *chronyd*'s configuration file.
 
-[[clients]]*clients*::
+[[clients]]*clients* [*-r*]::
 This command shows a list of clients that have accessed the server, through
 either the NTP or command ports. It does not include accesses over
-the Unix domain command socket. There are no arguments.
+the Unix domain command socket.
++
+If the *-r* option is specified, *chronyd* will reset the counters of received
+and dropped packets after reporting the current values.
 +
 An example of the output is:
 +

@@ -105,7 +105,8 @@
 #define REQ_NTP_SOURCE_NAME 65
 #define REQ_RESET_SOURCES 66
 #define REQ_AUTH_DATA 67
-#define N_REQUEST_TYPES 68
+#define REQ_CLIENT_ACCESSES_BY_INDEX3 68
+#define N_REQUEST_TYPES 69
 
 /* Structure used to exchange timespecs independent of time_t size */
 typedef struct {
@@ -321,6 +322,7 @@ typedef struct {
 typedef struct {
   uint32_t first_index;
   uint32_t n_clients;
+  uint32_t reset;
   int32_t EOR;
 } REQ_ClientAccessesByIndex;
 

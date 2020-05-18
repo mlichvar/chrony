@@ -110,8 +110,7 @@ static const struct request_length request_lengths[] = {
   REQ_LENGTH_ENTRY(smoothtime, null),           /* SMOOTHTIME */
   REQ_LENGTH_ENTRY(null, null),                 /* REFRESH */
   REQ_LENGTH_ENTRY(null, server_stats),         /* SERVER_STATS */
-  REQ_LENGTH_ENTRY(client_accesses_by_index,
-                   client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX2 */
+  { 0, 0 },                                     /* CLIENT_ACCESSES_BY_INDEX2 - not supported */
   REQ_LENGTH_ENTRY(local, null),                /* LOCAL2 */
   REQ_LENGTH_ENTRY(ntp_data, ntp_data),         /* NTP_DATA */
   { 0, 0 },                                     /* ADD_SERVER2 */
@@ -125,6 +124,8 @@ static const struct request_length request_lengths[] = {
                    ntp_source_name),            /* NTP_SOURCE_NAME */
   REQ_LENGTH_ENTRY(null, null),                 /* RESET_SOURCES */
   REQ_LENGTH_ENTRY(auth_data, auth_data),       /* AUTH_DATA */
+  REQ_LENGTH_ENTRY(client_accesses_by_index,
+                   client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX3 */
 };
 
 static const uint16_t reply_lengths[] = {

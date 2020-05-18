@@ -1243,7 +1243,7 @@ give_help(void)
     "\0(e.g. Sep 25, 2015 16:30:05 or 16:30:05)\0"
     "\0\0NTP access:\0\0"
     "accheck <address>\0Check whether address is allowed\0"
-    "clients\0Report on clients that have accessed the server\0"
+    "clients [-r]\0Report on clients that have accessed the server\0"
     "serverstats\0Display statistics of the server\0"
     "allow [<subnet>]\0Allow access to subnet as a default\0"
     "allow all [<subnet>]\0Allow access to subnet and all children\0"
@@ -2673,18 +2673,27 @@ process_cmd_clients(char *line)
   CMD_Request request;
   CMD_Reply reply;
   IPAddr ip;
-  uint32_t i, n_clients, next_index, n_indices;
+  uint32_t i, n_clients, next_index, n_indices, reset;
   RPY_ClientAccesses_Client *client;
-  char name[50];
+  char name[50], *opt;
 
   next_index = 0;
+  reset = 0;
+
+  while (*line) {
+    opt = line;
+    line = CPS_SplitWord(line);
+    if (strcmp(opt, "-r") == 0)
+      reset = 1;
+  }
 
   print_header("Hostname                      NTP   Drop Int IntL Last     Cmd   Drop Int  Last");
 
   while (1) {
-    request.command = htons(REQ_CLIENT_ACCESSES_BY_INDEX2);
+    request.command = htons(REQ_CLIENT_ACCESSES_BY_INDEX3);
     request.data.client_accesses_by_index.first_index = htonl(next_index);
     request.data.client_accesses_by_index.n_clients = htonl(MAX_CLIENT_ACCESSES);
+    request.data.client_accesses_by_index.reset = htonl(reset);
 
     if (!request_reply(&request, &reply, RPY_CLIENT_ACCESSES_BY_INDEX2, 0))
       return 0;

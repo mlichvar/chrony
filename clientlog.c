@@ -653,7 +653,8 @@ static uint32_t get_last_ago(uint32_t x, uint32_t y)
 /* ================================================== */
 
 int
-CLG_GetClientAccessReportByIndex(int index, RPT_ClientAccessByIndex_Report *report, struct timespec *now)
+CLG_GetClientAccessReportByIndex(int index, int reset,
+                                 RPT_ClientAccessByIndex_Report *report, struct timespec *now)
 {
   Record *record;
   uint32_t now_ts;
@@ -678,6 +679,11 @@ CLG_GetClientAccessReportByIndex(int index, RPT_ClientAccessByIndex_Report *repo
   report->ntp_timeout_interval = get_interval(record->ntp_timeout_rate);
   report->last_ntp_hit_ago = get_last_ago(now_ts, record->last_ntp_hit);
   report->last_cmd_hit_ago = get_last_ago(now_ts, record->last_cmd_hit);
+
+  if (reset) {
+    record->ntp_hits = record->cmd_hits = 0;
+    record->ntp_drops = record->cmd_drops = 0;
+  }
 
   return 1;
 }
