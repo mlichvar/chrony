@@ -165,7 +165,7 @@ static Record *
 get_record(IPAddr *ip)
 {
   unsigned int first, i;
-  time_t last_hit, oldest_hit = 0;
+  uint32_t last_hit, oldest_hit = 0;
   Record *record, *oldest_record;
 
   if (!active || (ip->family != IPADDR_INET4 && ip->family != IPADDR_INET6))
