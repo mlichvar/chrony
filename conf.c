@@ -204,6 +204,10 @@ static int ntp_ratelimit_enabled = 0;
 static int ntp_ratelimit_interval = 3;
 static int ntp_ratelimit_burst = 8;
 static int ntp_ratelimit_leak = 2;
+static int nts_ratelimit_enabled = 0;
+static int nts_ratelimit_interval = 6;
+static int nts_ratelimit_burst = 8;
+static int nts_ratelimit_leak = 2;
 static int cmd_ratelimit_enabled = 0;
 static int cmd_ratelimit_interval = -4;
 static int cmd_ratelimit_burst = 8;
@@ -577,6 +581,9 @@ CNF_ParseLine(const char *filename, int number, char *line)
     no_system_cert = parse_null(p);
   } else if (!strcasecmp(command, "ntpsigndsocket")) {
     parse_string(p, &ntp_signd_socket);
+  } else if (!strcasecmp(command, "ntsratelimit")) {
+    parse_ratelimit(p, &nts_ratelimit_enabled, &nts_ratelimit_interval,
+                    &nts_ratelimit_burst, &nts_ratelimit_leak);
   } else if (!strcasecmp(command, "ntstrustedcerts")) {
     parse_string(p, &nts_trusted_cert_file);
   } else if (!strcasecmp(command, "ntscachedir") ||
@@ -2089,6 +2096,16 @@ int CNF_GetNTPRateLimit(int *interval, int *burst, int *leak)
   *burst = ntp_ratelimit_burst;
   *leak = ntp_ratelimit_leak;
   return ntp_ratelimit_enabled;
+}
+
+/* ================================================== */
+
+int CNF_GetNtsRateLimit(int *interval, int *burst, int *leak)
+{
+  *interval = nts_ratelimit_interval;
+  *burst = nts_ratelimit_burst;
+  *leak = nts_ratelimit_leak;
+  return nts_ratelimit_enabled;
 }
 
 /* ================================================== */

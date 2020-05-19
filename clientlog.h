@@ -33,6 +33,7 @@
 
 typedef enum {
   CLG_NTP = 0,
+  CLG_NTSKE,
   CLG_CMDMON,
 } CLG_Service;
 

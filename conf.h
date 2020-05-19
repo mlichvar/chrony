@@ -103,6 +103,7 @@ extern int CNF_GetSchedPriority(void);
 extern int CNF_GetLockMemory(void);
 
 extern int CNF_GetNTPRateLimit(int *interval, int *burst, int *leak);
+extern int CNF_GetNtsRateLimit(int *interval, int *burst, int *leak);
 extern int CNF_GetCommandRateLimit(int *interval, int *burst, int *leak);
 extern void CNF_GetSmooth(double *max_freq, double *max_wander, int *leap_only);
 extern void CNF_GetTempComp(char **file, double *interval, char **point_file, double *T0, double *k0, double *k1, double *k2);

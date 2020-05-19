@@ -36,6 +36,7 @@ test_unit(void)
     "clientloglimit 10000",
     "ratelimit interval 3 burst 4 leak 3",
     "cmdratelimit interval 3 burst 4 leak 3",
+    "ntsratelimit interval 6 burst 8 leak 3",
   };
 
   CNF_Initialise(0, 0);

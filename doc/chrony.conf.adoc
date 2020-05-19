@@ -1600,6 +1600,17 @@ This would reduce the response rate for IP addresses sending packets on average
 more than once per 2 seconds, or sending packets in bursts of more than 16
 packets, by up to 75% (with default *leak* of 2).
 
+[[ntsratelimit]]*ntsratelimit* [_option_]...::
+This directive enables rate limiting of NTS-KE requests. It is similar to the
+<<ratelimit,*ratelimit*>> directive, except the default interval is 6
+(1 connection per 64 seconds).
++
+An example of the use of the directive is:
++
+----
+ntsratelimit interval 3 burst 1
+----
+
 [[smoothtime]]*smoothtime* _max-freq_ _max-wander_ [*leaponly*]::
 The *smoothtime* directive can be used to enable smoothing of the time that
 *chronyd* serves to its clients to make it easier for them to track it and keep

@@ -44,7 +44,7 @@
 #include "util.h"
 #include "logging.h"
 
-#define MAX_SERVICES 2
+#define MAX_SERVICES 3
 
 typedef struct {
   IPAddr ip_addr;
@@ -327,6 +327,10 @@ CLG_Initialise(void)
     switch (i) {
       case CLG_NTP:
         if (!CNF_GetNTPRateLimit(&interval, &burst, &lrate))
+          continue;
+        break;
+      case CLG_NTSKE:
+        if (!CNF_GetNtsRateLimit(&interval, &burst, &lrate))
           continue;
         break;
       case CLG_CMDMON:
