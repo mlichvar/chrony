@@ -2081,10 +2081,10 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   }
 
   kod = 0;
-  log_index = CLG_LogNTPAccess(&remote_addr->ip_addr, &rx_ts->ts);
+  log_index = CLG_LogServiceAccess(CLG_NTP, &remote_addr->ip_addr, &rx_ts->ts);
 
   /* Don't reply to all requests if the rate is excessive */
-  if (log_index >= 0 && CLG_LimitNTPResponseRate(log_index)) {
+  if (log_index >= 0 && CLG_LimitServiceRate(CLG_NTP, log_index)) {
       DEBUG_LOG("NTP packet discarded to limit response rate");
       return;
   }

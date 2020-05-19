@@ -29,6 +29,7 @@ void
 test_unit(void)
 {
   int i, j, index;
+  CLG_Service s;
   struct timespec ts;
   IPAddr ip;
   char conf[][100] = {
@@ -55,15 +56,10 @@ test_unit(void)
       TST_GetRandomAddress(&ip, IPADDR_UNSPEC, i % 8 ? -1 : i / 8 % 9);
       DEBUG_LOG("address %s", UTI_IPToString(&ip));
 
-      if (random() % 2) {
-        index = CLG_LogNTPAccess(&ip, &ts);
-        TEST_CHECK(index >= 0);
-        CLG_LimitNTPResponseRate(index);
-      } else {
-        index = CLG_LogCommandAccess(&ip, &ts);
-        TEST_CHECK(index >= 0);
-        CLG_LimitCommandResponseRate(index);
-      }
+      s = random() % MAX_SERVICES;
+      index = CLG_LogServiceAccess(s, &ip, &ts);
+      TEST_CHECK(index >= 0);
+      CLG_LimitServiceRate(s, index);
 
       UTI_AddDoubleToTimespec(&ts, (1 << random() % 14) / 100.0, &ts);
     }
@@ -72,11 +68,13 @@ test_unit(void)
   DEBUG_LOG("records %u", ARR_GetSize(records));
   TEST_CHECK(ARR_GetSize(records) == 64);
 
+  s = CLG_NTP;
+
   for (i = j = 0; i < 10000; i++) {
     ts.tv_sec += 1;
-    index = CLG_LogNTPAccess(&ip, &ts);
+    index = CLG_LogServiceAccess(s, &ip, &ts);
     TEST_CHECK(index >= 0);
-    if (!CLG_LimitNTPResponseRate(index))
+    if (!CLG_LimitServiceRate(s, index))
       j++;
   }
 
