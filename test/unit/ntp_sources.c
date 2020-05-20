@@ -70,12 +70,12 @@ test_unit(void)
 
       for (k = 0; k < j; k++) {
         addr = addrs[k];
-        find_slot(&addr, &slot, &found);
+        found = find_slot2(&addr, &slot);
         TEST_CHECK(found == 2);
         TEST_CHECK(!UTI_CompareIPs(&get_record(slot)->remote_addr->ip_addr,
                                    &addr.ip_addr, NULL));
         addr.port++;
-        find_slot(&addr, &slot, &found);
+        found = find_slot2(&addr, &slot);
         TEST_CHECK(found == 1);
         TEST_CHECK(!UTI_CompareIPs(&get_record(slot)->remote_addr->ip_addr,
                                    &addr.ip_addr, NULL));
@@ -87,7 +87,7 @@ test_unit(void)
       NSR_RemoveSource(&addrs[j]);
 
       for (k = 0; k < sizeof (addrs) / sizeof (addrs[0]); k++) {
-        find_slot(&addrs[k], &slot, &found);
+        found = find_slot2(&addrs[k], &slot);
         TEST_CHECK(found == (k <= j ? 0 : 2));
       }
     }

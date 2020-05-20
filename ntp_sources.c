@@ -195,39 +195,30 @@ NSR_Finalise(void)
 }
 
 /* ================================================== */
-/* Return slot number and whether the IP address was matched or not.
-   found = 0 => Neither IP nor port matched, empty slot returned
-   found = 1 => Only IP matched, port doesn't match
-   found = 2 => Both IP and port matched.
+/* Find a slot matching an IP address.  It is assumed that there can
+   only ever be one record for a particular IP address. */
 
-   It is assumed that there can only ever be one record for a
-   particular IP address.  (If a different port comes up, it probably
-   means someone is running ntpdate -d or something).  Thus, if we
-   match the IP address we stop the search regardless of whether the
-   port number matches.
-
-  */
-
-static void
-find_slot(NTP_Remote_Address *remote_addr, int *slot, int *found)
+static int
+find_slot(IPAddr *ip_addr, int *slot)
 {
   SourceRecord *record;
   uint32_t hash;
   unsigned int i, size;
-  unsigned short port;
 
   size = ARR_GetSize(records);
 
   *slot = 0;
-  *found = 0;
   
-  if (remote_addr->ip_addr.family != IPADDR_INET4 &&
-      remote_addr->ip_addr.family != IPADDR_INET6 &&
-      remote_addr->ip_addr.family != IPADDR_ID)
-    return;
+  switch (ip_addr->family) {
+    case IPADDR_INET4:
+    case IPADDR_INET6:
+    case IPADDR_ID:
+      break;
+    default:
+      return 0;
+  }
 
-  hash = UTI_IPToHash(&remote_addr->ip_addr);
-  port = remote_addr->port;
+  hash = UTI_IPToHash(ip_addr);
 
   for (i = 0; i < size / 2; i++) {
     /* Use quadratic probing */
@@ -237,12 +228,27 @@ find_slot(NTP_Remote_Address *remote_addr, int *slot, int *found)
     if (!record->remote_addr)
       break;
 
-    if (!UTI_CompareIPs(&record->remote_addr->ip_addr,
-                        &remote_addr->ip_addr, NULL)) {
-      *found = record->remote_addr->port == port ? 2 : 1;
-      return;
-    }
+    if (UTI_CompareIPs(&record->remote_addr->ip_addr, ip_addr, NULL) == 0)
+      return 1;
   }
+
+  return 0;
+}
+
+/* ================================================== */
+/* Find a slot matching an IP address and port. The function returns:
+   0 => Neither IP nor port matched, empty slot returned if a valid address
+        was provided
+   1 => Only IP matched, port doesn't match
+   2 => Both IP and port matched. */
+
+static int
+find_slot2(NTP_Remote_Address *remote_addr, int *slot)
+{
+  if (!find_slot(&remote_addr->ip_addr, slot))
+    return 0;
+
+  return get_record(*slot)->remote_addr->port == remote_addr->port ? 2 : 1;
 }
 
 /* ================================================== */
@@ -261,7 +267,7 @@ rehash_records(void)
 {
   SourceRecord *temp_records;
   unsigned int i, old_size, new_size;
-  int slot, found;
+  int slot;
 
   old_size = ARR_GetSize(records);
 
@@ -281,8 +287,8 @@ rehash_records(void)
     if (!temp_records[i].remote_addr)
       continue;
 
-    find_slot(temp_records[i].remote_addr, &slot, &found);
-    assert(!found);
+    if (find_slot2(temp_records[i].remote_addr, &slot) != 0)
+      assert(0);
 
     *get_record(slot) = temp_records[i];
   }
@@ -297,13 +303,12 @@ static NSR_Status
 add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type, SourceParameters *params, int pool)
 {
   SourceRecord *record;
-  int slot, found;
+  int slot;
 
   assert(initialised);
 
   /* Find empty bin & check that we don't have the address already */
-  find_slot(remote_addr, &slot, &found);
-  if (found) {
+  if (find_slot2(remote_addr, &slot) != 0) {
     return NSR_AlreadyInUse;
   } else {
     if (remote_addr->ip_addr.family != IPADDR_INET4 &&
@@ -315,10 +320,10 @@ add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type, So
 
       if (!check_hashtable_size(n_sources, ARR_GetSize(records))) {
         rehash_records();
-        find_slot(remote_addr, &slot, &found);
+        if (find_slot2(remote_addr, &slot) != 0)
+          assert(0);
       }
 
-      assert(!found);
       record = get_record(slot);
       record->data = NCR_CreateInstance(remote_addr, type, params, name);
       record->remote_addr = NCR_GetRemoteAddress(record->data);
@@ -351,13 +356,13 @@ change_source_address(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr
   LOG_Severity severity;
   char *name;
 
-  find_slot(old_addr, &slot1, &found);
-  if (!found)
+  found = find_slot2(old_addr, &slot1);
+  if (found == 0)
     return NSR_NoSuchSource;
 
   /* Make sure there is no other source using the new address (with the same
      or different port), but allow a source to have its port changed */
-  find_slot(new_addr, &slot2, &found);
+  found = find_slot2(new_addr, &slot2);
   if (found == 2 || (found != 0 && slot1 != slot2))
     return NSR_AlreadyInUse;
 
@@ -456,15 +461,14 @@ process_resolved_name(struct UnresolvedSource *us, IPAddr *ip_addrs, int n_addrs
 static int
 is_resolved(struct UnresolvedSource *us)
 {
-  int slot, found;
+  int slot;
 
   if (us->pool != INVALID_POOL) {
     return get_pool(us->pool)->unresolved_sources <= 0;
   } else {
     /* If the address is no longer present, it was removed or replaced
        (i.e. resolved) */
-    find_slot(&us->address, &slot, &found);
-    return !found;
+    return find_slot2(&us->address, &slot) == 0;
   }
 }
 
@@ -750,14 +754,12 @@ clean_source_record(SourceRecord *record)
 NSR_Status
 NSR_RemoveSource(NTP_Remote_Address *remote_addr)
 {
-  int slot, found;
+  int slot;
 
   assert(initialised);
 
-  find_slot(remote_addr, &slot, &found);
-  if (!found) {
+  if (find_slot2(remote_addr, &slot) == 0)
     return NSR_NoSuchSource;
-  }
 
   clean_source_record(get_record(slot));
 
@@ -817,16 +819,11 @@ NSR_HandleBadSource(IPAddr *address)
 {
   static struct timespec last_replacement;
   struct timespec now;
-  NTP_Remote_Address remote_addr;
   SourceRecord *record;
-  int slot, found;
   double diff;
+  int slot;
 
-  remote_addr.ip_addr = *address;
-  remote_addr.port = 0;
-
-  find_slot(&remote_addr, &slot, &found);
-  if (!found)
+  if (!find_slot(address, &slot))
     return;
 
   record = get_record(slot);
@@ -908,14 +905,9 @@ static void remove_pool_sources(int pool, int tentative, int unresolved)
 uint32_t
 NSR_GetLocalRefid(IPAddr *address)
 {
-  NTP_Remote_Address remote_addr;
-  int slot, found;
+  int slot;
 
-  remote_addr.ip_addr = *address;
-  remote_addr.port = 0;
-
-  find_slot(&remote_addr, &slot, &found);
-  if (!found)
+  if (!find_slot(address, &slot))
     return 0;
 
   return NCR_GetLocalRefid(get_record(slot)->data);
@@ -926,16 +918,11 @@ NSR_GetLocalRefid(IPAddr *address)
 char *
 NSR_GetName(IPAddr *address)
 {
-  NTP_Remote_Address remote_addr;
-  int slot, found;
   SourceRecord *record;
+  int slot;
 
-  remote_addr.ip_addr = *address;
-  remote_addr.port = 0;
-
-  find_slot(&remote_addr, &slot, &found);
-  if (!found)
-    return NULL;
+  if (!find_slot(address, &slot))
+    return 0;
 
   record = get_record(slot);
   if (record->name)
@@ -954,12 +941,12 @@ NSR_ProcessRx(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
 {
   SourceRecord *record;
   struct SourcePool *pool;
-  int slot, found;
+  int slot;
 
   assert(initialised);
 
-  find_slot(remote_addr, &slot, &found);
-  if (found == 2) { /* Must match IP address AND port number */
+  /* Must match IP address AND port number */
+  if (find_slot2(remote_addr, &slot) == 2) {
     record = get_record(slot);
 
     if (!NCR_ProcessRxKnown(record->data, local_addr, rx_ts, message, length))
@@ -993,11 +980,10 @@ NSR_ProcessTx(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
               NTP_Local_Timestamp *tx_ts, NTP_Packet *message, int length)
 {
   SourceRecord *record;
-  int slot, found;
+  int slot;
 
-  find_slot(remote_addr, &slot, &found);
-
-  if (found == 2) { /* Must match IP address AND port number */
+  /* Must match IP address AND port number */
+  if (find_slot2(remote_addr, &slot) == 2) {
     record = get_record(slot);
     NCR_ProcessTxKnown(record->data, local_addr, tx_ts, message, length);
   } else {
@@ -1074,18 +1060,13 @@ NSR_SetConnectivity(IPAddr *mask, IPAddr *address, SRC_Connectivity connectivity
 int
 NSR_ModifyMinpoll(IPAddr *address, int new_minpoll)
 {
-  int slot, found;
-  NTP_Remote_Address addr;
-  addr.ip_addr = *address;
-  addr.port = 0;
+  int slot;
 
-  find_slot(&addr, &slot, &found);
-  if (found == 0) {
+  if (!find_slot(address, &slot))
     return 0;
-  } else {
-    NCR_ModifyMinpoll(get_record(slot)->data, new_minpoll);
-    return 1;
-  }
+
+  NCR_ModifyMinpoll(get_record(slot)->data, new_minpoll);
+  return 1;
 }
 
 /* ================================================== */
@@ -1093,18 +1074,13 @@ NSR_ModifyMinpoll(IPAddr *address, int new_minpoll)
 int
 NSR_ModifyMaxpoll(IPAddr *address, int new_maxpoll)
 {
-  int slot, found;
-  NTP_Remote_Address addr;
-  addr.ip_addr = *address;
-  addr.port = 0;
+  int slot;
 
-  find_slot(&addr, &slot, &found);
-  if (found == 0) {
+  if (!find_slot(address, &slot))
     return 0;
-  } else {
-    NCR_ModifyMaxpoll(get_record(slot)->data, new_maxpoll);
-    return 1;
-  }
+
+  NCR_ModifyMaxpoll(get_record(slot)->data, new_maxpoll);
+  return 1;
 }
 
 /* ================================================== */
@@ -1112,18 +1088,13 @@ NSR_ModifyMaxpoll(IPAddr *address, int new_maxpoll)
 int
 NSR_ModifyMaxdelay(IPAddr *address, double new_max_delay)
 {
-  int slot, found;
-  NTP_Remote_Address addr;
-  addr.ip_addr = *address;
-  addr.port = 0;
+  int slot;
 
-  find_slot(&addr, &slot, &found);
-  if (found == 0) {
+  if (!find_slot(address, &slot))
     return 0;
-  } else {
-    NCR_ModifyMaxdelay(get_record(slot)->data, new_max_delay);
-    return 1;
-  }
+
+  NCR_ModifyMaxdelay(get_record(slot)->data, new_max_delay);
+  return 1;
 }
 
 /* ================================================== */
@@ -1131,18 +1102,13 @@ NSR_ModifyMaxdelay(IPAddr *address, double new_max_delay)
 int
 NSR_ModifyMaxdelayratio(IPAddr *address, double new_max_delay_ratio)
 {
-  int slot, found;
-  NTP_Remote_Address addr;
-  addr.ip_addr = *address;
-  addr.port = 0;
+  int slot;
 
-  find_slot(&addr, &slot, &found);
-  if (found == 0) {
+  if (!find_slot(address, &slot))
     return 0;
-  } else {
-    NCR_ModifyMaxdelayratio(get_record(slot)->data, new_max_delay_ratio);
-    return 1;
-  }
+
+  NCR_ModifyMaxdelayratio(get_record(slot)->data, new_max_delay_ratio);
+  return 1;
 }
 
 /* ================================================== */
@@ -1150,18 +1116,13 @@ NSR_ModifyMaxdelayratio(IPAddr *address, double new_max_delay_ratio)
 int
 NSR_ModifyMaxdelaydevratio(IPAddr *address, double new_max_delay_dev_ratio)
 {
-  int slot, found;
-  NTP_Remote_Address addr;
-  addr.ip_addr = *address;
-  addr.port = 0;
+  int slot;
 
-  find_slot(&addr, &slot, &found);
-  if (found == 0) {
+  if (!find_slot(address, &slot))
     return 0;
-  } else {
-    NCR_ModifyMaxdelaydevratio(get_record(slot)->data, new_max_delay_dev_ratio);
-    return 1;
-  }
+
+  NCR_ModifyMaxdelaydevratio(get_record(slot)->data, new_max_delay_dev_ratio);
+  return 1;
 }
 
 /* ================================================== */
@@ -1169,18 +1130,13 @@ NSR_ModifyMaxdelaydevratio(IPAddr *address, double new_max_delay_dev_ratio)
 int
 NSR_ModifyMinstratum(IPAddr *address, int new_min_stratum)
 {
-  int slot, found;
-  NTP_Remote_Address addr;
-  addr.ip_addr = *address;
-  addr.port = 0;
+  int slot;
 
-  find_slot(&addr, &slot, &found);
-  if (found == 0) {
+  if (!find_slot(address, &slot))
     return 0;
-  } else {
-    NCR_ModifyMinstratum(get_record(slot)->data, new_min_stratum);
-    return 1;
-  }
+
+  NCR_ModifyMinstratum(get_record(slot)->data, new_min_stratum);
+  return 1;
 }
 
 /* ================================================== */
@@ -1188,18 +1144,13 @@ NSR_ModifyMinstratum(IPAddr *address, int new_min_stratum)
 int
 NSR_ModifyPolltarget(IPAddr *address, int new_poll_target)
 {
-  int slot, found;
-  NTP_Remote_Address addr;
-  addr.ip_addr = *address;
-  addr.port = 0;
+  int slot;
 
-  find_slot(&addr, &slot, &found);
-  if (found == 0) {
+  if (!find_slot(address, &slot))
     return 0;
-  } else {
-    NCR_ModifyPolltarget(get_record(slot)->data, new_poll_target);
-    return 1;
-  }
+
+  NCR_ModifyPolltarget(get_record(slot)->data, new_poll_target);
+  return 1;
 }
 
 /* ================================================== */
@@ -1235,13 +1186,9 @@ NSR_InitiateSampleBurst(int n_good_samples, int n_total_samples,
 void
 NSR_ReportSource(RPT_SourceReport *report, struct timespec *now)
 {
-  NTP_Remote_Address rem_addr;
-  int slot, found;
+  int slot;
 
-  rem_addr.ip_addr = report->ip_addr;
-  rem_addr.port = 0;
-  find_slot(&rem_addr, &slot, &found);
-  if (found) {
+  if (find_slot(&report->ip_addr, &slot)) {
     NCR_ReportSource(get_record(slot)->data, report, now);
   } else {
     report->poll = 0;
@@ -1254,13 +1201,9 @@ NSR_ReportSource(RPT_SourceReport *report, struct timespec *now)
 int
 NSR_GetAuthReport(IPAddr *address, RPT_AuthReport *report)
 {
-  NTP_Remote_Address rem_addr;
-  int slot, found;
+  int slot;
 
-  rem_addr.ip_addr = *address;
-  rem_addr.port = 0;
-  find_slot(&rem_addr, &slot, &found);
-  if (!found)
+  if (!find_slot(address, &slot))
     return 0;
 
   NCR_GetAuthReport(get_record(slot)->data, report);
@@ -1274,13 +1217,9 @@ NSR_GetAuthReport(IPAddr *address, RPT_AuthReport *report)
 int
 NSR_GetNTPReport(RPT_NTPReport *report)
 {
-  NTP_Remote_Address rem_addr;
-  int slot, found;
+  int slot;
 
-  rem_addr.ip_addr = report->remote_addr;
-  rem_addr.port = 0;
-  find_slot(&rem_addr, &slot, &found);
-  if (!found)
+  if (!find_slot(&report->remote_addr, &slot))
     return 0;
 
   NCR_GetNTPReport(get_record(slot)->data, report);
