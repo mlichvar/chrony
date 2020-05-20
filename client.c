@@ -2564,19 +2564,25 @@ process_cmd_serverstats(char *line)
   CMD_Reply reply;
 
   request.command = htons(REQ_SERVER_STATS);
-  if (!request_reply(&request, &reply, RPY_SERVER_STATS, 0))
+  if (!request_reply(&request, &reply, RPY_SERVER_STATS2, 0))
     return 0;
 
   print_report("NTP packets received       : %U\n"
                "NTP packets dropped        : %U\n"
                "Command packets received   : %U\n"
                "Command packets dropped    : %U\n"
-               "Client log records dropped : %U\n",
+               "Client log records dropped : %U\n"
+               "NTS-KE connections accepted: %U\n"
+               "NTS-KE connections dropped : %U\n"
+               "Authenticated NTP packets  : %U\n",
                (unsigned long)ntohl(reply.data.server_stats.ntp_hits),
                (unsigned long)ntohl(reply.data.server_stats.ntp_drops),
                (unsigned long)ntohl(reply.data.server_stats.cmd_hits),
                (unsigned long)ntohl(reply.data.server_stats.cmd_drops),
                (unsigned long)ntohl(reply.data.server_stats.log_drops),
+               (unsigned long)ntohl(reply.data.server_stats.nke_hits),
+               (unsigned long)ntohl(reply.data.server_stats.nke_drops),
+               (unsigned long)ntohl(reply.data.server_stats.ntp_auth_hits),
                REPORT_END);
 
   return 1;
@@ -2676,16 +2682,20 @@ process_cmd_clients(char *line)
   IPAddr ip;
   uint32_t i, n_clients, next_index, n_indices, min_hits, reset;
   RPY_ClientAccesses_Client *client;
-  char name[50], *opt, *arg;
+  char header[80], name[50], *opt, *arg;
+  int nke;
 
   next_index = 0;
   min_hits = 0;
   reset = 0;
+  nke = 0;
 
   while (*line) {
     opt = line;
     line = CPS_SplitWord(line);
-    if (strcmp(opt, "-p") == 0) {
+    if (strcmp(opt, "-k") == 0) {
+      nke = 1;
+    } else if (strcmp(opt, "-p") == 0) {
       arg = line;
       line = CPS_SplitWord(line);
       if (sscanf(arg, "%"SCNu32, &min_hits) != 1) {
@@ -2697,7 +2707,10 @@ process_cmd_clients(char *line)
     }
   }
 
-  print_header("Hostname                      NTP   Drop Int IntL Last     Cmd   Drop Int  Last");
+  snprintf(header, sizeof (header),
+           "Hostname                      NTP   Drop Int IntL Last  %6s   Drop Int  Last",
+           nke ? "NTS-KE" : "Cmd");
+  print_header(header);
 
   while (1) {
     request.command = htons(REQ_CLIENT_ACCESSES_BY_INDEX3);
@@ -2706,7 +2719,7 @@ process_cmd_clients(char *line)
     request.data.client_accesses_by_index.min_hits = htonl(min_hits);
     request.data.client_accesses_by_index.reset = htonl(reset);
 
-    if (!request_reply(&request, &reply, RPY_CLIENT_ACCESSES_BY_INDEX2, 0))
+    if (!request_reply(&request, &reply, RPY_CLIENT_ACCESSES_BY_INDEX3, 0))
       return 0;
 
     n_clients = ntohl(reply.data.client_accesses_by_index.n_clients);
@@ -2731,10 +2744,11 @@ process_cmd_clients(char *line)
                    client->ntp_interval,
                    client->ntp_timeout_interval,
                    (unsigned long)ntohl(client->last_ntp_hit_ago),
-                   (unsigned long)ntohl(client->cmd_hits),
-                   (unsigned long)ntohl(client->cmd_drops),
-                   client->cmd_interval,
-                   (unsigned long)ntohl(client->last_cmd_hit_ago),
+                   (unsigned long)ntohl(nke ? client->nke_hits : client->cmd_hits),
+                   (unsigned long)ntohl(nke ? client->nke_drops : client->cmd_drops),
+                   nke ? client->nke_interval : client->cmd_interval,
+                   (unsigned long)ntohl(nke ? client->last_nke_hit_ago :
+                                              client->last_cmd_hit_ago),
                    REPORT_END);
     }
 

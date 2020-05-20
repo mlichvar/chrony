@@ -1020,7 +1020,7 @@ handle_client_accesses_by_index(CMD_Request *rx_message, CMD_Reply *tx_message)
     return;
   }
 
-  tx_message->reply = htons(RPY_CLIENT_ACCESSES_BY_INDEX2);
+  tx_message->reply = htons(RPY_CLIENT_ACCESSES_BY_INDEX3);
   tx_message->data.client_accesses_by_index.n_indices = htonl(n_indices);
 
   for (i = req_first_index, j = 0; i < (uint32_t)n_indices && j < req_n_clients; i++) {
@@ -1031,13 +1031,17 @@ handle_client_accesses_by_index(CMD_Request *rx_message, CMD_Reply *tx_message)
 
     UTI_IPHostToNetwork(&report.ip_addr, &client->ip);
     client->ntp_hits = htonl(report.ntp_hits);
+    client->nke_hits = htonl(report.nke_hits);
     client->cmd_hits = htonl(report.cmd_hits);
     client->ntp_drops = htonl(report.ntp_drops);
+    client->nke_drops = htonl(report.nke_drops);
     client->cmd_drops = htonl(report.cmd_drops);
     client->ntp_interval = report.ntp_interval;
+    client->nke_interval = report.nke_interval;
     client->cmd_interval = report.cmd_interval;
     client->ntp_timeout_interval = report.ntp_timeout_interval;
     client->last_ntp_hit_ago = htonl(report.last_ntp_hit_ago);
+    client->last_nke_hit_ago = htonl(report.last_nke_hit_ago);
     client->last_cmd_hit_ago = htonl(report.last_cmd_hit_ago);
   }
 
@@ -1139,12 +1143,15 @@ handle_server_stats(CMD_Request *rx_message, CMD_Reply *tx_message)
   RPT_ServerStatsReport report;
 
   CLG_GetServerStatsReport(&report);
-  tx_message->reply = htons(RPY_SERVER_STATS);
+  tx_message->reply = htons(RPY_SERVER_STATS2);
   tx_message->data.server_stats.ntp_hits = htonl(report.ntp_hits);
+  tx_message->data.server_stats.nke_hits = htonl(report.nke_hits);
   tx_message->data.server_stats.cmd_hits = htonl(report.cmd_hits);
   tx_message->data.server_stats.ntp_drops = htonl(report.ntp_drops);
+  tx_message->data.server_stats.nke_drops = htonl(report.nke_drops);
   tx_message->data.server_stats.cmd_drops = htonl(report.cmd_drops);
   tx_message->data.server_stats.log_drops = htonl(report.log_drops);
+  tx_message->data.server_stats.ntp_auth_hits = htonl(report.ntp_auth_hits);
 }
 
 /* ================================================== */

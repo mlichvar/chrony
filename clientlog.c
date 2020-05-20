@@ -679,13 +679,17 @@ CLG_GetClientAccessReportByIndex(int index, int reset, uint32_t min_hits,
 
     report->ip_addr = record->ip_addr;
     report->ntp_hits = record->hits[CLG_NTP];
+    report->nke_hits = record->hits[CLG_NTSKE];
     report->cmd_hits = record->hits[CLG_CMDMON];
     report->ntp_drops = record->drops[CLG_NTP];
+    report->nke_drops = record->drops[CLG_NTSKE];
     report->cmd_drops = record->drops[CLG_CMDMON];
     report->ntp_interval = get_interval(record->rate[CLG_NTP]);
+    report->nke_interval = get_interval(record->rate[CLG_NTSKE]);
     report->cmd_interval = get_interval(record->rate[CLG_CMDMON]);
     report->ntp_timeout_interval = get_interval(record->ntp_timeout_rate);
     report->last_ntp_hit_ago = get_last_ago(now_ts, record->last_hit[CLG_NTP]);
+    report->last_nke_hit_ago = get_last_ago(now_ts, record->last_hit[CLG_NTSKE]);
     report->last_cmd_hit_ago = get_last_ago(now_ts, record->last_hit[CLG_CMDMON]);
   }
 
@@ -705,8 +709,11 @@ void
 CLG_GetServerStatsReport(RPT_ServerStatsReport *report)
 {
   report->ntp_hits = total_hits[CLG_NTP];
+  report->nke_hits = total_hits[CLG_NTSKE];
   report->cmd_hits = total_hits[CLG_CMDMON];
   report->ntp_drops = total_drops[CLG_NTP];
+  report->nke_drops = total_drops[CLG_NTSKE];
   report->cmd_drops = total_drops[CLG_CMDMON];
   report->log_drops = total_record_drops;
+  report->ntp_auth_hits = total_ntp_auth_hits;
 }

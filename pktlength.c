@@ -143,13 +143,15 @@ static const uint16_t reply_lengths[] = {
   0,                                            /* MANUAL_LIST - not supported */
   RPY_LENGTH_ENTRY(activity),                   /* ACTIVITY */
   RPY_LENGTH_ENTRY(smoothing),                  /* SMOOTHING */
-  RPY_LENGTH_ENTRY(server_stats),               /* SERVER_STATS */
-  RPY_LENGTH_ENTRY(client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX2 */
+  0,                                            /* SERVER_STATS - not supported */
+  0,                                            /* CLIENT_ACCESSES_BY_INDEX2 - not supported */
   RPY_LENGTH_ENTRY(ntp_data),                   /* NTP_DATA */
   RPY_LENGTH_ENTRY(manual_timestamp),           /* MANUAL_TIMESTAMP2 */
   RPY_LENGTH_ENTRY(manual_list),                /* MANUAL_LIST2 */
   RPY_LENGTH_ENTRY(ntp_source_name),            /* NTP_SOURCE_NAME */
   RPY_LENGTH_ENTRY(auth_data),                  /* AUTH_DATA */
+  RPY_LENGTH_ENTRY(client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX3 */
+  RPY_LENGTH_ENTRY(server_stats),               /* SERVER_STATS2 */
 };
 
 /* ================================================== */

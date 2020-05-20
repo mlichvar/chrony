@@ -412,8 +412,8 @@ typedef struct {
 #define PROTO_VERSION_PADDING 6
 
 /* The maximum length of padding in request packet, currently
-   defined by MANUAL_LIST */
-#define MAX_PADDING_LENGTH 396
+   defined by CLIENT_ACCESSES_BY_INDEX3 */
+#define MAX_PADDING_LENGTH 484
 
 /* ================================================== */
 
@@ -502,7 +502,9 @@ typedef struct {
 #define RPY_MANUAL_LIST2 18
 #define RPY_NTP_SOURCE_NAME 19
 #define RPY_AUTH_DATA 20
-#define N_REPLY_TYPES 21
+#define RPY_CLIENT_ACCESSES_BY_INDEX3 21
+#define RPY_SERVER_STATS2 22
+#define N_REPLY_TYPES 23
 
 /* Status codes */
 #define STT_SUCCESS 0
@@ -620,14 +622,17 @@ typedef struct {
 typedef struct {
   IPAddr ip;
   uint32_t ntp_hits;
+  uint32_t nke_hits;
   uint32_t cmd_hits;
   uint32_t ntp_drops;
+  uint32_t nke_drops;
   uint32_t cmd_drops;
   int8_t ntp_interval;
+  int8_t nke_interval;
   int8_t cmd_interval;
   int8_t ntp_timeout_interval;
-  int8_t pad;
   uint32_t last_ntp_hit_ago;
+  uint32_t last_nke_hit_ago;
   uint32_t last_cmd_hit_ago;
 } RPY_ClientAccesses_Client;
 
@@ -641,10 +646,13 @@ typedef struct {
 
 typedef struct {
   uint32_t ntp_hits;
+  uint32_t nke_hits;
   uint32_t cmd_hits;
   uint32_t ntp_drops;
+  uint32_t nke_drops;
   uint32_t cmd_drops;
   uint32_t log_drops;
+  uint32_t ntp_auth_hits;
   int32_t EOR;
 } RPY_ServerStats;
 

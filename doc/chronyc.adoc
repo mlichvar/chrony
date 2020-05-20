@@ -958,16 +958,17 @@ This command can be used to examine the effect of a series of *allow*, *allow
 all*, *deny*, and *deny all* commands specified either via *chronyc*, or in
 *chronyd*'s configuration file.
 
-[[clients]]*clients* [*-p* _packets_] *[*-r*]::
+[[clients]]*clients* [*-p* _packets_] [*-k*] [*-r*]::
 This command shows a list of clients that have accessed the server, through
-either the NTP or command ports. It does not include accesses over
-the Unix domain command socket.
+the NTP, command, or NTS-KE port. It does not include accesses over the Unix
+domain command socket.
 +
 The *-p* option specifies the minimum number of received NTP or command
-packets needed to include a client in the list. The default value is 0, i.e.
-all clients are reported. If the *-r* option is specified, *chronyd* will reset
-the counters of received and dropped packets after reporting the current
-values.
+packets, or accepted NTS-KE connections, needed to include a client in the
+list. The default value is 0, i.e. all clients are reported. With the *-k*
+option the last four columns will show the NTS-KE accesses instead of command
+accesses. If the *-r* option is specified, *chronyd* will reset the counters of
+received and dropped packets or connections after reporting the current values.
 +
 An example of the output is:
 +
@@ -992,20 +993,22 @@ The columns are as follows:
 . The average interval between NTP packets.
 . The average interval between NTP packets after limiting the response rate.
 . Time since the last NTP packet was received
-. The number of command packets received from the client.
-. The number of command packets dropped to limit the response rate.
-. The average interval between command packets.
-. Time since the last command packet was received.
+. The number of command packets or NTS-KE connections received/accepted from
+  the client.
+. The number of command packets or NTS-KE connections dropped to limit the
+  response rate.
+. The average interval between command packets or NTS-KE connections.
+. Time since the last command packet or NTS-KE connection was
+  received/accepted.
 
 [[serverstats]]*serverstats*::
-The *serverstats* command displays how many valid NTP and command requests
-*chronyd* as a server received from clients, how many of them were dropped to
-limit the response rate as configured by the
-<<chrony.conf.adoc#ratelimit,*ratelimit*>> and
-<<chrony.conf.adoc#cmdratelimit,*cmdratelimit*>> directives, and how many
+The *serverstats* command displays how many valid NTP and command requests, and
+NTS-KE connections, *chronyd* operating as a server received from clients, and
+how many of them were dropped due to rate limiting. It also displays how many
 client log records were dropped due to the memory limit configured by the
-<<chrony.conf.adoc#clientloglimit,*clientloglimit*>> directive. An example of
-the output is shown below.
+<<chrony.conf.adoc#clientloglimit,*clientloglimit*>> directive and how many of
+the NTP requests (from those which were not dropped) were authenticated. An
+example of the output is shown below.
 +
 ----
 NTP packets received       : 1598
@@ -1013,6 +1016,9 @@ NTP packets dropped        : 8
 Command packets received   : 19
 Command packets dropped    : 0
 Client log records dropped : 0
+NTS-KE connections accepted: 3
+NTS-KE connections dropped : 0
+Authenticated NTP packets  : 189
 ----
 
 [[allow]]*allow* [*all*] [_subnet_]::
