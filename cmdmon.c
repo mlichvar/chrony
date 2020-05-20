@@ -782,13 +782,12 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_del_source(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  NTP_Remote_Address rem_addr;
   NSR_Status status;
+  IPAddr ip_addr;
   
-  UTI_IPNetworkToHost(&rx_message->data.del_source.ip_addr, &rem_addr.ip_addr);
-  rem_addr.port = 0;
+  UTI_IPNetworkToHost(&rx_message->data.del_source.ip_addr, &ip_addr);
   
-  status = NSR_RemoveSource(&rem_addr);
+  status = NSR_RemoveSource(&ip_addr);
   switch (status) {
     case NSR_Success:
       break;

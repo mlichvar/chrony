@@ -206,7 +206,7 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type, Source
 }
 
 NSR_Status
-NSR_RemoveSource(NTP_Remote_Address *remote_addr)
+NSR_RemoveSource(IPAddr *address)
 {
   return NSR_NoSuchSource;
 }

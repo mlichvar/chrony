@@ -749,16 +749,15 @@ clean_source_record(SourceRecord *record)
 
 /* Procedure to remove a source.  We don't bother whether the port
    address is matched - we're only interested in removing a record for
-   the right IP address.  Thus the caller can specify the port number
-   as zero if it wishes. */
+   the right IP address. */
 NSR_Status
-NSR_RemoveSource(NTP_Remote_Address *remote_addr)
+NSR_RemoveSource(IPAddr *address)
 {
   int slot;
 
   assert(initialised);
 
-  if (find_slot2(remote_addr, &slot) == 0)
+  if (find_slot(address, &slot) == 0)
     return NSR_NoSuchSource;
 
   clean_source_record(get_record(slot));

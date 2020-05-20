@@ -84,7 +84,7 @@ test_unit(void)
 
     for (j = 0; j < sizeof (addrs) / sizeof (addrs[0]); j++) {
       DEBUG_LOG("removing source %s", UTI_IPToString(&addrs[j].ip_addr));
-      NSR_RemoveSource(&addrs[j]);
+      NSR_RemoveSource(&addrs[j].ip_addr);
 
       for (k = 0; k < sizeof (addrs) / sizeof (addrs[0]); k++) {
         found = find_slot2(&addrs[k], &slot);

@@ -76,7 +76,7 @@ extern void NSR_StartSources(void);
 extern void NSR_AutoStartSources(void);
 
 /* Procedure to remove a source */
-extern NSR_Status NSR_RemoveSource(NTP_Remote_Address *remote_addr);
+extern NSR_Status NSR_RemoveSource(IPAddr *address);
 
 /* Procedure to remove all sources */
 extern void NSR_RemoveAllSources(void);
