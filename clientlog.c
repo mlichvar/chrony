@@ -127,6 +127,7 @@ static int active;
 /* Global statistics */
 static uint32_t total_hits[MAX_SERVICES];
 static uint32_t total_drops[MAX_SERVICES];
+static uint32_t total_ntp_auth_hits;
 static uint32_t total_record_drops;
 
 #define NSEC_PER_SEC 1000000000U
@@ -581,6 +582,14 @@ CLG_LimitServiceRate(CLG_Service service, int index)
   total_drops[service]++;
 
   return 1;
+}
+
+/* ================================================== */
+
+void
+CLG_LogAuthNtpRequest(void)
+{
+  total_ntp_auth_hits++;
 }
 
 /* ================================================== */

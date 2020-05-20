@@ -2096,6 +2096,8 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
     /* Don't respond unless a non-zero KoD was returned */
     if (kod == 0)
       return;
+  } else if (info.auth.mode != NTP_AUTH_NONE && info.auth.mode != NTP_AUTH_MSSNTP) {
+    CLG_LogAuthNtpRequest();
   }
 
   /* If it is an NTPv4 packet with a long MAC and no extension fields,

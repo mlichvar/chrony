@@ -42,6 +42,7 @@ extern void CLG_Finalise(void);
 extern int CLG_GetClientIndex(IPAddr *client);
 extern int CLG_LogServiceAccess(CLG_Service service, IPAddr *client, struct timespec *now);
 extern int CLG_LimitServiceRate(CLG_Service service, int index);
+extern void CLG_LogAuthNtpRequest(void);
 extern void CLG_GetNtpTimestamps(int index, NTP_int64 **rx_ts, NTP_int64 **tx_ts);
 extern int CLG_GetNtpMinPoll(void);
 
