@@ -320,6 +320,12 @@ NSR_ReportSource(RPT_SourceReport *report, struct timespec *now)
 }
   
 int
+NSR_GetAuthReport(IPAddr *address, RPT_AuthReport *report)
+{
+  return 0;
+}
+
+int
 NSR_GetNTPReport(RPT_NTPReport *report)
 {
   return 0;
