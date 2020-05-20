@@ -361,6 +361,7 @@ CLG_Initialise(void)
      table where two copies exist at the same time. */
   max_slots = CNF_GetClientLogLimit() / (sizeof (Record) * SLOT_SIZE * 3 / 2);
   max_slots = CLAMP(MIN_SLOTS, max_slots, MAX_SLOTS);
+  DEBUG_LOG("Max records %u", 1U << ((int)round(log(max_slots) / log(2)) + SLOT_BITS));
 
   slots = 0;
   records = NULL;
