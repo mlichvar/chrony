@@ -91,7 +91,7 @@ delete_pidfile(void)
 {
   const char *pidfile = CNF_GetPidFile();
 
-  if (!pidfile[0])
+  if (!pidfile)
     return;
 
   if (!UTI_RemoveFile(NULL, pidfile, NULL))
@@ -105,9 +105,7 @@ MAI_CleanupAndExit(void)
 {
   if (!initialised) exit(exit_status);
   
-  if (CNF_GetDumpDir()[0] != '\0') {
-    SRC_DumpSources();
-  }
+  SRC_DumpSources();
 
   /* Don't update clock when removing sources */
   REF_SetMode(REF_ModeIgnore);
@@ -261,7 +259,7 @@ check_pidfile(void)
   FILE *in;
   int pid, count;
   
-  if (!pidfile[0])
+  if (!pidfile)
     return;
 
   in = UTI_OpenFile(NULL, pidfile, NULL, 'r', 0);
@@ -289,7 +287,7 @@ write_pidfile(void)
   const char *pidfile = CNF_GetPidFile();
   FILE *out;
 
-  if (!pidfile[0])
+  if (!pidfile)
     return;
 
   out = UTI_OpenFile(NULL, pidfile, NULL, 'W', 0644);

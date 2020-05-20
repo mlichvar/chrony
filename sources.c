@@ -1284,9 +1284,8 @@ FILE *open_dumpfile(SRC_Instance inst, char mode)
   char filename[64], *dumpdir;
 
   dumpdir = CNF_GetDumpDir();
-  if (dumpdir[0] == '\0') {
+  if (!dumpdir)
     return NULL;
-  }
 
   /* Include IP address in the name for NTP sources, or reference ID in hex */
   if (inst->type == SRC_NTP && UTI_IsIPReal(inst->ip_addr))
@@ -1350,7 +1349,7 @@ SRC_RemoveDumpFiles(void)
   size_t i;
 
   dumpdir = CNF_GetDumpDir();
-  if (dumpdir[0] == '\0' ||
+  if (!dumpdir ||
       snprintf(pattern, sizeof (pattern), "%s/*.dat", dumpdir) >= sizeof (pattern))
     return;
 

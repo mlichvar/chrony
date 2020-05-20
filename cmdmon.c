@@ -291,7 +291,7 @@ CAM_OpenUnixSocket(void)
 {
   /* This is separated from CAM_Initialise() as it needs to be called when
      the process has already dropped the root privileges */
-  if (CNF_GetBindCommandPath()[0])
+  if (CNF_GetBindCommandPath())
     sock_fdu = open_socket(IPADDR_UNSPEC);
 }
 

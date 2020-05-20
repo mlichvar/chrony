@@ -114,8 +114,8 @@ static int do_log_rtc = 0;
 static int do_log_refclocks = 0;
 static int do_log_tempcomp = 0;
 static int log_banner = 32;
-static char *logdir;
-static char *dumpdir;
+static char *logdir = NULL;
+static char *dumpdir = NULL;
 
 static int enable_local=0;
 static int local_stratum;
@@ -190,14 +190,14 @@ static IPAddr bind_acq_address4, bind_acq_address6;
 static IPAddr bind_cmd_address4, bind_cmd_address6;
 
 /* Path to the Unix domain command socket. */
-static char *bind_cmd_path;
+static char *bind_cmd_path = NULL;
 
 /* Path to Samba (ntp_signd) socket. */
 static char *ntp_signd_socket = NULL;
 
 /* Filename to use for storing pid of running chronyd, to prevent multiple
  * chronyds being started. */
-static char *pidfile;
+static char *pidfile = NULL;
 
 /* Rate limiting parameters */
 static int ntp_ratelimit_enabled = 0;
@@ -370,16 +370,12 @@ CNF_Initialise(int r, int client_only)
   ntp_restrictions = ARR_CreateInstance(sizeof (AllowDeny));
   cmd_restrictions = ARR_CreateInstance(sizeof (AllowDeny));
 
-  dumpdir = Strdup("");
-  logdir = Strdup("");
   rtc_device = Strdup(DEFAULT_RTC_DEVICE);
   hwclock_file = Strdup(DEFAULT_HWCLOCK_FILE);
   user = Strdup(DEFAULT_USER);
 
   if (client_only) {
     cmd_port = ntp_port = 0;
-    bind_cmd_path = Strdup("");
-    pidfile = Strdup("");
   } else {
     bind_cmd_path = Strdup(DEFAULT_COMMAND_SOCKET);
     pidfile = Strdup(DEFAULT_PID_FILE);
@@ -1233,8 +1229,10 @@ parse_bindcmdaddress(char *line)
   if (line[0] == '/') {
     parse_string(line, &bind_cmd_path);
     /* / disables the socket */
-    if (!strcmp(bind_cmd_path, "/"))
-        bind_cmd_path[0] = '\0';
+    if (strcmp(bind_cmd_path, "/") == 0) {
+      Free(bind_cmd_path);
+      bind_cmd_path = NULL;
+    }
   } else if (UTI_StringToIP(line, &ip)) {
     if (ip.family == IPADDR_INET4)
       bind_cmd_address4 = ip;
@@ -1537,7 +1535,7 @@ CNF_CreateDirs(uid_t uid, gid_t gid)
   char *dir;
 
   /* Create a directory for the Unix domain command socket */
-  if (bind_cmd_path[0]) {
+  if (bind_cmd_path) {
     dir = UTI_PathToDir(bind_cmd_path);
     UTI_CreateDirAndParents(dir, 0770, uid, gid);
 
@@ -1546,15 +1544,16 @@ CNF_CreateDirs(uid_t uid, gid_t gid)
        domain sockets are ignored on some systems (e.g. Solaris). */
     if (!UTI_CheckDirPermissions(dir, 0770, uid, gid)) {
       LOG(LOGS_WARN, "Disabled command socket %s", bind_cmd_path);
-      bind_cmd_path[0] = '\0';
+      Free(bind_cmd_path);
+      bind_cmd_path = NULL;
     }
 
     Free(dir);
   }
 
-  if (logdir[0])
+  if (logdir)
     UTI_CreateDirAndParents(logdir, 0755, uid, gid);
-  if (dumpdir[0])
+  if (dumpdir)
     UTI_CreateDirAndParents(dumpdir, 0755, uid, gid);
 }
 
