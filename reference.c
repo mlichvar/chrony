@@ -555,8 +555,7 @@ is_offset_ok(double offset)
     return 1;
   }
 
-  offset = fabs(offset);
-  if (offset > max_offset) {
+  if (fabs(offset) > max_offset) {
     LOG(LOGS_WARN, 
         "Adjustment of %.3f seconds exceeds the allowed maximum of %.3f seconds (%s) ",
         -offset, max_offset, !max_offset_ignore ? "exiting" : "ignored");
