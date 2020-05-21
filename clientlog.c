@@ -350,7 +350,7 @@ CLG_Initialise(void)
   active = !CNF_GetNoClientLog();
   if (!active) {
     for (i = 0; i < MAX_SERVICES; i++) {
-      if (leak_rate[i] == 0)
+      if (leak_rate[i] != 0)
         LOG_FATAL("Rate limiting cannot be enabled with noclientlog");
     }
     return;
