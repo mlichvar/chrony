@@ -573,6 +573,10 @@ RTC_Linux_Finalise(void)
     (void) RTC_Linux_WriteParameters();
 
   }
+
+  if (rtc_sec)
+    LCL_RemoveParameterChangeHandler(slew_samples, NULL);
+
   Free(rtc_sec);
   Free(rtc_trim);
   Free(system_times);

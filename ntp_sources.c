@@ -185,6 +185,8 @@ NSR_Finalise(void)
       clean_source_record(record);
   }
 
+  LCL_RemoveParameterChangeHandler(slew_sources, NULL);
+
   ARR_DestroyInstance(records);
   ARR_DestroyInstance(pools);
 

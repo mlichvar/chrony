@@ -304,6 +304,8 @@ REF_Finalise(void)
     update_drift_file(LCL_ReadAbsoluteFrequency(), our_skew);
   }
 
+  LCL_RemoveParameterChangeHandler(handle_slew, NULL);
+
   Free(fb_drifts);
 
   initialised = 0;

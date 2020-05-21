@@ -185,13 +185,11 @@ LCL_Initialise(void)
 void
 LCL_Finalise(void)
 {
-  while (change_list.next != &change_list)
-    LCL_RemoveParameterChangeHandler(change_list.next->handler,
-                                     change_list.next->anything);
-
-  while (dispersion_notify_list.next != &dispersion_notify_list)
-    LCL_RemoveDispersionNotifyHandler(dispersion_notify_list.next->handler,
-                                      dispersion_notify_list.next->anything);
+  /* Make sure all handlers have been removed */
+  if (change_list.next != &change_list)
+    assert(0);
+  if (dispersion_notify_list.next != &dispersion_notify_list)
+    assert(0);
 }
 
 /* ================================================== */

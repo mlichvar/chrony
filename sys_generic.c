@@ -417,6 +417,8 @@ SYS_Generic_Finalise(void)
 
   LCL_ReadRawTime(&now);
   stop_fastslew(&now);
+
+  LCL_RemoveParameterChangeHandler(handle_step, NULL);
 }
 
 /* ================================================== */

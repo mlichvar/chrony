@@ -272,6 +272,10 @@ void SMT_Initialise(void)
 
 void SMT_Finalise(void)
 {
+  if (!enabled)
+    return;
+
+  LCL_RemoveParameterChangeHandler(handle_slew, NULL);
 }
 
 int SMT_IsEnabled(void)
