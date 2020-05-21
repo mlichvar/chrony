@@ -276,6 +276,7 @@ check_chronyd_exit() {
 
 		grep -q 'chronyd exiting' tmp/log.$i && \
 			! grep -q 'Adjustment.*exceeds.*exiting' tmp/log.$i && \
+			! grep -q 'Assertion.*failed' tmp/log.$i && \
 			test_ok || test_bad
 		[ $? -eq 0 ] || ret=1
 	done
