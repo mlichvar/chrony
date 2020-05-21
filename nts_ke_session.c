@@ -598,6 +598,7 @@ init_gnutls(void)
   gnutls_global_set_time_function(get_time);
 
   gnutls_initialised = 1;
+  DEBUG_LOG("Initialised");
 
   LCL_AddParameterChangeHandler(handle_step, NULL);
 }
@@ -614,6 +615,7 @@ deinit_gnutls(void)
   gnutls_priority_deinit(priority_cache);
   gnutls_global_deinit();
   gnutls_initialised = 0;
+  DEBUG_LOG("Deinitialised");
 }
 
 /* ================================================== */
