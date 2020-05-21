@@ -58,7 +58,8 @@ struct NKC_Instance_Record {
 
 /* ================================================== */
 
-static void *client_credentials;
+static void *client_credentials = NULL;
+static int client_credentials_refs = 0;
 
 /* ================================================== */
 
@@ -256,23 +257,6 @@ handle_message(void *arg)
 
 /* ================================================== */
 
-void
-NKC_Initialise(void)
-{
-  client_credentials = NULL;
-}
-
-/* ================================================== */
-
-void
-NKC_Finalise(void)
-{
-  if (client_credentials)
-    NKSN_DestroyCertCredentials(client_credentials);
-}
-
-/* ================================================== */
-
 NKC_Instance
 NKC_CreateInstance(IPSockAddr *address, const char *name)
 {
@@ -287,10 +271,10 @@ NKC_CreateInstance(IPSockAddr *address, const char *name)
   inst->destroying = 0;
   inst->got_response = 0;
 
-  /* Create the credentials with the first client instance and share them
-     with other instances */
+  /* Share the credentials with other client instances */
   if (!client_credentials)
     client_credentials = NKSN_CreateCertCredentials(NULL, NULL, CNF_GetNtsTrustedCertFile());
+  client_credentials_refs++;
 
   return inst;
 }
@@ -310,6 +294,12 @@ NKC_DestroyInstance(NKC_Instance inst)
 
   Free(inst->name);
   Free(inst);
+
+  client_credentials_refs--;
+  if (client_credentials_refs <= 0 && client_credentials) {
+    NKSN_DestroyCertCredentials(client_credentials);
+    client_credentials = NULL;
+  }
 }
 
 /* ================================================== */

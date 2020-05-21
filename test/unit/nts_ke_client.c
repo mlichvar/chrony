@@ -112,7 +112,6 @@ test_unit(void)
     CNF_ParseLine(NULL, i + 1, conf[i]);
 
   LCL_Initialise();
-  NKC_Initialise();
 
   SCK_GetLoopbackIPAddress(AF_INET, &addr.ip_addr);
   addr.port = 0;
@@ -129,7 +128,6 @@ test_unit(void)
 
   NKC_DestroyInstance(inst);
 
-  NKC_Finalise();
   LCL_Finalise();
   CNF_Finalise();
 }

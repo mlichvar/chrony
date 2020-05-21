@@ -537,16 +537,6 @@ NNC_GetReport(NNC_Instance inst, RPT_AuthReport *report)
 }
 
 void
-NKC_Initialise(void)
-{
-}
-
-void
-NKC_Finalise(void)
-{
-}
-
-void
 NKS_Initialise(int scfilter_level)
 {
 }

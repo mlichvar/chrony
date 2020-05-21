@@ -32,10 +32,6 @@
 
 typedef struct NKC_Instance_Record *NKC_Instance;
 
-/* Init and fini functions */
-extern void NKC_Initialise(void);
-extern void NKC_Finalise(void);
-
 /* Create a client NTS-KE instance */
 extern NKC_Instance NKC_CreateInstance(IPSockAddr *address, const char *name);
 
