@@ -421,11 +421,17 @@ Perhaps you have a firewall set up in a way that blocks packets on port
 
 === I keep getting the error `501 Not authorised`
 
-Since version 2.2, the `password` command doesn't do anything and `chronyc`
-needs to run locally under the root or _chrony_ user, which are allowed to
-access the ``chronyd``'s Unix domain command socket.
+This error indicates that `chronyc` sent the command to `chronyd` using a UDP
+socket instead of the Unix domain socket (e.g. _/var/run/chrony/chronyd.sock_),
+which is required for some commands. For security reasons, only the root and
+_chrony_ users are allowed to access the socket.
 
-With older versions, you need to authenticate with the `password` command first
+It is also possible that the socket doesn't exist. `chronyd` will not create
+the socket if the directory has a wrong owner or permissions. In this case
+there should be an error message from `chronyd` in the system log.
+
+With versions older than 2.2, which don't use the Unix domain socket, you need
+to authenticate with the `password` command first,
 or use the `-a` option to authenticate automatically on start. The
 configuration file needs to specify a file which contains keys (`keyfile`
 directive) and which key in the key file should be used for `chronyc`
