@@ -1476,7 +1476,6 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timespec *now)
         break;
     }
 
-    report->sel_options = src->sel_options;
     report->reachability = src->reachability;
 
     /* Call stats module to fill out estimates */

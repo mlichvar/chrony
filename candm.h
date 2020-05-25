@@ -550,11 +550,6 @@ typedef struct {
 #define RPY_SD_ST_CANDIDATE 4
 #define RPY_SD_ST_OUTLIER 5
 
-#define RPY_SD_FLAG_NOSELECT 0x1
-#define RPY_SD_FLAG_PREFER 0x2
-#define RPY_SD_FLAG_TRUST 0x4
-#define RPY_SD_FLAG_REQUIRE 0x8
-
 typedef struct {
   IPAddr ip_addr;
   int16_t poll;

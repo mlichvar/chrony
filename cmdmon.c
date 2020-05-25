@@ -601,11 +601,7 @@ handle_source_data(CMD_Request *rx_message, CMD_Reply *tx_message)
         tx_message->data.source_data.mode    = htons(RPY_SD_MD_REF);
         break;
     }
-    tx_message->data.source_data.flags =
-                  htons((report.sel_options & SRC_SELECT_PREFER ? RPY_SD_FLAG_PREFER : 0) |
-                        (report.sel_options & SRC_SELECT_NOSELECT ? RPY_SD_FLAG_NOSELECT : 0) |
-                        (report.sel_options & SRC_SELECT_TRUST ? RPY_SD_FLAG_TRUST : 0) |
-                        (report.sel_options & SRC_SELECT_REQUIRE ? RPY_SD_FLAG_REQUIRE : 0));
+    tx_message->data.source_data.flags = htons(0);
     tx_message->data.source_data.reachability = htons(report.reachability);
     tx_message->data.source_data.since_sample = htonl(report.latest_meas_ago);
     tx_message->data.source_data.orig_latest_meas = UTI_FloatHostToNetwork(report.orig_latest_meas);
