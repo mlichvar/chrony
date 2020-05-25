@@ -138,6 +138,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* RESET_SOURCES */
   PERMIT_AUTH, /* AUTH_DATA */
   PERMIT_AUTH, /* CLIENT_ACCESSES_BY_INDEX3 */
+  PERMIT_AUTH, /* SELECT_DATA */
 };
 
 /* ================================================== */
@@ -1283,6 +1284,43 @@ handle_auth_data(CMD_Request *rx_message, CMD_Reply *tx_message)
 }
 
 /* ================================================== */
+
+static uint16_t
+convert_select_options(int options)
+{
+  return (options & SRC_SELECT_PREFER ? RPY_SD_OPTION_PREFER : 0) |
+         (options & SRC_SELECT_NOSELECT ? RPY_SD_OPTION_NOSELECT : 0) |
+         (options & SRC_SELECT_TRUST ? RPY_SD_OPTION_TRUST : 0) |
+         (options & SRC_SELECT_REQUIRE ? RPY_SD_OPTION_REQUIRE : 0);
+}
+
+/* ================================================== */
+
+static void
+handle_select_data(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  RPT_SelectReport report;
+
+  if (!SRC_GetSelectReport(ntohl(rx_message->data.select_data.index), &report)) {
+    tx_message->status = htons(STT_NOSUCHSOURCE);
+    return;
+  }
+
+  tx_message->reply = htons(RPY_SELECT_DATA);
+
+  tx_message->data.select_data.ref_id = htonl(report.ref_id);
+  UTI_IPHostToNetwork(&report.ip_addr, &tx_message->data.select_data.ip_addr);
+  tx_message->data.select_data.state_char = report.state_char;
+  tx_message->data.select_data.authentication = report.authentication;
+  tx_message->data.select_data.conf_options = htons(convert_select_options(report.conf_options));
+  tx_message->data.select_data.eff_options = htons(convert_select_options(report.eff_options));
+  tx_message->data.select_data.last_sample_ago = htonl(report.last_sample_ago);
+  tx_message->data.select_data.score = UTI_FloatHostToNetwork(report.score);
+  tx_message->data.select_data.hi_limit = UTI_FloatHostToNetwork(report.hi_limit);
+  tx_message->data.select_data.lo_limit = UTI_FloatHostToNetwork(report.lo_limit);
+}
+
+/* ================================================== */
 /* Read a packet and process it */
 
 static void
@@ -1666,6 +1704,10 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
         case REQ_AUTH_DATA:
           handle_auth_data(&rx_message, &tx_message);
+          break;
+
+        case REQ_SELECT_DATA:
+          handle_select_data(&rx_message, &tx_message);
           break;
 
         default:

@@ -316,6 +316,8 @@ SRC_ResetInstance(SRC_Instance instance)
   instance->leap = LEAP_Unsynchronised;
   instance->leap_vote = 0;
 
+  memset(&instance->sel_info, 0, sizeof (instance->sel_info));
+
   SST_ResetInstance(instance->stats);
 }
 
@@ -1505,6 +1507,78 @@ SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report, struct timespec 
     SST_DoSourcestatsReport(src->stats, report, now);
     return 1;
   }
+}
+
+/* ================================================== */
+
+static char
+get_status_char(SRC_Status status)
+{
+  switch (status) {
+    case SRC_UNSELECTABLE:
+      return 'N';
+    case SRC_BAD_STATS:
+      return 'M';
+    case SRC_BAD_DISTANCE:
+      return 'd';
+    case SRC_JITTERY:
+      return '~';
+    case SRC_WAITS_STATS:
+      return 'w';
+    case SRC_STALE:
+      return 'S';
+    case SRC_ORPHAN:
+      return 'O';
+    case SRC_UNTRUSTED:
+      return 'T';
+    case SRC_FALSETICKER:
+      return 'x';
+    case SRC_WAITS_SOURCES:
+      return 'W';
+    case SRC_NONPREFERRED:
+      return 'P';
+    case SRC_WAITS_UPDATE:
+      return 'U';
+    case SRC_DISTANT:
+      return 'D';
+    case SRC_OUTLIER:
+      return 'L';
+    case SRC_UNSELECTED:
+      return '+';
+    case SRC_SELECTED:
+      return '*';
+    default:
+      return '?';
+  }
+}
+
+/* ================================================== */
+
+int
+SRC_GetSelectReport(int index, RPT_SelectReport *report)
+{
+  SRC_Instance inst;
+
+  if (index >= n_sources || index < 0)
+    return 0;
+
+  inst = sources[index];
+
+  report->ref_id = inst->ref_id;
+  if (inst->ip_addr)
+    report->ip_addr = *inst->ip_addr;
+  else
+    report->ip_addr.family = IPADDR_UNSPEC;
+  report->state_char = get_status_char(inst->status);
+  report->authentication = inst->authenticated;
+  report->conf_options = inst->conf_sel_options;
+  report->eff_options = inst->sel_options;
+  report->last_sample_ago = inst->sel_info.last_sample_ago;
+  report->score = inst->sel_score;
+  report->lo_limit = inst->sel_info.lo_limit;
+  report->hi_limit = inst->sel_info.hi_limit;
+
+  return 1;
 }
 
 /* ================================================== */

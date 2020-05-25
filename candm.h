@@ -106,7 +106,8 @@
 #define REQ_RESET_SOURCES 66
 #define REQ_AUTH_DATA 67
 #define REQ_CLIENT_ACCESSES_BY_INDEX3 68
-#define N_REQUEST_TYPES 69
+#define REQ_SELECT_DATA 69
+#define N_REQUEST_TYPES 70
 
 /* Structure used to exchange timespecs independent of time_t size */
 typedef struct {
@@ -360,6 +361,11 @@ typedef struct {
   int32_t EOR;
 } REQ_AuthData;
 
+typedef struct {
+  uint32_t index;
+  int32_t EOR;
+} REQ_SelectData;
+
 /* ================================================== */
 
 #define PKT_TYPE_CMD_REQUEST 1
@@ -464,6 +470,7 @@ typedef struct {
     REQ_NTPData ntp_data;
     REQ_NTPSourceName ntp_source_name;
     REQ_AuthData auth_data;
+    REQ_SelectData select_data;
   } data; /* Command specific parameters */
 
   /* Padding used to prevent traffic amplification.  It only defines the
@@ -504,7 +511,8 @@ typedef struct {
 #define RPY_AUTH_DATA 20
 #define RPY_CLIENT_ACCESSES_BY_INDEX3 21
 #define RPY_SERVER_STATS2 22
-#define N_REPLY_TYPES 23
+#define RPY_SELECT_DATA 23
+#define N_REPLY_TYPES 24
 
 /* Status codes */
 #define STT_SUCCESS 0
@@ -744,6 +752,26 @@ typedef struct {
   int32_t EOR;
 } RPY_AuthData;
 
+#define RPY_SD_OPTION_NOSELECT 0x1
+#define RPY_SD_OPTION_PREFER 0x2
+#define RPY_SD_OPTION_TRUST 0x4
+#define RPY_SD_OPTION_REQUIRE 0x8
+
+typedef struct {
+  uint32_t ref_id;
+  IPAddr ip_addr;
+  uint8_t state_char;
+  uint8_t authentication;
+  uint8_t pad[2];
+  uint16_t conf_options;
+  uint16_t eff_options;
+  uint32_t last_sample_ago;
+  Float score;
+  Float lo_limit;
+  Float hi_limit;
+  int32_t EOR;
+} RPY_SelectData;
+
 typedef struct {
   uint8_t version;
   uint8_t pkt_type;
@@ -775,6 +803,7 @@ typedef struct {
     RPY_NTPData ntp_data;
     RPY_NTPSourceName ntp_source_name;
     RPY_AuthData auth_data;
+    RPY_SelectData select_data;
   } data; /* Reply specific parameters */
 
 } CMD_Reply;

@@ -414,6 +414,92 @@ This is the estimated offset of the source.
 *Std Dev*:::
 This is the estimated sample standard deviation.
 
+[[selectdata]]*selectdata* [*-a*] [*-v*]::
+The *selectdata* command displays information specific to the selection of time
+sources. If the *-a* option is specified, all sources are displayed, including
+those that do not have a known address yet. With the *-v* option, extra caption
+lines are shown as a reminder of the meanings of the columns.
++
+An example of the output is shown below.
++
+----
+S Name/IP Address        Auth COpts EOpts Last Score     Interval   
+====================================================================
+D foo.example.net           Y ----- --TR-    4   1.0   -61ms   +62ms
+* bar.example.net           N ----- -----    0   1.0 -6846us +7305us
++ baz.example.net           N ----- -----   10   1.0 -7381us +7355us
+----
++
+The columns are as follows:
++
+*S*:::
+This column indicates the state of the source after the last source selection.
+It is similar to the state reported by the *sources* command, but more
+states are reported.
+:::
+The following states indicate the source is not considered selectable for
+synchronisation:
+* _N_ - has the *noselect* option.
+* _M_ - does not have enough measurements.
+* _d_ - has a root distance larger than the maximum distance (configured by the
+        <<chrony.conf.adoc#maxdistance,*maxdistance*>> directive).
+* _~_ - has a jitter larger than the maximum jitter (configured by the
+        <<chrony.conf.adoc#maxjitter,*maxjitter*>> directive).
+* _w_ - waits for other sources to get out of the _M_ state.
+* _S_ - has older measurements than other sources.
+* _O_ - has a stratum equal or larger than the orphan stratum (configured by
+        the <<chrony.conf.adoc#local,*local*>> directive).
+* _T_ - does not fully agree with sources that have the *trust* option.
+* _x_ - does not agree with other sources (falseticker).
+:::
+The following states indicate the source is considered selectable, but it is
+not currently used for synchronisation:
+* _W_ - waits for other sources to be selectable (required by the
+        <<chrony.conf.adoc#minsources,*minsources*>> directive, or
+        the *require* option of another source).
+* _P_ - another selectable source is preferred due to the *prefer* option.
+* _U_ - waits for a new measurement (after selecting a different best source).
+* _D_ - has, or recently had, a root distance which is too large to be combined
+        with other sources (configured by the
+        <<chrony.conf.adoc#combinelimit,*combinelimit*>> directive).
+:::
+The following states indicate the source is used for synchronisation of the
+local clock:
+* _+_ - combined with the best source.
+* _*_ - selected as the best source to update the reference data (e.g. root
+        delay, root dispersion).
+*Name/IP address*:::
+This column shows the name or IP address of the source if it is an NTP server,
+or the reference ID if it is a reference clock.
+*Auth*:::
+This column indicites whether an authentication mechanism is enabled for the
+source. _Y_ means yes and _N_ means no.
+*COpts*:::
+This column displays the configured selection options of the source.
+* _N_ indicates the *noselect* option.
+* _P_ indicates the *prefer* option.
+* _T_ indicates the *trust* option.
+* _R_ indicates the *require* option.
+*EOpts*:::
+This column displays the current effective selection options of the source,
+which can be different from the configured options due to the authentication
+selection mode (configured by the
+<<chrony.conf.adoc#authselmode,*authselmode*>> directive). The symbols are the
+same as in the *COpts* column.
+*Last*:::
+This column displays how long ago was the last measurement of the source made
+when the selection was performed.
+*Score*:::
+This column displays the current score against the source in the _*_ state. The
+scoring system avoids frequent reselection when multiple sources have a similar
+root distance. A value larger than 1 indicates this source was better than the
+_*_ source in recent selections. If the score reaches 10, the best source will
+be reselected and the scores will be reset to 1.
+*Interval*:::
+This column displays the lower and upper endpoint of the interval which was
+expected to contain the true offset of the local clock considering the root
+distance at the time of the selection.
+
 [[reselect]]*reselect*::
 To avoid excessive switching between sources, *chronyd* can stay synchronised
 to a source even when it is not currently the best one among the available

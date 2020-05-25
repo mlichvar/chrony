@@ -1209,6 +1209,7 @@ give_help(void)
     "Time sources:\0\0"
     "sources [-a] [-v]\0Display information about current sources\0"
     "sourcestats [-a] [-v]\0Display statistics about collected measurements\0"
+    "selectdata [-a] [-v]\0Display information about source selection\0"
     "reselect\0Force reselecting synchronisation source\0"
     "reselectdist <dist>\0Modify reselection distance\0"
     "\0\0"
@@ -1303,6 +1304,7 @@ enum {
   TAB_COMPLETE_RESET_OPTS,
   TAB_COMPLETE_SOURCES_OPTS,
   TAB_COMPLETE_SOURCESTATS_OPTS,
+  TAB_COMPLETE_SELECTDATA_OPTS,
   TAB_COMPLETE_MAX_INDEX
 };
 
@@ -1319,7 +1321,7 @@ command_name_generator(const char *text, int state)
     "manual", "maxdelay", "maxdelaydevratio", "maxdelayratio", "maxpoll",
     "maxupdateskew", "minpoll", "minstratum", "ntpdata", "offline", "online", "onoffline",
     "polltarget", "quit", "refresh", "rekey", "reselect", "reselectdist", "reset",
-    "retries", "rtcdata", "serverstats", "settime", "shutdown", "smoothing",
+    "retries", "rtcdata", "selectdata", "serverstats", "settime", "shutdown", "smoothing",
     "smoothtime", "sourcename", "sources", "sourcestats",
     "timeout", "tracking", "trimrtc", "waitsync", "writertc",
     NULL
@@ -1327,6 +1329,7 @@ command_name_generator(const char *text, int state)
   const char *add_options[] = { "peer", "pool", "server", NULL };
   const char *manual_options[] = { "on", "off", "delete", "list", "reset", NULL };
   const char *reset_options[] = { "sources", NULL };
+  const char *selectdata_options[] = { "-a", "-v", NULL };
   const char *sources_options[] = { "-a", "-v", NULL };
   const char *sourcestats_options[] = { "-a", "-v", NULL };
   static int list_index, len;
@@ -1335,6 +1338,7 @@ command_name_generator(const char *text, int state)
   names[TAB_COMPLETE_ADD_OPTS] = add_options;
   names[TAB_COMPLETE_MANUAL_OPTS] = manual_options;
   names[TAB_COMPLETE_RESET_OPTS] = reset_options;
+  names[TAB_COMPLETE_SELECTDATA_OPTS] = selectdata_options;
   names[TAB_COMPLETE_SOURCES_OPTS] = sources_options;
   names[TAB_COMPLETE_SOURCESTATS_OPTS] = sourcestats_options;
 
@@ -1368,6 +1372,8 @@ command_name_completion(const char *text, int start, int end)
     tab_complete_index = TAB_COMPLETE_MANUAL_OPTS;
   } else if (!strcmp(first, "reset ")) {
     tab_complete_index = TAB_COMPLETE_RESET_OPTS;
+  } else if (!strcmp(first, "selectdata ")) {
+    tab_complete_index = TAB_COMPLETE_SELECTDATA_OPTS;
   } else if (!strcmp(first, "sources ")) {
     tab_complete_index = TAB_COMPLETE_SOURCES_OPTS;
   } else if (!strcmp(first, "sourcestats ")) {
@@ -2558,6 +2564,81 @@ process_cmd_ntpdata(char *line)
 /* ================================================== */
 
 static int
+process_cmd_selectdata(char *line)
+{
+  CMD_Request request;
+  CMD_Reply reply;
+  uint32_t i, n_sources;
+  int all, verbose, conf_options, eff_options;
+  char name[256];
+  IPAddr ip_addr;
+
+  parse_sources_options(line, &all, &verbose);
+
+  request.command = htons(REQ_N_SOURCES);
+  if (!request_reply(&request, &reply, RPY_N_SOURCES, 0))
+    return 0;
+
+  n_sources = ntohl(reply.data.n_sources.n_sources);
+
+  if (verbose) {
+    printf(    "  .-- State: N - noselect, M - missing samples, d/D - large distance,\n");
+    printf(    " /           ~ - jittery, w/W - waits for others, T - not trusted,\n");
+    printf(    "|            x - falseticker, P - not preferred, U - waits for update,\n");
+    printf(    "|            S - stale, O - orphan, + - combined, * - best.\n");
+    printf(    "|        Effective options ------.  (N - noselect, P - prefer\n");
+    printf(    "|       Configured options -.     \\  T - trust, R - require)\n");
+    printf(    "|   Auth. enabled (Y/N) -.   \\     \\     Offset interval --.\n");
+    printf(    "|                        |    |     |                       |\n");
+  }
+
+  print_header("S Name/IP Address        Auth COpts EOpts Last Score     Interval   ");
+
+  /*           "S NNNNNNNNNNNNNNNNNNNNNNNNN A OOOO- OOOO- LLLL SSSSS LLLLLLL LLLLLLL" */
+
+  for (i = 0; i < n_sources; i++) {
+    request.command = htons(REQ_SELECT_DATA);
+    request.data.source_data.index = htonl(i);
+    if (!request_reply(&request, &reply, RPY_SELECT_DATA, 0))
+      return 0;
+
+    UTI_IPNetworkToHost(&reply.data.select_data.ip_addr, &ip_addr);
+    if (!all && ip_addr.family == IPADDR_ID)
+      continue;
+
+    format_name(name, sizeof (name), 25, ip_addr.family == IPADDR_UNSPEC,
+                ntohl(reply.data.select_data.ref_id), 1, &ip_addr);
+
+    conf_options = ntohs(reply.data.select_data.conf_options);
+    eff_options = ntohs(reply.data.select_data.eff_options);
+
+    print_report("%c %-25s %c %c%c%c%c%c %c%c%c%c%c %I %5.1f %+S %+S\n",
+                 reply.data.select_data.state_char,
+                 name,
+                 reply.data.select_data.authentication ? 'Y' : 'N',
+                 conf_options & RPY_SD_OPTION_NOSELECT ? 'N' : '-',
+                 conf_options & RPY_SD_OPTION_PREFER ? 'P' : '-',
+                 conf_options & RPY_SD_OPTION_TRUST ? 'T' : '-',
+                 conf_options & RPY_SD_OPTION_REQUIRE ? 'R' : '-',
+                 '-',
+                 eff_options & RPY_SD_OPTION_NOSELECT ? 'N' : '-',
+                 eff_options & RPY_SD_OPTION_PREFER ? 'P' : '-',
+                 eff_options & RPY_SD_OPTION_TRUST ? 'T' : '-',
+                 eff_options & RPY_SD_OPTION_REQUIRE ? 'R' : '-',
+                 '-',
+                 (unsigned long)ntohl(reply.data.select_data.last_sample_ago),
+                 UTI_FloatNetworkToHost(reply.data.select_data.score),
+                 UTI_FloatNetworkToHost(reply.data.select_data.lo_limit),
+                 UTI_FloatNetworkToHost(reply.data.select_data.hi_limit),
+                 REPORT_END);
+  }
+
+  return 1;
+}
+
+/* ================================================== */
+
+static int
 process_cmd_serverstats(char *line)
 {
   CMD_Request request;
@@ -3272,6 +3353,9 @@ process_line(char *line)
   } else if (!strcmp(command, "rtcdata")) {
     do_normal_submit = 0;
     ret = process_cmd_rtcreport(line);
+  } else if (!strcmp(command, "selectdata")) {
+    do_normal_submit = 0;
+    ret = process_cmd_selectdata(line);
   } else if (!strcmp(command, "serverstats")) {
     do_normal_submit = 0;
     ret = process_cmd_serverstats(line);

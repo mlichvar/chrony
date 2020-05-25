@@ -130,9 +130,10 @@ extern int SRC_IsSyncPeer(SRC_Instance inst);
 extern int SRC_IsReachable(SRC_Instance inst);
 extern int SRC_ReadNumberOfSources(void);
 extern int SRC_ActiveSources(void);
-extern int SRC_ReportSource(int index, RPT_SourceReport *report, struct timespec *now);
 
+extern int SRC_ReportSource(int index, RPT_SourceReport *report, struct timespec *now);
 extern int SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report, struct timespec *now);
+extern int SRC_GetSelectReport(int index, RPT_SelectReport *report);
 
 extern SRC_Type SRC_GetType(int index);
 

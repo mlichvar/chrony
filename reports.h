@@ -178,4 +178,17 @@ typedef struct {
   int nak;
 } RPT_AuthReport;
 
+typedef struct {
+  uint32_t ref_id;
+  IPAddr ip_addr;
+  char state_char;
+  int authentication;
+  int conf_options;
+  int eff_options;
+  uint32_t last_sample_ago;
+  double score;
+  double lo_limit;
+  double hi_limit;
+} RPT_SelectReport;
+
 #endif /* GOT_REPORTS_H */
