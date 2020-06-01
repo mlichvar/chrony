@@ -573,6 +573,24 @@ log_selection_message(const char *format, const char *arg)
 
 /* ================================================== */
 
+static void
+log_selection_source(const char *format, SRC_Instance inst)
+{
+  char buf[320], *name, *ntp_name;
+
+  name = source_to_string(inst);
+  ntp_name = inst->type == SRC_NTP ? NSR_GetName(inst->ip_addr) : NULL;
+
+  if (ntp_name && strcmp(name, ntp_name) != 0)
+    snprintf(buf, sizeof (buf), "%s (%s)", name, ntp_name);
+  else
+    snprintf(buf, sizeof (buf), "%s", name);
+
+  log_selection_message(format, buf);
+}
+
+/* ================================================== */
+
 static int
 compare_sort_elements(const void *a, const void *b)
 {
@@ -1166,8 +1184,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     }
 
     selected_source_index = max_score_index;
-    log_selection_message("Selected source %s",
-                          source_to_string(sources[selected_source_index]));
+    log_selection_source("Selected source %s", sources[selected_source_index]);
 
     /* New source has been selected, reset all scores */
     for (i = 0; i < n_sources; i++) {

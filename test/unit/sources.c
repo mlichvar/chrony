@@ -49,6 +49,7 @@ test_unit(void)
   SCH_Initialise();
   SRC_Initialise();
   REF_Initialise();
+  NSR_Initialise();
 
   REF_SetMode(REF_ModeIgnore);
 
@@ -224,6 +225,7 @@ test_unit(void)
     }
   }
 
+  NSR_Finalise();
   REF_Finalise();
   SRC_Finalise();
   SCH_Finalise();
