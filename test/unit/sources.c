@@ -131,7 +131,7 @@ test_unit(void)
                   trusted_passed, trusted, required_passed, required);
 
         TEST_CHECK(!trusted || !passed || (passed_lo >= trusted_lo && passed_hi <= trusted_hi));
-        TEST_CHECK(!passed || trusted != 1 || (trusted == 1 && trusted_passed == 1));
+        TEST_CHECK(!passed || !trusted || trusted_passed >= 1);
         TEST_CHECK(!passed || !required || required_passed > 0);
       }
     }
