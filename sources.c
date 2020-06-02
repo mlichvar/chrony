@@ -633,10 +633,11 @@ mark_source(SRC_Instance inst, SRC_Status status)
 {
   inst->status = status;
 
-  DEBUG_LOG("%s status=%d options=%x reach=%o/%d updates=%d distant=%d leap=%d vote=%d",
+  DEBUG_LOG("%s status=%d options=%x reach=%o/%d updates=%d distant=%d leap=%d vote=%d lo=%f hi=%f",
             source_to_string(inst), (int)inst->status, (unsigned int)inst->sel_options,
             (unsigned int)inst->reachability, inst->reachability_size, inst->updates,
-            inst->distant, (int)inst->leap, inst->leap_vote);
+            inst->distant, (int)inst->leap, inst->leap_vote,
+            inst->sel_info.lo_limit, inst->sel_info.hi_limit);
 }
 
 /* ================================================== */
