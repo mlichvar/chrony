@@ -761,6 +761,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   double src_offset, src_offset_sd, src_frequency, src_frequency_sd, src_skew;
   double src_root_delay, src_root_dispersion;
   double best_lo, best_hi, distance, sel_src_distance, max_score;
+  double best_trust_lo, best_trust_hi;
   double first_sample_ago, max_reach_sample_ago;
   NTP_Leap leap_status;
 
@@ -989,7 +990,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
   trust_depth = best_trust_depth = 0;
   depth = best_depth = 0;
-  best_lo = best_hi = 0.0;
+  best_lo = best_hi = best_trust_lo = best_trust_hi = 0.0;
 
   for (i = 0; i < n_endpoints; i++) {
     switch (sort_list[i].tag) {
@@ -999,14 +1000,20 @@ SRC_SelectSource(SRC_Instance updated_inst)
           trust_depth++;
         if (trust_depth > best_trust_depth ||
             (trust_depth == best_trust_depth && depth > best_depth)) {
-          best_trust_depth = trust_depth;
+          if (trust_depth > best_trust_depth) {
+            best_trust_depth = trust_depth;
+            best_trust_lo = sort_list[i].offset;
+          }
           best_depth = depth;
           best_lo = sort_list[i].offset;
         }
         break;
       case HIGH:
-        if (trust_depth == best_trust_depth && depth == best_depth)
-          best_hi = sort_list[i].offset;
+        if (trust_depth == best_trust_depth) {
+          if (depth == best_depth)
+            best_hi = sort_list[i].offset;
+          best_trust_hi = sort_list[i].offset;
+        }
         if (sources[sort_list[i].index]->sel_options & SRC_SELECT_TRUST)
           trust_depth--;
         depth--;
@@ -1045,22 +1052,26 @@ SRC_SelectSource(SRC_Instance updated_inst)
       continue;
 
     /* Check if source's interval contains the best interval, or is wholly
-       contained within it.  If there are any trusted sources the first
-       condition is applied only to them to not allow non-trusted sources to
-       move the final offset outside the interval. */
-    if (((!best_trust_depth || sources[i]->sel_options & SRC_SELECT_TRUST) &&
-         sources[i]->sel_info.lo_limit <= best_lo &&
+       contained within it.  If there are any trusted sources, other sources
+       are required to be wholly contained within the best interval of the
+       trusted sources to not allow non-trusted sources to move the final
+       offset outside the trusted interval. */
+    if ((sources[i]->sel_info.lo_limit <= best_lo &&
          sources[i]->sel_info.hi_limit >= best_hi) ||
         (sources[i]->sel_info.lo_limit >= best_lo &&
          sources[i]->sel_info.hi_limit <= best_hi)) {
+
+      if (!(best_trust_depth == 0 || (sources[i]->sel_options & SRC_SELECT_TRUST) ||
+            (sources[i]->sel_info.lo_limit >= best_trust_lo &&
+             sources[i]->sel_info.hi_limit <= best_trust_hi))) {
+        mark_source(sources[i], SRC_UNTRUSTED);
+        continue;
+      }
 
       sel_sources[n_sel_sources++] = i;
 
       if (sources[i]->sel_options & SRC_SELECT_REQUIRE)
         sel_req_source = 0;
-    } else if (sources[i]->sel_info.lo_limit <= best_lo &&
-               sources[i]->sel_info.hi_limit >= best_hi) {
-      mark_source(sources[i], SRC_UNTRUSTED);
     } else {
       mark_source(sources[i], SRC_FALSETICKER);
     }
