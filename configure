@@ -966,31 +966,45 @@ EXTRA_OBJECTS="$EXTRA_OBJECTS $HASH_OBJ"
 EXTRA_CLI_OBJECTS="$EXTRA_CLI_OBJECTS $HASH_OBJ"
 LIBS="$LIBS $HASH_LINK"
 
-if [ $feat_ntp = "1" ] && [ $feat_nts = "1" ] && [ $try_gnutls = "1" ] && \
-    echo "$HASH_LINK" | grep 'nettle' > /dev/null; then
+if [ $feat_ntp = "1" ] && [ $feat_nts = "1" ] && [ $try_gnutls = "1" ]; then
   test_cflags="`pkg_config --cflags gnutls`"
   test_link="`pkg_config --libs gnutls`"
   if test_code 'gnutls' 'gnutls/gnutls.h' \
     "$test_cflags" "$test_link" '
       return gnutls_init(NULL, 0) +
         gnutls_priority_init2(NULL, "", NULL, GNUTLS_PRIORITY_INIT_DEF_APPEND) +
-        gnutls_prf_rfc5705(NULL, 0, "", 0, "", 16, NULL);' &&
-    test_code 'AES128 in nettle' 'nettle/aes.h' '' "$LIBS" \
-      'aes128_set_encrypt_key(NULL, NULL);'
+        gnutls_prf_rfc5705(NULL, 0, "", 0, "", 16, NULL);'
   then
-    EXTRA_OBJECTS="$EXTRA_OBJECTS nts_ke_client.o nts_ke_server.o nts_ke_session.o"
-    EXTRA_OBJECTS="$EXTRA_OBJECTS nts_ntp_auth.o nts_ntp_client.o nts_ntp_server.o"
-    EXTRA_OBJECTS="$EXTRA_OBJECTS siv_nettle.o"
-    LIBS="$LIBS $test_link"
-    MYCPPFLAGS="$MYCPPFLAGS $test_cflags"
-    add_def FEAT_NTS
-
-    add_def HAVE_SIV
     if test_code 'SIV in nettle' \
       'nettle/siv-cmac.h' "" "$LIBS" \
       'siv_cmac_aes128_set_key(NULL, NULL);'
     then
+      EXTRA_OBJECTS="$EXTRA_OBJECTS siv_nettle.o"
+      add_def HAVE_SIV
       add_def HAVE_NETTLE_SIV_CMAC
+    else
+      if test_code 'SIV in gnutls' 'gnutls/gnutls.h' \
+        "$test_cflags" "$test_link" '
+          return gnutls_aead_cipher_init(NULL, GNUTLS_CIPHER_AES_128_SIV, NULL);'
+      then
+        EXTRA_OBJECTS="$EXTRA_OBJECTS siv_gnutls.o"
+        add_def HAVE_SIV
+      else
+        if test_code 'AES128 in nettle' 'nettle/aes.h' '' "$LIBS" \
+          'aes128_set_encrypt_key(NULL, NULL);'
+        then
+          EXTRA_OBJECTS="$EXTRA_OBJECTS siv_nettle.o"
+          add_def HAVE_SIV
+        fi
+      fi
+    fi
+
+    if grep '#define HAVE_SIV' config.h > /dev/null; then
+      EXTRA_OBJECTS="$EXTRA_OBJECTS nts_ke_client.o nts_ke_server.o nts_ke_session.o"
+      EXTRA_OBJECTS="$EXTRA_OBJECTS nts_ntp_auth.o nts_ntp_client.o nts_ntp_server.o"
+      LIBS="$LIBS $test_link"
+      MYCPPFLAGS="$MYCPPFLAGS $test_cflags"
+      add_def FEAT_NTS
     fi
   fi
 fi
