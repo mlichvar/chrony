@@ -246,7 +246,10 @@ test_unit(void)
       TEST_CHECK(!r);
     }
 
-    for (j = 0; j < tests[i].ciphertext_length; j++) {
+    for (j = 0; j < 2 * tests[i].ciphertext_length; j++) {
+      if (j == tests[i].ciphertext_length)
+        continue;
+
       r = SIV_Decrypt(siv, tests[i].nonce, tests[i].nonce_length,
                       tests[i].assoc, tests[i].assoc_length,
                       tests[i].ciphertext, j,
@@ -270,6 +273,25 @@ test_unit(void)
 
     SIV_DestroyInstance(siv);
   }
+
+  siv = SIV_CreateInstance(tests[0].algorithm);
+  for (i = 0; i < 1000; i++) {
+    for (j = 0; tests[j].algorithm == tests[0].algorithm; j++) {
+      r = SIV_SetKey(siv, tests[j].key, tests[j].key_length);
+      TEST_CHECK(r);
+      r = SIV_Encrypt(siv, tests[j].nonce, tests[j].nonce_length,
+                      tests[j].assoc, tests[j].assoc_length,
+                      tests[j].plaintext, tests[j].plaintext_length,
+                      ciphertext, tests[j].ciphertext_length);
+      TEST_CHECK(r);
+      r = SIV_Decrypt(siv, tests[j].nonce, tests[j].nonce_length,
+                      tests[j].assoc, tests[j].assoc_length,
+                      tests[j].ciphertext, tests[j].ciphertext_length,
+                      plaintext, tests[j].plaintext_length);
+      TEST_CHECK(r);
+    }
+  }
+  SIV_DestroyInstance(siv);
 }
 #else
 void
