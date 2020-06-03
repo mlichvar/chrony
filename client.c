@@ -1304,6 +1304,7 @@ enum {
   TAB_COMPLETE_RESET_OPTS,
   TAB_COMPLETE_SOURCES_OPTS,
   TAB_COMPLETE_SOURCESTATS_OPTS,
+  TAB_COMPLETE_AUTHDATA_OPTS,
   TAB_COMPLETE_SELECTDATA_OPTS,
   TAB_COMPLETE_MAX_INDEX
 };
@@ -1329,18 +1330,17 @@ command_name_generator(const char *text, int state)
   const char *add_options[] = { "peer", "pool", "server", NULL };
   const char *manual_options[] = { "on", "off", "delete", "list", "reset", NULL };
   const char *reset_options[] = { "sources", NULL };
-  const char *selectdata_options[] = { "-a", "-v", NULL };
-  const char *sources_options[] = { "-a", "-v", NULL };
-  const char *sourcestats_options[] = { "-a", "-v", NULL };
+  const char *common_source_options[] = { "-a", "-v", NULL };
   static int list_index, len;
 
   names[TAB_COMPLETE_BASE_CMDS] = base_commands;
   names[TAB_COMPLETE_ADD_OPTS] = add_options;
   names[TAB_COMPLETE_MANUAL_OPTS] = manual_options;
   names[TAB_COMPLETE_RESET_OPTS] = reset_options;
-  names[TAB_COMPLETE_SELECTDATA_OPTS] = selectdata_options;
-  names[TAB_COMPLETE_SOURCES_OPTS] = sources_options;
-  names[TAB_COMPLETE_SOURCESTATS_OPTS] = sourcestats_options;
+  names[TAB_COMPLETE_AUTHDATA_OPTS] = common_source_options;
+  names[TAB_COMPLETE_SELECTDATA_OPTS] = common_source_options;
+  names[TAB_COMPLETE_SOURCES_OPTS] = common_source_options;
+  names[TAB_COMPLETE_SOURCESTATS_OPTS] = common_source_options;
 
   if (!state) {
     list_index = 0;
@@ -1368,6 +1368,8 @@ command_name_completion(const char *text, int start, int end)
 
   if (!strcmp(first, "add ")) {
     tab_complete_index = TAB_COMPLETE_ADD_OPTS;
+  } else if (!strcmp(first, "authdata ")) {
+    tab_complete_index = TAB_COMPLETE_AUTHDATA_OPTS;
   } else if (!strcmp(first, "manual ")) {
     tab_complete_index = TAB_COMPLETE_MANUAL_OPTS;
   } else if (!strcmp(first, "reset ")) {
