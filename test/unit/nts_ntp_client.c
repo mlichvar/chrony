@@ -200,6 +200,8 @@ test_unit(void)
   IPAddr ip_addr;
   int i, j, prev_num_cookies, valid;
 
+  TEST_CHECK(SIV_GetKeyLength(AEAD_AES_SIV_CMAC_256) > 0);
+
   SCK_GetLoopbackIPAddress(AF_INET, &addr.ip_addr);
   addr.port = 0;
 

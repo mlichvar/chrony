@@ -433,8 +433,11 @@ generate_key(int index)
     assert(0);
 
   UTI_GetRandomBytesUrandom(server_keys[index].key, key_length);
-  if (!SIV_SetKey(server_keys[index].siv, server_keys[index].key, key_length))
-    assert(0);
+
+  if (!server_keys[index].siv ||
+      !SIV_SetKey(server_keys[index].siv, server_keys[index].key, key_length)) {
+    LOG_FATAL("Could not set SIV key");
+  }
 
   UTI_GetRandomBytes(&server_keys[index].id, sizeof (server_keys[index].id));
 

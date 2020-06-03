@@ -67,6 +67,8 @@ NNS_Initialise(void)
 
   server = Malloc(sizeof (struct NtsServer));
   server->siv = SIV_CreateInstance(SERVER_SIV);
+  if (!server->siv)
+    LOG_FATAL("Could not initialise SIV cipher");
 }
 
 /* ================================================== */
