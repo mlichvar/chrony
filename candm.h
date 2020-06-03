@@ -404,7 +404,8 @@ typedef struct {
    Version 6 (no authentication) : changed format of client accesses by index
    (using new request/reply types) and manual timestamp, added new fields and
    flags to NTP source request and report, made length of manual list constant,
-   added new commands: ntpdata, refresh, serverstats, shutdown
+   added new commands: authdata, ntpdata, onoffline, refresh, reset,
+   selectdata, serverstats, shutdown, sourcename
  */
 
 #define PROTO_VERSION_NUMBER 6
