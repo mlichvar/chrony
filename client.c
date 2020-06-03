@@ -1215,7 +1215,7 @@ give_help(void)
     "\0\0"
     "NTP sources:\0\0"
     "activity\0Check how many NTP sources are online/offline\0"
-    "authdata [-a]\0Display information about authentication\0"
+    "authdata [-a] [-v]\0Display information about authentication\0"
     "ntpdata [<address>]\0Display information about last valid measurement\0"
     "add server <name> [options]\0Add new NTP server\0"
     "add pool <name> [options]\0Add new pool of NTP servers\0"
@@ -2388,6 +2388,14 @@ process_cmd_authdata(char *line)
     return 0;
 
   n_sources = ntohl(reply.data.n_sources.n_sources);
+
+  if (verbose) {
+    printf(    "                             .- Auth. mechanism (NTS, SK - symmetric key)\n");
+    printf(    "                            |   Key length -.  Cookie length (bytes) -.\n");
+    printf(    "                            |       (bits)  |  Num. of cookies --.    |\n");
+    printf(    "                            |               |  Key est. attempts  |   |\n");
+    printf(    "                            |               |           |         |   |\n");
+  }
 
   print_header("Name/IP address             Mode KeyID Type KLen Last Atmp  NAK Cook CLen");
 
