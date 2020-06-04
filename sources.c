@@ -828,8 +828,9 @@ SRC_SelectSource(SRC_Instance updated_inst)
       si->hi_limit += extra_disp;
     }
 
-    /* Require the root distance to be below the allowed maximum */
-    if (si->root_distance > max_distance) {
+    /* Require the root distance to be below the allowed maximum and the
+       endpoints to be in the right order (i.e. a non-negative distance) */
+    if (!(si->root_distance <= max_distance && si->lo_limit <= si->hi_limit)) {
       mark_source(sources[i], SRC_BAD_DISTANCE);
       continue;
     }
