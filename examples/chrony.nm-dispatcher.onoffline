@@ -5,11 +5,13 @@
 
 export LC_ALL=C
 
+chronyc=/usr/bin/chronyc
+
 # For NetworkManager consider only up/down events
 [ $# -ge 2 ] && [ "$2" != "up" ] && [ "$2" != "down" ] && exit 0
 
 # Note: for networkd-dispatcher routable.d ~= on and off.d ~= off
 
-chronyc onoffline > /dev/null 2>&1
+$chronyc onoffline > /dev/null 2>&1
 
 exit 0
