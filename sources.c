@@ -1025,7 +1025,12 @@ SRC_SelectSource(SRC_Instance updated_inst)
       default:
         assert(0);
     }
+    assert(trust_depth <= depth);
+    assert(trust_depth >= 0);
   }
+
+  assert(depth == 0 && trust_depth == 0);
+  assert(2 * n_sel_sources == n_endpoints);
 
   if ((best_trust_depth == 0 && best_depth <= n_sel_sources / 2) ||
       (best_trust_depth > 0 && best_trust_depth <= n_sel_trust_sources / 2)) {
