@@ -134,4 +134,6 @@ Makefile : Makefile.in configure
 .deps/%.d: %.c | .deps
 	@$(CC) -MM $(CPPFLAGS) -MT '$(<:%.c=%.o) $@' $< -o $@
 
+ifndef NODEPS
 -include $(ALL_OBJS:%.o=.deps/%.d)
+endif
