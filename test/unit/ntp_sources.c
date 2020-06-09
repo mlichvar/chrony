@@ -66,7 +66,7 @@ test_unit(void)
       DEBUG_LOG("adding source %s hash %"PRIu32, UTI_IPToString(&addrs[j].ip_addr),
                 UTI_IPToHash(&addrs[j].ip_addr) % (1U << i));
 
-      NSR_AddSource(&addrs[j], random() % 2 ? NTP_SERVER : NTP_PEER, &params);
+      NSR_AddSource(&addrs[j], random() % 2 ? NTP_SERVER : NTP_PEER, &params, NULL);
 
       for (k = 0; k < j; k++) {
         addr = addrs[k];

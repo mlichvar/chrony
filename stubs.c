@@ -194,13 +194,15 @@ NSR_Finalise(void)
 }
 
 NSR_Status
-NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParameters *params)
+NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
+              SourceParameters *params, uint32_t *conf_id)
 {
   return NSR_TooManySources;
 }
 
 NSR_Status
-NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type, SourceParameters *params)
+NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
+                    SourceParameters *params, uint32_t *conf_id)
 {
   return NSR_TooManySources;
 }
@@ -209,6 +211,11 @@ NSR_Status
 NSR_RemoveSource(IPAddr *address)
 {
   return NSR_NoSuchSource;
+}
+
+void
+NSR_RemoveSourcesById(uint32_t conf_id)
+{
 }
 
 void

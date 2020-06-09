@@ -50,14 +50,15 @@ typedef enum {
 } NSR_Status;
 
 /* Procedure to add a new server or peer source. */
-extern NSR_Status NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParameters *params);
+extern NSR_Status NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
+                                SourceParameters *params, uint32_t *conf_id);
 
 /* Procedure to add a new server, peer source, or pool of servers specified by
    name instead of address.  The name is resolved in exponentially increasing
    intervals until it succeeds or fails with a non-temporary error.  If the
    name is an address, it is equivalent to NSR_AddSource(). */
 extern NSR_Status NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
-                                      SourceParameters *params);
+                                      SourceParameters *params, uint32_t *conf_id);
 
 /* Function type for handlers to be called back when an attempt
  * (possibly unsuccessful) to resolve unresolved sources ends */
@@ -77,6 +78,9 @@ extern void NSR_AutoStartSources(void);
 
 /* Procedure to remove a source */
 extern NSR_Status NSR_RemoveSource(IPAddr *address);
+
+/* Procedure to remove all sources matching a configuration ID */
+extern void NSR_RemoveSourcesById(uint32_t conf_id);
 
 /* Procedure to remove all sources */
 extern void NSR_RemoveAllSources(void);

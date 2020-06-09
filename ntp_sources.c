@@ -58,6 +58,8 @@ typedef struct {
                                    added or INVALID_POOL */
   int tentative;                /* Flag indicating there was no valid response
                                    received from the source yet */
+  uint32_t conf_id;             /* Configuration ID, which can be shared with
+                                   different sources in case of a pool */
 } SourceRecord;
 
 /* Hash table of SourceRecord, its size is a power of two and it's never
@@ -72,6 +74,9 @@ static int auto_start_sources = 0;
 
 /* Last assigned address ID */
 static uint32_t last_address_id = 0;
+
+/* Last assigned configuration ID */
+static uint32_t last_conf_id = 0;
 
 /* Source scheduled for name resolving (first resolving or replacement) */
 struct UnresolvedSource {
@@ -302,7 +307,8 @@ rehash_records(void)
 
 /* Procedure to add a new source */
 static NSR_Status
-add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type, SourceParameters *params, int pool)
+add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type,
+           SourceParameters *params, int pool, uint32_t conf_id)
 {
   SourceRecord *record;
   int slot;
@@ -332,6 +338,7 @@ add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type, So
       record->name = name ? Strdup(name) : NULL;
       record->pool = pool;
       record->tentative = 1;
+      record->conf_id = conf_id;
 
       if (record->pool != INVALID_POOL) {
         get_pool(record->pool)->sources++;
@@ -604,15 +611,27 @@ remove_unresolved_source(struct UnresolvedSource *us)
 /* ================================================== */
 
 NSR_Status
-NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type, SourceParameters *params)
+NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
+              SourceParameters *params, uint32_t *conf_id)
 {
-  return add_source(remote_addr, NULL, type, params, INVALID_POOL);
+  NSR_Status s;
+
+  s = add_source(remote_addr, NULL, type, params, INVALID_POOL, last_conf_id + 1);
+  if (s != NSR_Success)
+    return s;
+
+  last_conf_id++;
+  if (conf_id)
+    *conf_id = last_conf_id;
+
+  return s;
 }
 
 /* ================================================== */
 
 NSR_Status
-NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type, SourceParameters *params)
+NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
+                    SourceParameters *params, uint32_t *conf_id)
 {
   struct UnresolvedSource *us;
   struct SourcePool *sp;
@@ -623,7 +642,7 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type, Source
      or later when trying to replace the source */
   if (UTI_StringToIP(name, &remote_addr.ip_addr)) {
     remote_addr.port = port;
-    return NSR_AddSource(&remote_addr, type, params);
+    return NSR_AddSource(&remote_addr, type, params, conf_id);
   }
 
   /* Make sure the name is at least printable and has no spaces */
@@ -657,10 +676,14 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type, Source
 
   append_unresolved_source(us);
 
+  last_conf_id++;
+  if (conf_id)
+    *conf_id = last_conf_id;
+
   for (i = 0; i < new_sources; i++) {
     if (i > 0)
       remote_addr.ip_addr.addr.id = ++last_address_id;
-    if (add_source(&remote_addr, name, type, params, us->pool) != NSR_Success)
+    if (add_source(&remote_addr, name, type, params, us->pool, last_conf_id) != NSR_Success)
       return NSR_TooManySources;
   }
 
@@ -770,6 +793,24 @@ NSR_RemoveSource(IPAddr *address)
   rehash_records();
 
   return NSR_Success;
+}
+
+/* ================================================== */
+
+void
+NSR_RemoveSourcesById(uint32_t conf_id)
+{
+  SourceRecord *record;
+  unsigned int i;
+
+  for (i = 0; i < ARR_GetSize(records); i++) {
+    record = get_record(i);
+    if (!record->remote_addr || record->conf_id != conf_id)
+      continue;
+    clean_source_record(record);
+  }
+
+  rehash_records();
 }
 
 /* ================================================== */

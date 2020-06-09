@@ -750,7 +750,7 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_TRUST ? SRC_SELECT_TRUST : 0) |
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_REQUIRE ? SRC_SELECT_REQUIRE : 0);
 
-  status = NSR_AddSourceByName(name, port, pool, type, &params);
+  status = NSR_AddSourceByName(name, port, pool, type, &params, NULL);
   switch (status) {
     case NSR_Success:
       break;

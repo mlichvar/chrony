@@ -1577,7 +1577,7 @@ CNF_AddInitSources(void)
     cps_source.params.iburst = 1;
     cps_source.params.connectivity = SRC_OFFLINE;
 
-    NSR_AddSource(&ntp_addr, NTP_SERVER, &cps_source.params);
+    NSR_AddSource(&ntp_addr, NTP_SERVER, &cps_source.params, NULL);
   }
 
   ARR_SetSize(init_sources, 0);
@@ -1594,7 +1594,7 @@ CNF_AddSources(void)
   for (i = 0; i < ARR_GetSize(ntp_sources); i++) {
     source = (NTP_Source *)ARR_GetElement(ntp_sources, i);
     NSR_AddSourceByName(source->params.name, source->params.port,
-                        source->pool, source->type, &source->params.params);
+                        source->pool, source->type, &source->params.params, NULL);
     Free(source->params.name);
   }
 
