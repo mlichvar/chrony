@@ -78,7 +78,8 @@ static void parse_ratelimit(char *line, int *enabled, int *interval,
                             int *burst, int *leak);
 static void parse_refclock(char *);
 static void parse_smoothtime(char *);
-static void parse_source(char *line, NTP_Source_Type type, int pool);
+static void parse_source(char *line, char *type, int fatal);
+static void parse_sourcedirs(char *);
 static void parse_tempcomp(char *);
 
 /* ================================================== */
@@ -265,6 +266,10 @@ typedef struct {
 
 /* Array of NTP_Source */
 static ARR_Instance ntp_sources;
+/* Array of (char *) */
+static ARR_Instance ntp_source_dirs;
+/* Array of uint32_t corresponding to ntp_sources (for sourcedirs reload) */
+static ARR_Instance ntp_source_ids;
 
 /* Array of RefclockParameters */
 static ARR_Instance refclock_sources;
@@ -364,6 +369,8 @@ CNF_Initialise(int r, int client_only)
 
   init_sources = ARR_CreateInstance(sizeof (IPAddr));
   ntp_sources = ARR_CreateInstance(sizeof (NTP_Source));
+  ntp_source_dirs = ARR_CreateInstance(sizeof (char *));
+  ntp_source_ids = ARR_CreateInstance(sizeof (uint32_t));
   refclock_sources = ARR_CreateInstance(sizeof (RefclockParameters));
   broadcasts = ARR_CreateInstance(sizeof (NTP_Broadcast_Destination));
 
@@ -395,9 +402,13 @@ CNF_Finalise(void)
 
   for (i = 0; i < ARR_GetSize(ntp_sources); i++)
     Free(((NTP_Source *)ARR_GetElement(ntp_sources, i))->params.name);
+  for (i = 0; i < ARR_GetSize(ntp_source_dirs); i++)
+    Free(*(char **)ARR_GetElement(ntp_source_dirs, i));
 
   ARR_DestroyInstance(init_sources);
   ARR_DestroyInstance(ntp_sources);
+  ARR_DestroyInstance(ntp_source_dirs);
+  ARR_DestroyInstance(ntp_source_ids);
   ARR_DestroyInstance(refclock_sources);
   ARR_DestroyInstance(broadcasts);
 
@@ -604,11 +615,11 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "ntsserverkey")) {
     parse_string(p, &nts_server_key_file);
   } else if (!strcasecmp(command, "peer")) {
-    parse_source(p, NTP_PEER, 0);
+    parse_source(p, command, 1);
   } else if (!strcasecmp(command, "pidfile")) {
     parse_string(p, &pidfile);
   } else if (!strcasecmp(command, "pool")) {
-    parse_source(p, NTP_SERVER, 1);
+    parse_source(p, command, 1);
   } else if (!strcasecmp(command, "port")) {
     parse_int(p, &ntp_port);
   } else if (!strcasecmp(command, "ratelimit")) {
@@ -631,9 +642,11 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "sched_priority")) {
     parse_int(p, &sched_priority);
   } else if (!strcasecmp(command, "server")) {
-    parse_source(p, NTP_SERVER, 0);
+    parse_source(p, command, 1);
   } else if (!strcasecmp(command, "smoothtime")) {
     parse_smoothtime(p);
+  } else if (!strcasecmp(command, "sourcedirs")) {
+    parse_sourcedirs(p);
   } else if (!strcasecmp(command, "stratumweight")) {
     parse_double(p, &stratum_weight);
   } else if (!strcasecmp(command, "tempcomp")) {
@@ -699,20 +712,47 @@ parse_null(char *line)
 /* ================================================== */
 
 static void
-parse_source(char *line, NTP_Source_Type type, int pool)
+parse_source(char *line, char *type, int fatal)
 {
   NTP_Source source;
 
-  source.type = type;
-  source.pool = pool;
+  if (strcasecmp(type, "peer") == 0) {
+    source.type = NTP_PEER;
+    source.pool = 0;
+  } else if (strcasecmp(type, "pool") == 0) {
+    source.type = NTP_SERVER;
+    source.pool = 1;
+  } else if (strcasecmp(type, "server") == 0) {
+    source.type = NTP_SERVER;
+    source.pool = 0;
+  } else {
+    if (fatal)
+      command_parse_error();
+    return;
+  }
+
+  /* Avoid comparing uninitialized data in compare_sources() */
+  memset(&source.params, 0, sizeof (source.params));
 
   if (!CPS_ParseNTPSourceAdd(line, &source.params)) {
-    command_parse_error();
+    if (fatal)
+      command_parse_error();
     return;
   }
 
   source.params.name = Strdup(source.params.name);
   ARR_AppendElement(ntp_sources, &source);
+}
+
+/* ================================================== */
+
+static void
+parse_sourcedirs(char *line)
+{
+  char *s;
+
+  s = Strdup(line);
+  ARR_AppendElement(ntp_source_dirs, &s);
 }
 
 /* ================================================== */
@@ -1451,22 +1491,20 @@ compare_basenames(const void *a, const void *b)
 
 /* ================================================== */
 
-static void
-parse_confdirs(char *line)
+static int
+search_dirs(char *line, const char *suffix, void (*file_handler)(const char *path))
 {
   char *dirs[MAX_CONF_DIRS], buf[MAX_LINE_LENGTH], *path;
   size_t i, j, k, locations, n_dirs;
   glob_t gl;
 
   n_dirs = UTI_SplitString(line, dirs, MAX_CONF_DIRS);
-  if (n_dirs < 1 || n_dirs > MAX_CONF_DIRS) {
-    command_parse_error();
-    return;
-  }
+  if (n_dirs < 1 || n_dirs > MAX_CONF_DIRS)
+    return 0;
 
   /* Get the paths of all config files in the specified directories */
   for (i = 0; i < n_dirs; i++) {
-    if (snprintf(buf, sizeof (buf), "%s/%s", dirs[i], "*.conf") >= sizeof (buf))
+    if (snprintf(buf, sizeof (buf), "%s/*%s", dirs[i], suffix) >= sizeof (buf))
       assert(0);
     if (glob(buf, GLOB_NOSORT | (i > 0 ? GLOB_APPEND : 0), NULL, &gl) != 0)
       ;
@@ -1489,7 +1527,7 @@ parse_confdirs(char *line)
           path = gl.gl_pathv[i + k];
           if (strncmp(path, dirs[j], strlen(dirs[j])) == 0 &&
               strlen(dirs[j]) + 1 + strlen(get_basename(path)) == strlen(path)) {
-            CNF_ReadFile(path);
+            file_handler(path);
             break;
           }
         }
@@ -1500,6 +1538,17 @@ parse_confdirs(char *line)
   }
 
   globfree(&gl);
+
+  return 1;
+}
+
+/* ================================================== */
+
+static void
+parse_confdirs(char *line)
+{
+  if (!search_dirs(line, ".conf", CNF_ReadFile))
+    command_parse_error();
 }
 
 /* ================================================== */
@@ -1529,6 +1578,137 @@ parse_include(char *line)
     CNF_ReadFile(gl.gl_pathv[i]);
 
   globfree(&gl);
+}
+
+/* ================================================== */
+
+static void
+load_source_file(const char *filename)
+{
+  char line[MAX_LINE_LENGTH + 1];
+  FILE *f;
+
+  f = UTI_OpenFile(NULL, filename, NULL, 'r', 0);
+  if (!f)
+    return;
+
+  while (fgets(line, sizeof (line), f)) {
+    if (strlen(line) >= MAX_LINE_LENGTH)
+      continue;
+
+    CPS_NormalizeLine(line);
+    if (line[0] == '\0')
+      continue;
+
+    parse_source(CPS_SplitWord(line), line, 0);
+  }
+
+  fclose(f);
+}
+
+/* ================================================== */
+
+static int
+compare_sources(const void *a, const void *b)
+{
+  const NTP_Source *sa = a, *sb = b;
+  int d;
+
+  if (!sa->params.name)
+    return -1;
+  if (!sb->params.name)
+    return 1;
+  if ((d = strcmp(sa->params.name, sb->params.name)) != 0)
+    return d;
+  if ((d = (int)(sa->type) - (int)(sb->type)) != 0)
+    return d;
+  if ((d = sa->pool - sb->pool) != 0)
+    return d;
+  if ((d = sa->params.port - sb->params.port) != 0)
+    return d;
+  return memcmp(&sa->params.params, &sb->params.params, sizeof (sa->params.params));
+}
+
+/* ================================================== */
+
+static void
+reload_source_dirs(void)
+{
+  NTP_Source *prev_sources, *new_sources, *source;
+  unsigned int i, j, prev_size, new_size, unresolved;
+  uint32_t *prev_ids, *new_ids;
+  char buf[MAX_LINE_LENGTH];
+  NSR_Status s;
+  int d;
+
+  prev_size = ARR_GetSize(ntp_source_ids);
+  if (prev_size > 0 && ARR_GetSize(ntp_sources) != prev_size)
+    assert(0);
+
+  /* Save the current sources and their configuration IDs */
+  prev_ids = MallocArray(uint32_t, prev_size);
+  memcpy(prev_ids, ARR_GetElements(ntp_source_ids), prev_size * sizeof (prev_ids[0]));
+  prev_sources = MallocArray(NTP_Source, prev_size);
+  memcpy(prev_sources, ARR_GetElements(ntp_sources), prev_size * sizeof (prev_sources[0]));
+
+  /* Load the sources again */
+  ARR_SetSize(ntp_sources, 0);
+  for (i = 0; i < ARR_GetSize(ntp_source_dirs); i++) {
+    if (snprintf(buf, sizeof (buf),
+                 *(char **)ARR_GetElement(ntp_source_dirs, i)) >= sizeof (buf))
+      assert(0);
+    search_dirs(buf, ".sources", load_source_file);
+  }
+
+  /* Add new and remove existing sources according to the new configuration.
+     Avoid removing and adding the same source again to keep its state. */
+
+  new_size = ARR_GetSize(ntp_sources);
+  new_sources = ARR_GetElements(ntp_sources);
+  ARR_SetSize(ntp_source_ids, new_size);
+  new_ids = ARR_GetElements(ntp_source_ids);
+  unresolved = 0;
+
+  qsort(new_sources, new_size, sizeof (new_sources[0]), compare_sources);
+
+  for (i = j = 0; i < prev_size || j < new_size; ) {
+    if (i < prev_size && j < new_size)
+      d = compare_sources(&prev_sources[i], &new_sources[j]);
+    else
+      d = i < prev_size ? -1 : 1;
+
+    if (d < 0) {
+      /* Remove the missing source */
+      if (prev_sources[i].params.name[0] != '\0')
+        NSR_RemoveSourcesById(prev_ids[i]);
+      i++;
+    } else if (d > 0) {
+      /* Add a newly configured source */
+      source = &new_sources[j];
+      s = NSR_AddSourceByName(source->params.name, source->params.port, source->pool,
+                              source->type, &source->params.params, &new_ids[j]);
+
+      if (s == NSR_UnresolvedName) {
+        unresolved++;
+      } else if (s != NSR_Success) {
+        /* Mark the source as not present */
+        source->params.name[0] = '\0';
+      }
+      j++;
+    } else {
+      /* Keep the existing source */
+      new_ids[j] = prev_ids[i];
+      i++, j++;
+    }
+  }
+
+  for (i = 0; i < prev_size; i++)
+    Free(prev_sources[i].params.name);
+  Free(prev_sources);
+  Free(prev_ids);
+
+  if (unresolved > 0)
+    NSR_ResolveSources();
 }
 
 /* ================================================== */
@@ -1603,6 +1783,8 @@ CNF_AddSources(void)
   }
 
   ARR_SetSize(ntp_sources, 0);
+
+  reload_source_dirs();
 }
 
 /* ================================================== */
@@ -1634,6 +1816,14 @@ CNF_AddBroadcasts(void)
   }
 
   ARR_SetSize(broadcasts, 0);
+}
+
+/* ================================================== */
+
+void
+CNF_ReloadSources(void)
+{
+  reload_source_dirs();
 }
 
 /* ================================================== */

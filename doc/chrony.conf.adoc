@@ -2150,6 +2150,17 @@ An example of the directive is:
 confdirs @SYSCONFDIR@/chrony.d /var/run/chrony.d /usr/lib/chrony.d
 ----
 
+[[sourcedirs]]*sourcedirs* _directory_...::
+The *sourcedirs* directive is identical to the *confdirs* directive, except the
+configuration files have the _.sources_ suffix and they can only specify NTP
+sources (i.e. use the *server*, *pool*, and *peer* directive).
++
+An example of the directive is:
++
+----
+sourcedirs /var/run/chrony-dhcp
+----
+
 [[include]]*include* _pattern_::
 The *include* directive includes a configuration file, or multiple configuration
 files if a wildcard pattern is specified. Unlike with the *confdirs* directive,

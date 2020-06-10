@@ -47,6 +47,8 @@ extern void CNF_AddSources(void);
 extern void CNF_AddBroadcasts(void);
 extern void CNF_AddRefclocks(void);
 
+extern void CNF_ReloadSources(void);
+
 extern int CNF_GetAcquisitionPort(void);
 extern int CNF_GetNTPPort(void);
 extern char *CNF_GetDriftFile(void);
