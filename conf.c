@@ -491,8 +491,10 @@ CNF_ParseLine(const char *filename, int number, char *line)
   CPS_NormalizeLine(line);
 
   /* Skip blank lines */
-  if (!*line)
+  if (!*line) {
+    processed_file = NULL;
     return;
+  }
 
   /* We have a real line, now try to match commands */
   processed_command = command = line;
@@ -673,6 +675,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else {
     other_parse_error("Invalid command");
   }
+
+  processed_file = processed_command = NULL;
 }
 
 /* ================================================== */
