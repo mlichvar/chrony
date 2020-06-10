@@ -1670,7 +1670,7 @@ reload_source_dirs(void)
   /* Load the sources again */
   ARR_SetSize(ntp_sources, 0);
   for (i = 0; i < ARR_GetSize(ntp_source_dirs); i++) {
-    if (snprintf(buf, sizeof (buf),
+    if (snprintf(buf, sizeof (buf), "%s",
                  *(char **)ARR_GetElement(ntp_source_dirs, i)) >= sizeof (buf))
       assert(0);
     search_dirs(buf, ".sources", load_source_file);
