@@ -433,7 +433,7 @@ void
 CNF_ReadFile(const char *filename)
 {
   FILE *in;
-  char line[MAX_LINE_LENGTH];
+  char line[MAX_LINE_LENGTH + 1];
   int i;
 
   include_level++;
@@ -462,6 +462,10 @@ CNF_ParseLine(const char *filename, int number, char *line)
   /* Set global variables used in error messages */
   processed_file = filename;
   line_number = number;
+
+  /* Detect truncated line */
+  if (strlen(line) >= MAX_LINE_LENGTH)
+    other_parse_error("String too long");
 
   /* Remove extra white-space and comments */
   CPS_NormalizeLine(line);
