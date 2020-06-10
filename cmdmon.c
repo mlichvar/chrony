@@ -139,6 +139,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* AUTH_DATA */
   PERMIT_AUTH, /* CLIENT_ACCESSES_BY_INDEX3 */
   PERMIT_AUTH, /* SELECT_DATA */
+  PERMIT_AUTH, /* RELOAD_SOURCES */
 };
 
 /* ================================================== */
@@ -1233,6 +1234,14 @@ handle_ntp_source_name(CMD_Request *rx_message, CMD_Reply *tx_message)
 /* ================================================== */
 
 static void
+handle_reload_sources(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  CNF_ReloadSources();
+}
+
+/* ================================================== */
+
+static void
 handle_reset_sources(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   struct timespec cooked_now, now;
@@ -1708,6 +1717,10 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
         case REQ_SELECT_DATA:
           handle_select_data(&rx_message, &tx_message);
+          break;
+
+        case REQ_RELOAD_SOURCES:
+          handle_reload_sources(&rx_message, &tx_message);
           break;
 
         default:

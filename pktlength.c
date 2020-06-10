@@ -127,6 +127,7 @@ static const struct request_length request_lengths[] = {
   REQ_LENGTH_ENTRY(client_accesses_by_index,
                    client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX3 */
   REQ_LENGTH_ENTRY(select_data, select_data),   /* SELECT_DATA */
+  REQ_LENGTH_ENTRY(null, null),                 /* RELOAD_SOURCES */
 };
 
 static const uint16_t reply_lengths[] = {

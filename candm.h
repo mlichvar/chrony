@@ -107,7 +107,8 @@
 #define REQ_AUTH_DATA 67
 #define REQ_CLIENT_ACCESSES_BY_INDEX3 68
 #define REQ_SELECT_DATA 69
-#define N_REQUEST_TYPES 70
+#define REQ_RELOAD_SOURCES 70
+#define N_REQUEST_TYPES 71
 
 /* Structure used to exchange timespecs independent of time_t size */
 typedef struct {

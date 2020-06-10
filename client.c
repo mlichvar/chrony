@@ -1234,6 +1234,7 @@ give_help(void)
     "\0according to network configuration\0"
     "polltarget <address> <target>\0Modify poll target\0"
     "refresh\0Refresh IP addresses\0"
+    "reload sources\0Re-read *.sources files\0"
     "sourcename <address>\0Display original name\0"
     "\0\0"
     "Manual time input:\0\0"
@@ -1301,6 +1302,7 @@ enum {
   TAB_COMPLETE_BASE_CMDS,
   TAB_COMPLETE_ADD_OPTS,
   TAB_COMPLETE_MANUAL_OPTS,
+  TAB_COMPLETE_RELOAD_OPTS,
   TAB_COMPLETE_RESET_OPTS,
   TAB_COMPLETE_SOURCES_OPTS,
   TAB_COMPLETE_SOURCESTATS_OPTS,
@@ -1321,7 +1323,7 @@ command_name_generator(const char *text, int state)
     "deny", "dns", "dump", "exit", "help", "keygen", "local", "makestep",
     "manual", "maxdelay", "maxdelaydevratio", "maxdelayratio", "maxpoll",
     "maxupdateskew", "minpoll", "minstratum", "ntpdata", "offline", "online", "onoffline",
-    "polltarget", "quit", "refresh", "rekey", "reselect", "reselectdist", "reset",
+    "polltarget", "quit", "refresh", "rekey", "reload", "reselect", "reselectdist", "reset",
     "retries", "rtcdata", "selectdata", "serverstats", "settime", "shutdown", "smoothing",
     "smoothtime", "sourcename", "sources", "sourcestats",
     "timeout", "tracking", "trimrtc", "waitsync", "writertc",
@@ -1330,12 +1332,14 @@ command_name_generator(const char *text, int state)
   const char *add_options[] = { "peer", "pool", "server", NULL };
   const char *manual_options[] = { "on", "off", "delete", "list", "reset", NULL };
   const char *reset_options[] = { "sources", NULL };
+  const char *reload_options[] = { "sources", NULL };
   const char *common_source_options[] = { "-a", "-v", NULL };
   static int list_index, len;
 
   names[TAB_COMPLETE_BASE_CMDS] = base_commands;
   names[TAB_COMPLETE_ADD_OPTS] = add_options;
   names[TAB_COMPLETE_MANUAL_OPTS] = manual_options;
+  names[TAB_COMPLETE_RELOAD_OPTS] = reload_options;
   names[TAB_COMPLETE_RESET_OPTS] = reset_options;
   names[TAB_COMPLETE_AUTHDATA_OPTS] = common_source_options;
   names[TAB_COMPLETE_SELECTDATA_OPTS] = common_source_options;
@@ -1372,6 +1376,8 @@ command_name_completion(const char *text, int start, int end)
     tab_complete_index = TAB_COMPLETE_AUTHDATA_OPTS;
   } else if (!strcmp(first, "manual ")) {
     tab_complete_index = TAB_COMPLETE_MANUAL_OPTS;
+  } else if (!strcmp(first, "reload ")) {
+    tab_complete_index = TAB_COMPLETE_RELOAD_OPTS;
   } else if (!strcmp(first, "reset ")) {
     tab_complete_index = TAB_COMPLETE_RESET_OPTS;
   } else if (!strcmp(first, "selectdata ")) {
@@ -3044,6 +3050,21 @@ process_cmd_shutdown(CMD_Request *msg, char *line)
 /* ================================================== */
 
 static int
+process_cmd_reload(CMD_Request *msg, char *line)
+{
+  if (!strcmp(line, "sources")) {
+    msg->command = htons(REQ_RELOAD_SOURCES);
+  } else {
+    LOG(LOGS_ERR, "Invalid syntax for reload command");
+    return 0;
+  }
+
+  return 1;
+}
+
+/* ================================================== */
+
+static int
 process_cmd_reset(CMD_Request *msg, char *line)
 {
   if (!strcmp(line, "sources")) {
@@ -3351,6 +3372,8 @@ process_line(char *line)
     process_cmd_refresh(&tx_message, line);
   } else if (!strcmp(command, "rekey")) {
     process_cmd_rekey(&tx_message, line);
+  } else if (!strcmp(command, "reload")) {
+    do_normal_submit = process_cmd_reload(&tx_message, line);
   } else if (!strcmp(command, "reselect")) {
     process_cmd_reselect(&tx_message, line);
   } else if (!strcmp(command, "reselectdist")) {
