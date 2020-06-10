@@ -85,6 +85,7 @@ static void parse_tempcomp(char *);
 /* ================================================== */
 /* Configuration variables */
 
+static int print_config = 0;
 static int restarted = 0;
 static char *rtc_device;
 static int acquisition_port = -1;
@@ -439,6 +440,14 @@ CNF_Finalise(void)
 
 /* ================================================== */
 
+void
+CNF_EnablePrint(void)
+{
+  print_config = 1;
+}
+
+/* ================================================== */
+
 /* Read the configuration file */
 void
 CNF_ReadFile(const char *filename)
@@ -488,6 +497,9 @@ CNF_ParseLine(const char *filename, int number, char *line)
   /* We have a real line, now try to match commands */
   processed_command = command = line;
   p = CPS_SplitWord(line);
+
+  if (print_config && strcasecmp(command, "include") && strcasecmp(command, "confdirs"))
+    printf("%s%s%s\n", command, p[0] != '\0' ? " " : "", p);
 
   if (!strcasecmp(command, "acquisitionport")) {
     parse_int(p, &acquisition_port);

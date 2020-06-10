@@ -76,6 +76,12 @@ the log file, syslog, or terminal. The following levels can be specified:
 0 (informational), 1 (warning), 2 (non-fatal error), and 3 (fatal error). The
 default value is 0.
 
+*-p*::
+When run in this mode, *chronyd* will print the configuration and exit. It will
+not detach from the terminal. This option can be used to verify the syntax of
+the configuration and get the whole configuration, even if it is split into
+multiple files and read by the *include* or *confdirs* directive.
+
 *-q*::
 When run in this mode, *chronyd* will set the system clock once and exit. It
 will not detach from the terminal.

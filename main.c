@@ -373,7 +373,7 @@ go_daemon(void)
 static void
 print_help(const char *progname)
 {
-      printf("Usage: %s [-4|-6] [-n|-d] [-q|-Q] [-r] [-R] [-s] [-t TIMEOUT] [-f FILE|COMMAND...]\n",
+      printf("Usage: %s [-4|-6] [-n|-d] [-p|-q|-Q] [-r] [-R] [-s] [-t TIMEOUT] [-f FILE|COMMAND...]\n",
              progname);
 }
 
@@ -410,7 +410,7 @@ int main
   int do_init_rtc = 0, restarted = 0, client_only = 0, timeout = -1;
   int scfilter_level = 0, lock_memory = 0, sched_priority = 0;
   int clock_control = 1, system_log = 1, log_severity = LOGS_INFO;
-  int config_args = 0;
+  int config_args = 0, print_config = 0;
 
   do_platform_checks();
 
@@ -430,7 +430,7 @@ int main
   optind = 1;
 
   /* Parse short command-line options */
-  while ((opt = getopt(argc, argv, "46df:F:hl:L:mnP:qQrRst:u:vx")) != -1) {
+  while ((opt = getopt(argc, argv, "46df:F:hl:L:mnpP:qQrRst:u:vx")) != -1) {
     switch (opt) {
       case '4':
       case '6':
@@ -458,6 +458,12 @@ int main
         break;
       case 'n':
         nofork = 1;
+        break;
+      case 'p':
+        print_config = 1;
+        client_only = 1;
+        nofork = 1;
+        system_log = 0;
         break;
       case 'P':
         sched_priority = parse_int_arg(optarg);
@@ -523,6 +529,8 @@ int main
   DNS_SetAddressFamily(address_family);
 
   CNF_Initialise(restarted, client_only);
+  if (print_config)
+    CNF_EnablePrint();
 
   /* Parse the config file or the remaining command line arguments */
   config_args = argc - optind;
@@ -532,6 +540,9 @@ int main
     for (; optind < argc; optind++)
       CNF_ParseLine(NULL, config_args + optind - argc + 1, argv[optind]);
   }
+
+  if (print_config)
+    return 0;
 
   /* Check whether another chronyd may already be running */
   check_pidfile();

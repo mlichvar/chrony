@@ -35,6 +35,8 @@
 extern void CNF_Initialise(int restarted, int client_only);
 extern void CNF_Finalise(void);
 
+extern void CNF_EnablePrint(void);
+
 extern char *CNF_GetRtcDevice(void);
 
 extern void CNF_ReadFile(const char *filename);
