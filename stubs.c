@@ -517,14 +517,16 @@ NNC_PrepareForAuth(NNC_Instance inst)
 int
 NNC_GenerateRequestAuth(NNC_Instance inst, NTP_Packet *packet, NTP_PacketInfo *info)
 {
-  DEBUG_LOG("NTS support disabled");
+  static int logged = 0;
+
+  LOG(logged ? LOGS_DEBUG : LOGS_WARN, "Missing NTS support");
+  logged = 1;
   return 0;
 }
 
 int
 NNC_CheckResponseAuth(NNC_Instance inst, NTP_Packet *packet, NTP_PacketInfo *info)
 {
-  DEBUG_LOG("NTS support disabled");
   return 0;
 }
 
