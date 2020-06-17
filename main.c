@@ -568,11 +568,11 @@ int main
   SRC_Initialise();
   RCL_Initialise();
   KEY_Initialise();
-  SCK_Initialise();
+  SCK_Initialise(address_family);
 
   /* Open privileged ports before dropping root */
-  CAM_Initialise(address_family);
-  NIO_Initialise(address_family);
+  CAM_Initialise();
+  NIO_Initialise();
   NCR_Initialise();
   CNF_SetupAccessRestrictions();
 

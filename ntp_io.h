@@ -33,7 +33,7 @@
 #include "addressing.h"
 
 /* Function to initialise the module. */
-extern void NIO_Initialise(int family);
+extern void NIO_Initialise(void);
 
 /* Function to finalise the module */
 extern void NIO_Finalise(void);

@@ -258,7 +258,7 @@ open_socket(int family, int port)
   IPSockAddr local_addr;
   int sock_fd;
 
-  if (!SCK_IsFamilySupported(family))
+  if (!SCK_IsIpFamilyEnabled(family))
     return INVALID_SOCK_FD;
 
   CNF_GetBindAddress(family, &local_addr.ip_addr);

@@ -322,7 +322,7 @@ test_unit(void)
   TST_RegisterDummyDrivers();
   SCH_Initialise();
   SRC_Initialise();
-  NIO_Initialise(IPADDR_UNSPEC);
+  NIO_Initialise();
   NCR_Initialise();
   REF_Initialise();
 

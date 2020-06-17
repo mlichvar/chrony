@@ -73,14 +73,15 @@ typedef struct {
   int descriptor;
 } SCK_Message;
 
-/* Initialisation function */
-extern void SCK_Initialise(void);
+/* Initialisation function (the specified IP family is enabled,
+   or all if IPADDR_UNSPEC) */
+extern void SCK_Initialise(int family);
 
 /* Finalisation function */
 extern void SCK_Finalise(void);
 
-/* Check if support for the IP family was enabled in the build */
-extern int SCK_IsFamilySupported(int family);
+/* Check if support for the IP family is enabled */
+extern int SCK_IsIpFamilyEnabled(int family);
 
 /* Get the 0.0.0.0/::0 or 127.0.0.1/::1 address */
 extern void SCK_GetAnyLocalIPAddress(int family, IPAddr *local_addr);

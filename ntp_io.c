@@ -86,7 +86,7 @@ open_socket(int family, int local_port, int client_only, IPSockAddr *remote_addr
   int sock_fd, sock_flags, events = SCH_FILE_INPUT;
   IPSockAddr local_addr;
 
-  if (!SCK_IsFamilySupported(family))
+  if (!SCK_IsIpFamilyEnabled(family))
     return INVALID_SOCK_FD;
 
   if (!client_only)
@@ -152,7 +152,7 @@ close_socket(int sock_fd)
 /* ================================================== */
 
 void
-NIO_Initialise(int family)
+NIO_Initialise(void)
 {
   int server_port, client_port;
 
@@ -191,25 +191,18 @@ NIO_Initialise(int family)
   server_sock_ref4 = 0;
   server_sock_ref6 = 0;
 
-  if (family == IPADDR_UNSPEC || family == IPADDR_INET4) {
-    if (permanent_server_sockets && server_port)
-      server_sock_fd4 = open_socket(IPADDR_INET4, server_port, 0, NULL);
-    if (!separate_client_sockets) {
-      if (client_port != server_port || !server_port)
-        client_sock_fd4 = open_socket(IPADDR_INET4, client_port, 1, NULL);
-      else
-        client_sock_fd4 = server_sock_fd4;
-    }
+  if (permanent_server_sockets && server_port) {
+    server_sock_fd4 = open_socket(IPADDR_INET4, server_port, 0, NULL);
+    server_sock_fd6 = open_socket(IPADDR_INET6, server_port, 0, NULL);
   }
 
-  if (family == IPADDR_UNSPEC || family == IPADDR_INET6) {
-    if (permanent_server_sockets && server_port)
-      server_sock_fd6 = open_socket(IPADDR_INET6, server_port, 0, NULL);
-    if (!separate_client_sockets) {
-      if (client_port != server_port || !server_port)
-        client_sock_fd6 = open_socket(IPADDR_INET6, client_port, 1, NULL);
-      else
-        client_sock_fd6 = server_sock_fd6;
+  if (!separate_client_sockets) {
+    if (client_port != server_port || !server_port) {
+      client_sock_fd4 = open_socket(IPADDR_INET4, client_port, 1, NULL);
+      client_sock_fd6 = open_socket(IPADDR_INET6, client_port, 1, NULL);
+    } else {
+      client_sock_fd4 = server_sock_fd4;
+      client_sock_fd6 = server_sock_fd6;
     }
   }
 

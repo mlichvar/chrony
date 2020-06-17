@@ -3601,7 +3601,7 @@ main(int argc, char **argv)
 
   UTI_SetQuitSignalsHandler(signal_handler, 0);
 
-  SCK_Initialise();
+  SCK_Initialise(IPADDR_UNSPEC);
   server_addresses = get_addresses(hostnames, port);
 
   if (!open_io())

@@ -44,7 +44,7 @@ test_unit(void)
   LCL_Initialise();
   SCH_Initialise();
   SRC_Initialise();
-  NIO_Initialise(IPADDR_UNSPEC);
+  NIO_Initialise();
   NCR_Initialise();
   NSR_Initialise();
 

@@ -82,6 +82,10 @@ struct MessageHeader {
 
 static int initialised;
 
+/* Flags indicating in which IP families sockets can be requested */
+static int ip4_enabled;
+static int ip6_enabled;
+
 /* Flags supported by socket() */
 static int supported_socket_flags;
 
@@ -412,10 +416,14 @@ open_ip_socket(IPSockAddr *remote_addr, IPSockAddr *local_addr, int type, int fl
 
   switch (family) {
     case IPADDR_INET4:
+      if (!ip4_enabled)
+        return INVALID_SOCK_FD;
       domain = AF_INET;
       break;
 #ifdef FEAT_IPV6
     case IPADDR_INET6:
+      if (!ip6_enabled)
+        return INVALID_SOCK_FD;
       domain = AF_INET6;
       break;
 #endif
@@ -1090,8 +1098,15 @@ send_message(int sock_fd, SCK_Message *message, int flags)
 /* ================================================== */
 
 void
-SCK_Initialise(void)
+SCK_Initialise(int family)
 {
+  ip4_enabled = family == IPADDR_INET4 || family == IPADDR_UNSPEC;
+#ifdef FEAT_IPV6
+  ip6_enabled = family == IPADDR_INET6 || family == IPADDR_UNSPEC;
+#else
+  ip6_enabled = 0;
+#endif
+
   recv_messages = ARR_CreateInstance(sizeof (struct Message));
   ARR_SetSize(recv_messages, MAX_RECV_MESSAGES);
   recv_headers = ARR_CreateInstance(sizeof (struct MessageHeader));
@@ -1131,15 +1146,13 @@ SCK_Finalise(void)
 /* ================================================== */
 
 int
-SCK_IsFamilySupported(int family)
+SCK_IsIpFamilyEnabled(int family)
 {
   switch (family) {
     case IPADDR_INET4:
-      return 1;
+      return ip4_enabled;
     case IPADDR_INET6:
-#ifdef FEAT_IPV6
-      return 1;
-#endif
+      return ip6_enabled;
     default:
       return 0;
   }

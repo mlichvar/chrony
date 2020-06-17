@@ -112,7 +112,7 @@ DNS_Name2IPAddressAsync(const char *name, DNS_NameResolveHandler handler, void *
 #ifndef FEAT_CMDMON
 
 void
-CAM_Initialise(int family)
+CAM_Initialise(void)
 {
 }
 
@@ -174,7 +174,7 @@ NCR_CheckAccessRestriction(IPAddr *ip_addr)
 }
 
 void
-NIO_Initialise(int family)
+NIO_Initialise(void)
 {
 }
 

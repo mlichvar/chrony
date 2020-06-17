@@ -165,7 +165,7 @@ open_socket(int family)
     case IPADDR_INET4:
     case IPADDR_INET6:
       port = CNF_GetCommandPort();
-      if (port == 0 || !SCK_IsFamilySupported(family))
+      if (port == 0 || !SCK_IsIpFamilyEnabled(family))
         return INVALID_SOCK_FD;
 
       CNF_GetBindCommandAddress(family, &local_addr.ip_addr);
@@ -237,22 +237,17 @@ do_size_checks(void)
 /* ================================================== */
 
 void
-CAM_Initialise(int family)
+CAM_Initialise(void)
 {
   assert(!initialised);
   assert(sizeof (permissions) / sizeof (permissions[0]) == N_REQUEST_TYPES);
   do_size_checks();
 
   initialised = 1;
+
   sock_fdu = INVALID_SOCK_FD;
-  sock_fd4 = INVALID_SOCK_FD;
-  sock_fd6 = INVALID_SOCK_FD;
-
-  if (family == IPADDR_UNSPEC || family == IPADDR_INET4)
-    sock_fd4 = open_socket(IPADDR_INET4);
-
-  if (family == IPADDR_UNSPEC || family == IPADDR_INET6)
-    sock_fd6 = open_socket(IPADDR_INET6);
+  sock_fd4 = open_socket(IPADDR_INET4);
+  sock_fd6 = open_socket(IPADDR_INET6);
 
   access_auth_table = ADF_CreateTable();
 }
