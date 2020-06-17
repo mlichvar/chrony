@@ -1796,8 +1796,8 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
           break;
       }
     } else {
-      /* Slowly increase the polling interval if we can't get good packet */
-      adjust_poll(inst, 0.1);
+      /* Slowly increase the polling interval if we can't get a good response */
+      adjust_poll(inst, testD ? 0.02 : 0.1);
     }
 
     /* If in client mode, no more packets are expected to be coming from the
