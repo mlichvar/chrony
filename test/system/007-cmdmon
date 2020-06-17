@@ -7,6 +7,7 @@ test_start "chronyc commands"
 start_chronyd || test_fail
 
 for command in \
+	"authdata" \
 	"accheck 1.2.3.4" \
 	"delete $server" \
 	"add server $server" \
@@ -43,8 +44,11 @@ for command in \
 	"polltarget $server 10" \
 	"refresh" \
 	"rekey" \
+	"reload sources" \
 	"reselect" \
 	"reselectdist 1e-3" \
+	"reset sources" \
+	"selectdata" \
 	"serverstats" \
 	"smoothtime reset" \
 	"smoothtime activate" \

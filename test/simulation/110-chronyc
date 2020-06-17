@@ -138,9 +138,11 @@ for chronyc_conf in \
 	"polltarget 1.2.3.4 10" \
 	"refresh" \
 	"rekey" \
+	"reload sources" \
 	"reselect" \
 	"reselectdist 1e-3" \
 	"reset sources" \
+	"selectdata" \
 	"settime 16:30" \
 	"settime 16:30:05" \
 	"settime Nov 21, 2015 16:30:05" \
