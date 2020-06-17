@@ -77,8 +77,8 @@ typedef struct {
 
 typedef struct {
   struct timespec ref_time;
-  unsigned short n_samples;
-  unsigned short n_runs;
+  unsigned long n_samples;
+  unsigned long n_runs;
   unsigned long span_seconds;
   double rtc_seconds_fast;
   double rtc_gain_rate_ppm;

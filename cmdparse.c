@@ -151,7 +151,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
       if (sscanf(line, "%lf%n", &src->params.offset, &n) != 1)
         return 0;
     } else if (!strcasecmp(cmd, "port")) {
-      if (sscanf(line, "%hu%n", &src->port, &n) != 1)
+      if (sscanf(line, "%d%n", &src->port, &n) != 1)
         return 0;
     } else if (!strcasecmp(cmd, "polltarget")) {
       if (sscanf(line, "%d%n", &src->params.poll_target, &n) != 1)

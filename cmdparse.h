@@ -32,7 +32,7 @@
 
 typedef struct {
   char *name;
-  unsigned short port;
+  int port;
   SourceParameters params;
 } CPS_NTP_Source;
 

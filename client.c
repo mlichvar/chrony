@@ -1120,7 +1120,7 @@ process_cmd_add_source(CMD_Request *msg, char *line)
         assert(0);
       strncpy((char *)msg->data.ntp_source.name, data.name,
               sizeof (msg->data.ntp_source.name));
-      msg->data.ntp_source.port = htonl((unsigned long) data.port);
+      msg->data.ntp_source.port = htonl(data.port);
       msg->data.ntp_source.minpoll = htonl(data.params.minpoll);
       msg->data.ntp_source.maxpoll = htonl(data.params.maxpoll);
       msg->data.ntp_source.presend_minpoll = htonl(data.params.presend_minpoll);

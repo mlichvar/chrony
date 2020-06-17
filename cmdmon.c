@@ -716,7 +716,7 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
       return;
   }
 
-  port = (unsigned short)(ntohl(rx_message->data.ntp_source.port));
+  port = ntohl(rx_message->data.ntp_source.port);
   params.minpoll = ntohl(rx_message->data.ntp_source.minpoll);
   params.maxpoll = ntohl(rx_message->data.ntp_source.maxpoll);
   params.presend_minpoll = ntohl(rx_message->data.ntp_source.presend_minpoll);
@@ -1341,7 +1341,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
   IPAddr loopback_addr, remote_ip;
   int read_length, expected_length;
   int localhost, allowed, log_index;
-  unsigned short rx_command;
+  uint16_t rx_command;
   struct timespec now, cooked_now;
 
   sck_message = SCK_ReceiveMessage(sock_fd, 0);
