@@ -29,6 +29,8 @@
 
 #include "siv.h"
 
+#define NKE_PORT                        4460
+
 #define NKE_RECORD_CRITICAL_BIT         (1U << 15)
 #define NKE_RECORD_END_OF_MESSAGE       0
 #define NKE_RECORD_NEXT_PROTOCOL        1

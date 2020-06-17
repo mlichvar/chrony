@@ -33,6 +33,7 @@
 #include "conf.h"
 #include "ntp_sources.h"
 #include "ntp_core.h"
+#include "nts_ke.h"
 #include "refclock.h"
 #include "cmdmon.h"
 #include "srcparams.h"
@@ -243,7 +244,7 @@ static char *nts_dump_dir = NULL;
 static char *nts_ntp_server = NULL;
 static char *nts_server_cert_file = NULL;
 static char *nts_server_key_file = NULL;
-static int nts_server_port = 11443;
+static int nts_server_port = NKE_PORT;
 static int nts_server_processes = 1;
 static int nts_server_connections = 100;
 static int nts_refresh = 2419200; /* 4 weeks */

@@ -228,7 +228,7 @@ be specified. For normal servers this option should not be required (the
 default is 123, the standard NTP port).
 *ntsport* _port_:::
 This option specifies the TCP port on which the server is listening for NTS-KE
-connections when the *nts* option is enabled. The default is 11443.
+connections when the *nts* option is enabled. The default is 4460.
 *presend* _poll_:::
 If the timing measurements being made by *chronyd* are the only network data
 passing between two computers, you might find that some measurements are badly
@@ -1472,7 +1472,7 @@ ntpsigndsocket /var/lib/samba/ntp_signd
 
 [[ntsport]]*ntsport* _port_::
 This directive specifies the TCP port on which *chronyd* will provide the NTS
-Key Establishment (NTS-KE) service. The default port is 11443.
+Key Establishment (NTS-KE) service. The default port is 4460.
 +
 The port will be open only when a certificate and key is specified by the
 *ntsservercert* and *ntsserverkey* directives.

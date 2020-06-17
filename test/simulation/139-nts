@@ -46,7 +46,7 @@ check_sync || test_fail
 
 check_file_messages "20.*123\.1.* 111 111 1111" 75 80 measurements.log || test_fail
 check_file_messages "20.*123\.1.* 111 001 0000" 37 39 measurements.log || test_fail
-check_file_messages "	2	1	.*	11443	" 260 300 log.packets || test_fail
+check_file_messages "	2	1	.*	4460	" 260 300 log.packets || test_fail
 check_file_messages "." 6 6 ntskeys || test_fail
 rm -f tmp/measurements.log
 
@@ -61,7 +61,7 @@ check_sync || test_fail
 
 check_file_messages "20.*123\.1.* 111 111 1111" 99 103 measurements.log || test_fail
 check_file_messages "20.*123\.1.* 111 001 0000" 0 0 measurements.log || test_fail
-check_file_messages "	2	1	.*	11443	" 350 390 log.packets || test_fail
+check_file_messages "	2	1	.*	4460	" 350 390 log.packets || test_fail
 check_file_messages "." 6 6 ntskeys || test_fail
 check_file_messages "." 11 12 192.168.123.1.nts || test_fail
 rm -f tmp/measurements.log
@@ -80,8 +80,8 @@ check_sync || test_fail
 
 check_file_messages "20.*123\.1.* 111 111 1111" 150 160 measurements.log || test_fail
 check_file_messages "20.*123\.1.* 111 001 0000" 0 0 measurements.log || test_fail
-check_file_messages "	2	1	.*	11443	" 6 10 log.packets || test_fail
-check_file_messages "^9\.......e+03	2	1	.*	11443	" 6 10 log.packets || test_fail
+check_file_messages "	2	1	.*	4460	" 6 10 log.packets || test_fail
+check_file_messages "^9\.......e+03	2	1	.*	4460	" 6 10 log.packets || test_fail
 check_file_messages "." 6 6 ntskeys || test_fail
 check_file_messages "." 11 12 192.168.123.1.nts || test_fail
 rm -f tmp/measurements.log
@@ -95,6 +95,6 @@ check_source_selection && test_fail
 check_sync && test_fail
 
 check_file_messages "	2	1	.*	123	" 0 0 log.packets || test_fail
-check_file_messages "	2	1	.*	11443	" 10 20 log.packets || test_fail
+check_file_messages "	2	1	.*	4460	" 10 20 log.packets || test_fail
 
 test_pass
