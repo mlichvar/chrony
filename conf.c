@@ -287,8 +287,7 @@ static ARR_Instance ntp_restrictions;
 static ARR_Instance cmd_restrictions;
 
 typedef struct {
-  IPAddr addr;
-  unsigned short port;
+  NTP_Remote_Address addr;
   int interval;
 } NTP_Broadcast_Destination;
 
@@ -1345,8 +1344,8 @@ parse_broadcast(char *line)
   }
 
   destination = (NTP_Broadcast_Destination *)ARR_GetNewElement(broadcasts);
-  destination->addr = ip;
-  destination->port = port;
+  destination->addr.ip_addr = ip;
+  destination->addr.port = port;
   destination->interval = interval;
 }
 
@@ -1827,8 +1826,7 @@ CNF_AddBroadcasts(void)
 
   for (i = 0; i < ARR_GetSize(broadcasts); i++) {
     destination = (NTP_Broadcast_Destination *)ARR_GetElement(broadcasts, i);
-    NCR_AddBroadcastDestination(&destination->addr, destination->port,
-                                destination->interval);
+    NCR_AddBroadcastDestination(&destination->addr, destination->interval);
   }
 
   ARR_SetSize(broadcasts, 0);

@@ -147,7 +147,7 @@ MNL_Finalise(void)
 #ifndef FEAT_NTP
 
 void
-NCR_AddBroadcastDestination(IPAddr *addr, unsigned short port, int interval)
+NCR_AddBroadcastDestination(NTP_Remote_Address *addr, int interval)
 {
 }
 

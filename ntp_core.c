@@ -2606,14 +2606,13 @@ broadcast_timeout(void *arg)
 /* ================================================== */
 
 void
-NCR_AddBroadcastDestination(IPAddr *addr, unsigned short port, int interval)
+NCR_AddBroadcastDestination(NTP_Remote_Address *addr, int interval)
 {
   BroadcastDestination *destination;
 
   destination = (BroadcastDestination *)ARR_GetNewElement(broadcasts);
 
-  destination->addr.ip_addr = *addr;
-  destination->addr.port = port;
+  destination->addr = *addr;
   destination->local_addr.ip_addr.family = IPADDR_UNSPEC;
   destination->local_addr.if_index = INVALID_IF_INDEX;
   destination->local_addr.sock_fd = NIO_OpenServerSocket(&destination->addr);

@@ -139,6 +139,6 @@ extern int NCR_IsSyncPeer(NCR_Instance instance);
 
 extern void NCR_DumpAuthData(NCR_Instance inst);
 
-extern void NCR_AddBroadcastDestination(IPAddr *addr, unsigned short port, int interval);
+extern void NCR_AddBroadcastDestination(NTP_Remote_Address *addr, int interval);
 
 #endif /* GOT_NTP_CORE_H */
