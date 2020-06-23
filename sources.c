@@ -439,7 +439,7 @@ special_mode_end(void)
       if (!sources[i]->active)
         continue;
 
-      /* Don't expect more updates than from an offline iburst NTP source */
+      /* Don't expect more updates than the initial burst of an NTP source */
       if (sources[i]->reachability_size >= SOURCE_REACH_BITS - 1)
         continue;
 

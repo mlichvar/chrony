@@ -82,13 +82,13 @@ interval should stay at or below 9 (512 seconds). The default is 10 (1024
 seconds), the minimum is -6 (1/64th of a second), and the maximum is 24 (6
 months).
 *iburst*:::
-With this option, the interval between the first four requests sent to the
-server will be 2 seconds or less instead of the interval specified by the
-*minpoll* option, which allows *chronyd* to make the first update of the clock
-shortly after start.
+With this option, *chronyd* will start with a burst of 4-8 requests in order to
+make the first update of the clock sooner. It will also repeat the burst every
+time the source is switched from the offline state to online with the
+<<chronyc.adoc#online,*online*>> command in *chronyc*.
 *burst*:::
-With this option, *chronyd* will shorten the interval between up to four
-requests to 2 seconds or less when it cannot get a good measurement from the
+With this option, *chronyd* will send a burst of up to 4 requests when it
+cannot get a good measurement from the
 server. The number of requests in the burst is limited by the current polling
 interval to keep the average interval at or above the minimum interval, i.e.
 the current interval needs to be at least two times longer than the minimum

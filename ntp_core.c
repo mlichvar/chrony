@@ -78,6 +78,7 @@ struct NCR_Instance_Record {
   SCH_TimeoutID tx_timeout_id;  /* Timeout ID for next transmission */
   int tx_suspended;             /* Boolean indicating we can't transmit yet */
 
+  int auto_iburst;              /* If 1, initiate a burst when going online */
   int auto_burst;               /* If 1, initiate a burst on each poll */
   int auto_offline;             /* If 1, automatically go offline when requests
                                    cannot be sent */
@@ -297,6 +298,7 @@ static void transmit_timeout(void *arg);
 static double get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx);
 static double get_separation(int poll);
 static int parse_packet(NTP_Packet *packet, int length, NTP_PacketInfo *info);
+static void set_connectivity(NCR_Instance inst, SRC_Connectivity connectivity);
 
 /* ================================================== */
 
@@ -555,6 +557,7 @@ NCR_CreateInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
   result->max_delay_ratio = CLAMP(0.0, params->max_delay_ratio, MAX_MAXDELAYRATIO);
   result->max_delay_dev_ratio = CLAMP(0.0, params->max_delay_dev_ratio, MAX_MAXDELAYDEVRATIO);
   result->offset_correction = params->offset;
+  result->auto_iburst = params->iburst;
   result->auto_burst = params->burst;
   result->auto_offline = params->auto_offline;
   result->poll_target = params->poll_target;
@@ -596,9 +599,7 @@ NCR_CreateInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
   result->rx_timeout_id = 0;
   result->tx_timeout_id = 0;
   result->tx_suspended = 1;
-  result->opmode = params->connectivity == SRC_ONLINE ||
-                   (params->connectivity == SRC_MAYBE_ONLINE &&
-                    NIO_IsServerConnectable(remote_addr)) ? MD_ONLINE : MD_OFFLINE;
+  result->opmode = MD_OFFLINE;
   result->local_poll = result->minpoll;
   result->poll_score = 0.0;
   zero_local_timestamp(&result->local_tx);
@@ -608,9 +609,7 @@ NCR_CreateInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
   
   NCR_ResetInstance(result);
 
-  if (params->iburst) {
-    NCR_InitiateSampleBurst(result, IBURST_GOOD_SAMPLES, IBURST_TOTAL_SAMPLES);
-  }
+  set_connectivity(result, params->connectivity);
 
   return result;
 }
@@ -2257,13 +2256,9 @@ NCR_SlewTimes(NCR_Instance inst, struct timespec *when, double dfreq, double dof
 
 /* ================================================== */
 
-void
-NCR_SetConnectivity(NCR_Instance inst, SRC_Connectivity connectivity)
+static void
+set_connectivity(NCR_Instance inst, SRC_Connectivity connectivity)
 {
-  char *s;
-
-  s = UTI_IPToString(&inst->remote_addr.ip_addr);
-
   if (connectivity == SRC_MAYBE_ONLINE)
     connectivity = NIO_IsServerConnectable(&inst->remote_addr) ? SRC_ONLINE : SRC_OFFLINE;
 
@@ -2274,17 +2269,17 @@ NCR_SetConnectivity(NCR_Instance inst, SRC_Connectivity connectivity)
           /* Nothing to do */
           break;
         case MD_OFFLINE:
-          LOG(LOGS_INFO, "Source %s online", s);
           inst->opmode = MD_ONLINE;
           NCR_ResetInstance(inst);
           start_initial_timeout(inst);
+          if (inst->auto_iburst)
+            NCR_InitiateSampleBurst(inst, IBURST_GOOD_SAMPLES, IBURST_TOTAL_SAMPLES);
           break;
         case MD_BURST_WAS_ONLINE:
           /* Will revert */
           break;
         case MD_BURST_WAS_OFFLINE:
           inst->opmode = MD_BURST_WAS_ONLINE;
-          LOG(LOGS_INFO, "Source %s online", s);
           break;
         default:
           assert(0);
@@ -2293,14 +2288,12 @@ NCR_SetConnectivity(NCR_Instance inst, SRC_Connectivity connectivity)
     case SRC_OFFLINE:
       switch (inst->opmode) {
         case MD_ONLINE:
-          LOG(LOGS_INFO, "Source %s offline", s);
           take_offline(inst);
           break;
         case MD_OFFLINE:
           break;
         case MD_BURST_WAS_ONLINE:
           inst->opmode = MD_BURST_WAS_OFFLINE;
-          LOG(LOGS_INFO, "Source %s offline", s);
           break;
         case MD_BURST_WAS_OFFLINE:
           break;
@@ -2311,6 +2304,26 @@ NCR_SetConnectivity(NCR_Instance inst, SRC_Connectivity connectivity)
     default:
       assert(0);
   }
+}
+
+/* ================================================== */
+
+void
+NCR_SetConnectivity(NCR_Instance inst, SRC_Connectivity connectivity)
+{
+  OperatingMode prev_opmode;
+  int was_online, is_online;
+
+  prev_opmode = inst->opmode;
+
+  set_connectivity(inst, connectivity);
+
+  /* Report an important change */
+  was_online = prev_opmode == MD_ONLINE || prev_opmode == MD_BURST_WAS_ONLINE;
+  is_online = inst->opmode == MD_ONLINE || inst->opmode == MD_BURST_WAS_ONLINE;
+  if (was_online != is_online)
+    LOG(LOGS_INFO, "Source %s %s",
+        UTI_IPToString(&inst->remote_addr.ip_addr), is_online ? "online" : "offline");
 }
 
 /* ================================================== */
