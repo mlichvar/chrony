@@ -1479,7 +1479,7 @@ SCK_SockaddrToIPSockAddr(struct sockaddr *sa, int sa_length, IPSockAddr *ip_sa)
 
   switch (sa->sa_family) {
     case AF_INET:
-      if (sa_length < sizeof (struct sockaddr_in))
+      if (sa_length < (int)sizeof (struct sockaddr_in))
         return;
       ip_sa->ip_addr.family = IPADDR_INET4;
       ip_sa->ip_addr.addr.in4 = ntohl(((struct sockaddr_in *)sa)->sin_addr.s_addr);
@@ -1487,7 +1487,7 @@ SCK_SockaddrToIPSockAddr(struct sockaddr *sa, int sa_length, IPSockAddr *ip_sa)
       break;
 #ifdef FEAT_IPV6
     case AF_INET6:
-      if (sa_length < sizeof (struct sockaddr_in6))
+      if (sa_length < (int)sizeof (struct sockaddr_in6))
         return;
       ip_sa->ip_addr.family = IPADDR_INET6;
       memcpy(&ip_sa->ip_addr.addr.in6, ((struct sockaddr_in6 *)sa)->sin6_addr.s6_addr,
@@ -1507,7 +1507,7 @@ SCK_IPSockAddrToSockaddr(IPSockAddr *ip_sa, struct sockaddr *sa, int sa_length)
 {
   switch (ip_sa->ip_addr.family) {
     case IPADDR_INET4:
-      if (sa_length < sizeof (struct sockaddr_in))
+      if (sa_length < (int)sizeof (struct sockaddr_in))
         return 0;
       memset(sa, 0, sizeof (struct sockaddr_in));
       sa->sa_family = AF_INET;
@@ -1519,7 +1519,7 @@ SCK_IPSockAddrToSockaddr(IPSockAddr *ip_sa, struct sockaddr *sa, int sa_length)
       return sizeof (struct sockaddr_in);
 #ifdef FEAT_IPV6
     case IPADDR_INET6:
-      if (sa_length < sizeof (struct sockaddr_in6))
+      if (sa_length < (int)sizeof (struct sockaddr_in6))
         return 0;
       memset(sa, 0, sizeof (struct sockaddr_in6));
       sa->sa_family = AF_INET6;
@@ -1532,7 +1532,7 @@ SCK_IPSockAddrToSockaddr(IPSockAddr *ip_sa, struct sockaddr *sa, int sa_length)
       return sizeof (struct sockaddr_in6);
 #endif
     default:
-      if (sa_length < sizeof (struct sockaddr))
+      if (sa_length < (int)sizeof (struct sockaddr))
         return 0;
       memset(sa, 0, sizeof (struct sockaddr));
       sa->sa_family = AF_UNSPEC;
