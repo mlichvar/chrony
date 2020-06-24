@@ -243,7 +243,10 @@ LOG_CloseParentFd()
 LOG_FileID
 LOG_FileOpen(const char *name, const char *banner)
 {
-  assert(n_filelogs < MAX_FILELOGS);
+  if (n_filelogs >= MAX_FILELOGS) {
+    assert(0);
+    return -1;
+  }
 
   logfiles[n_filelogs].name = name;
   logfiles[n_filelogs].banner = banner;
