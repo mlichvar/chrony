@@ -939,7 +939,7 @@ fi
 
 if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ]  && [ $try_nss = "1" ]; then
   test_cflags="`pkg_config --cflags nss`"
-  test_link="`pkg_config --libs-only-L nss` -lfreebl3"
+  test_link="`pkg_config --libs-only-L nss` -lfreebl3 -lnssutil3"
   if test_code 'NSS' 'nss.h hasht.h nsslowhash.h' \
     "$test_cflags" "$test_link" \
     'NSSLOWHASH_Begin(NSSLOWHASH_NewContext(NSSLOW_Init(), HASH_AlgSHA512));'
