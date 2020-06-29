@@ -244,8 +244,7 @@ find_slot(IPAddr *ip_addr, int *slot)
 
 /* ================================================== */
 /* Find a slot matching an IP address and port. The function returns:
-   0 => Neither IP nor port matched, empty slot returned if a valid address
-        was provided
+   0 => IP not matched, empty slot returned if a valid address was provided
    1 => Only IP matched, port doesn't match
    2 => Both IP and port matched. */
 
