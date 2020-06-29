@@ -95,6 +95,9 @@ DNS_Name2IPAddress(const char *name, IPAddr *ip_addrs, int max_addrs)
       case AF_INET6:
         if (address_family != IPADDR_UNSPEC && address_family != IPADDR_INET6)
           continue;
+        /* Don't return an address that would lose a scope ID */
+        if (((struct sockaddr_in6 *)ai->ai_addr)->sin6_scope_id != 0)
+          continue;
         ip_addrs[i].family = IPADDR_INET6;
         memcpy(&ip_addrs[i].addr.in6, &((struct sockaddr_in6 *)ai->ai_addr)->sin6_addr.s6_addr,
                sizeof (ip_addrs->addr.in6));

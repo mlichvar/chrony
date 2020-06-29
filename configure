@@ -657,6 +657,7 @@ if [ $feat_ipv6 = "1" ] && \
     struct sockaddr_in6 n;
     char p[100];
     n.sin6_addr = in6addr_any;
+    n.sin6_scope_id = 0;
     return !inet_ntop(AF_INET6, &n.sin6_addr.s6_addr, p, sizeof(p));'
 then
   add_def FEAT_IPV6
