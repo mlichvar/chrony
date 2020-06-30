@@ -87,6 +87,9 @@ extern int SCK_IsIpFamilyEnabled(int family);
 extern void SCK_GetAnyLocalIPAddress(int family, IPAddr *local_addr);
 extern void SCK_GetLoopbackIPAddress(int family, IPAddr *local_addr);
 
+/* Check if an IP address is a link-local address */
+extern int SCK_IsLinkLocalIPAddress(IPAddr *addr);
+
 /* Specify a bind()-like function for binding sockets to privileged ports when
    running in a restricted process (e.g. after dropping root privileges) */
 extern void SCK_SetPrivBind(int (*function)(int sock_fd, struct sockaddr *address,

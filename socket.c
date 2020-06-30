@@ -1228,6 +1228,23 @@ SCK_GetLoopbackIPAddress(int family, IPAddr *local_addr)
 
 /* ================================================== */
 
+int
+SCK_IsLinkLocalIPAddress(IPAddr *addr)
+{
+  switch (addr->family) {
+    case IPADDR_INET4:
+      /* 169.254.0.0/16 */
+      return (addr->addr.in4 & 0xffff0000) == 0xa9fe0000;
+    case IPADDR_INET6:
+      /* fe80::/10 */
+      return addr->addr.in6[0] == 0xfe && (addr->addr.in6[1] & 0xc0) == 0x80;
+    default:
+      return 0;
+  }
+}
+
+/* ================================================== */
+
 void
 SCK_SetPrivBind(int (*function)(int sock_fd, struct sockaddr *address,
                                 socklen_t address_len))

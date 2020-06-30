@@ -301,8 +301,10 @@ transmit_reply(int sock_fd, SCK_Message *message)
 {
   message->length = PKL_ReplyLength((CMD_Reply *)message->data);
 
-  /* Don't require the response to use the same interface */
-  message->if_index = INVALID_IF_INDEX;
+  /* Don't require responses to non-link-local addresses to use the same
+     interface */
+  if (!SCK_IsLinkLocalIPAddress(&message->remote_addr.ip.ip_addr))
+    message->if_index = INVALID_IF_INDEX;
 
   if (!SCK_SendMessage(sock_fd, message, 0))
     return;
