@@ -268,7 +268,7 @@ open_socket(int family, int port)
 
   local_addr.port = port;
 
-  sock_fd = SCK_OpenTcpSocket(NULL, &local_addr, 0);
+  sock_fd = SCK_OpenTcpSocket(NULL, &local_addr, NULL, 0);
   if (sock_fd < 0) {
     LOG(LOGS_ERR, "Could not open NTS-KE socket on %s", UTI_IPSockAddrToString(&local_addr));
     return INVALID_SOCK_FD;

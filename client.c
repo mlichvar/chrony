@@ -222,7 +222,7 @@ open_socket(struct Address *addr)
 
   switch (addr->type) {
     case SCK_ADDR_IP:
-      sock_fd = SCK_OpenUdpSocket(&addr->addr.ip, NULL, 0);
+      sock_fd = SCK_OpenUdpSocket(&addr->addr.ip, NULL, NULL, 0);
       break;
     case SCK_ADDR_UNIX:
       /* Construct path of our socket.  Use the same directory as the server

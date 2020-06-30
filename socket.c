@@ -337,6 +337,23 @@ is_any_address(IPAddr *addr)
 /* ================================================== */
 
 static int
+bind_device(int sock_fd, const char *iface)
+{
+#ifdef SO_BINDTODEVICE
+  if (setsockopt(sock_fd, SOL_SOCKET, SO_BINDTODEVICE, iface, strlen(iface) + 1) < 0) {
+    DEBUG_LOG("Could not bind socket to %s : %s", iface, strerror(errno));
+    return 0;
+  }
+  return 1;
+#else
+  DEBUG_LOG("Could not bind socket to %s : %s", "Not supported");
+  return 0;
+#endif
+}
+
+/* ================================================== */
+
+static int
 bind_ip_address(int sock_fd, IPSockAddr *addr, int flags)
 {
   union sockaddr_all saddr;
@@ -403,7 +420,8 @@ connect_ip_address(int sock_fd, IPSockAddr *addr)
 /* ================================================== */
 
 static int
-open_ip_socket(IPSockAddr *remote_addr, IPSockAddr *local_addr, int type, int flags)
+open_ip_socket(IPSockAddr *remote_addr, IPSockAddr *local_addr, const char *iface,
+               int type, int flags)
 {
   int domain, family, sock_fd;
 
@@ -440,6 +458,9 @@ open_ip_socket(IPSockAddr *remote_addr, IPSockAddr *local_addr, int type, int fl
     goto error;
 
   if (!set_ip_options(sock_fd, family, flags))
+    goto error;
+
+  if (iface && !bind_device(sock_fd, iface))
     goto error;
 
   /* Bind the socket if a non-any local address/port was specified */
@@ -1213,17 +1234,17 @@ SCK_SetPrivBind(int (*function)(int sock_fd, struct sockaddr *address,
 /* ================================================== */
 
 int
-SCK_OpenUdpSocket(IPSockAddr *remote_addr, IPSockAddr *local_addr, int flags)
+SCK_OpenUdpSocket(IPSockAddr *remote_addr, IPSockAddr *local_addr, const char *iface, int flags)
 {
-  return open_ip_socket(remote_addr, local_addr, SOCK_DGRAM, flags);
+  return open_ip_socket(remote_addr, local_addr, iface, SOCK_DGRAM, flags);
 }
 
 /* ================================================== */
 
 int
-SCK_OpenTcpSocket(IPSockAddr *remote_addr, IPSockAddr *local_addr, int flags)
+SCK_OpenTcpSocket(IPSockAddr *remote_addr, IPSockAddr *local_addr, const char *iface, int flags)
 {
-  return open_ip_socket(remote_addr, local_addr, SOCK_STREAM, flags);
+  return open_ip_socket(remote_addr, local_addr, iface, SOCK_STREAM, flags);
 }
 
 /* ================================================== */

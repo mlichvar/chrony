@@ -325,7 +325,7 @@ NKC_Start(NKC_Instance inst)
 
   local_addr.port = 0;
 
-  sock_fd = SCK_OpenTcpSocket(&inst->address, &local_addr, 0);
+  sock_fd = SCK_OpenTcpSocket(&inst->address, &local_addr, NULL, 0);
   if (sock_fd < 0)
     return 0;
 

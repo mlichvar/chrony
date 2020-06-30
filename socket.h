@@ -92,9 +92,11 @@ extern void SCK_GetLoopbackIPAddress(int family, IPAddr *local_addr);
 extern void SCK_SetPrivBind(int (*function)(int sock_fd, struct sockaddr *address,
                                             socklen_t address_len));
 
-/* Open socket */
-extern int SCK_OpenUdpSocket(IPSockAddr *remote_addr, IPSockAddr *local_addr, int flags);
-extern int SCK_OpenTcpSocket(IPSockAddr *remote_addr, IPSockAddr *local_addr, int flags);
+/* Open a socket (addresses and iface may be NULL) */
+extern int SCK_OpenUdpSocket(IPSockAddr *remote_addr, IPSockAddr *local_addr,
+                             const char *iface, int flags);
+extern int SCK_OpenTcpSocket(IPSockAddr *remote_addr, IPSockAddr *local_addr,
+                             const char *iface, int flags);
 extern int SCK_OpenUnixDatagramSocket(const char *remote_addr, const char *local_addr,
                                       int flags);
 extern int SCK_OpenUnixStreamSocket(const char *remote_addr, const char *local_addr,

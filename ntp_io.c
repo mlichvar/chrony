@@ -103,7 +103,7 @@ open_socket(int family, int local_port, int client_only, IPSockAddr *remote_addr
   if (!client_only)
     sock_flags |= SCK_FLAG_BROADCAST;
 
-  sock_fd = SCK_OpenUdpSocket(remote_addr, &local_addr, sock_flags);
+  sock_fd = SCK_OpenUdpSocket(remote_addr, &local_addr, NULL, sock_flags);
   if (sock_fd < 0) {
     if (!client_only)
       LOG(LOGS_ERR, "Could not open NTP socket on %s", UTI_IPSockAddrToString(&local_addr));

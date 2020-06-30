@@ -437,10 +437,12 @@ SYS_Linux_DropRoot(uid_t uid, gid_t gid, int clock_control)
   
   UTI_DropRoot(uid, gid);
 
-  /* Keep CAP_NET_BIND_SERVICE only if a server NTP port can be opened
-     and keep CAP_SYS_TIME only if the clock control is enabled */
-  if (snprintf(cap_text, sizeof (cap_text), "%s %s",
+  /* Keep CAP_NET_BIND_SERVICE if the NTP server sockets may need to be bound.
+     Keep CAP_NET_RAW if an NTP socket may need to be bound to a device.
+     Keep CAP_SYS_TIME if the clock control is enabled. */
+  if (snprintf(cap_text, sizeof (cap_text), "%s %s %s",
                CNF_GetNTPPort() ? "cap_net_bind_service=ep" : "",
+               0 ? "cap_net_raw=ep" : "",
                clock_control ? "cap_sys_time=ep" : "") >= sizeof (cap_text))
     assert(0);
 
