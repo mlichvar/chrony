@@ -1049,6 +1049,8 @@ send_message(int sock_fd, SCK_Message *message, int flags)
         return 0;
 
       ipi->ipi_spec_dst.s_addr = htonl(message->local_addr.ip.addr.in4);
+      if (message->if_index != INVALID_IF_INDEX)
+        ipi->ipi_ifindex = message->if_index;
 
 #elif defined(IP_SENDSRCADDR)
       struct in_addr *addr;
@@ -1073,6 +1075,8 @@ send_message(int sock_fd, SCK_Message *message, int flags)
 
       memcpy(&ipi->ipi6_addr.s6_addr, &message->local_addr.ip.addr.in6,
              sizeof(ipi->ipi6_addr.s6_addr));
+      if (message->if_index != INVALID_IF_INDEX)
+        ipi->ipi6_ifindex = message->if_index;
     }
 #endif
   }

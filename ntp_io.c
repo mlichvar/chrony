@@ -452,8 +452,10 @@ NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,
     message.remote_addr.ip.port = remote_addr->port;
   }
 
-  message.if_index = local_addr->if_index;
   message.local_addr.ip = local_addr->ip_addr;
+
+  /* Don't require the response to use the same interface */
+  message.if_index = INVALID_IF_INDEX;
 
 #if !defined(HAVE_IN_PKTINFO) && defined(IP_SENDSRCADDR)
   /* On FreeBSD a local IPv4 address cannot be specified on bound socket */
