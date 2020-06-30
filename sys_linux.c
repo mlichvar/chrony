@@ -442,7 +442,8 @@ SYS_Linux_DropRoot(uid_t uid, gid_t gid, int clock_control)
      Keep CAP_SYS_TIME if the clock control is enabled. */
   if (snprintf(cap_text, sizeof (cap_text), "%s %s %s",
                CNF_GetNTPPort() ? "cap_net_bind_service=ep" : "",
-               0 ? "cap_net_raw=ep" : "",
+               CNF_GetBindNtpInterface() || CNF_GetBindAcquisitionInterface() ?
+                 "cap_net_raw=ep" : "",
                clock_control ? "cap_sys_time=ep" : "") >= sizeof (cap_text))
     assert(0);
 

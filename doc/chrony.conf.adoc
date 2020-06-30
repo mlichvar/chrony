@@ -630,13 +630,26 @@ This would change the source port used for client requests to UDP port 1123.
 You could then persuade the firewall administrator to open that port.
 
 [[bindacqaddress]]*bindacqaddress* _address_::
-The *bindacqaddress* directive sets the network interface to which
+The *bindacqaddress* directive specifies a local IP address to which
 *chronyd* will bind its NTP client sockets. The syntax is similar to the
 <<bindaddress,*bindaddress*>> and <<bindcmdaddress,*bindcmdaddress*>>
 directives.
 +
 For each of the IPv4 and IPv6 protocols, only one *bindacqaddress* directive
 can be specified.
+
+[[bindacqdevice]]*bindacqdevice* _interface_::
+The *bindacqdevice* directive binds the client sockets to a network device
+specified by the interface name. This can be useful when the local address is
+dynamic, or to enable an NTP source specified with a link-local IPv6 address.
+This directive can specify only one interface and it is supported on Linux
+only.
++
+An example of the directive is:
++
+----
+bindacqdevice eth0
+----
 
 [[dumpdir]]*dumpdir* _directory_::
 To compute the rate of gain or loss of time, *chronyd* has to store a
@@ -1336,6 +1349,17 @@ Currently, for each of the IPv4 and IPv6 protocols, only one *bindaddress*
 directive can be specified. Therefore, it is not useful on computers which
 should serve NTP on multiple network interfaces.
 
+[[binddevice]]*binddevice* _interface_::
+The *binddevice* directive binds the NTP server sockets to a network device
+specified by the interface name. This directive can specify only one interface
+and it is supported on Linux only.
++
+An example of the directive is:
++
+----
+binddevice eth0
+----
+
 [[broadcast]]*broadcast* _interval_ _address_ [_port_]::
 The *broadcast* directive is used to declare a broadcast address to which
 chronyd should send packets in the NTP broadcast mode (i.e. make *chronyd* act
@@ -1664,8 +1688,8 @@ smoothtime 50000 0.01
 === Command and monitoring access
 
 [[bindcmdaddress]]*bindcmdaddress* _address_::
-The *bindcmdaddress* directive allows you to specify an IP address of an
-interface on which *chronyd* will listen for monitoring command packets (issued
+The *bindcmdaddress* directive specifies a local IP address to which *chronyd*
+will bind the UDP socket listening for monitoring command packets (issued
 by *chronyc*). On systems other than Linux, the address of the interface needs
 to be already configured when *chronyd* is started.
 +
@@ -1676,9 +1700,10 @@ directory will be created on start if it does not exist. The compiled-in default
 path of the socket is _@CHRONYRUNDIR@/chronyd.sock_. The socket can be
 disabled by setting the path to _/_.
 +
-By default, *chronyd* binds to the loopback interface (with addresses
-_127.0.0.1_ and _::1_). This blocks all access except from localhost. To listen
-for command packets on all interfaces, you can add the lines:
+By default, *chronyd* binds the UDP sockets to the addresses _127.0.0.1_ and
+_::1_ (i.e. the loopback interface). This blocks all access except from
+localhost. To listen for command packets on all interfaces, you can add the
+lines:
 +
 ----
 bindcmdaddress 0.0.0.0
@@ -1694,6 +1719,17 @@ An example that sets the path of the Unix domain command socket is:
 +
 ----
 bindcmdaddress /var/run/chrony/chronyd.sock
+----
+
+[[bindcmddevice]]*bindcmddevice* _interface_::
+The *bindcmddevice* directive binds the UDP command sockets to a network device
+specified by the interface name. This directive can specify only one interface
+and it is supported on Linux only.
++
+An example of the directive is:
++
+----
+bindcmddevice eth0
 ----
 
 [[cmdallow]]*cmdallow* [*all*] [_subnet_]::

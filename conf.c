@@ -192,6 +192,11 @@ static IPAddr bind_acq_address4, bind_acq_address6;
    the loopback address will be used */
 static IPAddr bind_cmd_address4, bind_cmd_address6;
 
+/* Interface names to bind the NTP server, NTP client, and command socket */
+static char *bind_ntp_iface = NULL;
+static char *bind_acq_iface = NULL;
+static char *bind_cmd_iface = NULL;
+
 /* Path to the Unix domain command socket. */
 static char *bind_cmd_path = NULL;
 
@@ -422,6 +427,9 @@ CNF_Finalise(void)
   Free(keys_file);
   Free(leapsec_tz);
   Free(logdir);
+  Free(bind_ntp_iface);
+  Free(bind_acq_iface);
+  Free(bind_cmd_iface);
   Free(bind_cmd_path);
   Free(ntp_signd_socket);
   Free(pidfile);
@@ -511,10 +519,16 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_authselectmode(p);
   } else if (!strcasecmp(command, "bindacqaddress")) {
     parse_bindacqaddress(p);
+  } else if (!strcasecmp(command, "bindacqdevice")) {
+    parse_string(p, &bind_acq_iface);
   } else if (!strcasecmp(command, "bindaddress")) {
     parse_bindaddress(p);
   } else if (!strcasecmp(command, "bindcmdaddress")) {
     parse_bindcmdaddress(p);
+  } else if (!strcasecmp(command, "bindcmddevice")) {
+    parse_string(p, &bind_cmd_iface);
+  } else if (!strcasecmp(command, "binddevice")) {
+    parse_string(p, &bind_ntp_iface);
   } else if (!strcasecmp(command, "broadcast")) {
     parse_broadcast(p);
   } else if (!strcasecmp(command, "clientloglimit")) {
@@ -2224,6 +2238,30 @@ CNF_GetBindAcquisitionAddress(int family, IPAddr *addr)
     *addr = bind_acq_address6;
   else
     addr->family = IPADDR_UNSPEC;
+}
+
+/* ================================================== */
+
+char *
+CNF_GetBindNtpInterface(void)
+{
+  return bind_ntp_iface;
+}
+
+/* ================================================== */
+
+char *
+CNF_GetBindAcquisitionInterface(void)
+{
+  return bind_acq_iface;
+}
+
+/* ================================================== */
+
+char *
+CNF_GetBindCommandInterface(void)
+{
+  return bind_cmd_iface;
 }
 
 /* ================================================== */

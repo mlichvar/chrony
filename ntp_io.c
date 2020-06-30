@@ -85,14 +85,18 @@ open_socket(int family, int local_port, int client_only, IPSockAddr *remote_addr
 {
   int sock_fd, sock_flags, events = SCH_FILE_INPUT;
   IPSockAddr local_addr;
+  char *iface;
 
   if (!SCK_IsIpFamilyEnabled(family))
     return INVALID_SOCK_FD;
 
-  if (!client_only)
+  if (!client_only) {
     CNF_GetBindAddress(family, &local_addr.ip_addr);
-  else
+    iface = CNF_GetBindNtpInterface();
+  } else {
     CNF_GetBindAcquisitionAddress(family, &local_addr.ip_addr);
+    iface = CNF_GetBindAcquisitionInterface();
+  }
 
   if (local_addr.ip_addr.family != family)
     SCK_GetAnyLocalIPAddress(family, &local_addr.ip_addr);
@@ -103,7 +107,7 @@ open_socket(int family, int local_port, int client_only, IPSockAddr *remote_addr
   if (!client_only)
     sock_flags |= SCK_FLAG_BROADCAST;
 
-  sock_fd = SCK_OpenUdpSocket(remote_addr, &local_addr, NULL, sock_flags);
+  sock_fd = SCK_OpenUdpSocket(remote_addr, &local_addr, iface, sock_flags);
   if (sock_fd < 0) {
     if (!client_only)
       LOG(LOGS_ERR, "Could not open NTP socket on %s", UTI_IPSockAddrToString(&local_addr));
