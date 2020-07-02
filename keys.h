@@ -35,7 +35,6 @@ extern void KEY_Finalise(void);
 extern void KEY_Reload(void);
 
 extern int KEY_KeyKnown(uint32_t key_id);
-extern int KEY_GetAuthDelay(uint32_t key_id);
 extern int KEY_GetAuthLength(uint32_t key_id);
 extern int KEY_CheckKeyLength(uint32_t key_id);
 extern int KEY_GetKeyInfo(uint32_t key_id, int *type, int *bits);

@@ -125,7 +125,6 @@ test_unit(void)
 
     for (j = 0; j < KEYS; j++) {
       TEST_CHECK(KEY_KeyKnown(keys[j]));
-      TEST_CHECK(KEY_GetAuthDelay(keys[j]) >= 0);
       TEST_CHECK(KEY_GetAuthLength(keys[j]) >= 16);
 
       data_len = random() % (sizeof (data) + 1);

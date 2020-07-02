@@ -96,24 +96,6 @@ check_symmetric_auth(NTP_Packet *packet, NTP_PacketInfo *info)
 
 /* ================================================== */
 
-static void
-adjust_timestamp(NTP_AuthMode mode, uint32_t key_id, struct timespec *ts)
-{
-  switch (mode) {
-    case NTP_AUTH_SYMMETRIC:
-      ts->tv_nsec += KEY_GetAuthDelay(key_id);
-      UTI_NormaliseTimespec(ts);
-      break;
-    case NTP_AUTH_MSSNTP:
-      ts->tv_nsec += NSD_GetAuthDelay(key_id);
-      UTI_NormaliseTimespec(ts);
-    default:
-      break;
-  }
-}
-
-/* ================================================== */
-
 static int
 is_zero_data(unsigned char *data, int length)
 {
@@ -226,14 +208,6 @@ NAU_PrepareRequestAuth(NAU_Instance instance)
   }
 
   return 1;
-}
-
-/* ================================================== */
-
-void
-NAU_AdjustRequestTimestamp(NAU_Instance instance, struct timespec *ts)
-{
-  adjust_timestamp(instance->mode, instance->key_id, ts);
 }
 
 /* ================================================== */
@@ -393,14 +367,6 @@ NAU_CheckRequestAuth(NTP_Packet *request, NTP_PacketInfo *info, uint32_t *kod)
   }
 
   return 1;
-}
-
-/* ================================================== */
-
-void
-NAU_AdjustResponseTimestamp(NTP_Packet *request, NTP_PacketInfo *info, struct timespec *ts)
-{
-  adjust_timestamp(info->auth.mode, info->auth.mac.key_id, ts);
 }
 
 /* ================================================== */

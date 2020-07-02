@@ -60,7 +60,6 @@ typedef struct {
     } ntp_mac;
     CMC_Instance cmac;
   } data;
-  int auth_delay;
 } Key;
 
 static ARR_Instance keys;
@@ -120,38 +119,6 @@ static Key *
 get_key(unsigned int index)
 {
   return ((Key *)ARR_GetElements(keys)) + index;
-}
-
-/* ================================================== */
-
-static int
-determine_hash_delay(uint32_t key_id)
-{
-  NTP_Packet pkt;
-  struct timespec before, after;
-  double diff, min_diff;
-  int i, nsecs;
-
-  memset(&pkt, 0, sizeof (pkt));
-
-  for (i = 0; i < 10; i++) {
-    LCL_ReadRawTime(&before);
-    KEY_GenerateAuth(key_id, (unsigned char *)&pkt, NTP_HEADER_LENGTH,
-                     (unsigned char *)&pkt + NTP_HEADER_LENGTH,
-                     sizeof (pkt) - NTP_HEADER_LENGTH);
-    LCL_ReadRawTime(&after);
-
-    diff = UTI_DiffTimespecsToDouble(&after, &before);
-
-    if (i == 0 || min_diff > diff)
-      min_diff = diff;
-  }
-
-  nsecs = 1.0e9 * min_diff;
-
-  DEBUG_LOG("authentication delay for key %"PRIu32": %d nsecs", key_id, nsecs);
-
-  return nsecs;
 }
 
 /* ================================================== */
@@ -296,9 +263,6 @@ KEY_Reload(void)
 
   /* Erase any passwords from stack */
   memset(line, 0, sizeof (line));
-
-  for (i = 0; i < ARR_GetSize(keys); i++)
-    get_key(i)->auth_delay = determine_hash_delay(get_key(i)->id);
 }
 
 /* ================================================== */
@@ -350,21 +314,6 @@ int
 KEY_KeyKnown(uint32_t key_id)
 {
   return get_key_by_id(key_id) != NULL;
-}
-
-/* ================================================== */
-
-int
-KEY_GetAuthDelay(uint32_t key_id)
-{
-  Key *key;
-
-  key = get_key_by_id(key_id);
-
-  if (!key)
-    return 0;
-
-  return key->auth_delay;
 }
 
 /* ================================================== */

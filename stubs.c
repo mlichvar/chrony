@@ -428,12 +428,6 @@ NSD_Finalise(void)
 }
 
 int
-NSD_GetAuthDelay(uint32_t key_id)
-{
-  return 0;
-}
-
-int
 NSD_SignAndSendPacket(uint32_t key_id, NTP_Packet *packet, NTP_PacketInfo *info,
                       NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr)
 {

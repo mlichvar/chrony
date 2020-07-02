@@ -1068,13 +1068,6 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
       LCL_ReadCookedTime(&local_transmit, &local_transmit_err);
       if (smooth_time)
         UTI_AddDoubleToTimespec(&local_transmit, smooth_offset, &local_transmit);
-
-      /* Pre-compensate the transmit time by approximately how long it will
-         take to generate the authentication data */
-      if (auth)
-        NAU_AdjustRequestTimestamp(auth, &local_transmit);
-      else
-        NAU_AdjustResponseTimestamp(request, request_info, &local_transmit);
     }
 
     UTI_TimespecToNtp64(interleaved ? &local_tx->ts : &local_transmit,

@@ -96,14 +96,6 @@ static unsigned int queue_tail;
 /* Unix domain socket connected to ntp_signd */
 static int sock_fd;
 
-#define MIN_AUTH_DELAY 1.0e-5
-#define MAX_AUTH_DELAY 1.0e-2
-
-/* Average time needed for signing one packet.  This is used to adjust the
-   transmit timestamp in NTP packets.  The timestamp won't be very accurate as
-   the delay is variable, but it should be good enough for MS-SNTP clients. */
-static double auth_delay;
-
 /* Flag indicating if the MS-SNTP authentication is enabled */
 static int enabled;
 
@@ -183,10 +175,6 @@ process_response(SignInstance *inst)
   NIO_SendPacket(&inst->response.signed_packet, &inst->remote_addr, &inst->local_addr,
                  ntohl(inst->response.length) + sizeof (inst->response.length) -
                  offsetof(SigndResponse, signed_packet), 0);
-
-  /* Update exponential moving average of the authentication delay */
-  delay = CLAMP(MIN_AUTH_DELAY, delay, MAX_AUTH_DELAY);
-  auth_delay += 0.1 * (delay - auth_delay);
 }
 
 /* ================================================== */
@@ -274,7 +262,6 @@ void
 NSD_Initialise()
 {
   sock_fd = INVALID_SOCK_FD;
-  auth_delay = MIN_AUTH_DELAY;
   enabled = CNF_GetNtpSigndSocket() && CNF_GetNtpSigndSocket()[0];
 
   if (!enabled)
@@ -297,13 +284,6 @@ NSD_Finalise()
   if (sock_fd != INVALID_SOCK_FD)
     close_socket();
   ARR_DestroyInstance(queue);
-}
-
-/* ================================================== */
-
-extern int NSD_GetAuthDelay(uint32_t key_id)
-{
-  return 1.0e9 * auth_delay;
 }
 
 /* ================================================== */
