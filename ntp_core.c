@@ -961,6 +961,10 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   smooth_time = 0;
   smooth_offset = 0.0;
 
+  /* Get an initial transmit timestamp.  A more accurate timestamp will be
+     taken later in this function. */
+  SCH_GetLastEventTime(&local_transmit, NULL, NULL);
+
   if (my_mode == MODE_CLIENT) {
     /* Don't reveal local time or state of the clock in client packets */
     precision = 32;
@@ -968,10 +972,6 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     our_root_delay = our_root_dispersion = 0.0;
     UTI_ZeroTimespec(&our_ref_time);
   } else {
-    /* This is accurate enough and cheaper than calling LCL_ReadCookedTime.
-       A more accurate timestamp will be taken later in this function. */
-    SCH_GetLastEventTime(&local_transmit, NULL, NULL);
-
     REF_GetReferenceParams(&local_transmit,
                            &are_we_synchronised, &leap_status,
                            &our_stratum,
@@ -1062,20 +1062,20 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     /* Prepare random bits which will be added to the transmit timestamp */
     UTI_GetNtp64Fuzz(&ts_fuzz, precision);
 
-    /* Transmit - this our local time right now!  Also, we might need to
-       store this for our own use later, next time we receive a message
-       from the source we're sending to now. */
-    LCL_ReadCookedTime(&local_transmit, &local_transmit_err);
+    /* Get a more accurate transmit timestamp if it needs to be saved in the
+       packet (i.e. in the server, symmetric, and broadcast basic modes) */
+    if (!interleaved && precision < 32) {
+      LCL_ReadCookedTime(&local_transmit, &local_transmit_err);
+      if (smooth_time)
+        UTI_AddDoubleToTimespec(&local_transmit, smooth_offset, &local_transmit);
 
-    if (smooth_time)
-      UTI_AddDoubleToTimespec(&local_transmit, smooth_offset, &local_transmit);
-
-    /* Pre-compensate the transmit time by approximately how long it will take
-       to generate the authentication data */
-    if (auth)
-      NAU_AdjustRequestTimestamp(auth, &local_transmit);
-    else
-      NAU_AdjustResponseTimestamp(request, request_info, &local_transmit);
+      /* Pre-compensate the transmit time by approximately how long it will
+         take to generate the authentication data */
+      if (auth)
+        NAU_AdjustRequestTimestamp(auth, &local_transmit);
+      else
+        NAU_AdjustResponseTimestamp(request, request_info, &local_transmit);
+    }
 
     UTI_TimespecToNtp64(interleaved ? &local_tx->ts : &local_transmit,
                         &message.transmit_ts, &ts_fuzz);
@@ -1111,9 +1111,16 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     return 0;
   }
 
+  /* If the transmit timestamp will be saved, get an even more
+     accurate daemon timestamp closer to the transmission */
+  if (local_tx)
+    LCL_ReadCookedTime(&local_transmit, &local_transmit_err);
+
   ret = NIO_SendPacket(&message, where_to, from, info.length, local_tx != NULL);
 
   if (local_tx) {
+    if (smooth_time)
+      UTI_AddDoubleToTimespec(&local_transmit, smooth_offset, &local_transmit);
     local_tx->ts = local_transmit;
     local_tx->err = local_transmit_err;
     local_tx->source = NTP_TS_DAEMON;

@@ -200,10 +200,11 @@ authenticated source to be safely combined with unauthenticated sources in
 order to improve the accuracy of the clock. They can be selected and used for
 synchronisation only if they agree with the trusted and required source.
 *xleave*:::
-This option enables an interleaved mode which enables the server to
-send transmit timestamps captured after the actual transmission (e.g. when the
-server is running *chronyd* with software (kernel) or hardware
-timestamping). This can significantly improve the accuracy of the measurements.
+This option enables the interleaved mode of NTP. It enables the server to
+respond with more accurate transmit timestamps (e.g. kernel or hardware
+timestamps), which cannot be contained in the transmitted packet itself and
+need to refer to a previous packet instead. This can significantly improve the
+accuracy and stability of the measurements.
 +
 The interleaved mode is compatible with servers that support only the basic
 mode. Note that even
