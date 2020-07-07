@@ -393,8 +393,22 @@ handle_event(NKSN_Instance inst, int event)
 
       if (r < 0) {
         if (gnutls_error_is_fatal(r)) {
+          gnutls_datum_t cert_error;
+
+          /* Get a description of verification errors */
+          if (r != GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR ||
+              gnutls_certificate_verification_status_print(
+                          gnutls_session_get_verify_cert_status(inst->tls_session),
+                          gnutls_certificate_type_get(inst->tls_session), &cert_error, 0) < 0)
+            cert_error.data = NULL;
+
           LOG(inst->server ? LOGS_DEBUG : LOGS_ERR,
-              "TLS handshake with %s failed : %s", inst->label, gnutls_strerror(r));
+              "TLS handshake with %s failed : %s%s%s", inst->label, gnutls_strerror(r),
+              cert_error.data ? " " : "", cert_error.data ? (const char *)cert_error.data : "");
+
+          if (cert_error.data)
+            gnutls_free(cert_error.data);
+
           stop_session(inst);
 
           /* Increase the retry interval if the handshake did not fail due
