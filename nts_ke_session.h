@@ -32,7 +32,7 @@
 
 typedef struct NKSN_Instance_Record *NKSN_Instance;
 
-/* Handler for received NTS-KE messages.  A non-zero return code stops
+/* Handler for received NTS-KE messages.  A zero return code stops
    the session. */
 typedef int (*NKSN_MessageHandler)(void *arg);
 
