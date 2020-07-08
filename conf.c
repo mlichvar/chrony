@@ -1769,6 +1769,8 @@ CNF_CreateDirs(uid_t uid, gid_t gid)
     UTI_CreateDirAndParents(logdir, 0750, uid, gid);
   if (dumpdir)
     UTI_CreateDirAndParents(dumpdir, 0750, uid, gid);
+  if (nts_dump_dir)
+    UTI_CreateDirAndParents(nts_dump_dir, 0750, uid, gid);
 }
 
 /* ================================================== */
