@@ -669,6 +669,8 @@ behaviour whilst it is not running). The *dumpdir* directive defines the
 directory where the measurement histories are saved when *chronyd* exits,
 or the <<chronyc.adoc#dump,*dump*>> command in *chronyc* is issued.
 +
+If the directory does not exist, it will be created automatically.
++
 An example of the directive is:
 +
 ----
@@ -709,6 +711,8 @@ received from the server in order to avoid making an NTS-KE request when
 *chronyd* is started again. The cookies are saved separately for each NTP
 source in files named by the IP address of the NTS-KE server (e.g.
 _1.2.3.4.nts_). By default, the client does not save the cookies.
++
+If the directory does not exist, it will be created automatically.
 +
 An example of the directive is:
 +
@@ -2144,8 +2148,9 @@ which would cause a syslog message to be generated if a system clock error of ov
 0.1 seconds starts to be compensated.
 
 [[logdir]]*logdir* _directory_::
-This directive allows the directory where log files are written to be
-specified.
+This directive specifies the directory for writing log files enabled by the
+*log* directive. If the directory does not exist, it will be created
+automatically.
 +
 An example of the use of this directive is:
 +
