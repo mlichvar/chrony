@@ -376,8 +376,7 @@ KEY_GetKeyInfo(uint32_t key_id, int *type, int *bits)
 /* ================================================== */
 
 static int
-generate_auth(Key *key, const unsigned char *data, int data_len,
-              unsigned char *auth, int auth_len)
+generate_auth(Key *key, const void *data, int data_len, unsigned char *auth, int auth_len)
 {
   switch (key->class) {
     case NTP_MAC:
@@ -393,7 +392,7 @@ generate_auth(Key *key, const unsigned char *data, int data_len,
 /* ================================================== */
 
 static int
-check_auth(Key *key, const unsigned char *data, int data_len,
+check_auth(Key *key, const void *data, int data_len,
            const unsigned char *auth, int auth_len, int trunc_len)
 {
   unsigned char buf[MAX_HASH_LENGTH];
@@ -407,7 +406,7 @@ check_auth(Key *key, const unsigned char *data, int data_len,
 /* ================================================== */
 
 int
-KEY_GenerateAuth(uint32_t key_id, const unsigned char *data, int data_len,
+KEY_GenerateAuth(uint32_t key_id, const void *data, int data_len,
                  unsigned char *auth, int auth_len)
 {
   Key *key;
@@ -423,7 +422,7 @@ KEY_GenerateAuth(uint32_t key_id, const unsigned char *data, int data_len,
 /* ================================================== */
 
 int
-KEY_CheckAuth(uint32_t key_id, const unsigned char *data, int data_len,
+KEY_CheckAuth(uint32_t key_id, const void *data, int data_len,
               const unsigned char *auth, int auth_len, int trunc_len)
 {
   Key *key;

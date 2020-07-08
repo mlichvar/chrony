@@ -28,7 +28,7 @@
 struct hash_test {
   const char *name;
   const unsigned char out[MAX_HASH_LENGTH];
-  unsigned int length;
+  int length;
 };
 
 void
@@ -71,8 +71,7 @@ test_unit(void)
   };
 
   HSH_Algorithm algorithm;
-  unsigned int length;
-  int i, j, hash_id;
+  int i, j, hash_id, length;
 
   TEST_CHECK(HSH_INVALID == 0);
 
@@ -92,6 +91,10 @@ test_unit(void)
     }
 
     DEBUG_LOG("testing %s", tests[i].name);
+
+    TEST_CHECK(HSH_Hash(hash_id, data1, -1, NULL, 0, out, sizeof (out)) == 0);
+    TEST_CHECK(HSH_Hash(hash_id, data1, sizeof (data1) - 1, data2, -1, out, sizeof (out)) == 0);
+    TEST_CHECK(HSH_Hash(hash_id, data1, sizeof (data1) - 1, NULL, 0, out, -1) == 0);
 
     for (j = 0; j <= sizeof (out); j++) {
       TEST_CHECK(HSH_GetHashId(algorithm) == hash_id);

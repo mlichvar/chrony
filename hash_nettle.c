@@ -84,13 +84,15 @@ HSH_GetHashId(HSH_Algorithm algorithm)
   return id;
 }
 
-unsigned int
-HSH_Hash(int id, const unsigned char *in1, unsigned int in1_len,
-         const unsigned char *in2, unsigned int in2_len,
-         unsigned char *out, unsigned int out_len)
+int
+HSH_Hash(int id, const void *in1, int in1_len, const void *in2, int in2_len,
+         unsigned char *out, int out_len)
 {
   const struct nettle_hash *hash;
   void *context;
+
+  if (in1_len < 0 || in2_len < 0 || out_len < 0)
+    return 0;
 
   hash = hashes[id].nettle_hash;
   context = hashes[id].context;

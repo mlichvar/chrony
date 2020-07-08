@@ -31,9 +31,9 @@
 struct cmac_test {
   const char *name;
   const unsigned char key[MAX_KEY_LENGTH];
-  unsigned int key_length;
+  int key_length;
   const unsigned char hash[MAX_HASH_LENGTH];
-  unsigned int hash_length;
+  int hash_length;
 };
 
 void
@@ -52,8 +52,7 @@ test_unit(void)
 
   CMC_Algorithm algorithm;
   CMC_Instance inst;
-  unsigned int length;
-  int i, j;
+  int i, j, length;
 
 #ifndef HAVE_CMAC
   TEST_REQUIRE(0);
@@ -68,7 +67,7 @@ test_unit(void)
 
     DEBUG_LOG("testing %s", tests[i].name);
 
-    for (j = 0; j <= 128; j++) {
+    for (j = -1; j <= 128; j++) {
       if (j == tests[i].key_length)
         continue;
       TEST_CHECK(!CMC_CreateInstance(algorithm, tests[i].key, j));
@@ -78,6 +77,9 @@ test_unit(void)
     TEST_CHECK(inst);
 
     TEST_CHECK(!CMC_CreateInstance(0, tests[i].key, tests[i].key_length));
+
+    TEST_CHECK(CMC_Hash(inst, data, -1, hash, sizeof (hash)) == 0);
+    TEST_CHECK(CMC_Hash(inst, data, sizeof (data) - 1, hash, -1) == 0);
 
     for (j = 0; j <= sizeof (hash); j++) {
       memset(hash, 0, sizeof (hash));

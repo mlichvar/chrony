@@ -48,10 +48,8 @@ typedef enum {
 
 extern int HSH_GetHashId(HSH_Algorithm algorithm);
 
-extern unsigned int HSH_Hash(int id,
-    const unsigned char *in1, unsigned int in1_len,
-    const unsigned char *in2, unsigned int in2_len,
-    unsigned char *out, unsigned int out_len);
+extern int HSH_Hash(int id, const void *in1, int in1_len, const void *in2, int in2_len,
+                    unsigned char *out, int out_len);
 
 extern void HSH_Finalise(void);
 

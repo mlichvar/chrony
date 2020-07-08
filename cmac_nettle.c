@@ -44,7 +44,7 @@ struct CMC_Instance_Record {
 
 /* ================================================== */
 
-unsigned int
+int
 CMC_GetKeyLength(CMC_Algorithm algorithm)
 {
   if (algorithm == CMC_AES128)
@@ -57,11 +57,11 @@ CMC_GetKeyLength(CMC_Algorithm algorithm)
 /* ================================================== */
 
 CMC_Instance
-CMC_CreateInstance(CMC_Algorithm algorithm, const unsigned char *key, unsigned int length)
+CMC_CreateInstance(CMC_Algorithm algorithm, const unsigned char *key, int length)
 {
   CMC_Instance inst;
 
-  if (length == 0 || length != CMC_GetKeyLength(algorithm))
+  if (length <= 0 || length != CMC_GetKeyLength(algorithm))
     return NULL;
 
   inst = MallocNew(struct CMC_Instance_Record);
@@ -83,10 +83,12 @@ CMC_CreateInstance(CMC_Algorithm algorithm, const unsigned char *key, unsigned i
 
 /* ================================================== */
 
-unsigned int
-CMC_Hash(CMC_Instance inst, const unsigned char *in, unsigned int in_len,
-         unsigned char *out, unsigned int out_len)
+int
+CMC_Hash(CMC_Instance inst, const void *in, int in_len, unsigned char *out, int out_len)
 {
+  if (in_len < 0 || out_len < 0)
+    return 0;
+
   if (out_len > CMAC128_DIGEST_SIZE)
     out_len = CMAC128_DIGEST_SIZE;
 

@@ -438,21 +438,20 @@ NSD_SignAndSendPacket(uint32_t key_id, NTP_Packet *packet, NTP_PacketInfo *info,
 
 #ifndef HAVE_CMAC
 
-unsigned int
+int
 CMC_GetKeyLength(CMC_Algorithm algorithm)
 {
   return 0;
 }
 
 CMC_Instance
-CMC_CreateInstance(CMC_Algorithm algorithm, const unsigned char *key, unsigned int length)
+CMC_CreateInstance(CMC_Algorithm algorithm, const unsigned char *key, int length)
 {
   return NULL;
 }
 
-unsigned int
-CMC_Hash(CMC_Instance inst, const unsigned char *in, unsigned int in_len,
-         unsigned char *out, unsigned int out_len)
+int
+CMC_Hash(CMC_Instance inst, const void *in, int in_len, unsigned char *out, int out_len)
 {
   return 0;
 }

@@ -89,14 +89,16 @@ HSH_GetHashId(HSH_Algorithm algorithm)
   return find_hash(hashes[i].int_name);
 }
 
-unsigned int
-HSH_Hash(int id, const unsigned char *in1, unsigned int in1_len,
-    const unsigned char *in2, unsigned int in2_len,
-    unsigned char *out, unsigned int out_len)
+int
+HSH_Hash(int id, const void *in1, int in1_len, const void *in2, int in2_len,
+         unsigned char *out, int out_len)
 {
   unsigned char buf[MAX_HASH_LENGTH];
   unsigned long len;
   int r;
+
+  if (in1_len < 0 || in2_len < 0 || out_len < 0)
+    return 0;
 
   len = sizeof (buf);
   if (in2)

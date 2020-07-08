@@ -37,11 +37,11 @@ typedef enum {
 
 typedef struct CMC_Instance_Record *CMC_Instance;
 
-extern unsigned int CMC_GetKeyLength(CMC_Algorithm algorithm);
+extern int CMC_GetKeyLength(CMC_Algorithm algorithm);
 extern CMC_Instance CMC_CreateInstance(CMC_Algorithm algorithm, const unsigned char *key,
-                                       unsigned int length);
-extern unsigned int CMC_Hash(CMC_Instance inst, const unsigned char *in, unsigned int in_len,
-                             unsigned char *out, unsigned int out_len);
+                                       int length);
+extern int CMC_Hash(CMC_Instance inst, const void *in, int in_len,
+                    unsigned char *out, int out_len);
 extern void CMC_DestroyInstance(CMC_Instance inst);
 
 #endif

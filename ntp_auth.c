@@ -60,7 +60,7 @@ generate_symmetric_auth(uint32_t key_id, NTP_Packet *packet, NTP_PacketInfo *inf
   max_auth_len = (info->version == 4 ? NTP_MAX_V4_MAC_LENGTH : NTP_MAX_MAC_LENGTH) - 4;
   max_auth_len = MIN(max_auth_len, sizeof (NTP_Packet) - info->length - 4);
 
-  auth_len = KEY_GenerateAuth(key_id, (unsigned char *)packet, info->length,
+  auth_len = KEY_GenerateAuth(key_id, packet, info->length,
                               (unsigned char *)packet + info->length + 4, max_auth_len);
   if (!auth_len) {
     DEBUG_LOG("Could not generate auth data with key %"PRIu32, key_id);
@@ -86,7 +86,7 @@ check_symmetric_auth(NTP_Packet *packet, NTP_PacketInfo *info)
   trunc_len = info->version == 4 && info->auth.mac.length <= NTP_MAX_V4_MAC_LENGTH ?
               NTP_MAX_V4_MAC_LENGTH : NTP_MAX_MAC_LENGTH;
 
-  if (!KEY_CheckAuth(info->auth.mac.key_id, (void *)packet, info->auth.mac.start,
+  if (!KEY_CheckAuth(info->auth.mac.key_id, packet, info->auth.mac.start,
                      (unsigned char *)packet + info->auth.mac.start + 4,
                      info->auth.mac.length - 4, trunc_len - 4))
     return 0;
