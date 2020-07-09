@@ -135,6 +135,11 @@ NNS_CheckRequestAuth(NTP_Packet *packet, NTP_PacketInfo *info, uint32_t *kod)
         cookie_length = ef_body_length;
         break;
       case NTP_EF_NTS_AUTH_AND_EEF:
+        if (parsed + ef_length != info->length) {
+          DEBUG_LOG("Auth not last EF");
+          return 0;
+        }
+
         auth_start = parsed;
         has_auth = 1;
         break;

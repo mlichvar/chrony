@@ -167,7 +167,7 @@ NNA_DecryptAuthEF(NTP_Packet *packet, NTP_PacketInfo *info, SIV_Instance siv, in
 
   *plaintext_length = ciphertext_length - siv_tag_length;
 
-  if (!SIV_Decrypt(siv, nonce, nonce_length, packet, info->length - ef_body_length - 4,
+  if (!SIV_Decrypt(siv, nonce, nonce_length, packet, ef_start,
                    ciphertext, ciphertext_length, plaintext, *plaintext_length)) {
     DEBUG_LOG("SIV decrypt failed");
     return 0;
