@@ -128,6 +128,9 @@ NNA_DecryptAuthEF(NTP_Packet *packet, NTP_PacketInfo *info, SIV_Instance siv, in
   void *ef_body;
   struct AuthHeader *header;
 
+  if (buffer_length < 0)
+    return 0;
+
   if (!NEF_ParseField(packet, info->length, ef_start,
                       NULL, &ef_type, &ef_body, &ef_body_length))
     return 0;

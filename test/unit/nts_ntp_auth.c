@@ -83,6 +83,10 @@ test_unit(void)
     TEST_CHECK(info.length - packet_length >= min_ef_length);
 
     r = NNA_DecryptAuthEF(&packet, &info, siv, packet_length, plaintext2,
+                          -1, &plaintext2_length);
+    TEST_CHECK(!r);
+
+    r = NNA_DecryptAuthEF(&packet, &info, siv, packet_length, plaintext2,
                           sizeof (plaintext2), &plaintext2_length);
     TEST_CHECK(r);
     TEST_CHECK(plaintext_length == plaintext2_length);
