@@ -346,7 +346,7 @@ bind_device(int sock_fd, const char *iface)
   }
   return 1;
 #else
-  DEBUG_LOG("Could not bind socket to %s : %s", "Not supported");
+  DEBUG_LOG("Could not bind socket to %s : %s", iface, "Not supported");
   return 0;
 #endif
 }
