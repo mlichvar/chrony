@@ -308,7 +308,7 @@ int
 NKC_Start(NKC_Instance inst)
 {
   IPSockAddr local_addr;
-  char label[512];
+  char label[512], *iface;
   int sock_fd;
 
   assert(!NKC_IsActive(inst));
@@ -318,14 +318,15 @@ NKC_Start(NKC_Instance inst)
     return 0;
   }
 
-  /* Follow the bindacqaddress setting */
+  /* Follow the bindacqaddress and bindacqdevice settings */
   CNF_GetBindAcquisitionAddress(inst->address.ip_addr.family, &local_addr.ip_addr);
   if (local_addr.ip_addr.family != inst->address.ip_addr.family)
     SCK_GetAnyLocalIPAddress(inst->address.ip_addr.family, &local_addr.ip_addr);
 
   local_addr.port = 0;
+  iface = CNF_GetBindAcquisitionInterface();
 
-  sock_fd = SCK_OpenTcpSocket(&inst->address, &local_addr, NULL, 0);
+  sock_fd = SCK_OpenTcpSocket(&inst->address, &local_addr, iface, 0);
   if (sock_fd < 0)
     return 0;
 

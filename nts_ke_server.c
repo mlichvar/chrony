@@ -256,19 +256,21 @@ static int
 open_socket(int family, int port)
 {
   IPSockAddr local_addr;
+  char *iface;
   int sock_fd;
 
   if (!SCK_IsIpFamilyEnabled(family))
     return INVALID_SOCK_FD;
 
   CNF_GetBindAddress(family, &local_addr.ip_addr);
+  iface = CNF_GetBindNtpInterface();
 
   if (local_addr.ip_addr.family != family)
     SCK_GetAnyLocalIPAddress(family, &local_addr.ip_addr);
 
   local_addr.port = port;
 
-  sock_fd = SCK_OpenTcpSocket(NULL, &local_addr, NULL, 0);
+  sock_fd = SCK_OpenTcpSocket(NULL, &local_addr, iface, 0);
   if (sock_fd < 0) {
     LOG(LOGS_ERR, "Could not open NTS-KE socket on %s", UTI_IPSockAddrToString(&local_addr));
     return INVALID_SOCK_FD;
