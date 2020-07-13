@@ -265,9 +265,6 @@ open_socket(int family, int port)
   CNF_GetBindAddress(family, &local_addr.ip_addr);
   iface = CNF_GetBindNtpInterface();
 
-  if (local_addr.ip_addr.family != family)
-    SCK_GetAnyLocalIPAddress(family, &local_addr.ip_addr);
-
   local_addr.port = port;
 
   sock_fd = SCK_OpenTcpSocket(NULL, &local_addr, iface, 0);

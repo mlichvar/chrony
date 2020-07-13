@@ -98,9 +98,6 @@ open_socket(int family, int local_port, int client_only, IPSockAddr *remote_addr
     iface = CNF_GetBindAcquisitionInterface();
   }
 
-  if (local_addr.ip_addr.family != family)
-    SCK_GetAnyLocalIPAddress(family, &local_addr.ip_addr);
-
   local_addr.port = local_port;
 
   sock_flags = SCK_FLAG_RX_DEST_ADDR | SCK_FLAG_PRIV_BIND;

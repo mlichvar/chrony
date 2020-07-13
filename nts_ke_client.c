@@ -320,9 +320,6 @@ NKC_Start(NKC_Instance inst)
 
   /* Follow the bindacqaddress and bindacqdevice settings */
   CNF_GetBindAcquisitionAddress(inst->address.ip_addr.family, &local_addr.ip_addr);
-  if (local_addr.ip_addr.family != inst->address.ip_addr.family)
-    SCK_GetAnyLocalIPAddress(inst->address.ip_addr.family, &local_addr.ip_addr);
-
   local_addr.port = 0;
   iface = CNF_GetBindAcquisitionInterface();
 

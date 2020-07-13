@@ -36,6 +36,7 @@
 #include "nts_ke.h"
 #include "refclock.h"
 #include "cmdmon.h"
+#include "socket.h"
 #include "srcparams.h"
 #include "logging.h"
 #include "nameserv.h"
@@ -393,6 +394,13 @@ CNF_Initialise(int r, int client_only)
     bind_cmd_path = Strdup(DEFAULT_COMMAND_SOCKET);
     pidfile = Strdup(DEFAULT_PID_FILE);
   }
+
+  SCK_GetAnyLocalIPAddress(IPADDR_INET4, &bind_address4);
+  SCK_GetAnyLocalIPAddress(IPADDR_INET6, &bind_address6);
+  SCK_GetAnyLocalIPAddress(IPADDR_INET4, &bind_acq_address4);
+  SCK_GetAnyLocalIPAddress(IPADDR_INET6, &bind_acq_address6);
+  SCK_GetLoopbackIPAddress(IPADDR_INET4, &bind_cmd_address4);
+  SCK_GetLoopbackIPAddress(IPADDR_INET6, &bind_cmd_address6);
 }
 
 /* ================================================== */

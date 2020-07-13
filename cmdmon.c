@@ -169,10 +169,7 @@ open_socket(int family)
         return INVALID_SOCK_FD;
 
       CNF_GetBindCommandAddress(family, &local_addr.ip_addr);
-      if (local_addr.ip_addr.family != family)
-        SCK_GetLoopbackIPAddress(family, &local_addr.ip_addr);
       local_addr.port = port;
-
       iface = CNF_GetBindCommandInterface();
 
       sock_fd = SCK_OpenUdpSocket(NULL, &local_addr, iface, SCK_FLAG_RX_DEST_ADDR);
