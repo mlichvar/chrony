@@ -85,7 +85,7 @@ name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *arg
 
   inst->ntp_address.ip_addr = ip_addrs[0];
 
-  /* Prefer an address of the same family as NTS-KE */
+  /* Prefer an address in the same family as the NTS-KE server */
   for (i = 0; i < n_addrs; i++) {
     DEBUG_LOG("%s resolved to %s", inst->server_name, UTI_IPToString(&ip_addrs[i]));
     if (ip_addrs[i].family == inst->address.ip_addr.family) {
@@ -169,13 +169,21 @@ process_response(NKC_Instance inst)
         error = 1;
         break;
       case NKE_RECORD_COOKIE:
-        DEBUG_LOG("Got cookie #%d length=%d", inst->num_cookies + 1, length);
-        assert(NKE_MAX_COOKIE_LENGTH == sizeof (inst->cookies[inst->num_cookies].cookie));
-        if (length <= NKE_MAX_COOKIE_LENGTH && inst->num_cookies < NKE_MAX_COOKIES) {
-          inst->cookies[inst->num_cookies].length = length;
-          memcpy(inst->cookies[inst->num_cookies].cookie, data, length);
-          inst->num_cookies++;
+        DEBUG_LOG("Got cookie length=%d", length);
+
+        if (length < 1 || length > NKE_MAX_COOKIE_LENGTH || length % 4 != 0 ||
+            inst->num_cookies >= NKE_MAX_COOKIES) {
+          DEBUG_LOG("Unexpected length/cookie");
+          break;
         }
+
+        assert(NKE_MAX_COOKIE_LENGTH == sizeof (inst->cookies[inst->num_cookies].cookie));
+        assert(NKE_MAX_COOKIES == sizeof (inst->cookies) /
+                                  sizeof (inst->cookies[inst->num_cookies]));
+        inst->cookies[inst->num_cookies].length = length;
+        memcpy(inst->cookies[inst->num_cookies].cookie, data, length);
+
+        inst->num_cookies++;
         break;
       case NKE_RECORD_NTPV4_SERVER_NEGOTIATION:
         if (length < 1 || length >= sizeof (inst->server_name)) {
@@ -313,6 +321,8 @@ NKC_Start(NKC_Instance inst)
 
   assert(!NKC_IsActive(inst));
 
+  inst->got_response = 0;
+
   if (!client_credentials) {
     DEBUG_LOG("Missing client credentials");
     return 0;
@@ -332,7 +342,7 @@ NKC_Start(NKC_Instance inst)
                UTI_IPSockAddrToString(&inst->address), inst->name) >= sizeof (label))
     ;
 
-  /* Start a NTS-KE session */
+  /* Start an NTS-KE session */
   if (!NKSN_StartSession(inst->session, sock_fd, label, client_credentials, CLIENT_TIMEOUT)) {
     SCK_CloseSocket(sock_fd);
     return 0;
@@ -376,7 +386,7 @@ NKC_GetNtsData(NKC_Instance inst, NKE_Context *context,
 
   *ntp_address = inst->ntp_address;
 
-  return i;
+  return 1;
 }
 
 /* ================================================== */

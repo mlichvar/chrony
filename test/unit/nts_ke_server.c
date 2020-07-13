@@ -154,7 +154,8 @@ test_unit(void)
   SCH_Initialise();
 
   unlink("ntskeys");
-  NKS_Initialise(0);
+  NKS_PreInitialise(0, 0, 0);
+  NKS_Initialise();
 
   session = NKSN_CreateInstance(1, NULL, handle_message, NULL);
 

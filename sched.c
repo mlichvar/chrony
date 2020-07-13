@@ -491,20 +491,6 @@ SCH_RemoveTimeout(SCH_TimeoutID id)
 }
 
 /* ================================================== */
-
-void
-SCH_Reset(void)
-{
-  while (n_timer_queue_entries > 0)
-    SCH_RemoveTimeout(timer_queue.next->id);
-
-  while (one_highest_fd > 0) {
-    close(one_highest_fd - 1);
-    SCH_RemoveFileHandler(one_highest_fd - 1);
-  }
-}
-
-/* ================================================== */
 /* Try to dispatch any timeouts that have already gone by, and
    keep going until all are done.  (The earlier ones may take so
    long to do that the later ones come around by the time they are

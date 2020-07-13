@@ -154,6 +154,7 @@ get_record(struct Message *message, int *critical, int *type, int *body_length,
 
   blen = ntohs(header.body_length);
   rlen = sizeof (header) + blen;
+  assert(blen >= 0 && rlen > 0);
 
   if (message->length < message->parsed + rlen)
     return 0;
@@ -801,6 +802,9 @@ NKSN_GetRecord(NKSN_Instance inst, int *critical, int *type, int *body_length,
   int type2;
 
   assert(inst->message.complete);
+
+  if (body_length)
+    *body_length = 0;
 
   if (!get_record(&inst->message, critical, &type2, body_length, body, buffer_length))
     return 0;

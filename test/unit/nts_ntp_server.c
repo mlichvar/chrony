@@ -126,7 +126,8 @@ test_unit(void)
   LCL_Initialise();
   TST_RegisterDummyDrivers();
   SCH_Initialise();
-  NKS_Initialise(0);
+  NKS_PreInitialise(0, 0, 0);
+  NKS_Initialise();
   NNS_Initialise();
 
   for (i = 0; i < 50000; i++) {

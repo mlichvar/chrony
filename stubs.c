@@ -539,7 +539,12 @@ NNC_GetReport(NNC_Instance inst, RPT_AuthReport *report)
 }
 
 void
-NKS_Initialise(int scfilter_level)
+NKS_PreInitialise(uid_t uid, gid_t gid, int scfilter_level)
+{
+}
+
+void
+NKS_Initialise(void)
 {
 }
 

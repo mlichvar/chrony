@@ -121,13 +121,15 @@ MAI_CleanupAndExit(void)
   NCR_Finalise();
   NIO_Finalise();
   CAM_Finalise();
-  SCK_Finalise();
+
   KEY_Finalise();
   RCL_Finalise();
   SRC_Finalise();
   REF_Finalise();
   RTC_Finalise();
   SYS_Finalise();
+
+  SCK_Finalise();
   SCH_Finalise();
   LCL_Finalise();
   PRV_Finalise();
@@ -563,12 +565,16 @@ int main
   PRV_Initialise();
   LCL_Initialise();
   SCH_Initialise();
+  SCK_Initialise(address_family);
+
+  /* Start helper processes if needed */
+  NKS_PreInitialise(pw->pw_uid, pw->pw_gid, scfilter_level);
+
   SYS_Initialise(clock_control);
   RTC_Initialise(do_init_rtc);
   SRC_Initialise();
   RCL_Initialise();
   KEY_Initialise();
-  SCK_Initialise(address_family);
 
   /* Open privileged ports before dropping root */
   CAM_Initialise();
@@ -597,7 +603,7 @@ int main
   NSR_Initialise();
   NSD_Initialise();
   NNS_Initialise();
-  NKS_Initialise(scfilter_level);
+  NKS_Initialise();
   CLG_Initialise();
   MNL_Initialise();
   TMC_Initialise();

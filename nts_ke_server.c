@@ -33,10 +33,12 @@
 #include "array.h"
 #include "conf.h"
 #include "clientlog.h"
+#include "local.h"
 #include "logging.h"
 #include "memory.h"
 #include "ntp_core.h"
 #include "nts_ke_session.h"
+#include "privops.h"
 #include "siv.h"
 #include "socket.h"
 #include "sched.h"
@@ -59,7 +61,7 @@
 
 typedef struct {
   uint32_t key_id;
-  uint8_t nonce[SERVER_COOKIE_NONCE_LENGTH];
+  unsigned char nonce[SERVER_COOKIE_NONCE_LENGTH];
 } ServerCookieHeader;
 
 typedef struct {
@@ -87,6 +89,7 @@ static int server_sock_fd4;
 static int server_sock_fd6;
 
 static int helper_sock_fd;
+static int is_helper;
 
 static int initialised = 0;
 
@@ -106,13 +109,15 @@ handle_client(int sock_fd, IPSockAddr *addr)
   NKSN_Instance inst, *instp;
   int i;
 
+  /* Leave at least half of the descriptors which can handled by select()
+     to other use */
   if (sock_fd > FD_SETSIZE / 2) {
     DEBUG_LOG("Rejected connection from %s (%s)",
               UTI_IPSockAddrToString(addr), "too many descriptors");
     return 0;
   }
 
-  /* Find a slot which is free or has a stopped session */
+  /* Find an unused server slot or one with an already stopped session */
   for (i = 0, inst = NULL; i < ARR_GetSize(sessions); i++) {
     instp = ARR_GetElement(sessions, i);
     if (!*instp) {
@@ -132,6 +137,8 @@ handle_client(int sock_fd, IPSockAddr *addr)
     return 0;
   }
 
+  assert(server_credentials);
+
   if (!NKSN_StartSession(inst, sock_fd, UTI_IPSockAddrToString(addr),
                          server_credentials, SERVER_TIMEOUT))
     return 0;
@@ -149,6 +156,8 @@ handle_helper_request(int fd, int event, void *arg)
   IPSockAddr client_addr;
   int sock_fd;
 
+  /* Receive the helper request with the NTS-KE session socket.
+     With multiple helpers EAGAIN errors are expected here. */
   message = SCK_ReceiveMessage(fd, SCK_FLAG_MSG_DESCRIPTOR);
   if (!message)
     return;
@@ -160,16 +169,20 @@ handle_helper_request(int fd, int event, void *arg)
     return;
   }
 
-  if (message->length != sizeof (HelperRequest)) {
-    DEBUG_LOG("Unexpected message length");
+  if (!initialised) {
+    DEBUG_LOG("Uninitialised helper");
     SCK_CloseSocket(sock_fd);
     return;
   }
 
+  if (message->length != sizeof (HelperRequest))
+    LOG_FATAL("Invalid helper request");
+
   req = message->data;
 
-  /* Extract the server key and client address from the request */
+  /* Extract the current server key and client address from the request */
   server_keys[current_server_key].id = ntohl(req->key_id);
+  assert(sizeof (server_keys[current_server_key].key) == sizeof (req->key));
   memcpy(server_keys[current_server_key].key, req->key,
          sizeof (server_keys[current_server_key].key));
   UTI_IPNetworkToHost(&req->client_addr, &client_addr.ip_addr);
@@ -177,7 +190,7 @@ handle_helper_request(int fd, int event, void *arg)
 
   if (!SIV_SetKey(server_keys[current_server_key].siv, server_keys[current_server_key].key,
                   SIV_GetKeyLength(SERVER_COOKIE_SIV)))
-    assert(0);
+    LOG_FATAL("Could not set SIV key");
 
   if (!handle_client(sock_fd, &client_addr)) {
     SCK_CloseSocket(sock_fd);
@@ -190,14 +203,14 @@ handle_helper_request(int fd, int event, void *arg)
 /* ================================================== */
 
 static void
-accept_connection(int server_fd, int event, void *arg)
+accept_connection(int listening_fd, int event, void *arg)
 {
   SCK_Message message;
   IPSockAddr addr;
   int log_index, sock_fd;
   struct timespec now;
 
-  sock_fd = SCK_AcceptConnection(server_fd, &addr);
+  sock_fd = SCK_AcceptConnection(listening_fd, &addr);
   if (sock_fd < 0)
     return;
 
@@ -209,6 +222,7 @@ accept_connection(int server_fd, int event, void *arg)
   }
 
   SCH_GetLastEventTime(&now, NULL, NULL);
+
   log_index = CLG_LogServiceAccess(CLG_NTSKE, &addr.ip_addr, &now);
   if (log_index >= 0 && CLG_LimitServiceRate(CLG_NTSKE, log_index)) {
     DEBUG_LOG("Rejected connection from %s (%s)",
@@ -222,9 +236,11 @@ accept_connection(int server_fd, int event, void *arg)
   if (helper_sock_fd != INVALID_SOCK_FD) {
     HelperRequest req;
 
-    /* Include the current server key and client address in the request */
     memset(&req, 0, sizeof (req));
+
+    /* Include the current server key and client address in the request */
     req.key_id = htonl(server_keys[current_server_key].id);
+    assert(sizeof (req.key) == sizeof (server_keys[current_server_key].key));
     memcpy(req.key, server_keys[current_server_key].key, sizeof (req.key));
     UTI_IPHostToNetwork(&addr.ip_addr, &req.client_addr);
     req.client_port = htons(addr.port);
@@ -234,7 +250,12 @@ accept_connection(int server_fd, int event, void *arg)
     message.length = sizeof (req);
     message.descriptor = sock_fd;
 
+    errno = 0;
     if (!SCK_SendMessage(helper_sock_fd, &message, SCK_FLAG_MSG_DESCRIPTOR)) {
+      /* If sending failed with EPIPE, it means all helpers closed their end of
+         the socket (e.g. due to a fatal error) */
+      if (errno == EPIPE)
+        LOG_FATAL("NTS-KE helpers failed");
       SCK_CloseSocket(sock_fd);
       return;
     }
@@ -253,7 +274,7 @@ accept_connection(int server_fd, int event, void *arg)
 /* ================================================== */
 
 static int
-open_socket(int family, int port)
+open_socket(int family)
 {
   IPSockAddr local_addr;
   char *iface;
@@ -263,9 +284,8 @@ open_socket(int family, int port)
     return INVALID_SOCK_FD;
 
   CNF_GetBindAddress(family, &local_addr.ip_addr);
+  local_addr.port = CNF_GetNtsServerPort();
   iface = CNF_GetBindNtpInterface();
-
-  local_addr.port = port;
 
   sock_fd = SCK_OpenTcpSocket(NULL, &local_addr, iface, 0);
   if (sock_fd < 0) {
@@ -425,7 +445,8 @@ generate_key(int index)
 {
   int key_length;
 
-  assert(index < MAX_SERVER_KEYS);
+  if (index < 0 || index >= MAX_SERVER_KEYS)
+    assert(0);
 
   key_length = SIV_GetKeyLength(SERVER_COOKIE_SIV);
   if (key_length > sizeof (server_keys[index].key))
@@ -434,12 +455,12 @@ generate_key(int index)
   UTI_GetRandomBytesUrandom(server_keys[index].key, key_length);
 
   if (!server_keys[index].siv ||
-      !SIV_SetKey(server_keys[index].siv, server_keys[index].key, key_length)) {
+      !SIV_SetKey(server_keys[index].siv, server_keys[index].key, key_length))
     LOG_FATAL("Could not set SIV key");
-  }
 
   UTI_GetRandomBytes(&server_keys[index].id, sizeof (server_keys[index].id));
 
+  /* Encode the index in the lowest bits of the ID */
   server_keys[index].id &= -1U << KEY_ID_INDEX_BITS;
   server_keys[index].id |= index;
 
@@ -488,6 +509,7 @@ save_keys(void)
 
   fclose(f);
 
+  /* Rename the temporary file, or remove it if that fails */
   if (!UTI_RenameTempFile(dump_dir, DUMP_FILENAME, ".tmp", NULL)) {
     if (!UTI_RemoveFile(dump_dir, DUMP_FILENAME, ".tmp"))
       ;
@@ -546,7 +568,7 @@ load_keys(void)
 
     server_keys[index].id = id;
     if (!SIV_SetKey(server_keys[index].siv, server_keys[index].key, key_length))
-      assert(0);
+      LOG_FATAL("Could not set SIV key");
 
     DEBUG_LOG("Loaded key %"PRIX32, id);
 
@@ -577,36 +599,43 @@ key_timeout(void *arg)
 /* ================================================== */
 
 static void
-start_helper(int id, int scfilter_level, int main_fd, int helper_fd)
+run_helper(uid_t uid, gid_t gid, int scfilter_level)
 {
-  pid_t pid;
+  LOG_Severity log_severity;
 
-  pid = fork();
+  /* Finish minimal initialisation and run using the scheduler loop
+     similarly to the main process */
 
-  if (pid < 0)
-    LOG_FATAL("fork() failed : %s", strerror(errno));
+  DEBUG_LOG("Helper started");
 
-  if (pid > 0)
-    return;
+  /* Suppress a log message about disabled clock control */
+  log_severity = LOG_GetMinSeverity();
+  LOG_SetMinSeverity(LOGS_ERR);
 
-  SCK_CloseSocket(main_fd);
+  SYS_Initialise(0);
+  LOG_SetMinSeverity(log_severity);
 
-  LOG_CloseParentFd();
-  SCH_Reset();
-  SCH_AddFileHandler(helper_fd, SCH_FILE_INPUT, handle_helper_request, NULL);
+  if (!geteuid() && (uid || gid))
+    SYS_DropRoot(uid, gid);
+
   UTI_SetQuitSignalsHandler(helper_signal, 1);
   if (scfilter_level != 0)
     SYS_EnableSystemCallFilter(scfilter_level, SYS_NTSKE_HELPER);
 
-  initialised = 1;
-
-  DEBUG_LOG("NTS-KE helper #%d started", id);
+  NKS_Initialise();
 
   SCH_MainLoop();
 
-  NKS_Finalise();
+  DEBUG_LOG("Helper exiting");
 
-  DEBUG_LOG("NTS-KE helper #%d exiting", id);
+  NKS_Finalise();
+  SCK_Finalise();
+  SYS_Finalise();
+  SCH_Finalise();
+  LCL_Finalise();
+  PRV_Finalise();
+  CNF_Finalise();
+  LOG_Finalise();
 
   exit(0);
 }
@@ -614,15 +643,65 @@ start_helper(int id, int scfilter_level, int main_fd, int helper_fd)
 /* ================================================== */
 
 void
-NKS_Initialise(int scfilter_level)
+NKS_PreInitialise(uid_t uid, gid_t gid, int scfilter_level)
+{
+  int i, processes, sock_fd1, sock_fd2;
+  char prefix[16];
+  pid_t pid;
+
+  helper_sock_fd = INVALID_SOCK_FD;
+  is_helper = 0;
+
+  if (!CNF_GetNtsServerCertFile() || !CNF_GetNtsServerKeyFile())
+    return;
+
+  processes = CNF_GetNtsServerProcesses();
+  if (processes <= 0)
+    return;
+
+  /* Start helper processes to perform (computationally expensive) NTS-KE
+     sessions with clients on sockets forwarded from the main process */
+
+  sock_fd1 = SCK_OpenUnixSocketPair(0, &sock_fd2);
+  if (sock_fd1 < 0)
+    LOG_FATAL("Could not open socket pair");
+
+  for (i = 0; i < processes; i++) {
+    pid = fork();
+
+    if (pid < 0)
+      LOG_FATAL("fork() failed : %s", strerror(errno));
+
+    if (pid > 0)
+      continue;
+
+    is_helper = 1;
+
+    snprintf(prefix, sizeof (prefix), "nks#%d:", i + 1);
+    LOG_SetDebugPrefix(prefix);
+    LOG_CloseParentFd();
+
+    SCK_CloseSocket(sock_fd1);
+    SCH_AddFileHandler(sock_fd2, SCH_FILE_INPUT, handle_helper_request, NULL);
+
+    run_helper(uid, gid, scfilter_level);
+  }
+
+  SCK_CloseSocket(sock_fd2);
+  helper_sock_fd = sock_fd1;
+}
+
+/* ================================================== */
+
+void
+NKS_Initialise(void)
 {
   char *cert, *key;
-  int i, processes;
   double key_delay;
+  int i;
 
   server_sock_fd4 = INVALID_SOCK_FD;
   server_sock_fd6 = INVALID_SOCK_FD;
-  helper_sock_fd = INVALID_SOCK_FD;
 
   cert = CNF_GetNtsServerCertFile();
   key = CNF_GetNtsServerKeyFile();
@@ -630,19 +709,20 @@ NKS_Initialise(int scfilter_level)
   if (!cert || !key)
     return;
 
-  server_credentials = NKSN_CreateCertCredentials(cert, key, NULL);
-  if (!server_credentials)
-    return;
+  if (helper_sock_fd == INVALID_SOCK_FD) {
+    server_credentials = NKSN_CreateCertCredentials(cert, key, NULL);
+    if (!server_credentials)
+      return;
+  } else {
+    server_credentials = NULL;
+  }
 
   sessions = ARR_CreateInstance(sizeof (NKSN_Instance));
   for (i = 0; i < CNF_GetNtsServerConnections(); i++)
     *(NKSN_Instance *)ARR_GetNewElement(sessions) = NULL;
-  for (i = 0; i < MAX_SERVER_KEYS; i++)
-    server_keys[i].siv = NULL;
 
-  server_sock_fd4 = open_socket(IPADDR_INET4, CNF_GetNtsServerPort());
-  server_sock_fd6 = open_socket(IPADDR_INET6, CNF_GetNtsServerPort());
-
+  /* Generate random keys, even if they will be replaced by reloaded keys,
+     or unused (in the helper) */
   for (i = 0; i < MAX_SERVER_KEYS; i++) {
     server_keys[i].siv = SIV_CreateInstance(SERVER_COOKIE_SIV);
     generate_key(i);
@@ -650,29 +730,18 @@ NKS_Initialise(int scfilter_level)
 
   current_server_key = MAX_SERVER_KEYS - 1;
 
-  load_keys();
+  if (!is_helper) {
+    server_sock_fd4 = open_socket(IPADDR_INET4);
+    server_sock_fd6 = open_socket(IPADDR_INET6);
 
-  key_rotation_interval = MAX(CNF_GetNtsRotate(), 0);
+    load_keys();
 
-  if (key_rotation_interval > 0) {
-    key_delay = key_rotation_interval - (SCH_GetLastEventMonoTime() - last_server_key_ts);
-    SCH_AddTimeoutByDelay(MAX(key_delay, 0.0), key_timeout, NULL);
-  }
+    key_rotation_interval = MAX(CNF_GetNtsRotate(), 0);
 
-  processes = CNF_GetNtsServerProcesses();
-
-  if (processes > 0) {
-    int sock_fd1, sock_fd2;
-
-    sock_fd1 = SCK_OpenUnixSocketPair(0, &sock_fd2);
-    if (sock_fd1 < 0)
-      LOG_FATAL("Could not open socket pair");
-
-    for (i = 0; i < processes; i++)
-      start_helper(i + 1, scfilter_level, sock_fd1, sock_fd2);
-
-    SCK_CloseSocket(sock_fd2);
-    helper_sock_fd = sock_fd1;
+    if (key_rotation_interval > 0) {
+      key_delay = key_rotation_interval - (SCH_GetLastEventMonoTime() - last_server_key_ts);
+      SCH_AddTimeoutByDelay(MAX(key_delay, 0.0), key_timeout, NULL);
+    }
   }
 
   initialised = 1;
@@ -689,6 +758,7 @@ NKS_Finalise(void)
     return;
 
   if (helper_sock_fd != INVALID_SOCK_FD) {
+    /* Send the helpers a request to exit */
     for (i = 0; i < CNF_GetNtsServerProcesses(); i++) {
       if (!SCK_Send(helper_sock_fd, "", 1, 0))
         ;
@@ -700,11 +770,11 @@ NKS_Finalise(void)
   if (server_sock_fd6 != INVALID_SOCK_FD)
     SCK_CloseSocket(server_sock_fd6);
 
-  save_keys();
-  for (i = 0; i < MAX_SERVER_KEYS; i++) {
-    if (server_keys[i].siv != NULL)
-      SIV_DestroyInstance(server_keys[i].siv);
-  }
+  if (!is_helper)
+    save_keys();
+
+  for (i = 0; i < MAX_SERVER_KEYS; i++)
+    SIV_DestroyInstance(server_keys[i].siv);
 
   for (i = 0; i < ARR_GetSize(sessions); i++) {
     NKSN_Instance session = *(NKSN_Instance *)ARR_GetElement(sessions, i);
@@ -713,7 +783,8 @@ NKS_Finalise(void)
   }
   ARR_DestroyInstance(sessions);
 
-  NKSN_DestroyCertCredentials(server_credentials);
+  if (server_credentials)
+    NKSN_DestroyCertCredentials(server_credentials);
 }
 
 /* ================================================== */
@@ -810,7 +881,7 @@ NKS_DecodeCookie(NKE_Cookie *cookie, NKE_Context *context)
     return 0;
   }
 
-  if (cookie->length <= sizeof (*header)) {
+  if (cookie->length <= (int)sizeof (*header)) {
     DEBUG_LOG("Invalid cookie length");
     return 0;
   }

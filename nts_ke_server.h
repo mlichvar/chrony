@@ -30,7 +30,8 @@
 #include "nts_ke.h"
 
 /* Init and fini functions */
-extern void NKS_Initialise(int scfilter_level);
+extern void NKS_PreInitialise(uid_t uid, gid_t gid, int scfilter_level);
+extern void NKS_Initialise(void);
 extern void NKS_Finalise(void);
 
 /* Save the current server keys */
