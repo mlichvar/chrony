@@ -318,6 +318,15 @@ check_alpn(NKSN_Instance inst)
 /* ================================================== */
 
 static void
+set_input_output(NKSN_Instance inst, int output)
+{
+  SCH_SetFileHandlerEvent(inst->sock_fd, SCH_FILE_INPUT, !output);
+  SCH_SetFileHandlerEvent(inst->sock_fd, SCH_FILE_OUTPUT, output);
+}
+
+/* ================================================== */
+
+static void
 change_state(NKSN_Instance inst, KeState state)
 {
   int output;
@@ -338,7 +347,7 @@ change_state(NKSN_Instance inst, KeState state)
       assert(0);
   }
 
-  SCH_SetFileHandlerEvent(inst->sock_fd, SCH_FILE_OUTPUT, output);
+  set_input_output(inst, output);
 
   inst->state = state;
 }
@@ -406,8 +415,7 @@ handle_event(NKSN_Instance inst, int event)
         }
 
         /* Disable output when the handshake is trying to receive data */
-        SCH_SetFileHandlerEvent(inst->sock_fd, SCH_FILE_OUTPUT,
-                                gnutls_record_get_direction(inst->tls_session));
+        set_input_output(inst, gnutls_record_get_direction(inst->tls_session));
         return 0;
       }
 
@@ -515,8 +523,7 @@ handle_event(NKSN_Instance inst, int event)
         }
 
         /* Disable output when the TLS shutdown is trying to receive data */
-        SCH_SetFileHandlerEvent(inst->sock_fd, SCH_FILE_OUTPUT,
-                                gnutls_record_get_direction(inst->tls_session));
+        set_input_output(inst, gnutls_record_get_direction(inst->tls_session));
         return 0;
       }
 
