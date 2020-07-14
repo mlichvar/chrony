@@ -695,7 +695,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
              !strcasecmp(command, "linux_hz")) {
     LOG(LOGS_WARN, "%s directive is no longer supported", command);
   } else {
-    other_parse_error("Invalid command");
+    other_parse_error("Invalid directive");
   }
 
   processed_file = processed_command = NULL;
