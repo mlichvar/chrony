@@ -134,11 +134,17 @@ int
 SIV_GetKeyLength(SIV_Algorithm algorithm)
 {
   gnutls_cipher_algorithm_t calgo = get_cipher_algorithm(algorithm);
+  int len;
 
   if (calgo == 0)
     return 0;
 
-  return gnutls_cipher_get_key_size(calgo);
+  len = gnutls_cipher_get_key_size(calgo);
+
+  if (len < 1 || len > SIV_MAX_KEY_LENGTH)
+    LOG_FATAL("Invalid key length");
+
+  return len;
 }
 
 /* ================================================== */
@@ -177,7 +183,14 @@ SIV_SetKey(SIV_Instance instance, const unsigned char *key, int length)
 int
 SIV_GetTagLength(SIV_Instance instance)
 {
-  return gnutls_cipher_get_tag_size(instance->algorithm);
+  int len;
+
+  len = gnutls_cipher_get_tag_size(instance->algorithm);
+
+  if (len < 1 || len > SIV_MAX_TAG_LENGTH)
+    LOG_FATAL("Invalid tag length");
+
+  return len;
 }
 
 /* ================================================== */

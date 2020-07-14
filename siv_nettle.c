@@ -69,6 +69,8 @@ SIV_DestroyInstance(SIV_Instance instance)
 int
 SIV_GetKeyLength(SIV_Algorithm algorithm)
 {
+  assert(32 <= SIV_MAX_KEY_LENGTH);
+
   if (algorithm == AEAD_AES_SIV_CMAC_256)
     return 32;
   return 0;
@@ -92,6 +94,8 @@ SIV_SetKey(SIV_Instance instance, const unsigned char *key, int length)
 int
 SIV_GetTagLength(SIV_Instance instance)
 {
+  assert(SIV_DIGEST_SIZE <= SIV_MAX_TAG_LENGTH);
+
   return SIV_DIGEST_SIZE;
 }
 
