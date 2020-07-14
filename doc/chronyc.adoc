@@ -436,7 +436,7 @@ The columns are as follows:
 This column indicates the state of the source after the last source selection.
 It is similar to the state reported by the *sources* command, but more
 states are reported.
-:::
+{blank}:::
 The following states indicate the source is not considered selectable for
 synchronisation:
 * _N_ - has the *noselect* option.
@@ -451,7 +451,7 @@ synchronisation:
         the <<chrony.conf.adoc#local,*local*>> directive).
 * _T_ - does not fully agree with sources that have the *trust* option.
 * _x_ - does not agree with other sources (falseticker).
-:::
+{blank}:::
 The following states indicate the source is considered selectable, but it is
 not currently used for synchronisation:
 * _W_ - waits for other sources to be selectable (required by the
@@ -462,7 +462,7 @@ not currently used for synchronisation:
 * _D_ - has, or recently had, a root distance which is too large to be combined
         with other sources (configured by the
         <<chrony.conf.adoc#combinelimit,*combinelimit*>> directive).
-:::
+{blank}:::
 The following states indicate the source is used for synchronisation of the
 local clock:
 * _+_ - combined with the best source.
@@ -783,7 +783,7 @@ alternative to the form with mask.
 _address_:::
 This is an IP address or a hostname. The burst command is applied only to
 that source.
-::
+{blank}::
 +
 If no _mask_ or _masked-address_ arguments are provided, every source will be
 matched.
@@ -978,7 +978,7 @@ The columns are as as follows:
 . The regression residual at this point, in seconds. This allows '`outliers`'
   to be easily spotted, so that they can be deleted using the *manual delete*
   command.
-::
+{blank}::
 +
 The *delete* form of the command deletes a single sample. The parameter is the
 index of the sample, as shown in the first column of the output from *manual
@@ -1295,7 +1295,7 @@ more than 1 second away from the system clock):
   error).
 . Save the RTC parameters to the RTC file (specified with the
   <<chrony.conf.adoc#rtcfile,*rtcfile*>> directive in the configuration file).
-::
+{blank}::
 +
 The last step is done as a precaution against the computer suffering a power
 failure before either the daemon exits or the <<writertc,*writertc*>> command

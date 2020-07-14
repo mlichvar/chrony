@@ -285,7 +285,7 @@ This option sets the desired number of sources to be used from the pool.
 sources responding to requests. The default value is 4 and the maximum value is
 16.
 +
-::
+{blank}::
 When an NTP source is unreachable,
 marked as a falseticker, or has a distance larger than the limit set by the
 <<maxdistance,*maxdistance*>> directive, *chronyd* will try to replace the
@@ -413,7 +413,7 @@ By default, the PPS refclock uses assert events (rising edge) for
 synchronisation. With this option, it will use clear events (falling edge)
 instead.
 +
-:::
+{blank}:::
 Examples:
 +
 ----
@@ -432,7 +432,7 @@ supports the following option:
 This option specifies the permissions of the shared memory segment created by
 *chronyd*. They are specified as a numeric mode. The default value is 0600
 (read-write access for owner only).
-:::
+{blank}:::
 +
 Examples:
 +
@@ -486,7 +486,7 @@ value is 0.
 This option enables timestamping of clear events (falling edge) instead of
 assert events (rising edge) in the PPS mode. This may not work with some
 clocks.
-:::
+{blank}:::
 +
 Examples:
 +
@@ -496,7 +496,7 @@ refclock PHC /dev/ptp1:nocrossts poll 3 pps
 refclock PHC /dev/ptp2:extpps:pin=1 width 0.2 poll 2
 ----
 +
-::
+{blank}::
 The *refclock* directive supports the following options:
 +
 *poll* _poll_:::
@@ -808,7 +808,7 @@ In this mode, authentication is ignored in the source selection. All sources
 will have only the selection options that were specified in the configuration
 file, or *chronyc* command. This was the behaviour of *chronyd* in versions
 before 4.0.
-::
+{blank}::
 +
 As an example, the following configuration using the default *mix* mode:
 +
@@ -1003,7 +1003,7 @@ clock will be off for a longer time. On Linux with the default
 No correction is applied to the clock for the leap second. The clock will be
 corrected later in normal operation when new measurements are made and the
 estimated offset includes the one second error.
-::
+{blank}::
 +
 When serving time to NTP clients that cannot be configured to correct their
 clocks for a leap second by slewing, or to clients that would correct at
@@ -1474,7 +1474,7 @@ synchronised to it. When that server fails, another will take over.
 +
 The *orphan* mode is compatible with the *ntpd*'s orphan mode (enabled by the
 *tos orphan* command).
-::
+{blank}::
 +
 An example of the directive is:
 +
@@ -1617,7 +1617,7 @@ source address from completely blocking responses to that address. The leak
 rate is defined as a power of 1/2 and it is 2 by default, i.e. on average at
 least every fourth request has a response. The minimum value is 1 and the
 maximum value is 4.
-::
+{blank}::
 +
 An example use of the directive is:
 +
@@ -2115,7 +2115,7 @@ from the example line above):
 . Applied compensation in ppm, positive means the system clock is running
   faster than it would be without the compensation. [3.6600e-01]
 +
-::
+{blank}::
 An example of the directive is:
 +
 ----
@@ -2289,14 +2289,14 @@ _ntp_::::
 Enables timestamping of received NTP packets.
 _none_::::
 Disables timestamping of received packets.
-:::
+{blank}:::
 The most specific filter for timestamping NTP packets which is supported by the
 NIC is selected by default. Some NICs can timestamp only PTP packets, which
 limits the selection to the _none_ filter. Forcing timestamping of all packets
 with the _all_ filter when the NIC supports both _all_ and _ntp_ filters can be
 useful when packets are received from or on a non-standard UDP port (e.g.
 specified by the *port* directive).
-::
+{blank}::
 +
 Examples of the directive are:
 +
