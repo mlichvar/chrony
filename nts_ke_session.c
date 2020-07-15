@@ -622,7 +622,8 @@ init_gnutls(void)
 static void
 deinit_gnutls(void)
 {
-  assert(gnutls_initialised);
+  if (!gnutls_initialised || credentials_counter > 0)
+    return;
 
   LCL_RemoveParameterChangeHandler(handle_step, NULL);
 
@@ -674,6 +675,7 @@ error:
   LOG(LOGS_ERR, "Could not set credentials : %s", gnutls_strerror(r));
   if (credentials)
     gnutls_certificate_free_credentials(credentials);
+  deinit_gnutls();
   return NULL;
 }
 
@@ -684,9 +686,6 @@ NKSN_DestroyCertCredentials(void *credentials)
 {
   gnutls_certificate_free_credentials(credentials);
   credentials_counter--;
-  if (credentials_counter != 0)
-    return;
-
   deinit_gnutls();
 }
 
