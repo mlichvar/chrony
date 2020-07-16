@@ -33,6 +33,7 @@
 
 #include "conf.h"
 #include "logging.h"
+#include "memory.h"
 #include "util.h"
 
 /* This is used by DEBUG_LOG macro */
@@ -61,12 +62,16 @@ static int n_filelogs = 0;
 
 static struct LogFile logfiles[MAX_FILELOGS];
 
+/* Global prefix for debug messages */
+static char *debug_prefix;
+
 /* ================================================== */
 /* Init function */
 
 void
 LOG_Initialise(void)
 {
+  debug_prefix = Strdup("");
   initialised = 1;
   LOG_OpenFileLog(NULL);
 }
@@ -84,6 +89,8 @@ LOG_Finalise(void)
     fclose(file_log);
 
   LOG_CycleLogFiles();
+
+  Free(debug_prefix);
 
   initialised = 0;
 }
@@ -132,6 +139,8 @@ void LOG_Message(LOG_Severity severity,
   time_t t;
   struct tm *tm;
 
+  assert(initialised);
+
   if (!system_log && file_log && severity >= log_min_severity) {
     /* Don't clutter up syslog with timestamps and internal debugging info */
     time(&t);
@@ -142,7 +151,7 @@ void LOG_Message(LOG_Severity severity,
     }
 #if DEBUG > 0
     if (log_min_severity <= LOGS_DEBUG)
-      fprintf(file_log, "%s:%d:(%s) ", filename, line_number, function_name);
+      fprintf(file_log, "%s%s:%d:(%s) ", debug_prefix, filename, line_number, function_name);
 #endif
   }
 
@@ -216,6 +225,23 @@ void LOG_SetMinSeverity(LOG_Severity severity)
 {
   /* Don't print any debug messages in a non-debug build */
   log_min_severity = CLAMP(DEBUG > 0 ? LOGS_DEBUG : LOGS_INFO, severity, LOGS_FATAL);
+}
+
+/* ================================================== */
+
+LOG_Severity
+LOG_GetMinSeverity(void)
+{
+  return log_min_severity;
+}
+
+/* ================================================== */
+
+void
+LOG_SetDebugPrefix(const char *prefix)
+{
+  Free(debug_prefix);
+  debug_prefix = Strdup(prefix);
 }
 
 /* ================================================== */

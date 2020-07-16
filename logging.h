@@ -97,6 +97,12 @@ extern void LOG_Message(LOG_Severity severity, const char *format, ...);
    prefixed with the filename, line number, and function name. */
 extern void LOG_SetMinSeverity(LOG_Severity severity);
 
+/* Get the minimum severity */
+extern LOG_Severity LOG_GetMinSeverity(void);
+
+/* Set a prefix for debug messages */
+extern void LOG_SetDebugPrefix(const char *prefix);
+
 /* Log messages to a file instead of stderr, or stderr again if NULL */
 extern void LOG_OpenFileLog(const char *log_file);
 
