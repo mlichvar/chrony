@@ -176,8 +176,10 @@ NNS_CheckRequestAuth(NTP_Packet *packet, NTP_PacketInfo *info, uint32_t *kod)
 
   for (parsed = 0; parsed < plaintext_length; parsed += ef_length) {
     if (!NEF_ParseSingleField(plaintext, plaintext_length, parsed,
-                              &ef_length, &ef_type, &ef_body, &ef_body_length))
-      break;
+                              &ef_length, &ef_type, &ef_body, &ef_body_length)) {
+      DEBUG_LOG("Could not parse encrypted EF");
+      return 0;
+    }
 
     switch (ef_type) {
       case NTP_EF_NTS_COOKIE_PLACEHOLDER:

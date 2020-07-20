@@ -352,8 +352,10 @@ extract_cookies(NNC_Instance inst, unsigned char *plaintext, int length)
 
   for (parsed = 0; parsed < length; parsed += ef_length) {
     if (!NEF_ParseSingleField(plaintext, length, parsed,
-                              &ef_length, &ef_type, &ef_body, &ef_body_length))
-      break;
+                              &ef_length, &ef_type, &ef_body, &ef_body_length)) {
+      DEBUG_LOG("Could not parse encrypted EF");
+      return 0;
+    }
 
     if (ef_type != NTP_EF_NTS_COOKIE)
       continue;
