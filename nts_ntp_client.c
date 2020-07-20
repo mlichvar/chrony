@@ -335,6 +335,7 @@ NNC_GenerateRequestAuth(NNC_Instance inst, NTP_Packet *packet,
 
   inst->num_cookies--;
   inst->cookie_index = (inst->cookie_index + 1) % NTS_MAX_COOKIES;
+  inst->nak_response = 0;
   inst->ok_response = 0;
 
   return 1;

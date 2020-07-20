@@ -599,8 +599,8 @@ This column shows the number of attempts to perform the key establishment since
 the last successful key establishment. A number larger than 1 indicates a
 problem with the network or server.
 *NAK*:::
-This column shows whether an NTS NAK was received since the last authenticated
-response. A NAK indicates that authentication failed on the server side due to
+This column shows whether an NTS NAK was received since the last request.
+A NAK indicates that authentication failed on the server side due to
 *chronyd* using a cookie which is no longer valid and that it needs to perform
 the key establishment again in order to get new cookies.
 *Cook*:::

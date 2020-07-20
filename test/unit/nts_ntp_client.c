@@ -82,9 +82,11 @@ get_request(NNC_Instance inst)
   info.mode = MODE_CLIENT;
   info.length = random() % (sizeof (packet) + 1);
 
-  inst->num_cookies = 0;
+  if (inst->num_cookies > 0 && random() % 2) {
+    inst->num_cookies = 0;
 
-  TEST_CHECK(!NNC_GenerateRequestAuth(inst, &packet, &info));
+    TEST_CHECK(!NNC_GenerateRequestAuth(inst, &packet, &info));
+  }
 
   while (!NNC_PrepareForAuth(inst)) {
     inst->next_nke_attempt = SCH_GetLastEventMonoTime() + random() % 10 - 7;
