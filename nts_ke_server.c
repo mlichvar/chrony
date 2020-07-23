@@ -330,6 +330,15 @@ prepare_response(NKSN_Instance session, int error, int next_protocol, int aead_a
     datum = htons(error);
     if (!NKSN_AddRecord(session, 1, NKE_RECORD_ERROR, &datum, sizeof (datum)))
       return 0;
+  } else if (next_protocol < 0) {
+    if (!NKSN_AddRecord(session, 1, NKE_RECORD_NEXT_PROTOCOL, NULL, 0))
+      return 0;
+  } else if (aead_algorithm < 0) {
+    datum = htons(next_protocol);
+    if (!NKSN_AddRecord(session, 1, NKE_RECORD_NEXT_PROTOCOL, &datum, sizeof (datum)))
+      return 0;
+    if (!NKSN_AddRecord(session, 1, NKE_RECORD_AEAD_ALGORITHM, NULL, 0))
+      return 0;
   } else {
     datum = htons(next_protocol);
     if (!NKSN_AddRecord(session, 1, NKE_RECORD_NEXT_PROTOCOL, &datum, sizeof (datum)))
@@ -376,6 +385,8 @@ prepare_response(NKSN_Instance session, int error, int next_protocol, int aead_a
 static int
 process_request(NKSN_Instance session)
 {
+  int next_protocol_records = 0, aead_algorithm_records = 0;
+  int next_protocol_values = 0, aead_algorithm_values = 0;
   int next_protocol = -1, aead_algorithm = -1, error = -1;
   int i, critical, type, length;
   uint16_t data[NKE_MAX_RECORD_BODY_LENGTH / sizeof (uint16_t)];
@@ -383,7 +394,7 @@ process_request(NKSN_Instance session)
   assert(NKE_MAX_RECORD_BODY_LENGTH % sizeof (uint16_t) == 0);
   assert(sizeof (uint16_t) == 2);
 
-  while (error == -1) {
+  while (error < 0) {
     if (!NKSN_GetRecord(session, &critical, &type, &length, &data, sizeof (data)))
       break;
 
@@ -393,7 +404,11 @@ process_request(NKSN_Instance session)
           error = NKE_ERROR_BAD_REQUEST;
           break;
         }
+
+        next_protocol_records++;
+
         for (i = 0; i < MIN(length, sizeof (data)) / 2; i++) {
+          next_protocol_values++;
           if (ntohs(data[i]) == NKE_NEXT_PROTOCOL_NTPV4)
             next_protocol = NKE_NEXT_PROTOCOL_NTPV4;
         }
@@ -403,7 +418,11 @@ process_request(NKSN_Instance session)
           error = NKE_ERROR_BAD_REQUEST;
           break;
         }
+
+        aead_algorithm_records++;
+
         for (i = 0; i < MIN(length, sizeof (data)) / 2; i++) {
+          aead_algorithm_values++;
           if (ntohs(data[i]) == AEAD_AES_SIV_CMAC_256)
             aead_algorithm = AEAD_AES_SIV_CMAC_256;
         }
@@ -419,8 +438,12 @@ process_request(NKSN_Instance session)
     }
   }
 
-  if (aead_algorithm < 0 || next_protocol < 0)
-    error = NKE_ERROR_BAD_REQUEST;
+  if (error < 0) {
+    if (next_protocol_records != 1 || next_protocol_values < 1 ||
+        (next_protocol == NKE_NEXT_PROTOCOL_NTPV4 &&
+         (aead_algorithm_records != 1 || aead_algorithm_values < 1)))
+      error = NKE_ERROR_BAD_REQUEST;
+  }
 
   if (!prepare_response(session, error, next_protocol, aead_algorithm))
     return 0;
