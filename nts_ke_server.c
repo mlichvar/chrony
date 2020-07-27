@@ -277,8 +277,8 @@ static int
 open_socket(int family)
 {
   IPSockAddr local_addr;
+  int backlog, sock_fd;
   char *iface;
-  int sock_fd;
 
   if (!SCK_IsIpFamilyEnabled(family))
     return INVALID_SOCK_FD;
@@ -293,7 +293,11 @@ open_socket(int family)
     return INVALID_SOCK_FD;
   }
 
-  if (!SCK_ListenOnSocket(sock_fd, CNF_GetNtsServerConnections())) {
+  /* Set the maximum number of waiting connections on the socket to the maximum
+     number of concurrent sessions */
+  backlog = MAX(CNF_GetNtsServerProcesses(), 1) * CNF_GetNtsServerConnections();
+
+  if (!SCK_ListenOnSocket(sock_fd, backlog)) {
     SCK_CloseSocket(sock_fd);
     return INVALID_SOCK_FD;
   }
