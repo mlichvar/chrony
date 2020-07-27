@@ -641,11 +641,11 @@ run_helper(uid_t uid, gid_t gid, int scfilter_level)
   if (!geteuid() && (uid || gid))
     SYS_DropRoot(uid, gid);
 
+  NKS_Initialise();
+
   UTI_SetQuitSignalsHandler(helper_signal, 1);
   if (scfilter_level != 0)
     SYS_EnableSystemCallFilter(scfilter_level, SYS_NTSKE_HELPER);
-
-  NKS_Initialise();
 
   SCH_MainLoop();
 
