@@ -72,7 +72,7 @@ name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *arg
   inst->resolving_name = 0;
 
   if (inst->destroying) {
-    NKC_DestroyInstance(inst);
+    Free(inst);
     return;
   }
 
@@ -292,22 +292,24 @@ NKC_CreateInstance(IPSockAddr *address, const char *name)
 void
 NKC_DestroyInstance(NKC_Instance inst)
 {
-  /* If the resolver is running, destroy the instance later when finished */
-  if (inst->resolving_name) {
-    inst->destroying = 1;
-    return;
-  }
-
   NKSN_DestroyInstance(inst->session);
 
   Free(inst->name);
-  Free(inst);
 
   client_credentials_refs--;
   if (client_credentials_refs <= 0 && client_credentials) {
     NKSN_DestroyCertCredentials(client_credentials);
     client_credentials = NULL;
   }
+
+  /* If the asynchronous resolver is running, let the handler free
+     the instance later */
+  if (inst->resolving_name) {
+    inst->destroying = 1;
+    return;
+  }
+
+  Free(inst);
 }
 
 /* ================================================== */
