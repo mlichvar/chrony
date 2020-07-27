@@ -112,15 +112,18 @@ NNS_CheckRequestAuth(NTP_Packet *packet, NTP_PacketInfo *info, uint32_t *kod)
   for (parsed = NTP_HEADER_LENGTH; parsed < info->length; parsed += ef_length) {
     if (!NEF_ParseField(packet, info->length, parsed,
                         &ef_length, &ef_type, &ef_body, &ef_body_length))
-      break;
+      /* This is not expected as the packet already passed NAU_ParsePacket() */
+      return 0;
 
     switch (ef_type) {
       case NTP_EF_NTS_UNIQUE_IDENTIFIER:
         has_uniq_id = 1;
         break;
       case NTP_EF_NTS_COOKIE:
-        if (has_cookie || ef_body_length > sizeof (cookie.cookie))
+        if (has_cookie || ef_body_length > sizeof (cookie.cookie)) {
+          DEBUG_LOG("Unexpected cookie/length");
           return 0;
+        }
         cookie.length = ef_body_length;
         memcpy(cookie.cookie, ef_body, ef_body_length);
         has_cookie = 1;
@@ -199,12 +202,17 @@ NNS_CheckRequestAuth(NTP_Packet *packet, NTP_PacketInfo *info, uint32_t *kod)
     return 0;
   }
 
+  /* Prepare data for NNS_GenerateResponseAuth() to minimise the time spent
+     there (when the TX timestamp is already set) */
+
   UTI_GetRandomBytes(server->nonce, sizeof (server->nonce));
 
-  server->num_cookies = MIN(NTS_MAX_COOKIES, requested_cookies);
-  for (i = 0; i < server->num_cookies; i++)
+  assert(sizeof (server->cookies) / sizeof (server->cookies[0]) == NTS_MAX_COOKIES);
+  for (i = 0; i < NTS_MAX_COOKIES && i < requested_cookies; i++)
     if (!NKS_GenerateCookie(&context, &server->cookies[i]))
       return 0;
+
+  server->num_cookies = i;
 
   return 1;
 }
@@ -224,14 +232,16 @@ NNS_GenerateResponseAuth(NTP_Packet *request, NTP_PacketInfo *req_info,
   if (!server || req_info->mode != MODE_CLIENT || res_info->mode != MODE_SERVER)
     return 0;
 
-  /* Make sure this is a response to the expected request */
+  /* Make sure this is a response to the request from the last call
+     of NNS_CheckRequestAuth() */
   if (UTI_CompareNtp64(&server->req_tx, &request->transmit_ts) != 0)
     assert(0);
 
   for (parsed = NTP_HEADER_LENGTH; parsed < req_info->length; parsed += ef_length) {
     if (!NEF_ParseField(request, req_info->length, parsed,
                         &ef_length, &ef_type, &ef_body, &ef_body_length))
-      break;
+      /* This is not expected as the packet already passed NAU_ParsePacket() */
+      return 0;
 
     switch (ef_type) {
       case NTP_EF_NTS_UNIQUE_IDENTIFIER:
@@ -249,7 +259,7 @@ NNS_GenerateResponseAuth(NTP_Packet *request, NTP_PacketInfo *req_info,
 
   for (i = 0, plaintext_length = 0; i < server->num_cookies; i++) {
     if (!NEF_SetField(plaintext, sizeof (plaintext), plaintext_length,
-                      NTP_EF_NTS_COOKIE, &server->cookies[i].cookie,
+                      NTP_EF_NTS_COOKIE, server->cookies[i].cookie,
                       server->cookies[i].length, &ef_length))
       return 0;
 
@@ -259,6 +269,8 @@ NNS_GenerateResponseAuth(NTP_Packet *request, NTP_PacketInfo *req_info,
 
   server->num_cookies = 0;
 
+  /* Generate an authenticator field which will make the length
+     of the response equal to the length of the request */
   if (!NNA_GenerateAuthEF(response, res_info, server->siv,
                           server->nonce, sizeof (server->nonce),
                           plaintext, plaintext_length,

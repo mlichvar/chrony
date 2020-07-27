@@ -102,6 +102,10 @@ NNA_GenerateAuthEF(NTP_Packet *packet, NTP_PacketInfo *info, SIV_Instance siv,
   body = (unsigned char *)(header + 1);
   ciphertext = body + nonce_length + nonce_padding;
 
+  if ((unsigned char *)header + auth_length !=
+      ciphertext + ciphertext_length + ciphertext_padding + additional_padding)
+    assert(0);
+
   memcpy(body, nonce, nonce_length);
   memset(body + nonce_length, 0, nonce_padding);
 
@@ -135,7 +139,7 @@ NNA_DecryptAuthEF(NTP_Packet *packet, NTP_PacketInfo *info, SIV_Instance siv, in
                       NULL, &ef_type, &ef_body, &ef_body_length))
     return 0;
 
-  if (ef_type != NTP_EF_NTS_AUTH_AND_EEF)
+  if (ef_type != NTP_EF_NTS_AUTH_AND_EEF || ef_body_length < sizeof (*header))
     return 0;
 
   header = ef_body;
@@ -148,7 +152,7 @@ NNA_DecryptAuthEF(NTP_Packet *packet, NTP_PacketInfo *info, SIV_Instance siv, in
     return 0;
 
   nonce = (unsigned char *)(header + 1);
-  ciphertext = (unsigned char *)(header + 1) + get_padded_length(nonce_length);
+  ciphertext = nonce + get_padded_length(nonce_length);
 
   siv_tag_length = SIV_GetTagLength(siv);
 
@@ -166,6 +170,7 @@ NNA_DecryptAuthEF(NTP_Packet *packet, NTP_PacketInfo *info, SIV_Instance siv, in
   }
 
   *plaintext_length = ciphertext_length - siv_tag_length;
+  assert(*plaintext_length >= 0);
 
   if (!SIV_Decrypt(siv, nonce, nonce_length, packet, ef_start,
                    ciphertext, ciphertext_length, plaintext, *plaintext_length)) {
