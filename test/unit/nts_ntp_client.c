@@ -27,10 +27,11 @@
 #include "ntp.h"
 #include "nts_ke_client.h"
 
-#define NKC_CreateInstance(address, name) NULL
-#define NKC_DestroyInstance(inst)
+#define NKC_CreateInstance(address, name) Malloc(1)
+#define NKC_DestroyInstance(inst) Free(inst)
 #define NKC_Start(inst) (random() % 2)
 #define NKC_IsActive(inst) (random() % 2)
+#define NKC_GetRetryFactor(inst) (1)
 
 static int get_nts_data(NKC_Instance inst, NKE_Context *context,
                         NKE_Cookie *cookies, int *num_cookies, int max_cookies,
