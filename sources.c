@@ -793,6 +793,9 @@ SRC_SelectSource(SRC_Instance updated_inst)
   for (i = 0; i < n_sources; i++) {
     assert(sources[i]->status != SRC_OK);
 
+    /* Don't allow the source to vote on leap seconds unless it's selectable */
+    sources[i]->leap_vote = 0;
+
     /* If some sources are specified with the require option, at least one
        of them will have to be selectable in order to update the clock */
     if (sources[i]->sel_options & SRC_SELECT_REQUIRE)
@@ -842,7 +845,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
     }
 
     sources[i]->status = SRC_OK; /* For now */
-    sources[i]->leap_vote = 0;
 
     if (sources[i]->reachability && max_reach_sample_ago < first_sample_ago)
       max_reach_sample_ago = first_sample_ago;
