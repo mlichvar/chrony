@@ -1032,6 +1032,7 @@ char *
 UTI_PathToDir(const char *path)
 {
   char *dir, *slash;
+  size_t dir_len;
 
   slash = strrchr(path, '/');
 
@@ -1041,8 +1042,11 @@ UTI_PathToDir(const char *path)
   if (slash == path)
     return Strdup("/");
 
-  dir = Malloc(slash - path + 1);
-  snprintf(dir, slash - path + 1, "%s", path);
+  dir_len = slash - path;
+
+  dir = Malloc(dir_len + 1);
+  memcpy(dir, path, dir_len);
+  dir[dir_len] = '\0';
 
   return dir;
 }
