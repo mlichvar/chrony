@@ -83,7 +83,7 @@ static void read_from_socket(int sock_fd, int event, void *anything);
 static int
 open_socket(int family, int local_port, int client_only, IPSockAddr *remote_addr)
 {
-  int sock_fd, sock_flags, events = SCH_FILE_INPUT;
+  int sock_fd, sock_flags, dscp, events = SCH_FILE_INPUT;
   IPSockAddr local_addr;
   char *iface;
 
@@ -109,6 +109,14 @@ open_socket(int family, int local_port, int client_only, IPSockAddr *remote_addr
     if (!client_only)
       LOG(LOGS_ERR, "Could not open NTP socket on %s", UTI_IPSockAddrToString(&local_addr));
     return INVALID_SOCK_FD;
+  }
+
+  dscp = CNF_GetNtpDscp();
+  if (dscp > 0 && dscp < 64) {
+#ifdef IP_TOS
+    if (!SCK_SetIntOption(sock_fd, IPPROTO_IP, IP_TOS, dscp << 2))
+      ;
+#endif
   }
 
   if (!client_only && family == IPADDR_INET4 && local_addr.port > 0)

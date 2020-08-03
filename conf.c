@@ -201,6 +201,9 @@ static char *bind_cmd_iface = NULL;
 /* Path to the Unix domain command socket. */
 static char *bind_cmd_path = NULL;
 
+/* Differentiated Services Code Point (DSCP) in transmitted NTP packets */
+static int ntp_dscp = 0;
+
 /* Path to Samba (ntp_signd) socket. */
 static char *ntp_signd_socket = NULL;
 
@@ -560,6 +563,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_allow_deny(p, ntp_restrictions, 0);
   } else if (!strcasecmp(command, "driftfile")) {
     parse_string(p, &drift_file);
+  } else if (!strcasecmp(command, "dscp")) {
+    parse_int(p, &ntp_dscp);
   } else if (!strcasecmp(command, "dumpdir")) {
     parse_string(p, &dumpdir);
   } else if (!strcasecmp(command, "dumponexit")) {
@@ -2293,6 +2298,14 @@ CNF_GetBindCommandAddress(int family, IPAddr *addr)
     *addr = bind_cmd_address6;
   else
     addr->family = IPADDR_UNSPEC;
+}
+
+/* ================================================== */
+
+int
+CNF_GetNtpDscp(void)
+{
+  return ntp_dscp;
 }
 
 /* ================================================== */

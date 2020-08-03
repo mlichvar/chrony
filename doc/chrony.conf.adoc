@@ -652,6 +652,19 @@ An example of the directive is:
 bindacqdevice eth0
 ----
 
+[[dscp]]*dscp* _point_::
+The *dscp* directive sets the Differentiated Services Code Point (DSCP) in
+transmitted NTP packets to the specified value. It can improve stability of NTP
+measurements in local networks where switches or routers are configured to
+prioritise forwarding of packets with specific DSCP values. The default value
+is 0 and the maximum value is 63.
++
+An example of the directive (setting the Expedited Forwarding class) is:
++
+----
+dscp 46
+----
+
 [[dumpdir]]*dumpdir* _directory_::
 To compute the rate of gain or loss of time, *chronyd* has to store a
 measurement history for each of the time sources it uses.

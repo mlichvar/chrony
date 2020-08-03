@@ -83,6 +83,7 @@ extern char *CNF_GetBindNtpInterface(void);
 extern char *CNF_GetBindAcquisitionInterface(void);
 extern char *CNF_GetBindCommandInterface(void);
 extern char *CNF_GetBindCommandPath(void);
+extern int CNF_GetNtpDscp(void);
 extern char *CNF_GetNtpSigndSocket(void);
 extern char *CNF_GetPidFile(void);
 extern REF_LeapMode CNF_GetLeapSecMode(void);
