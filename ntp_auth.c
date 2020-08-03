@@ -55,20 +55,29 @@ generate_symmetric_auth(uint32_t key_id, NTP_Packet *packet, NTP_PacketInfo *inf
 {
   int auth_len, max_auth_len;
 
+  if (info->length + NTP_MIN_MAC_LENGTH > sizeof (*packet)) {
+    DEBUG_LOG("Packet too long");
+    return 0;
+  }
+
   /* Truncate long MACs in NTPv4 packets to allow deterministic parsing
      of extension fields (RFC 7822) */
   max_auth_len = (info->version == 4 ? NTP_MAX_V4_MAC_LENGTH : NTP_MAX_MAC_LENGTH) - 4;
-  max_auth_len = MIN(max_auth_len, sizeof (NTP_Packet) - info->length - 4);
+  max_auth_len = MIN(max_auth_len, sizeof (*packet) - info->length - 4);
 
   auth_len = KEY_GenerateAuth(key_id, packet, info->length,
                               (unsigned char *)packet + info->length + 4, max_auth_len);
-  if (!auth_len) {
+  if (auth_len < NTP_MIN_MAC_LENGTH - 4) {
     DEBUG_LOG("Could not generate auth data with key %"PRIu32, key_id);
     return 0;
   }
 
   *(uint32_t *)((unsigned char *)packet + info->length) = htonl(key_id);
-  info->length += 4 + auth_len;
+
+  info->auth.mac.start = info->length;
+  info->auth.mac.length = 4 + auth_len;
+  info->auth.mac.key_id = key_id;
+  info->length += info->auth.mac.length;
 
   return 1;
 }
@@ -102,7 +111,7 @@ is_zero_data(unsigned char *data, int length)
   int i;
 
   for (i = 0; i < length; i++)
-    if (data[i])
+    if (data[i] != 0)
       return 0;
   return 1;
 }
@@ -230,6 +239,8 @@ NAU_GenerateRequestAuth(NAU_Instance instance, NTP_Packet *request, NTP_PacketIn
       assert(0);
   }
 
+  info->auth.mode = instance->mode;
+
   return 1;
 }
 
@@ -251,6 +262,8 @@ NAU_ParsePacket(NTP_Packet *packet, NTP_PacketInfo *info)
   if (remainder <= 0)
     return 1;
 
+  assert(remainder % 4 == 0);
+
   /* In NTPv3 and older packets don't have extension fields.  Anything after
      the header is assumed to be a MAC. */
   if (info->version <= 3) {
@@ -261,7 +274,7 @@ NAU_ParsePacket(NTP_Packet *packet, NTP_PacketInfo *info)
 
     /* Check if it is an MS-SNTP authenticator field or extended authenticator
        field with zeroes as digest */
-    if (info->version == 3 && info->auth.mac.key_id) {
+    if (info->version == 3 && info->auth.mac.key_id != 0) {
       if (remainder == 20 && is_zero_data(data + parsed + 4, remainder - 4))
         info->auth.mode = NTP_AUTH_MSSNTP;
       else if (remainder == 72 && is_zero_data(data + parsed + 8, remainder - 8))
@@ -295,7 +308,7 @@ NAU_ParsePacket(NTP_Packet *packet, NTP_PacketInfo *info)
     if (parsed == NTP_HEADER_LENGTH &&
         remainder > NTP_MAX_V4_MAC_LENGTH && remainder <= NTP_MAX_MAC_LENGTH &&
         KEY_CheckAuth(ntohl(*(uint32_t *)(data + parsed)), data, parsed,
-                      (void *)(data + parsed + 4), remainder - 4, NTP_MAX_MAC_LENGTH - 4))
+                      data + parsed + 4, remainder - 4, NTP_MAX_MAC_LENGTH - 4))
       break;
 
     /* Check if this is a valid NTPv4 extension field and skip it */
@@ -305,7 +318,7 @@ NAU_ParsePacket(NTP_Packet *packet, NTP_PacketInfo *info)
       return 0;
     }
 
-    assert(ef_length > 0);
+    assert(ef_length > 0 && ef_length % 4 == 0);
 
     switch (ef_type) {
       case NTP_EF_NTS_UNIQUE_IDENTIFIER:
@@ -358,6 +371,9 @@ NAU_CheckRequestAuth(NTP_Packet *request, NTP_PacketInfo *info, uint32_t *kod)
     case NTP_AUTH_MSSNTP:
       /* MS-SNTP requests are not authenticated */
       break;
+    case NTP_AUTH_MSSNTP_EXT:
+      /* Not supported yet */
+      return 0;
     case NTP_AUTH_NTS:
       if (!NNS_CheckRequestAuth(request, info, kod))
         return 0;
@@ -399,6 +415,8 @@ NAU_GenerateResponseAuth(NTP_Packet *request, NTP_PacketInfo *request_info,
       DEBUG_LOG("Could not authenticate response auth_mode=%d", (int)request_info->auth.mode);
       return 0;
   }
+
+  response_info->auth.mode = request_info->auth.mode;
 
   return 1;
 }
