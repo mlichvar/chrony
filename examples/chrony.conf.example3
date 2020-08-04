@@ -146,6 +146,18 @@ ntsdumpdir /var/lib/chrony
 ! makestep 1.0 3
 
 #######################################################################
+### LEAP SECONDS
+# A leap second is an occasional one-second correction of the UTC
+# time scale.  By default, chronyd tells the kernel to insert/delete
+# the leap second, which makes a backward/forward step to correct the
+# clock for it.  As with the makestep directive, this jump can upset
+# some applications.  If you prefer chronyd to make a gradual
+# correction, causing the clock to be off for a longer time, uncomment
+# the following line.
+
+! leapsecmode slew
+
+#######################################################################
 ### LOGGING
 # If you want to log information about the time measurements chronyd has
 # gathered, you might want to enable the following lines.  You probably

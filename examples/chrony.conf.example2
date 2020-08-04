@@ -34,6 +34,9 @@ rtcsync
 # Save NTS keys and cookies.
 ntsdumpdir /var/lib/chrony
 
+# Insert/delete leap seconds by slewing instead of stepping.
+#leapsecmode slew
+
 # Get TAI-UTC offset and leap seconds from the system tz database.
 #leapsectz right/UTC
 
