@@ -1245,7 +1245,7 @@ give_help(void)
     "\0(e.g. Sep 25, 2015 16:30:05 or 16:30:05)\0"
     "\0\0NTP access:\0\0"
     "accheck <address>\0Check whether address is allowed\0"
-    "clients [-p <packets>] [-r]\0Report on clients that accessed the server\0"
+    "clients [-p <packets>] [-k] [-r]\0Report on clients that accessed the server\0"
     "serverstats\0Display statistics of the server\0"
     "allow [<subnet>]\0Allow access to subnet as a default\0"
     "allow all [<subnet>]\0Allow access to subnet and all children\0"
