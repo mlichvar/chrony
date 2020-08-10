@@ -54,7 +54,7 @@ typedef struct {
                                       is not resolved yet) */
   NCR_Instance data;            /* Data for the protocol engine for this source */
   char *name;                   /* Name of the source, may be NULL */
-  int pool;                     /* Number of the pool from which was this source
+  int pool_id;                  /* ID of the pool from which was this source
                                    added or INVALID_POOL */
   int tentative;                /* Flag indicating there was no valid response
                                    received from the source yet */
@@ -84,7 +84,7 @@ struct UnresolvedSource {
      with unknown address and IPADDR_UNSPEC for a pool of sources */
   NTP_Remote_Address address;
   /* ID of the pool if not a single source */
-  int pool;
+  int pool_id;
   /* Name to be resolved */
   char *name;
   /* Flag indicating addresses should be used in a random order */
@@ -119,7 +119,7 @@ struct SourcePool {
   int max_sources;
 };
 
-/* Array of SourcePool */
+/* Array of SourcePool (indexed by their ID) */
 static ARR_Instance pools;
 
 /* ================================================== */
@@ -128,7 +128,7 @@ static ARR_Instance pools;
 static void resolve_sources(void);
 static void rehash_records(void);
 static void clean_source_record(SourceRecord *record);
-static void remove_pool_sources(int pool, int tentative, int unresolved);
+static void remove_pool_sources(int pool_id, int tentative, int unresolved);
 static void remove_unresolved_source(struct UnresolvedSource *us);
 
 static void
@@ -307,7 +307,7 @@ rehash_records(void)
 /* Procedure to add a new source */
 static NSR_Status
 add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type,
-           SourceParameters *params, int pool, uint32_t conf_id)
+           SourceParameters *params, int pool_id, uint32_t conf_id)
 {
   SourceRecord *record;
   int slot;
@@ -335,14 +335,14 @@ add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type,
       record->data = NCR_CreateInstance(remote_addr, type, params, name);
       record->remote_addr = NCR_GetRemoteAddress(record->data);
       record->name = name ? Strdup(name) : NULL;
-      record->pool = pool;
+      record->pool_id = pool_id;
       record->tentative = 1;
       record->conf_id = conf_id;
 
-      if (record->pool != INVALID_POOL) {
-        get_pool(record->pool)->sources++;
+      if (record->pool_id != INVALID_POOL) {
+        get_pool(record->pool_id)->sources++;
         if (!UTI_IsIPReal(&remote_addr->ip_addr))
-          get_pool(record->pool)->unresolved_sources++;
+          get_pool(record->pool_id)->unresolved_sources++;
       }
 
       if (auto_start_sources && UTI_IsIPReal(&remote_addr->ip_addr))
@@ -380,15 +380,15 @@ change_source_address(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr
   if (!UTI_IsIPReal(&old_addr->ip_addr) && UTI_IsIPReal(&new_addr->ip_addr)) {
     if (auto_start_sources)
       NCR_StartInstance(record->data);
-    if (record->pool != INVALID_POOL)
-      get_pool(record->pool)->unresolved_sources--;
+    if (record->pool_id != INVALID_POOL)
+      get_pool(record->pool_id)->unresolved_sources--;
   }
 
   if (!record->tentative) {
     record->tentative = 1;
 
-    if (record->pool != INVALID_POOL)
-      get_pool(record->pool)->confirmed_sources--;
+    if (record->pool_id != INVALID_POOL)
+      get_pool(record->pool_id)->confirmed_sources--;
   }
 
   name = record->name;
@@ -443,12 +443,12 @@ process_resolved_name(struct UnresolvedSource *us, IPAddr *ip_addrs, int n_addrs
 
     DEBUG_LOG("(%d) %s", i + 1, UTI_IPToString(&new_addr.ip_addr));
 
-    if (us->pool != INVALID_POOL) {
+    if (us->pool_id != INVALID_POOL) {
       /* In the pool resolving mode, try to replace all sources from
          the pool which don't have a real address yet */
       for (j = 0; j < ARR_GetSize(records); j++) {
         record = get_record(j);
-        if (!record->remote_addr || record->pool != us->pool ||
+        if (!record->remote_addr || record->pool_id != us->pool_id ||
             UTI_IsIPReal(&record->remote_addr->ip_addr))
           continue;
         old_addr = *record->remote_addr;
@@ -471,8 +471,8 @@ is_resolved(struct UnresolvedSource *us)
 {
   int slot;
 
-  if (us->pool != INVALID_POOL) {
-    return get_pool(us->pool)->unresolved_sources <= 0;
+  if (us->pool_id != INVALID_POOL) {
+    return get_pool(us->pool_id)->unresolved_sources <= 0;
   } else {
     /* If the address is no longer present, it was removed or replaced
        (i.e. resolved) */
@@ -659,7 +659,7 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
   remote_addr.port = port;
 
   if (!pool) {
-    us->pool = INVALID_POOL;
+    us->pool_id = INVALID_POOL;
     us->address = remote_addr;
     new_sources = 1;
   } else {
@@ -668,7 +668,7 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
     sp->unresolved_sources = 0;
     sp->confirmed_sources = 0;
     sp->max_sources = CLAMP(1, params->max_sources, MAX_POOL_SOURCES);
-    us->pool = ARR_GetSize(pools) - 1;
+    us->pool_id = ARR_GetSize(pools) - 1;
     us->address.ip_addr.family = IPADDR_UNSPEC;
     new_sources = MIN(2 * sp->max_sources, MAX_POOL_SOURCES);
   }
@@ -682,7 +682,7 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
   for (i = 0; i < new_sources; i++) {
     if (i > 0)
       remote_addr.ip_addr.addr.id = ++last_address_id;
-    if (add_source(&remote_addr, name, type, params, us->pool, last_conf_id) != NSR_Success)
+    if (add_source(&remote_addr, name, type, params, us->pool_id, last_conf_id) != NSR_Success)
       return NSR_TooManySources;
   }
 
@@ -749,8 +749,8 @@ clean_source_record(SourceRecord *record)
 {
   assert(record->remote_addr);
 
-  if (record->pool != INVALID_POOL) {
-    struct SourcePool *pool = get_pool(record->pool);
+  if (record->pool_id != INVALID_POOL) {
+    struct SourcePool *pool = get_pool(record->pool_id);
 
     pool->sources--;
     if (!UTI_IsIPReal(&record->remote_addr->ip_addr))
@@ -846,7 +846,7 @@ resolve_source_replacement(SourceRecord *record)
      stuck to a pair of addresses if the order doesn't change, or a group of
      IPv4/IPv6 addresses if the resolver prefers inaccessible IP family */
   us->random_order = record->tentative;
-  us->pool = INVALID_POOL;
+  us->pool_id = INVALID_POOL;
   us->address = *record->remote_addr;
 
   append_unresolved_source(us);
@@ -915,7 +915,7 @@ NSR_UpdateSourceNtpAddress(NTP_Remote_Address *old_addr, NTP_Remote_Address *new
 
 /* ================================================== */
 
-static void remove_pool_sources(int pool, int tentative, int unresolved)
+static void remove_pool_sources(int pool_id, int tentative, int unresolved)
 {
   SourceRecord *record;
   unsigned int i, removed;
@@ -923,7 +923,7 @@ static void remove_pool_sources(int pool, int tentative, int unresolved)
   for (i = removed = 0; i < ARR_GetSize(records); i++) {
     record = get_record(i);
 
-    if (!record->remote_addr || record->pool != pool)
+    if (!record->remote_addr || record->pool_id != pool_id)
       continue;
 
     if ((tentative && !record->tentative) ||
@@ -997,8 +997,8 @@ NSR_ProcessRx(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
       /* This was the first good reply from the source */
       record->tentative = 0;
 
-      if (record->pool != INVALID_POOL) {
-        pool = get_pool(record->pool);
+      if (record->pool_id != INVALID_POOL) {
+        pool = get_pool(record->pool_id);
         pool->confirmed_sources++;
 
         DEBUG_LOG("pool %s has %d confirmed sources", record->name, pool->confirmed_sources);
@@ -1006,7 +1006,7 @@ NSR_ProcessRx(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
         /* If the number of sources from the pool reached the configured
            maximum, remove the remaining tentative sources */
         if (pool->confirmed_sources >= pool->max_sources)
-          remove_pool_sources(record->pool, 1, 0);
+          remove_pool_sources(record->pool_id, 1, 0);
       }
     }
   } else {
