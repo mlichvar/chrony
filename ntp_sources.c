@@ -609,6 +609,31 @@ remove_unresolved_source(struct UnresolvedSource *us)
 
 /* ================================================== */
 
+static int get_unused_pool_id(void)
+{
+  struct UnresolvedSource *us;
+  int i;
+
+  for (i = 0; i < ARR_GetSize(pools); i++) {
+    if (get_pool(i)->sources > 0)
+      continue;
+
+    /* Make sure there is no name waiting to be resolved using this pool */
+    for (us = unresolved_sources; us; us = us->next) {
+      if (us->pool_id == i)
+        break;
+    }
+    if (us)
+      continue;
+
+    return i;
+  }
+
+  return INVALID_POOL;
+}
+
+/* ================================================== */
+
 NSR_Status
 NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
               SourceParameters *params, uint32_t *conf_id)
@@ -635,7 +660,7 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
   struct UnresolvedSource *us;
   struct SourcePool *sp;
   NTP_Remote_Address remote_addr;
-  int i, new_sources;
+  int i, new_sources, pool_id;
 
   /* If the name is an IP address, don't bother with full resolving now
      or later when trying to replace the source */
@@ -663,12 +688,19 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
     us->address = remote_addr;
     new_sources = 1;
   } else {
-    sp = (struct SourcePool *)ARR_GetNewElement(pools);
+    pool_id = get_unused_pool_id();
+    if (pool_id != INVALID_POOL) {
+      sp = get_pool(pool_id);
+    } else {
+      sp = ARR_GetNewElement(pools);
+      pool_id = ARR_GetSize(pools) - 1;
+    }
+
     sp->sources = 0;
     sp->unresolved_sources = 0;
     sp->confirmed_sources = 0;
     sp->max_sources = CLAMP(1, params->max_sources, MAX_POOL_SOURCES);
-    us->pool_id = ARR_GetSize(pools) - 1;
+    us->pool_id = pool_id;
     us->address.ip_addr.family = IPADDR_UNSPEC;
     new_sources = MIN(2 * sp->max_sources, MAX_POOL_SOURCES);
   }
