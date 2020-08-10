@@ -1017,12 +1017,8 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
  
   message.poll = my_poll;
   message.precision = precision;
-
-  /* If we're sending a client mode packet and we aren't synchronized yet, 
-     we might have to set up artificial values for some of these parameters */
   message.root_delay = UTI_DoubleToNtp32(our_root_delay);
   message.root_dispersion = UTI_DoubleToNtp32(our_root_dispersion);
-
   message.reference_id = htonl(our_ref_id);
 
   /* Now fill in timestamps */
@@ -2100,7 +2096,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   }
 
   /* If it is an NTPv4 packet with a long MAC and no extension fields,
-     respond with a NTPv3 packet to avoid breaking RFC 7822 and keep
+     respond with an NTPv3 packet to avoid breaking RFC 7822 and keep
      the length symmetric.  Otherwise, respond with the same version. */
   if (info.version == 4 && info.ext_fields == 0 && info.auth.mode == NTP_AUTH_SYMMETRIC &&
       info.auth.mac.length > NTP_MAX_V4_MAC_LENGTH)

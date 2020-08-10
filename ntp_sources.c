@@ -80,8 +80,8 @@ static uint32_t last_conf_id = 0;
 
 /* Source scheduled for name resolving (first resolving or replacement) */
 struct UnresolvedSource {
-  /* Current address of the source (IDADDR_ID is used for a single source
-     with unknown address and IPADDR_UNSPEC for a pool of sources */
+  /* Current address of the source (IPADDR_ID is used for a single source
+     with unknown address and IPADDR_UNSPEC for a pool of sources) */
   NTP_Remote_Address address;
   /* ID of the pool if not a single source */
   int pool_id;
