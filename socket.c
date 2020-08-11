@@ -118,7 +118,7 @@ prepare_buffers(unsigned int n)
     hdr->msg_hdr.msg_namelen = sizeof (msg->name);
     hdr->msg_hdr.msg_iov = &msg->iov;
     hdr->msg_hdr.msg_iovlen = 1;
-    hdr->msg_hdr.msg_control = &msg->cmsg_buf;
+    hdr->msg_hdr.msg_control = msg->cmsg_buf;
     hdr->msg_hdr.msg_controllen = sizeof (msg->cmsg_buf);
     hdr->msg_hdr.msg_flags = 0;
     hdr->msg_len = 0;
@@ -176,7 +176,7 @@ check_socket_flag(int sock_flag, int fd_flag, int fs_flag)
 static int
 set_socket_nonblock(int sock_fd)
 {
-  if (fcntl(sock_fd, F_SETFL, O_NONBLOCK)) {
+  if (fcntl(sock_fd, F_SETFL, O_NONBLOCK) < 0) {
     DEBUG_LOG("Could not set O_NONBLOCK : %s", strerror(errno));
     return 0;
   }
@@ -656,9 +656,8 @@ log_message(int sock_fd, int direction, SCK_Message *message, const char *prefix
     case SCK_ADDR_IP:
       if (message->remote_addr.ip.ip_addr.family != IPADDR_UNSPEC)
         remote_addr = UTI_IPSockAddrToString(&message->remote_addr.ip);
-      if (message->local_addr.ip.family != IPADDR_UNSPEC) {
+      if (message->local_addr.ip.family != IPADDR_UNSPEC)
         local_addr = UTI_IPToString(&message->local_addr.ip);
-      }
       break;
     case SCK_ADDR_UNIX:
       remote_addr = message->remote_addr.path;
@@ -684,7 +683,7 @@ log_message(int sock_fd, int direction, SCK_Message *message, const char *prefix
       snprintf(tslen, sizeof (tslen), " tslen=%d", message->timestamp.l2_length);
   }
 
-  DEBUG_LOG("%s message%s%s%s%s fd=%d len=%u%s%s%s%s%s%s",
+  DEBUG_LOG("%s message%s%s%s%s fd=%d len=%d%s%s%s%s%s%s",
             prefix,
             remote_addr ? (direction > 0 ? " from " : " to ") : "",
             remote_addr ? remote_addr : "",
@@ -739,7 +738,7 @@ init_message_nonaddress(SCK_Message *message)
 /* ================================================== */
 
 static int
-process_header(struct msghdr *msg, unsigned int msg_length, int sock_fd, int flags,
+process_header(struct msghdr *msg, int msg_length, int sock_fd, int flags,
                SCK_Message *message)
 {
   struct cmsghdr *cmsg;
@@ -921,7 +920,10 @@ receive_messages(int sock_fd, int flags, int max_messages, int *num_messages)
   hdr = ARR_GetElements(recv_headers);
   n = ARR_GetSize(recv_headers);
   n = MIN(n, max_messages);
-  assert(n >= 1);
+
+  if (n < 1 || n > MAX_RECV_MESSAGES ||
+      n > ARR_GetSize(recv_messages) || n > ARR_GetSize(recv_sck_messages))
+    assert(0);
 
   recv_flags = get_recv_flags(flags);
 
@@ -1028,6 +1030,11 @@ send_message(int sock_fd, SCK_Message *message, int flags)
   } else {
     msg.msg_name = NULL;
     msg.msg_namelen = 0;
+  }
+
+  if (message->length < 0) {
+    DEBUG_LOG("Invalid length %d", message->length);
+    return 0;
   }
 
   iov.iov_base = message->data;
@@ -1404,9 +1411,14 @@ SCK_ShutdownConnection(int sock_fd)
 /* ================================================== */
 
 int
-SCK_Receive(int sock_fd, void *buffer, unsigned int length, int flags)
+SCK_Receive(int sock_fd, void *buffer, int length, int flags)
 {
   int r;
+
+  if (length < 0) {
+    DEBUG_LOG("Invalid length %d", length);
+    return -1;
+  }
 
   r = recv(sock_fd, buffer, length, get_recv_flags(flags));
 
@@ -1423,16 +1435,21 @@ SCK_Receive(int sock_fd, void *buffer, unsigned int length, int flags)
 /* ================================================== */
 
 int
-SCK_Send(int sock_fd, const void *buffer, unsigned int length, int flags)
+SCK_Send(int sock_fd, const void *buffer, int length, int flags)
 {
   int r;
 
   assert(flags == 0);
 
+  if (length < 0) {
+    DEBUG_LOG("Invalid length %d", length);
+    return -1;
+  }
+
   r = send(sock_fd, buffer, length, 0);
 
   if (r < 0) {
-    DEBUG_LOG("Could not send data fd=%d len=%u : %s", sock_fd, length, strerror(errno));
+    DEBUG_LOG("Could not send data fd=%d len=%d : %s", sock_fd, length, strerror(errno));
     return r;
   }
 

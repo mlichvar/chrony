@@ -49,7 +49,7 @@ typedef enum {
 
 typedef struct {
   void *data;
-  unsigned int length;
+  int length;
   SCK_AddressType addr_type;
   int if_index;
 
@@ -119,8 +119,8 @@ extern int SCK_AcceptConnection(int sock_fd, IPSockAddr *remote_addr);
 extern int SCK_ShutdownConnection(int sock_fd);
 
 /* Receive and send data on connected sockets - recv()/send() wrappers */
-extern int SCK_Receive(int sock_fd, void *buffer, unsigned int length, int flags);
-extern int SCK_Send(int sock_fd, const void *buffer, unsigned int length, int flags);
+extern int SCK_Receive(int sock_fd, void *buffer, int length, int flags);
+extern int SCK_Send(int sock_fd, const void *buffer, int length, int flags);
 
 /* Receive a single message or multiple messages.  The functions return
    a pointer to static buffers, or NULL on error.  The buffers are valid until
