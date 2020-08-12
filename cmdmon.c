@@ -1211,7 +1211,7 @@ handle_ntp_source_name(CMD_Request *rx_message, CMD_Reply *tx_message)
   IPAddr addr;
   char *name;
 
-  UTI_IPNetworkToHost(&rx_message->data.ntp_data.ip_addr, &addr);
+  UTI_IPNetworkToHost(&rx_message->data.ntp_source_name.ip_addr, &addr);
   name = NSR_GetName(&addr);
 
   if (!name) {
