@@ -354,6 +354,23 @@ NNC_GenerateRequestAuth(NNC_Instance inst, NTP_Packet *packet,
 /* ================================================== */
 
 static int
+parse_encrypted_efs(NNC_Instance inst, unsigned char *plaintext, int length)
+{
+  int ef_length, parsed;
+
+  for (parsed = 0; parsed < length; parsed += ef_length) {
+    if (!NEF_ParseSingleField(plaintext, length, parsed, &ef_length, NULL, NULL, NULL)) {
+      DEBUG_LOG("Could not parse encrypted EF");
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+/* ================================================== */
+
+static int
 extract_cookies(NNC_Instance inst, unsigned char *plaintext, int length)
 {
   int ef_type, ef_body_length, ef_length, parsed, index, acceptable, saved;
@@ -363,10 +380,8 @@ extract_cookies(NNC_Instance inst, unsigned char *plaintext, int length)
 
   for (parsed = 0; parsed < length; parsed += ef_length) {
     if (!NEF_ParseSingleField(plaintext, length, parsed,
-                              &ef_length, &ef_type, &ef_body, &ef_body_length)) {
-      DEBUG_LOG("Could not parse encrypted EF");
+                              &ef_length, &ef_type, &ef_body, &ef_body_length))
       return 0;
-    }
 
     if (ef_type != NTP_EF_NTS_COOKIE)
       continue;
@@ -447,6 +462,9 @@ NNC_CheckResponseAuth(NNC_Instance inst, NTP_Packet *packet,
 
         if (!NNA_DecryptAuthEF(packet, info, inst->siv, parsed,
                                plaintext, sizeof (plaintext), &plaintext_length))
+          return 0;
+
+        if (!parse_encrypted_efs(inst, plaintext, plaintext_length))
           return 0;
 
         has_valid_auth = 1;
