@@ -29,15 +29,15 @@
 struct siv_test {
   SIV_Algorithm algorithm;
   const unsigned char key[64];
-  unsigned int key_length;
+  int key_length;
   const unsigned char nonce[128];
-  unsigned int nonce_length;
+  int nonce_length;
   const unsigned char assoc[128];
-  unsigned int assoc_length;
+  int assoc_length;
   const unsigned char plaintext[128];
-  unsigned int plaintext_length;
+  int plaintext_length;
   const unsigned char ciphertext[128];
-  unsigned int ciphertext_length;
+  int ciphertext_length;
 };
 
 void
@@ -149,7 +149,7 @@ test_unit(void)
 
     TEST_CHECK(SIV_GetKeyLength(tests[i].algorithm) == tests[i].key_length);
 
-    for (j = 0; j < 1024; j++) {
+    for (j = -1; j < 1024; j++) {
       r = SIV_SetKey(siv, tests[i].key, j);
       TEST_CHECK(r == (j == tests[i].key_length));
     }
@@ -172,7 +172,7 @@ test_unit(void)
 #endif
     TEST_CHECK(memcmp(ciphertext, tests[i].ciphertext, tests[i].ciphertext_length) == 0);
 
-    for (j = 0; j < tests[i].nonce_length; j++) {
+    for (j = -1; j < tests[i].nonce_length; j++) {
       r = SIV_Encrypt(siv, tests[i].nonce, j,
                       tests[i].assoc, tests[i].assoc_length,
                       tests[i].plaintext, tests[i].plaintext_length,
@@ -185,25 +185,33 @@ test_unit(void)
       }
     }
 
-    for (j = 0; j < tests[i].assoc_length; j++) {
+    for (j = -1; j < tests[i].assoc_length; j++) {
       r = SIV_Encrypt(siv, tests[i].nonce, tests[i].nonce_length,
                       tests[i].assoc, j,
                       tests[i].plaintext, tests[i].plaintext_length,
                       ciphertext, tests[i].ciphertext_length);
-      TEST_CHECK(r);
-      TEST_CHECK(memcmp(ciphertext, tests[i].ciphertext, tests[i].ciphertext_length) != 0);
+      if (j >= 0) {
+        TEST_CHECK(r);
+        TEST_CHECK(memcmp(ciphertext, tests[i].ciphertext, tests[i].ciphertext_length) != 0);
+      } else {
+        TEST_CHECK(!r);
+      }
     }
 
-    for (j = 0; j < tests[i].plaintext_length; j++) {
+    for (j = -1; j < tests[i].plaintext_length; j++) {
       r = SIV_Encrypt(siv, tests[i].nonce, tests[i].nonce_length,
                       tests[i].assoc, tests[i].assoc_length,
                       tests[i].plaintext, j,
                       ciphertext, j + SIV_GetTagLength(siv));
-      TEST_CHECK(r);
-      TEST_CHECK(memcmp(ciphertext, tests[i].ciphertext, j + SIV_GetTagLength(siv)) != 0);
+      if (j >= 0) {
+        TEST_CHECK(r);
+        TEST_CHECK(memcmp(ciphertext, tests[i].ciphertext, j + SIV_GetTagLength(siv)) != 0);
+      } else {
+        TEST_CHECK(!r);
+      }
     }
 
-    for (j = 0; j < 2 * tests[i].plaintext_length; j++) {
+    for (j = -1; j < 2 * tests[i].plaintext_length; j++) {
       if (j == tests[i].plaintext_length)
         continue;
       r = SIV_Encrypt(siv, tests[i].nonce, tests[i].nonce_length,
@@ -213,7 +221,7 @@ test_unit(void)
       TEST_CHECK(!r);
     }
 
-    for (j = 0; j < 2 * tests[i].ciphertext_length; j++) {
+    for (j = -1; j < 2 * tests[i].ciphertext_length; j++) {
       if (j == tests[i].ciphertext_length)
         continue;
       r = SIV_Encrypt(siv, tests[i].nonce, tests[i].nonce_length,
@@ -230,7 +238,7 @@ test_unit(void)
     TEST_CHECK(r);
     TEST_CHECK(memcmp(plaintext, tests[i].plaintext, tests[i].plaintext_length) == 0);
 
-    for (j = 0; j < tests[i].nonce_length; j++) {
+    for (j = -1; j < tests[i].nonce_length; j++) {
       r = SIV_Decrypt(siv, tests[i].nonce, j,
                       tests[i].assoc, tests[i].assoc_length,
                       tests[i].ciphertext, tests[i].ciphertext_length,
@@ -238,7 +246,7 @@ test_unit(void)
       TEST_CHECK(!r);
     }
 
-    for (j = 0; j < tests[i].assoc_length; j++) {
+    for (j = -1; j < tests[i].assoc_length; j++) {
       r = SIV_Decrypt(siv, tests[i].nonce, tests[i].nonce_length,
                       tests[i].assoc, j,
                       tests[i].ciphertext, tests[i].ciphertext_length,
@@ -246,7 +254,7 @@ test_unit(void)
       TEST_CHECK(!r);
     }
 
-    for (j = 0; j < 2 * tests[i].ciphertext_length; j++) {
+    for (j = -1; j < 2 * tests[i].ciphertext_length; j++) {
       if (j == tests[i].ciphertext_length)
         continue;
 
@@ -257,7 +265,7 @@ test_unit(void)
       TEST_CHECK(!r);
     }
 
-    for (j = 0; j < tests[i].plaintext_length; j++) {
+    for (j = -1; j < tests[i].plaintext_length; j++) {
       r = SIV_Decrypt(siv, tests[i].nonce, tests[i].nonce_length,
                       tests[i].assoc, tests[i].assoc_length,
                       tests[i].ciphertext, tests[i].ciphertext_length,
