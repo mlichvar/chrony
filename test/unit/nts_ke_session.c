@@ -53,28 +53,43 @@ send_message(NKSN_Instance inst)
 
   NKSN_BeginMessage(inst);
 
+  TEST_CHECK(check_message_format(&inst->message, 0));
+  TEST_CHECK(!check_message_format(&inst->message, 1));
+
   TEST_CHECK(!NKSN_AddRecord(inst, 0, 1, record, NKE_MAX_MESSAGE_LENGTH - 4 + 1));
+
+  TEST_CHECK(check_message_format(&inst->message, 0));
+  TEST_CHECK(!check_message_format(&inst->message, 1));
 
   for (i = 0; i < records; i++) {
     TEST_CHECK(NKSN_AddRecord(inst, critical, type_start + i, record, record_length));
     TEST_CHECK(!NKSN_AddRecord(inst, 0, 1, &record,
                                NKE_MAX_MESSAGE_LENGTH - inst->message.length - 4 + 1));
+
+    TEST_CHECK(check_message_format(&inst->message, 0));
+    TEST_CHECK(!check_message_format(&inst->message, 1));
   }
 
   TEST_CHECK(NKSN_EndMessage(inst));
+
+  TEST_CHECK(check_message_format(&inst->message, 0));
+  TEST_CHECK(check_message_format(&inst->message, 1));
 }
 
 static void
 verify_message(NKSN_Instance inst)
 {
   unsigned char buffer[NKE_MAX_MESSAGE_LENGTH];
-  int i, c, t, length, buffer_length;
+  int i, c, t, length, buffer_length, msg_length, prev_parsed;
   NKE_Key c2s, s2c;
 
   for (i = 0; i < records; i++) {
     memset(buffer, 0, sizeof (buffer));
     buffer_length = random() % (record_length + 1);
     assert(buffer_length <= sizeof (buffer));
+
+    prev_parsed = inst->message.parsed;
+    msg_length = inst->message.length;
 
     TEST_CHECK(NKSN_GetRecord(inst, &c, &t, &length, buffer, buffer_length));
     TEST_CHECK(c == critical);
@@ -83,6 +98,20 @@ verify_message(NKSN_Instance inst)
     TEST_CHECK(memcmp(record, buffer, buffer_length) == 0);
     if (buffer_length < record_length)
       TEST_CHECK(buffer[buffer_length] == 0);
+
+    inst->message.length = inst->message.parsed - 1;
+    inst->message.parsed = prev_parsed;
+    TEST_CHECK(!get_record(&inst->message, NULL, NULL, NULL, buffer, buffer_length));
+    TEST_CHECK(inst->message.parsed == prev_parsed);
+    inst->message.length = msg_length;
+    if (msg_length < 0x8000) {
+      inst->message.data[prev_parsed + 2] ^= 0x80;
+      TEST_CHECK(!get_record(&inst->message, NULL, NULL, NULL, buffer, buffer_length));
+      TEST_CHECK(inst->message.parsed == prev_parsed);
+      inst->message.data[prev_parsed + 2] ^= 0x80;
+    }
+    TEST_CHECK(get_record(&inst->message, NULL, NULL, NULL, buffer, buffer_length));
+    TEST_CHECK(inst->message.parsed > prev_parsed);
   }
 
   TEST_CHECK(!NKSN_GetRecord(inst, &critical, &t, &length, buffer, sizeof (buffer)));
