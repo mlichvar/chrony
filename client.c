@@ -961,38 +961,11 @@ process_cmd_cmddenyall(CMD_Request *msg, char *line)
 /* ================================================== */
 
 static int
-accheck_getaddr(char *line, IPAddr *addr)
-{
-  unsigned long a, b, c, d;
-  IPAddr ip;
-  char *p;
-  p = line;
-  if (!*p) {
-    return 0;
-  } else {
-    if (sscanf(p, "%lu.%lu.%lu.%lu", &a, &b, &c, &d) == 4) {
-      addr->family = IPADDR_INET4;
-      addr->addr.in4 = (a<<24) | (b<<16) | (c<<8) | d;
-      return 1;
-    } else {
-      if (DNS_Name2IPAddress(p, &ip, 1) != DNS_Success) {
-        return 0;
-      } else {
-        *addr = ip;
-        return 1;
-      }
-    }
-  }
-}
-
-/* ================================================== */
-
-static int
 process_cmd_accheck(CMD_Request *msg, char *line)
 {
   IPAddr ip;
   msg->command = htons(REQ_ACCHECK);
-  if (accheck_getaddr(line, &ip)) {
+  if (DNS_Name2IPAddress(line, &ip, 1) == DNS_Success) {
     UTI_IPHostToNetwork(&ip, &msg->data.ac_check.ip);
     return 1;
   } else {    
@@ -1008,7 +981,7 @@ process_cmd_cmdaccheck(CMD_Request *msg, char *line)
 {
   IPAddr ip;
   msg->command = htons(REQ_CMDACCHECK);
-  if (accheck_getaddr(line, &ip)) {
+  if (DNS_Name2IPAddress(line, &ip, 1) == DNS_Success) {
     UTI_IPHostToNetwork(&ip, &msg->data.ac_check.ip);
     return 1;
   } else {    
