@@ -1057,11 +1057,11 @@ process_cmd_add_source(CMD_Request *msg, char *line)
   word = line;
   line = CPS_SplitWord(line);
 
-  if (!strcmp(word, "server")) {
+  if (!strcasecmp(word, "server")) {
     type = REQ_ADDSRC_SERVER;
-  } else if (!strcmp(word, "peer")) {
+  } else if (!strcasecmp(word, "peer")) {
     type = REQ_ADDSRC_PEER;
-  } else if (!strcmp(word, "pool")) {
+  } else if (!strcasecmp(word, "pool")) {
     type = REQ_ADDSRC_POOL;
   } else {
     LOG(LOGS_ERR, "Invalid syntax for add command");
