@@ -2076,7 +2076,7 @@ get_source_name(IPAddr *ip_addr, char *buf, int size)
   UTI_IPHostToNetwork(ip_addr, &request.data.ntp_source_name.ip_addr);
   if (!request_reply(&request, &reply, RPY_NTP_SOURCE_NAME, 0) ||
       reply.data.ntp_source_name.name[sizeof (reply.data.ntp_source_name.name) - 1] != '\0' ||
-      snprintf(buf, size, "%s", reply.data.ntp_source_name.name) >= size)
+      snprintf(buf, size, "%s", (char *)reply.data.ntp_source_name.name) >= size)
     return 0;
 
   /* Make sure the name is printable */

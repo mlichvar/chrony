@@ -271,7 +271,7 @@ typedef struct {
 
 typedef struct {
   uint32_t type;
-  int8_t name[256];
+  uint8_t name[256];
   uint32_t port;
   int32_t minpoll;
   int32_t maxpoll;
@@ -732,7 +732,7 @@ typedef struct {
 } RPY_NTPData;
 
 typedef struct {
-  int8_t name[256];
+  uint8_t name[256];
   int32_t EOR;
 } RPY_NTPSourceName;
 
