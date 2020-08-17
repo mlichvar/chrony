@@ -131,7 +131,7 @@ get_request(NNC_Instance inst)
 static void
 prepare_response(NNC_Instance inst, NTP_Packet *packet, NTP_PacketInfo *info, int valid, int nak)
 {
-  unsigned char cookie[508], plaintext[528], nonce[512];
+  unsigned char cookie[508], plaintext[528], nonce[448];
   int nonce_length, ef_length, cookie_length, plaintext_length, min_auth_length;
   int i, index, auth_start;
   SIV_Instance siv;
