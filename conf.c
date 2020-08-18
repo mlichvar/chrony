@@ -65,7 +65,7 @@ static void parse_bindaddress(char *);
 static void parse_bindcmdaddress(char *);
 static void parse_broadcast(char *);
 static void parse_clientloglimit(char *);
-static void parse_confdirs(char *);
+static void parse_confdir(char *);
 static void parse_fallbackdrift(char *);
 static void parse_hwtimestamp(char *);
 static void parse_include(char *);
@@ -81,7 +81,7 @@ static void parse_ratelimit(char *line, int *enabled, int *interval,
 static void parse_refclock(char *);
 static void parse_smoothtime(char *);
 static void parse_source(char *line, char *type, int fatal);
-static void parse_sourcedirs(char *);
+static void parse_sourcedir(char *);
 static void parse_tempcomp(char *);
 
 /* ================================================== */
@@ -519,7 +519,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
   processed_command = command = line;
   p = CPS_SplitWord(line);
 
-  if (print_config && strcasecmp(command, "include") && strcasecmp(command, "confdirs"))
+  if (print_config && strcasecmp(command, "include") && strcasecmp(command, "confdir"))
     printf("%s%s%s\n", command, p[0] != '\0' ? " " : "", p);
 
   if (!strcasecmp(command, "acquisitionport")) {
@@ -555,8 +555,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
                     &cmd_ratelimit_burst, &cmd_ratelimit_leak);
   } else if (!strcasecmp(command, "combinelimit")) {
     parse_double(p, &combine_limit);
-  } else if (!strcasecmp(command, "confdirs")) {
-    parse_confdirs(p);
+  } else if (!strcasecmp(command, "confdir")) {
+    parse_confdir(p);
   } else if (!strcasecmp(command, "corrtimeratio")) {
     parse_double(p, &correction_time_ratio);
   } else if (!strcasecmp(command, "deny")) {
@@ -686,8 +686,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_source(p, command, 1);
   } else if (!strcasecmp(command, "smoothtime")) {
     parse_smoothtime(p);
-  } else if (!strcasecmp(command, "sourcedirs")) {
-    parse_sourcedirs(p);
+  } else if (!strcasecmp(command, "sourcedir")) {
+    parse_sourcedir(p);
   } else if (!strcasecmp(command, "stratumweight")) {
     parse_double(p, &stratum_weight);
   } else if (!strcasecmp(command, "tempcomp")) {
@@ -790,7 +790,7 @@ parse_source(char *line, char *type, int fatal)
 /* ================================================== */
 
 static void
-parse_sourcedirs(char *line)
+parse_sourcedir(char *line)
 {
   char *s;
 
@@ -1588,7 +1588,7 @@ search_dirs(char *line, const char *suffix, void (*file_handler)(const char *pat
 /* ================================================== */
 
 static void
-parse_confdirs(char *line)
+parse_confdir(char *line)
 {
   if (!search_dirs(line, ".conf", CNF_ReadFile))
     command_parse_error();

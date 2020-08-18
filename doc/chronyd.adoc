@@ -80,7 +80,7 @@ default value is 0.
 When run in this mode, *chronyd* will print the configuration and exit. It will
 not detach from the terminal. This option can be used to verify the syntax of
 the configuration and get the whole configuration, even if it is split into
-multiple files and read by the *include* or *confdirs* directive.
+multiple files and read by the *include* or *confdir* directive.
 
 *-q*::
 When run in this mode, *chronyd* will set the system clock once and exit. It

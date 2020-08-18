@@ -931,7 +931,7 @@ to replace them immediately and not wait until they are marked as unreachable.
 [[reload]]*reload* *sources*::
 The *reload sources* command causes *chronyd* to re-read all _*.sources_ files
 from the directories specified by the
-<<chrony.conf.adoc#sourcedirs,*sourcedirs*>> directive.
+<<chrony.conf.adoc#sourcedir,*sourcedir*>> directive.
 
 [[sourcename]]*sourcename* _address_::
 The *sourcename* command prints the original hostname or address that was
