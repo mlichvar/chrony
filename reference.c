@@ -1018,7 +1018,7 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
   our_residual_freq = residual_frequency;
   our_root_delay = root_delay;
   our_root_dispersion = root_dispersion;
-  our_frequency_sd = offset_sd;
+  our_frequency_sd = frequency_sd;
   our_offset_sd = offset_sd;
   last_ref_update = mono_now;
   last_ref_update_interval = update_interval;
