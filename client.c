@@ -3167,18 +3167,27 @@ process_cmd_retries(const char *line)
 static int
 process_cmd_keygen(char *line)
 {
+  unsigned int i, args, cmac_length, length, id = 1, bits = 160;
   unsigned char key[512];
-  char type[17];
-  unsigned int i, cmac_length, length, id = 1, bits = 160;
+  const char *type;
+  char *words[3];
 
 #ifdef FEAT_SECHASH
-  snprintf(type, sizeof (type), "SHA1");
+  type = "SHA1";
 #else
-  snprintf(type, sizeof (type), "MD5");
+  type = "MD5";
 #endif
 
-  if (sscanf(line, "%u %16s %u", &id, type, &bits))
-    ;
+  args = UTI_SplitString(line, words, 3);
+  if (args >= 2)
+    type = words[1];
+
+  if (args > 3 ||
+      (args >= 1 && sscanf(words[0], "%u", &id) != 1) ||
+      (args >= 3 && sscanf(words[2], "%u", &bits) != 1)) {
+    LOG(LOGS_ERR, "Invalid syntax for keygen command");
+    return 0;
+  }
 
 #ifdef HAVE_CMAC
   cmac_length = CMC_GetKeyLength(UTI_CmacNameToAlgorithm(type));
