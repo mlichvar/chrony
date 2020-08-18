@@ -8,12 +8,17 @@ check_config_h 'FEAT_REFCLOCK 1' || test_skip
 check_config_h 'FEAT_CMDMON 1' || test_skip
 
 refclock_jitter=$jitter
+client_server_conf="
+server node1.net1.clk
+server 192.168.123.2"
 client_conf="
 refclock SHM 0 noselect
 smoothtime 400 0.001 leaponly"
 
 chronyc_conf="activity
 tracking
+sourcename 192.168.123.1
+sourcename 192.168.123.2
 sources
 sourcestats
 manual list
@@ -25,7 +30,7 @@ run_test || test_fail
 check_chronyd_exit || test_fail
 
 check_chronyc_output "^200 OK
-1 sources online
+2 sources online
 0 sources offline
 0 sources doing burst \(return to online\)
 0 sources doing burst \(return to offline\)
@@ -43,14 +48,18 @@ Root delay      : 0\.000...... seconds
 Root dispersion : 0\.000...... seconds
 Update interval : [0-9]+\.. seconds
 Leap status     : Normal
+node1\.net1\.clk
+192\.168\.123\.2
 MS Name/IP address         Stratum Poll Reach LastRx Last sample               
 ===============================================================================
 #\? SHM0                          0   4   377    [0-9]+ [0-9 +-]+[un]s\[[0-9 +-]+[un]s\] \+/-[ 0-9]+[un]s
 \^\* 192\.168\.123\.1                 1   [67]   377    [0-9]+ [0-9 +-]+[un]s\[[0-9 +-]+[un]s\] \+/-[ 0-9]+[un]s
+\^\? 192\.168\.123\.2                 0   [0-9]+     0     -     \+0ns\[   \+0ns\] \+/-    0ns
 Name/IP Address            NP  NR  Span  Frequency  Freq Skew  Offset  Std Dev
 ==============================================================================
 SHM0                       [0-9 ]+ [0-9 ]+ [0-9 ]+ [ +-][01]\.... [0-9 ]+\....  [0-9 +-]+[un]s [0-9 ]+[un]s
 192\.168\.123\.1              [0-9 ]+ [0-9 ]+ [0-9 ]+ [ +-][01]\.... [0-9 ]+\....  [0-9 +-]+[un]s [0-9 ]+[un]s
+192\.168\.123\.2               0   0     0     \+0\.000   2000\.000     \+0ns  4000ms
 210 n_samples = 0
 #    Date     Time\(UTC\)    Slewed   Original   Residual
 =======================================================
@@ -71,10 +80,20 @@ run_test || test_fail
 check_chronyd_exit || test_fail
 
 check_chronyc_output "^Reference ID    : C0A87B01 \(node1\.net1\.clk\)" \
-|| test_fail
+	|| test_fail
 
+chronyc_options="-c"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+
+check_chronyc_output "^C0A87B01,192\.168\.123\.1,2,12623049..\..........,-?0\.0000.....,-?0\.000......,0\.000......,(99|100)\....,-?[0-9]\....,[0-9]\....,0\.000......,0\.000......,[0-9]+\..,Normal$" \
+	|| test_fail
+
+chronyc_options=""
 server_strata=0
 chronyc_start=0
+client_server_conf=""
 client_conf=""
 server_conf="server 192.168.123.1"
 limit=1
@@ -99,6 +118,9 @@ for chronyc_conf in \
 	"burst 3/5 255.255.255.0/1.2.3.0" \
 	"burst 1/2 1.2.3.0/24" \
 	"clients" \
+	"clients -k" \
+	"clients -p 100" \
+	"clients -r" \
 	"cmdaccheck 1.2.3.4" \
 	"cmdallow 1.2.3.4" \
 	"cmdallow all 1.2.3.0/24" \
@@ -155,7 +177,7 @@ for chronyc_conf in \
 do
 	run_test || test_fail
 	check_chronyd_exit || test_fail
-	check_chronyc_output "501 Not authorised" || test_fail
+	check_chronyc_output "501 Not authorised$" || test_fail
 done
 
 chronyc_conf="dns -n

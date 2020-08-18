@@ -64,6 +64,7 @@ default_client_conf=""
 default_chronyc_conf=""
 default_server_chronyd_options=""
 default_client_chronyd_options=""
+default_chronyc_options=""
 
 default_time_max_limit=1e-3
 default_freq_max_limit=5e-4
@@ -504,7 +505,7 @@ run_test() {
 
 		echo "node${node}_start = $chronyc_start" >> tmp/conf
 		start_client $node chronyc "$chronyc_conf" "" \
-			"$([ $dns -eq 0 ] && printf "%s" "-n") -h $(get_node_name $[$node - $clients])" && \
+			"$([ $dns -eq 0 ] && printf "%s" "-n") -h $(get_node_name $[$node - $clients]) $chronyc_options" && \
 			test_ok || test_error
 
 		[ $? -ne 0 ] && return 1
