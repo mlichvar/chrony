@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+
+. ./test.common
+
+server_name="chrony-nts-test"
+
+check_chronyd_features NTS || test_skip "NTS support disabled"
+certtool --help &> /dev/null || test_skip "certtool missing"
+sed -i "/ $server_name\$/d" /etc/hosts && echo "$server $server_name" >> /etc/hosts || \
+	test_skip "Cannot modify /etc/hosts"
+
+check_chronyd_features PRIVDROP && user="nobody"
+
+test_start "NTS authentication"
+
+cat > $TEST_DIR/cert.cfg <<EOF
+cn = "$server_name"
+serial = 001
+activation_date = "$(date -d '1 year ago' +'%Y-%m-%d') 00:00:00 UTC"
+expiration_date = "$(date -d '1 year' +'%Y-%m-%d') 00:00:00 UTC"
+signing_key
+encryption_key
+EOF
+
+certtool --generate-privkey --key-type=ed25519 --outfile $TEST_DIR/server.key \
+	&> $TEST_DIR/certtool.log
+certtool --generate-self-signed --load-privkey $TEST_DIR/server.key \
+	--template $TEST_DIR/cert.cfg --outfile $TEST_DIR/server.crt &>> $TEST_DIR/certtool.log
+chown $user $TEST_DIR/server.*
+
+ntpport=$(get_free_port)
+ntsport=$(get_free_port)
+
+server_options="port $ntpport nts ntsport $ntsport"
+extra_chronyd_directives="
+port $ntpport
+ntsport $ntsport
+ntsserverkey $TEST_DIR/server.key
+ntsservercert $TEST_DIR/server.crt
+ntstrustedcerts $TEST_DIR/server.crt
+ntsdumpdir $TEST_LIBDIR
+ntsprocesses 3"
+
+start_chronyd || test_fail
+sleep 3
+
+run_chronyc "authdata" || test_fail
+check_chronyc_output "^Name/IP address             Mode KeyID Type KLen Last Atmp  NAK Cook CLen
+=========================================================================
+127\.0\.0\.1                    NTS     1   15  256    [0-9]    0    0    [78]  100$" || test_fail
+
+stop_chronyd || test_fail
+check_chronyd_messages || test_fail
+check_chronyd_files || test_fail
+
+rm -f $TEST_LOGDIR/measurements.log
+
+server_options="port $ntpport nts ntsport $((ntsport + 1))"
+
+start_chronyd || test_fail
+sleep 2
+
+run_chronyc "authdata" || test_fail
+check_chronyc_output "^Name/IP address             Mode KeyID Type KLen Last Atmp  NAK Cook CLen
+=========================================================================
+127\.0\.0\.1                    NTS     1   15  256    [0-9]    0    0    [78]  100$" || test_fail
+
+stop_chronyd || test_fail
+check_chronyd_messages || test_fail
+check_chronyd_files || test_fail
+
+test_pass

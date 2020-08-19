@@ -97,6 +97,8 @@ default_extra_chronyd_directives=""
 default_extra_chronyd_options=""
 default_clock_control=0
 default_server=127.0.0.1
+default_server_name=127.0.0.1
+default_server_options=""
 default_user=root
 
 # Initialize test settings from their defaults
@@ -178,7 +180,7 @@ get_free_port() {
 
 	while true; do
 		port=$((RANDOM % 10000 + 10000))
-		netstat -aln | grep '^udp.*:'$port && continue
+		netstat -aln | grep '^\(tcp\|udp\).*[:.]'"$port " && continue
 		break
 	done
 
@@ -210,7 +212,7 @@ generate_chrony_conf() {
 		echo "cmdallow"
 		echo "local"
 
-		echo "server $server port $ntpport minpoll -6 maxpoll -6"
+		echo "server $server_name port $ntpport minpoll -6 maxpoll -6 $server_options"
 
 		[ "$server" = "127.0.0.1" ] && echo "bindacqaddress $server"
 		echo "bindaddress 127.0.0.1"
