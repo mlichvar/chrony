@@ -217,7 +217,8 @@ create_tls_session(int server_mode, int sock_fd, const char *server_name,
   unsigned int flags;
   int r;
 
-  r = gnutls_init(&session, GNUTLS_NONBLOCK | (server_mode ? GNUTLS_SERVER : GNUTLS_CLIENT));
+  r = gnutls_init(&session, GNUTLS_NONBLOCK | GNUTLS_NO_TICKETS |
+                  (server_mode ? GNUTLS_SERVER : GNUTLS_CLIENT));
   if (r < 0) {
     LOG(LOGS_ERR, "Could not %s TLS session : %s", "create", gnutls_strerror(r));
     return NULL;
