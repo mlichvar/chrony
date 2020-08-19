@@ -1,3 +1,10 @@
+New in version 3.5.1
+====================
+
+Security fixes
+--------------
+* Create new file when writing pidfile (CVE-2020-14367)
+
 New in version 3.5
 ==================
 
