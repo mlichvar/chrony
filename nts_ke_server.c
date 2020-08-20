@@ -560,6 +560,7 @@ static void
 load_keys(void)
 {
   char *dump_dir, line[1024], *words[MAX_WORDS];
+  unsigned char key[SIV_MAX_KEY_LENGTH];
   int i, index, key_length, algorithm;
   double key_age;
   FILE *f;
@@ -587,13 +588,15 @@ load_keys(void)
         sscanf(words[0], "%"PRIX32, &id) != 1)
       goto error;
 
-    index = id % MAX_SERVER_KEYS;
-
-    if (UTI_HexToBytes(words[1], server_keys[index].key,
-                       sizeof (server_keys[index].key)) != key_length)
+    if (UTI_HexToBytes(words[1], key, sizeof (key)) != key_length)
       goto error;
 
+    index = id % MAX_SERVER_KEYS;
+
     server_keys[index].id = id;
+    assert(sizeof (server_keys[index].key) == sizeof (key));
+    memcpy(server_keys[index].key, key, key_length);
+
     if (!SIV_SetKey(server_keys[index].siv, server_keys[index].key, key_length))
       LOG_FATAL("Could not set SIV key");
 
