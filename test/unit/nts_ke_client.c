@@ -92,7 +92,7 @@ prepare_response(NKSN_Instance session, int valid)
     for (i = 0; i < NKE_MAX_COOKIES; i++) {
       length = (random() % sizeof (data) + 1) / 4 * 4;
       if (index == 9)
-        length += random() % 3 + 1;
+        length += (length < sizeof (data) ? 1 : -1) * (random() % 3 + 1);
       TEST_CHECK(NKSN_AddRecord(session, 0, NKE_RECORD_COOKIE, data, length));
     }
   }
