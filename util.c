@@ -1236,7 +1236,7 @@ UTI_OpenFile(const char *basedir, const char *name, const char *suffix,
       break;
     case 'a':
     case 'A':
-      flags = O_WRONLY | O_CREAT | O_APPEND;
+      flags = O_WRONLY | O_CREAT | O_APPEND | O_NOFOLLOW;
       file_mode = "a";
       break;
     default:
