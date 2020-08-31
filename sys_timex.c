@@ -69,6 +69,25 @@ static int sys_tai_offset;
 /* ================================================== */
 
 static double
+convert_timex_frequency(const struct timex *txc)
+{
+  double freq_ppm;
+
+  freq_ppm = txc->freq / FREQ_SCALE;
+
+#ifdef MACOSX
+  /* Temporary workaround for Apple bug treating freq as unsigned number */
+  if (freq_ppm > 32767) {
+    freq_ppm -= 65536;
+  }
+#endif
+
+  return -freq_ppm;
+}
+
+/* ================================================== */
+
+static double
 read_frequency(void)
 {
   struct timex txc;
@@ -77,7 +96,7 @@ read_frequency(void)
 
   SYS_Timex_Adjust(&txc, 0);
 
-  return txc.freq / -FREQ_SCALE;
+  return convert_timex_frequency(&txc);
 }
 
 /* ================================================== */
@@ -92,7 +111,7 @@ set_frequency(double freq_ppm)
 
   SYS_Timex_Adjust(&txc, 0);
 
-  return txc.freq / -FREQ_SCALE;
+  return convert_timex_frequency(&txc);
 }
 
 /* ================================================== */
