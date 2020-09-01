@@ -537,6 +537,7 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_SystemCallContext context)
     SCMP_SYS(lstat64),
     SCMP_SYS(newfstatat),
     SCMP_SYS(readlink),
+    SCMP_SYS(readlinkat),
     SCMP_SYS(rename),
     SCMP_SYS(renameat),
     SCMP_SYS(renameat2),
