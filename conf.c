@@ -100,6 +100,7 @@ static double correction_time_ratio = 3.0;
 static double max_clock_error = 1.0; /* in ppm */
 static double max_drift = 500000.0; /* in ppm */
 static double max_slew_rate = 1e6 / 12.0; /* in ppm */
+static double clock_precision = 0.0; /* in seconds */
 
 static SRC_AuthSelectMode authselect_mode = SRC_AUTHSELECT_MIX;
 static double max_distance = 3.0;
@@ -544,6 +545,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_broadcast(p);
   } else if (!strcasecmp(command, "clientloglimit")) {
     parse_clientloglimit(p);
+  } else if (!strcasecmp(command, "clockprecision")) {
+    parse_double(p, &clock_precision);
   } else if (!strcasecmp(command, "cmdallow")) {
     parse_allow_deny(p, cmd_restrictions, 1);
   } else if (!strcasecmp(command, "cmddeny")) {
@@ -2044,6 +2047,14 @@ double
 CNF_GetMaxSlewRate(void)
 {
   return max_slew_rate;
+}
+
+/* ================================================== */
+
+double
+CNF_GetClockPrecision(void)
+{
+  return clock_precision;
 }
 
 /* ================================================== */

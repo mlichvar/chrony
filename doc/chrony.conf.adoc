@@ -908,6 +908,27 @@ distances are in milliseconds.
 
 === System clock
 
+[[clockprecision]]*clockprecision* _precision_::
+The *clockprecision* directive specifies the precision of the system clock (in
+seconds). It is used by *chronyd* to estimate the minimum noise in NTP
+measurements and randomise low-order bits of timestamps in NTP responses. By
+default, the precision is measured on start as the minimum time to read the
+clock.
++
+The measured value works well in most cases. However, it generally
+overestimates the precision and it can be sensitive to the CPU speed, which can
+change over time to save power. In some cases with a high-precision clocksource
+(e.g. the Time Stamp Counter of the CPU) and hardware timestamping, setting the
+precision on the server to a smaller value can improve stability of clients'
+NTP measurements. The server's precision is reported on clients by the
+<<chronyc.adoc#ntpdata,*ntpdata*>> command.
++
+An example setting the precision to 8 nanoseconds is:
++
+----
+clockprecision 8e-9
+----
+
 [[corrtimeratio]]*corrtimeratio* _ratio_::
 When *chronyd* is slewing the system clock to correct an offset, the rate at
 which it is slewing adds to the frequency error of the clock. On all supported
