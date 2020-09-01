@@ -8,9 +8,11 @@ Wants=time-sync.target
 
 [Service]
 Type=oneshot
-# Wait up to ~10 minutes for chronyd to synchronize and the remaining
-# clock correction to be less than 0.1 seconds
-ExecStart=/usr/bin/chronyc -h 127.0.0.1,::1 waitsync 600 0.1 0.0 1
+# Wait for chronyd to update the clock and the remaining
+# correction to be less than 0.1 seconds
+ExecStart=/usr/bin/chronyc -h 127.0.0.1,::1 waitsync 0 0.1 0.0 1
+# Wait for at most 3 minutes
+TimeoutStartSec=180
 RemainAfterExit=yes
 StandardOutput=null
 
