@@ -294,9 +294,15 @@ CAM_OpenUnixSocket(void)
 /* ================================================== */
 
 static void
-transmit_reply(int sock_fd, SCK_Message *message)
+transmit_reply(int sock_fd, int request_length, SCK_Message *message)
 {
   message->length = PKL_ReplyLength((CMD_Reply *)message->data);
+
+  if (request_length < message->length) {
+    DEBUG_LOG("Response longer than request req_len=%d res_len=%d",
+              request_length, message->length);
+    return;
+  }
 
   /* Don't require responses to non-link-local addresses to use the same
      interface */
@@ -1427,7 +1433,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
     if (rx_message.version >= PROTO_VERSION_MISMATCH_COMPAT_SERVER) {
       tx_message.status = htons(STT_BADPKTVERSION);
-      transmit_reply(sock_fd, sck_message);
+      transmit_reply(sock_fd, read_length, sck_message);
     }
     return;
   }
@@ -1437,7 +1443,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
     DEBUG_LOG("Command packet has invalid command %d", rx_command);
 
     tx_message.status = htons(STT_INVALID);
-    transmit_reply(sock_fd, sck_message);
+    transmit_reply(sock_fd, read_length, sck_message);
     return;
   }
 
@@ -1446,7 +1452,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
               expected_length);
 
     tx_message.status = htons(STT_BADPKTLENGTH);
-    transmit_reply(sock_fd, sck_message);
+    transmit_reply(sock_fd, read_length, sck_message);
     return;
   }
 
@@ -1739,7 +1745,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
     static int do_it=1;
 
     if (do_it) {
-      transmit_reply(sock_fd, sck_message);
+      transmit_reply(sock_fd, read_length, sck_message);
     }
 
 #if 0
