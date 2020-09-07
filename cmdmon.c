@@ -1739,19 +1739,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
   }
 
   /* Transmit the response */
-  {
-    /* Include a simple way to lose one message in three to test resend */
-
-    static int do_it=1;
-
-    if (do_it) {
-      transmit_reply(sock_fd, read_length, sck_message);
-    }
-
-#if 0
-    do_it = ((do_it + 1) % 3);
-#endif
-  }
+  transmit_reply(sock_fd, read_length, sck_message);
 }
 
 /* ================================================== */
