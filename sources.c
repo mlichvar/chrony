@@ -1499,7 +1499,6 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timespec *now)
       case SRC_JITTERY:
         report->state = RPT_JITTERY;
         break;
-      case SRC_UNTRUSTED:
       case SRC_WAITS_SOURCES:
       case SRC_NONPREFERRED:
       case SRC_WAITS_UPDATE:
