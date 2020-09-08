@@ -2189,10 +2189,10 @@ process_cmd_sources(char *line)
     }
 
     switch (ntohs(reply.data.source_data.state)) {
-      case RPY_SD_ST_SYNC:
+      case RPY_SD_ST_SELECTED:
         state_ch = '*';
         break;
-      case RPY_SD_ST_UNREACH:
+      case RPY_SD_ST_NONSELECTABLE:
         state_ch = '?';
         break;
       case RPY_SD_ST_FALSETICKER:
@@ -2201,10 +2201,10 @@ process_cmd_sources(char *line)
       case RPY_SD_ST_JITTERY:
         state_ch = '~';
         break;
-      case RPY_SD_ST_CANDIDATE:
+      case RPY_SD_ST_UNSELECTED:
         state_ch = '+';
         break;
-      case RPY_SD_ST_OUTLIER:
+      case RPY_SD_ST_SELECTABLE:
         state_ch = '-';
         break;
       default:

@@ -1504,16 +1504,16 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timespec *now)
       case SRC_WAITS_UPDATE:
       case SRC_DISTANT:
       case SRC_OUTLIER:
-        report->state = RPT_OUTLIER;
+        report->state = RPT_SELECTABLE;
         break;
       case SRC_UNSELECTED:
-        report->state = RPT_CANDIDATE;
+        report->state = RPT_UNSELECTED;
         break;
       case SRC_SELECTED:
-        report->state = RPT_SYNC;
+        report->state = RPT_SELECTED;
         break;
       default:
-        report->state = RPT_UNREACH;
+        report->state = RPT_NONSELECTABLE;
         break;
     }
 

@@ -578,11 +578,8 @@ handle_source_data(CMD_Request *rx_message, CMD_Reply *tx_message)
     tx_message->data.source_data.stratum = htons(report.stratum);
     tx_message->data.source_data.poll    = htons(report.poll);
     switch (report.state) {
-      case RPT_SYNC:
-        tx_message->data.source_data.state   = htons(RPY_SD_ST_SYNC);
-        break;
-      case RPT_UNREACH:
-        tx_message->data.source_data.state   = htons(RPY_SD_ST_UNREACH);
+      case RPT_NONSELECTABLE:
+        tx_message->data.source_data.state   = htons(RPY_SD_ST_NONSELECTABLE);
         break;
       case RPT_FALSETICKER:
         tx_message->data.source_data.state   = htons(RPY_SD_ST_FALSETICKER);
@@ -590,11 +587,14 @@ handle_source_data(CMD_Request *rx_message, CMD_Reply *tx_message)
       case RPT_JITTERY:
         tx_message->data.source_data.state   = htons(RPY_SD_ST_JITTERY);
         break;
-      case RPT_CANDIDATE:
-        tx_message->data.source_data.state   = htons(RPY_SD_ST_CANDIDATE);
+      case RPT_SELECTABLE:
+        tx_message->data.source_data.state   = htons(RPY_SD_ST_SELECTABLE);
         break;
-      case RPT_OUTLIER:
-        tx_message->data.source_data.state   = htons(RPY_SD_ST_OUTLIER);
+      case RPT_UNSELECTED:
+        tx_message->data.source_data.state   = htons(RPY_SD_ST_UNSELECTED);
+        break;
+      case RPT_SELECTED:
+        tx_message->data.source_data.state   = htons(RPY_SD_ST_SELECTED);
         break;
     }
     switch (report.mode) {

@@ -553,12 +553,12 @@ typedef struct {
 #define RPY_SD_MD_PEER   1
 #define RPY_SD_MD_REF    2
 
-#define RPY_SD_ST_SYNC 0
-#define RPY_SD_ST_UNREACH 1
+#define RPY_SD_ST_SELECTED 0
+#define RPY_SD_ST_NONSELECTABLE 1
 #define RPY_SD_ST_FALSETICKER 2
 #define RPY_SD_ST_JITTERY 3
-#define RPY_SD_ST_CANDIDATE 4
-#define RPY_SD_ST_OUTLIER 5
+#define RPY_SD_ST_UNSELECTED 4
+#define RPY_SD_ST_SELECTABLE 5
 
 typedef struct {
   IPAddr ip_addr;
