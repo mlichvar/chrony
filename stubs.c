@@ -49,7 +49,7 @@
 #include "sched.h"
 #include "util.h"
 
-#ifndef FEAT_ASYNCDNS
+#if defined(FEAT_NTP) && !defined(FEAT_ASYNCDNS)
 
 /* This is a blocking implementation used when asynchronous resolving is not available */
 

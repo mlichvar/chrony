@@ -17,12 +17,15 @@ for opts in \
 	"--disable-rtc" \
 	"--disable-sechash" \
 	"--disable-cmdmon" \
+	"--disable-cmdmon --enable-scfilter" \
 	"--disable-ntp" \
+	"--disable-ntp --enable-scfilter" \
 	"--disable-nts" \
 	"--disable-refclock" \
 	"--disable-timestamping" \
 	"--disable-timestamping --disable-ntp" \
 	"--disable-cmdmon --disable-ntp" \
+	"--disable-cmdmon --disable-ntp --enable-scfilter" \
 	"--disable-cmdmon --disable-refclock" \
 	"--disable-cmdmon --disable-ntp --disable-refclock"
 do
