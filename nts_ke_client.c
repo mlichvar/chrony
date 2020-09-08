@@ -335,14 +335,16 @@ NKC_Start(NKC_Instance inst)
   local_addr.port = 0;
   iface = CNF_GetBindAcquisitionInterface();
 
-  sock_fd = SCK_OpenTcpSocket(&inst->address, &local_addr, iface, 0);
-  if (sock_fd < 0)
-    return 0;
-
   /* Make a label containing both the address and name of the server */
   if (snprintf(label, sizeof (label), "%s (%s)",
                UTI_IPSockAddrToString(&inst->address), inst->name) >= sizeof (label))
     ;
+
+  sock_fd = SCK_OpenTcpSocket(&inst->address, &local_addr, iface, 0);
+  if (sock_fd < 0) {
+    LOG(LOGS_ERR, "Could not connect to %s", label);
+    return 0;
+  }
 
   /* Start an NTS-KE session */
   if (!NKSN_StartSession(inst->session, sock_fd, label, client_credentials, CLIENT_TIMEOUT)) {
