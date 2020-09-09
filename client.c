@@ -2146,8 +2146,8 @@ process_cmd_sources(char *line)
   if (verbose) {
     printf("\n");
     printf("  .-- Source mode  '^' = server, '=' = peer, '#' = local clock.\n");
-    printf(" / .- Source state '*' = current synced, '+' = combined , '-' = not combined,\n");
-    printf("| /   '?' = unreachable, 'x' = time may be in error, '~' = time too variable.\n");
+    printf(" / .- Source state '*' = current best, '+' = combined, '-' = not combined,\n");
+    printf("| /             'x' = may be in error, '~' = too variable, '?' = unusable.\n");
     printf("||                                                 .- xxxx [ yyyy ] +/- zzzz\n");
     printf("||      Reachability register (octal) -.           |  xxxx = adjusted offset,\n");
     printf("||      Log2(Polling interval) --.      |          |  yyyy = measured offset,\n");
