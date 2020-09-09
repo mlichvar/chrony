@@ -39,6 +39,7 @@
 
 struct SIV_Instance_Record {
   struct siv_cmac_aes128_ctx siv;
+  int key_set;
 };
 
 /* ================================================== */
@@ -52,6 +53,7 @@ SIV_CreateInstance(SIV_Algorithm algorithm)
     return NULL;
 
   instance = MallocNew(struct SIV_Instance_Record);
+  instance->key_set = 0;
 
   return instance;
 }
@@ -86,6 +88,8 @@ SIV_SetKey(SIV_Instance instance, const unsigned char *key, int length)
 
   siv_cmac_aes128_set_key(&instance->siv, key);
 
+  instance->key_set = 1;
+
   return 1;
 }
 
@@ -108,6 +112,9 @@ SIV_Encrypt(SIV_Instance instance,
             const void *plaintext, int plaintext_length,
             unsigned char *ciphertext, int ciphertext_length)
 {
+  if (!instance->key_set)
+    return 0;
+
   if (nonce_length < SIV_MIN_NONCE_SIZE || assoc_length < 0 ||
       plaintext_length < 0 || plaintext_length > ciphertext_length ||
       plaintext_length + SIV_DIGEST_SIZE != ciphertext_length)
@@ -130,6 +137,9 @@ SIV_Decrypt(SIV_Instance instance,
             const unsigned char *ciphertext, int ciphertext_length,
             void *plaintext, int plaintext_length)
 {
+  if (!instance->key_set)
+    return 0;
+
   if (nonce_length < SIV_MIN_NONCE_SIZE || assoc_length < 0 ||
       plaintext_length < 0 || plaintext_length > ciphertext_length ||
       plaintext_length + SIV_DIGEST_SIZE != ciphertext_length)

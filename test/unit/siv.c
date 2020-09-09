@@ -149,6 +149,17 @@ test_unit(void)
 
     TEST_CHECK(SIV_GetKeyLength(tests[i].algorithm) == tests[i].key_length);
 
+    r = SIV_Encrypt(siv, tests[i].nonce, tests[i].nonce_length,
+                    tests[i].assoc, tests[i].assoc_length,
+                    tests[i].plaintext, tests[i].plaintext_length,
+                    ciphertext, tests[i].ciphertext_length);
+    TEST_CHECK(!r);
+    r = SIV_Decrypt(siv, tests[i].nonce, tests[i].nonce_length,
+                    tests[i].assoc, tests[i].assoc_length,
+                    tests[i].ciphertext, tests[i].ciphertext_length,
+                    plaintext, tests[i].plaintext_length);
+    TEST_CHECK(!r);
+
     for (j = -1; j < 1024; j++) {
       r = SIV_SetKey(siv, tests[i].key, j);
       TEST_CHECK(r == (j == tests[i].key_length));

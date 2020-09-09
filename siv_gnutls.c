@@ -204,6 +204,9 @@ SIV_Encrypt(SIV_Instance instance,
 {
   size_t clen = ciphertext_length;
 
+  if (!instance->cipher)
+    return 0;
+
   if (nonce_length < 1 || assoc_length < 0 ||
       plaintext_length < 0 || ciphertext_length < 0)
     return 0;
@@ -231,6 +234,9 @@ SIV_Decrypt(SIV_Instance instance,
             void *plaintext, int plaintext_length)
 {
   size_t plen = plaintext_length;
+
+  if (!instance->cipher)
+    return 0;
 
   if (nonce_length < 1 || assoc_length < 0 ||
       plaintext_length < 0 || ciphertext_length < 0)
