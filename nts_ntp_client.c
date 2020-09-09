@@ -53,6 +53,7 @@ struct NNC_Instance_Record {
   const IPSockAddr *ntp_address;
   IPSockAddr nts_address;
   char *name;
+
   NKC_Instance nke;
   SIV_Instance siv;
 
@@ -66,6 +67,7 @@ struct NNC_Instance_Record {
   NKE_Cookie cookies[NTS_MAX_COOKIES];
   int num_cookies;
   int cookie_index;
+  int auth_ready;
   int nak_response;
   int ok_response;
   unsigned char nonce[NTS_MIN_UNPADDED_NONCE_LENGTH];
@@ -82,6 +84,13 @@ static void load_cookies(NNC_Instance inst);
 static void
 reset_instance(NNC_Instance inst)
 {
+  if (inst->nke)
+    NKC_DestroyInstance(inst->nke);
+  inst->nke = NULL;
+  if (inst->siv)
+    SIV_DestroyInstance(inst->siv);
+  inst->siv = NULL;
+
   inst->load_attempt = 0;
   inst->nke_attempts = 0;
   inst->next_nke_attempt = 0.0;
@@ -92,6 +101,7 @@ reset_instance(NNC_Instance inst)
   memset(inst->cookies, 0, sizeof (inst->cookies));
   inst->num_cookies = 0;
   inst->cookie_index = 0;
+  inst->auth_ready = 0;
   inst->nak_response = 0;
   inst->ok_response = 1;
   memset(inst->nonce, 0, sizeof (inst->nonce));
@@ -125,10 +135,7 @@ NNC_DestroyInstance(NNC_Instance inst)
 {
   save_cookies(inst);
 
-  if (inst->nke)
-    NKC_DestroyInstance(inst->nke);
-  if (inst->siv)
-    SIV_DestroyInstance(inst->siv);
+  reset_instance(inst);
 
   Free(inst->name);
   Free(inst);
@@ -276,6 +283,8 @@ get_cookies(NNC_Instance inst)
 int
 NNC_PrepareForAuth(NNC_Instance inst)
 {
+  inst->auth_ready = 0;
+
   /* Try to reload saved keys and cookies (once for the NTS-KE address) */
   if (!inst->load_attempt) {
     load_cookies(inst);
@@ -301,6 +310,8 @@ NNC_PrepareForAuth(NNC_Instance inst)
   UTI_GetRandomBytes(inst->uniq_id, sizeof (inst->uniq_id));
   UTI_GetRandomBytes(inst->nonce, sizeof (inst->nonce));
 
+  inst->auth_ready = 1;
+
   return 1;
 }
 
@@ -314,7 +325,7 @@ NNC_GenerateRequestAuth(NNC_Instance inst, NTP_Packet *packet,
   int i, req_cookies;
   void *ef_body;
 
-  if (inst->num_cookies == 0 || !inst->siv)
+  if (!inst->auth_ready || inst->num_cookies == 0 || !inst->siv)
     return 0;
 
   if (info->mode != MODE_CLIENT)
@@ -345,6 +356,7 @@ NNC_GenerateRequestAuth(NNC_Instance inst, NTP_Packet *packet,
 
   inst->num_cookies--;
   inst->cookie_index = (inst->cookie_index + 1) % NTS_MAX_COOKIES;
+  inst->auth_ready = 0;
   inst->nak_response = 0;
   inst->ok_response = 0;
 
@@ -427,7 +439,7 @@ NNC_CheckResponseAuth(NNC_Instance inst, NTP_Packet *packet,
     return 0;
 
   /* Accept at most one response per request */
-  if (inst->ok_response)
+  if (inst->ok_response || inst->auth_ready)
     return 0;
 
   if (!inst->siv ||
@@ -506,11 +518,6 @@ NNC_ChangeAddress(NNC_Instance inst, IPAddr *address)
 {
   save_cookies(inst);
 
-  if (inst->nke)
-    NKC_DestroyInstance(inst->nke);
-
-  inst->nke = NULL;
-  inst->num_cookies = 0;
   inst->nts_address.ip_addr = *address;
 
   reset_instance(inst);
