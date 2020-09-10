@@ -39,7 +39,7 @@ running.
 If no commands are specified on the command line, *chronyc* will expect input
 from the user. The prompt _chronyc>_ will be displayed when it is being run
 from a terminal. If *chronyc*'s input or output are redirected from or to a file,
-the prompt is not shown.
+the prompt will not be shown.
 
 There are two ways *chronyc* can access *chronyd*. One is the Internet
 Protocol (IPv4 or IPv6) and the other is a Unix domain socket, which is
@@ -60,9 +60,7 @@ default, the commands are accepted only from localhost (127.0.0.1 or ::1).
 
 All other commands are allowed only through the Unix domain socket. When sent
 over the network, *chronyd* will respond with a '`Not authorised`' error, even
-if it is from localhost. In chrony versions before 2.2 they were allowed
-from the network if they were authenticated with a password, but that is no
-longer supported.
+if it is from localhost.
 
 Having full access to *chronyd* via *chronyc* is more or less equivalent to
 being able to modify the *chronyd*'s configuration file and restart it.
@@ -183,10 +181,12 @@ speeding up or slowing down the system clock until the error has been removed,
 and then returning to the system clock's normal speed. A consequence of this is
 that there will be a period when the system clock (as read by other programs)
 will be different from *chronyd*'s estimate of the current true time (which it
-reports to NTP clients when it is operating in server mode). The value reported
+reports to NTP clients when it is operating as a server). The value reported
 on this line is the difference due to this effect.
 *Last offset*:::
-This is the estimated local offset on the last clock update.
+This is the estimated local offset on the last clock update. A positive value
+indicates the local time (as previously estimated true time) was ahead of the
+time sources.
 *RMS offset*:::
 This is a long-term average of the offset value.
 *Frequency*:::
@@ -317,18 +317,23 @@ The columns are as follows:
 This indicates the mode of the source. _^_ means a server, _=_ means a peer
 and _#_ indicates a locally connected reference clock.
 *S*:::
-This column indicates the state of the source.
-* _*_ indicates the source to which *chronyd* is currently synchronised.
-* _+_ indicates acceptable sources which are combined with the selected
-  source.
-* _-_ indicates acceptable sources which are excluded by the combining
-  algorithm.
-* _?_ indicates sources to which connectivity has been lost or whose packets
-  do not pass all tests. It is also shown at start-up, until at least 3 samples
-  have been gathered from it.
-* _x_ indicates a clock which *chronyd* thinks is a falseticker (i.e. its
-  time is inconsistent with a majority of other sources).
+This column indicates the selection state of the source.
+* _*_ indicates the best source which is currently selected for
+  synchronisation.
+* _+_ indicates other sources selected for synchronisation, which are combined
+  with the best source.
+* _-_ indicates a source which is considered to be selectable for
+  synchronisation, but not currently selected.
+* _x_ indicates a source which *chronyd* thinks is a falseticker (i.e. its
+  time is inconsistent with a majority of other sources, or sources specified
+  with the *trust* option).
 * _~_ indicates a source whose time appears to have too much variability.
+* _?_ indicates a source which is not considered to be selectable for
+  synchronisation for other reasons (e.g. unreachable, not synchronised, or
+  does not have enough measurements).
+{blank}:::
+The <<selectdata,*selectdata*>> command can be used to get more details about
+the selection state.
 *Name/IP address*:::
 This shows the name or the IP address of the source, or reference ID for reference
 clocks.
@@ -1328,10 +1333,7 @@ purged. An example of how to do this is shown below.
 ----
 # mv /var/log/chrony/measurements.log /var/log/chrony/measurements1.log
 # chronyc cyclelogs
-# ls -l /var/log/chrony
--rw-r--r--   1 root     root            0 Jun  8 18:17 measurements.log
--rw-r--r--   1 root     root        12345 Jun  8 18:17 measurements1.log
-# rm -f measurements1.log
+# rm /var/log/chrony/measurements1.log
 ----
 
 [[dump]]*dump*::
@@ -1356,7 +1358,9 @@ The *reset sources* command causes *chronyd* to drop all measurements and
 switch to the unsynchronised state. This command can help *chronyd* with
 recovery when the measurements are known to be no longer valid or accurate,
 e.g. due to moving the computer to a different network, or resuming the
-computer from a low-power state (which resets the system clock).
+computer from a low-power state (which resets the system clock). *chronyd* will
+drop the measurements automatically when it detects the clock has made an
+unexpected jump, but the detection is not completely reliable.
 
 [[shutdown]]*shutdown*::
 The *shutdown* command causes *chronyd* to exit. This is equivalent to sending
@@ -1423,7 +1427,13 @@ keygen 73 SHA1 256
 +
 which generates a 256-bit SHA1 key with number 73. The printed line should
 then be securely transferred and added to the key files on both server and
-client, or peers.
+client, or peers. A different key should be generated for each client or peer.
++
+An example using the AES128 cipher is:
++
+----
+keygen 151 AES128
+----
 
 [[exit]]*exit*::
 [[quit]]*quit*::
