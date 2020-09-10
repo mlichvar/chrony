@@ -190,7 +190,7 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
       key_id = get_random_key_id();
     auth_len = KEY_GetAuthLength(key_id);
     assert(auth_len);
-    if (NTP_LVM_TO_VERSION(res->lvm) == 4 && random() % 2)
+    if (NTP_LVM_TO_VERSION(res->lvm) == 4)
       auth_len = MIN(auth_len, NTP_MAX_V4_MAC_LENGTH - 4);
 
     if (KEY_GenerateAuth(key_id, (unsigned char *)res, NTP_HEADER_LENGTH,
@@ -204,7 +204,7 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
   if (!valid_auth && authenticated) {
     assert(auth_len);
 
-    switch (random() % 4) {
+    switch (random() % 5) {
       case 0:
         key_id++;
         break;
@@ -219,9 +219,20 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
         break;
       case 3:
         res_length = NTP_HEADER_LENGTH + 4 * (random() % ((4 + auth_len) / 4));
-        if (NTP_LVM_TO_VERSION(res->lvm) == 4 &&
-            res_length == NTP_HEADER_LENGTH + NTP_MAX_V4_MAC_LENGTH)
-          res_length -= 4;
+        break;
+      case 4:
+        if (NTP_LVM_TO_VERSION(res->lvm) == 4 && random() % 2 &&
+            KEY_GetAuthLength(key_id) > NTP_MAX_V4_MAC_LENGTH - 4) {
+          auth_len += 4 + 4 * (random() %
+                               ((KEY_GetAuthLength(key_id) - NTP_MAX_V4_MAC_LENGTH - 4) / 4));
+          if (KEY_GenerateAuth(key_id, (unsigned char *)res, NTP_HEADER_LENGTH,
+                               res->extensions + 4, auth_len) != auth_len)
+              assert(0);
+          res_length = NTP_HEADER_LENGTH + 4 + auth_len;
+        } else {
+          memset((unsigned char *)res + res_length, 0, 4);
+          res_length += 4;
+        }
         break;
       default:
         assert(0);

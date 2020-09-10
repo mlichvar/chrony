@@ -300,21 +300,9 @@ NAU_ParsePacket(NTP_Packet *packet, NTP_PacketInfo *info)
     if (remainder >= NTP_MIN_MAC_LENGTH && remainder <= NTP_MAX_V4_MAC_LENGTH)
       break;
 
-    /* The NTPv4-specific limit for MAC length enables deterministic parsing of
-       packets with extension fields (RFC 7822), but we support longer MACs in
-       packets with no extension fields for compatibility with older chrony
-       clients.  Check if the longer MAC would authenticate the packet before
-       trying to parse the data as an extension field. */
-    if (parsed == NTP_HEADER_LENGTH &&
-        remainder > NTP_MAX_V4_MAC_LENGTH && remainder <= NTP_MAX_MAC_LENGTH &&
-        KEY_CheckAuth(ntohl(*(uint32_t *)(data + parsed)), data, parsed,
-                      data + parsed + 4, remainder - 4, NTP_MAX_MAC_LENGTH - 4))
-      break;
-
     /* Check if this is a valid NTPv4 extension field and skip it */
     if (!NEF_ParseField(packet, info->length, parsed, &ef_length, &ef_type, NULL, NULL)) {
-      /* Invalid MAC or format error */
-      DEBUG_LOG("Invalid format or MAC");
+      DEBUG_LOG("Invalid format");
       return 0;
     }
 
@@ -340,9 +328,6 @@ NAU_ParsePacket(NTP_Packet *packet, NTP_PacketInfo *info)
     /* No MAC */
     return 1;
   } else if (remainder >= NTP_MIN_MAC_LENGTH) {
-    /* This is not 100% reliable as a MAC could fail to authenticate and could
-       pass as an extension field, leaving reminder smaller than the minimum MAC
-       length */
     info->auth.mode = NTP_AUTH_SYMMETRIC;
     info->auth.mac.start = parsed;
     info->auth.mac.length = remainder;
