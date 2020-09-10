@@ -32,12 +32,14 @@ chrony.conf - chronyd configuration file
 == DESCRIPTION
 
 This file configures the *chronyd* daemon. The compiled-in location is
-_@SYSCONFDIR@/chrony.conf_, but other locations can be specified on the
+_@SYSCONFDIR@/chrony.conf_. Other locations can be specified on the
 *chronyd* command line with the *-f* option.
 
 Each directive in the configuration file is placed on a separate line. The
-following sections describe each of the directives in turn. The directives can
-occur in any order in the file and they are not case-sensitive.
+following sections describe each of the directives in turn. The directives are
+not case-sensitive. Generally, the directives can occur in any order in the file
+and if a directive is specified multiple times, only the last one will be
+effective. Exceptions are noted in the descriptions.
 
 The configuration directives can also be specified directly on the *chronyd*
 command line. In this case each argument is parsed as a new line and the
@@ -61,9 +63,10 @@ source. The client-server relationship is strictly hierarchical: a client might
 synchronise its system time to that of the server, but the server's system time
 will never be influenced by that of a client.
 +
-The *server* directive is immediately followed by either the name of the
-server, or its IP address. The *server* directive supports the following
-options:
+This directive can be used multiple times to specify multiple servers.
++
+The directive is immediately followed by either the name of the
+server, or its IP address. It supports the following options:
 +
 *minpoll* _poll_:::
 This option specifies the minimum interval between requests sent to the server
@@ -276,6 +279,8 @@ directive, except that it is used to specify a pool of NTP servers rather than
 a single NTP server. The pool name is expected to resolve to multiple addresses
 which might change over time.
 +
+This directive can be used multiple times to specify multiple pools.
++
 All options valid in the <<server,*server*>> directive can be used in this
 directive too. There is one option specific to the *pool* directive:
 +
@@ -305,6 +310,8 @@ association allows the peers to be both servers and clients to each other. This
 is mainly useful when the NTP implementation of the peer (e.g. *ntpd*) supports
 ephemeral symmetric associations and does not need to be configured with an
 address of this host. *chronyd* does not support ephemeral associations.
++
+This directive can be used multiple times to specify multiple peers.
 +
 The following options of the *server* directive do not work in the *peer*
 directive: *iburst*, *burst*, *nts*, *presend*.
@@ -397,6 +404,8 @@ time source. It has two mandatory parameters, a driver name and a
 driver-specific parameter. The two parameters are followed by zero or more
 refclock options. Some drivers have special options, which can be appended to
 the driver-specific parameter using the *:* character.
++
+This directive can be used multiple times to specify multiple reference clocks.
 +
 There are four drivers included in *chronyd*:
 +
@@ -610,12 +619,13 @@ behaviour, whereas the *settime* command allows samples of manually entered
 time to be provided.)
 
 [[acquisitionport]]*acquisitionport* _port_::
-By default, *chronyd* uses a separate client socket for each configured server
-and their source port is chosen arbitrarily by the operating system. However,
-you can use the *acquisitionport* directive to explicitly specify a port and
-use only one socket (per IPv4 or IPv6 address family) for all configured servers.
-This can be useful for getting through some firewalls. If set to 0, the source
-port of the socket will be chosen arbitrarily.
+By default, *chronyd* as an NTP client opens a new socket for each request with
+the source port chosen randomly by the operating system. The *acquisitionport*
+directive can be used to specify the source port and use only one socket (per
+IPv4 or IPv6 address family) for all configured servers. This can be useful for
+getting through some firewalls. It should not be used if not necessary as there
+is a small impact on security of the client. If set to 0, the source port of
+the permanent socket will be chosen randomly by the operating system.
 +
 It can be set to the same port as is used by the NTP server (which can be
 configured with the <<port,*port*>> directive) to use only one socket for all
@@ -632,8 +642,8 @@ You could then persuade the firewall administrator to open that port.
 
 [[bindacqaddress]]*bindacqaddress* _address_::
 The *bindacqaddress* directive specifies a local IP address to which
-*chronyd* will bind its NTP client sockets. The syntax is similar to the
-<<bindaddress,*bindaddress*>> and <<bindcmdaddress,*bindcmdaddress*>>
+*chronyd* will bind its NTP and NTS-KE client sockets. The syntax is similar to
+the <<bindaddress,*bindaddress*>> and <<bindcmdaddress,*bindcmdaddress*>>
 directives.
 +
 For each of the IPv4 and IPv6 protocols, only one *bindacqaddress* directive
@@ -1060,7 +1070,7 @@ A recommended configuration to enable a server leap smear is:
 ----
 leapsecmode slew
 maxslewrate 1000
-smoothtime 400 0.001 leaponly
+smoothtime 400 0.001024 leaponly
 ----
 +
 The first directive is necessary to disable the clock step which would reset
@@ -1068,11 +1078,17 @@ the smoothing process. The second directive limits the slewing rate of the
 local clock to 1000 ppm, which improves the stability of the smoothing process
 when the local correction starts and ends. The third directive enables the
 server time smoothing process. It will start when the clock gets to 00:00:00
-UTC and it will take 17 hours 34 minutes to finish. The frequency offset will
-be changing by 0.001 ppm per second and will reach a maximum of 31.623 ppm. The
-*leaponly* option makes the duration of the leap smear constant and allows the
-clients to safely synchronise with multiple identically configured leap
-smearing servers.
+UTC and it will take 62500 seconds (about 17.36 hours) to finish. The frequency
+offset will be changing by 0.001024 ppm per second and will reach a maximum of
+32 ppm in 31250 seconds. The *leaponly* option makes the duration of the leap
+smear constant and allows the clients to safely synchronise with multiple
+identically configured leap smearing servers.
++
+The duration of the leap smear can be calculated from the specified wander as
++
+----
+duration = sqrt(4 / wander)
+----
 
 [[leapsectz]]*leapsectz* _timezone_::
 This directive specifies a timezone in the system tz database which *chronyd*
@@ -1242,7 +1258,7 @@ coefficients _T0_, _k0_, _k1_, _k2_.
 The frequency compensation is calculated (in ppm) as
 +
 ----
-k0 + (T - T0) * k1 + (T - T0)^2 * k2
+comp = k0 + (T - T0) * k1 + (T - T0)^2 * k2
 ----
 +
 The result has to be between -10 ppm and 10 ppm, otherwise the measurement is
@@ -1293,11 +1309,14 @@ _tempcomp.log_ file if enabled by the <<log,*log tempcomp*>> directive.
 
 [[allow]]*allow* [*all*] [_subnet_]::
 The *allow* directive is used to designate a particular subnet from which NTP
-clients are allowed to access the computer as an NTP server.
+clients are allowed to access the computer as an NTP server. It also controls
+access of NTS-KE clients when NTS is enabled on the server.
 +
 The default is that no clients are allowed access, i.e. *chronyd* operates
 purely as an NTP client. If the *allow* directive is used, *chronyd* will be
 both a client of its servers, and a server to other clients.
++
+This directive can be used multiple times.
 +
 Examples of the use of the directive are as follows:
 +
@@ -1365,18 +1384,19 @@ client access by this computer for it to work.
 
 [[deny]]*deny* [*all*] [_subnet_]::
 This is similar to the <<allow,*allow*>> directive, except that it denies NTP
-client access to a particular subnet or host, rather than allowing it.
+and NTS-KE client access to a particular subnet or host, rather than allowing
+it.
 +
-The syntax is identical.
+The syntax is identical and the directive can be used multiple times too.
 +
 There is also a *deny all* directive with similar behaviour to the *allow all*
 directive.
 
 [[bindaddress]]*bindaddress* _address_::
-The *bindaddress* directive binds the socket on which *chronyd* listens for NTP
-requests to a local address of the computer. On systems other than Linux, the
-address of the computer needs to be already configured when *chronyd* is
-started.
+The *bindaddress* directive binds the sockets on which *chronyd* listens for
+NTP and NTS-KE requests to a local address of the computer. On systems other
+than Linux, the address of the computer needs to be already configured when
+*chronyd* is started.
 +
 An example of the use of the directive is:
 +
@@ -1389,9 +1409,9 @@ directive can be specified. Therefore, it is not useful on computers which
 should serve NTP on multiple network interfaces.
 
 [[binddevice]]*binddevice* _interface_::
-The *binddevice* directive binds the NTP server sockets to a network device
-specified by the interface name. This directive can specify only one interface
-and it is supported on Linux only.
+The *binddevice* directive binds the NTP and NTS-KE server sockets to a network
+device specified by the interface name. This directive can specify only one
+interface and it is supported on Linux only.
 +
 An example of the directive is:
 +
@@ -1404,6 +1424,8 @@ The *broadcast* directive is used to declare a broadcast address to which
 chronyd should send packets in the NTP broadcast mode (i.e. make *chronyd* act
 as a broadcast server). Broadcast clients on that subnet will be able to
 synchronise.
++
+This directive can be used multiple times to specify multiple addresses.
 +
 The syntax is as follows:
 +
@@ -1504,7 +1526,9 @@ configuration and to be synchronised to one another, without confusing clients
 that poll more than one server. Each server needs to be configured to poll all
 other servers with the *local* directive. This ensures only the server with the
 smallest reference ID has the local reference active and others are
-synchronised to it. When that server fails, another will take over.
+synchronised to it. If that server stops responding, the server with the second
+smallest reference ID will take over when its local reference mode activates
+(root distance reaches the threshold configured by the *distance* option).
 +
 The *orphan* mode is compatible with the *ntpd*'s orphan mode (enabled by the
 *tos orphan* command).
@@ -1513,7 +1537,7 @@ The *orphan* mode is compatible with the *ntpd*'s orphan mode (enabled by the
 An example of the directive is:
 +
 ----
-local stratum 10 orphan
+local stratum 10 orphan distance 0.1
 ----
 
 [[ntpsigndsocket]]*ntpsigndsocket* _directory_::
@@ -1843,7 +1867,8 @@ The *rtcautotrim* directive is used to keep the RTC close to the system clock
 automatically. When the system clock is synchronised and the estimated error
 between the two clocks is larger than the specified threshold, *chronyd* will
 trim the RTC as if the <<chronyc.adoc#trimrtc,*trimrtc*>> command in *chronyc*
-was issued.
+was issued. The trimming operation is accurate to only about 1 second, which is
+the minimum effective threshold.
 +
 This directive is effective only with the <<rtcfile,*rtcfile*>> directive.
 +
@@ -2223,6 +2248,8 @@ name, only the first file in the order of the specified directories will be
 included. This enables a fragmented configuration where existing fragments can
 be replaced by adding files to a different directory.
 +
+This directive can be used multiple times.
++
 An example of the directive is:
 +
 ----
@@ -2238,6 +2265,8 @@ reloaded by the <<chronyc.adoc#reload,*reload sources*>> command in
 received from a DHCP server, which can be written to a file specific to the
 network interface by a networking script.
 +
+This directive can be used multiple times.
++
 An example of the directive is:
 +
 ----
@@ -2249,6 +2278,8 @@ The *include* directive includes a configuration file, or multiple configuration
 files if a wildcard pattern is specified. Unlike with the *confdir* directive,
 the full name of the files needs to be specified and at least one file is
 required to exist.
++
+This directive can be used multiple times.
 +
 An example of the directive is:
 +
@@ -2285,8 +2316,9 @@ indicated in the _measurements.log_ file if enabled by the <<log,*log
 measurements*>> directive, and the <<chronyc.adoc#ntpdata,*ntpdata*>> report in
 *chronyc*.
 +
-If the specified interface is _*_, *chronyd* will try to enable HW timestamping
-on all available interfaces.
+This directive can be used multiple times to enable HW timestamping on multiple
+interfaces. If the specified interface is _*_, *chronyd* will try to enable HW
+timestamping on all available interfaces.
 +
 The *hwtimestamp* directive has the following options:
 +
@@ -2513,6 +2545,20 @@ in this case look like:
 
 ----
 pool pool.ntp.org iburst
+driftfile @CHRONYVARDIR@/drift
+makestep 1.0 3
+rtcsync
+----
+
+If the servers (or pool) support the Network Time Security (NTS)
+authentication mechanism and *chronyd* is compiled with NTS support, the *nts*
+option will enable a secure synchronisation to the servers. The configuration
+file could look like:
+
+----
+server foo.example.net iburst nts
+server bar.example.net iburst nts
+server baz.example.net iburst nts
 driftfile @CHRONYVARDIR@/drift
 makestep 1.0 3
 rtcsync
