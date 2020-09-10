@@ -23,6 +23,7 @@
 #include <cmdparse.h>
 #include <conf.h>
 #include <keys.h>
+#include <ntp_ext.h>
 #include <ntp_io.h>
 #include <sched.h>
 #include <local.h>
@@ -138,7 +139,7 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
 {
   NTP_Packet *req, *res;
   uint32_t key_id = 0;
-  int auth_len = 0;
+  int i, auth_len = 0, ef_len, efs;
 
   req = &req_buffer;
   res = &res_buffer;
@@ -184,6 +185,23 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
     }
   }
 
+  res_length = NTP_HEADER_LENGTH;
+
+  if (NTP_LVM_TO_VERSION(res->lvm) == 4 && random() % 2) {
+    unsigned char buf[128];
+
+    memset(buf, 0, sizeof (buf));
+    efs = random() % 5;
+
+    for (i = 0; i < efs; i++) {
+      ef_len = (i + 1 == efs ? NTP_MAX_V4_MAC_LENGTH + 4 : NTP_MIN_EF_LENGTH) +
+               4 * (random() % 10);
+      TEST_CHECK(NEF_SetField((unsigned char *)res, sizeof (*res), res_length, 0,
+                              buf, ef_len - 4, &ef_len));
+      res_length += ef_len;
+    }
+  }
+
   if (authenticated) {
     key_id = ntohl(*(uint32_t *)req->extensions);
     if (key_id == 0)
@@ -193,12 +211,10 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
     if (NTP_LVM_TO_VERSION(res->lvm) == 4)
       auth_len = MIN(auth_len, NTP_MAX_V4_MAC_LENGTH - 4);
 
-    if (KEY_GenerateAuth(key_id, (unsigned char *)res, NTP_HEADER_LENGTH,
-                         res->extensions + 4, auth_len) != auth_len)
+    if (KEY_GenerateAuth(key_id, res, res_length,
+                         (unsigned char *)res + res_length + 4, auth_len) != auth_len)
       assert(0);
-    res_length = NTP_HEADER_LENGTH + 4 + auth_len;
-  } else {
-    res_length = NTP_HEADER_LENGTH;
+    res_length += 4 + auth_len;
   }
 
   if (!valid_auth && authenticated) {
@@ -210,25 +226,26 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
         break;
       case 1:
         key_id ^= 1;
-        if (KEY_GenerateAuth(key_id, (unsigned char *)res, NTP_HEADER_LENGTH,
-                             res->extensions + 4, auth_len) != auth_len)
+        if (KEY_GenerateAuth(key_id, res, res_length - auth_len - 4,
+                             (unsigned char *)res + res_length - auth_len, auth_len) != auth_len)
           assert(0);
         break;
       case 2:
-        res->extensions[4 + random() % auth_len]++;
+        ((unsigned char *)res)[res_length - auth_len + random() % auth_len]++;
         break;
       case 3:
-        res_length = NTP_HEADER_LENGTH + 4 * (random() % ((4 + auth_len) / 4));
+        res_length -= 4 + 4 * (random() % (auth_len / 4));
         break;
       case 4:
         if (NTP_LVM_TO_VERSION(res->lvm) == 4 && random() % 2 &&
             KEY_GetAuthLength(key_id) > NTP_MAX_V4_MAC_LENGTH - 4) {
+          res_length -= 4 + auth_len;
           auth_len += 4 + 4 * (random() %
                                ((KEY_GetAuthLength(key_id) - NTP_MAX_V4_MAC_LENGTH - 4) / 4));
-          if (KEY_GenerateAuth(key_id, (unsigned char *)res, NTP_HEADER_LENGTH,
-                               res->extensions + 4, auth_len) != auth_len)
+          if (KEY_GenerateAuth(key_id, res, res_length,
+                               (unsigned char *)res + res_length + 4, auth_len) != auth_len)
               assert(0);
-          res_length = NTP_HEADER_LENGTH + 4 + auth_len;
+          res_length += 4 + auth_len;
         } else {
           memset((unsigned char *)res + res_length, 0, 4);
           res_length += 4;
@@ -239,7 +256,8 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
     }
   }
 
-  *(uint32_t *)res->extensions = htonl(key_id);
+  if (authenticated)
+    *(uint32_t *)((unsigned char *)res + res_length - auth_len - 4) = htonl(key_id);
 }
 
 static void
