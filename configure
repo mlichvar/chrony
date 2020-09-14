@@ -974,7 +974,7 @@ if [ $feat_ntp = "1" ] && [ $feat_nts = "1" ] && [ $try_gnutls = "1" ]; then
   test_link="`pkg_config --libs gnutls`"
   if test_code 'gnutls' 'gnutls/gnutls.h' \
     "$test_cflags" "$test_link" '
-      return gnutls_init(NULL, 0) +
+      return gnutls_init(NULL, 0) + GNUTLS_TLS1_3 +
         gnutls_priority_init2(NULL, "", NULL, GNUTLS_PRIORITY_INIT_DEF_APPEND) +
         gnutls_prf_rfc5705(NULL, 0, "", 0, "", 16, NULL);'
   then
