@@ -234,7 +234,9 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
         ((unsigned char *)res)[res_length - auth_len + random() % auth_len]++;
         break;
       case 3:
-        res_length -= 4 + 4 * (random() % (auth_len / 4));
+        res_length -= 4 + auth_len;
+        auth_len = 4 * (random() % (auth_len / 4));
+        res_length += 4 + auth_len;
         break;
       case 4:
         if (NTP_LVM_TO_VERSION(res->lvm) == 4 && random() % 2 &&
@@ -248,6 +250,7 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
           res_length += 4 + auth_len;
         } else {
           memset((unsigned char *)res + res_length, 0, 4);
+          auth_len += 4;
           res_length += 4;
         }
         break;
@@ -255,6 +258,9 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
         assert(0);
     }
   }
+
+  assert(res_length <= sizeof (*res));
+  assert(res_length >= NTP_HEADER_LENGTH + auth_len);
 
   if (authenticated)
     *(uint32_t *)((unsigned char *)res + res_length - auth_len - 4) = htonl(key_id);
