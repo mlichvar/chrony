@@ -145,6 +145,16 @@ On macOS, FreeBSD, NetBSD and Solaris *chronyd* forks into two processes.
 The child process retains root privileges, but can only perform a very limited
 range of privileged system calls on behalf of the parent.
 
+*-U*::
+This option disables a check for root privileges to allow *chronyd* to be
+started under a non-root user, assuming the process will have all capabilities
+(e.g. provided by the service manager) and access to all files, directories,
+and devices, needed to operate correctly in the specified configuration. Note
+that different capabilities might be needed with different configurations and
+different Linux kernel versions. Starting *chronyd* under a non-root user is
+not recommended when the configuration is not known, or at least limited to
+specific directives.
+
 *-F* _level_::
 This option configures a system call filter when *chronyd* is compiled with
 support for the Linux secure computing (seccomp) facility. In level 1 the

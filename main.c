@@ -411,7 +411,7 @@ int main
   int do_init_rtc = 0, restarted = 0, client_only = 0, timeout = -1;
   int scfilter_level = 0, lock_memory = 0, sched_priority = 0;
   int clock_control = 1, system_log = 1, log_severity = LOGS_INFO;
-  int config_args = 0, print_config = 0;
+  int user_check = 1, config_args = 0, print_config = 0;
 
   do_platform_checks();
 
@@ -431,7 +431,7 @@ int main
   optind = 1;
 
   /* Parse short command-line options */
-  while ((opt = getopt(argc, argv, "46df:F:hl:L:mnpP:qQrRst:u:vx")) != -1) {
+  while ((opt = getopt(argc, argv, "46df:F:hl:L:mnpP:qQrRst:u:Uvx")) != -1) {
     switch (opt) {
       case '4':
       case '6':
@@ -462,7 +462,7 @@ int main
         break;
       case 'p':
         print_config = 1;
-        client_only = 1;
+        user_check = 0;
         nofork = 1;
         system_log = 0;
         break;
@@ -479,6 +479,7 @@ int main
         ref_mode = REF_ModePrintOnce;
         nofork = 1;
         client_only = 1;
+        user_check = 0;
         clock_control = 0;
         system_log = 0;
         break;
@@ -497,6 +498,9 @@ int main
       case 'u':
         user = optarg;
         break;
+      case 'U':
+        user_check = 0;
+        break;
       case 'v':
         print_version();
         return 0;
@@ -509,7 +513,7 @@ int main
     }
   }
 
-  if (getuid() && !client_only)
+  if (user_check && getuid() != 0)
     LOG_FATAL("Not superuser");
 
   /* Turn into a daemon */
