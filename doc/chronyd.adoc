@@ -55,7 +55,7 @@ IPv6 sockets will be created.
 
 *-f* _file_::
 This option can be used to specify an alternate location for the configuration
-file. The default value is _@SYSCONFDIR@/chrony.conf_.
+file. The compiled-in default value is _@SYSCONFDIR@/chrony.conf_.
 
 *-n*::
 When run in this mode, the program will not detach itself from the terminal.
@@ -137,7 +137,7 @@ running, but still allow it to adjust the frequency of the system clock.
 *-u* _user_::
 This option sets the name of the system user to which *chronyd* will switch
 after start in order to drop root privileges. It overrides the
-<<chrony.conf.adoc#user,*user*>> directive. The default value is
+<<chrony.conf.adoc#user,*user*>> directive. The compiled-in default value is
 _@DEFAULT_USER@_.
 +
 On Linux, *chronyd* needs to be compiled with support for the *libcap* library.
@@ -162,10 +162,10 @@ process is killed when a forbidden system call is made, in level -1 the SIGSYS
 signal is thrown instead and in level 0 the filter is disabled. The default
 value is 0.
 +
-It's recommended to enable the filter only when it's known to work on the
+It is recommended to enable the filter only when it is known to work on the
 version of the system where *chrony* is installed as the filter needs to allow
 also system calls made from libraries that *chronyd* is using (e.g. libc) and
-different versions or implementations of the libraries may make different
+different versions or implementations of the libraries might make different
 system calls. If the filter is missing some system call, *chronyd* could be
 killed even in normal operation.
 
@@ -184,10 +184,8 @@ This mode is only supported on Linux.
 This option disables the control of the system clock. *chronyd* will not try to
 make any adjustments of the clock. It will assume the clock is free running and
 still track its offset and frequency relative to the estimated true time. This
-option allows *chronyd* to run without the capability to adjust or set the
-system clock (e.g. in some containers) in order to operate as an NTP server. It
-is not recommended to run *chronyd* (with or without *-x*) when another process
-is controlling the system clock.
+option allows *chronyd* to be started without the capability to adjust or set
+the system clock (e.g. in some containers) to operate as an NTP server.
 
 *-v*::
 With this option *chronyd* will print version number to the terminal and exit.
