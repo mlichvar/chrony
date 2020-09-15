@@ -200,7 +200,8 @@ add_interface(CNF_HwTsInterface *conf_iface)
   req.ifr_data = (char *)&ts_config;
 
   if (ioctl(sock_fd, SIOCSHWTSTAMP, &req)) {
-    DEBUG_LOG("ioctl(%s) failed : %s", "SIOCSHWTSTAMP", strerror(errno));
+    LOG(errno == EPERM ? LOGS_ERR : LOGS_DEBUG,
+        "ioctl(%s) failed : %s", "SIOCSHWTSTAMP", strerror(errno));
 
     /* Check the current timestamping configuration in case this interface
        allows only reading of the configuration and it was already configured
