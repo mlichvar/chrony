@@ -24,17 +24,20 @@
 
 === How does `chrony` compare to `ntpd`?
 
-`chronyd` was designed to work well in a wide range of conditions and it can
-usually synchronise the system clock faster and with better time accuracy. It
-doesn't implement some of the less useful NTP modes like broadcast client or
-multicast server/client.
+`chrony` and `ntpd` are two different implementations of the Network Time
+Protocol (NTP).
+
+`chrony` is a newer implementation, which was designed to work well in a wider
+range of conditions. It can usually synchronise the system clock faster and
+with better time accuracy. It has many features, but it does not implement some
+of the less useful NTP modes like broadcast client or multicast server/client.
 
 If your computer is connected to the Internet only for few minutes at a time,
 the network connection is often congested, you turn your computer off or
 suspend it frequently, the clock is not very stable (e.g. there are rapid
-changes in the temperature or it's a virtual machine), or you want to use NTP
+changes in the temperature or it is a virtual machine), or you want to use NTP
 on an isolated network with no hardware reference clocks in sight, `chrony`
-will probably work much better for you.
+will probably work better for you.
 
 For a more detailed comparison of features and performance, see the
 https://chrony.tuxfamily.org/comparison.html[comparison page] on the `chrony`
@@ -59,7 +62,7 @@ slewing, which would take a very long time. The `makestep` directive does
 that.
 
 In order to keep the real-time clock (RTC) close to the true time, so the
-system time is reasonably close to the true time when it's initialised on the
+system time is reasonably close to the true time when it is initialised on the
 next boot from the RTC, the `rtcsync` directive enables a mode in which the
 system time is periodically copied to the RTC. It is supported on Linux and
 macOS.
@@ -75,52 +78,36 @@ makestep 1 3
 rtcsync
 ----
 
-=== How do I make an NTP server from an NTP client?
+=== How do I make an NTP server?
 
 You need to add an `allow` directive to the _chrony.conf_ file in order to open
 the NTP port and allow `chronyd` to reply to client requests. `allow` with no
 specified subnet allows access from all IPv4 and IPv6 addresses.
 
-=== I have several computers on a LAN. Should be all clients of an external server?
+=== Should all computers on a LAN be clients of an external server?
 
-The best configuration is usually to make one computer the server, with
-the others as clients of it. Add a `local` directive to the server's
-_chrony.conf_ file. This configuration will be better because
+It depends on the requirements. Usually, the best configuration is to make one
+computer the server, with the others as clients of it. Add a `local` directive
+to the server's _chrony.conf_ file. This configuration will be better because
 
 * the load on the external connection is less
 * the load on the external NTP server(s) is less
 * if your external connection goes down, the computers on the LAN
   will maintain a common time with each other.
 
-=== Must I specify servers by IP address if DNS is not available on chronyd start?
+=== Must I specify servers by IP address if DNS is not available on `chronyd` start?
 
-No. Starting from version 1.25, `chronyd` will keep trying to resolve
+No, `chronyd` will keep trying to resolve
 the names specified by the `server`, `pool`, and `peer` directives in an
 increasing interval until it succeeds. The `online` command can be issued from
 `chronyc` to force `chronyd` to try to resolve the names immediately.
 
 === How can I make `chronyd` more secure?
 
-If you don't need to serve time to NTP clients or peers, you can add `port 0`
-to the _chrony.conf_ file to completely disable the NTP server functionality
-and prevent NTP requests from reaching `chronyd`. Starting from version 2.0,
-the NTP server port is open only when client access is allowed by the `allow`
-directive or command, an NTP peer is configured, or the `broadcast` directive
-is used.
-
-If you don't need to use `chronyc` remotely, you can add the following
-directives to the configuration file to bind the command sockets to the
-loopback interface. This is done by default since version 2.0.
-
-----
-bindcmdaddress 127.0.0.1
-bindcmdaddress ::1
-----
-
-If you don't need to use `chronyc` at all or you need to run `chronyc` only
+If you do not need to use `chronyc`, or you want to run `chronyc` only
 under the root or _chrony_ user (which can access `chronyd` through a Unix
-domain socket since version 2.2), you can disable the internet command sockets
-completely by adding `cmdport 0` to the configuration file.
+domain socket), you can disable the IPv4 and IPv6 command sockets (by default
+listening on localhost) by adding `cmdport 0` to the configuration file.
 
 You can specify an unprivileged user with the `-u` option, or the `user`
 directive in the _chrony.conf_ file, to which `chronyd` will switch after start
@@ -133,23 +120,23 @@ a very limited range of privileged system calls on behalf of the parent.
 Also, if `chronyd` is compiled with support for the Linux secure computing
 (seccomp) facility, you can enable a system call filter with the `-F` option.
 It will significantly reduce the kernel attack surface and possibly prevent
-kernel exploits from the `chronyd` process if it's compromised. It's
-recommended to enable the filter only when it's known to work on the version of
+kernel exploits from the `chronyd` process if it is compromised. It is
+recommended to enable the filter only when it is known to work on the version of
 the system where `chrony` is installed as the filter needs to allow also system
 calls made from libraries that `chronyd` is using (e.g. libc) and different
-versions or implementations of the libraries may make different system calls.
+versions or implementations of the libraries might make different system calls.
 If the filter is missing some system call, `chronyd` could be killed even in
 normal operation.
 
 === How can I improve the accuracy of the system clock with NTP sources?
 
 Select NTP servers that are well synchronised, stable and close to your
-network. It's better to use more than one server, three or four is usually
+network. It is better to use more than one server, three or four is usually
 recommended as the minimum, so `chronyd` can detect servers that serve false
 time and combine measurements from multiple sources.
 
 If you have a network card with hardware timestamping supported on Linux, it
-can be enabled by the *hwtimestamp* directive in the _chrony.conf_ file. It
+can be enabled by the `hwtimestamp` directive in the _chrony.conf_ file. It
 should make local receive and transmit timestamps of NTP packets much more
 accurate.
 
@@ -163,8 +150,8 @@ default values are 6 (64 seconds) for `minpoll`, 10 (1024 seconds) for
 `maxpoll` and 8 (samples) for `polltarget`. The default values should be used
 for general servers on the Internet. With your own NTP servers, or if you have
 permission to poll some servers more frequently, setting these options for
-shorter polling intervals may significantly improve the accuracy of the system
-clock.
+shorter polling intervals might significantly improve the accuracy of the
+system clock.
 
 The optimal polling interval depends mainly on two factors, stability of the
 network latency and stability of the system clock (which mainly depends on the
@@ -174,7 +161,7 @@ temperature change).
 Generally, if the `sourcestats` command usually reports a small number of
 samples retained for a source (e.g. fewer than 16), a shorter polling interval
 should be considered. If the number of samples is usually at the maximum of 64,
-a longer polling interval may work better.
+a longer polling interval might work better.
 
 An example of the directive for an NTP server on the Internet that you are
 allowed to poll frequently could be
@@ -210,7 +197,7 @@ server ntp.local minpoll 2 maxpoll 4 xleave
 
 When combined with local hardware timestamping, good network switches, and even
 shorter polling intervals, a sub-microsecond accuracy and stability of a few
-tens of nanoseconds may be possible. For example:
+tens of nanoseconds might be possible. For example:
 
 ----
 server ntp.local minpoll 0 maxpoll 0 xleave
@@ -221,10 +208,11 @@ For best stability, the CPU should be running at a constant frequency (i.e.
 disabled power saving and performance boosting). Energy-Efficient Ethernet
 (EEE) should be disabled in the network. The switches should be configured to
 prioritize NTP packets, especially if the network is expected to be heavily
-loaded.
+loaded. The `dscp` directive can be used to set the Differentiated Services
+Code Point in transmitted NTP packets if needed.
 
-If it is acceptable for NTP clients in the network to send requests at an
-excessive rate, a sub-second polling interval may be specified. A median filter
+If it is acceptable for NTP clients in the network to send requests at a high
+rate, a sub-second polling interval can be specified. A median filter
 can be enabled in order to update the clock at a reduced rate with more stable
 measurements. For example:
 
@@ -237,7 +225,7 @@ hwtimestamp eth0 minpoll -6
 
 Yes. With the `-q` option `chronyd` will set the system clock once and exit.
 With the `-Q` option it will print the measured offset without setting the
-clock. If you don't want to use a configuration file, NTP servers can be
+clock. If you do not want to use a configuration file, NTP servers can be
 specified on the command line. For example:
 
 ----
@@ -249,17 +237,28 @@ well synchronised and responding to all requests. If not synchronised or
 responding, it would take about 10 seconds for `chronyd` to give up and exit
 with a non-zero status. A faster configuration is possible. A single server can
 be used instead of four servers, the number of measurements can be reduced with
-the `maxsamples` option, and a timeout can be specified with the `-t` option.
-The following command would take only up to about 1 second.
+the `maxsamples` option to one (supported in `chrony` version 4.0), and a
+timeout can be specified with the `-t` option. The following command would take
+only up to about one second.
 
 ----
 # chronyd -q -t 1 'server pool.ntp.org iburst maxsamples 1'
 ----
 
+It is not recommended to run `chronyd` with the `-q` option periodically (e.g.
+from a cron job) as a replacement for the daemon mode, because it performs
+significantly worse (e.g. the clock is stepped and its frequency is not
+corrected). If you must run it this way and you are using a public NTP server,
+make sure `chronyd` does not always start around the first second of a minute,
+e.g. by adding a random sleep before the `chronyd` command. Public servers
+typically receive large bursts of requests around the first second as there is
+a large number of NTP clients started from cron with no delay.
+
 === Can `chronyd` be configured to control the clock like `ntpd`?
 
 It is not possible to perfectly emulate `ntpd`, but there are some options that
-can configure `chronyd` to behave more like `ntpd`.
+can configure `chronyd` to behave more like `ntpd` if there is a reason to
+prefer that.
 
 In the following example the `minsamples` directive slows down the response to
 changes in the frequency and offset of the clock. The `maxslewrate` and
@@ -279,9 +278,55 @@ maxchange 1000 1 1
 maxclockerror 15
 ----
 
-Note that increasing `minsamples` may cause the offsets in the `tracking` and
+Note that increasing `minsamples` might cause the offsets in the `tracking` and
 `sourcestats` reports/logs to be significantly smaller than the actual offsets
 and be unsuitable for monitoring.
+
+=== Can NTP server be separated from NTP client?
+
+Yes, it is possible to run multiple instances of `chronyd` on the same
+computer. One can be configured as an NTP client, and another as a server. They
+need to use different pidfiles, NTP ports, command ports, and Unix domain
+command sockets. The server instance should be started with the `-x` option to
+avoid touching the clock. It can be configured to serve the system time with
+the `local` directive, or synchronise its NTP clock to the client instance
+running on localhost using a non-standard NTP port.
+
+On Linux, starting with `chrony` version 4.0, it is also possible to run
+multiple server instances sharing a port to utilise multiple cores of the CPU.
+Note that the client/server interleaved mode requires that all packets from an
+address are handled by the same server instance.
+
+=== Should be a leap smear enabled on NTP server?
+
+With the `smoothtime` and `leapsecmode` directives it is possible to enable a
+server leap smear in order to hide leap seconds from clients and force them to
+follow a slow server's adjustment instead.
+
+This feature should be used only in local networks and only when necessary,
+e.g. when the clients cannot be configured to handle the leap seconds as
+needed, or their number is so large that configuring them all would be
+impractical. The clients should use only one leap-smearing server, or multiple
+identically configured leap-smearing servers. Note that some clients can get
+leap seconds from external sources (e.g. with the `leapsectz` directive in
+`chrony`) and they will not work correctly with a leap smearing server.
+
+=== Does `chrony` support PTP?
+
+No, the Precision Time Protocol (PTP) is not supported and there are no plans
+to support it. It is a complex protocol, which shares some issues with the
+NTP broadcast mode. One of the main differences between NTP and PTP is that PTP
+was designed to be easily supported in hardware (e.g. network switches and
+routers) in order to make more stable and accurate measurements. PTP relies on
+the hardware support. NTP does not rely on any support in the hardware, but if
+it had the same support as PTP, it could perform equally well.
+
+On Linux, `chrony` supports hardware clocks that some NICs have for PTP. They
+are called PTP hardware clocks (PHC). They can be used as reference clocks
+(specified by the `refclock` directive) and for hardware timestamping of NTP
+packets (enabled by the `hwtimestamp` directive) if the NIC can timestamp other
+packets than PTP, which is usually the case at least for transmitted packets.
+The `ethtool -T` command can be used to verify the timestamping support.
 
 === What happened to the `commandkey` and `generatecommandkey` directives?
 
@@ -299,11 +344,11 @@ following questions.
 
 === Behind a firewall?
 
-Check the `Reach` value printed by the ``chronyc``'s `sources` command. If it's
-zero, it means `chronyd` did not get any valid responses from the NTP server
+Check the `Reach` value printed by the ``chronyc``'s `sources` command. If it
+is zero, it means `chronyd` did not get any valid responses from the NTP server
 you are trying to use. If there is a firewall between you and the server, the
-packets may be blocked. Try using a tool like `wireshark` or `tcpdump` to see
-if you're getting any responses from the server.
+packets might be blocked. Try using a tool like `wireshark` or `tcpdump` to see
+if you are getting any responses from the server.
 
 When `chronyd` is receiving responses from the servers, the output of the
 `sources` command issued few minutes after `chronyd` start might look like
@@ -320,9 +365,10 @@ MS Name/IP address         Stratum Poll Reach LastRx Last sample
 
 === Are NTP servers specified with the `offline` option?
 
-Check that you're using ``chronyc``'s `online` and `offline` commands
-appropriately. The `activity` command prints the number of sources that are
-currently online and offline. For example:
+Check that the ``chronyc``'s `online` and `offline` commands are used
+appropriately (e.g. in the system networking scripts). The `activity` command
+prints the number of sources that are currently online and offline. For
+example:
 
 ----
 200 OK
@@ -349,9 +395,9 @@ makestep 1 3
 ----
 
 the clock would be stepped in the first three updates if its offset was larger
-than one second. Normally, it's recommended to allow the step only in the first
+than one second. Normally, it is recommended to allow the step only in the first
 few updates, but in some cases (e.g. a computer without an RTC or virtual
-machine which can be suspended and resumed with an incorrect time) it may be
+machine which can be suspended and resumed with an incorrect time) it might be
 necessary to allow the step on any clock update. The example above would change
 to
 
@@ -363,7 +409,7 @@ makestep 1 -1
 
 A common issue with Windows NTP servers is that they report a very large root
 dispersion (e.g. three seconds or more), which causes `chronyd` to ignore the
-server for being too inaccurate. The `sources` command may show a valid
+server for being too inaccurate. The `sources` command might show a valid
 measurement, but the server is not selected for synchronisation. You can check
 the root dispersion of the server with the ``chronyc``'s `ntpdata` command.
 
@@ -373,6 +419,29 @@ synchronisation to such a server. For example:
 ----
 maxdistance 16.0
 ----
+
+=== An unreachable source is selected?
+
+When `chronyd` is configured with multiple time sources, it tries to select the
+most accurate and stable sources for synchronisation of the system clock. They
+are marked with the _*_ or _+_ symbol in the report printed by the `sources`
+command.
+
+When the best source (marked with the _*_ symbol) becomes unreachable (e.g. NTP
+server stops responding), or the measurements are no longer accepted (e.g. a
+change in network routing adds a delay), `chronyd` will not immediately switch
+to the second best source in an attempt to minimise the error of the clock. It
+will let the clock run free for as long as its estimated error (in terms of
+root distance) based on previous measurements is smaller than the estimated
+error of the second source, and there is still an interval which contains some
+measurements from both sources.
+
+If the first source was significantly better than the second source, it can
+take many hours (up to 64 times the maximum polling interval) before the second
+source is selected. If you do not like this behaviour, you can force a faster
+reselection by increasing the clock error rate (`maxclockerror` directive),
+shortening the polling interval (`maxpoll` option), or reducing the number of
+samples (`maxsamples` option).
 
 === Using a PPS reference clock?
 
@@ -409,15 +478,15 @@ to be used for synchronisation.
 When accessing `chronyd` remotely, make sure that the _chrony.conf_ file (on
 the computer where `chronyd` is running) has a `cmdallow` entry for the
 computer you are running `chronyc` on and an appropriate `bindcmdaddress`
-directive. This isn't necessary for localhost.
+directive. This is not necessary for localhost.
 
 Perhaps `chronyd` is not running. Try using the `ps` command (e.g. on Linux,
-`ps -auxw`) to see if it's running. Or try `netstat -a` and see if the ports
-123/udp and 323/udp are listening. If `chronyd` is not running, you may have a
-problem with the way you are trying to start it (e.g. at boot time).
+`ps -auxw`) to see if it is running. Or try `netstat -a` and see if the UDP
+port 323 is listening. If `chronyd` is not running, you might have a problem
+with the way you are trying to start it (e.g. at boot time).
 
-Perhaps you have a firewall set up in a way that blocks packets on port
-323/udp. You need to amend the firewall configuration in this case.
+Perhaps you have a firewall set up in a way that blocks packets on the UDP
+port 323. You need to amend the firewall configuration in this case.
 
 === I keep getting the error `501 Not authorised`
 
@@ -426,20 +495,16 @@ socket instead of the Unix domain socket (e.g. _/var/run/chrony/chronyd.sock_),
 which is required for some commands. For security reasons, only the root and
 _chrony_ users are allowed to access the socket.
 
-It is also possible that the socket doesn't exist. `chronyd` will not create
+It is also possible that the socket does not exist. `chronyd` will not create
 the socket if the directory has a wrong owner or permissions. In this case
 there should be an error message from `chronyd` in the system log.
 
-With versions older than 2.2, which don't use the Unix domain socket, you need
-to authenticate with the `password` command first,
-or use the `-a` option to authenticate automatically on start. The
-configuration file needs to specify a file which contains keys (`keyfile`
-directive) and which key in the key file should be used for `chronyc`
-authentication (`commandkey` directive).
+=== What is the reference ID reported by the `tracking` command?
 
-=== Why does `chronyc tracking` always print an IPv4 address as reference ID?
+The reference ID is a 32-bit value used in NTP to prevent synchronisation
+loops.
 
-The reference ID is a 32-bit value and in versions before 3.0 it was printed in
+In `chrony` versions before 3.0 it was printed in the
 quad-dotted notation, even if the reference source did not actually have an
 IPv4 address. For IPv4 addresses, the reference ID is equal to the address, but
 for IPv6 addresses it is the first 32 bits of the MD5 sum of the address. For
@@ -463,7 +528,7 @@ Only by the source code. See _cmdmon.c_ (`chronyd` side) and _client.c_
 === What is the real-time clock (RTC)?
 
 This is the clock which keeps the time even when your computer is turned off.
-It is used to initialise the system clock on boot. It normally doesn't drift
+It is used to initialise the system clock on boot. It normally does not drift
 more than few seconds per day.
 
 There are two approaches how `chronyd` can work with it. One is to use the
@@ -478,17 +543,17 @@ monitor the rate at which the RTC gains or loses time. When `chronyd` is
 started with the `-s` option on the next boot, it will set the system time from
 the RTC and also compensate for the drift it has measured previously. The
 `rtcautotrim` directive can be used to keep the RTC close to the true time, but
-it's not strictly necessary if its only purpose is to set the system clock when
+it is not strictly necessary if its only purpose is to set the system clock when
 `chronyd` is started on boot. See the documentation for details.
 
-=== I want to use ``chronyd``'s RTC support. Must I disable `hwclock`?
+=== Does `hwclock` have to be disabled?
 
 The `hwclock` program is often set-up by default in the boot and shutdown
 scripts with many Linux installations. With the kernel RTC synchronisation
 (`rtcsync` directive), the RTC will be set also every 11 minutes as long as the
 system clock is synchronised. If you want to use ``chronyd``'s RTC monitoring
-(`rtcfile` directive), it's important to disable `hwclock` in the shutdown
-procedure. If you don't, it will over-write the RTC with a new value, unknown
+(`rtcfile` directive), it is important to disable `hwclock` in the shutdown
+procedure. If you do not that, it will over-write the RTC with a new value, unknown
 to `chronyd`. At the next reboot, `chronyd` started with the `-s` option will
 compensate this (wrong) time with its estimate of how far the RTC has drifted
 whilst the power was off, giving a meaningless initial system time.
@@ -507,7 +572,7 @@ things
 
 === I get `Could not open /dev/rtc, Device or resource busy` in my syslog file
 
-Some other program running on the system may be using the device.
+Some other program running on the system might be using the device.
 
 === What if my computer does not have an RTC or backup battery?
 
@@ -522,7 +587,7 @@ observe backward steps.
 === Can `chronyd` be driven from broadcast/multicast NTP servers?
 
 No, the broadcast/multicast client mode is not supported and there is currently
-no plan to implement it. While the mode may be useful to simplify configuration
+no plan to implement it. While this mode can simplify configuration
 of clients in large networks, it is inherently less accurate and less secure
 (even with authentication) than the ordinary client/server mode.
 
@@ -539,7 +604,8 @@ thousands of clients using the ordinary client/server mode.
 
 Yes, the `broadcast` directive can be used to enable the broadcast server mode
 to serve time to clients in the network which support the broadcast client mode
-(it's not supported in `chronyd`, see the previous question).
+(it is not supported in `chronyd`). Note that this mode should generally be
+avoided. See the previous question.
 
 === Can `chronyd` keep the system clock a fixed offset away from real time?
 
@@ -555,8 +621,20 @@ offline, `chronyd` would make new measurements immediately after issuing the
 `online` command.
 
 Unless the network connection lasts only few minutes (less than the maximum
-polling interval), the delay is usually not a problem, and it may be acceptable
+polling interval), the delay is usually not a problem, and it might be acceptable
 to keep all sources online all the time.
+
+=== Why is an offset measured between two computers synchronised to each another?
+
+When two computers are synchronised to each other using the client/server or
+symmetric NTP mode, there is an expectation that NTP measurements between the
+two computers made on both ends show an average offset close to zero.
+
+With `chronyd` that can be expected only when the interleaved mode (`xleave`
+option) is enabled. Otherwise, `chronyd` will use different transmit timestamps
+(e.g. daemon timestamp vs kernel timestamp) for serving time and
+synchronisation of its own clock, which creates an asymmetry in the
+timestamping and causes the other end to measure a significant offset.
 
 == Operating systems
 
