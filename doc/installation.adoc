@@ -100,7 +100,7 @@ than MD5, which can be used for NTP authentication with a symmetric key. If you
 don't want to enable the support, specify the `--disable-sechash` flag to
 `configure`.
 
-If development files for the editline or readline library are available,
+If development files for the editline library are available,
 `chronyc` will be built with line editing support. If you don't want this,
 specify the `--disable-readline` flag to `configure`.
 
@@ -169,43 +169,6 @@ https://github.com/seccomp/libseccomp[libseccomp] library and the
 `chronyd` will enable a system call filter, which should significantly reduce
 the kernel attack surface and possibly prevent kernel exploits from `chronyd`
 if it is compromised.
-
-== Support for line editing libraries
-
-`chronyc` can be built with support for line editing, this allows you to use
-the cursor keys to replay and edit old commands. Two libraries are supported
-which provide such functionality, editline and GNU readline.
-
-Please note that readline since version 6.0 is licensed under GPLv3+ which is
-incompatible with chrony's license GPLv2. You should use editline instead if
-you don't want to use older readline versions.
-
-The `configure` script will automatically enable the line editing support if
-one of the supported libraries is available. If they are both available, the
-editline library will be used.
-
-If you don't want to use it (in which case `chronyc` will use a minimal command
-line interface), invoke `configure` like this:
-
-----
-./configure --disable-readline other-options...
-----
-
-If you have editline, readline or ncurses installed in locations that aren't
-normally searched by the compiler and linker, you need to use extra options:
-
-`--with-readline-includes=directory_name`::
-  This defines the name of the directory above the one where `readline.h` is.
-  `readline.h` is assumed to be in `editline` or `readline` subdirectory of the
-  named directory.
-
-`--with-readline-library=directory_name`::
-  This defines the directory containing the `libedit.a` or `libedit.so` file,
-  or `libreadline.a` or `libreadline.so` file.
-
-`--with-ncurses-library=directory_name`::
-  This defines the directory containing the `libncurses.a` or `libncurses.so`
-  file.
 
 == Extra options for package builders
 

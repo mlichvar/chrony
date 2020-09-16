@@ -44,12 +44,7 @@
 #include "util.h"
 
 #ifdef FEAT_READLINE
-#ifdef USE_EDITLINE
 #include <editline/readline.h>
-#else
-#include <readline/readline.h>
-#include <readline/history.h>
-#endif
 #endif
 
 /* ================================================== */
@@ -1267,7 +1262,7 @@ give_help(void)
 }
 
 /* ================================================== */
-/* Tab-completion when editline/readline is available */
+/* Tab-completion when editline is available */
 
 #ifdef FEAT_READLINE
 

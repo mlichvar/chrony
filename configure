@@ -108,11 +108,7 @@ for instance \`--prefix=$HOME'.
 
 For better control, use the options below.
   --disable-readline     Disable line editing support
-  --without-readline     Don't use GNU readline even if it is available
   --without-editline     Don't use editline even if it is available
-  --with-readline-includes=DIR Specify where readline include directory is
-  --with-readline-library=DIR Specify where readline lib directory is
-  --with-ncurses-library=DIR Specify where ncurses lib directory is
   --disable-sechash      Disable support for hashes other than MD5
   --without-nettle       Don't use nettle even if it is available
   --without-nss          Don't use NSS even if it is available
@@ -225,7 +221,6 @@ feat_cmdmon=1
 feat_ntp=1
 feat_refclock=1
 feat_readline=1
-try_readline=1
 try_editline=1
 feat_sechash=1
 try_nettle=1
@@ -241,9 +236,6 @@ try_clockctl=0
 feat_scfilter=0
 try_seccomp=-1
 priv_ops=""
-readline_lib=""
-readline_inc=""
-ncurses_lib=""
 feat_ipv6=1
 feat_phc=1
 try_phc=0
@@ -274,20 +266,8 @@ do
     --disable-readline )
       feat_readline=0
     ;;
-    --without-readline )
-      try_readline=0
-    ;;
     --without-editline )
       try_editline=0
-    ;;
-    --with-readline-library=* )
-      readline_lib=-L`echo $option | sed -e 's/^.*=//;'`
-    ;;
-    --with-readline-includes=* )
-      readline_inc=-I`echo $option | sed -e 's/^.*=//;'`
-    ;;
-    --with-ncurses-library=* )
-      ncurses_lib=-L`echo $option | sed -e 's/^.*=//;'`
     ;;
     --prefix=* | --install_prefix=* )
       SETPREFIX=`echo $option | sed -e 's/[^=]*=//;'`
@@ -878,37 +858,11 @@ fi
 READLINE_LINK=""
 if [ $feat_readline = "1" ]; then
   if [ $try_editline = "1" ]; then
-    if test_code editline 'stdio.h editline/readline.h' \
-      "$readline_inc" "$readline_lib -ledit" \
+    if test_code editline 'stdio.h editline/readline.h' '' '-ledit' \
       'add_history(readline("prompt"));'
     then
       add_def FEAT_READLINE
-      add_def USE_EDITLINE
-      MYCPPFLAGS="$MYCPPFLAGS $readline_inc"
-      READLINE_LINK="$readline_lib -ledit"
-    fi
-  fi
-
-  if [ "x$READLINE_LINK" = "x" ] && [ $try_readline = "1" ]; then
-    if test_code readline 'stdio.h readline/readline.h readline/history.h' \
-      "$readline_inc" "$readline_lib -lreadline" \
-      'add_history(readline("prompt"));'
-    then
-      add_def FEAT_READLINE
-      MYCPPFLAGS="$MYCPPFLAGS $readline_inc"
-      READLINE_LINK="$readline_lib -lreadline"
-    fi
-  fi
-
-  if [ "x$READLINE_LINK" = "x" ] && [ $try_readline = "1" ]; then
-    if test_code 'readline with -lncurses' \
-      'stdio.h readline/readline.h readline/history.h' \
-      "$readline_inc" "$readline_lib $ncurses_lib -lreadline -lncurses" \
-      'add_history(readline("prompt"));'
-    then
-      add_def FEAT_READLINE
-      MYCPPFLAGS="$MYCPPFLAGS $readline_inc"
-      READLINE_LINK="$readline_lib $ncurses_lib -lreadline -lncurses"
+      READLINE_LINK="-ledit"
     fi
   fi
 
