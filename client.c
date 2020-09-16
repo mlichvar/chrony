@@ -4,7 +4,7 @@
  **********************************************************************
  * Copyright (C) Richard P. Curnow  1997-2003
  * Copyright (C) Lonnie Abelbeck  2016, 2018
- * Copyright (C) Miroslav Lichvar  2009-2018
+ * Copyright (C) Miroslav Lichvar  2009-2020
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
@@ -3471,7 +3471,7 @@ static void
 display_gpl(void)
 {
     printf("chrony version %s\n"
-           "Copyright (C) 1997-2003, 2007, 2009-2019 Richard P. Curnow and others\n"
+           "Copyright (C) 1997-2003, 2007, 2009-2020 Richard P. Curnow and others\n"
            "chrony comes with ABSOLUTELY NO WARRANTY.  This is free software, and\n"
            "you are welcome to redistribute it under certain conditions.  See the\n"
            "GNU General Public License version 2 for details.\n\n",
