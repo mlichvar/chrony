@@ -116,10 +116,11 @@ typedef struct {
 /* Enumeration for authentication modes of NTP packets */
 typedef enum {
   NTP_AUTH_NONE = 0,            /* No authentication */
-  NTP_AUTH_SYMMETRIC,           /* MAC using symmetric key (RFC 1305, RFC 5905) */
+  NTP_AUTH_SYMMETRIC,           /* NTP MAC or CMAC using a symmetric key
+                                   (RFC 1305, RFC 5905, RFC 8573) */
   NTP_AUTH_MSSNTP,              /* MS-SNTP authenticator field */
   NTP_AUTH_MSSNTP_EXT,          /* MS-SNTP extended authenticator field */
-  NTP_AUTH_NTS,                 /* Network Time Security (RFC ????) */
+  NTP_AUTH_NTS,                 /* Network Time Security (RFC 8915) */
 } NTP_AuthMode;
 
 /* Structure describing an NTP packet */
