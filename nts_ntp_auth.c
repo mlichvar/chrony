@@ -112,6 +112,7 @@ NNA_GenerateAuthEF(NTP_Packet *packet, NTP_PacketInfo *info, SIV_Instance siv,
   if (!SIV_Encrypt(siv, nonce, nonce_length, packet, assoc_length,
                    plaintext, plaintext_length, ciphertext, ciphertext_length)) {
     DEBUG_LOG("SIV encrypt failed");
+    info->length = assoc_length;
     return 0;
   }
 
