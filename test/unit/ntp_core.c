@@ -73,7 +73,7 @@ get_random_key_id(void)
   uint32_t id;
 
   do {
-    id = random() % 6 + 2;
+    id = random() % 8 + 2;
   } while (!KEY_KeyKnown(id));
 
   return id;
