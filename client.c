@@ -3483,8 +3483,22 @@ display_gpl(void)
 static void
 print_help(const char *progname)
 {
-      printf("Usage: %s [-h HOST] [-p PORT] [-n] [-N] [-c] [-d] [-4|-6] [-m] [COMMAND]\n",
-             progname);
+      printf("Usage: %s [OPTION]... [COMMAND]...\n\n"
+             "Options:\n"
+             "  -4\t\tUse IPv4 addresses only\n"
+             "  -6\t\tUse IPv6 addresses only\n"
+             "  -n\t\tDon't resolve hostnames\n"
+             "  -N\t\tPrint original source names\n"
+             "  -c\t\tEnable CSV format\n"
+#if DEBUG > 0
+             "  -d\t\tEnable debug messages\n"
+#endif
+             "  -m\t\tAccept multiple commands\n"
+             "  -h HOST\tSpecify server (%s)\n"
+             "  -p PORT\tSpecify UDP port (%d)\n"
+             "  -v, --version\tPrint version and exit\n"
+             "      --help\tPrint usage and exit\n",
+             progname, DEFAULT_COMMAND_SOCKET",127.0.0.1,::1", DEFAULT_CANDM_PORT);
 }
 
 /* ================================================== */
