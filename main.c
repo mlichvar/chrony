@@ -374,8 +374,34 @@ go_daemon(void)
 static void
 print_help(const char *progname)
 {
-      printf("Usage: %s [-4|-6] [-n|-d] [-p|-q|-Q] [-r] [-R] [-s] [-t TIMEOUT] [-f FILE|COMMAND...]\n",
-             progname);
+      printf("Usage: %s [OPTION]... [DIRECTIVE]...\n\n"
+             "Options:\n"
+             "  -4\t\tUse IPv4 addresses only\n"
+             "  -6\t\tUse IPv6 addresses only\n"
+             "  -f FILE\tSpecify configuration file (%s)\n"
+             "  -n\t\tDon't run as daemon\n"
+             "  -d\t\tDon't run as daemon and log to stderr\n"
+#if DEBUG > 0
+             "  -d -d\t\tEnable debug messages\n"
+#endif
+             "  -l FILE\tLog to file\n"
+             "  -L LEVEL\tSet logging threshold (0)\n"
+             "  -p\t\tPrint configuration and exit\n"
+             "  -q\t\tSet clock and exit\n"
+             "  -Q\t\tLog offset and exit\n"
+             "  -r\t\tReload dump files\n"
+             "  -R\t\tAdapt configuration for restart\n"
+             "  -s\t\tSet clock from RTC\n"
+             "  -t SECONDS\tExit after elapsed time\n"
+             "  -u USER\tSpecify user (%s)\n"
+             "  -U\t\tDon't check for root\n"
+             "  -F LEVEL\tSet system call filter level (0)\n"
+             "  -P PRIORITY\tSet process priority (0)\n"
+             "  -m\t\tLock memory\n"
+             "  -x\t\tDon't control clock\n"
+             "  -v, --version\tPrint version and exit\n"
+             "  -h, --help\tPrint usage and exit\n",
+             progname, DEFAULT_CONF_FILE, DEFAULT_USER);
 }
 
 /* ================================================== */
