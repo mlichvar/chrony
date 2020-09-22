@@ -187,8 +187,11 @@ still track its offset and frequency relative to the estimated true time. This
 option allows *chronyd* to be started without the capability to adjust or set
 the system clock (e.g. in some containers) to operate as an NTP server.
 
-*-v*::
+*-v*, *--version*::
 With this option *chronyd* will print version number to the terminal and exit.
+
+*-h*, *--help*::
+With this option *chronyd* will print a help message to the terminal and exit.
 
 == FILES
 

@@ -118,8 +118,12 @@ This option is ignored and is provided only for compatibility.
 *-a*::
 This option is ignored and is provided only for compatibility.
 
-*-v*::
+*-v*, *--version*::
 With this option *chronyc* displays its version number on the terminal and
+exits.
+
+*--help*::
+With this option *chronyc* displays a help message on the terminal and
 exits.
 
 == COMMANDS

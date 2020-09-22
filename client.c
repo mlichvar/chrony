@@ -3506,7 +3506,7 @@ main(int argc, char **argv)
   int opt, ret = 1, multi = 0, family = IPADDR_UNSPEC;
   int port = DEFAULT_CANDM_PORT;
 
-  /* Parse (undocumented) long command-line options */
+  /* Parse long command-line options */
   for (optind = 1; optind < argc; optind++) {
     if (!strcmp("--help", argv[optind])) {
       print_help(progname);
