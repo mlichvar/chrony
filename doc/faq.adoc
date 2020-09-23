@@ -68,7 +68,7 @@ system time is periodically copied to the RTC. It is supported on Linux and
 macOS.
 
 If you want to use public NTP servers from the
-http://www.pool.ntp.org/[pool.ntp.org] project, the minimal _chrony.conf_ file
+https://www.pool.ntp.org/[pool.ntp.org] project, the minimal _chrony.conf_ file
 could be:
 
 ----

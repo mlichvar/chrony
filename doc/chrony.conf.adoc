@@ -2511,7 +2511,7 @@ the following methods:
   stratum 1 and stratum 2 servers. You should find one or more servers that are
   near to you. Check that their access policy allows you to use their
   facilities.
-* Use public servers from the http://www.pool.ntp.org/[pool.ntp.org] project.
+* Use public servers from the https://www.pool.ntp.org/[pool.ntp.org] project.
 
 Assuming that your NTP servers are called _foo.example.net_, _bar.example.net_
 and _baz.example.net_, your _chrony.conf_ file could contain as a minimum:
@@ -2803,7 +2803,7 @@ information to be saved.
 === Public NTP server
 
 *chronyd* can be configured to operate as a public NTP server, e.g. to join the
-http://www.pool.ntp.org/en/join.html[pool.ntp.org] project. The configuration
+https://www.pool.ntp.org/en/join.html[pool.ntp.org] project. The configuration
 is similar to the NTP client with permanent connection, except it needs to
 allow client access from all addresses. It is recommended to find at least four
 good servers (e.g. from the pool, or on the NTP homepage). If the server has a

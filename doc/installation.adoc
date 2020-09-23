@@ -94,7 +94,7 @@ want to enable the support, specify the `--disable-asyncdns` flag to
 
 If development files for the https://www.lysator.liu.se/~nisse/nettle/[Nettle],
 https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS[NSS], or
-http://www.libtom.net/LibTomCrypt/[libtomcrypt] library are available,
+https://www.libtom.net/LibTomCrypt/[libtomcrypt] library are available,
 `chronyd` will be built with support for other cryptographic hash functions
 than MD5, which can be used for NTP authentication with a symmetric key. If you
 don't want to enable the support, specify the `--disable-sechash` flag to
