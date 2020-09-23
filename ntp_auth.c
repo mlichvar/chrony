@@ -175,7 +175,7 @@ NAU_CreateNtsInstance(IPSockAddr *nts_address, const char *name, const IPSockAdd
 void
 NAU_DestroyInstance(NAU_Instance instance)
 {
-  if (instance->nts)
+  if (instance->mode == NTP_AUTH_NTS)
     NNC_DestroyInstance(instance->nts);
   Free(instance);
 }
