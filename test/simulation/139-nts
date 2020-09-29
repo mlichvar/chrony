@@ -63,7 +63,7 @@ check_file_messages "20.*123\.1.* 111 111 1111" 99 103 measurements.log || test_
 check_file_messages "20.*123\.1.* 111 001 0000" 0 0 measurements.log || test_fail
 check_file_messages "	2	1	.*	4460	" 350 390 log.packets || test_fail
 check_file_messages "." 6 6 ntskeys || test_fail
-check_file_messages "." 11 12 192.168.123.1.nts || test_fail
+check_file_messages "." 12 13 192.168.123.1.nts || test_fail
 rm -f tmp/measurements.log
 
 export CLKNETSIM_START_DATE=$(date -d 'Jan  1 00:00:00 UTC 2010 + 40000 sec' +'%s')
@@ -83,7 +83,7 @@ check_file_messages "20.*123\.1.* 111 001 0000" 0 0 measurements.log || test_fai
 check_file_messages "	2	1	.*	4460	" 6 10 log.packets || test_fail
 check_file_messages "^9\.......e+03	2	1	.*	4460	" 6 10 log.packets || test_fail
 check_file_messages "." 6 6 ntskeys || test_fail
-check_file_messages "." 11 12 192.168.123.1.nts || test_fail
+check_file_messages "." 12 13 192.168.123.1.nts || test_fail
 rm -f tmp/measurements.log
 
 client_conf="

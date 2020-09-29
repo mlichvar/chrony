@@ -541,7 +541,7 @@ save_cookies(NNC_Instance inst)
   FILE *f;
   int i;
 
-  if (inst->num_cookies < 1 || !UTI_IsIPReal(&inst->nts_address.ip_addr))
+  if (inst->num_cookies < 1 || !inst->name || !UTI_IsIPReal(&inst->nts_address.ip_addr))
     return;
 
   dump_dir = CNF_GetNtsDumpDir();
@@ -558,9 +558,10 @@ save_cookies(NNC_Instance inst)
   context_time = inst->last_nke_success - SCH_GetLastEventMonoTime();
   context_time += UTI_TimespecToDouble(&now);
 
-  if (fprintf(f, "%s%.1f\n%s %d\n%u %d ",
-              DUMP_IDENTIFIER, context_time, UTI_IPToString(&inst->ntp_address->ip_addr),
-              inst->ntp_address->port, inst->context_id, (int)inst->context.algorithm) < 0 ||
+  if (fprintf(f, "%s%s\n%.1f\n%s %d\n%u %d ",
+              DUMP_IDENTIFIER, inst->name, context_time,
+              UTI_IPToString(&inst->ntp_address->ip_addr), inst->ntp_address->port,
+              inst->context_id, (int)inst->context.algorithm) < 0 ||
       !UTI_BytesToHex(inst->context.s2c.key, inst->context.s2c.length, buf, sizeof (buf)) ||
       fprintf(f, "%s ", buf) < 0 ||
       !UTI_BytesToHex(inst->context.c2s.key, inst->context.c2s.length, buf, sizeof (buf)) ||
@@ -621,6 +622,8 @@ load_cookies(NNC_Instance inst)
   inst->siv = NULL;
 
   if (!fgets(line, sizeof (line), f) || strcmp(line, DUMP_IDENTIFIER) != 0 ||
+      !fgets(line, sizeof (line), f) || UTI_SplitString(line, words, MAX_WORDS) != 1 ||
+        !inst->name || strcmp(words[0], inst->name) != 0 ||
       !fgets(line, sizeof (line), f) || UTI_SplitString(line, words, MAX_WORDS) != 1 ||
         sscanf(words[0], "%lf", &context_time) != 1 ||
       !fgets(line, sizeof (line), f) || UTI_SplitString(line, words, MAX_WORDS) != 2 ||
