@@ -273,8 +273,6 @@ get_cookies(NNC_Instance inst)
   inst->last_nke_success = now;
   inst->cookie_index = 0;
 
-  inst->nak_response = 0;
-
   return 1;
 }
 
@@ -284,6 +282,11 @@ int
 NNC_PrepareForAuth(NNC_Instance inst)
 {
   inst->auth_ready = 0;
+
+  /* Prepare data for the next request and invalidate any responses to the
+     previous request */
+  UTI_GetRandomBytes(inst->uniq_id, sizeof (inst->uniq_id));
+  UTI_GetRandomBytes(inst->nonce, sizeof (inst->nonce));
 
   /* Try to reload saved keys and cookies (once for the NTS-KE address) */
   if (!inst->load_attempt) {
@@ -297,6 +300,8 @@ NNC_PrepareForAuth(NNC_Instance inst)
       return 0;
   }
 
+  inst->nak_response = 0;
+
   if (!inst->siv)
     inst->siv = SIV_CreateInstance(inst->context.algorithm);
 
@@ -305,10 +310,6 @@ NNC_PrepareForAuth(NNC_Instance inst)
     DEBUG_LOG("Could not set SIV key");
     return 0;
   }
-
-  /* Prepare data for NNC_GenerateRequestAuth() */
-  UTI_GetRandomBytes(inst->uniq_id, sizeof (inst->uniq_id));
-  UTI_GetRandomBytes(inst->nonce, sizeof (inst->nonce));
 
   inst->auth_ready = 1;
 
@@ -325,14 +326,22 @@ NNC_GenerateRequestAuth(NNC_Instance inst, NTP_Packet *packet,
   int i, req_cookies;
   void *ef_body;
 
-  if (!inst->auth_ready || inst->num_cookies == 0 || !inst->siv)
+  if (!inst->auth_ready)
+    return 0;
+
+  inst->auth_ready = 0;
+
+  if (inst->num_cookies <= 0 || !inst->siv)
     return 0;
 
   if (info->mode != MODE_CLIENT)
     return 0;
 
   cookie = &inst->cookies[inst->cookie_index];
-  req_cookies = MIN(NTS_MAX_COOKIES - inst->num_cookies + 1,
+  inst->num_cookies--;
+  inst->cookie_index = (inst->cookie_index + 1) % NTS_MAX_COOKIES;
+
+  req_cookies = MIN(NTS_MAX_COOKIES - inst->num_cookies,
                     MAX_TOTAL_COOKIE_LENGTH / (cookie->length + 4));
 
   if (!NEF_AddField(packet, info, NTP_EF_NTS_UNIQUE_IDENTIFIER,
@@ -354,10 +363,6 @@ NNC_GenerateRequestAuth(NNC_Instance inst, NTP_Packet *packet,
                           (const unsigned char *)"", 0, NTP_MAX_V4_MAC_LENGTH + 4))
     return 0;
 
-  inst->num_cookies--;
-  inst->cookie_index = (inst->cookie_index + 1) % NTS_MAX_COOKIES;
-  inst->auth_ready = 0;
-  inst->nak_response = 0;
   inst->ok_response = 0;
 
   return 1;
