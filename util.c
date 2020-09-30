@@ -1417,6 +1417,11 @@ UTI_BytesToHex(const void *buf, unsigned int buf_len, char *hex, unsigned int he
 {
   unsigned int i, l;
 
+  if (hex_len < 1)
+    return 0;
+
+  hex[0] = '\0';
+
   for (i = l = 0; i < buf_len; i++, l += 2) {
     if (l + 2 >= hex_len ||
         snprintf(hex + l, hex_len - l, "%02hhX", ((const char *)buf)[i]) != 2)

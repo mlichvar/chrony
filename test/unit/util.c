@@ -330,9 +330,12 @@ void test_unit(void) {
   TEST_CHECK(UTI_HexToBytes(buf, buf, sizeof (buf)) == 7);
   TEST_CHECK(memcmp(buf, "\xAB\x12\x34\x56\x78\x00\x01", 7) == 0);
 
+  TEST_CHECK(UTI_BytesToHex("", 0, buf, 0) == 0);
   TEST_CHECK(UTI_BytesToHex("\xAB\x12\x34\x56\x78\x00\x01", 7, buf, 14) == 0);
   TEST_CHECK(UTI_BytesToHex("\xAB\x12\x34\x56\x78\x00\x01", 7, buf, 15) == 1);
   TEST_CHECK(strcmp(buf, "AB123456780001") == 0);
+  TEST_CHECK(UTI_BytesToHex("\xAB\x12\x34\x56\x78\x00\x01", 0, buf, 15) == 1);
+  TEST_CHECK(strcmp(buf, "") == 0);
 
   TEST_CHECK(snprintf(buf, sizeof (buf), "%s", "") < sizeof (buf));
   TEST_CHECK(UTI_SplitString(buf, words, 3) == 0);
