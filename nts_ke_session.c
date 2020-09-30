@@ -825,21 +825,27 @@ NKSN_GetRecord(NKSN_Instance inst, int *critical, int *type, int *body_length,
 int
 NKSN_GetKeys(NKSN_Instance inst, SIV_Algorithm siv, NKE_Key *c2s, NKE_Key *s2c)
 {
-  c2s->length = SIV_GetKeyLength(siv);
-  s2c->length = SIV_GetKeyLength(siv);
-  assert(c2s->length <= sizeof (c2s->key));
-  assert(s2c->length <= sizeof (s2c->key));
+  int length = SIV_GetKeyLength(siv);
+
+  if (length <= 0 || length > sizeof (c2s->key) || length > sizeof (s2c->key)) {
+    DEBUG_LOG("Invalid algorithm");
+    return 0;
+  }
 
   if (gnutls_prf_rfc5705(inst->tls_session,
                          sizeof (NKE_EXPORTER_LABEL) - 1, NKE_EXPORTER_LABEL,
                          sizeof (NKE_EXPORTER_CONTEXT_C2S) - 1, NKE_EXPORTER_CONTEXT_C2S,
-                         c2s->length, (char *)c2s->key) < 0)
-    return 0;
-  if (gnutls_prf_rfc5705(inst->tls_session,
+                         length, (char *)c2s->key) < 0 ||
+      gnutls_prf_rfc5705(inst->tls_session,
                          sizeof (NKE_EXPORTER_LABEL) - 1, NKE_EXPORTER_LABEL,
                          sizeof (NKE_EXPORTER_CONTEXT_S2C) - 1, NKE_EXPORTER_CONTEXT_S2C,
-                         s2c->length, (char *)s2c->key) < 0)
+                         length, (char *)s2c->key) < 0) {
+    DEBUG_LOG("Could not export key");
     return 0;
+  }
+
+  c2s->length = length;
+  s2c->length = length;
 
   return 1;
 }
