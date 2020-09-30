@@ -1002,35 +1002,16 @@ process_cmd_dfreq(CMD_Request *msg, char *line)
 /* ================================================== */
 
 static void
-cvt_to_sec_usec(double x, long *sec, long *usec) {
-  long s, us;
-  s = (long) x;
-  us = (long)(0.5 + 1.0e6 * (x - (double) s));
-  while (us >= 1000000) {
-    us -= 1000000;
-    s += 1;
-  }
-  while (us < 0) {
-    us += 1000000;
-    s -= 1;
-  }
-  
-  *sec = s;
-  *usec = us;
-}
-
-/* ================================================== */
-
-static void
 process_cmd_doffset(CMD_Request *msg, char *line)
 {
+  struct timeval tv;
   double doffset;
-  long sec, usec;
+
   msg->command = htons(REQ_DOFFSET);
   if (sscanf(line, "%lf", &doffset) == 1) {
-    cvt_to_sec_usec(doffset, &sec, &usec);
-    msg->data.doffset.sec = htonl(sec);
-    msg->data.doffset.usec = htonl(usec);
+    UTI_DoubleToTimeval(doffset, &tv);
+    msg->data.doffset.sec = htonl(tv.tv_sec);
+    msg->data.doffset.usec = htonl(tv.tv_usec);
   } else {
     msg->data.doffset.sec = htonl(0);
     msg->data.doffset.usec = htonl(0);
