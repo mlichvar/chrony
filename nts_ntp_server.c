@@ -96,10 +96,10 @@ NNS_CheckRequestAuth(NTP_Packet *packet, NTP_PacketInfo *info, uint32_t *kod)
   NKE_Cookie cookie;
   void *ef_body;
 
+  *kod = 0;
+
   if (!server)
     return 0;
-
-  *kod = 0;
 
   server->num_cookies = 0;
   server->req_tx = packet->transmit_ts;
