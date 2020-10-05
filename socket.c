@@ -909,7 +909,7 @@ receive_messages(int sock_fd, int flags, int max_messages, int *num_messages)
 {
   struct MessageHeader *hdr;
   SCK_Message *messages;
-  unsigned int i, n;
+  unsigned int i, n, n_ok;
   int ret, recv_flags = 0;
 
   assert(initialised);
@@ -953,18 +953,20 @@ receive_messages(int sock_fd, int flags, int max_messages, int *num_messages)
 
   received_messages = n;
 
-  for (i = 0; i < n; i++) {
+  for (i = n_ok = 0; i < n; i++) {
     hdr = ARR_GetElement(recv_headers, i);
-    if (!process_header(&hdr->msg_hdr, hdr->msg_len, sock_fd, flags, &messages[i]))
-      return NULL;
+    if (!process_header(&hdr->msg_hdr, hdr->msg_len, sock_fd, flags, &messages[n_ok]))
+      continue;
 
-    log_message(sock_fd, 1, &messages[i],
+    log_message(sock_fd, 1, &messages[n_ok],
                 flags & SCK_FLAG_MSG_ERRQUEUE ? "Received error" : "Received", NULL);
+
+    n_ok++;
   }
 
-  *num_messages = n;
+  *num_messages = n_ok;
 
-  return messages;
+  return n_ok > 0 ? messages : NULL;
 }
 
 /* ================================================== */
