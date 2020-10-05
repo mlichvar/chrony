@@ -1608,9 +1608,12 @@ to the clients, which means they should use the same server for NTS-KE and NTP.
 
 [[ntsrotate]]*ntsrotate* _interval_::
 This directive specifies the rotation interval (in seconds) of the server key
-which encrypts the NTS cookies. New keys are generated automatically. The
-server keeps two previous keys to give the clients time to get new cookies
-encrypted by the latest key. The default interval is 604800 seconds (1 week).
+which encrypts the NTS cookies. New keys are generated automatically from the
+_/dev/urandom_ device. The server keeps two previous keys to give the clients
+time to get new cookies encrypted by the latest key. The interval is measured
+as the server's operating time, i.e. the actual interval can be longer if
+*chronyd* is not running continuously. The default interval is 604800 seconds
+(1 week).
 +
 The automatic rotation of the keys can be disabled by setting *ntsrotate* to 0.
 In this case the keys are assumed to be managed externally. *chronyd* will not
