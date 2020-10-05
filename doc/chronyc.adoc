@@ -432,11 +432,11 @@ lines are shown as a reminder of the meanings of the columns.
 An example of the output is shown below.
 +
 ----
-S Name/IP Address        Auth COpts EOpts Last Score     Interval   
-====================================================================
-D foo.example.net           Y ----- --TR-    4   1.0   -61ms   +62ms
-* bar.example.net           N ----- -----    0   1.0 -6846us +7305us
-+ baz.example.net           N ----- -----   10   1.0 -7381us +7355us
+S Name/IP Address        Auth COpts EOpts Last Score     Interval  Leap
+=======================================================================
+D foo.example.net           Y ----- --TR-    4   1.0   -61ms   +62ms  N
+* bar.example.net           N ----- -----    0   1.0 -6846us +7305us  N
++ baz.example.net           N ----- -----   10   1.0 -7381us +7355us  N
 ----
 +
 The columns are as follows:
@@ -508,6 +508,12 @@ be reselected and the scores will be reset to 1.
 This column displays the lower and upper endpoint of the interval which was
 expected to contain the true offset of the local clock considering the root
 distance at the time of the selection.
+*Leap*:::
+This column displays the current leap status of the source.
+* _N_ indicates the normal status (no leap second).
+* _+_ indicates that a leap second will be inserted at the end of the month.
+* _-_ indicates that a leap second will be deleted at the end of the month.
+* _?_ indicates the unknown status (i.e. no valid measurement was made).
 
 [[reselect]]*reselect*::
 To avoid excessive switching between sources, *chronyd* can stay synchronised

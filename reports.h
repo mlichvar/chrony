@@ -190,6 +190,7 @@ typedef struct {
   IPAddr ip_addr;
   char state_char;
   int authentication;
+  NTP_Leap leap;
   int conf_options;
   int eff_options;
   uint32_t last_sample_ago;

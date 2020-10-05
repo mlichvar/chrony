@@ -1610,6 +1610,7 @@ SRC_GetSelectReport(int index, RPT_SelectReport *report)
     report->ip_addr.family = IPADDR_UNSPEC;
   report->state_char = get_status_char(inst->status);
   report->authentication = inst->authenticated;
+  report->leap = inst->leap;
   report->conf_options = inst->conf_sel_options;
   report->eff_options = inst->sel_options;
   report->last_sample_ago = inst->sel_info.last_sample_ago;

@@ -1327,6 +1327,7 @@ handle_select_data(CMD_Request *rx_message, CMD_Reply *tx_message)
   UTI_IPHostToNetwork(&report.ip_addr, &tx_message->data.select_data.ip_addr);
   tx_message->data.select_data.state_char = report.state_char;
   tx_message->data.select_data.authentication = report.authentication;
+  tx_message->data.select_data.leap = report.leap;
   tx_message->data.select_data.conf_options = htons(convert_select_options(report.conf_options));
   tx_message->data.select_data.eff_options = htons(convert_select_options(report.eff_options));
   tx_message->data.select_data.last_sample_ago = htonl(report.last_sample_ago);

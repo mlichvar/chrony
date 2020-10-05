@@ -1863,19 +1863,19 @@ print_report(const char *format, ...)
         integer = va_arg(ap, int);
         switch (integer) {
           case LEAP_Normal:
-            string = "Normal";
+            string = width != 1 ? "Normal" : "N";
             break;
           case LEAP_InsertSecond:
-            string = "Insert second";
+            string = width != 1 ? "Insert second" : "+";
             break;
           case LEAP_DeleteSecond:
-            string = "Delete second";
+            string = width != 1 ? "Delete second" : "-";
             break;
           case LEAP_Unsynchronised:
-            string = "Not synchronised";
+            string = width != 1 ? "Not synchronised" : "?";
             break;
           default:
-            string = "Invalid";
+            string = width != 1 ? "Invalid" : "?";
             break;
         }
         printf("%s", string);
@@ -2557,9 +2557,9 @@ process_cmd_selectdata(char *line)
     printf(    "|                        |    |     |                       |\n");
   }
 
-  print_header("S Name/IP Address        Auth COpts EOpts Last Score     Interval   ");
+  print_header("S Name/IP Address        Auth COpts EOpts Last Score     Interval  Leap");
 
-  /*           "S NNNNNNNNNNNNNNNNNNNNNNNNN A OOOO- OOOO- LLLL SSSSS LLLLLLL LLLLLLL" */
+  /*           "S NNNNNNNNNNNNNNNNNNNNNNNNN A OOOO- OOOO- LLLL SSSSS IIIIIII IIIIIII  L" */
 
   for (i = 0; i < n_sources; i++) {
     request.command = htons(REQ_SELECT_DATA);
@@ -2577,7 +2577,7 @@ process_cmd_selectdata(char *line)
     conf_options = ntohs(reply.data.select_data.conf_options);
     eff_options = ntohs(reply.data.select_data.eff_options);
 
-    print_report("%c %-25s %c %c%c%c%c%c %c%c%c%c%c %I %5.1f %+S %+S\n",
+    print_report("%c %-25s %c %c%c%c%c%c %c%c%c%c%c %I %5.1f %+S %+S  %1L\n",
                  reply.data.select_data.state_char,
                  name,
                  reply.data.select_data.authentication ? 'Y' : 'N',
@@ -2595,6 +2595,7 @@ process_cmd_selectdata(char *line)
                  UTI_FloatNetworkToHost(reply.data.select_data.score),
                  UTI_FloatNetworkToHost(reply.data.select_data.lo_limit),
                  UTI_FloatNetworkToHost(reply.data.select_data.hi_limit),
+                 reply.data.select_data.leap,
                  REPORT_END);
   }
 

@@ -764,7 +764,8 @@ typedef struct {
   IPAddr ip_addr;
   uint8_t state_char;
   uint8_t authentication;
-  uint8_t pad[2];
+  uint8_t leap;
+  uint8_t pad;
   uint16_t conf_options;
   uint16_t eff_options;
   uint32_t last_sample_ago;
