@@ -81,6 +81,9 @@ test_unit(void)
         sample.root_dispersion = sample.peer_dispersion;
         sample.stratum = 1;
 
+        if (random() % 2)
+          SRC_SetLeapStatus(srcs[j], random() % 4);
+
         DEBUG_LOG("source %d sample %d offset %f delay %f disp %f", j, k,
                   sample.offset, sample.peer_delay, sample.peer_dispersion);
 
@@ -132,6 +135,12 @@ test_unit(void)
         TEST_CHECK(!trusted || !passed || (passed_lo >= trusted_lo && passed_hi <= trusted_hi));
         TEST_CHECK(!passed || !trusted || trusted_passed >= 1);
         TEST_CHECK(!passed || !required || required_passed > 0);
+
+        for (l = 0; l <= j; l++) {
+          TEST_CHECK(sources[l]->leap_vote ==
+                     (sources[l]->status >= SRC_NONPREFERRED &&
+                      (!trusted || sources[l]->sel_options & SRC_SELECT_TRUST)));
+        }
       }
     }
 
