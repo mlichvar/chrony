@@ -689,11 +689,11 @@ fi
 
 if test_code 'arc4random_buf()' 'stdlib.h' '' '' 'arc4random_buf(NULL, 0);'; then
   add_def HAVE_ARC4RANDOM
-fi
-
-if test_code 'getrandom()' 'stdlib.h sys/random.h' '' '' \
-    'return getrandom(NULL, 256, 0);'; then
-  add_def HAVE_GETRANDOM
+else
+  if test_code 'getrandom()' 'stdlib.h sys/random.h' '' '' \
+      'return getrandom(NULL, 256, 0);'; then
+    add_def HAVE_GETRANDOM
+  fi
 fi
 
 RECVMMSG_CODE='
