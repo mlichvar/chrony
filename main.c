@@ -625,7 +625,7 @@ int main
 
   /* Drop root privileges if the specified user has a non-zero UID */
   if (!geteuid() && (pw->pw_uid || pw->pw_gid))
-    SYS_DropRoot(pw->pw_uid, pw->pw_gid);
+    SYS_DropRoot(pw->pw_uid, pw->pw_gid, SYS_MAIN_PROCESS);
 
   REF_Initialise();
   SST_Initialise();

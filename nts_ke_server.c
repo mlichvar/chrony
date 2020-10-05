@@ -646,7 +646,7 @@ run_helper(uid_t uid, gid_t gid, int scfilter_level)
   LOG_SetMinSeverity(log_severity);
 
   if (!geteuid() && (uid || gid))
-    SYS_DropRoot(uid, gid);
+    SYS_DropRoot(uid, gid, SYS_NTSKE_HELPER);
 
   NKS_Initialise();
 

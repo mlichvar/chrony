@@ -131,7 +131,7 @@ SYS_NetBSD_Finalise(void)
 
 #ifdef FEAT_PRIVDROP
 void
-SYS_NetBSD_DropRoot(uid_t uid, gid_t gid)
+SYS_NetBSD_DropRoot(uid_t uid, gid_t gid, SYS_ProcessContext context)
 {
 #ifdef NETBSD
   int fd;

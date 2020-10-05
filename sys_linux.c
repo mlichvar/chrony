@@ -426,7 +426,7 @@ SYS_Linux_Finalise(void)
 
 #ifdef FEAT_PRIVDROP
 void
-SYS_Linux_DropRoot(uid_t uid, gid_t gid, int clock_control)
+SYS_Linux_DropRoot(uid_t uid, gid_t gid, SYS_ProcessContext context, int clock_control)
 {
   char cap_text[256];
   cap_t cap;
@@ -480,7 +480,7 @@ void check_seccomp_applicability(void)
 /* ================================================== */
 
 void
-SYS_Linux_EnableSystemCallFilter(int level, SYS_SystemCallContext context)
+SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
 {
   const int syscalls[] = {
     /* Clock */
