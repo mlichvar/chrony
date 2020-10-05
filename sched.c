@@ -799,13 +799,13 @@ SCH_MainLoop(void)
     LCL_ReadRawTime(&now);
     LCL_CookTime(&now, &cooked, &err);
 
+    update_monotonic_time(&now, &last_select_ts_raw);
+
     /* Check if the time didn't jump unexpectedly */
     if (!check_current_time(&saved_now, &now, status == 0, &saved_tv, ptv)) {
       /* Cook the time again after handling the step */
       LCL_CookTime(&now, &cooked, &err);
     }
-
-    update_monotonic_time(&cooked, &last_select_ts);
 
     last_select_ts_raw = now;
     last_select_ts = cooked;
