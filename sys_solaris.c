@@ -57,7 +57,8 @@ SYS_Solaris_Finalise(void)
 void
 SYS_Solaris_DropRoot(uid_t uid, gid_t gid, SYS_ProcessContext context)
 {
-  PRV_StartHelper();
+  if (context == SYS_MAIN_PROCESS)
+    PRV_StartHelper();
   UTI_DropRoot(uid, gid);
 }
 #endif

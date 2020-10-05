@@ -450,6 +450,10 @@ SYS_Linux_DropRoot(uid_t uid, gid_t gid, SYS_ProcessContext context, int clock_c
                clock_control ? "cap_sys_time=ep" : "") >= sizeof (cap_text))
     assert(0);
 
+  /* Helpers don't need any capabilities */
+  if (context != SYS_MAIN_PROCESS)
+    cap_text[0] = '\0';
+
   if ((cap = cap_from_text(cap_text)) == NULL) {
     LOG_FATAL("cap_from_text() failed");
   }

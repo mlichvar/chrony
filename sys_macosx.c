@@ -417,7 +417,8 @@ SYS_MacOSX_SetScheduler(int SchedPriority)
 #ifdef FEAT_PRIVDROP
 void SYS_MacOSX_DropRoot(uid_t uid, gid_t gid, SYS_ProcessContext context)
 {
-  PRV_StartHelper();
+  if (context == SYS_MAIN_PROCESS)
+    PRV_StartHelper();
 
   UTI_DropRoot(uid, gid);
 }

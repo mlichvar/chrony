@@ -139,7 +139,8 @@ SYS_NetBSD_DropRoot(uid_t uid, gid_t gid, SYS_ProcessContext context)
 
   /* On NetBSD the helper is used only for socket binding, but on FreeBSD
      it's used also for setting and adjusting the system clock */
-  PRV_StartHelper();
+  if (context == SYS_MAIN_PROCESS)
+    PRV_StartHelper();
 
   UTI_DropRoot(uid, gid);
 
