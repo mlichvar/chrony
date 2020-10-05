@@ -428,8 +428,7 @@ are marked with the _*_ or _+_ symbol in the report printed by the `sources`
 command.
 
 When the best source (marked with the _*_ symbol) becomes unreachable (e.g. NTP
-server stops responding), or the measurements are no longer accepted (e.g. a
-change in network routing adds a delay), `chronyd` will not immediately switch
+server stops responding), `chronyd` will not immediately switch
 to the second best source in an attempt to minimise the error of the clock. It
 will let the clock run free for as long as its estimated error (in terms of
 root distance) based on previous measurements is smaller than the estimated
@@ -437,11 +436,35 @@ error of the second source, and there is still an interval which contains some
 measurements from both sources.
 
 If the first source was significantly better than the second source, it can
-take many hours (up to 64 times the maximum polling interval) before the second
-source is selected. If you do not like this behaviour, you can force a faster
-reselection by increasing the clock error rate (`maxclockerror` directive),
-shortening the polling interval (`maxpoll` option), or reducing the number of
-samples (`maxsamples` option).
+take many hours before the second source is selected, depending on its polling
+interval. You can force a faster reselection by increasing the clock error rate
+(`maxclockerror` directive), shortening the polling interval (`maxpoll`
+option), or reducing the number of samples (`maxsamples` option).
+
+=== Does selected source drop new measurements?
+
+`chronyd` can drop a large number of successive NTP measurements if they are
+not passing some of the NTP tests. The `sources` command can report for a
+selected source the fully-reachable value of 377 in the Reach column and at the
+same time a LastRx value that is much larger than the current polling interval.
+If the source is online, this indicates that a number of measurements was
+dropped. You can use the `ntpdata` command to check the NTP tests for the last
+measurement. Usually, it is the test C which fails.
+
+This can be an issue when there is a long-lasting increase in the measured
+delay, e.g. due to a routing change in the network. Unfortunately, `chronyd`
+does not know for how long it should wait for the delay to come back to the
+original values, or whether it is a permanent increase and it should start from
+scratch.
+
+The test C is an adaptive filter. It can take many hours before it accepts
+a measurement with the larger delay, and even much longer before it drops all
+measurements with smaller delay, which determine an expected delay used by the
+test. You can use the `reset sources` command to drop all measurements
+immediately (available in chrony 4.0 and later). If this issue happens
+frequently, you can effectively disable the test by setting the
+`maxdelaydevratio` option to a very large value (e.g. 1000000), or speed up the
+recovery by increasing the clock error rate with the `maxclockerror` directive.
 
 === Using a PPS reference clock?
 
