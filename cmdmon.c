@@ -306,7 +306,8 @@ transmit_reply(int sock_fd, int request_length, SCK_Message *message)
 
   /* Don't require responses to non-link-local addresses to use the same
      interface */
-  if (!SCK_IsLinkLocalIPAddress(&message->remote_addr.ip.ip_addr))
+  if (message->addr_type == SCK_ADDR_IP &&
+      !SCK_IsLinkLocalIPAddress(&message->remote_addr.ip.ip_addr))
     message->if_index = INVALID_IF_INDEX;
 
   if (!SCK_SendMessage(sock_fd, message, 0))
