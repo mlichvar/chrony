@@ -34,6 +34,6 @@ void SYS_NetBSD_Initialise(void);
 
 void SYS_NetBSD_Finalise(void);
 
-void SYS_NetBSD_DropRoot(uid_t uid, gid_t gid, SYS_ProcessContext context);
+void SYS_NetBSD_DropRoot(uid_t uid, gid_t gid, SYS_ProcessContext context, int clock_control);
 
 #endif

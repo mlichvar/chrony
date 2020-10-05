@@ -104,7 +104,7 @@ void SYS_DropRoot(uid_t uid, gid_t gid, SYS_ProcessContext context)
 #elif defined(SOLARIS) && defined(FEAT_PRIVDROP)
   SYS_Solaris_DropRoot(uid, gid, context);
 #elif (defined(NETBSD) || defined(FREEBSD)) && defined(FEAT_PRIVDROP)
-  SYS_NetBSD_DropRoot(uid, gid, context);
+  SYS_NetBSD_DropRoot(uid, gid, context, !null_driver);
 #elif defined(MACOSX) && defined(FEAT_PRIVDROP)
   SYS_MacOSX_DropRoot(uid, gid, context);
 #else

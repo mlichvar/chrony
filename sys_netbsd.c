@@ -131,7 +131,7 @@ SYS_NetBSD_Finalise(void)
 
 #ifdef FEAT_PRIVDROP
 void
-SYS_NetBSD_DropRoot(uid_t uid, gid_t gid, SYS_ProcessContext context)
+SYS_NetBSD_DropRoot(uid_t uid, gid_t gid, SYS_ProcessContext context, int clock_control)
 {
 #ifdef NETBSD
   int fd;
@@ -145,6 +145,9 @@ SYS_NetBSD_DropRoot(uid_t uid, gid_t gid, SYS_ProcessContext context)
   UTI_DropRoot(uid, gid);
 
 #ifdef NETBSD
+  if (!clock_control)
+    return;
+
   /* Check if we have write access to /dev/clockctl */
   fd = open("/dev/clockctl", O_WRONLY);
   if (fd < 0)
