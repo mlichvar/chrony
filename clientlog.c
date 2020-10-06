@@ -169,7 +169,7 @@ compare_total_hits(Record *x, Record *y)
 static Record *
 get_record(IPAddr *ip)
 {
-  uint32_t last_hit, oldest_hit = 0;
+  uint32_t last_hit = 0, oldest_hit = 0;
   Record *record, *oldest_record;
   unsigned int first, i, j;
 

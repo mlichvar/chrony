@@ -671,7 +671,7 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
 
   /* Make sure the name is at least printable and has no spaces */
   for (i = 0; name[i] != '\0'; i++) {
-    if (!isgraph(name[i]))
+    if (!isgraph((unsigned char)name[i]))
       return NSR_InvalidName;
   }
 

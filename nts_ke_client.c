@@ -196,7 +196,7 @@ process_response(NKC_Instance inst)
         inst->server_name[length] = '\0';
 
         /* Make sure the name is printable and has no spaces */
-        for (i = 0; i < length && isgraph(inst->server_name[i]); i++)
+        for (i = 0; i < length && isgraph((unsigned char)inst->server_name[i]); i++)
           ;
         if (i != length) {
           DEBUG_LOG("Invalid server name");

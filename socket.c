@@ -884,14 +884,16 @@ process_header(struct msghdr *msg, int msg_length, int sock_fd, int flags,
 
     if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS) {
       if (!(flags & SCK_FLAG_MSG_DESCRIPTOR) || cmsg->cmsg_len != CMSG_LEN(sizeof (int))) {
-        unsigned int i;
+        int i, fd;
 
         DEBUG_LOG("Unexpected SCM_RIGHTS");
-        for (i = 0; CMSG_LEN((i + 1) * sizeof (int)) <= cmsg->cmsg_len; i++)
-          close(((int *)CMSG_DATA(cmsg))[i]);
+        for (i = 0; CMSG_LEN((i + 1) * sizeof (int)) <= cmsg->cmsg_len; i++) {
+          memcpy(&fd, (char *)CMSG_DATA(cmsg) + i * sizeof (int), sizeof (fd));
+          close(fd);
+        }
         r = 0;
       } else {
-        message->descriptor = *(int *)CMSG_DATA(cmsg);
+        memcpy(&message->descriptor, CMSG_DATA(cmsg), sizeof (message->descriptor));
       }
     }
   }

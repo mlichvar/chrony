@@ -2030,7 +2030,7 @@ get_source_name(IPAddr *ip_addr, char *buf, int size)
 
   /* Make sure the name is printable */
   for (i = 0; i < size && buf[i] != '\0'; i++) {
-    if (!isgraph(buf[i]))
+    if (!isgraph((unsigned char)buf[i]))
       return 0;
   }
 
