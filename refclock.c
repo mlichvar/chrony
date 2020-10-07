@@ -181,7 +181,7 @@ RCL_AddRefclock(RefclockParameters *params)
     LOG_FATAL("refclock tai option requires leapsectz");
 
   inst->data = NULL;
-  inst->driver_parameter = params->driver_parameter;
+  inst->driver_parameter = Strdup(params->driver_parameter);
   inst->driver_parameter_length = 0;
   inst->driver_poll = params->driver_poll;
   inst->poll = params->poll;
@@ -260,8 +260,6 @@ RCL_AddRefclock(RefclockParameters *params)
   DEBUG_LOG("refclock %s refid=%s poll=%d dpoll=%d filter=%d",
       params->driver_name, UTI_RefidToString(inst->ref_id),
       inst->poll, inst->driver_poll, params->filter_length);
-
-  Free(params->driver_name);
 
   return 1;
 }

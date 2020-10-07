@@ -422,6 +422,10 @@ CNF_Finalise(void)
     Free(((NTP_Source *)ARR_GetElement(ntp_sources, i))->params.name);
   for (i = 0; i < ARR_GetSize(ntp_source_dirs); i++)
     Free(*(char **)ARR_GetElement(ntp_source_dirs, i));
+  for (i = 0; i < ARR_GetSize(refclock_sources); i++) {
+    Free(((RefclockParameters *)ARR_GetElement(refclock_sources, i))->driver_name);
+    Free(((RefclockParameters *)ARR_GetElement(refclock_sources, i))->driver_parameter);
+  }
 
   ARR_DestroyInstance(init_sources);
   ARR_DestroyInstance(ntp_sources);
@@ -1839,10 +1843,14 @@ CNF_AddSources(void)
 void
 CNF_AddRefclocks(void)
 {
+  RefclockParameters *refclock;
   unsigned int i;
 
   for (i = 0; i < ARR_GetSize(refclock_sources); i++) {
-    RCL_AddRefclock((RefclockParameters *)ARR_GetElement(refclock_sources, i));
+    refclock = ARR_GetElement(refclock_sources, i);
+    RCL_AddRefclock(refclock);
+    Free(refclock->driver_name);
+    Free(refclock->driver_parameter);
   }
 
   ARR_SetSize(refclock_sources, 0);
