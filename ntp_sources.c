@@ -444,8 +444,8 @@ process_resolved_name(struct UnresolvedSource *us, IPAddr *ip_addrs, int n_addrs
     DEBUG_LOG("(%d) %s", i + 1, UTI_IPToString(&new_addr.ip_addr));
 
     if (us->pool_id != INVALID_POOL) {
-      /* In the pool resolving mode, try to replace all sources from
-         the pool which don't have a real address yet */
+      /* In the pool resolving mode, try to replace a source from
+         the pool which does not have a real address yet */
       for (j = 0; j < ARR_GetSize(records); j++) {
         record = get_record(j);
         if (!record->remote_addr || record->pool_id != us->pool_id ||
@@ -454,7 +454,8 @@ process_resolved_name(struct UnresolvedSource *us, IPAddr *ip_addrs, int n_addrs
         old_addr = *record->remote_addr;
         new_addr.port = old_addr.port;
         if (replace_source_connectable(&old_addr, &new_addr))
-          break;
+          ;
+        break;
       }
     } else {
       new_addr.port = us->address.port;
