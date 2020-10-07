@@ -556,7 +556,7 @@ error:
 
 #define MAX_WORDS 2
 
-static void
+static int
 load_keys(void)
 {
   char *dump_dir, line[1024], *words[MAX_WORDS];
@@ -568,11 +568,11 @@ load_keys(void)
 
   dump_dir = CNF_GetNtsDumpDir();
   if (!dump_dir)
-    return;
+    return 0;
 
   f = UTI_OpenFile(dump_dir, DUMP_FILENAME, NULL, 'r', 0);
   if (!f)
-    return;
+    return 0;
 
   if (!fgets(line, sizeof (line), f) || strcmp(line, DUMP_IDENTIFIER) != 0 ||
       !fgets(line, sizeof (line), f) || UTI_SplitString(line, words, MAX_WORDS) != 2 ||
@@ -607,11 +607,13 @@ load_keys(void)
 
   fclose(f);
 
-  return;
+  return 1;
 
 error:
   DEBUG_LOG("Could not %s server keys", "load");
   fclose(f);
+
+  return 0;
 }
 
 /* ================================================== */
@@ -764,9 +766,11 @@ NKS_Initialise(void)
     server_sock_fd4 = open_socket(IPADDR_INET4);
     server_sock_fd6 = open_socket(IPADDR_INET6);
 
-    load_keys();
-
     key_rotation_interval = MAX(CNF_GetNtsRotate(), 0);
+
+    /* Reload saved keys, or save the new keys */
+    if (!load_keys())
+      save_keys();
 
     if (key_rotation_interval > 0) {
       key_delay = key_rotation_interval - (SCH_GetLastEventMonoTime() - last_server_key_ts);
