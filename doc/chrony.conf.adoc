@@ -1622,7 +1622,7 @@ the <<chronyc.adoc#rekey,*rekey*>> command is issued in *chronyc*. The file can
 be periodically copied from another server running *chronyd* (which does
 not have *ntsrotate* set to 0) in order to have one or more servers dedicated
 to NTS-KE. The NTS-KE servers need to be configured with the
-<<ntsntpname,*ntsntpname*>> directive to point the clients to the right NTP
+<<ntsntpserver,*ntsntpserver*>> directive to point the clients to the right NTP
 server.
 +
 An example of the directive is:
