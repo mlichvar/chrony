@@ -597,6 +597,19 @@ things
 
 Some other program running on the system might be using the device.
 
+=== When I start `chronyd`, the log says `Could not enable RTC interrupt : Invalid argument` (or it may say `disable`)
+
+Your real-time clock hardware might not support the required ioctl requests:
+
+* `RTC_UIE_ON`
+* `RTC_UIE_OFF`
+
+A possible solution could be to build the Linux kernel with support for software
+emulation instead; try enabling the following configuration option when building
+the Linux kernel:
+
+* `CONFIG_RTC_INTF_DEV_UIE_EMUL`
+
 === What if my computer does not have an RTC or backup battery?
 
 In this case you can still use the `-s` option to set the system clock to the
