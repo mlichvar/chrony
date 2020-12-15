@@ -148,6 +148,8 @@ RTC_Initialise(int initial_set)
     if (driver.init) {
       if ((driver.init)()) {
         driver_initialised = 1;
+      } else {
+        LOG(LOGS_ERR, "RTC driver could not be initialised");
       }
     } else {
       LOG(LOGS_ERR, "RTC not supported on this operating system");
