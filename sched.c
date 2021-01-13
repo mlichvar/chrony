@@ -506,7 +506,7 @@ dispatch_timeouts(struct timespec *now) {
   n_entries_on_start = n_timer_queue_entries;
   n_done = 0;
 
-  while (1) {
+  do {
     LCL_ReadRawTime(now);
 
     if (!(n_timer_queue_entries > 0 &&
@@ -542,7 +542,8 @@ dispatch_timeouts(struct timespec *now) {
         n_done > 4 * MAX(n_timer_queue_entries, n_entries_on_start) &&
         fabs(UTI_DiffTimespecsToDouble(now, &last_select_ts_raw)) / n_done < 0.01)
       LOG_FATAL("Possible infinite loop in scheduling");
-  }
+
+  } while (!need_to_exit);
 }
 
 /* ================================================== */
