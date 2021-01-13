@@ -180,7 +180,7 @@ get_free_port() {
 
 	while true; do
 		port=$((RANDOM % 10000 + 10000))
-		netstat -aln | grep '^\(tcp\|udp\).*[:.]'"$port " && continue
+		netstat -aln | grep -q '^\(tcp\|udp\).*[:.]'"$port " && continue
 		break
 	done
 
