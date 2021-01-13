@@ -89,7 +89,13 @@ chronyc=$(command -v chronyc)
 [ -x "$chronyd" ] || test_skip "chronyd not found"
 [ -x "$chronyc" ] || test_skip "chronyc not found"
 
-netstat -aln > /dev/null 2> /dev/null || test_skip "missing netstat"
+if netstat -aln > /dev/null 2> /dev/null; then
+	port_list_command="netstat -aln"
+elif ss -atun > /dev/null 2> /dev/null; then
+	port_list_command="ss -atun"
+else
+	test_skip "missing netstat or ss"
+fi
 
 # Default test testings
 default_minimal_config=0
@@ -180,7 +186,7 @@ get_free_port() {
 
 	while true; do
 		port=$((RANDOM % 10000 + 10000))
-		netstat -aln | grep -q '^\(tcp\|udp\).*[:.]'"$port " && continue
+		$port_list_command | grep -q '^\(tcp\|udp\).*[:.]'"$port " && continue
 		break
 	done
 
