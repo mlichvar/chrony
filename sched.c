@@ -498,10 +498,13 @@ SCH_RemoveTimeout(SCH_TimeoutID id)
 
 static void
 dispatch_timeouts(struct timespec *now) {
+  unsigned long n_done, n_entries_on_start;
   TimerQueueEntry *ptr;
   SCH_TimeoutHandler handler;
   SCH_ArbitraryArgument arg;
-  int n_done = 0, n_entries_on_start = n_timer_queue_entries;
+
+  n_entries_on_start = n_timer_queue_entries;
+  n_done = 0;
 
   while (1) {
     LCL_ReadRawTime(now);
@@ -526,15 +529,19 @@ dispatch_timeouts(struct timespec *now) {
     /* Increment count of timeouts handled */
     ++n_done;
 
-    /* If more timeouts were handled than there were in the timer queue on
-       start and there are now, assume some code is scheduling timeouts with
-       negative delays and abort.  Make the actual limit higher in case the
-       machine is temporarily overloaded and dispatching the handlers takes
-       more time than was delay of a scheduled timeout. */
-    if (n_done > n_timer_queue_entries * 4 &&
-        n_done > n_entries_on_start * 4) {
+    /* If the number of dispatched timeouts is significantly larger than the
+       length of the queue on start and now, assume there is a bug causing
+       an infinite loop by constantly adding a timeout with a zero or negative
+       delay.  Check the actual rate of timeouts to avoid false positives in
+       case the execution slowed down so much (e.g. due to memory thrashing)
+       that it repeatedly takes more time to handle the timeout than is its
+       delay.  This is a safety mechanism intended to stop a full-speed flood
+       of NTP requests due to a bug in the NTP polling. */
+
+    if (n_done > 20 &&
+        n_done > 4 * MAX(n_timer_queue_entries, n_entries_on_start) &&
+        fabs(UTI_DiffTimespecsToDouble(now, &last_select_ts_raw)) / n_done < 0.01)
       LOG_FATAL("Possible infinite loop in scheduling");
-    }
   }
 }
 
