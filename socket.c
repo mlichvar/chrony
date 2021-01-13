@@ -805,8 +805,10 @@ process_header(struct msghdr *msg, int msg_length, int sock_fd, int flags,
   }
 
   for (cmsg = CMSG_FIRSTHDR(msg); cmsg; cmsg = CMSG_NXTHDR(msg, cmsg)) {
+    if (0) {
+    }
 #ifdef HAVE_IN_PKTINFO
-    if (match_cmsg(cmsg, IPPROTO_IP, IP_PKTINFO, sizeof (struct in_pktinfo))) {
+    else if (match_cmsg(cmsg, IPPROTO_IP, IP_PKTINFO, sizeof (struct in_pktinfo))) {
       struct in_pktinfo ipi;
 
       if (message->addr_type != SCK_ADDR_IP)
@@ -818,7 +820,7 @@ process_header(struct msghdr *msg, int msg_length, int sock_fd, int flags,
       message->if_index = ipi.ipi_ifindex;
     }
 #elif defined(IP_RECVDSTADDR)
-    if (match_cmsg(cmsg, IPPROTO_IP, IP_RECVDSTADDR, sizeof (struct in_addr))) {
+    else if (match_cmsg(cmsg, IPPROTO_IP, IP_RECVDSTADDR, sizeof (struct in_addr))) {
       struct in_addr addr;
 
       if (message->addr_type != SCK_ADDR_IP)
@@ -829,9 +831,8 @@ process_header(struct msghdr *msg, int msg_length, int sock_fd, int flags,
       message->local_addr.ip.family = IPADDR_INET4;
     }
 #endif
-
 #ifdef HAVE_IN6_PKTINFO
-    if (match_cmsg(cmsg, IPPROTO_IPV6, IPV6_PKTINFO, sizeof (struct in6_pktinfo))) {
+    else if (match_cmsg(cmsg, IPPROTO_IPV6, IPV6_PKTINFO, sizeof (struct in6_pktinfo))) {
       struct in6_pktinfo ipi;
 
       if (message->addr_type != SCK_ADDR_IP)
@@ -844,26 +845,23 @@ process_header(struct msghdr *msg, int msg_length, int sock_fd, int flags,
       message->if_index = ipi.ipi6_ifindex;
     }
 #endif
-
 #ifdef SCM_TIMESTAMP
-    if (match_cmsg(cmsg, SOL_SOCKET, SCM_TIMESTAMP, sizeof (struct timeval))) {
+    else if (match_cmsg(cmsg, SOL_SOCKET, SCM_TIMESTAMP, sizeof (struct timeval))) {
       struct timeval tv;
 
       memcpy(&tv, CMSG_DATA(cmsg), sizeof (tv));
       UTI_TimevalToTimespec(&tv, &message->timestamp.kernel);
     }
 #endif
-
 #ifdef SCM_TIMESTAMPNS
-    if (match_cmsg(cmsg, SOL_SOCKET, SCM_TIMESTAMPNS, sizeof (message->timestamp.kernel))) {
+    else if (match_cmsg(cmsg, SOL_SOCKET, SCM_TIMESTAMPNS, sizeof (message->timestamp.kernel))) {
       memcpy(&message->timestamp.kernel, CMSG_DATA(cmsg), sizeof (message->timestamp.kernel));
     }
 #endif
-
 #ifdef HAVE_LINUX_TIMESTAMPING
 #ifdef HAVE_LINUX_TIMESTAMPING_OPT_PKTINFO
-    if (match_cmsg(cmsg, SOL_SOCKET, SCM_TIMESTAMPING_PKTINFO,
-                   sizeof (struct scm_ts_pktinfo))) {
+    else if (match_cmsg(cmsg, SOL_SOCKET, SCM_TIMESTAMPING_PKTINFO,
+                        sizeof (struct scm_ts_pktinfo))) {
       struct scm_ts_pktinfo ts_pktinfo;
 
       memcpy(&ts_pktinfo, CMSG_DATA(cmsg), sizeof (ts_pktinfo));
@@ -871,18 +869,17 @@ process_header(struct msghdr *msg, int msg_length, int sock_fd, int flags,
       message->timestamp.l2_length = ts_pktinfo.pkt_length;
     }
 #endif
-
-    if (match_cmsg(cmsg, SOL_SOCKET, SCM_TIMESTAMPING, sizeof (struct scm_timestamping))) {
+    else if (match_cmsg(cmsg, SOL_SOCKET, SCM_TIMESTAMPING,
+                        sizeof (struct scm_timestamping))) {
       struct scm_timestamping ts3;
 
       memcpy(&ts3, CMSG_DATA(cmsg), sizeof (ts3));
       message->timestamp.kernel = ts3.ts[0];
       message->timestamp.hw = ts3.ts[2];
     }
-
-    if ((match_cmsg(cmsg, SOL_IP, IP_RECVERR, 0) ||
-         match_cmsg(cmsg, SOL_IPV6, IPV6_RECVERR, 0)) &&
-        cmsg->cmsg_len >= CMSG_LEN(sizeof (struct sock_extended_err))) {
+    else if ((match_cmsg(cmsg, SOL_IP, IP_RECVERR, 0) ||
+              match_cmsg(cmsg, SOL_IPV6, IPV6_RECVERR, 0)) &&
+             cmsg->cmsg_len >= CMSG_LEN(sizeof (struct sock_extended_err))) {
       struct sock_extended_err err;
 
       memcpy(&err, CMSG_DATA(cmsg), sizeof (err));
@@ -894,8 +891,7 @@ process_header(struct msghdr *msg, int msg_length, int sock_fd, int flags,
       }
     }
 #endif
-
-    if (match_cmsg(cmsg, SOL_SOCKET, SCM_RIGHTS, 0)) {
+    else if (match_cmsg(cmsg, SOL_SOCKET, SCM_RIGHTS, 0)) {
       if (!(flags & SCK_FLAG_MSG_DESCRIPTOR) || cmsg->cmsg_len != CMSG_LEN(sizeof (int))) {
         int i, fd;
 
@@ -908,6 +904,10 @@ process_header(struct msghdr *msg, int msg_length, int sock_fd, int flags,
       } else {
         memcpy(&message->descriptor, CMSG_DATA(cmsg), sizeof (message->descriptor));
       }
+    }
+    else {
+      DEBUG_LOG("Unexpected control message level=%d type=%d len=%d",
+                cmsg->cmsg_level, cmsg->cmsg_type, (int)cmsg->cmsg_len);
     }
   }
 
