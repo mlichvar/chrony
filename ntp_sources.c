@@ -996,7 +996,7 @@ NSR_GetName(IPAddr *address)
   int slot;
 
   if (!find_slot(address, &slot))
-    return 0;
+    return NULL;
 
   record = get_record(slot);
   if (record->name)
