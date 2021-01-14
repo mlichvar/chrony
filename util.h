@@ -109,6 +109,7 @@ extern char *UTI_RefidToString(uint32_t ref_id);
 extern char *UTI_IPToString(const IPAddr *ip);
 
 extern int UTI_StringToIP(const char *addr, IPAddr *ip);
+extern int UTI_IsStringIP(const char *string);
 extern int UTI_StringToIdIP(const char *addr, IPAddr *ip);
 extern int UTI_IsIPReal(const IPAddr *ip);
 extern uint32_t UTI_IPToRefid(const IPAddr *ip);

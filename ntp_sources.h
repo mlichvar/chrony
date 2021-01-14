@@ -98,8 +98,8 @@ extern NSR_Status NSR_UpdateSourceNtpAddress(NTP_Remote_Address *old_addr,
 /* Procedure to get local reference ID corresponding to a source */
 extern uint32_t NSR_GetLocalRefid(IPAddr *address);
 
-/* Procedure to get the name of a source.  If the source doesn't have a name,
-   it returns a temporary string containing formatted address. */
+/* Procedure to get the name of a source as it was specified (it may be
+   an IP address) */
 extern char *NSR_GetName(IPAddr *address);
 
 /* This routine is called by ntp_io when a new packet arrives off the network */

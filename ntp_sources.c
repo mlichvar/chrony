@@ -53,7 +53,8 @@ typedef struct {
                                       (an IPADDR_ID address means the address
                                       is not resolved yet) */
   NCR_Instance data;            /* Data for the protocol engine for this source */
-  char *name;                   /* Name of the source, may be NULL */
+  char *name;                   /* Name of the source as it was specified
+                                   (may be an IP address) */
   int pool_id;                  /* ID of the pool from which was this source
                                    added or INVALID_POOL */
   int tentative;                /* Flag indicating there was no valid response
@@ -317,6 +318,9 @@ add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type,
   /* Find empty bin & check that we don't have the address already */
   if (find_slot2(remote_addr, &slot) != 0) {
     return NSR_AlreadyInUse;
+  } else if (!name && !UTI_IsIPReal(&remote_addr->ip_addr)) {
+    /* Name is required for non-real addresses */
+    return NSR_InvalidName;
   } else {
     if (remote_addr->ip_addr.family != IPADDR_INET4 &&
         remote_addr->ip_addr.family != IPADDR_INET6 &&
@@ -332,9 +336,10 @@ add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type,
       }
 
       record = get_record(slot);
-      record->data = NCR_CreateInstance(remote_addr, type, params, name);
+      assert(!name || !UTI_IsStringIP(name));
+      record->name = Strdup(name ? name : UTI_IPToString(&remote_addr->ip_addr));
+      record->data = NCR_CreateInstance(remote_addr, type, params, record->name);
       record->remote_addr = NCR_GetRemoteAddress(record->data);
-      record->name = name ? Strdup(name) : NULL;
       record->pool_id = pool_id;
       record->tentative = 1;
       record->conf_id = conf_id;
@@ -400,10 +405,10 @@ change_source_address(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr
 
     LOG(severity, "Source %s %s %s (%s)", UTI_IPToString(&old_addr->ip_addr),
         replacement ? "replaced with" : "changed to",
-        UTI_IPToString(&new_addr->ip_addr), name ? name : "");
+        UTI_IPToString(&new_addr->ip_addr), name);
   } else {
     LOG(severity, "Source %s (%s) changed port to %d",
-        UTI_IPToString(&new_addr->ip_addr), name ? name : "", new_addr->port);
+        UTI_IPToString(&new_addr->ip_addr), name, new_addr->port);
   }
 
   return NSR_Success;
@@ -663,8 +668,7 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
   NTP_Remote_Address remote_addr;
   int i, new_sources, pool_id;
 
-  /* If the name is an IP address, don't bother with full resolving now
-     or later when trying to replace the source */
+  /* If the name is an IP address, add the source with the address directly */
   if (UTI_StringToIP(name, &remote_addr.ip_addr)) {
     remote_addr.port = port;
     return NSR_AddSource(&remote_addr, type, params, conf_id);
@@ -796,8 +800,7 @@ clean_source_record(SourceRecord *record)
 
   record->remote_addr = NULL;
   NCR_DestroyInstance(record->data);
-  if (record->name)
-    Free(record->name);
+  Free(record->name);
 
   n_sources--;
 }
@@ -870,7 +873,8 @@ resolve_source_replacement(SourceRecord *record)
 {
   struct UnresolvedSource *us;
 
-  DEBUG_LOG("trying to replace %s", UTI_IPToString(&record->remote_addr->ip_addr));
+  DEBUG_LOG("trying to replace %s (%s)",
+            UTI_IPToString(&record->remote_addr->ip_addr), record->name);
 
   us = MallocNew(struct UnresolvedSource);
   us->name = Strdup(record->name);
@@ -894,6 +898,7 @@ NSR_HandleBadSource(IPAddr *address)
   static struct timespec last_replacement;
   struct timespec now;
   SourceRecord *record;
+  IPAddr ip_addr;
   double diff;
   int slot;
 
@@ -902,8 +907,10 @@ NSR_HandleBadSource(IPAddr *address)
 
   record = get_record(slot);
 
-  /* Only sources with a name can be replaced */
-  if (!record->name)
+  /* Don't try to replace a source specified by an IP address unless the
+     address changed since the source was added (e.g. by NTS-KE) */
+  if (UTI_StringToIP(record->name, &ip_addr) &&
+      UTI_CompareIPs(&record->remote_addr->ip_addr, &ip_addr, NULL) == 0)
     return;
 
   /* Don't resolve names too frequently */
@@ -928,7 +935,7 @@ NSR_RefreshAddresses(void)
 
   for (i = 0; i < ARR_GetSize(records); i++) {
     record = get_record(i);
-    if (!record->remote_addr || !record->name)
+    if (!record->remote_addr)
       continue;
 
     resolve_source_replacement(record);
@@ -992,17 +999,12 @@ NSR_GetLocalRefid(IPAddr *address)
 char *
 NSR_GetName(IPAddr *address)
 {
-  SourceRecord *record;
   int slot;
 
   if (!find_slot(address, &slot))
     return NULL;
 
-  record = get_record(slot);
-  if (record->name)
-    return record->name;
-
-  return UTI_IPToString(&record->remote_addr->ip_addr); 
+  return get_record(slot)->name;
 }
 
 /* ================================================== */

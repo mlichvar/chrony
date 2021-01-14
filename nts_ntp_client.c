@@ -119,7 +119,7 @@ NNC_CreateInstance(IPSockAddr *nts_address, const char *name, const IPSockAddr *
 
   inst->ntp_address = ntp_address;
   inst->nts_address = *nts_address;
-  inst->name = name ? Strdup(name) : NULL;
+  inst->name = !UTI_IsStringIP(name) ? Strdup(name) : NULL;
   inst->siv = NULL;
   inst->nke = NULL;
 

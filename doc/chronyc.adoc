@@ -78,11 +78,10 @@ This option disables resolving of IP addresses to hostnames, e.g. to avoid slow
 DNS lookups. Long addresses will not be truncated to fit into the column.
 
 *-N*::
-This option enables printing of the original names of NTP sources that were
-specified in the configuration file, or *chronyc* commands, and are internally
-used by *chronyd*. Without the *-n* and *-N* option, the names of NTP sources
-are obtained from reverse DNS lookups and can be different from the original
-names.
+This option enables printing of original hostnames or IP addresses of NTP
+sources that were specified in the configuration file, or *chronyc* commands.
+Without the *-n* and *-N* option, the printed hostnames are obtained from
+reverse DNS lookups and can be different from the specified hostnames.
 
 *-c*::
 This option enables printing of reports in a comma-separated values (CSV)

@@ -361,6 +361,16 @@ UTI_StringToIP(const char *addr, IPAddr *ip)
 /* ================================================== */
 
 int
+UTI_IsStringIP(const char *string)
+{
+  IPAddr ip;
+
+  return UTI_StringToIP(string, &ip);
+}
+
+/* ================================================== */
+
+int
 UTI_StringToIdIP(const char *addr, IPAddr *ip)
 {
   if (sscanf(addr, "ID#%"SCNu32, &ip->addr.id) == 1) {
