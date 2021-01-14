@@ -50,8 +50,11 @@
 #define DUMP_IDENTIFIER "NNC0\n"
 
 struct NNC_Instance_Record {
+  /* Pointer to current address of NTP server */
   const IPSockAddr *ntp_address;
+  /* Address of NTS-KE server */
   IPSockAddr nts_address;
+  /* Hostname or IP address for certificate verification */
   char *name;
 
   NKC_Instance nke;
@@ -119,7 +122,7 @@ NNC_CreateInstance(IPSockAddr *nts_address, const char *name, const IPSockAddr *
 
   inst->ntp_address = ntp_address;
   inst->nts_address = *nts_address;
-  inst->name = !UTI_IsStringIP(name) ? Strdup(name) : NULL;
+  inst->name = Strdup(name);
   inst->siv = NULL;
   inst->nke = NULL;
 
@@ -220,12 +223,6 @@ get_cookies(NNC_Instance inst)
     if (now < inst->next_nke_attempt) {
       DEBUG_LOG("Limiting NTS-KE request rate (%f seconds)",
                 inst->next_nke_attempt - now);
-      return 0;
-    }
-
-    if (!inst->name) {
-      LOG(LOGS_ERR, "Missing name of %s for NTS-KE",
-          UTI_IPToString(&inst->nts_address.ip_addr));
       return 0;
     }
 
@@ -541,7 +538,7 @@ save_cookies(NNC_Instance inst)
   FILE *f;
   int i;
 
-  if (inst->num_cookies < 1 || !inst->name || !UTI_IsIPReal(&inst->nts_address.ip_addr))
+  if (inst->num_cookies < 1 || !UTI_IsIPReal(&inst->nts_address.ip_addr))
     return;
 
   dump_dir = CNF_GetNtsDumpDir();
@@ -623,7 +620,7 @@ load_cookies(NNC_Instance inst)
 
   if (!fgets(line, sizeof (line), f) || strcmp(line, DUMP_IDENTIFIER) != 0 ||
       !fgets(line, sizeof (line), f) || UTI_SplitString(line, words, MAX_WORDS) != 1 ||
-        !inst->name || strcmp(words[0], inst->name) != 0 ||
+        strcmp(words[0], inst->name) != 0 ||
       !fgets(line, sizeof (line), f) || UTI_SplitString(line, words, MAX_WORDS) != 1 ||
         sscanf(words[0], "%lf", &context_time) != 1 ||
       !fgets(line, sizeof (line), f) || UTI_SplitString(line, words, MAX_WORDS) != 2 ||

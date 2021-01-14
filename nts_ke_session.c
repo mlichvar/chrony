@@ -225,9 +225,13 @@ create_tls_session(int server_mode, int sock_fd, const char *server_name,
   }
 
   if (!server_mode) {
-    r = gnutls_server_name_set(session, GNUTLS_NAME_DNS, server_name, strlen(server_name));
-    if (r < 0)
-      goto error;
+    assert(server_name);
+
+    if (!UTI_IsStringIP(server_name)) {
+      r = gnutls_server_name_set(session, GNUTLS_NAME_DNS, server_name, strlen(server_name));
+      if (r < 0)
+        goto error;
+    }
 
     flags = 0;
 
