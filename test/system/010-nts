@@ -2,19 +2,17 @@
 
 . ./test.common
 
-server_name="chrony-nts-test"
-
 check_chronyd_features NTS || test_skip "NTS support disabled"
 certtool --help &> /dev/null || test_skip "certtool missing"
-sed -i "/ $server_name\$/d" /etc/hosts && echo "$server $server_name" >> /etc/hosts || \
-	test_skip "Cannot modify /etc/hosts"
 
 check_chronyd_features PRIVDROP && user="nobody"
 
 test_start "NTS authentication"
 
 cat > $TEST_DIR/cert.cfg <<EOF
-cn = "$server_name"
+cn = "chrony-nts-test"
+dns_name = "chrony-nts-test"
+ip_address = "$server"
 serial = 001
 activation_date = "$(date -d '1 year ago' +'%Y-%m-%d') 00:00:00 UTC"
 expiration_date = "$(date -d '1 year' +'%Y-%m-%d') 00:00:00 UTC"
