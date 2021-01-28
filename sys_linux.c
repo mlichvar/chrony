@@ -547,7 +547,9 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
     SCMP_SYS(readlinkat),
     SCMP_SYS(rename),
     SCMP_SYS(renameat),
+#ifdef __NR_renameat2
     SCMP_SYS(renameat2),
+#endif
     SCMP_SYS(stat),
     SCMP_SYS(stat64),
     SCMP_SYS(statfs),
