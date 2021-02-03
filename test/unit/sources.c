@@ -79,10 +79,9 @@ test_unit(void)
         sample.peer_dispersion = TST_GetRandomDouble(1.0e-6, 1.0e-1);
         sample.root_delay = sample.peer_delay;
         sample.root_dispersion = sample.peer_dispersion;
-        sample.stratum = 1;
 
         if (random() % 2)
-          SRC_SetLeapStatus(srcs[j], random() % 4);
+          SRC_UpdateStatus(srcs[j], 1, random() % 4);
 
         DEBUG_LOG("source %d sample %d offset %f delay %f disp %f", j, k,
                   sample.offset, sample.peer_delay, sample.peer_dispersion);

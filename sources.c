@@ -374,8 +374,10 @@ get_leap_status(void)
 /* ================================================== */
 
 void
-SRC_SetLeapStatus(SRC_Instance inst, NTP_Leap leap)
+SRC_UpdateStatus(SRC_Instance inst, int stratum, NTP_Leap leap)
 {
+  inst->stratum = stratum;
+
   if (REF_IsLeapSecondClose(NULL, 0.0))
     return;
 
@@ -401,16 +403,14 @@ SRC_AccumulateSample(SRC_Instance inst, NTP_Sample *sample)
 
   assert(initialised);
 
-  DEBUG_LOG("src=%s ts=%s offset=%e delay=%e disp=%e stratum=%d",
+  DEBUG_LOG("src=%s ts=%s offset=%e delay=%e disp=%e",
             source_to_string(inst), UTI_TimespecToString(&sample->time), -sample->offset,
-            sample->root_delay, sample->root_dispersion, sample->stratum);
+            sample->root_delay, sample->root_dispersion);
 
   if (REF_IsLeapSecondClose(&sample->time, sample->offset)) {
     LOG(LOGS_INFO, "Dropping sample around leap second");
     return;
   }
-
-  inst->stratum = sample->stratum;
 
   SST_AccumulateSample(inst->stats, sample);
   SST_DoNewRegression(inst->stats);

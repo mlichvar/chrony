@@ -152,7 +152,6 @@ typedef struct {
   double peer_dispersion;
   double root_delay;
   double root_dispersion;
-  int stratum;
 } NTP_Sample;
 
 #endif /* GOT_NTP_H */

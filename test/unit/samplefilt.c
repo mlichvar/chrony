@@ -59,7 +59,6 @@ test_unit(void)
         sample_in.root_dispersion = TST_GetRandomDouble(1.0e-3, 2.0e-3);
         sample_in.peer_delay = TST_GetRandomDouble(1.0e-2, 2.0e-2);
         sample_in.root_delay = TST_GetRandomDouble(1.0e-1, 2.0e-1);
-        sample_in.stratum = random() % 16;
 
         TEST_CHECK(SPF_AccumulateSample(filter, &sample_in));
         TEST_CHECK(!SPF_AccumulateSample(filter, &sample_in));
@@ -97,7 +96,6 @@ test_unit(void)
                    sample_out.peer_delay <= 2.0e-2);
         TEST_CHECK(sample_out.root_delay >= 1.0e-1 &&
                    sample_out.root_delay <= 2.0e-1);
-        TEST_CHECK(sample_out.stratum >= 0 && sample_out.stratum <= 15);
 
         if (max_samples == 1)
           TEST_CHECK(!memcmp(&sample_in, &sample_out, sizeof (sample_in)));

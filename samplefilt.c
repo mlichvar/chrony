@@ -386,7 +386,6 @@ combine_selected_samples(SPF_Instance filter, int n, NTP_Sample *result)
   result->root_dispersion = MAX(disp, mean_root_dispersion);
   result->peer_delay = mean_peer_delay;
   result->root_delay = mean_root_delay;
-  result->stratum = last_sample->stratum;
 
   return 1;
 }

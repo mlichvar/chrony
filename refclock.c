@@ -415,12 +415,6 @@ accumulate_sample(RCL_Instance instance, struct timespec *sample_time, double of
   sample.peer_dispersion = dispersion;
   sample.root_dispersion = dispersion;
 
-  /* Handle special case when PPS is used with the local reference */
-  if (instance->pps_active && instance->lock_ref == -1)
-    sample.stratum = pps_stratum(instance, &sample.time);
-  else
-    sample.stratum = instance->stratum;
-
   return SPF_AccumulateSample(instance->filter, &sample);
 }
 
@@ -685,7 +679,7 @@ static void
 poll_timeout(void *arg)
 {
   NTP_Sample sample;
-  int poll;
+  int poll, stratum;
 
   RCL_Instance inst = (RCL_Instance)arg;
 
@@ -701,8 +695,14 @@ poll_timeout(void *arg)
     inst->driver_polled = 0;
 
     if (SPF_GetFilteredSample(inst->filter, &sample)) {
+      /* Handle special case when PPS is used with the local reference */
+      if (inst->pps_active && inst->lock_ref == -1)
+        stratum = pps_stratum(inst, &sample.time);
+      else
+        stratum = inst->stratum;
+
       SRC_UpdateReachability(inst->source, 1);
-      SRC_SetLeapStatus(inst->source, inst->leap_status);
+      SRC_UpdateStatus(inst->source, stratum, inst->leap_status);
       SRC_AccumulateSample(inst->source, &sample);
       SRC_SelectSource(inst->source);
 
