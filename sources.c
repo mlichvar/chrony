@@ -1455,7 +1455,13 @@ SRC_ReloadSources(void)
 
   for (i = 0; i < n_sources; i++) {
     load_source(sources[i]);
+
+    /* Allow an immediate update of the reference */
+    sources[i]->updates++;
   }
+
+  /* Select sources and set the reference */
+  SRC_SelectSource(NULL);
 }
 
 /* ================================================== */
