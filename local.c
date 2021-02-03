@@ -687,6 +687,19 @@ LCL_MakeStep(void)
 
 /* ================================================== */
 
+void
+LCL_CancelOffsetCorrection(void)
+{
+  struct timespec raw;
+  double correction;
+
+  LCL_ReadRawTime(&raw);
+  LCL_GetOffsetCorrection(&raw, &correction, NULL);
+  LCL_AccumulateOffset(correction, 0.0);
+}
+
+/* ================================================== */
+
 int
 LCL_CanSystemLeap(void)
 {

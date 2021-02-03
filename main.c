@@ -104,6 +104,7 @@ MAI_CleanupAndExit(void)
 {
   if (!initialised) exit(exit_status);
   
+  LCL_CancelOffsetCorrection();
   SRC_DumpSources();
 
   /* Don't update clock when removing sources */

@@ -197,6 +197,9 @@ extern void LCL_Finalise(void);
    to a timezone problem. */
 extern int LCL_MakeStep(void);
 
+/* Routine to cancel the outstanding system clock correction */
+extern void LCL_CancelOffsetCorrection(void);
+
 /* Check if the system driver supports leap seconds, i.e. LCL_SetSystemLeap
    does something */
 extern int LCL_CanSystemLeap(void);
