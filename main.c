@@ -184,7 +184,7 @@ ntp_source_resolving_end(void)
   NSR_AutoStartSources();
 
   /* Special modes can end only when sources update their reachability.
-     Give up immediatelly if there are no active sources. */
+     Give up immediately if there are no active sources. */
   if (ref_mode != REF_ModeNormal && !SRC_ActiveSources()) {
     REF_SetUnsynchronised();
   }
