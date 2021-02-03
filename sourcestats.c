@@ -852,38 +852,30 @@ SST_GetDelayTestData(SST_Stats inst, struct timespec *sample_time,
 /* This is used to save the register to a file, so that we can reload
    it after restarting the daemon */
 
-void
+int
 SST_SaveToFile(SST_Stats inst, FILE *out)
 {
   int m, i, j;
 
-  fprintf(out, "%d\n", inst->n_samples);
+  if (inst->n_samples < 1)
+    return 0;
+
+  if (fprintf(out, "%d %d\n", inst->n_samples, inst->asymmetry_run) < 0)
+    return 0;
 
   for(m = 0; m < inst->n_samples; m++) {
     i = get_runsbuf_index(inst, m);
     j = get_buf_index(inst, m);
 
-    fprintf(out,
-#ifdef HAVE_LONG_TIME_T
-            "%08"PRIx64" %08lx %.6e %.6e %.6e %.6e %.6e %.6e %.6e %d\n",
-            (uint64_t)inst->sample_times[i].tv_sec,
-#else
-            "%08lx %08lx %.6e %.6e %.6e %.6e %.6e %.6e %.6e %d\n",
-            (unsigned long)inst->sample_times[i].tv_sec,
-#endif
-            (unsigned long)inst->sample_times[i].tv_nsec / 1000,
-            inst->offsets[i],
-            inst->orig_offsets[j],
-            inst->peer_delays[i],
-            inst->peer_dispersions[j],
-            inst->root_delays[j],
-            inst->root_dispersions[j],
-            1.0, /* used to be inst->weights[i] */
-            0 /* used to be an array of strata */);
-
+    if (fprintf(out, "%s %.6e %.6e %.6e %.6e %.6e %.6e\n",
+                UTI_TimespecToString(&inst->sample_times[i]),
+                inst->offsets[i], inst->orig_offsets[j],
+                inst->peer_delays[i], inst->peer_dispersions[j],
+                inst->root_delays[j], inst->root_dispersions[j]) < 0)
+      return 0;
   }
 
-  fprintf(out, "%d\n", inst->asymmetry_run);
+  return 1;
 }
 
 /* ================================================== */
@@ -892,66 +884,32 @@ SST_SaveToFile(SST_Stats inst, FILE *out)
 int
 SST_LoadFromFile(SST_Stats inst, FILE *in)
 {
-#ifdef HAVE_LONG_TIME_T
-  uint64_t sec;
-#else
-  unsigned long sec;
-#endif
-  unsigned long usec;
-  int i;
-  char line[1024];
-  double weight;
-  int stratum;
+  int i, n_samples, arun;
+  double sample_time;
+  char line[256];
+
+  if (!fgets(line, sizeof (line), in) ||
+      sscanf(line, "%d %d", &n_samples, &arun) != 2 ||
+      n_samples < 1 || n_samples > MAX_SAMPLES)
+    return 0;
 
   SST_ResetInstance(inst);
 
-  if (fgets(line, sizeof(line), in) &&
-      sscanf(line, "%d", &inst->n_samples) == 1 &&
-      inst->n_samples >= 0 && inst->n_samples <= MAX_SAMPLES) {
+  for (i = 0; i < n_samples; i++) {
+    if (!fgets(line, sizeof (line), in) ||
+        sscanf(line, "%lf %lf %lf %lf %lf %lf %lf",
+               &sample_time, &inst->offsets[i], &inst->orig_offsets[i],
+               &inst->peer_delays[i], &inst->peer_dispersions[i],
+               &inst->root_delays[i], &inst->root_dispersions[i]) != 7)
+      return 0;
 
-    for (i=0; i<inst->n_samples; i++) {
-      if (!fgets(line, sizeof(line), in) ||
-          (sscanf(line,
-#ifdef HAVE_LONG_TIME_T
-                  "%"SCNx64"%lx%lf%lf%lf%lf%lf%lf%lf%d\n",
-#else
-                  "%lx%lx%lf%lf%lf%lf%lf%lf%lf%d\n",
-#endif
-                  &(sec), &(usec),
-                  &(inst->offsets[i]),
-                  &(inst->orig_offsets[i]),
-                  &(inst->peer_delays[i]),
-                  &(inst->peer_dispersions[i]),
-                  &(inst->root_delays[i]),
-                  &(inst->root_dispersions[i]),
-                  &weight, /* not used anymore */
-                  &stratum /* not used anymore */) != 10)) {
-
-        /* This is the branch taken if the read FAILED */
-
-        inst->n_samples = 0; /* Load abandoned if any sign of corruption */
-        return 0;
-      } else {
-
-        /* This is the branch taken if the read is SUCCESSFUL */
-        inst->sample_times[i].tv_sec = sec;
-        inst->sample_times[i].tv_nsec = 1000 * usec;
-        UTI_NormaliseTimespec(&inst->sample_times[i]);
-      }
-    }
-
-    /* This field was not saved in older versions */
-    if (!fgets(line, sizeof(line), in) || sscanf(line, "%d\n", &inst->asymmetry_run) != 1)
-      inst->asymmetry_run = 0;
-  } else {
-    inst->n_samples = 0; /* Load abandoned if any sign of corruption */
-    return 0;
+    /* Some resolution is lost in the double format, but that's ok */
+    UTI_DoubleToTimespec(sample_time, &inst->sample_times[i]);
   }
 
-  if (!inst->n_samples)
-    return 1;
-
+  inst->n_samples = n_samples;
   inst->last_sample = inst->n_samples - 1;
+  inst->asymmetry_run = CLAMP(-MAX_ASYMMETRY_RUN, arun, MAX_ASYMMETRY_RUN);
 
   find_min_delay_sample(inst);
   SST_DoNewRegression(inst);
