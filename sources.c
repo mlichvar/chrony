@@ -54,7 +54,6 @@ static int initialised = 0;
 /* ================================================== */
 /* Structure used to hold info for selecting between sources */
 struct SelectInfo {
-  int stratum;
   int select_ok;
   double std_dev;
   double root_distance;
@@ -132,7 +131,10 @@ struct SRC_Instance_Record {
 
   struct SelectInfo sel_info;
 
-  /* Latest leap status */
+  /* Current stratum */
+  int stratum;
+
+  /* Current leap status */
   NTP_Leap leap;
 
   /* Flag indicating the source has a leap second vote */
@@ -313,6 +315,7 @@ SRC_ResetInstance(SRC_Instance instance)
   instance->distant = 0;
   instance->status = SRC_BAD_STATS;
   instance->sel_score = 1.0;
+  instance->stratum = 0;
   instance->leap = LEAP_Unsynchronised;
   instance->leap_vote = 0;
 
@@ -406,6 +409,8 @@ SRC_AccumulateSample(SRC_Instance inst, NTP_Sample *sample)
     LOG(LOGS_INFO, "Dropping sample around leap second");
     return;
   }
+
+  inst->stratum = sample->stratum;
 
   SST_AccumulateSample(inst->stats, sample);
   SST_DoNewRegression(inst->stats);
@@ -808,7 +813,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     }
 
     si = &sources[i]->sel_info;
-    SST_GetSelectionData(sources[i]->stats, &now, &si->stratum,
+    SST_GetSelectionData(sources[i]->stats, &now,
                          &si->lo_limit, &si->hi_limit, &si->root_distance,
                          &si->std_dev, &first_sample_ago,
                          &si->last_sample_ago, &si->select_ok);
@@ -890,10 +895,10 @@ SRC_SelectSource(SRC_Instance updated_inst)
        source can settle down to a state where only one server is serving its
        local unsychronised time and others are synchronised to it. */
 
-    if (si->stratum >= orphan_stratum && sources[i]->type == SRC_NTP) {
+    if (sources[i]->stratum >= orphan_stratum && sources[i]->type == SRC_NTP) {
       mark_source(sources[i], SRC_ORPHAN);
 
-      if (si->stratum == orphan_stratum && sources[i]->reachability &&
+      if (sources[i]->stratum == orphan_stratum && sources[i]->reachability &&
           (orphan_source == INVALID_SOURCE ||
            sources[i]->ref_id < sources[orphan_source]->ref_id))
         orphan_source = i;
@@ -1131,10 +1136,10 @@ SRC_SelectSource(SRC_Instance updated_inst)
   /* Find minimum stratum */
 
   index = sel_sources[0];
-  min_stratum = sources[index]->sel_info.stratum;
+  min_stratum = sources[index]->stratum;
   for (i = 1; i < n_sel_sources; i++) {
     index = sel_sources[i];
-    stratum = sources[index]->sel_info.stratum;
+    stratum = sources[index]->stratum;
     if (stratum < min_stratum)
       min_stratum = stratum;
   }
@@ -1147,7 +1152,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
   if (selected_source_index != INVALID_SOURCE)
     sel_src_distance = sources[selected_source_index]->sel_info.root_distance +
-      (sources[selected_source_index]->sel_info.stratum - min_stratum) * stratum_weight;
+      (sources[selected_source_index]->stratum - min_stratum) * stratum_weight;
 
   for (i = 0; i < n_sources; i++) {
     /* Reset score for non-selectable sources */
@@ -1159,7 +1164,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     }
 
     distance = sources[i]->sel_info.root_distance +
-      (sources[i]->sel_info.stratum - min_stratum) * stratum_weight;
+      (sources[i]->stratum - min_stratum) * stratum_weight;
     if (sources[i]->type == SRC_NTP)
       distance += reselect_distance;
 
@@ -1247,7 +1252,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   combined = combine_sources(n_sel_sources, &ref_time, &src_offset, &src_offset_sd,
                              &src_frequency, &src_frequency_sd, &src_skew);
 
-  REF_SetReference(sources[selected_source_index]->sel_info.stratum,
+  REF_SetReference(sources[selected_source_index]->stratum,
                    leap_status, combined,
                    sources[selected_source_index]->ref_id,
                    sources[selected_source_index]->ip_addr,
@@ -1491,6 +1496,8 @@ SRC_ReportSource(int index, RPT_SourceReport *report, struct timespec *now)
       report->ip_addr.addr.in4 = src->ref_id;
       report->ip_addr.family = IPADDR_INET4;
     }
+
+    report->stratum = src->stratum;
 
     switch (src->status) {
       case SRC_FALSETICKER:

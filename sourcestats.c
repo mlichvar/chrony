@@ -177,9 +177,6 @@ struct SST_Stats_Record {
   /* This array contains the root dispersions of each sample at the
      time of the measurements */
   double root_dispersions[MAX_SAMPLES];
-
-  /* The stratum from the last accumulated sample */
-  int stratum;
 };
 
 /* ================================================== */
@@ -321,7 +318,6 @@ SST_AccumulateSample(SST_Stats inst, NTP_Sample *sample)
   inst->peer_dispersions[m] = sample->peer_dispersion;
   inst->root_delays[m] = sample->root_delay;
   inst->root_dispersions[m] = sample->root_dispersion;
-  inst->stratum = sample->stratum;
  
   if (inst->peer_delays[n] < inst->fixed_min_delay)
     inst->peer_delays[n] = 2.0 * inst->fixed_min_delay - inst->peer_delays[n];
@@ -650,7 +646,6 @@ SST_GetFrequencyRange(SST_Stats inst,
 
 void
 SST_GetSelectionData(SST_Stats inst, struct timespec *now,
-                     int *stratum,
                      double *offset_lo_limit,
                      double *offset_hi_limit,
                      double *root_distance,
@@ -670,7 +665,6 @@ SST_GetSelectionData(SST_Stats inst, struct timespec *now,
   i = get_runsbuf_index(inst, inst->best_single_sample);
   j = get_buf_index(inst, inst->best_single_sample);
 
-  *stratum = inst->stratum;
   *std_dev = inst->std_dev;
 
   sample_elapsed = fabs(UTI_DiffTimespecsToDouble(now, &inst->sample_times[i]));
@@ -885,7 +879,7 @@ SST_SaveToFile(SST_Stats inst, FILE *out)
             inst->root_delays[j],
             inst->root_dispersions[j],
             1.0, /* used to be inst->weights[i] */
-            inst->stratum /* used to be an array */);
+            0 /* used to be an array of strata */);
 
   }
 
@@ -907,6 +901,7 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
   int i;
   char line[1024];
   double weight;
+  int stratum;
 
   SST_ResetInstance(inst);
 
@@ -930,7 +925,7 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
                   &(inst->root_delays[i]),
                   &(inst->root_dispersions[i]),
                   &weight, /* not used anymore */
-                  &inst->stratum) != 10)) {
+                  &stratum /* not used anymore */) != 10)) {
 
         /* This is the branch taken if the read FAILED */
 
@@ -978,7 +973,6 @@ SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timespec *no
     report->orig_latest_meas = inst->orig_offsets[j];
     report->latest_meas = inst->offsets[i];
     report->latest_meas_err = 0.5*inst->root_delays[j] + inst->root_dispersions[j];
-    report->stratum = inst->stratum;
 
     /* Align the sample time to reduce the leak of the receive timestamp */
     last_sample_time = inst->sample_times[i];
