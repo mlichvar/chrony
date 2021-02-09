@@ -73,6 +73,9 @@ static int n_sources;
 /* Flag indicating new sources will be started automatically when added */
 static int auto_start_sources = 0;
 
+/* Flag indicating a record is currently being modified */
+static int record_lock;
+
 /* Last assigned address ID */
 static uint32_t last_address_id = 0;
 
@@ -123,11 +126,21 @@ struct SourcePool {
 /* Array of SourcePool (indexed by their ID) */
 static ARR_Instance pools;
 
+/* Requested update of a source's address */
+struct AddressUpdate {
+  NTP_Remote_Address old_address;
+  NTP_Remote_Address new_address;
+};
+
+/* Update saved when record_lock is true */
+static struct AddressUpdate saved_address_update;
+
 /* ================================================== */
 /* Forward prototypes */
 
 static void resolve_sources(void);
 static void rehash_records(void);
+static void handle_saved_address_update(void);
 static void clean_source_record(SourceRecord *record);
 static void remove_pool_sources(int pool_id, int tentative, int unresolved);
 static void remove_unresolved_source(struct UnresolvedSource *us);
@@ -276,6 +289,8 @@ rehash_records(void)
   unsigned int i, old_size, new_size;
   int slot;
 
+  assert(!record_lock);
+
   old_size = ARR_GetSize(records);
 
   temp_records = MallocArray(SourceRecord, old_size);
@@ -335,6 +350,9 @@ add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type,
           assert(0);
       }
 
+      assert(!record_lock);
+      record_lock = 1;
+
       record = get_record(slot);
       assert(!name || !UTI_IsStringIP(name));
       record->name = Strdup(name ? name : UTI_IPToString(&remote_addr->ip_addr));
@@ -344,6 +362,8 @@ add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type,
       record->tentative = 1;
       record->conf_id = conf_id;
 
+      record_lock = 0;
+
       if (record->pool_id != INVALID_POOL) {
         get_pool(record->pool_id)->sources++;
         if (!UTI_IsIPReal(&remote_addr->ip_addr))
@@ -352,6 +372,9 @@ add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type,
 
       if (auto_start_sources && UTI_IsIPReal(&remote_addr->ip_addr))
         NCR_StartInstance(record->data);
+
+      /* The new instance is allowed to change its address immediately */
+      handle_saved_address_update();
 
       return NSR_Success;
     }
@@ -379,9 +402,16 @@ change_source_address(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr
   if (found == 2 || (found != 0 && slot1 != slot2))
     return NSR_AlreadyInUse;
 
+  assert(!record_lock);
+  record_lock = 1;
+
   record = get_record(slot1);
   NCR_ChangeRemoteAddress(record->data, new_addr, !replacement);
-  record->remote_addr = NCR_GetRemoteAddress(record->data);
+
+  if (record->remote_addr != NCR_GetRemoteAddress(record->data) ||
+      UTI_CompareIPs(&record->remote_addr->ip_addr, &new_addr->ip_addr, NULL) != 0)
+    assert(0);
+
   if (!UTI_IsIPReal(&old_addr->ip_addr) && UTI_IsIPReal(&new_addr->ip_addr)) {
     if (auto_start_sources)
       NCR_StartInstance(record->data);
@@ -395,6 +425,8 @@ change_source_address(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr
     if (record->pool_id != INVALID_POOL)
       get_pool(record->pool_id)->confirmed_sources--;
   }
+
+  record_lock = 0;
 
   name = record->name;
   severity = UTI_IsIPReal(&old_addr->ip_addr) ? LOGS_INFO : LOGS_DEBUG;
@@ -416,6 +448,24 @@ change_source_address(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr
 
 /* ================================================== */
 
+static void
+handle_saved_address_update(void)
+{
+  if (!UTI_IsIPReal(&saved_address_update.old_address.ip_addr))
+    return;
+
+  if (change_source_address(&saved_address_update.old_address,
+                            &saved_address_update.new_address, 0) != NSR_Success)
+    /* This is expected to happen only if the old address is wrong */
+    LOG(LOGS_ERR, "Could not change %s to %s",
+        UTI_IPSockAddrToString(&saved_address_update.old_address),
+        UTI_IPSockAddrToString(&saved_address_update.old_address));
+
+  saved_address_update.old_address.ip_addr.family = IPADDR_UNSPEC;
+}
+
+/* ================================================== */
+
 static int
 replace_source_connectable(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr)
 {
@@ -426,6 +476,8 @@ replace_source_connectable(NTP_Remote_Address *old_addr, NTP_Remote_Address *new
 
   if (change_source_address(old_addr, new_addr, 1) == NSR_AlreadyInUse)
     return 0;
+
+  handle_saved_address_update();
 
   return 1;
 }
@@ -947,10 +999,28 @@ NSR_RefreshAddresses(void)
 NSR_Status
 NSR_UpdateSourceNtpAddress(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr)
 {
-  if (new_addr->ip_addr.family == IPADDR_UNSPEC)
+  int slot;
+
+  if (!UTI_IsIPReal(&old_addr->ip_addr) || !UTI_IsIPReal(&new_addr->ip_addr))
     return NSR_InvalidAF;
 
-  return change_source_address(old_addr, new_addr, 0);
+  if (UTI_CompareIPs(&old_addr->ip_addr, &new_addr->ip_addr, NULL) != 0 &&
+      find_slot(&new_addr->ip_addr, &slot))
+    return NSR_AlreadyInUse;
+
+  /* If a record is being modified (e.g. by change_source_address(), or the
+     source is just being created), postpone the change to avoid corruption */
+
+  if (!record_lock)
+    return change_source_address(old_addr, new_addr, 0);
+
+  if (UTI_IsIPReal(&saved_address_update.old_address.ip_addr))
+    return NSR_TooManySources;
+
+  saved_address_update.old_address = *old_addr;
+  saved_address_update.new_address = *new_addr;
+
+  return NSR_Success;
 }
 
 /* ================================================== */

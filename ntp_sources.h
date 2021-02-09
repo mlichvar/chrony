@@ -91,7 +91,8 @@ extern void NSR_HandleBadSource(IPAddr *address);
 /* Procedure to resolve all names again */
 extern void NSR_RefreshAddresses(void);
 
-/* Procedure to update the address of a source */
+/* Procedure to update the address of a source.  The update may be
+   postponed. */
 extern NSR_Status NSR_UpdateSourceNtpAddress(NTP_Remote_Address *old_addr,
                                              NTP_Remote_Address *new_addr);
 
