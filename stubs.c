@@ -491,7 +491,7 @@ NNS_GenerateResponseAuth(NTP_Packet *request, NTP_PacketInfo *req_info,
 }
 
 NNC_Instance
-NNC_CreateInstance(IPSockAddr *nts_address, const char *name, const IPSockAddr *ntp_address)
+NNC_CreateInstance(IPSockAddr *nts_address, const char *name, uint16_t ntp_port)
 {
   return NULL;
 }

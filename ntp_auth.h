@@ -37,7 +37,7 @@ typedef struct NAU_Instance_Record *NAU_Instance;
 extern NAU_Instance NAU_CreateNoneInstance(void);
 extern NAU_Instance NAU_CreateSymmetricInstance(uint32_t key_id);
 extern NAU_Instance NAU_CreateNtsInstance(IPSockAddr *nts_address, const char *name,
-                                          const IPSockAddr *ntp_address);
+                                          uint16_t ntp_port);
 
 /* Destroy an instance */
 extern void NAU_DestroyInstance(NAU_Instance instance);

@@ -571,7 +571,7 @@ NCR_CreateInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
     nts_address.ip_addr = remote_addr->ip_addr;
     nts_address.port = params->nts_port;
 
-    result->auth = NAU_CreateNtsInstance(&nts_address, name, &result->remote_addr);
+    result->auth = NAU_CreateNtsInstance(&nts_address, name, result->remote_addr.port);
   } else if (params->authkey != INACTIVE_AUTHKEY) {
     result->auth = NAU_CreateSymmetricInstance(params->authkey);
   } else {
@@ -703,7 +703,6 @@ NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remote_addr, int 
   memset(&inst->report, 0, sizeof (inst->report));
   NCR_ResetInstance(inst);
 
-  /* Update the authentication-specific address before NTP address */
   if (!ntp_only)
     NAU_ChangeAddress(inst->auth, &remote_addr->ip_addr);
 

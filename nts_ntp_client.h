@@ -34,7 +34,7 @@
 typedef struct NNC_Instance_Record *NNC_Instance;
 
 extern NNC_Instance NNC_CreateInstance(IPSockAddr *nts_address, const char *name,
-                                                   const IPSockAddr *ntp_address);
+                                       uint16_t ntp_port);
 extern void NNC_DestroyInstance(NNC_Instance inst);
 extern int NNC_PrepareForAuth(NNC_Instance inst);
 extern int NNC_GenerateRequestAuth(NNC_Instance inst, NTP_Packet *packet,

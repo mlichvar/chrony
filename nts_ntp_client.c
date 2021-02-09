@@ -50,12 +50,12 @@
 #define DUMP_IDENTIFIER "NNC0\n"
 
 struct NNC_Instance_Record {
-  /* Pointer to current address of NTP server */
-  const IPSockAddr *ntp_address;
   /* Address of NTS-KE server */
   IPSockAddr nts_address;
   /* Hostname or IP address for certificate verification */
   char *name;
+  /* Address of NTP server (can be negotiated in NTS-KE) */
+  IPSockAddr ntp_address;
 
   NKC_Instance nke;
   SIV_Instance siv;
@@ -114,15 +114,16 @@ reset_instance(NNC_Instance inst)
 /* ================================================== */
 
 NNC_Instance
-NNC_CreateInstance(IPSockAddr *nts_address, const char *name, const IPSockAddr *ntp_address)
+NNC_CreateInstance(IPSockAddr *nts_address, const char *name, uint16_t ntp_port)
 {
   NNC_Instance inst;
 
   inst = MallocNew(struct NNC_Instance_Record);
 
-  inst->ntp_address = ntp_address;
   inst->nts_address = *nts_address;
   inst->name = Strdup(name);
+  inst->ntp_address.ip_addr = nts_address->ip_addr;
+  inst->ntp_address.port = ntp_port;
   inst->siv = NULL;
   inst->nke = NULL;
 
@@ -168,7 +169,7 @@ set_ntp_address(NNC_Instance inst, NTP_Remote_Address *negotiated_address)
 {
   NTP_Remote_Address old_address, new_address;
 
-  old_address = *inst->ntp_address;
+  old_address = inst->ntp_address;
   new_address = *negotiated_address;
 
   if (new_address.ip_addr.family == IPADDR_UNSPEC)
@@ -186,6 +187,8 @@ set_ntp_address(NNC_Instance inst, NTP_Remote_Address *negotiated_address)
         UTI_IPToString(&old_address.ip_addr), UTI_IPToString(&new_address.ip_addr));
     return 0;
   }
+
+  inst->ntp_address = new_address;
 
   return 1;
 }
@@ -521,6 +524,7 @@ NNC_ChangeAddress(NNC_Instance inst, IPAddr *address)
   save_cookies(inst);
 
   inst->nts_address.ip_addr = *address;
+  inst->ntp_address.ip_addr = *address;
 
   reset_instance(inst);
 
@@ -557,7 +561,7 @@ save_cookies(NNC_Instance inst)
 
   if (fprintf(f, "%s%s\n%.1f\n%s %d\n%u %d ",
               DUMP_IDENTIFIER, inst->name, context_time,
-              UTI_IPToString(&inst->ntp_address->ip_addr), inst->ntp_address->port,
+              UTI_IPToString(&inst->ntp_address.ip_addr), inst->ntp_address.port,
               inst->context_id, (int)inst->context.algorithm) < 0 ||
       !UTI_BytesToHex(inst->context.s2c.key, inst->context.s2c.length, buf, sizeof (buf)) ||
       fprintf(f, "%s ", buf) < 0 ||
