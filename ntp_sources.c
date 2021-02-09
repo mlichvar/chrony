@@ -370,7 +370,7 @@ change_source_address(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr
   char *name;
 
   found = find_slot2(old_addr, &slot1);
-  if (found == 0)
+  if (found != 2)
     return NSR_NoSuchSource;
 
   /* Make sure there is no other source using the new address (with the same
