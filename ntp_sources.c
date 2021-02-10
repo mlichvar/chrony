@@ -198,14 +198,7 @@ NSR_Initialise(void)
 void
 NSR_Finalise(void)
 {
-  SourceRecord *record;
-  unsigned int i;
-
-  for (i = 0; i < ARR_GetSize(records); i++) {
-    record = get_record(i);
-    if (record->remote_addr)
-      clean_source_record(record);
-  }
+  NSR_RemoveAllSources();
 
   LCL_RemoveParameterChangeHandler(slew_sources, NULL);
 
