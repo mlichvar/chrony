@@ -2086,7 +2086,7 @@ process_cmd_sourcename(char *line)
   IPAddr ip_addr;
   char name[256];
 
-  if (!UTI_StringToIP(line, &ip_addr)) {
+  if (!parse_source_address(line, &ip_addr)) {
     LOG(LOGS_ERR, "Could not read address");
     return 0;
   }
