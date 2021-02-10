@@ -60,7 +60,6 @@ struct NNC_Instance_Record {
   NKC_Instance nke;
   SIV_Instance siv;
 
-  int load_attempt;
   int nke_attempts;
   double next_nke_attempt;
   double last_nke_success;
@@ -94,7 +93,6 @@ reset_instance(NNC_Instance inst)
     SIV_DestroyInstance(inst->siv);
   inst->siv = NULL;
 
-  inst->load_attempt = 0;
   inst->nke_attempts = 0;
   inst->next_nke_attempt = 0.0;
   inst->last_nke_success = 0.0;
@@ -128,6 +126,9 @@ NNC_CreateInstance(IPSockAddr *nts_address, const char *name, uint16_t ntp_port)
   inst->nke = NULL;
 
   reset_instance(inst);
+
+  /* Try to reload saved keys and cookies */
+  load_cookies(inst);
 
   return inst;
 }
@@ -287,12 +288,6 @@ NNC_PrepareForAuth(NNC_Instance inst)
      previous request */
   UTI_GetRandomBytes(inst->uniq_id, sizeof (inst->uniq_id));
   UTI_GetRandomBytes(inst->nonce, sizeof (inst->nonce));
-
-  /* Try to reload saved keys and cookies (once for the NTS-KE address) */
-  if (!inst->load_attempt) {
-    load_cookies(inst);
-    inst->load_attempt = 1;
-  }
 
   /* Get new cookies if there are not any, or they are no longer usable */
   if (!check_cookies(inst)) {
@@ -529,6 +524,8 @@ NNC_ChangeAddress(NNC_Instance inst, IPAddr *address)
   reset_instance(inst);
 
   DEBUG_LOG("NTS reset");
+
+  load_cookies(inst);
 }
 
 /* ================================================== */
