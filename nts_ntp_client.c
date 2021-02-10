@@ -54,6 +54,8 @@ struct NNC_Instance_Record {
   IPSockAddr nts_address;
   /* Hostname or IP address for certificate verification */
   char *name;
+  /* Configured NTP port */
+  uint16_t default_ntp_port;
   /* Address of NTP server (can be negotiated in NTS-KE) */
   IPSockAddr ntp_address;
 
@@ -120,6 +122,7 @@ NNC_CreateInstance(IPSockAddr *nts_address, const char *name, uint16_t ntp_port)
 
   inst->nts_address = *nts_address;
   inst->name = Strdup(name);
+  inst->default_ntp_port = ntp_port;
   inst->ntp_address.ip_addr = nts_address->ip_addr;
   inst->ntp_address.port = ntp_port;
   inst->siv = NULL;
@@ -174,9 +177,9 @@ set_ntp_address(NNC_Instance inst, NTP_Remote_Address *negotiated_address)
   new_address = *negotiated_address;
 
   if (new_address.ip_addr.family == IPADDR_UNSPEC)
-    new_address.ip_addr = old_address.ip_addr;
+    new_address.ip_addr = inst->nts_address.ip_addr;
   if (new_address.port == 0)
-    new_address.port = old_address.port;
+    new_address.port = inst->default_ntp_port;
 
   if (UTI_CompareIPs(&old_address.ip_addr, &new_address.ip_addr, NULL) == 0 &&
       old_address.port == new_address.port)
