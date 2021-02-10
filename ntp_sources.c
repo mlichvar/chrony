@@ -45,6 +45,9 @@
 
 /* ================================================== */
 
+/* Maximum number of sources */
+#define MAX_SOURCES 65536
+
 /* Record type private to this file, used to store information about
    particular sources */
 typedef struct {
@@ -336,6 +339,8 @@ add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type,
   } else if (!name && !UTI_IsIPReal(&remote_addr->ip_addr)) {
     /* Name is required for non-real addresses */
     return NSR_InvalidName;
+  } else if (n_sources >= MAX_SOURCES) {
+    return NSR_TooManySources;
   } else {
     if (remote_addr->ip_addr.family != IPADDR_INET4 &&
         remote_addr->ip_addr.family != IPADDR_INET6 &&
