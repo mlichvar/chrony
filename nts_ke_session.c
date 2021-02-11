@@ -641,7 +641,7 @@ deinit_gnutls(void)
 
 /* ================================================== */
 
-static void *
+static NKSN_Credentials
 create_credentials(const char *cert, const char *key, const char *trusted_certs)
 {
   gnutls_certificate_credentials_t credentials = NULL;
@@ -679,7 +679,7 @@ create_credentials(const char *cert, const char *key, const char *trusted_certs)
 
   credentials_counter++;
 
-  return credentials;
+  return (NKSN_Credentials)credentials;
 
 error:
   LOG(LOGS_ERR, "Could not set credentials : %s", gnutls_strerror(r));
@@ -691,7 +691,7 @@ error:
 
 /* ================================================== */
 
-void *
+NKSN_Credentials
 NKSN_CreateServerCertCredentials(const char *cert, const char *key)
 {
   return create_credentials(cert, key, NULL);
@@ -699,7 +699,7 @@ NKSN_CreateServerCertCredentials(const char *cert, const char *key)
 
 /* ================================================== */
 
-void *
+NKSN_Credentials
 NKSN_CreateClientCertCredentials(const char *trusted_certs)
 {
   return create_credentials(NULL, NULL, trusted_certs);
@@ -708,9 +708,9 @@ NKSN_CreateClientCertCredentials(const char *trusted_certs)
 /* ================================================== */
 
 void
-NKSN_DestroyCertCredentials(void *credentials)
+NKSN_DestroyCertCredentials(NKSN_Credentials credentials)
 {
-  gnutls_certificate_free_credentials(credentials);
+  gnutls_certificate_free_credentials((gnutls_certificate_credentials_t)credentials);
   credentials_counter--;
   deinit_gnutls();
 }
@@ -758,12 +758,13 @@ NKSN_DestroyInstance(NKSN_Instance inst)
 
 int
 NKSN_StartSession(NKSN_Instance inst, int sock_fd, const char *label,
-                  void *credentials, double timeout)
+                  NKSN_Credentials credentials, double timeout)
 {
   assert(inst->state == KE_STOPPED);
 
   inst->tls_session = create_tls_session(inst->server, sock_fd, inst->server_name,
-                                         credentials, priority_cache);
+                                         (gnutls_certificate_credentials_t)credentials,
+                                         priority_cache);
   if (!inst->tls_session)
     return 0;
 

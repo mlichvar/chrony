@@ -95,7 +95,7 @@ static int initialised = 0;
 
 /* Array of NKSN instances */
 static ARR_Instance sessions;
-static void *server_credentials;
+static NKSN_Credentials server_credentials;
 
 /* ================================================== */
 

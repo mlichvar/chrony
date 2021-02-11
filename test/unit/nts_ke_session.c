@@ -162,7 +162,7 @@ check_finished(void *arg)
 void
 test_unit(void)
 {
-  void *client_cred, *server_cred;
+  NKSN_Credentials client_cred, server_cred;
   int sock_fds[2], i;
 
   LCL_Initialise();

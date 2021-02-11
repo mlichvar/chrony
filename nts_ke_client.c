@@ -58,7 +58,7 @@ struct NKC_Instance_Record {
 
 /* ================================================== */
 
-static void *client_credentials = NULL;
+static NKSN_Credentials client_credentials = NULL;
 static int client_credentials_refs = 0;
 
 /* ================================================== */
