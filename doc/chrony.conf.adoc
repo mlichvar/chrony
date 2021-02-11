@@ -750,14 +750,14 @@ This directive specifies the maximum interval between NTS-KE handshakes (in
 seconds) in order to refresh the keys authenticating NTP packets. The default
 value is 2419200 (4 weeks).
 
-[[ntstrustedcerts]]*ntstrustedcerts* _file_::
-This directive specifies a file containing certificates (in the PEM format) of
-trusted certificate authorities (CA) that should be used to verify certificates
-of NTS servers in addition to the system's default trusted CAs (if the
-*nosystemcert* directive is not present).
+[[ntstrustedcerts]]*ntstrustedcerts* _file_|_directory_::
+This directive specifies a file or directory containing certificates (in the
+PEM format) of trusted certificate authorities (CA) that should be used to
+verify certificates of NTS servers in addition to the system's default trusted
+CAs (if the *nosystemcert* directive is not present).
 +
-This directive can be used multiple times to specify multiple files with
-trusted certificates.
+This directive can be used multiple times to specify multiple files and/or
+directories with trusted certificates.
 
 [[nosystemcert]]*nosystemcert*::
 This directive disables the system's default trusted CAs.

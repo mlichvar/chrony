@@ -675,10 +675,18 @@ create_credentials(const char **certs, const char **keys, int n_certs_keys,
 
     if (trusted_certs) {
       for (i = 0; i < n_trusted_certs; i++) {
-        r = gnutls_certificate_set_x509_trust_file(credentials, trusted_certs[i],
-                                                   GNUTLS_X509_FMT_PEM);
+        struct stat buf;
+
+        if (stat(trusted_certs[i], &buf) == 0 && S_ISDIR(buf.st_mode))
+          r = gnutls_certificate_set_x509_trust_dir(credentials, trusted_certs[i],
+                                                    GNUTLS_X509_FMT_PEM);
+        else
+          r = gnutls_certificate_set_x509_trust_file(credentials, trusted_certs[i],
+                                                     GNUTLS_X509_FMT_PEM);
         if (r < 0)
           goto error;
+
+        DEBUG_LOG("Added %d trusted certs from %s", r, trusted_certs[i]);
       }
     }
   }

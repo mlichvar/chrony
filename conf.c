@@ -261,7 +261,7 @@ static int nts_server_processes = 1;
 static int nts_server_connections = 100;
 static int nts_refresh = 2419200; /* 4 weeks */
 static int nts_rotate = 604800; /* 1 week */
-static ARR_Instance nts_trusted_certs_files; /* array of (char *) */
+static ARR_Instance nts_trusted_certs_paths; /* array of (char *) */
 
 /* Number of clock updates needed to enable certificate time checks */
 static int no_cert_time_check = 0;
@@ -392,7 +392,7 @@ CNF_Initialise(int r, int client_only)
 
   nts_server_cert_files = ARR_CreateInstance(sizeof (char *));
   nts_server_key_files = ARR_CreateInstance(sizeof (char *));
-  nts_trusted_certs_files = ARR_CreateInstance(sizeof (char *));
+  nts_trusted_certs_paths = ARR_CreateInstance(sizeof (char *));
 
   rtc_device = Strdup(DEFAULT_RTC_DEVICE);
   hwclock_file = Strdup(DEFAULT_HWCLOCK_FILE);
@@ -436,8 +436,8 @@ CNF_Finalise(void)
     Free(*(char **)ARR_GetElement(nts_server_cert_files, i));
   for (i = 0; i < ARR_GetSize(nts_server_key_files); i++)
     Free(*(char **)ARR_GetElement(nts_server_key_files, i));
-  for (i = 0; i < ARR_GetSize(nts_trusted_certs_files); i++)
-    Free(*(char **)ARR_GetElement(nts_trusted_certs_files, i));
+  for (i = 0; i < ARR_GetSize(nts_trusted_certs_paths); i++)
+    Free(*(char **)ARR_GetElement(nts_trusted_certs_paths, i));
 
   ARR_DestroyInstance(init_sources);
   ARR_DestroyInstance(ntp_sources);
@@ -451,7 +451,7 @@ CNF_Finalise(void)
 
   ARR_DestroyInstance(nts_server_cert_files);
   ARR_DestroyInstance(nts_server_key_files);
-  ARR_DestroyInstance(nts_trusted_certs_files);
+  ARR_DestroyInstance(nts_trusted_certs_paths);
 
   Free(drift_file);
   Free(dumpdir);
@@ -1185,10 +1185,10 @@ parse_ntsserver(char *line, ARR_Instance files)
 static void
 parse_ntstrustedcerts(char *line)
 {
-  char *file = NULL;
+  char *path = NULL;
 
-  parse_string(line, &file);
-  ARR_AppendElement(nts_trusted_certs_files, &file);
+  parse_string(line, &path);
+  ARR_AppendElement(nts_trusted_certs_paths, &path);
 }
 
 /* ================================================== */
@@ -2605,11 +2605,11 @@ CNF_GetNtsRotate(void)
 /* ================================================== */
 
 int
-CNF_GetNtsTrustedCertsFiles(const char ***files)
+CNF_GetNtsTrustedCertsPaths(const char ***paths)
 {
-  *files = ARR_GetElements(nts_trusted_certs_files);
+  *paths = ARR_GetElements(nts_trusted_certs_paths);
 
-  return ARR_GetSize(nts_trusted_certs_files);
+  return ARR_GetSize(nts_trusted_certs_paths);
 }
 
 /* ================================================== */
