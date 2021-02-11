@@ -36,10 +36,11 @@ typedef struct NKSN_Instance_Record *NKSN_Instance;
    the session. */
 typedef int (*NKSN_MessageHandler)(void *arg);
 
-/* Get client or server credentials using certificates of trusted CAs,
-   or a server certificate and key.  The credentials may be shared between
+/* Get server or client credentials using a server certificate and key,
+   or certificates of trusted CAs.  The credentials may be shared between
    different clients or servers. */
-extern void *NKSN_CreateCertCredentials(char *cert, char *key, char *trusted_certs);
+extern void *NKSN_CreateServerCertCredentials(const char *cert, const char *key);
+extern void *NKSN_CreateClientCertCredentials(const char *trusted_certs);
 
 /* Destroy the credentials */
 extern void NKSN_DestroyCertCredentials(void *credentials);

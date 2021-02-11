@@ -281,7 +281,7 @@ NKC_CreateInstance(IPSockAddr *address, const char *name)
 
   /* Share the credentials with other client instances */
   if (!client_credentials)
-    client_credentials = NKSN_CreateCertCredentials(NULL, NULL, CNF_GetNtsTrustedCertFile());
+    client_credentials = NKSN_CreateClientCertCredentials(CNF_GetNtsTrustedCertFile());
   client_credentials_refs++;
 
   return inst;

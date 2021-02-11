@@ -742,7 +742,7 @@ NKS_Initialise(void)
     return;
 
   if (helper_sock_fd == INVALID_SOCK_FD) {
-    server_credentials = NKSN_CreateCertCredentials(cert, key, NULL);
+    server_credentials = NKSN_CreateServerCertCredentials(cert, key);
     if (!server_credentials)
       return;
   } else {

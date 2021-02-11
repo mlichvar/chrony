@@ -641,8 +641,8 @@ deinit_gnutls(void)
 
 /* ================================================== */
 
-void *
-NKSN_CreateCertCredentials(char *cert, char *key, char *trusted_certs)
+static void *
+create_credentials(const char *cert, const char *key, const char *trusted_certs)
 {
   gnutls_certificate_credentials_t credentials = NULL;
   int r;
@@ -654,11 +654,15 @@ NKSN_CreateCertCredentials(char *cert, char *key, char *trusted_certs)
     goto error;
 
   if (cert && key) {
+    assert(!trusted_certs);
+
     r = gnutls_certificate_set_x509_key_file(credentials, cert, key,
                                              GNUTLS_X509_FMT_PEM);
     if (r < 0)
       goto error;
   } else {
+    assert(!cert && !key);
+
     if (!CNF_GetNoSystemCert()) {
       r = gnutls_certificate_set_x509_system_trust(credentials);
       if (r < 0)
@@ -683,6 +687,22 @@ error:
     gnutls_certificate_free_credentials(credentials);
   deinit_gnutls();
   return NULL;
+}
+
+/* ================================================== */
+
+void *
+NKSN_CreateServerCertCredentials(const char *cert, const char *key)
+{
+  return create_credentials(cert, key, NULL);
+}
+
+/* ================================================== */
+
+void *
+NKSN_CreateClientCertCredentials(const char *trusted_certs)
+{
+  return create_credentials(NULL, NULL, trusted_certs);
 }
 
 /* ================================================== */

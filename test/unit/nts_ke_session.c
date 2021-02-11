@@ -174,8 +174,8 @@ test_unit(void)
     server = NKSN_CreateInstance(1, NULL, handle_request, NULL);
     client = NKSN_CreateInstance(0, "test", handle_response, NULL);
 
-    server_cred = NKSN_CreateCertCredentials("nts_ke.crt", "nts_ke.key", NULL);
-    client_cred = NKSN_CreateCertCredentials(NULL, NULL, "nts_ke.crt");
+    server_cred = NKSN_CreateServerCertCredentials("nts_ke.crt", "nts_ke.key");
+    client_cred = NKSN_CreateClientCertCredentials("nts_ke.crt");
 
     TEST_CHECK(socketpair(AF_UNIX, SOCK_STREAM, 0, sock_fds) == 0);
     TEST_CHECK(fcntl(sock_fds[0], F_SETFL, O_NONBLOCK) == 0);
