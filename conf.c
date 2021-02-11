@@ -77,6 +77,7 @@ static void parse_mailonchange(char *);
 static void parse_makestep(char *);
 static void parse_maxchange(char *);
 static void parse_ntsserver(char *, ARR_Instance files);
+static void parse_ntstrustedcerts(char *);
 static void parse_ratelimit(char *line, int *enabled, int *interval,
                             int *burst, int *leak);
 static void parse_refclock(char *);
@@ -260,7 +261,7 @@ static int nts_server_processes = 1;
 static int nts_server_connections = 100;
 static int nts_refresh = 2419200; /* 4 weeks */
 static int nts_rotate = 604800; /* 1 week */
-static char *nts_trusted_cert_file = NULL;
+static ARR_Instance nts_trusted_certs_files; /* array of (char *) */
 
 /* Number of clock updates needed to enable certificate time checks */
 static int no_cert_time_check = 0;
@@ -391,6 +392,7 @@ CNF_Initialise(int r, int client_only)
 
   nts_server_cert_files = ARR_CreateInstance(sizeof (char *));
   nts_server_key_files = ARR_CreateInstance(sizeof (char *));
+  nts_trusted_certs_files = ARR_CreateInstance(sizeof (char *));
 
   rtc_device = Strdup(DEFAULT_RTC_DEVICE);
   hwclock_file = Strdup(DEFAULT_HWCLOCK_FILE);
@@ -434,6 +436,8 @@ CNF_Finalise(void)
     Free(*(char **)ARR_GetElement(nts_server_cert_files, i));
   for (i = 0; i < ARR_GetSize(nts_server_key_files); i++)
     Free(*(char **)ARR_GetElement(nts_server_key_files, i));
+  for (i = 0; i < ARR_GetSize(nts_trusted_certs_files); i++)
+    Free(*(char **)ARR_GetElement(nts_trusted_certs_files, i));
 
   ARR_DestroyInstance(init_sources);
   ARR_DestroyInstance(ntp_sources);
@@ -447,6 +451,7 @@ CNF_Finalise(void)
 
   ARR_DestroyInstance(nts_server_cert_files);
   ARR_DestroyInstance(nts_server_key_files);
+  ARR_DestroyInstance(nts_trusted_certs_files);
 
   Free(drift_file);
   Free(dumpdir);
@@ -468,7 +473,6 @@ CNF_Finalise(void)
   Free(tempcomp_point_file);
   Free(nts_dump_dir);
   Free(nts_ntp_server);
-  Free(nts_trusted_cert_file);
 }
 
 /* ================================================== */
@@ -652,8 +656,6 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "ntsratelimit")) {
     parse_ratelimit(p, &nts_ratelimit_enabled, &nts_ratelimit_interval,
                     &nts_ratelimit_burst, &nts_ratelimit_leak);
-  } else if (!strcasecmp(command, "ntstrustedcerts")) {
-    parse_string(p, &nts_trusted_cert_file);
   } else if (!strcasecmp(command, "ntscachedir") ||
              !strcasecmp(command, "ntsdumpdir")) {
     parse_string(p, &nts_dump_dir);
@@ -671,6 +673,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_ntsserver(p, nts_server_cert_files);
   } else if (!strcasecmp(command, "ntsserverkey")) {
     parse_ntsserver(p, nts_server_key_files);
+  } else if (!strcasecmp(command, "ntstrustedcerts")) {
+    parse_ntstrustedcerts(p);
   } else if (!strcasecmp(command, "peer")) {
     parse_source(p, command, 1);
   } else if (!strcasecmp(command, "pidfile")) {
@@ -1174,6 +1178,17 @@ parse_ntsserver(char *line, ARR_Instance files)
 
   parse_string(line, &file);
   ARR_AppendElement(files, &file);
+}
+
+/* ================================================== */
+
+static void
+parse_ntstrustedcerts(char *line)
+{
+  char *file = NULL;
+
+  parse_string(line, &file);
+  ARR_AppendElement(nts_trusted_certs_files, &file);
 }
 
 /* ================================================== */
@@ -2589,10 +2604,12 @@ CNF_GetNtsRotate(void)
 
 /* ================================================== */
 
-char *
-CNF_GetNtsTrustedCertFile(void)
+int
+CNF_GetNtsTrustedCertsFiles(const char ***files)
 {
-  return nts_trusted_cert_file;
+  *files = ARR_GetElements(nts_trusted_certs_files);
+
+  return ARR_GetSize(nts_trusted_certs_files);
 }
 
 /* ================================================== */

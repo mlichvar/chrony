@@ -268,7 +268,9 @@ handle_message(void *arg)
 NKC_Instance
 NKC_CreateInstance(IPSockAddr *address, const char *name)
 {
+  const char **trusted_certs;
   NKC_Instance inst;
+  int n_certs;
 
   inst = MallocNew(struct NKC_Instance_Record);
 
@@ -279,9 +281,11 @@ NKC_CreateInstance(IPSockAddr *address, const char *name)
   inst->destroying = 0;
   inst->got_response = 0;
 
+  n_certs = CNF_GetNtsTrustedCertsFiles(&trusted_certs);
+
   /* Share the credentials with other client instances */
   if (!client_credentials)
-    client_credentials = NKSN_CreateClientCertCredentials(CNF_GetNtsTrustedCertFile());
+    client_credentials = NKSN_CreateClientCertCredentials(trusted_certs, n_certs);
   client_credentials_refs++;
 
   return inst;

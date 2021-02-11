@@ -755,6 +755,9 @@ This directive specifies a file containing certificates (in the PEM format) of
 trusted certificate authorities (CA) that should be used to verify certificates
 of NTS servers in addition to the system's default trusted CAs (if the
 *nosystemcert* directive is not present).
++
+This directive can be used multiple times to specify multiple files with
+trusted certificates.
 
 [[nosystemcert]]*nosystemcert*::
 This directive disables the system's default trusted CAs.

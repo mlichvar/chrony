@@ -159,7 +159,7 @@ extern int CNF_GetNtsServerProcesses(void);
 extern int CNF_GetNtsServerConnections(void);
 extern int CNF_GetNtsRefresh(void);
 extern int CNF_GetNtsRotate(void);
-extern char *CNF_GetNtsTrustedCertFile(void);
+extern int CNF_GetNtsTrustedCertsFiles(const char ***files);
 extern int CNF_GetNoSystemCert(void);
 extern int CNF_GetNoCertTimeCheck(void);
 
