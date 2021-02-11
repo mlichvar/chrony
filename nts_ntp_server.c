@@ -59,8 +59,10 @@ struct NtsServer *server;
 void
 NNS_Initialise(void)
 {
+  const char **certs, **keys;
+
   /* Create an NTS-NTP server instance only if NTS-KE server is enabled */
-  if (!CNF_GetNtsServerCertFile() || !CNF_GetNtsServerKeyFile()) {
+  if (CNF_GetNtsServerCertAndKeyFiles(&certs, &keys) <= 0) {
     server = NULL;
     return;
   }

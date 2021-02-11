@@ -642,10 +642,11 @@ deinit_gnutls(void)
 /* ================================================== */
 
 static NKSN_Credentials
-create_credentials(const char *cert, const char *key, const char *trusted_certs)
+create_credentials(const char **certs, const char **keys, int n_certs_keys,
+                   const char *trusted_certs)
 {
   gnutls_certificate_credentials_t credentials = NULL;
-  int r;
+  int i, r;
 
   init_gnutls();
 
@@ -653,15 +654,18 @@ create_credentials(const char *cert, const char *key, const char *trusted_certs)
   if (r < 0)
     goto error;
 
-  if (cert && key) {
+  if (certs && keys) {
     assert(!trusted_certs);
 
-    r = gnutls_certificate_set_x509_key_file(credentials, cert, key,
-                                             GNUTLS_X509_FMT_PEM);
-    if (r < 0)
-      goto error;
+    for (i = 0; i < n_certs_keys; i++) {
+      r = gnutls_certificate_set_x509_key_file(credentials, certs[i], keys[i],
+                                               GNUTLS_X509_FMT_PEM);
+      if (r < 0)
+        goto error;
+    }
   } else {
-    assert(!cert && !key);
+    if (certs || keys || n_certs_keys > 0)
+      assert(0);
 
     if (!CNF_GetNoSystemCert()) {
       r = gnutls_certificate_set_x509_system_trust(credentials);
@@ -692,9 +696,9 @@ error:
 /* ================================================== */
 
 NKSN_Credentials
-NKSN_CreateServerCertCredentials(const char *cert, const char *key)
+NKSN_CreateServerCertCredentials(const char **certs, const char **keys, int n_certs_keys)
 {
-  return create_credentials(cert, key, NULL);
+  return create_credentials(certs, keys, n_certs_keys, NULL);
 }
 
 /* ================================================== */
@@ -702,7 +706,7 @@ NKSN_CreateServerCertCredentials(const char *cert, const char *key)
 NKSN_Credentials
 NKSN_CreateClientCertCredentials(const char *trusted_certs)
 {
-  return create_credentials(NULL, NULL, trusted_certs);
+  return create_credentials(NULL, NULL, 0, trusted_certs);
 }
 
 /* ================================================== */

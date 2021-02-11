@@ -41,7 +41,8 @@ typedef int (*NKSN_MessageHandler)(void *arg);
 /* Get server or client credentials using a server certificate and key,
    or certificates of trusted CAs.  The credentials may be shared between
    different clients or servers. */
-extern NKSN_Credentials NKSN_CreateServerCertCredentials(const char *cert, const char *key);
+extern NKSN_Credentials NKSN_CreateServerCertCredentials(const char **certs, const char **keys,
+                                                         int n_certs_keys);
 extern NKSN_Credentials NKSN_CreateClientCertCredentials(const char *trusted_certs);
 
 /* Destroy the credentials */

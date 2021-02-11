@@ -678,13 +678,14 @@ void
 NKS_PreInitialise(uid_t uid, gid_t gid, int scfilter_level)
 {
   int i, processes, sock_fd1, sock_fd2;
+  const char **certs, **keys;
   char prefix[16];
   pid_t pid;
 
   helper_sock_fd = INVALID_SOCK_FD;
   is_helper = 0;
 
-  if (!CNF_GetNtsServerCertFile() || !CNF_GetNtsServerKeyFile())
+  if (CNF_GetNtsServerCertAndKeyFiles(&certs, &keys) <= 0)
     return;
 
   processes = CNF_GetNtsServerProcesses();
@@ -728,21 +729,19 @@ NKS_PreInitialise(uid_t uid, gid_t gid, int scfilter_level)
 void
 NKS_Initialise(void)
 {
-  char *cert, *key;
+  const char **certs, **keys;
+  int i, n_certs_keys;
   double key_delay;
-  int i;
 
   server_sock_fd4 = INVALID_SOCK_FD;
   server_sock_fd6 = INVALID_SOCK_FD;
 
-  cert = CNF_GetNtsServerCertFile();
-  key = CNF_GetNtsServerKeyFile();
-
-  if (!cert || !key)
+  n_certs_keys = CNF_GetNtsServerCertAndKeyFiles(&certs, &keys);
+  if (n_certs_keys <= 0)
     return;
 
   if (helper_sock_fd == INVALID_SOCK_FD) {
-    server_credentials = NKSN_CreateServerCertCredentials(cert, key);
+    server_credentials = NKSN_CreateServerCertCredentials(certs, keys, n_certs_keys);
     if (!server_credentials)
       return;
   } else {

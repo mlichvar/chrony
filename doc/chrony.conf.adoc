@@ -1567,10 +1567,16 @@ The port will be open only when a certificate and key is specified by the
 [[ntsservercert]]*ntsservercert* _file_::
 This directive specifies a file containing a certificate in the PEM format
 for *chronyd* to operate as an NTS server.
++
+This directive can be used multiple times to specify multiple certificates.
 
 [[ntsserverkey]]*ntsserverkey* _file_::
 This directive specifies a file containing a private key in the PEM format
 for *chronyd* to operate as an NTS server.
++
+This directive can be used multiple times to specify multiple keys. The number
+of keys must be the same as the number of certificates and the corresponding
+files must be specified in the same order.
 
 [[ntsprocesses]]*ntsprocesses* _processes_::
 This directive specifies how many helper processes will *chronyd* operating
