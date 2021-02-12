@@ -537,6 +537,7 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
     SCMP_SYS(fchownat),
     SCMP_SYS(fstat),
     SCMP_SYS(fstat64),
+    SCMP_SYS(fstatat64),
     SCMP_SYS(getdents),
     SCMP_SYS(getdents64),
     SCMP_SYS(lseek),
@@ -554,6 +555,7 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
     SCMP_SYS(stat64),
     SCMP_SYS(statfs),
     SCMP_SYS(statfs64),
+    SCMP_SYS(statx),
     SCMP_SYS(unlink),
     SCMP_SYS(unlinkat),
 
