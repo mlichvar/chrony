@@ -9,26 +9,29 @@ certtool --help &> /dev/null || test_skip
 
 export CLKNETSIM_START_DATE=$(date -d 'Jan  1 00:00:00 UTC 2010' +'%s')
 
-cat > tmp/cert.cfg <<EOF
-cn = "node1.net1.clk"
-dns_name = "node1.net1.clk"
-ip_address = "192.168.123.1"
-serial = 001
-activation_date = "2010-01-01 00:00:00 UTC"
-expiration_date = "2010-01-02 00:00:00 UTC"
-signing_key
-encryption_key
-EOF
+for i in 1 2; do
+	cat > tmp/cert$i.cfg <<-EOF
+	cn = "node$i.net1.clk"
+	dns_name = "node$i.net1.clk"
+	ip_address = "192.168.123.$i"
+	serial = 001
+	activation_date = "2010-01-01 00:00:00 UTC"
+	expiration_date = "2010-01-02 00:00:00 UTC"
+	signing_key
+	encryption_key
+	EOF
 
-certtool --generate-privkey --key-type=ed25519 --outfile tmp/server.key &> tmp/log.certtool
-certtool --generate-self-signed --load-privkey tmp/server.key \
-	--template tmp/cert.cfg --outfile tmp/server.crt &>> tmp/log.certtool
+	certtool --generate-privkey --key-type=ed25519 --outfile tmp/server$i.key &> \
+		tmp/log.certtool$i
+	certtool --generate-self-signed --load-privkey tmp/server$i.key \
+		--template tmp/cert$i.cfg --outfile tmp/server$i.crt &>> tmp/log.certtool$i
+done
 
 max_sync_time=400
 dns=1
 server_conf="
-ntsserverkey tmp/server.key
-ntsservercert tmp/server.crt
+ntsserverkey tmp/server1.key
+ntsservercert tmp/server1.crt
 ntsprocesses 0
 ntsrotate 66
 ntsdumpdir tmp
@@ -36,7 +39,9 @@ ntsdumpdir tmp
 client_server_options="minpoll 6 maxpoll 6 nts"
 client_conf="
 nosystemcert
-ntstrustedcerts tmp/server.crt
+ntstrustedcerts /dev/null
+ntstrustedcerts tmp/server1.crt
+ntstrustedcerts /dev/null
 logdir tmp
 log rawmeasurements"
 
@@ -102,7 +107,7 @@ export CLKNETSIM_START_DATE=$(date -d 'Jan  2 00:00:01 UTC 2010' +'%s')
 
 client_conf="
 nosystemcert
-ntstrustedcerts tmp/server.crt"
+ntstrustedcerts tmp/server1.crt"
 
 run_test || test_fail
 check_chronyd_exit || test_fail
@@ -125,13 +130,13 @@ export CLKNETSIM_START_DATE=$(date -d 'Jan  1 00:00:00 UTC 2010' +'%s')
 
 client_conf="
 nosystemcert
-ntstrustedcerts tmp/server.crt
+ntstrustedcerts tmp/server1.crt
 ntsrefresh 500"
 
 for dns in 1 0; do
 	server_conf="
-	ntsserverkey tmp/server.key
-	ntsservercert tmp/server.crt
+	ntsserverkey tmp/server1.key
+	ntsservercert tmp/server1.crt
 	ntsprocesses 0
 	ntsrotate 0
 	ntsdumpdir tmp"
@@ -182,5 +187,126 @@ for dns in 1 0; do
 	check_log_messages "Source 192.168.123.1 changed to 192.168.123.2" 2 6 || test_fail
 	check_log_messages "Source 192.168.123.2 replaced with 192.168.123.1" 1 6 || test_fail
 done
+
+servers=2
+server_conf="
+ntsserverkey tmp/server1.key
+ntsservercert tmp/server1.crt
+ntsprocesses 0
+ntsrotate 0
+ntsntpserver node2.net1.clk
+port 11123
+ntsdumpdir tmp"
+client_conf="
+nosystemcert
+ntstrustedcerts tmp/server1.crt
+ntsdumpdir tmp"
+client_server_conf="server 192.168.123.1 $client_server_options"
+
+rm -f tmp/*.nts
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_source_selection || test_fail
+check_sync || test_fail
+
+check_log_messages "Could not change" 0 0 || test_fail
+check_file_messages "	3	1	.*	4460	1	0	2" 1 1 log.packets || test_fail
+check_file_messages "	3	2	.*	4460	" 0 0 log.packets || test_fail
+
+for dns in 1 0; do
+	run_test || test_fail
+	check_chronyd_exit || test_fail
+	check_source_selection || test_fail
+	check_sync || test_fail
+
+	check_log_messages "Could not change" 0 0 || test_fail
+	check_file_messages "	3	1	.*	4460	1	0	2" 0 0 log.packets || test_fail
+	check_file_messages "	3	2	.*	4460	" 0 0 log.packets || test_fail
+done
+
+server_conf="
+ntsserverkey tmp/server1.key
+ntsservercert tmp/server1.crt
+ntsprocesses 0
+ntsrotate 0
+ntsdumpdir tmp"
+
+head -n 8 tmp/192.168.123.1.nts > tmp/192.168.123.1.nts_
+mv tmp/192.168.123.1.nts_ tmp/192.168.123.1.nts
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_source_selection || test_fail
+check_sync || test_fail
+
+check_log_messages "Could not change" 0 0 || test_fail
+check_file_messages "	3	1	.*	4460	1	0	2" 1 1 log.packets || test_fail
+check_file_messages "	3	2	.*	4460	" 0 0 log.packets || test_fail
+check_file_messages "	3	1	.*	11123	" 0 0 log.packets || test_fail
+check_file_messages "	3	2	.*	123	" 0 0 log.packets || test_fail
+check_file_messages "	3	2	.*	11123	" 3 3 log.packets || test_fail
+
+dns=1
+server_conf="
+ntsserverkey tmp/server1.key
+ntsservercert tmp/server1.crt
+ntsserverkey tmp/server2.key
+ntsservercert tmp/server2.crt
+ntsprocesses 0"
+client_conf="
+nosystemcert
+ntstrustedcerts tmp/server1.crt
+ntstrustedcerts tmp/server2.crt
+minsources 2"
+client_server_conf=""
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_source_selection || test_fail
+check_sync || test_fail
+
+client_conf="
+nosystemcert
+ntstrustedcerts tmp/server1.crt
+ntstrustedcerts 1 tmp/server1.crt
+ntstrustedcerts 2 tmp/server2.crt
+ntstrustedcerts 3 tmp/server2.crt"
+client_server_conf="
+server node1.net1.clk $client_server_options certset 0
+server node2.net1.clk $client_server_options certset 2"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_source_selection || test_fail
+check_sync || test_fail
+
+check_file_messages "	3	1	.*	123	" 100 200 log.packets || test_fail
+check_file_messages "	3	2	.*	123	" 100 200 log.packets || test_fail
+
+client_server_conf="
+server node1.net1.clk $client_server_options certset 2
+server node2.net1.clk $client_server_options"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_source_selection && test_fail
+check_sync && test_fail
+
+check_file_messages "	3	1	.*	123	" 0 0 log.packets || test_fail
+check_file_messages "	3	2	.*	123	" 0 0 log.packets || test_fail
+
+client_conf="
+nosystemcert
+ntstrustedcerts tmp/nosuch.crt
+ntstrustedcerts 2 tmp/nosuch.crt"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_source_selection && test_fail
+check_sync && test_fail
+
+check_file_messages "	3	1	.*	123	" 0 0 log.packets || test_fail
+check_file_messages "	3	2	.*	123	" 0 0 log.packets || test_fail
 
 test_pass
