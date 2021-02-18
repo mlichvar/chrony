@@ -283,9 +283,7 @@ NKC_CreateInstance(IPSockAddr *address, const char *name, uint32_t cert_set)
   inst->destroying = 0;
   inst->got_response = 0;
 
-  n_certs = CNF_GetNtsTrustedCertsPaths(&trusted_certs);
-  certs_ids = MallocArray(uint32_t, n_certs);
-  memset(certs_ids, 0, sizeof (uint32_t) * n_certs);
+  n_certs = CNF_GetNtsTrustedCertsPaths(&trusted_certs, &certs_ids);
 
   /* Share the credentials among clients using the default set of trusted
      certificates, which likely contains most certificates */
@@ -300,8 +298,6 @@ NKC_CreateInstance(IPSockAddr *address, const char *name, uint32_t cert_set)
     inst->credentials = NKSN_CreateClientCertCredentials(trusted_certs, certs_ids,
                                                          n_certs, cert_set);
   }
-
-  Free(certs_ids);
 
   return inst;
 }

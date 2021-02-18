@@ -750,14 +750,29 @@ This directive specifies the maximum interval between NTS-KE handshakes (in
 seconds) in order to refresh the keys authenticating NTP packets. The default
 value is 2419200 (4 weeks).
 
-[[ntstrustedcerts]]*ntstrustedcerts* _file_|_directory_::
+[[ntstrustedcerts]]*ntstrustedcerts* [_set-ID_] _file_|_directory_::
 This directive specifies a file or directory containing certificates (in the
-PEM format) of trusted certificate authorities (CA) that should be used to
-verify certificates of NTS servers in addition to the system's default trusted
-CAs (if the *nosystemcert* directive is not present).
+PEM format) of trusted certificate authorities (CA) which can be used to
+verify certificates of NTS servers.
 +
-This directive can be used multiple times to specify multiple files and/or
-directories with trusted certificates.
+The optional _set-ID_ argument is a number in the range 0 through 2^32-1, which
+selects the set of certificates where certificates from the specified file
+or directory are added. The default ID is 0, which is a set containing the
+system's default trusted CAs (unless the *nosystemcert* directive is present).
+All other sets are empty by default.
++
+This directive can be used multiple times to specify one or more sets of
+trusted certificates, each containing certificates from one or more files
+and/or directories.
++
+An example is:
++
+----
+ntstrustedcerts /etc/pki/nts/foo.crt
+ntstrustedcerts 1 /etc/pki/nts/bar.crt
+ntstrustedcerts 1 /etc/pki/nts/baz.crt
+ntstrustedcerts 2 /etc/pki/nts/qux.crt
+----
 
 [[nosystemcert]]*nosystemcert*::
 This directive disables the system's default trusted CAs.

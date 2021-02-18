@@ -262,6 +262,7 @@ static int nts_server_connections = 100;
 static int nts_refresh = 2419200; /* 4 weeks */
 static int nts_rotate = 604800; /* 1 week */
 static ARR_Instance nts_trusted_certs_paths; /* array of (char *) */
+static ARR_Instance nts_trusted_certs_ids; /* array of uint32_t */
 
 /* Number of clock updates needed to enable certificate time checks */
 static int no_cert_time_check = 0;
@@ -393,6 +394,7 @@ CNF_Initialise(int r, int client_only)
   nts_server_cert_files = ARR_CreateInstance(sizeof (char *));
   nts_server_key_files = ARR_CreateInstance(sizeof (char *));
   nts_trusted_certs_paths = ARR_CreateInstance(sizeof (char *));
+  nts_trusted_certs_ids = ARR_CreateInstance(sizeof (uint32_t));
 
   rtc_device = Strdup(DEFAULT_RTC_DEVICE);
   hwclock_file = Strdup(DEFAULT_HWCLOCK_FILE);
@@ -452,6 +454,7 @@ CNF_Finalise(void)
   ARR_DestroyInstance(nts_server_cert_files);
   ARR_DestroyInstance(nts_server_key_files);
   ARR_DestroyInstance(nts_trusted_certs_paths);
+  ARR_DestroyInstance(nts_trusted_certs_ids);
 
   Free(drift_file);
   Free(dumpdir);
@@ -1185,10 +1188,23 @@ parse_ntsserver(char *line, ARR_Instance files)
 static void
 parse_ntstrustedcerts(char *line)
 {
-  char *path = NULL;
+  uint32_t id;
+  char *path;
 
-  parse_string(line, &path);
+  if (get_number_of_args(line) == 2) {
+    path = CPS_SplitWord(line);
+    if (sscanf(line, "%"SCNu32, &id) != 1)
+      command_parse_error();
+  } else {
+    check_number_of_args(line, 1);
+    path = line;
+    id = 0;
+  }
+
+  path = Strdup(path);
+
   ARR_AppendElement(nts_trusted_certs_paths, &path);
+  ARR_AppendElement(nts_trusted_certs_ids, &id);
 }
 
 /* ================================================== */
@@ -2605,9 +2621,13 @@ CNF_GetNtsRotate(void)
 /* ================================================== */
 
 int
-CNF_GetNtsTrustedCertsPaths(const char ***paths)
+CNF_GetNtsTrustedCertsPaths(const char ***paths, uint32_t **ids)
 {
   *paths = ARR_GetElements(nts_trusted_certs_paths);
+  *ids = ARR_GetElements(nts_trusted_certs_ids);
+
+  if (ARR_GetSize(nts_trusted_certs_paths) != ARR_GetSize(nts_trusted_certs_ids))
+    assert(0);
 
   return ARR_GetSize(nts_trusted_certs_paths);
 }
