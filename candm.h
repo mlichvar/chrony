@@ -292,7 +292,8 @@ typedef struct {
   Float offset;
   uint32_t flags;
   int32_t filter_length;
-  uint32_t reserved[3];
+  uint32_t cert_set;
+  uint32_t reserved[2];
   int32_t EOR;
 } REQ_NTP_Source;
 
