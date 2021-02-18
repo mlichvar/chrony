@@ -165,12 +165,14 @@ test_unit(void)
   NKSN_Credentials client_cred, server_cred;
   const char *cert, *key;
   int sock_fds[2], i;
+  uint32_t cert_id;
 
   LCL_Initialise();
   TST_RegisterDummyDrivers();
 
   cert = "nts_ke.crt";
   key = "nts_ke.key";
+  cert_id = 0;
 
   for (i = 0; i < 50; i++) {
     SCH_Initialise();
@@ -179,7 +181,7 @@ test_unit(void)
     client = NKSN_CreateInstance(0, "test", handle_response, NULL);
 
     server_cred = NKSN_CreateServerCertCredentials(&cert, &key, 1);
-    client_cred = NKSN_CreateClientCertCredentials(&cert, 1);
+    client_cred = NKSN_CreateClientCertCredentials(&cert, &cert_id, 1, 0);
 
     TEST_CHECK(socketpair(AF_UNIX, SOCK_STREAM, 0, sock_fds) == 0);
     TEST_CHECK(fcntl(sock_fds[0], F_SETFL, O_NONBLOCK) == 0);

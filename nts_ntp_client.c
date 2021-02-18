@@ -54,6 +54,8 @@ struct NNC_Instance_Record {
   IPSockAddr nts_address;
   /* Hostname or IP address for certificate verification */
   char *name;
+  /* ID of trusted certificates */
+  uint32_t cert_set;
   /* Configured NTP port */
   uint16_t default_ntp_port;
   /* Address of NTP server (can be negotiated in NTS-KE) */
@@ -114,7 +116,7 @@ reset_instance(NNC_Instance inst)
 /* ================================================== */
 
 NNC_Instance
-NNC_CreateInstance(IPSockAddr *nts_address, const char *name, uint16_t ntp_port)
+NNC_CreateInstance(IPSockAddr *nts_address, const char *name, uint32_t cert_set, uint16_t ntp_port)
 {
   NNC_Instance inst;
 
@@ -122,6 +124,7 @@ NNC_CreateInstance(IPSockAddr *nts_address, const char *name, uint16_t ntp_port)
 
   inst->nts_address = *nts_address;
   inst->name = Strdup(name);
+  inst->cert_set = cert_set;
   inst->default_ntp_port = ntp_port;
   inst->ntp_address.ip_addr = nts_address->ip_addr;
   inst->ntp_address.port = ntp_port;
@@ -233,7 +236,7 @@ get_cookies(NNC_Instance inst)
       return 0;
     }
 
-    inst->nke = NKC_CreateInstance(&inst->nts_address, inst->name);
+    inst->nke = NKC_CreateInstance(&inst->nts_address, inst->name, inst->cert_set);
 
     inst->nke_attempts++;
     update_next_nke_attempt(inst, now);

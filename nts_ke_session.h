@@ -43,8 +43,9 @@ typedef int (*NKSN_MessageHandler)(void *arg);
    different clients or servers. */
 extern NKSN_Credentials NKSN_CreateServerCertCredentials(const char **certs, const char **keys,
                                                          int n_certs_keys);
-extern NKSN_Credentials NKSN_CreateClientCertCredentials(const char **trusted_certs,
-                                                         int n_certs);
+extern NKSN_Credentials NKSN_CreateClientCertCredentials(const char **certs, uint32_t *ids,
+                                                         int n_certs_ids,
+                                                         uint32_t trusted_cert_set);
 
 /* Destroy the credentials */
 extern void NKSN_DestroyCertCredentials(NKSN_Credentials credentials);

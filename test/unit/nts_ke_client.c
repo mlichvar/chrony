@@ -120,7 +120,7 @@ test_unit(void)
   SCK_GetLoopbackIPAddress(AF_INET, &addr.ip_addr);
   addr.port = 0;
 
-  inst = NKC_CreateInstance(&addr, "test");
+  inst = NKC_CreateInstance(&addr, "test", 0);
   TEST_CHECK(inst);
 
   for (i = 0; i < 10000; i++) {

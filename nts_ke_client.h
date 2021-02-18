@@ -33,7 +33,7 @@
 typedef struct NKC_Instance_Record *NKC_Instance;
 
 /* Create a client NTS-KE instance */
-extern NKC_Instance NKC_CreateInstance(IPSockAddr *address, const char *name);
+extern NKC_Instance NKC_CreateInstance(IPSockAddr *address, const char *name, uint32_t cert_set);
 
 /* Destroy an instance */
 extern void NKC_DestroyInstance(NKC_Instance inst);

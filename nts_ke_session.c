@@ -643,7 +643,8 @@ deinit_gnutls(void)
 
 static NKSN_Credentials
 create_credentials(const char **certs, const char **keys, int n_certs_keys,
-                   const char **trusted_certs, int n_trusted_certs)
+                   const char **trusted_certs, uint32_t *trusted_certs_ids,
+                   int n_trusted_certs, uint32_t trusted_cert_set)
 {
   gnutls_certificate_credentials_t credentials = NULL;
   int i, r;
@@ -655,7 +656,8 @@ create_credentials(const char **certs, const char **keys, int n_certs_keys,
     goto error;
 
   if (certs && keys) {
-    assert(!trusted_certs);
+    if (trusted_certs || trusted_certs_ids)
+      assert(0);
 
     for (i = 0; i < n_certs_keys; i++) {
       r = gnutls_certificate_set_x509_key_file(credentials, certs[i], keys[i],
@@ -667,15 +669,18 @@ create_credentials(const char **certs, const char **keys, int n_certs_keys,
     if (certs || keys || n_certs_keys > 0)
       assert(0);
 
-    if (!CNF_GetNoSystemCert()) {
+    if (trusted_cert_set == 0 && !CNF_GetNoSystemCert()) {
       r = gnutls_certificate_set_x509_system_trust(credentials);
       if (r < 0)
         goto error;
     }
 
-    if (trusted_certs) {
+    if (trusted_certs && trusted_certs_ids) {
       for (i = 0; i < n_trusted_certs; i++) {
         struct stat buf;
+
+        if (trusted_certs_ids[i] != trusted_cert_set)
+          continue;
 
         if (stat(trusted_certs[i], &buf) == 0 && S_ISDIR(buf.st_mode))
           r = gnutls_certificate_set_x509_trust_dir(credentials, trusted_certs[i],
@@ -708,15 +713,16 @@ error:
 NKSN_Credentials
 NKSN_CreateServerCertCredentials(const char **certs, const char **keys, int n_certs_keys)
 {
-  return create_credentials(certs, keys, n_certs_keys, NULL, 0);
+  return create_credentials(certs, keys, n_certs_keys, NULL, NULL, 0, 0);
 }
 
 /* ================================================== */
 
 NKSN_Credentials
-NKSN_CreateClientCertCredentials(const char **trusted_certs, int n_certs)
+NKSN_CreateClientCertCredentials(const char **certs, uint32_t *ids,
+                                 int n_certs_ids, uint32_t trusted_cert_set)
 {
-  return create_credentials(NULL, NULL, 0, trusted_certs, n_certs);
+  return create_credentials(NULL, NULL, 0, certs, ids, n_certs_ids, trusted_cert_set);
 }
 
 /* ================================================== */
