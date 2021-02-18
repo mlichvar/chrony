@@ -735,6 +735,7 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.filter_length = ntohl(rx_message->data.ntp_source.filter_length);
   params.authkey = ntohl(rx_message->data.ntp_source.authkey);
   params.nts_port = ntohl(rx_message->data.ntp_source.nts_port);
+  params.cert_set = 0;
   params.max_delay = UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay);
   params.max_delay_ratio =
     UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_ratio);

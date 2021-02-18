@@ -55,6 +55,7 @@ typedef struct {
   int nts;
   int nts_port;
   uint32_t authkey;
+  uint32_t cert_set;
   double max_delay;
   double max_delay_ratio;
   double max_delay_dev_ratio;
@@ -77,6 +78,7 @@ typedef struct {
 #define SRC_DEFAULT_MAXSAMPLES (-1)
 #define SRC_DEFAULT_ASYMMETRY 1.0
 #define SRC_DEFAULT_NTSPORT 4460
+#define SRC_DEFAULT_CERTSET 0
 #define INACTIVE_AUTHKEY 0
 
 /* Flags for source selection */

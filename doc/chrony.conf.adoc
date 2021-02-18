@@ -116,6 +116,12 @@ mechanism. Unlike with the *key* option, the server and client do not need to
 share a key in a key file. NTS has a Key Establishment (NTS-KE) protocol using
 the Transport Layer Security (TLS) protocol to get the keys and cookies
 required by NTS for authentication of NTP packets.
+*certset* _ID_:::
+This option specifies which set of trusted certificates should be used to verify
+the server's certificate when the *nts* option is enabled. Sets of certificates
+can be specified with the <<ntstrustedcerts,*ntstrustedcerts*>> directive. The
+default set is 0, which by default contains certificates of the system's
+default trusted certificate authorities.
 *maxdelay* _delay_:::
 *chronyd* uses the network round-trip delay to the server to determine how
 accurate a particular measurement is likely to be. Long round-trip delays
@@ -759,7 +765,9 @@ The optional _set-ID_ argument is a number in the range 0 through 2^32-1, which
 selects the set of certificates where certificates from the specified file
 or directory are added. The default ID is 0, which is a set containing the
 system's default trusted CAs (unless the *nosystemcert* directive is present).
-All other sets are empty by default.
+All other sets are empty by default. A set of certificates can be selected for
+verification of an NTS server by the *certset* option in the *server* or *pool*
+directive.
 +
 This directive can be used multiple times to specify one or more sets of
 trusted certificates, each containing certificates from one or more files
