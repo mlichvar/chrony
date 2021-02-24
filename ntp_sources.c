@@ -107,6 +107,7 @@ struct UnresolvedSource {
 
 static struct UnresolvedSource *unresolved_sources = NULL;
 static int resolving_interval = 0;
+static int resolving_restart = 0;
 static SCH_TimeoutID resolving_id;
 static struct UnresolvedSource *resolving_source = NULL;
 static NSR_SourceResolvingEndHandler resolving_end_handler = NULL;
@@ -579,6 +580,13 @@ name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *any
   if (status == DNS_Failure || UTI_IsIPReal(&us->address.ip_addr) || is_resolved(us))
     remove_unresolved_source(us);
 
+  /* If a restart was requested and this was the last source in the list,
+     start with the first source again (if there still is one) */
+  if (!next && resolving_restart) {
+    next = unresolved_sources;
+    resolving_restart = 0;
+  }
+
   resolving_source = next;
 
   if (next) {
@@ -791,7 +799,7 @@ NSR_ResolveSources(void)
 {
   /* Try to resolve unresolved sources now */
   if (unresolved_sources) {
-    /* Make sure no resolving is currently running */
+    /* Allow only one resolving to be running at a time */
     if (!resolving_source) {
       if (resolving_id != 0) {
         SCH_RemoveTimeout(resolving_id);
@@ -799,6 +807,9 @@ NSR_ResolveSources(void)
         resolving_interval--;
       }
       resolve_sources();
+    } else {
+      /* Try again as soon as the current resolving ends */
+      resolving_restart = 1;
     }
   } else {
     /* No unresolved sources, we are done */
