@@ -296,6 +296,9 @@ RCL_StartRefclocks(void)
         lock_index = j;
         break;
       }
+
+      if (lock_index == -1 || lock_index == i)
+        LOG(LOGS_WARN, "Invalid lock refid %s", UTI_RefidToString(inst->lock_ref));
     }
 
     inst->lock_ref = lock_index;
