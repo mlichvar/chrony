@@ -267,7 +267,7 @@ RCL_AddRefclock(RefclockParameters *params)
 void
 RCL_StartRefclocks(void)
 {
-  unsigned int i, j, n;
+  unsigned int i, j, n, lock_index;
 
   n = ARR_GetSize(refclocks);
 
@@ -277,13 +277,28 @@ RCL_StartRefclocks(void)
     SRC_SetActive(inst->source);
     inst->timeout_id = SCH_AddTimeoutByDelay(0.0, poll_timeout, (void *)inst);
 
-    if (inst->lock_ref) {
-      /* Replace lock refid with index to refclocks */
-      for (j = 0; j < n && get_refclock(j)->ref_id != inst->lock_ref; j++)
-        ;
-      inst->lock_ref = j < n ? j : -1;
-    } else
-      inst->lock_ref = -1;
+    /* Replace lock refid with the refclock's index, or -1 if not valid */
+
+    lock_index = -1;
+
+    if (inst->lock_ref != 0) {
+      for (j = 0; j < n; j++) {
+        RCL_Instance inst2 = get_refclock(j);
+
+        if (inst->lock_ref != inst2->ref_id)
+          continue;
+
+        if (inst->driver->poll && inst2->driver->poll &&
+            (double)inst->max_lock_age / inst->pps_rate < UTI_Log2ToDouble(inst2->driver_poll))
+          LOG(LOGS_WARN, "%s maxlockage too small for %s",
+              UTI_RefidToString(inst->ref_id), UTI_RefidToString(inst2->ref_id));
+
+        lock_index = j;
+        break;
+      }
+    }
+
+    inst->lock_ref = lock_index;
   }
 }
 
