@@ -628,6 +628,9 @@ int main
   if (!geteuid() && (pw->pw_uid || pw->pw_gid))
     SYS_DropRoot(pw->pw_uid, pw->pw_gid, SYS_MAIN_PROCESS);
 
+  if (!geteuid())
+    LOG(LOGS_WARN, "Running with root privileges");
+
   REF_Initialise();
   SST_Initialise();
   NSR_Initialise();
