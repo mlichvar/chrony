@@ -555,7 +555,9 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
     SCMP_SYS(stat64),
     SCMP_SYS(statfs),
     SCMP_SYS(statfs64),
+#ifdef __NR_statx
     SCMP_SYS(statx),
+#endif
     SCMP_SYS(unlink),
     SCMP_SYS(unlinkat),
 
