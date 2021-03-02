@@ -52,8 +52,21 @@ DNS_Name2IPAddress(const char *name, IPAddr *ip_addrs, int max_addrs)
 {
   struct addrinfo hints, *res, *ai;
   int i, result;
+  IPAddr ip;
 
   max_addrs = MIN(max_addrs, DNS_MAX_ADDRESSES);
+
+  for (i = 0; i < max_addrs; i++)
+    ip_addrs[i].family = IPADDR_UNSPEC;
+
+  /* Avoid calling getaddrinfo() if the name is an IP address */
+  if (UTI_StringToIP(name, &ip)) {
+    if (address_family != IPADDR_UNSPEC && ip.family != address_family)
+      return DNS_Failure;
+    if (max_addrs >= 1)
+      ip_addrs[0] = ip;
+    return DNS_Success;
+  }
 
   memset(&hints, 0, sizeof (hints));
 
@@ -105,9 +118,6 @@ DNS_Name2IPAddress(const char *name, IPAddr *ip_addrs, int max_addrs)
 #endif
     }
   }
-
-  for (; i < max_addrs; i++)
-        ip_addrs[i].family = IPADDR_UNSPEC;
 
   freeaddrinfo(res);
 
