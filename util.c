@@ -325,9 +325,10 @@ UTI_IPToString(const IPAddr *addr)
 int
 UTI_StringToIP(const char *addr, IPAddr *ip)
 {
-#ifdef FEAT_IPV6
   struct in_addr in4;
+#ifdef FEAT_IPV6
   struct in6_addr in6;
+#endif
 
   if (inet_pton(AF_INET, addr, &in4) > 0) {
     ip->family = IPADDR_INET4;
@@ -336,21 +337,11 @@ UTI_StringToIP(const char *addr, IPAddr *ip)
     return 1;
   }
 
+#ifdef FEAT_IPV6
   if (inet_pton(AF_INET6, addr, &in6) > 0) {
     ip->family = IPADDR_INET6;
     ip->_pad = 0;
     memcpy(ip->addr.in6, in6.s6_addr, sizeof (ip->addr.in6));
-    return 1;
-  }
-#else
-  unsigned long a, b, c, d, n;
-
-  n = sscanf(addr, "%lu.%lu.%lu.%lu", &a, &b, &c, &d);
-  if (n == 4) {
-    ip->family = IPADDR_INET4;
-    ip->_pad = 0;
-    ip->addr.in4 = ((a & 0xff) << 24) | ((b & 0xff) << 16) | 
-                   ((c & 0xff) << 8) | (d & 0xff);
     return 1;
   }
 #endif

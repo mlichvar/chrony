@@ -28,6 +28,7 @@
 #ifndef GOT_SYSINCL_H
 #define GOT_SYSINCL_H
 
+#include <arpa/inet.h>
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
@@ -59,11 +60,6 @@
 
 #if defined(LINUX) || defined(FREEBSD) || defined(NETBSD) || defined(SOLARIS) || defined(HAVE_MACOS_SYS_TIMEX)
 #include <sys/timex.h>
-#endif
-
-#ifdef FEAT_IPV6
-/* For inet_ntop() */
-#include <arpa/inet.h>
 #endif
 
 #ifdef HAVE_GETRANDOM
