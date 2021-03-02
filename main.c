@@ -492,6 +492,7 @@ int main
         user_check = 0;
         nofork = 1;
         system_log = 0;
+        log_severity = LOGS_WARN;
         break;
       case 'P':
         sched_priority = parse_int_arg(optarg);
