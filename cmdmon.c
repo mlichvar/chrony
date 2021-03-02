@@ -62,6 +62,9 @@ static int sock_fdu;
 static int sock_fd4;
 static int sock_fd6;
 
+/* Flag indicating the IPv4 socket is bound to an address */
+static int bound_sock_fd4;
+
 /* Flag indicating whether this module has been initialised or not */
 static int initialised = 0;
 
@@ -179,6 +182,9 @@ open_socket(int family)
         return INVALID_SOCK_FD;
       }
 
+      if (family == IPADDR_INET4)
+        bound_sock_fd4 = local_addr.ip_addr.addr.in4 != INADDR_ANY;
+
       break;
     case IPADDR_UNSPEC:
       local_path = CNF_GetBindCommandPath();
@@ -243,6 +249,8 @@ CAM_Initialise(void)
   do_size_checks();
 
   initialised = 1;
+
+  bound_sock_fd4 = 0;
 
   sock_fdu = INVALID_SOCK_FD;
   sock_fd4 = open_socket(IPADDR_INET4);
@@ -309,6 +317,12 @@ transmit_reply(int sock_fd, int request_length, SCK_Message *message)
   if (message->addr_type == SCK_ADDR_IP &&
       !SCK_IsLinkLocalIPAddress(&message->remote_addr.ip.ip_addr))
     message->if_index = INVALID_IF_INDEX;
+
+#if !defined(HAVE_IN_PKTINFO) && defined(IP_SENDSRCADDR)
+  /* On FreeBSD a local IPv4 address cannot be specified on bound socket */
+  if (message->local_addr.ip.family == IPADDR_INET4 && (sock_fd != sock_fd4 || bound_sock_fd4))
+    message->local_addr.ip.family = IPADDR_UNSPEC;
+#endif
 
   if (!SCK_SendMessage(sock_fd, message, 0))
     return;
