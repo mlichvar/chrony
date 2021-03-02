@@ -684,10 +684,11 @@ if [ $try_clock_gettime = "1" ]; then
   fi
 fi
 
-if test_code 'getaddrinfo()' 'sys/types.h sys/socket.h netdb.h' '' "$LIBS" \
+if ! test_code 'getaddrinfo()' 'sys/types.h sys/socket.h netdb.h' '' "$LIBS" \
   'return getaddrinfo(0, 0, 0, 0);'
 then
-  add_def HAVE_GETADDRINFO
+  echo "error: getaddrinfo() not found"
+  exit 1
 fi
 
 if [ $feat_asyncdns = "1" ] && \

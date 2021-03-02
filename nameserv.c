@@ -50,7 +50,6 @@ DNS_SetAddressFamily(int family)
 DNS_Status 
 DNS_Name2IPAddress(const char *name, IPAddr *ip_addrs, int max_addrs)
 {
-#ifdef HAVE_GETADDRINFO
   struct addrinfo hints, *res, *ai;
   int i, result;
 
@@ -113,42 +112,6 @@ DNS_Name2IPAddress(const char *name, IPAddr *ip_addrs, int max_addrs)
   freeaddrinfo(res);
 
   return !max_addrs || ip_addrs[0].family != IPADDR_UNSPEC ? DNS_Success : DNS_Failure;
-#else
-  struct hostent *host;
-  int i;
-  
-  if (address_family != IPADDR_UNSPEC && address_family != IPADDR_INET4)
-    return DNS_Failure;
-
-  max_addrs = MIN(max_addrs, DNS_MAX_ADDRESSES);
-
-  host = gethostbyname(name);
-
-  if (host == NULL) {
-    if (h_errno == TRY_AGAIN)
-      return DNS_TryAgain;
-  } else {
-    if (host->h_addrtype != AF_INET || !host->h_addr_list[0])
-      return DNS_Failure;
-
-    for (i = 0; host->h_addr_list[i] && i < max_addrs; i++) {
-      ip_addrs[i].family = IPADDR_INET4;
-      ip_addrs[i].addr.in4 = ntohl(*(uint32_t *)host->h_addr_list[i]);
-    }
-
-    for (; i < max_addrs; i++)
-      ip_addrs[i].family = IPADDR_UNSPEC;
-
-    return DNS_Success;
-  }
-
-#ifdef FORCE_DNSRETRY
-  return DNS_TryAgain;
-#else
-  return DNS_Failure;
-#endif
-
-#endif
 }
 
 /* ================================================== */
@@ -157,8 +120,6 @@ int
 DNS_IPAddress2Name(IPAddr *ip_addr, char *name, int len)
 {
   char *result = NULL;
-
-#ifdef FEAT_IPV6
   struct sockaddr_in6 in6;
   IPSockAddr ip_saddr;
   socklen_t slen;
@@ -170,26 +131,6 @@ DNS_IPAddress2Name(IPAddr *ip_addr, char *name, int len)
   slen = SCK_IPSockAddrToSockaddr(&ip_saddr, (struct sockaddr *)&in6, sizeof (in6));
   if (!getnameinfo((struct sockaddr *)&in6, slen, hbuf, sizeof (hbuf), NULL, 0, 0))
     result = hbuf;
-#else
-  struct hostent *host;
-  uint32_t addr;
-
-  switch (ip_addr->family) {
-    case IPADDR_INET4:
-      addr = htonl(ip_addr->addr.in4);
-      host = gethostbyaddr((const char *) &addr, sizeof (ip_addr), AF_INET);
-      break;
-#ifdef FEAT_IPV6
-    case IPADDR_INET6:
-      host = gethostbyaddr((const void *) ip_addr->addr.in6, sizeof (ip_addr->addr.in6), AF_INET6);
-      break;
-#endif
-    default:
-      host = NULL;
-  }
-  if (host)
-    result = host->h_name;
-#endif
 
   if (result == NULL)
     result = UTI_IPToString(ip_addr);
