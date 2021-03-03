@@ -87,7 +87,7 @@ static const struct request_length request_lengths[] = {
   REQ_LENGTH_ENTRY(del_source, null),           /* DEL_SOURCE */
   REQ_LENGTH_ENTRY(null, null),                 /* WRITERTC */
   REQ_LENGTH_ENTRY(dfreq, null),                /* DFREQ */
-  REQ_LENGTH_ENTRY(doffset, null),              /* DOFFSET */
+  { 0, 0 },                                     /* DOFFSET - not supported */
   REQ_LENGTH_ENTRY(null, tracking),             /* TRACKING */
   REQ_LENGTH_ENTRY(sourcestats, sourcestats),   /* SOURCESTATS */
   REQ_LENGTH_ENTRY(null, rtc),                  /* RTCREPORT */
@@ -128,6 +128,7 @@ static const struct request_length request_lengths[] = {
                    client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX3 */
   REQ_LENGTH_ENTRY(select_data, select_data),   /* SELECT_DATA */
   REQ_LENGTH_ENTRY(null, null),                 /* RELOAD_SOURCES */
+  REQ_LENGTH_ENTRY(doffset, null),              /* DOFFSET2 */
 };
 
 static const uint16_t reply_lengths[] = {

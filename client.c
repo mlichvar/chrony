@@ -1008,19 +1008,16 @@ process_cmd_dfreq(CMD_Request *msg, char *line)
 static int
 process_cmd_doffset(CMD_Request *msg, char *line)
 {
-  struct timeval tv;
   double doffset;
 
-  msg->command = htons(REQ_DOFFSET);
+  msg->command = htons(REQ_DOFFSET2);
 
   if (sscanf(line, "%lf", &doffset) != 1) {
     LOG(LOGS_ERR, "Invalid value");
     return 0;
   }
 
-  UTI_DoubleToTimeval(doffset, &tv);
-  msg->data.doffset.sec = htonl(tv.tv_sec);
-  msg->data.doffset.usec = htonl(tv.tv_usec);
+  msg->data.doffset.doffset = UTI_FloatHostToNetwork(doffset);
   return 1;
 }
 

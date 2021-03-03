@@ -143,6 +143,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* CLIENT_ACCESSES_BY_INDEX3 */
   PERMIT_AUTH, /* SELECT_DATA */
   PERMIT_AUTH, /* RELOAD_SOURCES */
+  PERMIT_AUTH, /* DOFFSET2 */
 };
 
 /* ================================================== */
@@ -856,13 +857,10 @@ handle_dfreq(CMD_Request *rx_message, CMD_Reply *tx_message)
 static void
 handle_doffset(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
-  long sec, usec;
   double doffset;
-  sec = (int32_t)ntohl(rx_message->data.doffset.sec);
-  usec = (int32_t)ntohl(rx_message->data.doffset.usec);
-  doffset = (double) sec + 1.0e-6 * (double) usec;
-  LOG(LOGS_INFO, "Accumulated delta offset of %.6f seconds", doffset);
+  doffset = UTI_FloatNetworkToHost(rx_message->data.doffset.doffset);
   LCL_AccumulateOffset(doffset, 0.0);
+  LOG(LOGS_INFO, "Accumulated delta offset of %.6f seconds", doffset);
 }
 
 /* ================================================== */
@@ -1637,7 +1635,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
           handle_dfreq(&rx_message, &tx_message);
           break;
 
-        case REQ_DOFFSET:
+        case REQ_DOFFSET2:
           handle_doffset(&rx_message, &tx_message);
           break;
 
