@@ -7,6 +7,8 @@ test_start "chronyc commands"
 start_chronyd || test_fail
 wait_for_sync || test_fail
 
+has_ipv6=$(check_chronyd_features IPV6 && ping6 -c 1 ::1 > /dev/null 2>&1 && echo 1 || echo 0)
+
 for command in \
 	"allow 1.2.3.4" \
 	"deny 1.2.3.4" \
@@ -151,6 +153,24 @@ check_chronyc_output "513 RTC driver not running" || test_fail
 
 run_chronyc "writertc" && test_fail
 check_chronyc_output "513 RTC driver not running" || test_fail
+
+chronyc_host=127.0.0.1
+
+run_chronyc "tracking" || test_fail
+check_chronyc_output "^Reference ID" || test_fail
+
+run_chronyc "makestep" && test_fail
+check_chronyc_output "^501 Not authorised$" || test_fail
+
+if [ "$has_ipv6" = "1" ]; then
+	chronyc_host=::1
+
+	run_chronyc "tracking" || test_fail
+	check_chronyc_output "^Reference ID" || test_fail
+
+	run_chronyc "makestep" && test_fail
+	check_chronyc_output "^501 Not authorised$" || test_fail
+fi
 
 stop_chronyd || test_fail
 

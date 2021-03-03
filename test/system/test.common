@@ -328,9 +328,17 @@ check_chronyd_files() {
 
 # Run a chronyc command
 run_chronyc() {
-	test_message 1 0 "running chronyc $*"
+	local host=$chronyc_host options="-n -m"
 
-	$CHRONYC_WRAPPER "$chronyc" -h "$(get_cmdsocket)" -n -m "$@" > "$TEST_DIR/chronyc.out" && \
+	test_message 1 0 "running chronyc $([ -n "$host" ] && echo "@$host ")$*"
+
+	if [ -z "$host" ]; then
+		host="$(get_cmdsocket)"
+	else
+		options="$options -p $(grep cmdport "$(get_conffile)" | awk '{print $2}')"
+	fi
+
+	$CHRONYC_WRAPPER "$chronyc" -h "$host" $options "$@" > "$TEST_DIR/chronyc.out" && \
 		test_ok || test_error
 }
 
