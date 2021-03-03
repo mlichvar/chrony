@@ -987,35 +987,41 @@ process_cmd_cmdaccheck(CMD_Request *msg, char *line)
 
 /* ================================================== */
 
-static void
+static int
 process_cmd_dfreq(CMD_Request *msg, char *line)
 {
   double dfreq;
+
   msg->command = htons(REQ_DFREQ);
-  if (sscanf(line, "%lf", &dfreq) == 1) {
-    msg->data.dfreq.dfreq = UTI_FloatHostToNetwork(dfreq);
-  } else {
-    msg->data.dfreq.dfreq = UTI_FloatHostToNetwork(0.0);
+
+  if (sscanf(line, "%lf", &dfreq) != 1) {
+    LOG(LOGS_ERR, "Invalid value");
+    return 0;
   }
+
+  msg->data.dfreq.dfreq = UTI_FloatHostToNetwork(dfreq);
+  return 1;
 }
 
 /* ================================================== */
 
-static void
+static int
 process_cmd_doffset(CMD_Request *msg, char *line)
 {
   struct timeval tv;
   double doffset;
 
   msg->command = htons(REQ_DOFFSET);
-  if (sscanf(line, "%lf", &doffset) == 1) {
-    UTI_DoubleToTimeval(doffset, &tv);
-    msg->data.doffset.sec = htonl(tv.tv_sec);
-    msg->data.doffset.usec = htonl(tv.tv_usec);
-  } else {
-    msg->data.doffset.sec = htonl(0);
-    msg->data.doffset.usec = htonl(0);
+
+  if (sscanf(line, "%lf", &doffset) != 1) {
+    LOG(LOGS_ERR, "Invalid value");
+    return 0;
   }
+
+  UTI_DoubleToTimeval(doffset, &tv);
+  msg->data.doffset.sec = htonl(tv.tv_sec);
+  msg->data.doffset.usec = htonl(tv.tv_usec);
+  return 1;
 }
 
 /* ================================================== */
@@ -3267,12 +3273,12 @@ process_line(char *line)
       do_normal_submit = process_cmd_deny(&tx_message, line);
     }
   } else if (!strcmp(command, "dfreq")) {
-    process_cmd_dfreq(&tx_message, line);
+    do_normal_submit = process_cmd_dfreq(&tx_message, line);
   } else if (!strcmp(command, "dns")) {
     ret = process_cmd_dns(line);
     do_normal_submit = 0;
   } else if (!strcmp(command, "doffset")) {
-    process_cmd_doffset(&tx_message, line);
+    do_normal_submit = process_cmd_doffset(&tx_message, line);
   } else if (!strcmp(command, "dump")) {
     process_cmd_dump(&tx_message, line);
   } else if (!strcmp(command, "exit")) {
