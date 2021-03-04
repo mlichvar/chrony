@@ -505,7 +505,7 @@ LCL_AccumulateDeltaFrequency(double dfreq)
 
 /* ================================================== */
 
-void
+int
 LCL_AccumulateOffset(double offset, double corr_rate)
 {
   struct timespec raw, cooked;
@@ -517,12 +517,14 @@ LCL_AccumulateOffset(double offset, double corr_rate)
   LCL_CookTime(&raw, &cooked, NULL);
 
   if (!check_offset(&cooked, offset))
-      return;
+    return 0;
 
   (*drv_accrue_offset)(offset, corr_rate);
 
   /* Dispatch to all handlers */
   invoke_parameter_change_handlers(&raw, &cooked, 0.0, offset, LCL_ChangeAdjust);
+
+  return 1;
 }
 
 /* ================================================== */
@@ -586,7 +588,7 @@ LCL_NotifyLeap(int leap)
 
 /* ================================================== */
 
-void
+int
 LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate)
 {
   struct timespec raw, cooked;
@@ -598,7 +600,7 @@ LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate)
   LCL_CookTime(&raw, &cooked, NULL);
 
   if (!check_offset(&cooked, doffset))
-      return;
+    return 0;
 
   old_freq_ppm = current_freq_ppm;
 
@@ -620,6 +622,8 @@ LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate)
 
   /* Dispatch to all handlers */
   invoke_parameter_change_handlers(&raw, &cooked, dfreq, doffset, LCL_ChangeAdjust);
+
+  return 1;
 }
 
 /* ================================================== */
