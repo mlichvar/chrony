@@ -858,9 +858,13 @@ static void
 handle_doffset(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   double doffset;
+
   doffset = UTI_FloatNetworkToHost(rx_message->data.doffset.doffset);
-  LCL_AccumulateOffset(doffset, 0.0);
-  LOG(LOGS_INFO, "Accumulated delta offset of %.6f seconds", doffset);
+  if (!LCL_AccumulateOffset(doffset, 0.0)) {
+    tx_message->status = htons(STT_FAILED);
+  } else {
+    LOG(LOGS_INFO, "Accumulated delta offset of %.6f seconds", doffset);
+  }
 }
 
 /* ================================================== */
