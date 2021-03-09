@@ -603,12 +603,10 @@ test_unit(void)
 
   TEST_CHECK(UTI_CreateDirAndParents("testdir", 0700, uid, gid));
 
-  TST_SuspendLogging();
   TEST_CHECK(UTI_CheckDirPermissions("testdir", 0700, uid, gid));
   TEST_CHECK(!UTI_CheckDirPermissions("testdir", 0300, uid, gid));
   TEST_CHECK(!UTI_CheckDirPermissions("testdir", 0700, uid + 1, gid));
   TEST_CHECK(!UTI_CheckDirPermissions("testdir", 0700, uid, gid + 1));
-  TST_ResumeLogging();
 
   umask(0);
 

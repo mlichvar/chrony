@@ -360,10 +360,7 @@ test_unit(void)
   NIO_Initialise();
   NCR_Initialise();
   REF_Initialise();
-
-  TST_SuspendLogging();
   KEY_Initialise();
-  TST_ResumeLogging();
 
   CNF_SetupAccessRestrictions();
 
