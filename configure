@@ -33,13 +33,13 @@ test_code () {
     echo "int main(int argc, char **argv) {"
     echo "$code"
     echo "return 0; }"
-  ) > docheck.c
+  ) > conftest.c
 
-  echo "docheck.c:" >> config.log
-  cat docheck.c >> config.log
-  echo $MYCC $MYCFLAGS $MYCPPFLAGS $cflags -o docheck docheck.c $ldflags \
+  echo "conftest.c:" >> config.log
+  cat conftest.c >> config.log
+  echo $MYCC $MYCFLAGS $MYCPPFLAGS $cflags -o conftest conftest.c $ldflags \
     $MYLDFLAGS >> config.log
-  $MYCC $MYCFLAGS $MYCPPFLAGS $cflags -o docheck docheck.c $ldflags \
+  $MYCC $MYCFLAGS $MYCPPFLAGS $cflags -o conftest conftest.c $ldflags \
     $MYLDFLAGS >> config.log 2>&1
 
   if [ $? -eq 0 ]
@@ -50,7 +50,7 @@ test_code () {
     echo "No"
     result=1
   fi
-  rm -f docheck.c docheck
+  rm -f conftest.c conftest
   echo >> config.log
   return $result
 }
