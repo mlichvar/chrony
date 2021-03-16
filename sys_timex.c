@@ -179,8 +179,8 @@ set_sync_status(int synchronised, double est_error, double max_error)
   }
 
 #ifdef LINUX
-  /* On Linux clear the UNSYNC flag only if rtcsync is enabled */
-  if (!CNF_GetRtcSync())
+  /* On Linux set the UNSYNC flag only if rtcsync is enabled */
+  if (CNF_GetRtcSync())
     synchronised = 0;
 #endif
 
