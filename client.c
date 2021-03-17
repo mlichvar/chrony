@@ -61,7 +61,7 @@ static ARR_Instance server_addresses;
 
 static int sock_fd = -1;
 
-static int quit = 0;
+static volatile int quit = 0;
 
 static int on_terminal = 0;
 

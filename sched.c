@@ -111,7 +111,8 @@ static struct timespec last_class_dispatch[SCH_NumberOfClasses];
 
 /* ================================================== */
 
-static int need_to_exit;
+/* Flag terminating the main loop, which can be set from a signal handler */
+static volatile int need_to_exit;
 
 /* ================================================== */
 
