@@ -40,6 +40,9 @@
 #include "samplefilt.h"
 #include "sched.h"
 
+/* Maximum offset of locked reference as a fraction of the PPS interval */
+#define PPS_LOCK_LIMIT 0.4
+
 /* list of refclock drivers */
 extern RefclockDriver RCL_SHM_driver;
 extern RefclockDriver RCL_SOCK_driver;
@@ -577,7 +580,7 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
     offset += shift;
 
     if (fabs(ref_sample.offset - offset) +
-        ref_sample.root_dispersion + dispersion >= 0.2 / rate) {
+        ref_sample.root_dispersion + dispersion > PPS_LOCK_LIMIT / rate) {
       DEBUG_LOG("refclock pulse ignored offdiff=%.9f refdisp=%.9f disp=%.9f",
                 ref_sample.offset - offset, ref_sample.root_dispersion, dispersion);
       return 0;
