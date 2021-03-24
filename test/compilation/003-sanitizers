@@ -80,7 +80,12 @@ for CC in gcc clang; do
 
         echo
         pushd test/simulation || exit 1
-        CLKNETSIM_RANDOM_SEED=101 ./run -i 1 || exit 1
+        export CLKNETSIM_RANDOM_SEED=101
+        if [ "$arch_opts" = "" -a "$san_options" = "" ]; then
+          CLKNETSIM_CLIENT_WRAPPER=valgrind ./run -i 1 || exit 1
+        else
+          ./run -i 1 || exit 1
+        fi
         popd
       done
     done
