@@ -128,6 +128,122 @@ versions or implementations of the libraries might make different system calls.
 If the filter is missing some system call, `chronyd` could be killed even in
 normal operation.
 
+=== How can I make the system clock more secure?
+
+An NTP client synchronising the system clock to an NTP server is susceptible to
+various attacks, which can break applications and network protocols relying on
+accuracy of the clock (e.g. TLS, Kerberos, WireGuard).
+
+Generally, a man-in-the-middle (MITM) attacker between the client and server
+can
+
+* make fake responses, or modify real responses from the server, to create an
+  arbitrarily large time and frequency offset, make the server appear more
+  accurate, insert a leap second, etc.
+* delay the requests and/or responses to create a limited time offset and
+  temporarily also a limited frequency offset
+* drop the requests or responses to prevent updates of the clock with new
+  measurements
+* redirect the requests to a different server
+
+The attacks can be combined for a greater effect. The attacker can delay
+packets to create a significant frequency offset first and then drop all
+subsequent packets to let the clock quickly drift away from the true time.
+The attacker might also be able to control the server's clock.
+
+Some attacks cannot be prevented. Monitoring is needed for detection, e.g. the
+reachability register in the `sources` report shows missing packets. The extent
+to which the attacker can control the client's clock depends on its
+configuration.
+
+Enable authentication to prevent `chronyd` from accepting modified, fake, or
+redirected packets. It can be enabled with a symmetric key specified by the
+`key` option, or Network Time Security (NTS) by the `nts` option (supported
+since `chrony` version 4.0). The server needs to support the selected
+authentication mechanism. Symmetric keys have to be configured on both client
+and server, and each client must have its own key (one per server).
+
+The maximum offset that the attacker can insert in an NTP measurement by
+delaying packets can be limited by the `maxdelay` option. The default value is
+3 seconds. The measured delay is reported as the peer delay in the `ntpdata`
+report and `measurements` log. Set the `maxdelay` option to a value larger than
+the maximum value that is normally observed. Note that the delay can increase
+significantly even when not under an attack, e.g. when the network is congested
+or the routing has changed.
+
+The maximum accepted change in time offset between clock updates can be limited
+by the `maxchange` directive. Larger changes in the offset will be ignored or
+cause `chronyd` to exit. Note that the attacker can get around this limit by
+splitting the offset into multiple smaller offsets and/or creating a large
+frequency offset. When this directive is used, `chronyd` will have to be
+restarted after a successful attack. It will not be able to recover on its own.
+It must not be restarted automatically (e.g. by the service manager).
+
+The impact of a large accepted time offset can be reduced by disabling clock
+steps, i.e. by not using the `makestep` and `initstepslew` directives. The
+offset will be slowly corrected by speeding up or slowing down the clock at a
+rate which can be limited by the `maxslewrate` directive. Disabling clock steps
+completely is practical only if the clock cannot gain a larger error on its
+own, e.g. when the computer is shut down or suspended, and the `maxslewrate`
+limit is large enough to correct an expected error in an acceptable time. The
+`rtcfile` directive with the `-s` option can be used to compensate for the RTC
+drift.
+
+A more practical approach is to enable `makestep` for a limited number of clock
+updates (the 2nd argument of the directive) and limit the offset change in all
+updates by the `maxchange` directive. The attacker will be able to make only a
+limited step and only if the attack starts in a short window after booting the
+computer, or when `chronyd` is restarted without the `-R` option.
+
+The frequency offset can be limited by the `maxdrift` directive. The measured
+frequency offset is reported in the drift file, `tracking` report, and
+`tracking` log. Set `maxdrift` to a value larger than the maximum absolute
+value that is normally observed. Note that the frequency of the clock can
+change due to aging of the crystal, differences in calibration of the clock
+source between reboots, migrated virtual machine, etc. A typical computer clock
+has a drift smaller than 100 parts-per-million (ppm), but much larger drifts
+are possible (e.g. in some virtual machines).
+
+Use only trusted servers, which you expect to be well configured and managed,
+using authentication for their own servers, etc. Use multiple servers, ideally
+in different locations. The attacker will have to deal with a majority of the
+servers in order to pass the source selection and update the clock with a large
+offset. Use the `minsources` directive to increase the required number of
+selectable sources to make the selection more robust.
+
+Do not specify servers as peers. The symmetric mode is less secure than the
+client/server mode. If not authenticated, it is vulnerable to off-path
+denial-of-service attacks, and even when it is authenticated, it is still
+susceptible to replay attacks.
+
+Mixing of authenticated and unauthenticated servers should generally be
+avoided. If mixing is necessary (e.g. for a more accurate and stable
+synchronisation to a closer server which does not support authentication), the
+authenticated servers should be configured as trusted and required to not allow
+the unauthenticated servers to override the authenticated servers in the source
+selection. Since `chrony` version 4.0, the selection options are enabled in
+such a case automatically. This behaviour can be disabled or modified by the
+`authselmode` directive.
+
+An example of a client configuration limiting the impact of the attacks could
+be
+
+----
+server foo.example.net iburst nts maxdelay 0.1
+server bar.example.net iburst nts maxdelay 0.2
+server baz.example.net iburst nts maxdelay 0.05
+server qux.example.net iburst nts maxdelay 0.1
+server quux.example.net iburst nts maxdelay 0.1
+minsources 3
+maxchange 100 0 0
+makestep 0.001 3
+maxdrift 100
+maxslewrate 100
+driftfile /var/lib/chrony/drift
+ntsdumpdir /var/lib/chrony
+rtcsync
+----
+
 === How can I improve the accuracy of the system clock with NTP sources?
 
 Select NTP servers that are well synchronised, stable and close to your
@@ -177,7 +293,7 @@ LAN could be
 server ntp.local minpoll 2 maxpoll 4 polltarget 30
 ----
 
-The maxdelay options are useful to ignore measurements with an unusally large
+The maxdelay options are useful to ignore measurements with an unusually large
 delay (e.g. due to congestion in the network) and improve the stability of the
 synchronisation. The `maxdelaydevratio` option could be added to the example
 with local NTP server
@@ -237,7 +353,7 @@ well synchronised and responding to all requests. If not synchronised or
 responding, it would take about 10 seconds for `chronyd` to give up and exit
 with a non-zero status. A faster configuration is possible. A single server can
 be used instead of four servers, the number of measurements can be reduced with
-the `maxsamples` option to one (supported in `chrony` version 4.0), and a
+the `maxsamples` option to one (supported since `chrony` version 4.0), and a
 timeout can be specified with the `-t` option. The following command would take
 only up to about one second.
 
@@ -355,7 +471,6 @@ When `chronyd` is receiving responses from the servers, the output of the
 this:
 
 ----
-210 Number of sources = 3
 MS Name/IP address         Stratum Poll Reach LastRx Last sample
 ===============================================================================
 ^* foo.example.net               2   6   377    34   +484us[ -157us] +/-   30ms
@@ -378,6 +493,19 @@ example:
 0 sources doing burst (return to offline)
 0 sources with unknown address
 ----
+
+=== Is name resolution working correctly?
+
+NTP servers specified by their hostname (instead of an IP address) have to have
+their names resolved before `chronyd` can send any requests to them. If the
+`activity` command prints a non-zero number of sources with unknown address,
+there is an issue with the resolution. Typically, a DNS server is specified in
+_/etc/resolv.conf_. Make sure it is working correctly.
+
+Since `chrony` version 4.0, you can run `chronyc -N sources -a` command to
+print all sources, even those that do not have a known address yet, with their
+names as they were specified in the configuration. This can be useful to verify
+that the names specified in the configuration are parsed as expected.
 
 === Is `chronyd` allowed to step the system clock?
 
@@ -404,6 +532,49 @@ to
 ----
 makestep 1 -1
 ----
+
+=== Using NTS?
+
+The Network Time Security (NTS) mechanism uses Transport Layer Security (TLS)
+to establish the keys needed for authentication of NTP packets.
+
+Run the `authdata` command to check whether the key establishment was
+successful:
+
+----
+# chronyc -N authdata
+Name/IP address             Mode KeyID Type KLen Last Atmp  NAK Cook CLen
+=========================================================================
+foo.example.net              NTS     1   15  256  33m    0    0    8  100
+bar.example.net              NTS     1   15  256  33m    0    0    8  100
+baz.example.net              NTS     1   15  256  33m    0    0    8  100
+----
+
+The KeyID, Type, and KLen columns should have non-zero values. If they are
+zero, check the system log for error messages from `chronyd`. One possible
+cause of failure is a firewall blocking the client's connection to the server's
+TCP port 4460.
+
+Another possible cause of failure is a certificate that is failing to verify
+because the client's clock is wrong. This is a chicken-and-egg problem with NTS.
+You might need to manually correct the date, or temporarily disable NTS, in
+order to get NTS working. If your computer has an RTC and it is backed up by a
+good battery, this operation should be needed only once, assuming the RTC will
+be set periodically with the `rtcsync` directive, or compensated with the
+`rtcfile` directive.
+
+If the computer does not have an RTC or battery, you can use the `-s` option to
+restore time of the last shutdown or reboot from the drift file. The clock will
+start behind the true time, but if the computer was not shut down for too long
+and the server's certificate was not renewed too close to its expiration, it
+should be sufficient for the time checks to succeed.
+
+As a last resort, you can disable the time checks by the `nocerttimecheck`
+directive. This has some important security implications. To reduce the
+security risk, you can use the `nosystemcert` and `ntstrustedcerts` directives
+to disable the system's default trusted certificate authorities and trust only
+a minimal set of selected authorities needed to validate the certificates of
+used NTP servers.
 
 === Using a Windows NTP server?
 
