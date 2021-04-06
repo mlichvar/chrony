@@ -1381,9 +1381,8 @@ check_sync_loop(NCR_Instance inst, NTP_Packet *message, NTP_Local_Address *local
   NTP_Leap leap_status;
   uint32_t our_ref_id;
 
-  /* Check if a server socket is open, i.e. a client or peer can actually
-     be synchronised to us */
-  if (!NIO_IsServerSocketOpen())
+  /* Check if a client or peer can be synchronised to us */
+  if (!NIO_IsServerSocketOpen() || REF_GetMode() != REF_ModeNormal)
     return 1;
 
   /* Check if the source indicates that it is synchronised to our address
