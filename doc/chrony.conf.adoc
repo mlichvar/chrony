@@ -131,9 +131,9 @@ of the messages was delayed the measurement error is likely to be substantial.
 For small variations in the round-trip delay, *chronyd* uses a weighting scheme
 when processing the measurements. However, beyond a certain level of delay the
 measurements are likely to be so corrupted as to be useless. (This is
-particularly so on dial-up or other slow links, where a long delay probably
-indicates a highly asymmetric delay caused by the response waiting behind a lot
-of packets related to a download of some sort).
+particularly so on wireless networks and other slow links, where a long delay
+probably indicates a highly asymmetric delay caused by the response waiting
+behind a lot of packets related to a download of some sort).
 +
 If the user knows that round trip delays above a certain level should cause the
 measurement to be ignored, this level can be defined with the *maxdelay*
@@ -144,7 +144,7 @@ round-trip delay of 0.3 seconds or more should be ignored. The default value is
 This option is similar to the *maxdelay* option above. *chronyd* keeps a record
 of the minimum round-trip delay amongst the previous measurements that it has
 buffered. If a measurement has a round trip delay that is greater than the
-maxdelayratio times the minimum delay, it will be rejected.
+specified ratio times the minimum delay, it will be rejected.
 *maxdelaydevratio* _ratio_:::
 If a measurement has a ratio of the increase in the round-trip delay from the
 minimum delay amongst the previous measurements to the standard deviation of
@@ -267,7 +267,7 @@ will send two extra packets instead of one.
 When the synchronisation source is selected from available sources, sources
 with lower stratum are normally slightly preferred. This option can be used to
 increase stratum of the source to the specified minimum, so *chronyd* will
-avoid selecting that source. This is useful with low stratum sources that are
+avoid selecting that source. This is useful with low-stratum sources that are
 known to be unreliable or inaccurate and which should be used only when other
 sources are unreachable.
 *version* _version_:::
@@ -347,19 +347,8 @@ recommended to use two separate client/server associations (specified by the
 <<server,*server*>> directive on both hosts) instead.
 
 [[initstepslew]]*initstepslew* _step-threshold_ [_hostname_]...::
-In normal operation, *chronyd* slews the time when it needs to adjust the
-system clock. For example, to correct a system clock which is 1 second slow,
-*chronyd* slightly increases the amount by which the system clock is advanced
-on each clock interrupt, until the error is removed. Note that at no time does
-time run backwards with this method.
-+
-On most Unix systems it is not desirable to step the system clock, because many
-programs rely on time advancing monotonically forwards.
-+
-When the *chronyd* daemon is initially started, it is possible that the system
-clock is considerably in error. Attempting to correct such an error by slewing
-might not be sensible, since it might take several hours to correct the error by
-this means.
+(This directive is deprecated in favour of the <<makestep,*makestep*>>
+directive.)
 +
 The purpose of the *initstepslew* directive is to allow *chronyd* to make a
 rapid measurement of the system clock error at boot time, and to correct the
@@ -380,29 +369,30 @@ error. *chronyd* then enters its normal operating mode.
 An example of the use of the directive is:
 +
 ----
-initstepslew 30 foo.example.net bar.example.net
+initstepslew 30 foo.example.net bar.example.net baz.example.net
 ----
 +
-where 2 NTP servers are used to make the measurement. The _30_ indicates that
+where 3 NTP servers are used to make the measurement. The _30_ indicates that
 if the system's error is found to be 30 seconds or less, a slew will be used to
 correct it; if the error is above 30 seconds, a step will be used.
 +
 The *initstepslew* directive can also be used in an isolated LAN environment,
 where the clocks are set manually. The most stable computer is chosen as the
-master, and the other computers are slaved to it. If each of the slaves is
-configured with the <<local,*local*>> directive, the master can be set up with
-an *initstepslew* directive which references some or all of the slaves. Then,
-if the master machine has to be rebooted, the slaves can be relied on to act
-analogously to a flywheel and preserve the time for a short period while the
-master completes its reboot.
+primary server and the other computers are its clients. If each of the clients
+is configured with the <<local,*local*>> directive, the server can be set up
+with an *initstepslew* directive which references some or all of the clients.
+Then, if the server machine has to be rebooted, the clients can be relied on to
+act analogously to a flywheel and preserve the time for a short period while
+the server completes its reboot.
 +
 The *initstepslew* directive is functionally similar to a combination of the
 <<makestep,*makestep*>> and <<server,*server*>> directives with the *iburst*
 option. The main difference is that the *initstepslew* servers are used only
 before normal operation begins and that the foreground *chronyd* process waits
-for *initstepslew* to finish before exiting. This is useful to prevent programs
-started in the boot sequence after *chronyd* from reading the clock before it
-has been stepped.
+for *initstepslew* to finish before exiting. This prevent programs started in
+the boot sequence after *chronyd* from reading the clock before it has been
+stepped. With the *makestep* directive, the
+<<chronyc.adoc#waitsync,*waitsync*>> command of *chronyc* can be used instead.
 
 [[refclock]]*refclock* _driver_ _parameter_[:__option__]... [_option_]...::
 The *refclock* directive specifies a hardware reference clock to be used as a
@@ -700,6 +690,10 @@ or the <<chronyc.adoc#dump,*dump*>> command in *chronyc* is issued.
 +
 If the directory does not exist, it will be created automatically.
 +
+The *-r* option of *chronyd* enables loading of the dump files on start. All
+dump files found in the directory will be removed after start, even if the *-r*
+option is not present.
++
 An example of the directive is:
 +
 ----
@@ -754,7 +748,7 @@ This directory is used also by the <<ntsdumpdir2,NTS server>> to save keys.
 [[ntsrefresh]]*ntsrefresh* _interval_::
 This directive specifies the maximum interval between NTS-KE handshakes (in
 seconds) in order to refresh the keys authenticating NTP packets. The default
-value is 2419200 (4 weeks).
+value is 2419200 (4 weeks) and the maximum value is 2^31-1 (68 years).
 
 [[ntstrustedcerts]]*ntstrustedcerts* [_set-ID_] _file_|_directory_::
 This directive specifies a file or directory containing certificates (in the
@@ -773,6 +767,9 @@ This directive can be used multiple times to specify one or more sets of
 trusted certificates, each containing certificates from one or more files
 and/or directories.
 +
+It is not necessary to restart *chronyd* in order to reload the certificates if
+they change (e.g. after a renewal).
++
 An example is:
 +
 ----
@@ -783,16 +780,17 @@ ntstrustedcerts 2 /etc/pki/nts/qux.crt
 ----
 
 [[nosystemcert]]*nosystemcert*::
-This directive disables the system's default trusted CAs.
+This directive disables the system's default trusted CAs. Only certificates
+specified by the *ntstrustedcerts* directive will be trusted.
 
 [[nocerttimecheck]]*nocerttimecheck* _limit_::
 This directive disables the checks of the activation and expiration times of
 certificates for the specified number of clock updates. It allows the NTS
 authentication mechanism to be used on computers which start with wrong time
 (e.g. due to not having an RTC or backup battery). Disabling the time checks
-has important security implications, e.g. if an NTP server was ever
-compromised, its certificate could be used in an attack after the expiration
-time. The default value is 0, which means the time checks are always enabled.
+has important security implications and should be used only as a last resort,
+preferably with a minimal number of trusted certificates. The default value is
+0, which means the time checks are always enabled.
 +
 An example of the directive is:
 +
@@ -896,11 +894,11 @@ source combining algorithm and only the selected source will be used to control
 the system clock.
 
 [[maxdistance]]*maxdistance* _distance_::
-The *maxdistance* directive sets the maximum allowed root distance of the
-sources to not be rejected by the source selection algorithm. The distance
-includes the accumulated dispersion, which might be large when the source is no
-longer synchronised, and half of the total round-trip delay to the primary
-source.
+The *maxdistance* directive sets the maximum root distance of a source to be
+acceptable for synchronisation of the clock. Sources that have a distance
+larger than the specified distance will be rejected. The distance estimates the
+maximum error of the source. It includes the root dispersion and half of the
+root delay (round-trip time) accumulated on the path to the primary source.
 +
 By default, the maximum root distance is 3 seconds.
 +
@@ -1117,10 +1115,10 @@ duration = sqrt(4 / wander)
 ----
 
 [[leapsectz]]*leapsectz* _timezone_::
-This directive specifies a timezone in the system tz database which *chronyd*
-can use to determine when will the next leap second occur and what is the
-current offset between TAI and UTC. It will periodically check if 23:59:59 and
-23:59:60 are valid times in the timezone. This typically works with the
+This directive specifies a timezone in the system timezone database which
+*chronyd* can use to determine when will the next leap second occur and what is
+the current offset between TAI and UTC. It will periodically check if 23:59:59
+and 23:59:60 are valid times in the timezone. This normally works with the
 _right/UTC_ timezone.
 +
 When a leap second is announced, the timezone needs to be updated at least 12
@@ -1157,16 +1155,17 @@ Wed Dec 31 23:59:60 UTC 2008
 [[makestep]]*makestep* _threshold_ _limit_::
 Normally *chronyd* will cause the system to gradually correct any time offset,
 by slowing down or speeding up the clock as required. In certain situations,
-the system clock might be so far adrift that this slewing process would take a
-very long time to correct the system clock.
+e.g. when *chronyd* is initially started, the system clock might be so far
+adrift that this slewing process would take a very long time to correct the
+system clock.
 +
 This directive forces *chronyd* to step the system clock if the adjustment is
 larger than a threshold value, but only if there were no more clock updates
-since *chronyd* was started than a specified limit (a negative value can be
-used to disable the limit).
+since *chronyd* was started than the specified limit. A negative value disables
+the limit.
 +
-This is particularly useful when using reference clocks, because the
-<<initstepslew,*initstepslew*>> directive works only with NTP sources.
+On most systems it is desirable to step the system clock only on boot, before
+starting programs that rely on time advancing monotonically forwards.
 +
 An example of the use of this directive is:
 +
@@ -1228,8 +1227,8 @@ The *maxupdateskew* directive sets the threshold for determining whether an
 estimate might be so unreliable that it should not be used. By default, the
 threshold is 1000 ppm.
 +
-Typical values for _skew-in-ppm_ might be 100 for a dial-up connection to
-servers over a phone line, and 5 or 10 for a computer on a LAN.
+Typical values for _skew-in-ppm_ might be 100 for NTP sources polled over a
+wireless network, and 10 or smaller for sources on a local wired network.
 +
 It should be noted that this is not the only means of protection against using
 unreliable estimates. At all times, *chronyd* keeps track of both the estimated
@@ -1456,14 +1455,14 @@ This directive can be used multiple times to specify multiple addresses.
 The syntax is as follows:
 +
 ----
-broadcast 30 192.168.1.255
-broadcast 60 192.168.2.255 12123
-broadcast 60 ff02::101
+broadcast 32 192.168.1.255
+broadcast 64 192.168.2.255 12123
+broadcast 64 ff02::101
 ----
 +
 In the first example, the destination port defaults to UDP port 123 (the normal NTP
 port). In the second example, the destination port is specified as 12123. The
-first parameter in each case (30 or 60 respectively) is the interval in seconds
+first parameter in each case (32 or 64 respectively) is the interval in seconds
 between broadcast packets being sent. The second parameter in each case is the
 broadcast address to send the packet to. This should correspond to the
 broadcast address of one of the network interfaces on the computer where
@@ -1487,10 +1486,8 @@ This directive specifies the maximum amount of memory that *chronyd* is allowed
 to allocate for logging of client accesses and the state that *chronyd* as an
 NTP server needs to support the interleaved mode for its clients. The default
 limit is 524288 bytes, which is sufficient for monitoring about four thousand
-clients at the same time.
-+
-In older *chrony* versions if the limit was set to 0, the memory allocation was
-unlimited.
+clients at the same time. The maximum value is 2^32-1 (4 GB) on 32-bit systems
+and 2^35 (32 GB) on 64-bit systems.
 +
 An example of the use of this directive is:
 +
@@ -1592,9 +1589,17 @@ The port will be open only when a certificate and key is specified by the
 
 [[ntsservercert]]*ntsservercert* _file_::
 This directive specifies a file containing a certificate in the PEM format
-for *chronyd* to operate as an NTS server.
+for *chronyd* to operate as an NTS server. The file should also include
+any intermediate certificates that the clients will need to validate the
+server's certificate.
 +
-This directive can be used multiple times to specify multiple certificates.
+This directive can be used multiple times to specify multiple certificates for
+different names of the server.
++
+The files are loaded only once. *chronyd* needs to be restarted in order to
+load a renewed certificate. The <<ntsdumpdir,*ntsdumpdir*>> and
+<<dumpdir,*dumpdir*>> directives with the *-r* option of *chronyd* are
+recommended for a near-seamless server operation.
 
 [[ntsserverkey]]*ntsserverkey* _file_::
 This directive specifies a file containing a private key in the PEM format
@@ -1613,7 +1618,9 @@ process will be started and all NTS-KE requests will be handled by the main
 
 [[maxntsconnections]]*maxntsconnections* _connections_::
 This directive specifies the maximum number of concurrent NTS-KE connections
-per process that the NTS server will accept. The default value is 100.
+per process that the NTS server will accept. The default value is 100. The
+maximum practical value is half of the system *FD_SETSIZE* constant (usually
+1024).
 
 [[ntsdumpdir2]]*ntsdumpdir* _directory_::
 This directive specifies a directory where *chronyd* operating as an NTS server
@@ -1645,7 +1652,7 @@ _/dev/urandom_ device. The server keeps two previous keys to give the clients
 time to get new cookies encrypted by the latest key. The interval is measured
 as the server's operating time, i.e. the actual interval can be longer if
 *chronyd* is not running continuously. The default interval is 604800 seconds
-(1 week).
+(1 week). The maximum value is 2^31-1 (68 years).
 +
 The automatic rotation of the keys can be disabled by setting *ntsrotate* to 0.
 In this case the keys are assumed to be managed externally. *chronyd* will not
@@ -2649,22 +2656,22 @@ This section shows how to configure *chronyd* for computers that never have
 network connectivity to any computer which ultimately derives its time from a
 reference clock.
 
-In this situation, one computer is selected to be the master timeserver. The
-other computers are either direct clients of the master, or clients of clients.
+In this situation, one computer is selected to be the primary timeserver. The
+other computers are either direct clients of the server, or clients of clients.
 
 The <<local,*local*>> directive enables a local reference mode, which allows
 *chronyd* to appear synchronised even when it is not.
 
-The rate value in the master's drift file needs to be set to the average rate
-at which the master gains or loses time. *chronyd* includes support for this,
+The rate value in the server's drift file needs to be set to the average rate
+at which the server gains or loses time. *chronyd* includes support for this,
 in the form of the <<manual,*manual*>> directive and the
 <<chronyc.adoc#settime,*settime*>> command in the *chronyc* program.
 
-If the master is rebooted, *chronyd* can re-read the drift rate from the drift
-file. However, the master has no accurate estimate of the current time. To get
-around this, the system can be configured so that the master can initially set
+If the server is rebooted, *chronyd* can re-read the drift rate from the drift
+file. However, the server has no accurate estimate of the current time. To get
+around this, the system can be configured so that the server can initially set
 itself to a '`majority-vote`' of selected clients' times; this allows the
-clients to '`flywheel`' the master while it is rebooting.
+clients to '`flywheel`' the server while it is rebooting.
 
 The <<smoothtime,*smoothtime*>> directive is useful when the clocks of the
 clients need to stay close together when the local time is adjusted by the
@@ -2673,8 +2680,8 @@ activated by the <<chronyc.adoc#smoothtime,*smoothtime activate*>> command when
 the local time is ready to be served. After that point, any adjustments will be
 smoothed out.
 
-A typical configuration file for the master (called _master_) might be
-(assuming the clients and the master are in the _192.168.165.x_ subnet):
+A typical configuration file for the server (called _ntp.local_) might be
+(assuming the clients and the server are in the _192.168.165.x_ subnet):
 
 ----
 initstepslew 1 client1 client3 client6
@@ -2686,11 +2693,11 @@ smoothtime 400 0.01
 rtcsync
 ----
 
-For the clients that have to resynchronise the master when it restarts,
+For the clients that have to resynchronise the server when it restarts,
 the configuration file might be:
 
 ----
-server master iburst
+server ntp.local iburst
 driftfile @CHRONYVARDIR@/drift
 allow 192.168.165.0/24
 makestep 1.0 3
@@ -2700,22 +2707,22 @@ rtcsync
 The rest of the clients would be the same, except that the *allow* directive is
 not required.
 
-If there is no suitable computer to be designated as the master, or there is a
-requirement to keep the clients synchronised even when it fails, the *orphan*
-option of the *local* directive enables a special mode where the master is
-selected from multiple computers automatically. They all need to use the same
-*local* configuration and poll one another. The server with the smallest
-reference ID (which is based on its IP address) will take the role of the
-master and others will be synchronised to it. When it fails, the server with
-the second smallest reference ID will take over and so on.
+If there is no suitable computer to be designated as the primary server, or
+there is a requirement to keep the clients synchronised even when it fails, the
+*orphan* option of the *local* directive enables a special mode where the
+server is selected from multiple computers automatically. They all need to use
+the same *local* configuration and poll one another. The server with the
+smallest reference ID (which is based on its IP address) will take the role of
+the primary server and others will be synchronised to it. When it fails, the
+server with the second smallest reference ID will take over and so on.
 
 A configuration file for the first server might be (assuming there are three
-servers called _master1_, _master2_, and _master3_):
+servers called _ntp1.local_, _ntp2.local_, and _ntp3.local_):
 
 ----
-initstepslew 1 master2 master3
-server master2
-server master3
+initstepslew 1 ntp2.local ntp3.local
+server ntp2.local
+server ntp3.local
 driftfile @CHRONYVARDIR@/drift
 local stratum 8 orphan
 manual
