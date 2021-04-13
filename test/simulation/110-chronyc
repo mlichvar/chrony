@@ -101,7 +101,7 @@ limit=1
 for chronyc_conf in \
 	"accheck 1.2.3.4" \
 	"add peer 10.0.0.0 minpoll 2 maxpoll 6" \
-	"add server 10.0.0.0 minpoll 6 maxpoll 10 iburst burst key 1 certset 2 maxdelay 1e-3 maxdelayratio 10.0 maxdelaydevratio 10.0 mindelay 1e-4 asymmetry 0.5 offset 1e-5 minsamples 6 maxsamples 6 filter 3 offline auto_offline prefer noselect trust require xleave polltarget 20 port 123 presend 7 minstratum 3 version 4" \
+	"add server 10.0.0.0 minpoll 6 maxpoll 10 iburst burst key 1 certset 2 maxdelay 1e-3 maxdelayratio 10.0 maxdelaydevratio 10.0 mindelay 1e-4 asymmetry 0.5 offset 1e-5 minsamples 6 maxsamples 6 filter 3 offline auto_offline prefer noselect trust require xleave polltarget 20 port 123 presend 7 minstratum 3 version 4 nts ntsport 4460 copy" \
 	"add server node1.net1.clk" \
 	"allow 1.2.3.4" \
 	"allow 1.2" \
@@ -222,5 +222,24 @@ keygen 7 AES256"
 	check_chronyc_output "^6 AES128 HEX:................................
 7 AES256 HEX:................................................................\$" || test_fail
 fi
+
+# Pass every fourth request
+base_delay=$(cat <<-EOF | tr -d '\n'
+  (+ 1e-4
+     (* -1
+        (equal 0.1 from 2)
+        (equal 0.1 (min (% (sum 1) 4) 1) 1)))
+EOF
+)
+limit=15
+
+chronyc_conf="sources"
+run_test || test_fail
+check_chronyc_output "^506 Cannot talk to daemon$" || test_fail
+
+chronyc_conf="retries 3
+sources"
+run_test || test_fail
+check_chronyc_output "^MS.*0ns$" || test_fail
 
 test_pass
