@@ -49,9 +49,11 @@ website.
 
 First, the client needs to know which NTP servers it should ask for the current
 time. They are specified by the `server` or `pool` directive. The `pool`
-directive can be used for names that resolve to multiple addresses. For good
-reliability the client should have at least three servers. The `iburst` option
-speeds up the initial synchronisation.
+directive is used with names that resolve to multiple addresses of different
+servers. For reliable operation, the client should have at least three servers.
+
+The `iburst` option enables a burst of requests to speed up the initial
+synchronisation.
 
 To stabilise the initial synchronisation on the next start, the estimated drift
 of the system clock is saved to a file specified by the `driftfile` directive.
@@ -67,7 +69,7 @@ next boot from the RTC, the `rtcsync` directive enables a mode in which the
 system time is periodically copied to the RTC. It is supported on Linux and
 macOS.
 
-If you want to use public NTP servers from the
+If you wanted to use public NTP servers from the
 https://www.pool.ntp.org/[pool.ntp.org] project, the minimal _chrony.conf_ file
 could be:
 
@@ -80,9 +82,16 @@ rtcsync
 
 === How do I make an NTP server?
 
-You need to add an `allow` directive to the _chrony.conf_ file in order to open
-the NTP port and allow `chronyd` to reply to client requests. `allow` with no
-specified subnet allows access from all IPv4 and IPv6 addresses.
+By default, `chronyd` does not operate as an NTP server. You need to add an
+`allow` directive to the _chrony.conf_ file in order for `chronyd` to open the
+server NTP port and respond to client requests.
+
+----
+allow 192.168.1.0/24
+----
+
+An `allow` directive with no specified subnet allows access from all IPv4 and
+IPv6 addresses.
 
 === Should all computers on a LAN be clients of an external server?
 
@@ -132,7 +141,7 @@ normal operation.
 
 An NTP client synchronising the system clock to an NTP server is susceptible to
 various attacks, which can break applications and network protocols relying on
-accuracy of the clock (e.g. TLS, Kerberos, WireGuard).
+accuracy of the clock (e.g. DNSSEC, Kerberos, TLS, WireGuard).
 
 Generally, a man-in-the-middle (MITM) attacker between the client and server
 can
@@ -201,7 +210,7 @@ frequency offset is reported in the drift file, `tracking` report, and
 value that is normally observed. Note that the frequency of the clock can
 change due to aging of the crystal, differences in calibration of the clock
 source between reboots, migrated virtual machine, etc. A typical computer clock
-has a drift smaller than 100 parts-per-million (ppm), but much larger drifts
+has a drift smaller than 100 parts per million (ppm), but much larger drifts
 are possible (e.g. in some virtual machines).
 
 Use only trusted servers, which you expect to be well configured and managed,
@@ -236,7 +245,7 @@ server qux.example.net iburst nts maxdelay 0.1
 server quux.example.net iburst nts maxdelay 0.1
 minsources 3
 maxchange 100 0 0
-makestep 0.001 3
+makestep 0.001 1
 maxdrift 100
 maxslewrate 100
 driftfile /var/lib/chrony/drift
@@ -247,18 +256,17 @@ rtcsync
 === How can I improve the accuracy of the system clock with NTP sources?
 
 Select NTP servers that are well synchronised, stable and close to your
-network. It is better to use more than one server, three or four is usually
+network. It is better to use more than one server. Three or four is usually
 recommended as the minimum, so `chronyd` can detect servers that serve false
 time and combine measurements from multiple sources.
 
 If you have a network card with hardware timestamping supported on Linux, it
-can be enabled by the `hwtimestamp` directive in the _chrony.conf_ file. It
-should make local receive and transmit timestamps of NTP packets much more
-accurate.
+can be enabled by the `hwtimestamp` directive. It should make local receive and
+transmit timestamps of NTP packets much more stable and accurate.
 
-There are also useful options which can be set in the `server` directive, they
-are `minpoll`, `maxpoll`, `polltarget`, `maxdelay`, `maxdelayratio`,
-`maxdelaydevratio`, and `xleave`.
+The `server` directive has some useful options: `minpoll`, `maxpoll`,
+`polltarget`, `maxdelay`, `maxdelayratio`, `maxdelaydevratio`, `xleave`,
+`filter`.
 
 The first three options set the minimum and maximum allowed polling interval,
 and how should be the actual interval adjusted in the specified range. Their
@@ -303,8 +311,8 @@ server ntp.local minpoll 2 maxpoll 4 polltarget 30 maxdelaydevratio 2
 ----
 
 If your server supports the interleaved mode (e.g. it is running `chronyd`),
-the `xleave` option should be added to the `server` directive in order to allow
-the server to send the client more accurate transmit timestamps (kernel or
+the `xleave` option should be added to the `server` directive to enable the
+server to provide the client with more accurate transmit timestamps (kernel or
 preferably hardware). For example:
 
 ----
@@ -400,18 +408,49 @@ and be unsuitable for monitoring.
 
 === Can NTP server be separated from NTP client?
 
-Yes, it is possible to run multiple instances of `chronyd` on the same
-computer. One can be configured as an NTP client, and another as a server. They
-need to use different pidfiles, NTP ports, command ports, and Unix domain
-command sockets. The server instance should be started with the `-x` option to
-avoid touching the clock. It can be configured to serve the system time with
-the `local` directive, or synchronise its NTP clock to the client instance
-running on localhost using a non-standard NTP port.
+Yes, it is possible to run multiple instances of `chronyd` on a computer at the
+same time. One can operate primarily as an NTP client to synchronise the system
+clock and another as a server for other computers. If they use the same
+filesystem, they need to be configured with different pidfiles, Unix domain
+command sockets, and any other file or directory specified in the configuration
+file. If they run in the same network namespace, they need to use different NTP
+and command ports, or bind the ports to different addresses or interfaces.
 
-On Linux, starting with `chrony` version 4.0, it is also possible to run
-multiple server instances sharing a port to utilise multiple cores of the CPU.
-Note that the client/server interleaved mode requires that all packets from an
-address are handled by the same server instance.
+The server instance should be started with the `-x` option to prevent it from
+adjusting the system clock and interfering with the client instance. It can be
+configured as a client to synchronise its NTP clock to other servers, or the
+client instance running on the same computer. In the latter case, the `copy`
+option (added in `chrony` version 4.1) can be used to assume the reference ID
+and stratum of the client instance, which enables detection of synchronisation
+loops with its own clients.
+
+On Linux, starting with `chrony` version 4.0, it is possible to run multiple
+server instances sharing a port to better utilise multiple cores of the CPU.
+Note that for rate limiting and client/server interleaved mode to work well
+it is necessary that all packets received from the same address are handled by
+the same server instance.
+
+An example configuration of the client instance could be
+
+----
+pool pool.ntp.org iburst
+allow 127.0.0.1
+port 11123
+driftfile /var/lib/chrony/drift
+makestep 1 3
+rtcsync
+----
+
+and configuration of the first server instance could be
+
+----
+server 127.0.0.1 port 11123 minpoll 0 maxpoll 0 copy
+allow
+cmdport 11323
+bindcmdaddress /var/run/chrony/chronyd-server1.sock
+pidfile /var/run/chronyd-server1.pid
+driftfile /var/lib/chrony/drift-server1
+----
 
 === Should be a leap smear enabled on NTP server?
 
@@ -424,7 +463,7 @@ e.g. when the clients cannot be configured to handle the leap seconds as
 needed, or their number is so large that configuring them all would be
 impractical. The clients should use only one leap-smearing server, or multiple
 identically configured leap-smearing servers. Note that some clients can get
-leap seconds from external sources (e.g. with the `leapsectz` directive in
+leap seconds from other sources (e.g. with the `leapsectz` directive in
 `chrony`) and they will not work correctly with a leap smearing server.
 
 === Does `chrony` support PTP?
@@ -505,7 +544,7 @@ _/etc/resolv.conf_. Make sure it is working correctly.
 Since `chrony` version 4.0, you can run `chronyc -N sources -a` command to
 print all sources, even those that do not have a known address yet, with their
 names as they were specified in the configuration. This can be useful to verify
-that the names specified in the configuration are parsed as expected.
+that the names specified in the configuration are used as expected.
 
 === Is `chronyd` allowed to step the system clock?
 
@@ -561,13 +600,14 @@ You might need to manually correct the date, or temporarily disable NTS, in
 order to get NTS working. If your computer has an RTC and it is backed up by a
 good battery, this operation should be needed only once, assuming the RTC will
 be set periodically with the `rtcsync` directive, or compensated with the
-`rtcfile` directive.
+`rtcfile` directive and the `-s` option.
 
-If the computer does not have an RTC or battery, you can use the `-s` option to
-restore time of the last shutdown or reboot from the drift file. The clock will
-start behind the true time, but if the computer was not shut down for too long
-and the server's certificate was not renewed too close to its expiration, it
-should be sufficient for the time checks to succeed.
+If the computer does not have an RTC or battery, you can use the `-s` option
+without `rtcfile` directive to restore time of the last shutdown or reboot from
+the drift file. The clock will start behind the true time, but if the computer
+was not shut down for too long and the server's certificate was not renewed too
+close to its expiration, it should be sufficient for the time checks to
+succeed.
 
 As a last resort, you can disable the time checks by the `nocerttimecheck`
 directive. This has some important security implications. To reduce the
@@ -727,7 +767,7 @@ more than few seconds per day.
 
 There are two approaches how `chronyd` can work with it. One is to use the
 `rtcsync` directive, which tells `chronyd` to enable a kernel mode which sets
-the RTC from the system clock every 11 minutes. `chronyd` itself won't touch
+the RTC from the system clock every 11 minutes. `chronyd` itself will not touch
 the RTC. If the computer is not turned off for a long time, the RTC should
 still be close to the true time when the system clock will be initialised from
 it on the next boot.
@@ -742,12 +782,12 @@ it is not strictly necessary if its only purpose is to set the system clock when
 
 === Does `hwclock` have to be disabled?
 
-The `hwclock` program is often set-up by default in the boot and shutdown
-scripts with many Linux installations. With the kernel RTC synchronisation
+The `hwclock` program is run by default in the boot and/or shutdown
+scripts in some Linux installations. With the kernel RTC synchronisation
 (`rtcsync` directive), the RTC will be set also every 11 minutes as long as the
 system clock is synchronised. If you want to use ``chronyd``'s RTC monitoring
 (`rtcfile` directive), it is important to disable `hwclock` in the shutdown
-procedure. If you do not that, it will over-write the RTC with a new value, unknown
+procedure. If you do not do that, it will overwrite the RTC with a new value, unknown
 to `chronyd`. At the next reboot, `chronyd` started with the `-s` option will
 compensate this (wrong) time with its estimate of how far the RTC has drifted
 whilst the power was off, giving a meaningless initial system time.
@@ -837,11 +877,11 @@ When two computers are synchronised to each other using the client/server or
 symmetric NTP mode, there is an expectation that NTP measurements between the
 two computers made on both ends show an average offset close to zero.
 
-With `chronyd` that can be expected only when the interleaved mode (`xleave`
-option) is enabled. Otherwise, `chronyd` will use different transmit timestamps
-(e.g. daemon timestamp vs kernel timestamp) for serving time and
-synchronisation of its own clock, which creates an asymmetry in the
-timestamping and causes the other end to measure a significant offset.
+With `chronyd` that can be expected only when the interleaved mode is enabled
+by the `xleave` option. Otherwise, `chronyd` will use different transmit
+timestamps (e.g. daemon timestamp vs kernel timestamp) for serving time and
+synchronisation of its own clock, which will cause the other computer to
+measure a significant offset.
 
 == Operating systems
 
