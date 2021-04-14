@@ -1766,7 +1766,8 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
     inst->tx_count = 0;
 
     SRC_UpdateReachability(inst->source, synced_packet);
-    SRC_UpdateStatus(inst->source, MAX(message->stratum, inst->min_stratum), pkt_leap);
+    if (synced_packet)
+      SRC_UpdateStatus(inst->source, MAX(message->stratum, inst->min_stratum), pkt_leap);
 
     if (good_packet) {
       /* Adjust the polling interval, accumulate the sample, etc. */
