@@ -54,6 +54,7 @@ typedef struct {
   int sel_options;
   int nts;
   int nts_port;
+  int copy;
   uint32_t authkey;
   uint32_t cert_set;
   double max_delay;

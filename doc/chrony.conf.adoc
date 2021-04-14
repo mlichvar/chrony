@@ -278,6 +278,15 @@ specified by the *key* option and which authentication hash function the key
 is using. If the output size of the hash function is longer than 160 bits, the
 default version is 3 for compatibility with older *chronyd* servers. Otherwise,
 the default version is 4.
+*copy*:::
+This option specifies that the server and client are closely related, their
+configuration does not allow a synchronisation loop to form between them, and
+the client is allowed to assume the reference ID and stratum of the server.
+This is useful when multiple instances of `chronyd` are running on one computer
+(e.g. for security or performance reasons), one primarily operating as a client
+to synchronise the system clock and other instances started with the *-x*
+option to operate as NTP servers for other computers with their NTP clocks
+synchronised to the first instance.
 
 [[pool]]*pool* _name_ [_option_]...::
 The syntax of this directive is similar to that for the <<server,*server*>>
@@ -320,7 +329,7 @@ address of this host. *chronyd* does not support ephemeral associations.
 This directive can be used multiple times to specify multiple peers.
 +
 The following options of the *server* directive do not work in the *peer*
-directive: *iburst*, *burst*, *nts*, *presend*.
+directive: *iburst*, *burst*, *nts*, *presend*, *copy*.
 +
 When using the *xleave* option, both peers must support and have enabled the
 interleaved mode, otherwise the synchronisation will work in one direction

@@ -767,6 +767,7 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.interleaved = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_INTERLEAVED ? 1 : 0;
   params.burst = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_BURST ? 1 : 0;
   params.nts = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_NTS ? 1 : 0;
+  params.copy = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_COPY ? 1 : 0;
   params.sel_options =
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_PREFER ? SRC_SELECT_PREFER : 0) |
     (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_NOSELECT ? SRC_SELECT_NOSELECT : 0) |

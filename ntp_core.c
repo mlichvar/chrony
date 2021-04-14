@@ -107,6 +107,8 @@ struct NCR_Instance_Record {
   int min_stratum;              /* Increase stratum in received packets to the
                                    minimum */
 
+  int copy;                     /* Boolean suppressing own refid and stratum */
+
   int poll_target;              /* Target number of sourcestats samples */
 
   int version;                  /* Version set in packets for server/peer */
@@ -560,6 +562,7 @@ NCR_CreateInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
   result->auto_iburst = params->iburst;
   result->auto_burst = params->burst;
   result->auto_offline = params->auto_offline;
+  result->copy = params->copy && result->mode == MODE_CLIENT;
   result->poll_target = params->poll_target;
 
   if (params->nts) {
@@ -1766,8 +1769,16 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
     inst->tx_count = 0;
 
     SRC_UpdateReachability(inst->source, synced_packet);
-    if (synced_packet)
-      SRC_UpdateStatus(inst->source, MAX(message->stratum, inst->min_stratum), pkt_leap);
+
+    if (synced_packet) {
+      if (inst->copy && inst->remote_stratum > 0) {
+        /* Assume the reference ID and stratum of the server */
+        inst->remote_stratum--;
+        SRC_SetRefid(inst->source, ntohl(message->reference_id), &inst->remote_addr.ip_addr);
+      }
+
+      SRC_UpdateStatus(inst->source, MAX(inst->remote_stratum, inst->min_stratum), pkt_leap);
+    }
 
     if (good_packet) {
       /* Adjust the polling interval, accumulate the sample, etc. */

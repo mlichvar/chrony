@@ -269,6 +269,7 @@ typedef struct {
 #define REQ_ADDSRC_INTERLEAVED 0x80
 #define REQ_ADDSRC_BURST 0x100
 #define REQ_ADDSRC_NTS 0x200
+#define REQ_ADDSRC_COPY 0x400
 
 typedef struct {
   uint32_t type;
