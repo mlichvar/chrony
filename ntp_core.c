@@ -1759,7 +1759,7 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
   if (valid_packet) {
     inst->remote_poll = message->poll;
     inst->remote_stratum = message->stratum != NTP_INVALID_STRATUM ?
-                           message->stratum : NTP_MAX_STRATUM;
+                           MIN(message->stratum, NTP_MAX_STRATUM) : NTP_MAX_STRATUM;
 
     inst->prev_local_poll = inst->local_poll;
     inst->prev_tx_count = inst->tx_count;
