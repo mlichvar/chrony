@@ -32,7 +32,6 @@ echo "server 127.123.5.2" > $TEST_DIR/conf5.d/2.sources
 echo "server 127.123.5.3" > $TEST_DIR/conf5.d/3.sources
 
 start_chronyd || test_fail
-wait_for_sync || test_fail
 
 run_chronyc "sources" || test_fail
 check_chronyc_output "^[^=]*
@@ -66,8 +65,8 @@ check_chronyc_output "^[^=]*
 .. 127\.123\.2\.2 [^^]*
 .. 127\.123\.2\.3 [^^]*
 .. 127\.123\.4\.4 [^^]*
-.. 127\.123\.1\.2 *0   6 [^^]*
-.. 127\.123\.5\.2 *0   7 [^^]*
+.. 127\.123\.1\.2 *[05]   6 [^^]*
+.. 127\.123\.5\.2 *[05]   7 [^^]*
 .. 127\.123\.5\.4 [^^]*$" || test_fail
 
 stop_chronyd || test_fail

@@ -28,9 +28,9 @@ for command in \
 	"maxdelay $server 1e-1" \
 	"maxdelaydevratio $server 5.0" \
 	"maxdelayratio $server 3.0" \
-	"maxpoll $server 5" \
+	"maxpoll $server 12" \
 	"maxupdateskew $server 10.0" \
-	"minpoll $server 3" \
+	"minpoll $server 10" \
 	"minstratum $server 1" \
 	"offline" \
 	"online" \
@@ -66,7 +66,7 @@ check_chronyc_output "^Name/IP address             Mode KeyID Type KLen Last Atm
 run_chronyc "clients" || test_fail
 check_chronyc_output "^Hostname                      NTP   Drop Int IntL Last     Cmd   Drop Int  Last
 ===============================================================================
-127\.0\.0\.1                       [0-9 ]+    0 [-0-9 ]+   -     [0-9]       0      0   -     -$" \
+127\.0\.0\.1               [0-9 ]+    0 [-0-9 ]+   -  [ 0-9]+       0      0   -     -$" \
 	|| test_fail
 
 run_chronyc "ntpdata $server" || test_fail
@@ -77,7 +77,7 @@ Leap status     : Normal
 Version         : 4
 Mode            : Server
 Stratum         : 10
-Poll interval   : (-6|[0345]) \([0-9]+ seconds\)
+Poll interval   : (-6|[0-9]+) \([0-9]+ seconds\)
 Precision       : [0-9 +-]+ \(0\.[0-9]+ seconds\)
 Root delay      : 0\.000000 seconds
 Root dispersion : 0\.000000 seconds

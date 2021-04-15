@@ -40,7 +40,7 @@ ntsdumpdir $TEST_LIBDIR
 ntsprocesses 3"
 
 start_chronyd || test_fail
-sleep 3
+wait_for_sync || test_fail
 
 run_chronyc "authdata" || test_fail
 check_chronyc_output "^Name/IP address             Mode KeyID Type KLen Last Atmp  NAK Cook CLen
@@ -56,7 +56,7 @@ rm -f $TEST_LOGDIR/measurements.log
 server_options="port $ntpport nts ntsport $((ntsport + 1))"
 
 start_chronyd || test_fail
-sleep 2
+wait_for_sync || test_fail
 
 run_chronyc "authdata" || test_fail
 check_chronyc_output "^Name/IP address             Mode KeyID Type KLen Last Atmp  NAK Cook CLen

@@ -262,8 +262,23 @@ start_chronyd() {
 }
 
 wait_for_sync() {
+	local prev_length
+
 	test_message 1 0 "waiting for synchronization"
-	sleep 1 && test_ok || test_error
+	prev_length=$msg_length
+
+	for i in $(seq 1 10); do
+		run_chronyc "ntpdata $server" > /dev/null 2>&1 || break
+		if check_chronyc_output "Total RX +: [1-9]" > /dev/null 2>&1; then
+			msg_length=$prev_length
+			test_ok
+			return
+		fi
+		sleep 1
+	done
+
+	msg_length=$prev_length
+	test_error
 }
 
 # Stop the chronyd instance
