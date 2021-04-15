@@ -1694,8 +1694,9 @@ load_source_file(const char *filename)
     return;
 
   while (fgets(line, sizeof (line), f)) {
-    if (strlen(line) >= MAX_LINE_LENGTH)
-      continue;
+    /* Require lines to be terminated */
+    if (line[0] == '\0' || line[strlen(line) - 1] != '\n')
+      break;
 
     CPS_NormalizeLine(line);
     if (line[0] == '\0')

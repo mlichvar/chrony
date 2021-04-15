@@ -2310,7 +2310,8 @@ confdir @SYSCONFDIR@/chrony.d
 [[sourcedir]]*sourcedir* _directory_...::
 The *sourcedir* directive is identical to the *confdir* directive, except the
 configuration files have the _.sources_ suffix, they can only specify NTP
-sources (i.e. use the *server*, *pool*, and *peer* directive), and can be
+sources (i.e. the *server*, *pool*, and *peer* directives), they are expected
+to have all lines terminated by the newline character, and they can be
 reloaded by the <<chronyc.adoc#reload,*reload sources*>> command in
 *chronyc*. It is particularly useful with dynamic sources like NTP servers
 received from a DHCP server, which can be written to a file specific to the
