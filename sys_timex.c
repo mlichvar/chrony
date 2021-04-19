@@ -75,13 +75,6 @@ convert_timex_frequency(const struct timex *txc)
 
   freq_ppm = txc->freq / FREQ_SCALE;
 
-#ifdef MACOSX
-  /* Temporary workaround for Apple bug treating freq as unsigned number */
-  if (freq_ppm > 32767) {
-    freq_ppm -= 65536;
-  }
-#endif
-
   return -freq_ppm;
 }
 
