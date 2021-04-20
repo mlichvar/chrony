@@ -1133,11 +1133,8 @@ The effect of the allow command is identical to the
 The syntax is illustrated in the following examples:
 +
 ----
-allow foo.example.net
-allow all 1.2
-allow 3.4.5
-allow 6.7.8/22
-allow 6.7.8.9/22
+allow 1.2.3.4
+allow all 3.4.5.0/24
 allow 2001:db8:789a::/48
 allow 0/0
 allow ::/0
@@ -1152,11 +1149,8 @@ The effect of the allow command is identical to the
 The syntax is illustrated in the following examples:
 +
 ----
-deny foo.example.net
-deny all 1.2
-deny 3.4.5
-deny 6.7.8/22
-deny 6.7.8.9/22
+deny 1.2.3.4
+deny all 3.4.5.0/24
 deny 2001:db8:789a::/48
 deny 0/0
 deny ::/0

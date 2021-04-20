@@ -1356,28 +1356,21 @@ Examples of the use of the directive are as follows:
 +
 ----
 allow 1.2.3.4
-allow 1.2
+allow 3.4.5.0/24
 allow 3.4.5
-allow 6.7.8/22
-allow 6.7.8.9/22
 allow 2001:db8::/32
 allow 0/0
 allow ::/0
 allow
 ----
 +
-The first directive allows a node with IPv4 address _1.2.3.4_ to be an NTP
-client of this computer.
-The second directive allows any node with an IPv4 address of the form _1.2.x.y_
-(with _x_ and _y_ arbitrary) to be an NTP client of this computer. Likewise,
-the third directive allows any node with an IPv4 address of the form _3.4.5.x_
-to have client NTP access. The fourth and fifth forms allow access from any
-node with an IPv4 address of the form _6.7.8.x_, _6.7.9.x_, _6.7.10.x_ or
-_6.7.11.x_ (with _x_ arbitrary), i.e. the value 22 is the number of bits
-defining the specified subnet. In the fifth form, the final byte is ignored.
-The sixth form is used for IPv6 addresses. The seventh and eighth forms allow
-access by any IPv4 and IPv6 node respectively. The ninth forms allows access by
-any node (IPv4 or IPv6).
+The first directive allows access from an IPv4 address. The second directive
+allows access from all computers in an IPv4 subnet specified in the CIDR
+notation. The third directive specifies the same subnet using a simpler
+notation where the prefix length is determined by the number of dots. The
+fourth directive specifies an IPv6 subnet. The fifth and sixth directives allow
+access from all IPv4 and IPv6 addresses respectively. The seventh directive
+allows access from all addresses (both IPv4 or IPv6).
 +
 A second form of the directive, *allow all*, has a greater effect, depending on
 the ordering of directives in the configuration file. To illustrate the effect,
@@ -1385,32 +1378,43 @@ consider the two examples:
 +
 ----
 allow 1.2.3.4
-deny 1.2.3
-allow 1.2
+deny 1.2.3.0/24
+allow 1.2.0.0/16
 ----
 +
 and
 +
 ----
 allow 1.2.3.4
-deny 1.2.3
-allow all 1.2
+deny 1.2.3.0/24
+allow all 1.2.0.0/16
 ----
 +
 In the first example, the effect is the same regardless of what order the three
-directives are given in. So the _1.2.x.y_ subnet is allowed access, except for
-the _1.2.3.x_ subnet, which is denied access, however the host _1.2.3.4_ is
-allowed access.
+directives are given in. So the _1.2.0.0/16_ subnet is allowed access, except
+for the _1.2.3.0/24_ subnet, which is denied access, however the host _1.2.3.4_
+is allowed access.
 +
-In the second example, the *allow all 1.2* directives overrides the effect of
-_any_ previous directive relating to a subnet within the specified subnet.
-Within a configuration file this capability is probably rather moot; however,
-it is of greater use for reconfiguration at run-time via *chronyc* with the
-<<chronyc.adoc#allow,*allow all*>> command.
+In the second example, the *allow all 1.2.0.0/16* directive overrides the
+effect of _any_ previous directive relating to a subnet within the specified
+subnet. Within a configuration file this capability is probably rather moot;
+however, it is of greater use for reconfiguration at run-time via *chronyc*
+with the <<chronyc.adoc#allow,*allow all*>> command.
 +
-The directive allows a hostname to be specified instead of an IP address, but
-the name must be resolvable when *chronyd* is started (i.e. *chronyd* needs
-to be started when the network is already up and DNS is working).
+The rules are internally represented as a tree of tables with one level per
+four bits of the IPv4 or IPv6 address. The order of the *allow* and *deny*
+directives matters if they modify the same records of one table, i.e. if one
+subnet is included in the other subnet and their prefix lengths are at the same
+level. For example, _1.2.3.0/28_ and _1.2.3.0/29_ are in different tables, but
+_1.2.3.0/25_ and _1.2.3.0/28_ are in the same table. The configuration can be
+verified for individual addresses with the <<chronyc.adoc#accheck,*accheck*>>
+command in *chronyc*.
++
+A hostname can be specified in the directives instead of the IP address, but
+the name must be resolvable when *chronyd* is started, i.e. the network is
+already up and DNS is working. If the hostname resolves to multiple addresses,
+only the first address (in the order returned by the system resolver) will be
+allowed or denied.
 +
 Note, if the <<initstepslew,*initstepslew*>> directive is used in the
 configuration file, each of the computers listed in that directive must allow
