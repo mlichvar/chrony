@@ -91,7 +91,7 @@ Acknowledgements
 In writing the chronyd program, extensive use has been made of the NTPv3 (RFC
 1305) and NTPv4 (RFC 5905) specification.  The source code of the xntpd/ntpd
 implementation written by Dennis Fergusson, Lars Mathiesen, David Mills, and
-others, has been used to check the details of the protocol.
+others has been used to check the details of the protocol.
 
 The following people have provided patches and other major contributions
 to chrony:
@@ -108,6 +108,7 @@ Erik Bryer <ebryer@spots.ab.ca>
 Jonathan Cameron <jic23@cam.ac.uk>
 Bryan Christianson <bryan@whatroute.net>
 Juliusz Chroboczek <jch@pps.jussieu.fr>
+Kamil Dudka <kdudka@redhat.com>
 Christian Ehrhardt <christian.ehrhardt@canonical.com>
 Paul Elliott <pelliott@io.com>
 Robert Fairley <rfairley@redhat.com>
@@ -124,6 +125,7 @@ Jachym Holecek <jakym@volny.cz>
 Håkan Johansson <f96hajo@chalmers.se>
 Jim Knoble <jmknoble@pobox.com>
 Antti Jrvinen <costello@iki.fi>
+Uwe Kleine-König <u.kleine-koenig@pengutronix.de>
 Eric Lammerts <eric@lammerts.org>
 Stefan Lucke <stefan@lucke.in-berlin.de>
 Victor Lum <viclum@vanu.com>
@@ -137,6 +139,8 @@ Denny Page <dennypage@me.com>
 Chris Perl <cperl@janestreet.com>
 Gautier PHILIPPON <gautier.philippon@ensimag.grenoble-inp.fr>
 Andreas Piesk <apiesk@virbus.de>
+Baruch Siach <baruch@tkos.co.il>
+Foster Snowhill <forst@forstwoof.ru>
 Andreas Steinmetz <ast@domdv.de>
 NAKAMURA Takumi <takumi@ps.sakura.ne.jp>
 Timo Teras <timo.teras@iki.fi>
@@ -148,6 +152,7 @@ Bernhard M. Wiedemann <bwiedemann@suse.de>
 Joachim Wiedorn <ad_debian@joonet.de>
 Ralf Wildenhues <Ralf.Wildenhues@gmx.de>
 Ulrich Windl <ulrich.windl@rz.uni-regensburg.de>
+Michael Witten <mfwitten@gmail.com>
 Doug Woodward <dougw@whistler.com>
 Thomas Zajic <zlatko@zlatko.fdns.net>
 
