@@ -1,3 +1,27 @@
+New in version 4.1
+==================
+
+Enhancements
+------------
+* Add support for NTS servers specified by IP address (matching
+  Subject Alternative Name in server certificate)
+* Add source-specific configuration of trusted certificates
+* Allow multiple files and directories with trusted certificates
+* Allow multiple pairs of server keys and certificates
+* Add copy option to server/pool directive
+* Increase PPS lock limit to 40% of pulse interval
+* Perform source selection immediately after loading dump files
+* Reload dump files for addresses negotiated by NTS-KE server
+* Update seccomp filter
+* Restart ongoing name resolution on online command
+
+Bug fixes
+---------
+* Fix responding to IPv4 command requests on FreeBSD
+* Fix dump files to not include uncorrected offset
+* Fix initstepslew to accept time from own NTP clients
+* Reset NTP address and port when no longer negotiated by NTS-KE server
+
 New in version 4.0
 ==================
 
