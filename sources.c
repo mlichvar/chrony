@@ -1368,7 +1368,7 @@ save_source(SRC_Instance inst)
   if (!f)
     return;
 
-  ntp_name = inst->type == SRC_NTP ? NSR_GetName(inst->ip_addr) : NULL;
+  ntp_name = inst->type == SRC_NTP ? NSR_GetName(inst->ip_addr) : ".";
 
   if (fprintf(f, "%s%s\n%d %o %d %d %d\n",
               DUMP_IDENTIFIER, ntp_name, inst->authenticated,
