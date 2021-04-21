@@ -458,7 +458,7 @@ handle_saved_address_update(void)
     /* This is expected to happen only if the old address is wrong */
     LOG(LOGS_ERR, "Could not change %s to %s",
         UTI_IPSockAddrToString(&saved_address_update.old_address),
-        UTI_IPSockAddrToString(&saved_address_update.old_address));
+        UTI_IPSockAddrToString(&saved_address_update.new_address));
 
   saved_address_update.old_address.ip_addr.family = IPADDR_UNSPEC;
 }
