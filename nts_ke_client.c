@@ -53,7 +53,7 @@ struct NKC_Instance_Record {
   NKE_Context context;
   NKE_Cookie cookies[NKE_MAX_COOKIES];
   int num_cookies;
-  char server_name[NKE_MAX_RECORD_BODY_LENGTH + 1];
+  char server_name[NKE_MAX_RECORD_BODY_LENGTH + 2];
   IPSockAddr ntp_address;
 };
 
@@ -254,6 +254,17 @@ handle_message(void *arg)
     if (inst->resolving_name)
       return 0;
     if (!UTI_StringToIP(inst->server_name, &inst->ntp_address.ip_addr)) {
+      int length = strlen(inst->server_name);
+
+      /* Add a trailing dot if not present to force the name to be
+         resolved as a fully qualified domain name */
+      if (length < 1 || length + 1 >= sizeof (inst->server_name))
+        return 0;
+      if (inst->server_name[length - 1] != '.') {
+        inst->server_name[length] = '.';
+        inst->server_name[length + 1] = '\0';
+      }
+
       DNS_Name2IPAddressAsync(inst->server_name, name_resolve_handler, inst);
       inst->resolving_name = 1;
     }

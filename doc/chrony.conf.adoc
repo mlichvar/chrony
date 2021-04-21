@@ -1651,7 +1651,8 @@ ntsdumpdir @CHRONYVARDIR@
 This directory is used also by the <<ntsdumpdir1,NTS client>> to save NTS cookies.
 
 [[ntsntpserver]]*ntsntpserver* _hostname_::
-This directive specifies the hostname or address of the NTP server(s) which is
+This directive specifies the hostname (as a fully qualified domain name) or
+address of the NTP server(s) which is
 provided in the NTS-KE response to the clients. It allows the NTS-KE server to
 be separated from the NTP server. However, the servers need to share the keys,
 i.e. external key management needs to be enabled by setting
