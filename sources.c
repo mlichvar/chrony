@@ -1428,7 +1428,7 @@ load_source(SRC_Instance inst)
         sscanf(words[0], "%d %o %d %d %d",
                &auth, &reach, &reach_size, &stratum, &leap) != 5 ||
         (!auth && inst->authenticated) ||
-        stratum < 1 || stratum >= NTP_MAX_STRATUM ||
+        stratum < 0 || stratum >= NTP_MAX_STRATUM ||
         leap < LEAP_Normal || leap >= LEAP_Unsynchronised ||
       !SST_LoadFromFile(inst->stats, f)) {
     LOG(LOGS_WARN, "Could not load dump file for %s", source_to_string(inst));
