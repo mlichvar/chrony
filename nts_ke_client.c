@@ -127,9 +127,10 @@ process_response(NKC_Instance inst)
 {
   int next_protocol = -1, aead_algorithm = -1, error = 0;
   int i, critical, type, length;
-  uint16_t data[NKE_MAX_COOKIE_LENGTH / sizeof (uint16_t)];
+  uint16_t data[NKE_MAX_RECORD_BODY_LENGTH / sizeof (uint16_t)];
 
-  assert(NKE_MAX_COOKIE_LENGTH % sizeof (uint16_t) == 0);
+  assert(NKE_MAX_COOKIE_LENGTH <= NKE_MAX_RECORD_BODY_LENGTH);
+  assert(sizeof (data) % sizeof (uint16_t) == 0);
   assert(sizeof (uint16_t) == 2);
 
   inst->num_cookies = 0;
