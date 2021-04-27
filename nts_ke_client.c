@@ -141,6 +141,12 @@ process_response(NKC_Instance inst)
     if (!NKSN_GetRecord(inst->session, &critical, &type, &length, &data, sizeof (data)))
       break;
 
+    if (length > sizeof (data)) {
+      DEBUG_LOG("Record too long type=%d length=%d", type, length);
+      error = 1;
+      break;
+    }
+
     switch (type) {
       case NKE_RECORD_NEXT_PROTOCOL:
         if (!critical || length != 2 || ntohs(data[0]) != NKE_NEXT_PROTOCOL_NTPV4) {
