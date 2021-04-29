@@ -229,6 +229,8 @@ generate_chrony_conf() {
 		echo "log tempcomp rawmeasurements refclocks statistics tracking rtc"
 		echo "logbanner 0"
 		echo "smoothtime 100.0 0.001"
+		echo "leapsectz right/UTC"
+		echo "dscp 46"
 
 		echo "include /dev/null"
 		echo "keyfile $TEST_DIR/keys"
