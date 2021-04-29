@@ -625,6 +625,9 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
 #ifdef FEAT_IPV6
     { SOL_IPV6, IPV6_V6ONLY }, { SOL_IPV6, IPV6_RECVPKTINFO },
 #endif
+#ifdef SO_BINDTODEVICE
+    { SOL_SOCKET, SO_BINDTODEVICE },
+#endif
     { SOL_SOCKET, SO_BROADCAST }, { SOL_SOCKET, SO_REUSEADDR },
 #ifdef SO_REUSEPORT
     { SOL_SOCKET, SO_REUSEPORT },
