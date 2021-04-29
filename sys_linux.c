@@ -508,6 +508,7 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
     SCMP_SYS(getpid),
     SCMP_SYS(getrlimit),
     SCMP_SYS(getuid),
+    SCMP_SYS(getuid32),
     SCMP_SYS(rt_sigaction),
     SCMP_SYS(rt_sigreturn),
     SCMP_SYS(rt_sigprocmask),
