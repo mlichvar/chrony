@@ -14,8 +14,8 @@ cn = "chrony-nts-test"
 dns_name = "chrony-nts-test"
 ip_address = "$server"
 serial = 001
-activation_date = "$(date -d '1 year ago' +'%Y-%m-%d') 00:00:00 UTC"
-expiration_date = "$(date -d '1 year' +'%Y-%m-%d') 00:00:00 UTC"
+activation_date = "$[$(date '+%Y') - 1]-01-01 00:00:00 UTC"
+expiration_date = "$[$(date '+%Y') + 2]-01-01 00:00:00 UTC"
 signing_key
 encryption_key
 EOF
