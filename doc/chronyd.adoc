@@ -168,6 +168,8 @@ also system calls made from libraries that *chronyd* is using (e.g. libc) and
 different versions or implementations of the libraries might make different
 system calls. If the filter is missing some system call, *chronyd* could be
 killed even in normal operation.
++
+The filter cannot be used with the *mailonchange* directive.
 
 *-P* _priority_::
 On Linux, this option will select the SCHED_FIFO real-time scheduler at the
