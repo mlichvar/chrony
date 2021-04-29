@@ -20,6 +20,7 @@ TEST_DIR=${TEST_DIR:-$(pwd)/tmp}
 TEST_LIBDIR=${TEST_LIBDIR:-$TEST_DIR}
 TEST_LOGDIR=${TEST_LOGDIR:-$TEST_DIR}
 TEST_RUNDIR=${TEST_RUNDIR:-$TEST_DIR}
+TEST_SCFILTER=${TEST_SCFILTER:-0}
 
 test_start() {
 	check_chronyd_features NTP CMDMON || test_skip "NTP/CMDMON support disabled"
@@ -242,6 +243,7 @@ get_chronyd_options() {
 	echo "-l $(get_logfile)"
 	echo "-f $(get_conffile)"
 	echo "-u $user"
+	echo "-F $TEST_SCFILTER"
 	echo "$extra_chronyd_options"
 }
 
