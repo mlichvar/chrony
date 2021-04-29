@@ -260,6 +260,8 @@ start_chronyd() {
 
 	trap stop_chronyd EXIT
 
+	rm -f "$TEST_LOGDIR"/*.log
+
 	$CHRONYD_WRAPPER "$chronyd" $(get_chronyd_options) > "$TEST_DIR/chronyd.out" 2>&1
 
 	[ $? -eq 0 ] && [ -f "$pidfile" ] && ps -p "$(cat "$pidfile")" > /dev/null && test_ok || test_error

@@ -51,8 +51,6 @@ stop_chronyd || test_fail
 check_chronyd_messages || test_fail
 check_chronyd_files || test_fail
 
-rm -f $TEST_LOGDIR/measurements.log
-
 server_options="port $ntpport nts ntsport $((ntsport + 1))"
 
 start_chronyd || test_fail
