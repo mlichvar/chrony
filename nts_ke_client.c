@@ -143,9 +143,10 @@ process_response(NKC_Instance inst)
       break;
 
     if (length > sizeof (data)) {
-      DEBUG_LOG("Record too long type=%d length=%d", type, length);
-      error = 1;
-      break;
+      DEBUG_LOG("Record too long type=%d length=%d critical=%d", type, length, critical);
+      if (critical)
+        error = 1;
+      continue;
     }
 
     switch (type) {
