@@ -669,6 +669,8 @@ load_cookies(NNC_Instance inst)
   inst->last_nke_success = context_time + SCH_GetLastEventMonoTime();
   inst->context_id = context_id;
 
+  fclose(f);
+
   DEBUG_LOG("Loaded %d cookies for %s", i, filename);
   return;
 
