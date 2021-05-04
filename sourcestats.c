@@ -885,6 +885,7 @@ int
 SST_LoadFromFile(SST_Stats inst, FILE *in)
 {
   int i, n_samples, arun;
+  struct timespec now;
   double sample_time;
   char line[256];
 
@@ -895,6 +896,8 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
 
   SST_ResetInstance(inst);
 
+  LCL_ReadCookedTime(&now, NULL);
+
   for (i = 0; i < n_samples; i++) {
     if (!fgets(line, sizeof (line), in) ||
         sscanf(line, "%lf %lf %lf %lf %lf %lf %lf",
@@ -903,8 +906,19 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
                &inst->root_delays[i], &inst->root_dispersions[i]) != 7)
       return 0;
 
+    if (!UTI_IsTimeOffsetSane(&now, sample_time - UTI_TimespecToDouble(&now)))
+      return 0;
+
     /* Some resolution is lost in the double format, but that's ok */
     UTI_DoubleToTimespec(sample_time, &inst->sample_times[i]);
+
+    /* Make sure the samples are sane and they are in order */
+    if (!UTI_IsTimeOffsetSane(&inst->sample_times[i], -inst->offsets[i]) ||
+        !(fabs(inst->peer_delays[i]) < 1.0e6 && fabs(inst->peer_dispersions[i]) < 1.0e6 &&
+          fabs(inst->root_delays[i]) < 1.0e6 && fabs(inst->root_dispersions[i]) < 1.0e6) ||
+        (i > 0 && UTI_CompareTimespecs(&inst->sample_times[i],
+                                       &inst->sample_times[i - 1]) <= 0))
+      return 0;
   }
 
   inst->n_samples = n_samples;
