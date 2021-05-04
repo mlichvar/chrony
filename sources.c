@@ -589,7 +589,7 @@ log_selection_source(const char *format, SRC_Instance inst)
   name = source_to_string(inst);
   ntp_name = inst->type == SRC_NTP ? NSR_GetName(inst->ip_addr) : NULL;
 
-  if (ntp_name)
+  if (ntp_name && strcmp(name, ntp_name) != 0)
     snprintf(buf, sizeof (buf), "%s (%s)", name, ntp_name);
   else
     snprintf(buf, sizeof (buf), "%s", name);
