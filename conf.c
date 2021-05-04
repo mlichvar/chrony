@@ -1793,6 +1793,8 @@ reload_source_dirs(void)
       if (s == NSR_UnresolvedName) {
         unresolved++;
       } else if (s != NSR_Success) {
+        LOG(LOGS_ERR, "Could not add source %s", source->params.name);
+
         /* Mark the source as not present */
         source->params.name[0] = '\0';
       }
@@ -1864,7 +1866,8 @@ CNF_AddInitSources(void)
     ntp_addr.port = cps_source.port;
     cps_source.params.iburst = 1;
 
-    NSR_AddSource(&ntp_addr, NTP_SERVER, &cps_source.params, NULL);
+    if (NSR_AddSource(&ntp_addr, NTP_SERVER, &cps_source.params, NULL) != NSR_Success)
+      LOG(LOGS_ERR, "Could not add source %s", UTI_IPToString(&ntp_addr.ip_addr));
   }
 
   ARR_SetSize(init_sources, 0);
@@ -1877,11 +1880,16 @@ CNF_AddSources(void)
 {
   NTP_Source *source;
   unsigned int i;
+  NSR_Status s;
 
   for (i = 0; i < ARR_GetSize(ntp_sources); i++) {
     source = (NTP_Source *)ARR_GetElement(ntp_sources, i);
-    NSR_AddSourceByName(source->params.name, source->params.port,
-                        source->pool, source->type, &source->params.params, NULL);
+
+    s = NSR_AddSourceByName(source->params.name, source->params.port, source->pool,
+                            source->type, &source->params.params, NULL);
+    if (s != NSR_Success && s != NSR_UnresolvedName)
+      LOG(LOGS_ERR, "Could not add source %s", source->params.name);
+
     Free(source->params.name);
   }
 
