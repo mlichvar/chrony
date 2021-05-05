@@ -156,20 +156,29 @@ not recommended when the configuration is not known, or at least limited to
 specific directives.
 
 *-F* _level_::
-This option configures a system call filter when *chronyd* is compiled with
-support for the Linux secure computing (seccomp) facility. In level 1 the
-process is killed when a forbidden system call is made, in level -1 the SIGSYS
-signal is thrown instead and in level 0 the filter is disabled. The default
-value is 0.
+This option configures system call filters loaded by *chronyd* processes if it
+was compiled with support for the Linux secure computing (seccomp) facility.
+Three levels are defined: 0, 1, 2. The filters are disabled at level 0. At
+levels 1 and 2, *chronyd* will be killed if it makes a system call which is
+blocked by the filters. The level can be specified as a negative number to
+trigger the SIGSYS signal instead of SIGKILL, which can be useful for
+debugging. The default value is 0.
 +
-It is recommended to enable the filter only when it is known to work on the
-version of the system where *chrony* is installed as the filter needs to allow
-also system calls made from libraries that *chronyd* is using (e.g. libc) and
-different versions or implementations of the libraries might make different
-system calls. If the filter is missing some system call, *chronyd* could be
-killed even in normal operation.
+At level 1, the filters allow only selected system calls that are normally
+expected to be made by *chronyd*. Other system calls are blocked. This level is
+recommended only if it is known to work on the version of the system where
+*chrony* is installed. The filters need to allow also system calls made by
+libraries that *chronyd* is using (e.g. libc), but different versions or
+implementations of the libraries might make different system calls. If the
+filters are missing a system call, *chronyd* could be killed even in normal
+operation.
 +
-The filter cannot be used with the *mailonchange* directive.
+At level 2, the filters block only a small number of specific system calls
+(e.g. fork and exec). This approach should avoid false positives, but the
+protection of the system against a compromised *chronyd* process is much more
+limited.
++
+The filters cannot be enabled with the *mailonchange* directive.
 
 *-P* _priority_::
 On Linux, this option will select the SCHED_FIFO real-time scheduler at the

@@ -486,7 +486,7 @@ void check_seccomp_applicability(void)
 void
 SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
 {
-  const int syscalls[] = {
+  const int allowed[] = {
     /* Clock */
     SCMP_SYS(adjtimex),
     SCMP_SYS(clock_adjtime),
@@ -614,6 +614,20 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
     SCMP_SYS(uname),
   };
 
+  const int denied_any[] = {
+    SCMP_SYS(execve),
+    SCMP_SYS(execveat),
+    SCMP_SYS(fork),
+    SCMP_SYS(ptrace),
+    SCMP_SYS(vfork),
+  };
+
+  const int denied_ntske[] = {
+    SCMP_SYS(ioctl),
+    SCMP_SYS(setsockopt),
+    SCMP_SYS(socket),
+  };
+
   const int socket_domains[] = {
     AF_NETLINK, AF_UNIX, AF_INET,
 #ifdef FEAT_IPV6
@@ -666,31 +680,65 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
 #endif
   };
 
+  unsigned int default_action, deny_action;
   scmp_filter_ctx *ctx;
   int i;
+
+  /* Sign of the level determines the deny action (kill or SIGSYS).
+     At level 1, selected syscalls are allowed, others are denied.
+     At level 2, selected syscalls are denied, others are allowed. */
+
+  deny_action = level > 0 ? SCMP_ACT_KILL : SCMP_ACT_TRAP;
+  if (level < 0)
+    level = -level;
+
+  switch (level) {
+    case 1:
+      default_action = deny_action;
+      break;
+    case 2:
+      default_action = SCMP_ACT_ALLOW;
+      break;
+    default:
+      LOG_FATAL("Unsupported filter level");
+  }
 
   if (context == SYS_MAIN_PROCESS) {
     /* Check if the chronyd configuration is supported */
     check_seccomp_applicability();
 
-    /* Start the helper process, which will run without any seccomp filter.  It
-       will be used for getaddrinfo(), for which it's difficult to maintain a
-       list of required system calls (with glibc it depends on what NSS modules
-       are installed and enabled on the system). */
-    PRV_StartHelper();
+    /* At level 1, start a helper process which will not have a seccomp filter.
+       It will be used for getaddrinfo(), for which it is difficult to maintain
+       a list of required system calls (with glibc it depends on what NSS
+       modules are installed and enabled on the system). */
+    if (default_action != SCMP_ACT_ALLOW)
+      PRV_StartHelper();
   }
 
-  ctx = seccomp_init(level > 0 ? SCMP_ACT_KILL : SCMP_ACT_TRAP);
+  ctx = seccomp_init(default_action);
   if (ctx == NULL)
       LOG_FATAL("Failed to initialize seccomp");
 
-  /* Add system calls that are always allowed */
-  for (i = 0; i < (sizeof (syscalls) / sizeof (*syscalls)); i++) {
-    if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, syscalls[i], 0) < 0)
-      goto add_failed;
+  if (default_action != SCMP_ACT_ALLOW) {
+    for (i = 0; i < sizeof (allowed) / sizeof (*allowed); i++) {
+      if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, allowed[i], 0) < 0)
+        goto add_failed;
+    }
+  } else {
+    for (i = 0; i < sizeof (denied_any) / sizeof (*denied_any); i++) {
+      if (seccomp_rule_add(ctx, deny_action, denied_any[i], 0) < 0)
+        goto add_failed;
+    }
+
+    if (context == SYS_NTSKE_HELPER) {
+      for (i = 0; i < sizeof (denied_ntske) / sizeof (*denied_ntske); i++) {
+        if (seccomp_rule_add(ctx, deny_action, denied_ntske[i], 0) < 0)
+          goto add_failed;
+      }
+    }
   }
 
-  if (context == SYS_MAIN_PROCESS) {
+  if (default_action != SCMP_ACT_ALLOW && context == SYS_MAIN_PROCESS) {
     /* Allow opening sockets in selected domains */
     for (i = 0; i < sizeof (socket_domains) / sizeof (*socket_domains); i++) {
       if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(socket), 1,
@@ -727,7 +775,8 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
   if (seccomp_load(ctx) < 0)
     LOG_FATAL("Failed to load seccomp rules");
 
-  LOG(context == SYS_MAIN_PROCESS ? LOGS_INFO : LOGS_DEBUG, "Loaded seccomp filter");
+  LOG(context == SYS_MAIN_PROCESS ? LOGS_INFO : LOGS_DEBUG,
+      "Loaded seccomp filter (level %d)", level);
   seccomp_release(ctx);
   return;
 
