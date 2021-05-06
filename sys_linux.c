@@ -616,7 +616,9 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
 
   const int denied_any[] = {
     SCMP_SYS(execve),
+#ifdef __NR_execveat
     SCMP_SYS(execveat),
+#endif
     SCMP_SYS(fork),
     SCMP_SYS(ptrace),
     SCMP_SYS(vfork),
