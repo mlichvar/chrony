@@ -12,7 +12,7 @@ Enhancements
 * Increase PPS lock limit to 40% of pulse interval
 * Perform source selection immediately after loading dump files
 * Reload dump files for addresses negotiated by NTS-KE server
-* Update seccomp filter
+* Update seccomp filter and add less restrictive level
 * Restart ongoing name resolution on online command
 
 Bug fixes
