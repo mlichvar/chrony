@@ -5,8 +5,6 @@
 check_chronyd_features NTS || test_skip "NTS support disabled"
 certtool --help &> /dev/null || test_skip "certtool missing"
 
-check_chronyd_features PRIVDROP && user="nobody"
-
 test_start "NTS authentication"
 
 cat > $TEST_DIR/cert.cfg <<EOF
