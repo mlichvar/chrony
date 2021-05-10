@@ -151,7 +151,7 @@ test_unit(void)
 
   ts.tv_sec = 1;
   ts.tv_nsec = 500000000;
-  TEST_CHECK(UTI_TimespecToDouble(&ts) == 1.5);
+  TEST_CHECK(fabs(UTI_TimespecToDouble(&ts) - 1.5) < 1.0e-15);
 
   UTI_DoubleToTimespec(2.75, &ts);
   TEST_CHECK(ts.tv_sec == 2);
@@ -171,7 +171,7 @@ test_unit(void)
 
   tv.tv_sec = 1;
   tv.tv_usec = 500000;
-  TEST_CHECK(UTI_TimevalToDouble(&tv) == 1.5);
+  TEST_CHECK(fabs(UTI_TimevalToDouble(&tv) - 1.5) < 1.0e-15);
 
   UTI_DoubleToTimeval(2.75, &tv);
   TEST_CHECK(tv.tv_sec == 2);
@@ -267,7 +267,7 @@ test_unit(void)
   UTI_DiffTimespecs(&ts3, &ts, &ts2);
   TEST_CHECK(ts3.tv_sec == 0);
   TEST_CHECK(ts3.tv_nsec == 500000000);
-  TEST_CHECK(UTI_DiffTimespecsToDouble(&ts, &ts2) == 0.5);
+  TEST_CHECK(fabs(UTI_DiffTimespecsToDouble(&ts, &ts2) - 0.5) < 1.0e-15);
 
   ts.tv_sec = 2;
   ts.tv_nsec = 250000000;
@@ -276,7 +276,7 @@ test_unit(void)
   UTI_DiffTimespecs(&ts3, &ts, &ts2);
   TEST_CHECK(ts3.tv_sec == -2);
   TEST_CHECK(ts3.tv_nsec == 500000000);
-  TEST_CHECK(UTI_DiffTimespecsToDouble(&ts, &ts2) == -1.5);
+  TEST_CHECK(fabs(UTI_DiffTimespecsToDouble(&ts, &ts2) - -1.5) < 1.0e-15);
 
   ts.tv_sec = 2;
   ts.tv_nsec = 250000000;
@@ -471,7 +471,7 @@ test_unit(void)
   ts2.tv_sec = 4;
   ts2.tv_nsec = 250000000;
   UTI_AdjustTimespec(&ts, &ts2, &ts3, &x, 2.0, -5.0);
-  TEST_CHECK(x == 6.5);
+  TEST_CHECK(fabs(x - 6.5) < 1.0e-15);
   TEST_CHECK(ts3.tv_sec == 10);
   TEST_CHECK(ts3.tv_nsec == 0);
 
