@@ -23,8 +23,11 @@ for command in \
 	"dfreq 1.0e-3" \
 	"doffset -0.1" \
 	"dump" \
+	"offline" \
 	"local off" \
 	"local" \
+	"online" \
+	"onoffline" \
 	"maxdelay $server 1e-1" \
 	"maxdelaydevratio $server 5.0" \
 	"maxdelayratio $server 3.0" \
@@ -32,9 +35,6 @@ for command in \
 	"maxupdateskew $server 10.0" \
 	"minpoll $server 10" \
 	"minstratum $server 1" \
-	"offline" \
-	"online" \
-	"onoffline" \
 	"polltarget $server 10" \
 	"refresh" \
 	"rekey" \
