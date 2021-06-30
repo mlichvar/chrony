@@ -478,7 +478,7 @@ the driver-specific parameter using the *:* character.
 +
 This directive can be used multiple times to specify multiple reference clocks.
 +
-There are four drivers included in *chronyd*:
+There are five drivers included in *chronyd*:
 +
 *PPS*:::
 Driver for the kernel PPS (pulse per second) API. The parameter is the path to
@@ -594,6 +594,23 @@ Examples:
 refclock PHC /dev/ptp0 poll 0 dpoll -2 offset -37
 refclock PHC /dev/ptp1:nocrossts poll 3 pps
 refclock PHC /dev/ptp2:extpps:pin=1 width 0.2 poll 2
+----
++
+*RTC*:::
+Driver for using the Real Time Clock (RTC) as a reference clock. The parameter
+is the path to the RTC character device which should be used as a time source.
+This driver cannot be used together with the <<rtcfile,*rtcfile*>> or
+<<rtcsync,*rtcsync*>> directive. The driver supports the following option:
++
+*utc*::::
+Assume that RTC keeps Universal Coordinated Time (UTC) instead of local
+time.
+{blank}:::
++
+Examples:
++
+----
+refclock RTC /dev/rtc0:utc
 ----
 +
 {blank}::
@@ -2206,7 +2223,8 @@ The directive takes no arguments. It is equivalent to specifying the *-u*
 switch to the Linux *hwclock* program.
 +
 Note that this setting is overridden by the <<hwclockfile,*hwclockfile*>> file
-and is not relevant for the <<rtcsync,*rtcsync*>> directive.
+and is not relevant for the <<rtcsync,*rtcsync*>> directive or when the RTC
+is used as reference clock.
 
 [[rtcsync]]*rtcsync*::
 The *rtcsync* directive enables a mode where the system time is periodically

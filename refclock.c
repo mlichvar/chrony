@@ -48,6 +48,7 @@ extern RefclockDriver RCL_SHM_driver;
 extern RefclockDriver RCL_SOCK_driver;
 extern RefclockDriver RCL_PPS_driver;
 extern RefclockDriver RCL_PHC_driver;
+extern RefclockDriver RCL_RTC_driver;
 
 struct FilterSample {
   double offset;
@@ -160,6 +161,8 @@ RCL_AddRefclock(RefclockParameters *params)
     inst->driver = &RCL_PPS_driver;
   } else if (strcmp(params->driver_name, "PHC") == 0) {
     inst->driver = &RCL_PHC_driver;
+  } else if (strcmp(params->driver_name, "RTC") == 0) {
+    inst->driver = &RCL_RTC_driver;
   } else {
     LOG_FATAL("unknown refclock driver %s", params->driver_name);
   }

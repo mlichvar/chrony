@@ -524,7 +524,8 @@ fi
 
 if [ $feat_refclock = "1" ]; then
   add_def FEAT_REFCLOCK
-  EXTRA_OBJECTS="$EXTRA_OBJECTS refclock.o refclock_phc.o refclock_pps.o refclock_shm.o refclock_sock.o"
+  EXTRA_OBJECTS="$EXTRA_OBJECTS refclock.o refclock_phc.o refclock_pps.o \
+    refclock_rtc.o refclock_shm.o refclock_sock.o"
 fi
 
 MYCC="$CC"
