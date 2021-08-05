@@ -434,6 +434,7 @@ setup_config(void)
 static void
 read_coefs_from_file(void)
 {
+  double ref_time;
   FILE *in;
 
   if (!tried_to_load_coefs) {
@@ -444,11 +445,12 @@ read_coefs_from_file(void)
 
     if (coefs_file_name &&
         (in = UTI_OpenFile(NULL, coefs_file_name, NULL, 'r', 0))) {
-      if (fscanf(in, "%d%ld%lf%lf",
+      if (fscanf(in, "%d%lf%lf%lf",
                  &valid_coefs_from_file,
-                 &file_ref_time,
+                 &ref_time,
                  &file_ref_offset,
                  &file_rate_ppm) == 4) {
+        file_ref_time = ref_time;
       } else {
         LOG(LOGS_WARN, "Could not read coefficients from %s", coefs_file_name);
       }
@@ -472,7 +474,7 @@ write_coefs_to_file(int valid,time_t ref_time,double offset,double rate)
     return RTC_ST_BADFILE;
 
   /* Gain rate is written out in ppm */
-  fprintf(out, "%1d %ld %.6f %.3f\n", valid, ref_time, offset, 1.0e6 * rate);
+  fprintf(out, "%1d %.0f %.6f %.3f\n", valid, (double)ref_time, offset, 1.0e6 * rate);
   fclose(out);
 
   /* Rename the temporary file to the correct location */
