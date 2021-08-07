@@ -181,15 +181,15 @@ limited.
 The filters cannot be enabled with the *mailonchange* directive.
 
 *-P* _priority_::
-On Linux, this option will select the SCHED_FIFO real-time scheduler at the
-specified priority (which must be between 0 and 100). On macOS, this option
-must have either a value of 0 to disable the thread time
-constraint policy or 1 for the policy to be enabled. Other systems do not
+On Linux, FreeBSD, NetBSD, and Solaris, this option will select the SCHED_FIFO
+real-time scheduler at the specified priority (which must be between 0 and
+100). On macOS, this option must have either a value of 0 to disable the thread
+time constraint policy or 1 for the policy to be enabled. Other systems do not
 support this option. The default value is 0.
 
 *-m*::
 This option will lock *chronyd* into RAM so that it will never be paged out.
-This mode is only supported on Linux.
+This mode is only supported on Linux, FreeBSD, NetBSD, and Solaris.
 
 *-x*::
 This option disables the control of the system clock. *chronyd* will not try to
