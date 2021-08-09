@@ -503,6 +503,9 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
 
     /* Process */
     SCMP_SYS(clone),
+#ifdef __NR_clone3
+    SCMP_SYS(clone3),
+#endif
     SCMP_SYS(exit),
     SCMP_SYS(exit_group),
     SCMP_SYS(getpid),
@@ -595,6 +598,7 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
 #ifdef __NR_ppoll_time64
     SCMP_SYS(ppoll_time64),
 #endif
+    SCMP_SYS(pread64),
     SCMP_SYS(pselect6),
 #ifdef __NR_pselect6_time64
     SCMP_SYS(pselect6_time64),
