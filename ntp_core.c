@@ -2504,11 +2504,13 @@ NCR_AddAccessRestriction(IPAddr *ip_addr, int subnet_bits, int allow, int all)
     if (server_sock_fd4 == INVALID_SOCK_FD &&
         ADF_IsAnyAllowed(access_auth_table, IPADDR_INET4)) {
       remote_addr.ip_addr.family = IPADDR_INET4;
+      remote_addr.port = 0;
       server_sock_fd4 = NIO_OpenServerSocket(&remote_addr);
     }
     if (server_sock_fd6 == INVALID_SOCK_FD &&
         ADF_IsAnyAllowed(access_auth_table, IPADDR_INET6)) {
       remote_addr.ip_addr.family = IPADDR_INET6;
+      remote_addr.port = 0;
       server_sock_fd6 = NIO_OpenServerSocket(&remote_addr);
     }
   } else {
