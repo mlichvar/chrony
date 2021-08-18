@@ -2503,12 +2503,9 @@ under which *chronyd* is normally running (to allow *chronyd* to re-read the
 file when the <<chronyc.adoc#rekey,*rekey*>> command is issued by *chronyc*).
 
 [[lock_all]]*lock_all*::
-The *lock_all* directive will lock chronyd into RAM so that it will never be
-paged out. This mode is supported on Linux, FreeBSD, NetBSD, and Solaris.  This
-directive uses the POSIX *mlockall()* system call to prevent *chronyd* from
-ever being swapped out. This should result in lower and more consistent
-latency. It should not have significant impact on performance as *chronyd's*
-memory usage is modest. The *mlockall(2)* man page has more details.
+The *lock_all* directive will lock the *chronyd* process into RAM so that it
+will never be paged out. This can result in lower and more consistent latency.
+The directive is supported on Linux, FreeBSD, NetBSD, and Solaris.
 
 [[pidfile]]*pidfile* _file_::
 Unless *chronyd* is started with the *-Q* option, it writes its process ID
