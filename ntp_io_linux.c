@@ -189,6 +189,14 @@ add_interface(CNF_HwTsInterface *conf_iface)
       rx_filter = HWTSTAMP_FILTER_NTP_ALL;
       break;
 #endif
+    case CNF_HWTS_RXFILTER_PTP:
+      if (ts_info.rx_filters & (1 << HWTSTAMP_FILTER_PTP_V2_L4_EVENT))
+        rx_filter = HWTSTAMP_FILTER_PTP_V2_L4_EVENT;
+      else if (ts_info.rx_filters & (1 << HWTSTAMP_FILTER_PTP_V2_EVENT))
+        rx_filter = HWTSTAMP_FILTER_PTP_V2_EVENT;
+      else
+        rx_filter = HWTSTAMP_FILTER_NONE;
+      break;
     default:
       rx_filter = HWTSTAMP_FILTER_ALL;
       break;

@@ -2416,6 +2416,8 @@ _all_::::
 Enables timestamping of all received packets.
 _ntp_::::
 Enables timestamping of received NTP packets.
+_ptp_::::
+Enables timestamping of received PTP packets.
 _none_::::
 Disables timestamping of received packets.
 {blank}:::

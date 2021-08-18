@@ -1556,6 +1556,8 @@ parse_hwtimestamp(char *line)
         iface->rxfilter = CNF_HWTS_RXFILTER_NONE;
       else if (!strcasecmp(filter, "ntp"))
         iface->rxfilter = CNF_HWTS_RXFILTER_NTP;
+      else if (!strcasecmp(filter, "ptp"))
+        iface->rxfilter = CNF_HWTS_RXFILTER_PTP;
       else if (!strcasecmp(filter, "all"))
         iface->rxfilter = CNF_HWTS_RXFILTER_ALL;
       else
