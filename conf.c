@@ -273,6 +273,9 @@ static int no_system_cert = 0;
 /* Array of CNF_HwTsInterface */
 static ARR_Instance hwts_interfaces;
 
+/* PTP event port (disabled by default) */
+static int ptp_port = 0;
+
 typedef struct {
   NTP_Source_Type type;
   int pool;
@@ -686,6 +689,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_source(p, command, 1);
   } else if (!strcasecmp(command, "port")) {
     parse_int(p, &ntp_port);
+  } else if (!strcasecmp(command, "ptpport")) {
+    parse_int(p, &ptp_port);
   } else if (!strcasecmp(command, "ratelimit")) {
     parse_ratelimit(p, &ntp_ratelimit_enabled, &ntp_ratelimit_interval,
                     &ntp_ratelimit_burst, &ntp_ratelimit_leak);
@@ -2557,6 +2562,14 @@ CNF_GetHwTsInterface(unsigned int index, CNF_HwTsInterface **iface)
 
   *iface = (CNF_HwTsInterface *)ARR_GetElement(hwts_interfaces, index);
   return 1;
+}
+
+/* ================================================== */
+
+int
+CNF_GetPtpPort(void)
+{
+  return ptp_port;
 }
 
 /* ================================================== */

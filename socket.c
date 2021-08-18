@@ -40,6 +40,7 @@
 #include "array.h"
 #include "logging.h"
 #include "privops.h"
+#include "ptp.h"
 #include "util.h"
 
 #define INVALID_SOCK_FD (-4)
@@ -60,6 +61,7 @@ struct Message {
   /* Buffer of sufficient length for all expected messages */
   union {
     NTP_Packet ntp_msg;
+    PTP_NtpMessage ptp_msg;
     CMD_Request cmd_request;
     CMD_Reply cmd_reply;
   } msg_buf;

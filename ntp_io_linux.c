@@ -784,7 +784,10 @@ NIO_Linux_ProcessMessage(SCK_Message *message, NTP_Local_Address *local_addr,
     return 1;
   }
 
-  if (message->length < NTP_HEADER_LENGTH)
+  if (!NIO_UnwrapMessage(message, local_addr->sock_fd))
+    return 1;
+
+  if (message->length < NTP_HEADER_LENGTH || message->length > sizeof (NTP_Packet))
     return 1;
 
   NSR_ProcessTx(&message->remote_addr.ip, local_addr, local_ts, message->data, message->length);

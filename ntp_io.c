@@ -30,9 +30,11 @@
 
 #include "sysincl.h"
 
+#include "memory.h"
 #include "ntp_io.h"
 #include "ntp_core.h"
 #include "ntp_sources.h"
+#include "ptp.h"
 #include "sched.h"
 #include "socket.h"
 #include "local.h"
@@ -69,6 +71,16 @@ static int permanent_server_sockets;
 
 /* Flag indicating the server IPv4 socket is bound to an address */
 static int bound_server_sock_fd4;
+
+/* PTP event port, or 0 if disabled */
+static int ptp_port;
+
+/* Shared server/client sockets for NTP-over-PTP */
+static int ptp_sock_fd4;
+static int ptp_sock_fd6;
+
+/* Buffer for transmitted NTP-over-PTP messages */
+static PTP_NtpMessage *ptp_message;
 
 /* Flag indicating that we have been initialised */
 static int initialised=0;
@@ -221,6 +233,17 @@ NIO_Initialise(void)
        client_sock_fd4 == INVALID_SOCK_FD && client_sock_fd6 == INVALID_SOCK_FD)) {
     LOG_FATAL("Could not open NTP sockets");
   }
+
+  ptp_port = CNF_GetPtpPort();
+  ptp_sock_fd4 = INVALID_SOCK_FD;
+  ptp_sock_fd6 = INVALID_SOCK_FD;
+  ptp_message = NULL;
+
+  if (ptp_port > 0) {
+    ptp_sock_fd4 = open_socket(IPADDR_INET4, ptp_port, 0, NULL);
+    ptp_sock_fd6 = open_socket(IPADDR_INET6, ptp_port, 0, NULL);
+    ptp_message = MallocNew(PTP_NtpMessage);
+  }
 }
 
 /* ================================================== */
@@ -238,6 +261,11 @@ NIO_Finalise(void)
   close_socket(server_sock_fd6);
   server_sock_fd6 = client_sock_fd6 = INVALID_SOCK_FD;
 
+  close_socket(ptp_sock_fd4);
+  close_socket(ptp_sock_fd6);
+  ptp_sock_fd4 = ptp_sock_fd6 = INVALID_SOCK_FD;
+  Free(ptp_message);
+
 #ifdef HAVE_LINUX_TIMESTAMPING
   NIO_Linux_Finalise();
 #endif
@@ -250,17 +278,21 @@ NIO_Finalise(void)
 int
 NIO_OpenClientSocket(NTP_Remote_Address *remote_addr)
 {
-  if (separate_client_sockets) {
-    return open_separate_client_socket(remote_addr);
-  } else {
-    switch (remote_addr->ip_addr.family) {
-      case IPADDR_INET4:
-        return client_sock_fd4;
-      case IPADDR_INET6:
-        return client_sock_fd6;
-      default:
-        return INVALID_SOCK_FD;
-    }
+  switch (remote_addr->ip_addr.family) {
+    case IPADDR_INET4:
+      if (ptp_port > 0 && remote_addr->port == ptp_port)
+        return ptp_sock_fd4;
+      if (separate_client_sockets)
+        return open_separate_client_socket(remote_addr);
+      return client_sock_fd4;
+    case IPADDR_INET6:
+      if (ptp_port > 0 && remote_addr->port == ptp_port)
+        return ptp_sock_fd6;
+      if (separate_client_sockets)
+        return open_separate_client_socket(remote_addr);
+      return client_sock_fd6;
+    default:
+      return INVALID_SOCK_FD;
   }
 }
 
@@ -271,6 +303,8 @@ NIO_OpenServerSocket(NTP_Remote_Address *remote_addr)
 {
   switch (remote_addr->ip_addr.family) {
     case IPADDR_INET4:
+      if (ptp_port > 0 && remote_addr->port == ptp_port)
+        return ptp_sock_fd4;
       if (permanent_server_sockets)
         return server_sock_fd4;
       if (server_sock_fd4 == INVALID_SOCK_FD)
@@ -279,6 +313,8 @@ NIO_OpenServerSocket(NTP_Remote_Address *remote_addr)
         server_sock_ref4++;
       return server_sock_fd4;
     case IPADDR_INET6:
+      if (ptp_port > 0 && remote_addr->port == ptp_port)
+        return ptp_sock_fd6;
       if (permanent_server_sockets)
         return server_sock_fd6;
       if (server_sock_fd6 == INVALID_SOCK_FD)
@@ -293,9 +329,20 @@ NIO_OpenServerSocket(NTP_Remote_Address *remote_addr)
 
 /* ================================================== */
 
+static int
+is_ptp_socket(int sock_fd)
+{
+  return ptp_port > 0 && (sock_fd == ptp_sock_fd4 || sock_fd == ptp_sock_fd6);
+}
+
+/* ================================================== */
+
 void
 NIO_CloseClientSocket(int sock_fd)
 {
+  if (is_ptp_socket(sock_fd))
+    return;
+
   if (separate_client_sockets)
     close_socket(sock_fd);
 }
@@ -305,7 +352,7 @@ NIO_CloseClientSocket(int sock_fd)
 void
 NIO_CloseServerSocket(int sock_fd)
 {
-  if (permanent_server_sockets || sock_fd == INVALID_SOCK_FD)
+  if (permanent_server_sockets || sock_fd == INVALID_SOCK_FD || is_ptp_socket(sock_fd))
     return;
 
   if (sock_fd == server_sock_fd4) {
@@ -329,7 +376,7 @@ int
 NIO_IsServerSocket(int sock_fd)
 {
   return sock_fd != INVALID_SOCK_FD &&
-    (sock_fd == server_sock_fd4 || sock_fd == server_sock_fd6);
+    (sock_fd == server_sock_fd4 || sock_fd == server_sock_fd6 || is_ptp_socket(sock_fd));
 }
 
 /* ================================================== */
@@ -337,7 +384,8 @@ NIO_IsServerSocket(int sock_fd)
 int
 NIO_IsServerSocketOpen(void)
 {
-  return server_sock_fd4 != INVALID_SOCK_FD || server_sock_fd6 != INVALID_SOCK_FD;
+  return server_sock_fd4 != INVALID_SOCK_FD || server_sock_fd6 != INVALID_SOCK_FD ||
+    ptp_sock_fd4 != INVALID_SOCK_FD || ptp_sock_fd6 != INVALID_SOCK_FD;
 }
 
 /* ================================================== */
@@ -392,6 +440,9 @@ process_message(SCK_Message *message, int sock_fd, int event)
     DEBUG_LOG("Updated RX timestamp delay=%.9f tss=%u",
               UTI_DiffTimespecsToDouble(&sched_ts, &local_ts.ts), local_ts.source);
 
+  if (!NIO_UnwrapMessage(message, sock_fd))
+    return;
+
   /* Just ignore the packet if it's not of a recognized length */
   if (message->length < NTP_HEADER_LENGTH || message->length > sizeof (NTP_Packet)) {
     DEBUG_LOG("Unexpected length");
@@ -431,6 +482,78 @@ read_from_socket(int sock_fd, int event, void *anything)
 }
 
 /* ================================================== */
+
+int
+NIO_UnwrapMessage(SCK_Message *message, int sock_fd)
+{
+  PTP_NtpMessage *msg;
+
+  if (!is_ptp_socket(sock_fd))
+    return 1;
+
+  if (message->length <= PTP_NTP_PREFIX_LENGTH) {
+    DEBUG_LOG("Unexpected length");
+    return 0;
+  }
+
+  msg = message->data;
+
+  if (msg->header.type != PTP_TYPE_DELAY_REQ || msg->header.version != PTP_VERSION ||
+      ntohs(msg->header.length) != message->length ||
+      msg->header.domain != PTP_DOMAIN_NTP ||
+      ntohs(msg->header.flags) != PTP_FLAG_UNICAST ||
+      ntohs(msg->tlv_header.type) != PTP_TLV_NTP ||
+      ntohs(msg->tlv_header.length) != message->length - PTP_NTP_PREFIX_LENGTH) {
+    DEBUG_LOG("Unexpected PTP message");
+    return 0;
+  }
+
+  message->data = (char *)message->data + PTP_NTP_PREFIX_LENGTH;
+  message->length -= PTP_NTP_PREFIX_LENGTH;
+
+  DEBUG_LOG("Unwrapped PTP->NTP len=%d", message->length);
+
+  return 1;
+}
+
+/* ================================================== */
+
+static int
+wrap_message(SCK_Message *message, int sock_fd)
+{
+  assert(PTP_NTP_PREFIX_LENGTH == 48);
+
+  if (!is_ptp_socket(sock_fd))
+    return 1;
+
+  if (!ptp_message)
+    return 0;
+
+  if (message->length < NTP_HEADER_LENGTH ||
+      message->length + PTP_NTP_PREFIX_LENGTH > sizeof (*ptp_message)) {
+    DEBUG_LOG("Unexpected length");
+    return 0;
+  }
+
+  memset(ptp_message, 0, PTP_NTP_PREFIX_LENGTH);
+  ptp_message->header.type = PTP_TYPE_DELAY_REQ;
+  ptp_message->header.version = PTP_VERSION;
+  ptp_message->header.length = htons(PTP_NTP_PREFIX_LENGTH + message->length);
+  ptp_message->header.domain = PTP_DOMAIN_NTP;
+  ptp_message->header.flags = htons(PTP_FLAG_UNICAST);
+  ptp_message->tlv_header.type = htons(PTP_TLV_NTP);
+  ptp_message->tlv_header.length = htons(message->length);
+  memcpy((char *)ptp_message + PTP_NTP_PREFIX_LENGTH, message->data, message->length);
+
+  message->data = ptp_message;
+  message->length += PTP_NTP_PREFIX_LENGTH;
+
+  DEBUG_LOG("Wrapped NTP->PTP len=%d", message->length - PTP_NTP_PREFIX_LENGTH);
+
+  return 1;
+}
+
+/* ================================================== */
 /* Send a packet to remote address from local address */
 
 int
@@ -450,6 +573,9 @@ NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,
 
   message.data = packet;
   message.length = length;
+
+  if (!wrap_message(&message, local_addr->sock_fd))
+    return 0;
 
   /* Specify remote address if the socket is not connected */
   if (NIO_IsServerSocket(local_addr->sock_fd) || !separate_client_sockets) {

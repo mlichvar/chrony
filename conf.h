@@ -152,6 +152,8 @@ typedef struct {
 
 extern int CNF_GetHwTsInterface(unsigned int index, CNF_HwTsInterface **iface);
 
+extern int CNF_GetPtpPort(void);
+
 extern char *CNF_GetNtsDumpDir(void);
 extern char *CNF_GetNtsNtpServer(void);
 extern int CNF_GetNtsServerCertAndKeyFiles(const char ***certs, const char ***keys);

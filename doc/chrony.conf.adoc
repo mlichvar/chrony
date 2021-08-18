@@ -2365,7 +2365,7 @@ timestamping, which can be verified with the *ethtool -T* command. The list of
 capabilities should include _SOF_TIMESTAMPING_RAW_HARDWARE_,
 _SOF_TIMESTAMPING_TX_HARDWARE_, and _SOF_TIMESTAMPING_RX_HARDWARE_. Receive
 filter _HWTSTAMP_FILTER_ALL_, or _HWTSTAMP_FILTER_NTP_ALL_, is necessary for
-timestamping of received packets. Timestamping of packets received from bridged
+timestamping of received NTP packets. Timestamping of packets received on bridged
 and bonded interfaces is supported on Linux 4.13 and newer. When *chronyd* is
 running, no other process (e.g. a PTP daemon) should be working with the NIC
 clock.
@@ -2421,12 +2421,14 @@ Enables timestamping of received PTP packets.
 _none_::::
 Disables timestamping of received packets.
 {blank}:::
-The most specific filter for timestamping NTP packets which is supported by the
-NIC is selected by default. Some NICs can timestamp only PTP packets, which
-limits the selection to the _none_ filter. Forcing timestamping of all packets
-with the _all_ filter when the NIC supports both _all_ and _ntp_ filters can be
-useful when packets are received from or on a non-standard UDP port (e.g.
-specified by the *port* directive).
+The most specific filter for timestamping of NTP packets supported by the NIC
+is selected by default. Some NICs can timestamp PTP packets only. By default,
+they will be configured with the _none_ filter and expected to provide hardware
+timestamps for transmitted packets only. Timestamping of PTP packets is useful
+with NTP-over-PTP enabled by the <<chrony.conf.adoc#ptpport,*ptpport*>>
+directive. Forcing timestamping of all packets with the _all_ filter could be
+useful if the NIC supported both the _all_ and _ntp_ filters, and it should
+timestamp both NTP and PTP packets, or NTP packets on a different UDP port.
 {blank}::
 +
 Examples of the directive are:
@@ -2517,6 +2519,32 @@ e.g.:
 +
 ----
 pidfile /run/chronyd.pid
+----
+
+[[ptpport]]*ptpport* _port_::
+The *ptpport* directive enables *chronyd* to send and receive NTP messages
+contained in PTP event messages (NTP-over-PTP) to enable hardware timestamping
+on NICs which cannot timestamp NTP packets, but can timestamp unicast PTP
+packets. The port recognized by the NICs is 319 (PTP event port). The default
+value is 0 (disabled).
++
+The NTP-over-PTP support is experimental. The protocol and configuration can
+change in future. It should be used only in local networks and expected to work
+only between servers and clients running the same version of *chronyd*.
++
+The PTP port will be open even if *chronyd* is not configured to operate as a
+server or client. The directive does not change the default protocol of
+specified NTP sources. Each NTP source that should use NTP-over-PTP needs to
+be specified with the *port* option set to the PTP port. To actually enable
+hardware timestamping on NICs which can timestamp PTP packets only, the
+*rxfilter* option of the *hwtimestamp* directive needs to be set to _ptp_.
++
+An example of client configuration is:
++
+----
+server foo.example.net port 319
+hwtimestamp * rxfilter ptp
+ptpport 319
 ----
 
 [[sched_priority]]*sched_priority* _priority_::
