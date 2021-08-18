@@ -1261,10 +1261,6 @@ is 5000 ppm, and on Solaris it is 32500 ppm. Also, due to a kernel limitation,
 setting *maxslewrate* on FreeBSD, NetBSD, macOS 10.13+ to a value between 500
 ppm and 5000 ppm will effectively set it to 500 ppm.
 +
-In early beta releases of macOS 13 this capability is disabled because of a
-system kernel bug. When the kernel bug is fixed, chronyd will detect this and
-re-enable the capability (see above limitations) with no recompilation required.
-+
 By default, the maximum slew rate is set to 83333.333 ppm (one twelfth).
 
 [[tempcomp]]
