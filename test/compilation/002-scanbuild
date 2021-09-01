@@ -9,6 +9,7 @@ for opts in \
 	"--without-nettle" \
 	"--without-nettle --without-nss" \
 	"--without-nettle --without-nss --without-tomcrypt"
+	"--without-nettle --without-nss --without-tomcrypt --without-gnutls"
 do
 	./configure $opts
 	scan-build make "$@" || exit 1

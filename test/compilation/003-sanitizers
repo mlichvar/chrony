@@ -37,7 +37,8 @@ for CC in gcc clang; do
       "--without-gnutls" \
       "--without-nettle" \
       "--without-nettle --without-nss" \
-      "--without-nettle --without-nss --without-tomcrypt"; \
+      "--without-nettle --without-nss --without-tomcrypt" \
+      "--without-nettle --without-nss --without-tomcrypt --without-gnutls"; \
     do
       for san_options in "" "-fsanitize=address" "-fsanitize=memory"; do
         export CFLAGS="-O2 -g -fsanitize=undefined -fsanitize=float-divide-by-zero -fno-sanitize-recover=undefined,float-divide-by-zero $san_options $arch_opts"
