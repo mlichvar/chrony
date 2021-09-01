@@ -2535,7 +2535,7 @@ hardware timestamping on NICs which can timestamp PTP packets only, the
 An example of client configuration is:
 +
 ----
-server foo.example.net port 319
+server foo.example.net minpoll 0 maxpoll 0 xleave port 319
 hwtimestamp * rxfilter ptp
 ptpport 319
 ----
