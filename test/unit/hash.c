@@ -38,6 +38,7 @@ test_unit(void)
   unsigned char data2[] = "12345678910";
   unsigned char out[MAX_HASH_LENGTH];
   struct hash_test tests[] = {
+    { "MD5-NC",    "\xfc\x24\x97\x1b\x52\x66\xdc\x46\xef\xe0\xe8\x08\x46\x89\xb6\x88", 16 },
     { "MD5",       "\xfc\x24\x97\x1b\x52\x66\xdc\x46\xef\xe0\xe8\x08\x46\x89\xb6\x88", 16 },
     { "SHA1",      "\xd8\x85\xb3\x86\xce\xea\x93\xeb\x92\xcd\x7b\x94\xb9\x8d\xc2\x8e"
                    "\x3e\x31\x13\xdd", 20},
@@ -77,9 +78,15 @@ test_unit(void)
 
   for (i = 0; tests[i].name[0] != '\0'; i++) {
     algorithm = UTI_HashNameToAlgorithm(tests[i].name);
-    TEST_CHECK(algorithm != 0);
+    if (strcmp(tests[i].name, "MD5-NC") == 0) {
+      TEST_CHECK(algorithm == 0);
+      algorithm = HSH_MD5_NONCRYPTO;
+    } else {
+      TEST_CHECK(algorithm != 0);
+    }
     hash_id = HSH_GetHashId(algorithm);
     if (hash_id < 0) {
+      TEST_CHECK(algorithm != HSH_MD5_NONCRYPTO);
       TEST_CHECK(algorithm != HSH_MD5);
 #ifdef FEAT_SECHASH
       TEST_CHECK(algorithm != HSH_SHA1);

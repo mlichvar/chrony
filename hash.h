@@ -44,6 +44,7 @@ typedef enum {
   HSH_SHA3_512 = 9,
   HSH_TIGER = 10,
   HSH_WHIRLPOOL = 11,
+  HSH_MD5_NONCRYPTO = 10000, /* For NTPv4 reference ID */
 } HSH_Algorithm;
 
 extern int HSH_GetHashId(HSH_Algorithm algorithm);

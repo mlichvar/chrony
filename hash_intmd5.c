@@ -39,7 +39,7 @@ int
 HSH_GetHashId(HSH_Algorithm algorithm)
 {
   /* only MD5 is supported */
-  if (algorithm != HSH_MD5)
+  if (algorithm != HSH_MD5 && algorithm != HSH_MD5_NONCRYPTO)
     return -1;
 
   return 0;

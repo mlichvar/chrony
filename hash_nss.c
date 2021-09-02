@@ -56,6 +56,9 @@ HSH_GetHashId(HSH_Algorithm algorithm)
 {
   int i;
 
+  if (algorithm == HSH_MD5_NONCRYPTO)
+    algorithm = HSH_MD5;
+
   for (i = 0; hashes[i].algorithm != 0; i++) {
     if (hashes[i].algorithm == algorithm)
       break;

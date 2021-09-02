@@ -40,6 +40,7 @@ struct hash {
 };
 
 static struct hash hashes[] = {
+  { HSH_MD5_NONCRYPTO, GNUTLS_DIG_MD5, NULL },
   { HSH_MD5, GNUTLS_DIG_MD5, NULL },
   { HSH_SHA1, GNUTLS_DIG_SHA1, NULL },
   { HSH_SHA256, GNUTLS_DIG_SHA256, NULL },
@@ -77,7 +78,14 @@ HSH_GetHashId(HSH_Algorithm algorithm)
   if (hashes[id].handle)
     return id;
 
+  if (algorithm == HSH_MD5_NONCRYPTO)
+    GNUTLS_FIPS140_SET_LAX_MODE();
+
   r = gnutls_hash_init(&hashes[id].handle, hashes[id].type);
+
+  if (algorithm == HSH_MD5_NONCRYPTO)
+    GNUTLS_FIPS140_SET_STRICT_MODE();
+
   if (r < 0) {
     DEBUG_LOG("Could not initialise %s : %s", "hash", gnutls_strerror(r));
     hashes[id].handle = NULL;

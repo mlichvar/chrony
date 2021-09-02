@@ -400,7 +400,7 @@ UTI_IPToRefid(const IPAddr *ip)
       return ip->addr.in4;
     case IPADDR_INET6:
       if (MD5_hash < 0)
-        MD5_hash = HSH_GetHashId(HSH_MD5);
+        MD5_hash = HSH_GetHashId(HSH_MD5_NONCRYPTO);
 
       if (MD5_hash < 0 ||
           HSH_Hash(MD5_hash, (const unsigned char *)ip->addr.in6, sizeof (ip->addr.in6),
