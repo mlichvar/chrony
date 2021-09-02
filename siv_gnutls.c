@@ -102,8 +102,11 @@ SIV_CreateInstance(SIV_Algorithm algorithm)
     init_gnutls();
 
   /* Check if the cipher is actually supported */
-  if (gnutls_cipher_get_tag_size(calgo) == 0)
+  if (gnutls_cipher_get_tag_size(calgo) == 0) {
+    if (instance_counter == 0)
+      deinit_gnutls();
     return NULL;
+  }
 
   instance = MallocNew(struct SIV_Instance_Record);
   instance->algorithm = calgo;
