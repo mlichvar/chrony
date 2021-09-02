@@ -255,7 +255,7 @@ do_bind_socket(ReqBindSocket *req, PrvResponse *res)
 
   SCK_SockaddrToIPSockAddr(sa, sa_len, &ip_saddr);
   if (ip_saddr.port != 0 && ip_saddr.port != CNF_GetNTPPort() &&
-      ip_saddr.port != CNF_GetAcquisitionPort()) {
+      ip_saddr.port != CNF_GetAcquisitionPort() && ip_saddr.port != CNF_GetPtpPort()) {
     SCK_CloseSocket(sock_fd);
     res_fatal(res, "Invalid port %d", ip_saddr.port);
     return;
@@ -547,7 +547,7 @@ PRV_BindSocket(int sock, struct sockaddr *address, socklen_t address_len)
 
   SCK_SockaddrToIPSockAddr(address, address_len, &ip_saddr);
   if (ip_saddr.port != 0 && ip_saddr.port != CNF_GetNTPPort() &&
-      ip_saddr.port != CNF_GetAcquisitionPort())
+      ip_saddr.port != CNF_GetAcquisitionPort() && ip_saddr.port != CNF_GetPtpPort())
     assert(0);
 
   if (!have_helper())
