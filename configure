@@ -955,7 +955,7 @@ if [ $feat_ntp = "1" ] && [ $feat_nts = "1" ] && [ $try_gnutls = "1" ]; then
       add_def HAVE_SIV
       add_def HAVE_NETTLE_SIV_CMAC
     else
-      if test_code 'SIV in gnutls' 'gnutls/gnutls.h' \
+      if test_code 'SIV in gnutls' 'gnutls/crypto.h' \
         "$test_cflags" "$test_link" '
           return gnutls_aead_cipher_init(NULL, GNUTLS_CIPHER_AES_128_SIV, NULL);'
       then
