@@ -76,6 +76,7 @@ default_max_sync_time=210
 default_client_min_mean_out_interval=0.0
 default_client_max_min_out_interval=inf
 
+default_cmdmon_unix=1
 default_dns=0
 
 # Initialize test settings from their defaults
@@ -434,6 +435,7 @@ run_simulation() {
 	test_message 2 0 "running simulation:"
 
 	start_server $nodes \
+		-n 2 \
 		-o tmp/log.offset -f tmp/log.freq -p tmp/log.packets \
 		-R $(awk "BEGIN {print $update_interval < 0 ? 2^-($update_interval) : 1}") \
 		-r $(awk "BEGIN {print $max_sync_time * 2^$update_interval}") \
@@ -448,6 +450,8 @@ run_test() {
 
 	nodes=$(get_chronyd_nodes)
 	[ -n "$chronyc_conf" ] && nodes=$[$nodes + $clients]
+
+	export CLKNETSIM_UNIX_SUBNET=$[$cmdmon_unix != 0 ? 2 : 0]
 
 	for i in $(seq 1 $nodes); do
 		echo "node${i}_shift_pll = $shift_pll"
@@ -503,9 +507,15 @@ run_test() {
 	for i in $(seq 1 $[$nodes - $node + 1]); do
 		test_message 2 0 "starting node $node:"
 
+		options=$([ $dns -eq 0 ] && printf "%s" "-n")
+		if [ $cmdmon_unix -ne 0 ]; then
+			options+=" -h /clknetsim/unix/$[$node - $clients]:1"
+		else
+			options+=" -h $(get_node_name $[$node - $clients])"
+		fi
+
 		echo "node${node}_start = $chronyc_start" >> tmp/conf
-		start_client $node chronyc "$chronyc_conf" "" \
-			"$([ $dns -eq 0 ] && printf "%s" "-n") -h $(get_node_name $[$node - $clients]) $chronyc_options" && \
+		start_client $node chronyc "$chronyc_conf" "" "$options $chronyc_options" && \
 			test_ok || test_error
 
 		[ $? -ne 0 ] && return 1

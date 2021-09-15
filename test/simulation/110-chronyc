@@ -14,6 +14,7 @@ server 192.168.123.2"
 client_conf="
 refclock SHM 0 noselect
 smoothtime 400 0.001 leaponly"
+cmdmon_unix=0
 
 chronyc_conf="activity
 tracking
