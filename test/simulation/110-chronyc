@@ -109,9 +109,7 @@ for chronyc_conf in \
 	"allow 3.4.5" \
 	"allow 6.7.8/22" \
 	"allow 6.7.8.9/22" \
-	"allow 2001:db8::/32" \
 	"allow 0/0" \
-	"allow ::/0" \
 	"allow" \
 	"allow all 10/24" \
 	"authdata" \

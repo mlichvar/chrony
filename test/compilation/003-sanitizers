@@ -33,6 +33,7 @@ for CC in gcc clang; do
 
     for extra_config_opts in \
       "--all-privops" \
+      "--disable-ipv6" \
       "--disable-scfilter" \
       "--without-gnutls" \
       "--without-nettle" \
