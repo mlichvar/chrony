@@ -93,7 +93,7 @@ check_chronyc_output "^C0A87B01,192\.168\.123\.1,2,12623049..\..........,-?0\.00
 
 chronyc_options=""
 server_strata=0
-chronyc_start=0
+chronyc_start=0.5
 client_server_conf=""
 client_conf=""
 server_conf="server 192.168.123.1"
@@ -178,6 +178,250 @@ do
 	check_chronyd_exit || test_fail
 	check_chronyc_output "501 Not authorised$" || test_fail
 done
+
+cmdmon_unix=1
+
+chronyc_conf="
+authdata
+clients -k -p 2
+clients -r
+clients
+ntpdata
+selectdata
+serverstats"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+
+check_chronyc_output "^Name/IP address             Mode KeyID Type KLen Last Atmp  NAK Cook CLen
+=========================================================================
+node1\.net1\.clk                 -     0    0    0    -    0    0    0    0
+Hostname                      NTP   Drop Int IntL Last  NTS-KE   Drop Int  Last
+===============================================================================
+Hostname                      NTP   Drop Int IntL Last     Cmd   Drop Int  Last
+===============================================================================
+node1\.net1\.clk                  1      0   -   -     0       0      0   -     -
+Hostname                      NTP   Drop Int IntL Last     Cmd   Drop Int  Last
+===============================================================================
+node1\.net1\.clk                  0      0   -   -     0       0      0   -     -
+
+Remote address  : 192\.168\.123\.1 \(C0A87B01\)
+Remote port     : 123
+Local address   : 192\.168\.123\.1 \(C0A87B01\)
+Leap status     : Normal
+Version         : 4
+Mode            : Server
+Stratum         : 1
+Poll interval   : 6 \(64 seconds\)
+Precision       : -23 \(0\.000000119 seconds\)
+Root delay      : 0\.000000 seconds
+Root dispersion : 0\.000000 seconds
+Reference ID    : 7F7F0101 \(\)
+Reference time  : Thu Dec 31 23:59:5[89] 2009
+Offset          : [-+]0\.000...... seconds
+Peer delay      : 0\.00....... seconds
+Peer dispersion : 0\.00000.... seconds
+Response time   : 0\.000000... seconds
+Jitter asymmetry: \+0\.00
+NTP tests       : 111 111 1110
+Interleaved     : No
+Authenticated   : No
+TX timestamping : Kernel
+RX timestamping : Kernel
+Total TX        : 1
+Total RX        : 1
+Total valid RX  : 1
+S Name/IP Address        Auth COpts EOpts Last Score     Interval  Leap
+=======================================================================
+M node1\.net1\.clk            N ----- -----    0   1\.0    \+0ns    \+0ns  N
+NTP packets received       : 1
+NTP packets dropped        : 0
+Command packets received   : 12
+Command packets dropped    : 0
+Client log records dropped : 0
+NTS-KE connections accepted: 0
+NTS-KE connections dropped : 0
+Authenticated NTP packets  : 0$" || test_fail
+
+chronyc_conf="
+deny all
+cmdallow all
+allow 1.2.3.4
+allow 1.2.3.0/28
+deny 1.2.3.0/27
+allow 1.2.4.5
+deny all 1.2.4.0/27
+cmddeny 5.6.7.8
+cmdallow all 5.6.7.0/28
+accheck 1.2.3.4
+accheck 1.2.3.5
+accheck 1.2.4.5
+cmdaccheck 5.6.7.8"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+
+check_chronyc_output "^200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+208 Access allowed
+209 Access denied
+209 Access denied
+208 Access allowed$" || test_fail
+
+if check_config_h 'FEAT_IPV6 1'; then
+	chronyc_conf="
+	deny all
+	cmdallow all
+	allow 2001:db8::1
+	allow 2001:db8::/64
+	deny 2001:db8::/63
+	allow 2001:db8:1::1
+	deny all 2001:db8:1::/63
+	cmddeny 2001:db9::1
+	cmdallow all 2001:db9::/64
+	accheck 2001:db8::1
+	accheck 2001:db8::2
+	accheck 2001:db8:1::1
+	cmdaccheck 2001:db9::1"
+
+	run_test || test_fail
+	check_chronyd_exit || test_fail
+
+	check_chronyc_output "^200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+208 Access allowed
+209 Access denied
+209 Access denied
+208 Access allowed$" || test_fail
+fi
+
+chronyc_conf="
+delete 192.168.123.1
+add server node1.net1.clk minpoll 6 maxpoll 10 iburst
+offline 192.168.123.1
+burst 1/1 192.168.123.1
+online 192.168.123.1
+maxdelay 192.168.123.1 1e-2
+maxdelaydevratio 192.168.123.1 5.0
+maxdelayratio 192.168.123.1 3.0
+maxpoll 192.168.123.1 5
+maxupdateskew 192.168.123.1 10.0
+minpoll 192.168.123.1 3
+minstratum 192.168.123.1 1
+polltarget 192.168.123.1 10
+delete 192.168.123.1"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+
+check_chronyc_output "^200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK$" || test_fail
+
+chronyc_conf="
+cyclelogs
+dump
+dfreq 1.0e-3
+doffset -0.01
+local stratum 5 distance 1.0 orphan
+local off
+makestep 10.0 3
+makestep
+manual on
+settime now
+manual delete 0
+manual reset
+manual off
+onoffline
+refresh
+rekey
+reload sources
+reselect
+reselectdist 1e-3
+reset sources
+shutdown"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+
+check_chronyc_output "^200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+Clock was .\... seconds fast.  Frequency change = 0.00ppm, new frequency = 0.00ppm
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK
+200 OK$" || test_fail
+
+server_conf="
+server 192.168.123.1
+noclientlog"
+
+commands=(
+	"add server nosuchnode.net1.clk" "^Invalid host/IP address$"
+	"allow nosuchnode.net1.clk" "^Could not read address$"
+	"allow 192.168.123.2/33" "^507 Bad subnet$"
+	"clients" "Hostname.*519 Client logging is not active in the daemon$"
+	"delete 192.168.123.2" "^503 No such source$"
+	"minpoll 192.168.123.2 5" "^503 No such source$"
+	"ntpdata 192.168.123.2" "^503 No such source$"
+	"settime now" "^505 Facility not enabled in daemon$"
+	"smoothing" "^505 Facility not enabled in daemon$"
+	"smoothtime activate" "^505 Facility not enabled in daemon$"
+	"smoothtime reset" "^505 Facility not enabled in daemon$"
+	"sourcename 192.168.123.2" "^503 No such source$"
+	"trimrtc" "^513 RTC driver not running$"
+	"writertc" "^513 RTC driver not running$"
+)
+
+for i in $(seq 0 $[${#commands[*]} / 2]); do
+	chronyc_conf=${commands[$[i * 2]]}
+	run_test || test_fail
+	check_chronyd_exit || test_fail
+	check_chronyc_output "${commands[$[i * 2 + 1]]}" || test_fail
+done
+
+cmdmon_unix=0
+server_conf="server 192.168.123.1"
 
 chronyc_conf="dns -n
 dns +n
