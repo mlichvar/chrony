@@ -529,8 +529,7 @@ typedef struct {
 #define STT_BADSUBNET 7
 #define STT_ACCESSALLOWED 8
 #define STT_ACCESSDENIED 9
-/* Deprecated */
-#define STT_NOHOSTACCESS 10
+#define STT_NOHOSTACCESS 10 /* Deprecated */
 #define STT_SOURCEALREADYKNOWN 11
 #define STT_TOOMANYSOURCES 12
 #define STT_NORTC 13
