@@ -182,6 +182,85 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
 /* ================================================== */
 
 int
+CPS_ParseAllowDeny(char *line, int *all, IPAddr *ip, int *subnet_bits)
+{
+  char *p, *net, *slash;
+  uint32_t a, b, c;
+  int bits, len, n;
+
+  p = CPS_SplitWord(line);
+
+  if (strcmp(line, "all") == 0) {
+    *all = 1;
+    net = p;
+    p = CPS_SplitWord(p);
+  } else {
+    *all = 0;
+    net = line;
+  }
+
+  /* Make sure there are no other arguments */
+  if (*p)
+    return 0;
+
+  /* No specified address or network means all IPv4 and IPv6 addresses */
+  if (!*net) {
+    ip->family = IPADDR_UNSPEC;
+    *subnet_bits = 0;
+    return 1;
+  }
+
+  slash = strchr(net, '/');
+  if (slash) {
+    if (sscanf(slash + 1, "%d%n", &bits, &len) != 1 || slash[len + 1] || bits < 0)
+      return 0;
+    *slash = '\0';
+  } else {
+    bits = -1;
+  }
+
+  if (UTI_StringToIP(net, ip)) {
+    if (bits >= 0)
+      *subnet_bits = bits;
+    else
+      *subnet_bits = ip->family == IPADDR_INET6 ? 128 : 32;
+    return 1;
+  }
+
+  /* Check for a shortened IPv4 network notation using only 1, 2, or 3 decimal
+     numbers.  This is different than the numbers-and-dots notation accepted
+     by inet_aton()! */
+
+  a = b = c = 0;
+  n = sscanf(net, "%"PRIu32"%n.%"PRIu32"%n.%"PRIu32"%n", &a, &len, &b, &len, &c, &len);
+
+  if (n > 0 && !net[len]) {
+    if (a > 255 || b > 255 || c > 255)
+      return 0;
+
+    ip->family = IPADDR_INET4;
+    ip->addr.in4 = (a << 24) | (b << 16) | (c << 8);
+
+    if (bits >= 0)
+      *subnet_bits = bits;
+    else
+      *subnet_bits = n * 8;
+
+    return 1;
+  }
+
+  /* The last possibility is a hostname */
+  if (bits < 0 && DNS_Name2IPAddress(net, ip, 1) == DNS_Success) {
+    *subnet_bits = ip->family == IPADDR_INET6 ? 128 : 32;
+    return 1;
+  }
+
+  return 0;
+}
+
+/* ================================================== */
+
+int
 CPS_ParseLocal(char *line, int *stratum, int *orphan, double *distance)
 {
   int n;

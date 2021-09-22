@@ -39,6 +39,9 @@ typedef struct {
 /* Parse a command to add an NTP server or peer */
 extern int CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src);
   
+/* Parse a command to allow/deny access */
+extern int CPS_ParseAllowDeny(char *line, int *all, IPAddr *ip, int *subnet_bits);
+
 /* Parse a command to enable local reference */
 extern int CPS_ParseLocal(char *line, int *stratum, int *orphan, double *distance);
 
