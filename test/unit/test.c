@@ -90,7 +90,7 @@ main(int argc, char **argv)
 double
 TST_GetRandomDouble(double min, double max)
 {
-  return min + (double)random() / RAND_MAX * (max - min);
+  return min + random() / 2147483647.0 * (max - min);
 }
 
 void
