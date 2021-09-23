@@ -1741,7 +1741,8 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
   DEBUG_LOG("NTP packet lvm=%o stratum=%d poll=%d prec=%d root_delay=%f root_disp=%f refid=%"PRIx32" [%s]",
             message->lvm, message->stratum, message->poll, message->precision,
             pkt_root_delay, pkt_root_dispersion, pkt_refid,
-            message->stratum == NTP_INVALID_STRATUM ? UTI_RefidToString(pkt_refid) : "");
+            message->stratum == NTP_INVALID_STRATUM || message->stratum == 1 ?
+              UTI_RefidToString(pkt_refid) : "");
   DEBUG_LOG("reference=%s origin=%s receive=%s transmit=%s",
             UTI_Ntp64ToString(&message->reference_ts),
             UTI_Ntp64ToString(&message->originate_ts),
