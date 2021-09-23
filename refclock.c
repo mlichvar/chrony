@@ -572,10 +572,7 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
     }
 
     /* Align the offset to the reference sample */
-    if ((ref_sample.offset - offset) >= 0.0)
-      shift = (long)((ref_sample.offset - offset) * rate + 0.5) / (double)rate;
-    else
-      shift = (long)((ref_sample.offset - offset) * rate - 0.5) / (double)rate;
+    shift = round((ref_sample.offset - offset) * rate) / rate;
 
     offset += shift;
 

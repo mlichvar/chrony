@@ -98,21 +98,6 @@ static int have_setoffset;
 static int tick_update_hz;
 
 /* ================================================== */
-
-inline static long
-our_round(double x)
-{
-  long y;
-
-  if (x > 0.0)
-    y = x + 0.5;
-  else
-    y = x - 0.5;
-
-  return y;
-}
-
-/* ================================================== */
 /* Positive means currently fast of true time, i.e. jump backwards */
 
 static int
@@ -149,7 +134,7 @@ set_frequency(double freq_ppm)
   double required_freq;
   int required_delta_tick;
 
-  required_delta_tick = our_round(freq_ppm / dhz);
+  required_delta_tick = round(freq_ppm / dhz);
 
   /* Older kernels (pre-2.6.18) don't apply the frequency offset exactly as
      set by adjtimex() and a scaling constant (that depends on the internal

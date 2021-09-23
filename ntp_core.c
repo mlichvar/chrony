@@ -2604,7 +2604,7 @@ broadcast_timeout(void *arg)
   int poll;
 
   destination = ARR_GetElement(broadcasts, (long)arg);
-  poll = log(destination->interval) / log(2.0) + 0.5;
+  poll = round(log(destination->interval) / log(2.0));
 
   UTI_ZeroNtp64(&orig_ts);
   zero_local_timestamp(&recv_ts);

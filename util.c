@@ -123,7 +123,7 @@ UTI_DoubleToTimeval(double a, struct timeval *b)
 
   b->tv_sec = a;
   frac_part = 1.0e6 * (a - b->tv_sec);
-  b->tv_usec = frac_part > 0 ? frac_part + 0.5 : frac_part - 0.5;
+  b->tv_usec = round(frac_part);
   UTI_NormaliseTimeval(b);
 }
 
