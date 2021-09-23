@@ -1709,20 +1709,20 @@ directive.
 The *ratelimit* directive supports a number of options (which can be defined
 in any order):
 +
-*interval*:::
+*interval* _interval_:::
 This option sets the minimum interval between responses. It is defined as a
 power of 2 in seconds. The default value is 3 (8 seconds). The minimum value
 is -19 (524288 packets per second) and the maximum value is 12 (one packet per
 4096 seconds). Note that with values below -4 the rate limiting is coarse
 (responses are allowed in bursts, even if the interval between them is shorter
 than the specified interval).
-*burst*:::
+*burst* _responses_:::
 This option sets the maximum number of responses that can be sent in a burst,
 temporarily exceeding the limit specified by the *interval* option. This is
 useful for clients that make rapid measurements on start (e.g. *chronyd* with
 the *iburst* option). The default value is 8. The minimum value is 1 and the
 maximum value is 255.
-*leak*:::
+*leak* _rate_:::
 This option sets the rate at which responses are randomly allowed even if the
 limits specified by the *interval* and *burst* options are exceeded. This is
 necessary to prevent an attacker who is sending requests with a spoofed
