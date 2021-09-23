@@ -8,7 +8,7 @@ for opts in \
 	"--host-system=FreeBSD" \
 	"--without-nettle" \
 	"--without-nettle --without-nss" \
-	"--without-nettle --without-nss --without-tomcrypt"
+	"--without-nettle --without-nss --without-tomcrypt" \
 	"--without-nettle --without-nss --without-tomcrypt --without-gnutls"
 do
 	./configure $opts
