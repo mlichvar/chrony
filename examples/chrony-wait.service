@@ -16,5 +16,32 @@ TimeoutStartSec=180
 RemainAfterExit=yes
 StandardOutput=null
 
+CapabilityBoundingSet=
+DevicePolicy=closed
+DynamicUser=yes
+IPAddressAllow=localhost
+IPAddressDeny=any
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+PrivateDevices=yes
+PrivateUsers=yes
+ProcSubset=pid
+ProtectClock=yes
+ProtectControlGroups=yes
+ProtectHome=yes
+ProtectHostname=yes
+ProtectKernelLogs=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectProc=invisible
+ProtectSystem=strict
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+UMask=0777
+
 [Install]
 WantedBy=multi-user.target
