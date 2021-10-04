@@ -33,7 +33,7 @@ ProtectKernelModules=yes
 ProtectKernelTunables=yes
 ProtectProc=invisible
 ProtectSystem=strict
-ReadWritePaths=/run /var/lib/chrony
+ReadWritePaths=/run /var/lib/chrony -/var/log
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 RestrictNamespaces=yes
 RestrictSUIDSGID=yes
@@ -42,7 +42,7 @@ SystemCallFilter=~@cpu-emulation @debug @module @mount @obsolete @raw-io @reboot
 
 # Adjust restrictions for /usr/sbin/sendmail (mailonchange directive)
 NoNewPrivileges=no
-ReadWritePaths=/var/spool
+ReadWritePaths=-/var/spool
 RestrictAddressFamilies=AF_NETLINK
 
 [Install]
