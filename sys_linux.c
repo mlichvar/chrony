@@ -739,10 +739,9 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
 
     /* Allow selected socket options */
     for (i = 0; i < sizeof (socket_options) / sizeof (*socket_options); i++) {
-      if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setsockopt), 3,
+      if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(setsockopt), 2,
                            SCMP_A1(SCMP_CMP_EQ, socket_options[i][0]),
-                           SCMP_A2(SCMP_CMP_EQ, socket_options[i][1]),
-                           SCMP_A4(SCMP_CMP_LE, sizeof (int))) < 0)
+                           SCMP_A2(SCMP_CMP_EQ, socket_options[i][1])))
         goto add_failed;
     }
 
