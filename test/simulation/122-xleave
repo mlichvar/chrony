@@ -8,6 +8,18 @@ client_conf="
 logdir tmp
 log rawmeasurements"
 
+server_conf="noclientlog"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_source_selection || test_fail
+check_sync || test_fail
+
+check_file_messages "111 111 1111.* 4I [DKH] [DKH]\$" 0 0 measurements.log || test_fail
+rm -f tmp/measurements.log
+
+server_conf=""
+
 run_test || test_fail
 check_chronyd_exit || test_fail
 check_source_selection || test_fail

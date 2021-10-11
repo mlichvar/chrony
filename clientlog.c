@@ -55,8 +55,6 @@ typedef struct {
   int8_t rate[MAX_SERVICES];
   int8_t ntp_timeout_rate;
   uint8_t drop_flags;
-  NTP_int64 ntp_rx_ts;
-  NTP_int64 ntp_tx_ts;
 } Record;
 
 /* Hash table of records, there is a fixed number of records per slot */
@@ -123,6 +121,35 @@ static int limit_interval[MAX_SERVICES];
 
 /* Flag indicating whether facility is turned on or not */
 static int active;
+
+/* RX and TX timestamp saved for clients using interleaved mode */
+typedef struct {
+  uint64_t rx_ts;
+  uint32_t flags;
+  int32_t tx_ts_offset;
+} NtpTimestamps;
+
+/* Flags for NTP timestamps */
+#define NTPTS_DISABLED 1
+#define NTPTS_VALID_TX 2
+
+/* RX->TX map using a circular buffer with ordered timestamps */
+typedef struct {
+  ARR_Instance timestamps;
+  uint32_t first;
+  uint32_t size;
+  uint32_t max_size;
+  uint32_t cached_index;
+  uint64_t cached_rx_ts;
+} NtpTimestampMap;
+
+static NtpTimestampMap ntp_ts_map;
+
+/* Maximum interval of NTP timestamps in future after a backward step */
+#define NTPTS_FUTURE_LIMIT (1LL << 32) /* 1 second */
+
+/* Maximum number of timestamps moved in the array to insert a new timestamp */
+#define NTPTS_INSERT_LIMIT 64
 
 /* Global statistics */
 static uint32_t total_hits[MAX_SERVICES];
@@ -229,8 +256,6 @@ get_record(IPAddr *ip)
     record->rate[i] = INVALID_RATE;
   record->ntp_timeout_rate = INVALID_RATE;
   record->drop_flags = 0;
-  UTI_ZeroNtp64(&record->ntp_rx_ts);
-  UTI_ZeroNtp64(&record->ntp_tx_ts);
 
   return record;
 }
@@ -359,7 +384,8 @@ CLG_Initialise(void)
   /* Calculate the maximum number of slots that can be allocated in the
      configured memory limit.  Take into account expanding of the hash
      table where two copies exist at the same time. */
-  max_slots = CNF_GetClientLogLimit() / (sizeof (Record) * SLOT_SIZE * 3 / 2);
+  max_slots = CNF_GetClientLogLimit() /
+              ((sizeof (Record) + sizeof (NtpTimestamps)) * SLOT_SIZE * 3 / 2);
   max_slots = CLAMP(MIN_SLOTS, max_slots, MAX_SLOTS);
   for (slots2 = 0; 1U << (slots2 + 1) <= max_slots; slots2++)
     ;
@@ -373,6 +399,13 @@ CLG_Initialise(void)
 
   UTI_GetRandomBytes(&ts_offset, sizeof (ts_offset));
   ts_offset %= NSEC_PER_SEC / (1U << TS_FRAC);
+
+  ntp_ts_map.timestamps = NULL;
+  ntp_ts_map.first = 0;
+  ntp_ts_map.size = 0;
+  ntp_ts_map.max_size = 1U << (slots2 + SLOT_BITS);
+  ntp_ts_map.cached_index = 0;
+  ntp_ts_map.cached_rx_ts = 0ULL;
 }
 
 /* ================================================== */
@@ -384,6 +417,8 @@ CLG_Finalise(void)
     return;
 
   ARR_DestroyInstance(records);
+  if (ntp_ts_map.timestamps)
+    ARR_DestroyInstance(ntp_ts_map.timestamps);
 }
 
 /* ================================================== */
@@ -598,22 +633,294 @@ CLG_LogAuthNtpRequest(void)
 
 /* ================================================== */
 
-void CLG_GetNtpTimestamps(int index, NTP_int64 **rx_ts, NTP_int64 **tx_ts)
+int
+CLG_GetNtpMinPoll(void)
 {
-  Record *record;
+  return limit_interval[CLG_NTP];
+}
 
-  record = ARR_GetElement(records, index);
+/* ================================================== */
 
-  *rx_ts = &record->ntp_rx_ts;
-  *tx_ts = &record->ntp_tx_ts;
+static NtpTimestamps *
+get_ntp_tss(uint32_t index)
+{
+  return ARR_GetElement(ntp_ts_map.timestamps,
+                        (ntp_ts_map.first + index) & (ntp_ts_map.max_size - 1));
+}
+
+/* ================================================== */
+
+static int
+find_ntp_rx_ts(uint64_t rx_ts, uint32_t *index)
+{
+  uint64_t rx_x, rx_lo, rx_hi, step;
+  uint32_t i, x, lo, hi;
+
+  if (ntp_ts_map.cached_rx_ts == rx_ts && rx_ts != 0ULL) {
+    *index = ntp_ts_map.cached_index;
+    return 1;
+  }
+
+  if (ntp_ts_map.size == 0) {
+    *index = 0;
+    return 0;
+  }
+
+  lo = 0;
+  hi = ntp_ts_map.size - 1;
+  rx_lo = get_ntp_tss(lo)->rx_ts;
+  rx_hi = get_ntp_tss(hi)->rx_ts;
+
+  /* Check for ts < lo before ts > hi to trim timestamps from "future" later
+     if both conditions are true to not break the order of the endpoints.
+     Compare timestamps by their difference to allow adjacent NTP eras. */
+  if ((int64_t)(rx_ts - rx_lo) < 0) {
+    *index = 0;
+    return 0;
+  } else if ((int64_t)(rx_ts - rx_hi) > 0) {
+    *index = ntp_ts_map.size;
+    return 0;
+  }
+
+  /* Perform a combined linear interpolation and binary search */
+
+  for (i = 0; ; i++) {
+    if (rx_ts == rx_hi) {
+      *index = ntp_ts_map.cached_index = hi;
+      ntp_ts_map.cached_rx_ts = rx_ts;
+      return 1;
+    } else if (rx_ts == rx_lo) {
+      *index = ntp_ts_map.cached_index = lo;
+      ntp_ts_map.cached_rx_ts = rx_ts;
+      return 1;
+    } else if (lo + 1 == hi) {
+      *index = hi;
+      return 0;
+    }
+
+    if (hi - lo > 3 && i % 2 == 0) {
+      step = (rx_hi - rx_lo) / (hi - lo);
+      if (step == 0)
+        step = 1;
+      x = lo + (rx_ts - rx_lo) / step;
+    } else {
+      x = lo + (hi - lo) / 2;
+    }
+
+    if (x <= lo)
+      x = lo + 1;
+    else if (x >= hi)
+      x = hi - 1;
+
+    rx_x = get_ntp_tss(x)->rx_ts;
+
+    if ((int64_t)(rx_x - rx_ts) <= 0) {
+      lo = x;
+      rx_lo = rx_x;
+    } else {
+      hi = x;
+      rx_hi = rx_x;
+    }
+  }
+}
+
+/* ================================================== */
+
+static uint64_t
+ntp64_to_int64(NTP_int64 *ts)
+{
+  return (uint64_t)ntohl(ts->hi) << 32 | ntohl(ts->lo);
+}
+
+/* ================================================== */
+
+static void
+int64_to_ntp64(uint64_t ts, NTP_int64 *ntp_ts)
+{
+  ntp_ts->hi = htonl(ts >> 32);
+  ntp_ts->lo = htonl(ts & ((1ULL << 32) - 1));
+}
+
+/* ================================================== */
+
+static uint32_t
+push_ntp_tss(uint32_t index)
+{
+  if (ntp_ts_map.size < ntp_ts_map.max_size) {
+    ntp_ts_map.size++;
+  } else {
+    ntp_ts_map.first = (ntp_ts_map.first + 1) % (ntp_ts_map.max_size);
+    if (index > 0)
+      index--;
+  }
+
+  return index;
+}
+
+/* ================================================== */
+
+static void
+set_ntp_tx_offset(NtpTimestamps *tss, NTP_int64 *rx_ts, struct timespec *tx_ts)
+{
+  struct timespec ts;
+
+  if (!tx_ts) {
+    tss->flags &= ~NTPTS_VALID_TX;
+    return;
+  }
+
+  UTI_Ntp64ToTimespec(rx_ts, &ts);
+  UTI_DiffTimespecs(&ts, tx_ts, &ts);
+
+  if (ts.tv_sec < -2 || ts.tv_sec > 1) {
+    tss->flags &= ~NTPTS_VALID_TX;
+    return;
+  }
+
+  tss->tx_ts_offset = (int32_t)ts.tv_nsec + (int32_t)ts.tv_sec * (int32_t)NSEC_PER_SEC;
+  tss->flags |= NTPTS_VALID_TX;
+}
+
+/* ================================================== */
+
+static void
+get_ntp_tx(NtpTimestamps *tss, struct timespec *tx_ts)
+{
+  int32_t offset = tss->tx_ts_offset;
+  NTP_int64 ntp_ts;
+
+  if (tss->flags & NTPTS_VALID_TX) {
+    int64_to_ntp64(tss->rx_ts, &ntp_ts);
+    UTI_Ntp64ToTimespec(&ntp_ts, tx_ts);
+    if (offset >= (int32_t)NSEC_PER_SEC) {
+      offset -= NSEC_PER_SEC;
+      tx_ts->tv_sec++;
+    }
+    tx_ts->tv_nsec += offset;
+    UTI_NormaliseTimespec(tx_ts);
+  } else {
+    UTI_ZeroTimespec(tx_ts);
+  }
+}
+
+/* ================================================== */
+
+void
+CLG_SaveNtpTimestamps(NTP_int64 *rx_ts, struct timespec *tx_ts)
+{
+  NtpTimestamps *tss;
+  uint32_t i, index;
+  uint64_t rx;
+
+  if (!active)
+    return;
+
+  /* Allocate the array on first use */
+  if (!ntp_ts_map.timestamps) {
+    ntp_ts_map.timestamps = ARR_CreateInstance(sizeof (NtpTimestamps));
+    ARR_SetSize(ntp_ts_map.timestamps, ntp_ts_map.max_size);
+  }
+
+  rx = ntp64_to_int64(rx_ts);
+
+  if (rx == 0ULL)
+    return;
+
+  /* Disable the RX timestamp if it already exists to avoid responding
+     with a wrong TX timestamp */
+  if (find_ntp_rx_ts(rx, &index)) {
+    get_ntp_tss(index)->flags |= NTPTS_DISABLED;
+    return;
+  }
+
+  assert(index <= ntp_ts_map.size);
+
+  if (index == ntp_ts_map.size) {
+    /* Increase the size or drop the oldest timestamp to make room for
+       the new timestamp */
+    index = push_ntp_tss(index);
+  } else {
+    /* Trim timestamps in distant future after backward step */
+    while (index < ntp_ts_map.size &&
+           get_ntp_tss(ntp_ts_map.size - 1)->rx_ts - rx > NTPTS_FUTURE_LIMIT)
+      ntp_ts_map.size--;
+
+    /* Insert the timestamp if it is close to the latest timestamp.
+       Otherwise, replace the closest older or the oldest timestamp. */
+    if (index + NTPTS_INSERT_LIMIT >= ntp_ts_map.size) {
+      index = push_ntp_tss(index);
+      for (i = ntp_ts_map.size - 1; i > index; i--)
+        *get_ntp_tss(i) = *get_ntp_tss(i - 1);
+    } else {
+      if (index > 0)
+        index--;
+    }
+  }
+
+  ntp_ts_map.cached_index = index;
+  ntp_ts_map.cached_rx_ts = rx;
+
+  tss = get_ntp_tss(index);
+  tss->rx_ts = rx;
+  tss->flags = 0;
+  set_ntp_tx_offset(tss, rx_ts, tx_ts);
+
+  DEBUG_LOG("Saved RX+TX index=%"PRIu32" first=%"PRIu32" size=%"PRIu32,
+            index, ntp_ts_map.first, ntp_ts_map.size);
+}
+
+/* ================================================== */
+
+void
+CLG_UpdateNtpTxTimestamp(NTP_int64 *rx_ts, struct timespec *tx_ts)
+{
+  uint32_t index;
+
+  if (!ntp_ts_map.timestamps)
+    return;
+
+  if (!find_ntp_rx_ts(ntp64_to_int64(rx_ts), &index))
+    return;
+
+  set_ntp_tx_offset(get_ntp_tss(index), rx_ts, tx_ts);
 }
 
 /* ================================================== */
 
 int
-CLG_GetNtpMinPoll(void)
+CLG_GetNtpTxTimestamp(NTP_int64 *rx_ts, struct timespec *tx_ts)
 {
-  return limit_interval[CLG_NTP];
+  NtpTimestamps *tss;
+  uint32_t index;
+
+  if (!ntp_ts_map.timestamps)
+    return 0;
+
+  if (!find_ntp_rx_ts(ntp64_to_int64(rx_ts), &index))
+    return 0;
+
+  tss = get_ntp_tss(index);
+
+  if (tss->flags & NTPTS_DISABLED)
+    return 0;
+
+  get_ntp_tx(tss, tx_ts);
+
+  return 1;
+}
+
+/* ================================================== */
+
+void
+CLG_DisableNtpTimestamps(NTP_int64 *rx_ts)
+{
+  uint32_t index;
+
+  if (!ntp_ts_map.timestamps)
+    return;
+
+  if (find_ntp_rx_ts(ntp64_to_int64(rx_ts), &index))
+    get_ntp_tss(index)->flags |= NTPTS_DISABLED;
 }
 
 /* ================================================== */

@@ -43,8 +43,13 @@ extern int CLG_GetClientIndex(IPAddr *client);
 extern int CLG_LogServiceAccess(CLG_Service service, IPAddr *client, struct timespec *now);
 extern int CLG_LimitServiceRate(CLG_Service service, int index);
 extern void CLG_LogAuthNtpRequest(void);
-extern void CLG_GetNtpTimestamps(int index, NTP_int64 **rx_ts, NTP_int64 **tx_ts);
 extern int CLG_GetNtpMinPoll(void);
+
+/* Functions to save and retrieve timestamps for server interleaved mode */
+extern void CLG_SaveNtpTimestamps(NTP_int64 *rx_ts, struct timespec *tx_ts);
+extern void CLG_UpdateNtpTxTimestamp(NTP_int64 *rx_ts, struct timespec *tx_ts);
+extern int CLG_GetNtpTxTimestamp(NTP_int64 *rx_ts, struct timespec *tx_ts);
+extern void CLG_DisableNtpTimestamps(NTP_int64 *rx_ts);
 
 /* And some reporting functions, for use by chronyc. */
 

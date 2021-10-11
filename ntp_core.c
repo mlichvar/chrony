@@ -2042,8 +2042,8 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
 {
   NTP_PacketInfo info;
   NTP_Mode my_mode;
-  NTP_int64 *local_ntp_rx, *local_ntp_tx;
   NTP_Local_Timestamp local_tx, *tx_ts;
+  NTP_int64 ntp_rx, *local_ntp_rx;
   int log_index, interleaved, poll, version;
   uint32_t kod;
 
@@ -2106,7 +2106,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
     CLG_LogAuthNtpRequest();
   }
 
-  local_ntp_rx = local_ntp_tx = NULL;
+  local_ntp_rx = NULL;
   tx_ts = NULL;
   interleaved = 0;
 
@@ -2115,18 +2115,15 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
      in the interleaved mode.  This means the third reply to a new client is
      the earliest one that can be interleaved.  We don't want to waste time
      on clients that are not using the interleaved mode. */
-  if (kod == 0 && log_index >= 0) {
-    CLG_GetNtpTimestamps(log_index, &local_ntp_rx, &local_ntp_tx);
-    interleaved = !UTI_IsZeroNtp64(local_ntp_rx) &&
-                  !UTI_CompareNtp64(&message->originate_ts, local_ntp_rx) &&
-                  UTI_CompareNtp64(&message->receive_ts, &message->transmit_ts);
+  if (kod == 0 &&
+      UTI_CompareNtp64(&message->receive_ts, &message->transmit_ts) != 0) {
+    ntp_rx = message->originate_ts;
+    local_ntp_rx = &ntp_rx;
+    interleaved = CLG_GetNtpTxTimestamp(&ntp_rx, &local_tx.ts);
 
     if (interleaved) {
-      UTI_Ntp64ToTimespec(local_ntp_tx, &local_tx.ts);
       tx_ts = &local_tx;
-    } else {
-      UTI_ZeroNtp64(local_ntp_tx);
-      local_ntp_tx = NULL;
+      CLG_DisableNtpTimestamps(&ntp_rx);
     }
   }
 
@@ -2144,9 +2141,8 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
                   rx_ts, tx_ts, local_ntp_rx, NULL, remote_addr, local_addr,
                   message, &info);
 
-  /* Save the transmit timestamp */
-  if (tx_ts)
-    UTI_TimespecToNtp64(&tx_ts->ts, local_ntp_tx, NULL);
+  if (local_ntp_rx)
+    CLG_SaveNtpTimestamps(local_ntp_rx, tx_ts ? &tx_ts->ts : NULL);
 }
 
 /* ================================================== */
@@ -2208,10 +2204,9 @@ void
 NCR_ProcessTxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
                      NTP_Local_Timestamp *tx_ts, NTP_Packet *message, int length)
 {
-  NTP_int64 *local_ntp_rx, *local_ntp_tx;
   NTP_Local_Timestamp local_tx;
+  NTP_int64 *local_ntp_rx;
   NTP_PacketInfo info;
-  int log_index;
 
   if (!parse_packet(message, length, &info))
     return;
@@ -2219,18 +2214,17 @@ NCR_ProcessTxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   if (info.mode == MODE_BROADCAST)
     return;
 
-  log_index = CLG_GetClientIndex(&remote_addr->ip_addr);
-  if (log_index < 0)
-    return;
-
   if (SMT_IsEnabled() && info.mode == MODE_SERVER)
     UTI_AddDoubleToTimespec(&tx_ts->ts, SMT_GetOffset(&tx_ts->ts), &tx_ts->ts);
 
-  CLG_GetNtpTimestamps(log_index, &local_ntp_rx, &local_ntp_tx);
+  local_ntp_rx = &message->receive_ts;
 
-  UTI_Ntp64ToTimespec(local_ntp_tx, &local_tx.ts);
+  if (!CLG_GetNtpTxTimestamp(local_ntp_rx, &local_tx.ts))
+    return;
+
   update_tx_timestamp(&local_tx, tx_ts, local_ntp_rx, NULL, message);
-  UTI_TimespecToNtp64(&local_tx.ts, local_ntp_tx, NULL);
+
+  CLG_UpdateNtpTxTimestamp(local_ntp_rx, &local_tx.ts);
 }
 
 /* ================================================== */
