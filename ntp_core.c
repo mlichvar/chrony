@@ -1054,10 +1054,10 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     UTI_ZeroNtp64(&message.receive_ts);
   }
 
-  do {
-    if (!parse_packet(&message, NTP_HEADER_LENGTH, &info))
-      return 0;
+  if (!parse_packet(&message, NTP_HEADER_LENGTH, &info))
+    return 0;
 
+  do {
     /* Prepare random bits which will be added to the transmit timestamp */
     UTI_GetNtp64Fuzz(&ts_fuzz, precision);
 
@@ -1072,20 +1072,6 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     UTI_TimespecToNtp64(interleaved ? &local_tx->ts : &local_transmit,
                         &message.transmit_ts, &ts_fuzz);
 
-    /* Generate the authentication data */
-    if (auth) {
-      if (!NAU_GenerateRequestAuth(auth, &message, &info)) {
-        DEBUG_LOG("Could not generate request auth");
-        return 0;
-      }
-    } else {
-      if (!NAU_GenerateResponseAuth(request, request_info, &message, &info,
-                                    where_to, from, kod)) {
-        DEBUG_LOG("Could not generate response auth");
-        return 0;
-      }
-    }
-
     /* Do not send a packet with a non-zero transmit timestamp which is
        equal to any of the following timestamps:
        - receive (to allow reliable detection of the interleaved mode)
@@ -1096,6 +1082,20 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   } while (!UTI_IsZeroNtp64(&message.transmit_ts) &&
            UTI_IsEqualAnyNtp64(&message.transmit_ts, &message.receive_ts,
                                &message.originate_ts, local_ntp_tx));
+
+  /* Generate the authentication data */
+  if (auth) {
+    if (!NAU_GenerateRequestAuth(auth, &message, &info)) {
+      DEBUG_LOG("Could not generate request auth");
+      return 0;
+    }
+  } else {
+    if (!NAU_GenerateResponseAuth(request, request_info, &message, &info,
+                                  where_to, from, kod)) {
+      DEBUG_LOG("Could not generate response auth");
+      return 0;
+    }
+  }
 
   if (request_info && request_info->length < info.length) {
     DEBUG_LOG("Response longer than request req_len=%d res_len=%d",
