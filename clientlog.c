@@ -316,7 +316,7 @@ set_bucket_params(int interval, int burst, uint16_t *max_tokens,
 void
 CLG_Initialise(void)
 {
-  int i, interval, burst, lrate;
+  int i, interval, burst, lrate, slots2;
 
   for (i = 0; i < MAX_SERVICES; i++) {
     max_tokens[i] = 0;
@@ -361,7 +361,10 @@ CLG_Initialise(void)
      table where two copies exist at the same time. */
   max_slots = CNF_GetClientLogLimit() / (sizeof (Record) * SLOT_SIZE * 3 / 2);
   max_slots = CLAMP(MIN_SLOTS, max_slots, MAX_SLOTS);
-  DEBUG_LOG("Max records %u", 1U << ((int)round(log(max_slots) / log(2)) + SLOT_BITS));
+  for (slots2 = 0; 1U << (slots2 + 1) <= max_slots; slots2++)
+    ;
+
+  DEBUG_LOG("Max records %u", 1U << (slots2 + SLOT_BITS));
 
   slots = 0;
   records = NULL;
