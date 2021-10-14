@@ -1083,6 +1083,13 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
            UTI_IsEqualAnyNtp64(&message.transmit_ts, &message.receive_ts,
                                &message.originate_ts, local_ntp_tx));
 
+  /* Encode in server timestamps a flag indicating RX timestamp to avoid
+     saving all RX timestamps for detection of interleaved requests */
+  if (my_mode == MODE_SERVER || my_mode == MODE_PASSIVE) {
+    message.receive_ts.lo |= htonl(1);
+    message.transmit_ts.lo &= ~htonl(1);
+  }
+
   /* Generate the authentication data */
   if (auth) {
     if (!NAU_GenerateRequestAuth(auth, &message, &info)) {
@@ -2110,21 +2117,23 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   tx_ts = NULL;
   interleaved = 0;
 
-  /* Check if the client is using the interleaved mode.  If it is, save the
-     new transmit timestamp and if the old transmit timestamp is valid, respond
-     in the interleaved mode.  This means the third reply to a new client is
-     the earliest one that can be interleaved.  We don't want to waste time
-     on clients that are not using the interleaved mode. */
-  if (kod == 0 &&
+  /* Handle requests formed in the interleaved mode.  As an optimisation to
+     avoid saving all receive timestamps, require that the origin timestamp
+     has the lowest bit equal to 1, which indicates it was set to one of our
+     receive timestamps instead of transmit timestamps or zero.  Respond in the
+     interleaved mode if the receive timestamp is found and it has a non-zero
+     transmit timestamp (this is verified in transmit_packet()).  For a new
+     client starting with a zero origin timestamp, the third response is the
+     earliest one that can be interleaved. */
+  if (kod == 0 && message->originate_ts.lo & htonl(1) &&
       UTI_CompareNtp64(&message->receive_ts, &message->transmit_ts) != 0) {
     ntp_rx = message->originate_ts;
     local_ntp_rx = &ntp_rx;
     interleaved = CLG_GetNtpTxTimestamp(&ntp_rx, &local_tx.ts);
 
-    if (interleaved) {
-      tx_ts = &local_tx;
+    tx_ts = &local_tx;
+    if (interleaved)
       CLG_DisableNtpTimestamps(&ntp_rx);
-    }
   }
 
   /* Suggest the client to increase its polling interval if it indicates
