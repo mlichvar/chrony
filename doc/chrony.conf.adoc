@@ -1497,8 +1497,9 @@ NTP server needs to support the interleaved mode for its clients. The default
 limit is 524288 bytes, which enables monitoring of up to 4096 IP addresses at
 the same time and holding NTP timestamps for up to 4096 clients using the
 interleaved mode (depending on uniformity of their polling interval). The
-maximum value is 2^32-1 (4 GB) on 32-bit systems and 2^35 (32 GB) on 64-bit
-systems.
+number of addresses and timestamps is always a power of 2. The maximum
+effective value is 2147483648 (2 GB), which corresponds to 16777216 addresses
+and timestamps.
 +
 An example of the use of this directive is:
 +
