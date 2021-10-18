@@ -109,6 +109,9 @@ test_unit(void)
     max_step = (1ULL << (i % 50));
     ts64 = 0ULL - 100 * max_step;
 
+    if (i > 150)
+      ntp_ts_map.max_size = 1U << (i % 8);
+    assert(ntp_ts_map.max_size <= 128);
     ntp_ts_map.first = i % ntp_ts_map.max_size;
     ntp_ts_map.size = 0;
     ntp_ts_map.cached_rx_ts = 0ULL;
@@ -215,7 +218,7 @@ test_unit(void)
         if ((int64_t)(prev_last_ts64 - ts64) <= NTPTS_FUTURE_LIMIT) {
           TEST_CHECK(prev_size + 1 >= ntp_ts_map.size);
           if (index2 + NTPTS_INSERT_LIMIT + 1 >= ntp_ts_map.size &&
-              !(index2 == 0 &&
+              !(index2 == 0 && NTPTS_INSERT_LIMIT < ntp_ts_map.max_size &&
                 ((NTPTS_INSERT_LIMIT == prev_size && (int64_t)(ts64 - prev_first_ts64) > 0) ||
                  (NTPTS_INSERT_LIMIT + 1 == prev_size && (int64_t)(ts64 - prev_first_ts64) < 0))))
             TEST_CHECK((prev_first + prev_size + 1) % ntp_ts_map.max_size ==
