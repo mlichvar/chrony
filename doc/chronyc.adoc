@@ -1107,13 +1107,9 @@ The columns are as follows:
   received/accepted.
 
 [[serverstats]]*serverstats*::
-The *serverstats* command displays how many valid NTP and command requests, and
-NTS-KE connections, *chronyd* operating as a server received from clients, and
-how many of them were dropped due to rate limiting. It also displays how many
-client log records were dropped due to the memory limit configured by the
-<<chrony.conf.adoc#clientloglimit,*clientloglimit*>> directive and how many of
-the NTP requests (from those which were not dropped) were authenticated. An
-example of the output is shown below.
+The *serverstats* command displays NTP and command server statistics.
++
+An example of the output is shown below.
 +
 ----
 NTP packets received       : 1598
@@ -1124,7 +1120,47 @@ Client log records dropped : 0
 NTS-KE connections accepted: 3
 NTS-KE connections dropped : 0
 Authenticated NTP packets  : 189
+Interleaved NTP packets    : 43
+NTP timestamps held        : 44
+NTP timestamp span         : 120
 ----
++
+The fields have the following meaning:
++
+*NTP packets received*:::
+The number of valid NTP requests received by the server.
+*NTP packets dropped*:::
+The number of NTP requests dropped by the server due to rate limiting
+(configured by the <<chrony.conf.adoc#ratelimit,*ratelimit*>> directive).
+*Command packets received*:::
+The number of command requests received by the server.
+*Command packets dropped*:::
+The number of command requests dropped by the server due to rate limiting
+(configured by the <<chrony.conf.adoc#cmdratelimit,*cmdratelimit*>> directive).
+*Client log records dropped*:::
+The number of client log records dropped by the server to limit the memory use
+(configured by the <<chrony.conf.adoc#clientloglimit,*clientloglimit*>>
+directive).
+*NTS-KE connections accepted*:::
+The number of NTS-KE connections accepted by the server.
+*NTS-KE connections dropped*:::
+The number of NTS-KE connections dropped by the server due to rate limiting
+(configured by the <<chrony.conf.adoc#ntsratelimit,*ntsratelimit*>> directive).
+*Authenticated NTP packets*:::
+The number of received NTP requests that were authenticated (with a symmetric
+key or NTS).
+*Interleaved NTP packets*:::
+The number of received NTP requests that were detected to be in the interleaved
+mode.
+*NTP timestamps held*:::
+The number of pairs of receive and transmit timestamps that the server is
+currently holding in memory for clients using the interleaved mode.
+*NTP timestamp span*:::
+The interval (in seconds) covered by the currently held NTP timestamps.
+{blank}::
++
+Note that the numbers reported by this overflow to zero after 4294967295
+(32-bit values).
 
 [[allow]]*allow* [*all*] [_subnet_]::
 The effect of the allow command is identical to the

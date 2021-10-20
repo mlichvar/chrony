@@ -110,7 +110,10 @@ Command packets dropped    : 0
 Client log records dropped : 0
 NTS-KE connections accepted: 0
 NTS-KE connections dropped : 0
-Authenticated NTP packets  : 0$" || test_fail
+Authenticated NTP packets  : 0
+Interleaved NTP packets    : 0
+NTP timestamps held        : 0
+NTP timestamp span         : 0$"|| test_fail
 
 run_chronyc "manual on" || test_fail
 check_chronyc_output "^200 OK$" || test_fail

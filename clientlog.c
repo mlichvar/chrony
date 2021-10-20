@@ -155,6 +155,7 @@ static NtpTimestampMap ntp_ts_map;
 static uint32_t total_hits[MAX_SERVICES];
 static uint32_t total_drops[MAX_SERVICES];
 static uint32_t total_ntp_auth_hits;
+static uint32_t total_ntp_interleaved_hits;
 static uint32_t total_record_drops;
 
 #define NSEC_PER_SEC 1000000000U
@@ -921,6 +922,10 @@ CLG_DisableNtpTimestamps(NTP_int64 *rx_ts)
 
   if (find_ntp_rx_ts(ntp64_to_int64(rx_ts), &index))
     get_ntp_tss(index)->flags |= NTPTS_DISABLED;
+
+  /* This assumes the function is called only to prevent multiple
+     interleaved responses to the same timestamp */
+  total_ntp_interleaved_hits++;
 }
 
 /* ================================================== */
@@ -1027,4 +1032,9 @@ CLG_GetServerStatsReport(RPT_ServerStatsReport *report)
   report->cmd_drops = total_drops[CLG_CMDMON];
   report->log_drops = total_record_drops;
   report->ntp_auth_hits = total_ntp_auth_hits;
+  report->ntp_interleaved_hits = total_ntp_interleaved_hits;
+  report->ntp_timestamps = ntp_ts_map.size;
+  report->ntp_span_seconds = ntp_ts_map.size > 1 ?
+                             (get_ntp_tss(ntp_ts_map.size - 1)->rx_ts -
+                              get_ntp_tss(0)->rx_ts) >> 32 : 0;
 }

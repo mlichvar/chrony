@@ -2459,7 +2459,7 @@ process_cmd_serverstats(char *line)
   CMD_Reply reply;
 
   request.command = htons(REQ_SERVER_STATS);
-  if (!request_reply(&request, &reply, RPY_SERVER_STATS2, 0))
+  if (!request_reply(&request, &reply, RPY_SERVER_STATS3, 0))
     return 0;
 
   print_report("NTP packets received       : %U\n"
@@ -2469,7 +2469,10 @@ process_cmd_serverstats(char *line)
                "Client log records dropped : %U\n"
                "NTS-KE connections accepted: %U\n"
                "NTS-KE connections dropped : %U\n"
-               "Authenticated NTP packets  : %U\n",
+               "Authenticated NTP packets  : %U\n"
+               "Interleaved NTP packets    : %U\n"
+               "NTP timestamps held        : %U\n"
+               "NTP timestamp span         : %U\n",
                (unsigned long)ntohl(reply.data.server_stats.ntp_hits),
                (unsigned long)ntohl(reply.data.server_stats.ntp_drops),
                (unsigned long)ntohl(reply.data.server_stats.cmd_hits),
@@ -2478,6 +2481,9 @@ process_cmd_serverstats(char *line)
                (unsigned long)ntohl(reply.data.server_stats.nke_hits),
                (unsigned long)ntohl(reply.data.server_stats.nke_drops),
                (unsigned long)ntohl(reply.data.server_stats.ntp_auth_hits),
+               (unsigned long)ntohl(reply.data.server_stats.ntp_interleaved_hits),
+               (unsigned long)ntohl(reply.data.server_stats.ntp_timestamps),
+               (unsigned long)ntohl(reply.data.server_stats.ntp_span_seconds),
                REPORT_END);
 
   return 1;

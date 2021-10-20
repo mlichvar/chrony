@@ -516,7 +516,8 @@ typedef struct {
 #define RPY_CLIENT_ACCESSES_BY_INDEX3 21
 #define RPY_SERVER_STATS2 22
 #define RPY_SELECT_DATA 23
-#define N_REPLY_TYPES 24
+#define RPY_SERVER_STATS3 24
+#define N_REPLY_TYPES 25
 
 /* Status codes */
 #define STT_SUCCESS 0
@@ -659,6 +660,9 @@ typedef struct {
   uint32_t cmd_drops;
   uint32_t log_drops;
   uint32_t ntp_auth_hits;
+  uint32_t ntp_interleaved_hits;
+  uint32_t ntp_timestamps;
+  uint32_t ntp_span_seconds;
   int32_t EOR;
 } RPY_ServerStats;
 

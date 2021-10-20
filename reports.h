@@ -117,6 +117,9 @@ typedef struct {
   uint32_t cmd_drops;
   uint32_t log_drops;
   uint32_t ntp_auth_hits;
+  uint32_t ntp_interleaved_hits;
+  uint32_t ntp_timestamps;
+  uint32_t ntp_span_seconds;
 } RPT_ServerStatsReport;
 
 typedef struct {
