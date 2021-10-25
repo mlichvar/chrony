@@ -47,6 +47,7 @@ extern int CLG_GetNtpMinPoll(void);
 
 /* Functions to save and retrieve timestamps for server interleaved mode */
 extern void CLG_SaveNtpTimestamps(NTP_int64 *rx_ts, struct timespec *tx_ts);
+extern void CLG_UndoNtpTxTimestampSlew(NTP_int64 *rx_ts, struct timespec *tx_ts);
 extern void CLG_UpdateNtpTxTimestamp(NTP_int64 *rx_ts, struct timespec *tx_ts);
 extern int CLG_GetNtpTxTimestamp(NTP_int64 *rx_ts, struct timespec *tx_ts);
 extern void CLG_DisableNtpTimestamps(NTP_int64 *rx_ts);

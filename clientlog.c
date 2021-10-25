@@ -38,6 +38,7 @@
 #include "array.h"
 #include "clientlog.h"
 #include "conf.h"
+#include "local.h"
 #include "memory.h"
 #include "ntp.h"
 #include "reports.h"
@@ -125,7 +126,8 @@ static int active;
 /* RX and TX timestamp saved for clients using interleaved mode */
 typedef struct {
   uint64_t rx_ts;
-  uint32_t flags;
+  uint16_t flags;
+  uint16_t slew_epoch;
   int32_t tx_ts_offset;
 } NtpTimestamps;
 
@@ -141,6 +143,8 @@ typedef struct {
   uint32_t max_size;
   uint32_t cached_index;
   uint64_t cached_rx_ts;
+  uint16_t slew_epoch;
+  double slew_offset;
 } NtpTimestampMap;
 
 static NtpTimestampMap ntp_ts_map;
@@ -163,6 +167,8 @@ static uint32_t total_record_drops;
 /* ================================================== */
 
 static int expand_hashtable(void);
+static void handle_slew(struct timespec *raw, struct timespec *cooked, double dfreq,
+                        double doffset, LCL_ChangeType change_type, void *anything);
 
 /* ================================================== */
 
@@ -407,6 +413,10 @@ CLG_Initialise(void)
   ntp_ts_map.max_size = 1U << (slots2 + SLOT_BITS);
   ntp_ts_map.cached_index = 0;
   ntp_ts_map.cached_rx_ts = 0ULL;
+  ntp_ts_map.slew_epoch = 0;
+  ntp_ts_map.slew_offset = 0.0;
+
+  LCL_AddParameterChangeHandler(handle_slew, NULL);
 }
 
 /* ================================================== */
@@ -420,6 +430,8 @@ CLG_Finalise(void)
   ARR_DestroyInstance(records);
   if (ntp_ts_map.timestamps)
     ARR_DestroyInstance(ntp_ts_map.timestamps);
+
+  LCL_RemoveParameterChangeHandler(handle_slew, NULL);
 }
 
 /* ================================================== */
@@ -864,10 +876,46 @@ CLG_SaveNtpTimestamps(NTP_int64 *rx_ts, struct timespec *tx_ts)
   tss = get_ntp_tss(index);
   tss->rx_ts = rx;
   tss->flags = 0;
+  tss->slew_epoch = ntp_ts_map.slew_epoch;
   set_ntp_tx_offset(tss, rx_ts, tx_ts);
 
   DEBUG_LOG("Saved RX+TX index=%"PRIu32" first=%"PRIu32" size=%"PRIu32,
             index, ntp_ts_map.first, ntp_ts_map.size);
+}
+
+/* ================================================== */
+
+static void
+handle_slew(struct timespec *raw, struct timespec *cooked, double dfreq,
+            double doffset, LCL_ChangeType change_type, void *anything)
+{
+  /* Drop all timestamps on unknown step */
+  if (change_type == LCL_ChangeUnknownStep) {
+    ntp_ts_map.size = 0;
+    ntp_ts_map.cached_rx_ts = 0ULL;
+  }
+
+  ntp_ts_map.slew_epoch++;
+  ntp_ts_map.slew_offset = doffset;
+}
+
+/* ================================================== */
+
+void
+CLG_UndoNtpTxTimestampSlew(NTP_int64 *rx_ts, struct timespec *tx_ts)
+{
+  uint32_t index;
+
+  if (!ntp_ts_map.timestamps)
+    return;
+
+  if (!find_ntp_rx_ts(ntp64_to_int64(rx_ts), &index))
+    return;
+
+  /* If the RX timestamp was captured before the last correction of the clock,
+     remove the adjustment from the TX timestamp */
+  if ((uint16_t)(get_ntp_tss(index)->slew_epoch + 1U) == ntp_ts_map.slew_epoch)
+    UTI_AddDoubleToTimespec(tx_ts, ntp_ts_map.slew_offset, tx_ts);
 }
 
 /* ================================================== */

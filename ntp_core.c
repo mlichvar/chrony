@@ -2215,7 +2215,7 @@ void
 NCR_ProcessTxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
                      NTP_Local_Timestamp *tx_ts, NTP_Packet *message, int length)
 {
-  NTP_Local_Timestamp local_tx;
+  NTP_Local_Timestamp old_tx, new_tx;
   NTP_int64 *local_ntp_rx;
   NTP_PacketInfo info;
 
@@ -2229,13 +2229,18 @@ NCR_ProcessTxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
     UTI_AddDoubleToTimespec(&tx_ts->ts, SMT_GetOffset(&tx_ts->ts), &tx_ts->ts);
 
   local_ntp_rx = &message->receive_ts;
+  new_tx = *tx_ts;
 
-  if (!CLG_GetNtpTxTimestamp(local_ntp_rx, &local_tx.ts))
+  if (!CLG_GetNtpTxTimestamp(local_ntp_rx, &old_tx.ts))
     return;
 
-  update_tx_timestamp(&local_tx, tx_ts, local_ntp_rx, NULL, message);
+  /* Undo a clock adjustment between the RX and TX timestamps to minimise error
+     in the delay measured by the client */
+  CLG_UndoNtpTxTimestampSlew(local_ntp_rx, &new_tx.ts);
 
-  CLG_UpdateNtpTxTimestamp(local_ntp_rx, &local_tx.ts);
+  update_tx_timestamp(&old_tx, &new_tx, local_ntp_rx, NULL, message);
+
+  CLG_UpdateNtpTxTimestamp(local_ntp_rx, &new_tx.ts);
 }
 
 /* ================================================== */
