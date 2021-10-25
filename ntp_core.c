@@ -2146,10 +2146,11 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   version = info.version;
 
   /* Send a reply */
-  transmit_packet(my_mode, interleaved, poll, version, kod, NULL,
-                  &message->receive_ts, &message->transmit_ts,
-                  rx_ts, tx_ts, local_ntp_rx, NULL, remote_addr, local_addr,
-                  message, &info);
+  if (!transmit_packet(my_mode, interleaved, poll, version, kod, NULL,
+                       &message->receive_ts, &message->transmit_ts,
+                       rx_ts, tx_ts, local_ntp_rx, NULL, remote_addr, local_addr,
+                       message, &info))
+    return;
 
   if (local_ntp_rx)
     CLG_SaveNtpTimestamps(local_ntp_rx, tx_ts ? &tx_ts->ts : NULL);
