@@ -88,6 +88,8 @@ struct NCR_Instance_Record {
                                    from received packets) */
   int remote_stratum;           /* Stratum of the server/peer (recovered from
                                    received packets) */
+  double remote_root_delay;     /* Root delay from last valid packet */
+  double remote_root_dispersion;/* Root dispersion from last valid packet */
 
   int presend_minpoll;           /* If the current polling interval is
                                     at least this, an extra client packet
@@ -664,6 +666,8 @@ NCR_ResetInstance(NCR_Instance instance)
 
   instance->remote_poll = 0;
   instance->remote_stratum = 0;
+  instance->remote_root_delay = 0.0;
+  instance->remote_root_dispersion = 0.0;
 
   instance->valid_rx = 0;
   instance->valid_timestamps = 0;
@@ -1566,7 +1570,7 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
     /* These are the timespec equivalents of the remote and local epochs */
     struct timespec remote_receive, remote_transmit, remote_request_receive;
     struct timespec local_average, remote_average, prev_remote_transmit;
-    double prev_remote_poll_interval;
+    double prev_remote_poll_interval, root_delay, root_dispersion;
 
     /* Select remote and local timestamps for the new sample */
     if (interleaved_packet) {
@@ -1580,10 +1584,14 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
         UTI_Ntp64ToTimespec(&inst->remote_ntp_rx, &remote_receive);
         remote_request_receive = remote_receive;
         local_transmit = inst->prev_local_tx;
+        root_delay = inst->remote_root_delay;
+        root_dispersion = inst->remote_root_dispersion;
       } else {
         UTI_Ntp64ToTimespec(&message->receive_ts, &remote_receive);
         UTI_Ntp64ToTimespec(&inst->remote_ntp_rx, &remote_request_receive);
         local_transmit = inst->local_tx;
+        root_delay = MAX(pkt_root_delay, inst->remote_root_delay);
+        root_dispersion = MAX(pkt_root_dispersion, inst->remote_root_dispersion);
       }
       UTI_Ntp64ToTimespec(&message->transmit_ts, &remote_transmit);
       UTI_Ntp64ToTimespec(&inst->remote_ntp_tx, &prev_remote_transmit);
@@ -1595,6 +1603,8 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
       remote_request_receive = remote_receive;
       local_receive = *rx_ts;
       local_transmit = inst->local_tx;
+      root_delay = pkt_root_delay;
+      root_dispersion = pkt_root_dispersion;
     }
 
     /* Calculate intervals between remote and local timestamps */
@@ -1631,9 +1641,11 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
     /* Calculate skew */
     skew = (source_freq_hi - source_freq_lo) / 2.0;
     
-    /* and then calculate peer dispersion */
+    /* and then calculate peer dispersion and the rest of the sample */
     sample.peer_dispersion = MAX(precision, MAX(local_transmit.err, local_receive.err)) +
                              skew * fabs(local_interval);
+    sample.root_delay = root_delay + sample.peer_delay;
+    sample.root_dispersion = root_dispersion + sample.peer_dispersion;
     
     /* If the source is an active peer, this is the minimum assumed interval
        between previous two transmissions (if not constrained by minpoll) */
@@ -1675,6 +1687,7 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
   } else {
     remote_interval = local_interval = response_time = 0.0;
     sample.offset = sample.peer_delay = sample.peer_dispersion = 0.0;
+    sample.root_delay = sample.root_dispersion = 0.0;
     sample.time = rx_ts->ts;
     local_receive = *rx_ts;
     local_transmit = inst->local_tx;
@@ -1684,9 +1697,6 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
   /* The packet is considered good for synchronisation if
      the additional tests passed */
   good_packet = testA && testB && testC && testD;
-
-  sample.root_delay = pkt_root_delay + sample.peer_delay;
-  sample.root_dispersion = pkt_root_dispersion + sample.peer_dispersion;
 
   /* Update the NTP timestamps.  If it's a valid packet from a synchronised
      source, the timestamps may be used later when processing a packet in the
@@ -1771,6 +1781,8 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
     inst->remote_poll = message->poll;
     inst->remote_stratum = message->stratum != NTP_INVALID_STRATUM ?
                            MIN(message->stratum, NTP_MAX_STRATUM) : NTP_MAX_STRATUM;
+    inst->remote_root_delay = pkt_root_delay;
+    inst->remote_root_dispersion = pkt_root_dispersion;
 
     inst->prev_local_poll = inst->local_poll;
     inst->prev_tx_count = inst->tx_count;
