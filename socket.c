@@ -59,11 +59,16 @@ struct Message {
   union sockaddr_all name;
   struct iovec iov;
   /* Buffer of sufficient length for all expected messages */
-  union {
-    NTP_Packet ntp_msg;
-    PTP_NtpMessage ptp_msg;
-    CMD_Request cmd_request;
-    CMD_Reply cmd_reply;
+  struct {
+    /* Extra space for Ethernet, IPv4/IPv6, and UDP headers in
+       timestamped messages received from the Linux error queue */
+    uint8_t l234_headers[64];
+    union {
+      NTP_Packet ntp_msg;
+      PTP_NtpMessage ptp_msg;
+      CMD_Request cmd_request;
+      CMD_Reply cmd_reply;
+    } msg;
   } msg_buf;
   /* Aligned buffer for control messages */
   struct cmsghdr cmsg_buf[CMSG_BUF_SIZE / sizeof (struct cmsghdr)];
