@@ -55,9 +55,6 @@ extern int NAU_PrepareRequestAuth(NAU_Instance instance);
 extern int NAU_GenerateRequestAuth(NAU_Instance instance, NTP_Packet *request,
                                    NTP_PacketInfo *info);
 
-/* Parse a request or response to detect the authentication mode */
-extern int NAU_ParsePacket(NTP_Packet *packet, NTP_PacketInfo *info);
-
 /* Verify that a request is authentic.  If it is not authentic and a non-zero
    kod code is returned, a KoD response should be sent back. */
 extern int NAU_CheckRequestAuth(NTP_Packet *request, NTP_PacketInfo *info, uint32_t *kod);

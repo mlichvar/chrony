@@ -229,12 +229,8 @@ test_unit(void)
     if (!inst || !can_auth_req)
       add_dummy_auth(mode, key_id, &req, &req_info);
 
-    TEST_CHECK(req_info.auth.mode == mode);
-
-    memset(&req_info.auth, 0, sizeof (req_info.auth));
-    TEST_CHECK(NAU_ParsePacket(&req, &req_info));
-    TEST_CHECK(req_info.auth.mode == mode);
-    TEST_CHECK(req_info.auth.mac.key_id == key_id);
+    assert(req_info.auth.mode == mode);
+    assert(req_info.auth.mac.key_id == key_id);
 
     kod = 1;
     TEST_CHECK(NAU_CheckRequestAuth(&req, &req_info, &kod) == can_auth_req);
@@ -259,10 +255,8 @@ test_unit(void)
     if (!can_auth_res)
       add_dummy_auth(mode, key_id, &res, &res_info);
 
-    memset(&res_info.auth, 0, sizeof (res_info.auth));
-    TEST_CHECK(NAU_ParsePacket(&res, &res_info));
-    TEST_CHECK(res_info.auth.mode == mode);
-    TEST_CHECK(res_info.auth.mac.key_id == key_id);
+    assert(res_info.auth.mode == mode);
+    assert(res_info.auth.mac.key_id == key_id);
 
     if (inst) {
       if (mode == NTP_AUTH_SYMMETRIC) {

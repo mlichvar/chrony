@@ -32,7 +32,6 @@
 #include "logging.h"
 #include "memory.h"
 #include "ntp_auth.h"
-#include "ntp_ext.h"
 #include "ntp_signd.h"
 #include "nts_ntp.h"
 #include "nts_ntp_client.h"
@@ -100,19 +99,6 @@ check_symmetric_auth(NTP_Packet *packet, NTP_PacketInfo *info)
                      info->auth.mac.length - 4, trunc_len - 4))
     return 0;
 
-  return 1;
-}
-
-/* ================================================== */
-
-static int
-is_zero_data(unsigned char *data, int length)
-{
-  int i;
-
-  for (i = 0; i < length; i++)
-    if (data[i] != 0)
-      return 0;
   return 1;
 }
 
@@ -243,101 +229,6 @@ NAU_GenerateRequestAuth(NAU_Instance instance, NTP_Packet *request, NTP_PacketIn
   info->auth.mode = instance->mode;
 
   return 1;
-}
-
-/* ================================================== */
-
-int
-NAU_ParsePacket(NTP_Packet *packet, NTP_PacketInfo *info)
-{
-  int parsed, remainder, ef_length, ef_type;
-  unsigned char *data;
-
-  data = (void *)packet;
-  parsed = NTP_HEADER_LENGTH;
-  remainder = info->length - parsed;
-
-  info->ext_fields = 0;
-
-  /* Check if this is a plain NTP packet with no extension fields or MAC */
-  if (remainder <= 0)
-    return 1;
-
-  assert(remainder % 4 == 0);
-
-  /* In NTPv3 and older packets don't have extension fields.  Anything after
-     the header is assumed to be a MAC. */
-  if (info->version <= 3) {
-    info->auth.mode = NTP_AUTH_SYMMETRIC;
-    info->auth.mac.start = parsed;
-    info->auth.mac.length = remainder;
-    info->auth.mac.key_id = ntohl(*(uint32_t *)(data + parsed));
-
-    /* Check if it is an MS-SNTP authenticator field or extended authenticator
-       field with zeroes as digest */
-    if (info->version == 3 && info->auth.mac.key_id != 0) {
-      if (remainder == 20 && is_zero_data(data + parsed + 4, remainder - 4))
-        info->auth.mode = NTP_AUTH_MSSNTP;
-      else if (remainder == 72 && is_zero_data(data + parsed + 8, remainder - 8))
-        info->auth.mode = NTP_AUTH_MSSNTP_EXT;
-    }
-
-    return 1;
-  }
-
-  /* Check for a crypto NAK */
-  if (remainder == 4 && ntohl(*(uint32_t *)(data + parsed)) == 0) {
-    info->auth.mode = NTP_AUTH_SYMMETRIC;
-    info->auth.mac.start = parsed;
-    info->auth.mac.length = remainder;
-    info->auth.mac.key_id = 0;
-    return 1;
-  }
-
-  /* Parse the rest of the NTPv4 packet */
-
-  while (remainder > 0) {
-    /* Check if the remaining data is a MAC */
-    if (remainder >= NTP_MIN_MAC_LENGTH && remainder <= NTP_MAX_V4_MAC_LENGTH)
-      break;
-
-    /* Check if this is a valid NTPv4 extension field and skip it */
-    if (!NEF_ParseField(packet, info->length, parsed, &ef_length, &ef_type, NULL, NULL)) {
-      DEBUG_LOG("Invalid format");
-      return 0;
-    }
-
-    assert(ef_length > 0 && ef_length % 4 == 0);
-
-    switch (ef_type) {
-      case NTP_EF_NTS_UNIQUE_IDENTIFIER:
-      case NTP_EF_NTS_COOKIE:
-      case NTP_EF_NTS_COOKIE_PLACEHOLDER:
-      case NTP_EF_NTS_AUTH_AND_EEF:
-        info->auth.mode = NTP_AUTH_NTS;
-        break;
-      default:
-        DEBUG_LOG("Unknown extension field type=%x", (unsigned int)ef_type);
-    }
-
-    info->ext_fields++;
-    parsed += ef_length;
-    remainder = info->length - parsed;
-  }
-
-  if (remainder == 0) {
-    /* No MAC */
-    return 1;
-  } else if (remainder >= NTP_MIN_MAC_LENGTH) {
-    info->auth.mode = NTP_AUTH_SYMMETRIC;
-    info->auth.mac.start = parsed;
-    info->auth.mac.length = remainder;
-    info->auth.mac.key_id = ntohl(*(uint32_t *)(data + parsed));
-    return 1;
-  }
-
-  DEBUG_LOG("Invalid format");
-  return 0;
 }
 
 /* ================================================== */

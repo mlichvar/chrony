@@ -331,6 +331,55 @@ process_replay(NCR_Instance inst, NTP_Packet *packet_queue,
   advance_time(1e-6);
 }
 
+static void
+add_dummy_auth(NTP_AuthMode auth_mode, uint32_t key_id, NTP_Packet *packet, NTP_PacketInfo *info)
+{
+  unsigned char buf[64];
+  int len, fill;
+
+  info->auth.mode = auth_mode;
+
+  switch (auth_mode) {
+    case NTP_AUTH_NONE:
+      break;
+    case NTP_AUTH_SYMMETRIC:
+    case NTP_AUTH_MSSNTP:
+    case NTP_AUTH_MSSNTP_EXT:
+      switch (auth_mode) {
+        case NTP_AUTH_SYMMETRIC:
+          len = 16 + random() % 2 * 4;
+          fill = 1 + random() % 255;
+          break;
+        case NTP_AUTH_MSSNTP:
+          len = 16;
+          fill = 0;
+          break;
+        case NTP_AUTH_MSSNTP_EXT:
+          len = 68;
+          fill = 0;
+          break;
+        default:
+          assert(0);
+      }
+
+      assert(info->length + 4 + len <= sizeof (*packet));
+
+      *(uint32_t *)((unsigned char *)packet + info->length) = htonl(key_id);
+      info->auth.mac.key_id = key_id;
+      info->length += 4;
+
+      memset((unsigned char *)packet + info->length, fill, len);
+      info->length += len;
+      break;
+    case NTP_AUTH_NTS:
+      memset(buf, 0, sizeof (buf));
+      TEST_CHECK(NEF_AddField(packet, info, NTP_EF_NTS_AUTH_AND_EEF, buf, sizeof (buf)));
+      break;
+    default:
+      assert(0);
+  }
+}
+
 #define PACKET_QUEUE_LENGTH 10
 
 void
@@ -347,7 +396,8 @@ test_unit(void)
   CPS_NTP_Source source;
   NTP_Remote_Address remote_addr;
   NCR_Instance inst1, inst2;
-  NTP_Packet packet_queue[PACKET_QUEUE_LENGTH];
+  NTP_Packet packet_queue[PACKET_QUEUE_LENGTH], packet;
+  NTP_PacketInfo info;
 
   CNF_Initialise(0, 0);
   for (i = 0; i < sizeof conf / sizeof conf[0]; i++)
@@ -503,6 +553,47 @@ test_unit(void)
     NCR_DestroyInstance(inst1);
     NCR_DestroyInstance(inst2);
   }
+
+  memset(&packet, 0, sizeof (packet));
+  packet.lvm = NTP_LVM(LEAP_Normal, NTP_VERSION, MODE_CLIENT);
+
+  TEST_CHECK(parse_packet(&packet, NTP_HEADER_LENGTH, &info));
+  TEST_CHECK(info.auth.mode == NTP_AUTH_NONE);
+
+  TEST_CHECK(parse_packet(&packet, NTP_HEADER_LENGTH, &info));
+  add_dummy_auth(NTP_AUTH_SYMMETRIC, 100, &packet, &info);
+  memset(&info.auth, 0, sizeof (info.auth));
+  TEST_CHECK(parse_packet(&packet, info.length, &info));
+  TEST_CHECK(info.auth.mode == NTP_AUTH_SYMMETRIC);
+  TEST_CHECK(info.auth.mac.start == NTP_HEADER_LENGTH);
+  TEST_CHECK(info.auth.mac.length == info.length - NTP_HEADER_LENGTH);
+  TEST_CHECK(info.auth.mac.key_id == 100);
+
+  TEST_CHECK(parse_packet(&packet, NTP_HEADER_LENGTH, &info));
+  add_dummy_auth(NTP_AUTH_NTS, 0, &packet, &info);
+  memset(&info.auth, 0, sizeof (info.auth));
+  TEST_CHECK(parse_packet(&packet, info.length, &info));
+  TEST_CHECK(info.auth.mode == NTP_AUTH_NTS);
+
+  packet.lvm = NTP_LVM(LEAP_Normal, 3, MODE_CLIENT);
+
+  TEST_CHECK(parse_packet(&packet, NTP_HEADER_LENGTH, &info));
+  add_dummy_auth(NTP_AUTH_MSSNTP, 200, &packet, &info);
+  memset(&info.auth, 0, sizeof (info.auth));
+  TEST_CHECK(parse_packet(&packet, info.length, &info));
+  TEST_CHECK(info.auth.mode == NTP_AUTH_MSSNTP);
+  TEST_CHECK(info.auth.mac.start == NTP_HEADER_LENGTH);
+  TEST_CHECK(info.auth.mac.length == 20);
+  TEST_CHECK(info.auth.mac.key_id == 200);
+
+  TEST_CHECK(parse_packet(&packet, NTP_HEADER_LENGTH, &info));
+  add_dummy_auth(NTP_AUTH_MSSNTP_EXT, 300, &packet, &info);
+  memset(&info.auth, 0, sizeof (info.auth));
+  TEST_CHECK(parse_packet(&packet, info.length, &info));
+  TEST_CHECK(info.auth.mode == NTP_AUTH_MSSNTP_EXT);
+  TEST_CHECK(info.auth.mac.start == NTP_HEADER_LENGTH);
+  TEST_CHECK(info.auth.mac.length == 72);
+  TEST_CHECK(info.auth.mac.key_id == 300);
 
   KEY_Finalise();
   REF_Finalise();

@@ -27,11 +27,6 @@
 #ifndef GOT_NTS_NTP_H
 #define GOT_NTS_NTP_H
 
-#define NTP_EF_NTS_UNIQUE_IDENTIFIER    0x0104
-#define NTP_EF_NTS_COOKIE               0x0204
-#define NTP_EF_NTS_COOKIE_PLACEHOLDER   0x0304
-#define NTP_EF_NTS_AUTH_AND_EEF         0x0404
-
 #define NTP_KOD_NTS_NAK                 0x4e54534e
 
 #define NTS_MIN_UNIQ_ID_LENGTH          32

@@ -113,6 +113,13 @@ typedef struct {
 #define NTP_REFID_LOCAL 0x7F7F0101UL /* 127.127.1.1 */
 #define NTP_REFID_SMOOTH 0x7F7F01FFUL /* 127.127.1.255 */
 
+/* Authentication extension fields */
+
+#define NTP_EF_NTS_UNIQUE_IDENTIFIER    0x0104
+#define NTP_EF_NTS_COOKIE               0x0204
+#define NTP_EF_NTS_COOKIE_PLACEHOLDER   0x0304
+#define NTP_EF_NTS_AUTH_AND_EEF         0x0404
+
 /* Enumeration for authentication modes of NTP packets */
 typedef enum {
   NTP_AUTH_NONE = 0,            /* No authentication */

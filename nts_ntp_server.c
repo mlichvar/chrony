@@ -242,7 +242,7 @@ NNS_GenerateResponseAuth(NTP_Packet *request, NTP_PacketInfo *req_info,
   for (parsed = NTP_HEADER_LENGTH; parsed < req_info->length; parsed += ef_length) {
     if (!NEF_ParseField(request, req_info->length, parsed,
                         &ef_length, &ef_type, &ef_body, &ef_body_length))
-      /* This is not expected as the packet already passed NAU_ParsePacket() */
+      /* This is not expected as the packet already passed parsing */
       return 0;
 
     switch (ef_type) {
