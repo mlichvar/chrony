@@ -132,6 +132,8 @@ struct NCR_Instance_Record {
   double offset_correction;     /* Correction applied to measured offset
                                    (e.g. for asymmetry in network delay) */
 
+  int ext_field_flags;          /* Enabled extension fields */
+
   NAU_Instance auth;            /* Authentication */
 
   /* Count of transmitted packets since last valid response */
@@ -567,6 +569,7 @@ NCR_CreateInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
   result->auto_offline = params->auto_offline;
   result->copy = params->copy && result->mode == MODE_CLIENT;
   result->poll_target = params->poll_target;
+  result->ext_field_flags = 0;
 
   if (params->nts) {
     IPSockAddr nts_address;
@@ -585,7 +588,10 @@ NCR_CreateInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
     result->auth = NAU_CreateNoneInstance();
   }
 
-  result->version = NAU_GetSuggestedNtpVersion(result->auth);
+  if (result->ext_field_flags)
+    result->version = NTP_VERSION;
+  else
+    result->version = NAU_GetSuggestedNtpVersion(result->auth);
 
   if (params->version)
     result->version = CLAMP(NTP_MIN_COMPAT_VERSION, params->version, NTP_VERSION);
@@ -925,6 +931,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 int my_poll, /* The log2 of the local poll interval */
                 int version, /* The NTP version to be set in the packet */
                 uint32_t kod, /* KoD code - 0 disabled */
+                int ext_field_flags, /* Extension fields to be included in the packet */
                 NAU_Instance auth, /* The authentication to be used for the packet */
                 NTP_int64 *remote_ntp_rx, /* The receive timestamp from received packet */
                 NTP_int64 *remote_ntp_tx, /* The transmit timestamp from received packet */
@@ -1061,6 +1068,9 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
 
   if (!parse_packet(&message, NTP_HEADER_LENGTH, &info))
     return 0;
+
+  if (ext_field_flags) {
+  }
 
   do {
     /* Prepare random bits which will be added to the transmit timestamp */
@@ -1240,7 +1250,7 @@ transmit_timeout(void *arg)
 
   /* Send the request (which may also be a response in the symmetric mode) */
   sent = transmit_packet(inst->mode, interleaved, inst->local_poll, inst->version, 0,
-                         inst->auth,
+                         inst->ext_field_flags, inst->auth,
                          initial ? NULL : &inst->remote_ntp_rx,
                          initial ? &inst->init_remote_ntp_tx : &inst->remote_ntp_tx,
                          initial ? &inst->init_local_rx : &inst->local_rx,
@@ -1313,8 +1323,9 @@ is_zero_data(unsigned char *data, int length)
 static int
 parse_packet(NTP_Packet *packet, int length, NTP_PacketInfo *info)
 {
-  int parsed, remainder, ef_length, ef_type;
+  int parsed, remainder, ef_length, ef_type, ef_body_length;
   unsigned char *data;
+  void *ef_body;
 
   if (length < NTP_HEADER_LENGTH || length % 4U != 0) {
     DEBUG_LOG("NTP packet has invalid length %d", length);
@@ -1325,6 +1336,7 @@ parse_packet(NTP_Packet *packet, int length, NTP_PacketInfo *info)
   info->version = NTP_LVM_TO_VERSION(packet->lvm);
   info->mode = NTP_LVM_TO_MODE(packet->lvm);
   info->ext_fields = 0;
+  info->ext_field_flags = 0;
   info->auth.mode = NTP_AUTH_NONE;
 
   if (info->version < NTP_MIN_COMPAT_VERSION || info->version > NTP_MAX_COMPAT_VERSION) {
@@ -1379,7 +1391,8 @@ parse_packet(NTP_Packet *packet, int length, NTP_PacketInfo *info)
       break;
 
     /* Check if this is a valid NTPv4 extension field and skip it */
-    if (!NEF_ParseField(packet, info->length, parsed, &ef_length, &ef_type, NULL, NULL)) {
+    if (!NEF_ParseField(packet, info->length, parsed,
+                        &ef_length, &ef_type, &ef_body, &ef_body_length)) {
       DEBUG_LOG("Invalid format");
       return 0;
     }
@@ -1597,6 +1610,10 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
   /* Kiss-o'-Death codes */
   int kod_rate;
 
+  /* Extension fields */
+  int parsed, ef_length, ef_type, ef_body_length;
+  void *ef_body;
+
   NTP_Local_Timestamp local_receive, local_transmit;
   double remote_interval, local_interval, response_time;
   double delay_time, precision;
@@ -1605,6 +1622,18 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
   /* ==================== */
 
   stats = SRC_GetSourcestats(inst->source);
+
+  /* Find requested non-authentication extension fields */
+  if (inst->ext_field_flags & info->ext_field_flags) {
+    for (parsed = NTP_HEADER_LENGTH; parsed < info->length; parsed += ef_length) {
+      if (!NEF_ParseField(message, info->length, parsed,
+                          &ef_length, &ef_type, &ef_body, &ef_body_length))
+        break;
+
+      switch (ef_type) {
+      }
+    }
+  }
 
   pkt_leap = NTP_LVM_TO_LEAP(message->lvm);
   pkt_version = NTP_LVM_TO_VERSION(message->lvm);
@@ -2253,7 +2282,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   version = info.version;
 
   /* Send a reply */
-  if (!transmit_packet(my_mode, interleaved, poll, version, kod, NULL,
+  if (!transmit_packet(my_mode, interleaved, poll, version, kod, info.ext_field_flags, NULL,
                        &message->receive_ts, &message->transmit_ts,
                        rx_ts, tx_ts, local_ntp_rx, NULL, remote_addr, local_addr,
                        message, &info))
@@ -2727,7 +2756,7 @@ broadcast_timeout(void *arg)
   UTI_ZeroNtp64(&orig_ts);
   zero_local_timestamp(&recv_ts);
 
-  transmit_packet(MODE_BROADCAST, 0, poll, NTP_VERSION, 0, destination->auth,
+  transmit_packet(MODE_BROADCAST, 0, poll, NTP_VERSION, 0, 0, destination->auth,
                   &orig_ts, &orig_ts, &recv_ts, NULL, NULL, NULL,
                   &destination->addr, &destination->local_addr, NULL, NULL);
 

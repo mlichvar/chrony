@@ -137,6 +137,7 @@ typedef struct {
   NTP_Mode mode;
 
   int ext_fields;
+  int ext_field_flags;
 
   struct {
     NTP_AuthMode mode;
