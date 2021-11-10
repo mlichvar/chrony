@@ -113,6 +113,23 @@ typedef struct {
 #define NTP_REFID_LOCAL 0x7F7F0101UL /* 127.127.1.1 */
 #define NTP_REFID_SMOOTH 0x7F7F01FFUL /* 127.127.1.255 */
 
+/* Non-authentication extension fields and corresponding internal flags */
+
+#define NTP_EF_EXP1                     0xF323
+
+#define NTP_EF_FLAG_EXP1                0x1
+
+/* Pre-NTPv5 experimental extension field */
+typedef struct {
+  uint32_t magic;
+  NTP_int32 root_delay;
+  NTP_int32 root_dispersion;
+  NTP_int64 mono_receive_ts;
+  uint32_t mono_epoch;
+} NTP_ExtFieldExp1;
+
+#define NTP_EF_EXP1_MAGIC 0xF5BEDD9AU
+
 /* Authentication extension fields */
 
 #define NTP_EF_NTS_UNIQUE_IDENTIFIER    0x0104

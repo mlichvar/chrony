@@ -1406,6 +1406,11 @@ parse_packet(NTP_Packet *packet, int length, NTP_PacketInfo *info)
       case NTP_EF_NTS_AUTH_AND_EEF:
         info->auth.mode = NTP_AUTH_NTS;
         break;
+      case NTP_EF_EXP1:
+        if (ef_body_length == sizeof (NTP_ExtFieldExp1) &&
+            ntohl(((NTP_ExtFieldExp1 *)ef_body)->magic) == NTP_EF_EXP1_MAGIC)
+          info->ext_field_flags |= NTP_EF_FLAG_EXP1;
+        break;
       default:
         DEBUG_LOG("Unknown extension field type=%x", (unsigned int)ef_type);
     }
