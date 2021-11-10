@@ -779,6 +779,22 @@ SST_SlewSamples(SST_Stats inst, struct timespec *when, double dfreq, double doff
 
 /* ================================================== */
 
+void
+SST_CorrectOffset(SST_Stats inst, double doffset)
+{
+  int i;
+
+  if (!inst->n_samples)
+    return;
+
+  for (i = -inst->runs_samples; i < inst->n_samples; i++)
+    inst->offsets[get_runsbuf_index(inst, i)] += doffset;
+
+  inst->estimated_offset += doffset;
+}
+
+/* ================================================== */
+
 void 
 SST_AddDispersion(SST_Stats inst, double dispersion)
 {
