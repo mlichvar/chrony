@@ -294,6 +294,11 @@ static int server_sock_fd6;
 
 static ADF_AuthTable access_auth_table;
 
+/* Current offset between monotonic and cooked time, and its epoch ID
+   which is reset on clock steps */
+static double server_mono_offset;
+static uint32_t server_mono_epoch;
+
 /* Characters for printing synchronisation status and timestamping source */
 static const char leap_chars[4] = {'N', '+', '-', '?'};
 static const char tss_chars[3] = {'D', 'K', 'H'};
@@ -380,6 +385,20 @@ zero_local_timestamp(NTP_Local_Timestamp *ts)
 
 /* ================================================== */
 
+static void
+handle_slew(struct timespec *raw, struct timespec *cooked, double dfreq,
+            double doffset, LCL_ChangeType change_type, void *anything)
+{
+  if (change_type == LCL_ChangeAdjust) {
+    server_mono_offset += doffset;
+  } else {
+    UTI_GetRandomBytes(&server_mono_epoch, sizeof (server_mono_epoch));
+    server_mono_offset = 0.0;
+  }
+}
+
+/* ================================================== */
+
 void
 NCR_Initialise(void)
 {
@@ -396,6 +415,9 @@ NCR_Initialise(void)
   /* Server socket will be opened when access is allowed */
   server_sock_fd4 = INVALID_SOCK_FD;
   server_sock_fd6 = INVALID_SOCK_FD;
+
+  LCL_AddParameterChangeHandler(handle_slew, NULL);
+  handle_slew(NULL, NULL, 0.0, 0.0, LCL_ChangeUnknownStep, NULL);
 }
 
 /* ================================================== */
@@ -404,6 +426,8 @@ void
 NCR_Finalise(void)
 {
   unsigned int i;
+
+  LCL_RemoveParameterChangeHandler(handle_slew, NULL);
 
   if (server_sock_fd4 != INVALID_SOCK_FD)
     NIO_CloseServerSocket(server_sock_fd4);
@@ -926,6 +950,38 @@ receive_timeout(void *arg)
 /* ================================================== */
 
 static int
+add_ext_exp1(NTP_Packet *message, NTP_PacketInfo *info, struct timespec *rx,
+             double root_delay, double root_dispersion)
+{
+  struct timespec mono_rx;
+  NTP_ExtFieldExp1 exp1;
+  NTP_int64 ts_fuzz;
+
+  memset(&exp1, 0, sizeof (exp1));
+  exp1.magic = htonl(NTP_EF_EXP1_MAGIC);
+
+  if (info->mode != MODE_CLIENT) {
+    exp1.root_delay = UTI_DoubleToNtp32f28(root_delay);
+    exp1.root_dispersion = UTI_DoubleToNtp32f28(root_dispersion);
+    UTI_AddDoubleToTimespec(rx, server_mono_offset, &mono_rx);
+    UTI_GetNtp64Fuzz(&ts_fuzz, message->precision);
+    UTI_TimespecToNtp64(&mono_rx, &exp1.mono_receive_ts, &ts_fuzz);
+    exp1.mono_epoch = htonl(server_mono_epoch);
+  }
+
+  if (!NEF_AddField(message, info, NTP_EF_EXP1, &exp1, sizeof (exp1))) {
+    DEBUG_LOG("Could not add EF");
+    return 0;
+  }
+
+  info->ext_field_flags |= NTP_EF_FLAG_EXP1;
+
+  return 1;
+}
+
+/* ================================================== */
+
+static int
 transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 int interleaved, /* Flag enabling interleaved mode */
                 int my_poll, /* The log2 of the local poll interval */
@@ -1070,6 +1126,11 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     return 0;
 
   if (ext_field_flags) {
+    if (ext_field_flags & NTP_EF_FLAG_EXP1) {
+      if (!add_ext_exp1(&message, &info, &local_receive,
+                        our_root_delay, our_root_dispersion))
+        return 0;
+    }
   }
 
   do {
