@@ -751,6 +751,16 @@ UTI_Ntp64ToTimespec(const NTP_int64 *src, struct timespec *dest)
 
 /* ================================================== */
 
+double
+UTI_DiffNtp64ToDouble(const NTP_int64 *a, const NTP_int64 *b)
+{
+  /* Don't convert to timespec to allow any epoch */
+  return (int32_t)(ntohl(a->hi) - ntohl(b->hi)) +
+         ((double)ntohl(a->lo) - (double)ntohl(b->lo)) / (1.0e9 * NSEC_PER_NTP64);
+}
+
+/* ================================================== */
+
 /* Maximum offset between two sane times */
 #define MAX_OFFSET 4294967296.0
 

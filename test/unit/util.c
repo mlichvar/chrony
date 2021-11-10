@@ -34,7 +34,7 @@ test_unit(void)
 {
   struct timespec ts, ts2, ts3, ts4;
   char buf[16], *s, *s2, *words[3];
-  NTP_int64 ntp_ts, ntp_fuzz;
+  NTP_int64 ntp_ts, ntp_ts2, ntp_fuzz;
   NTP_int32 ntp32_ts;
   struct timeval tv;
   double x, y, nan, inf;
@@ -113,6 +113,13 @@ test_unit(void)
   TEST_CHECK(ts.tv_sec == 0);
 #endif
   TEST_CHECK(ts.tv_nsec == 999999999);
+
+  ntp_ts.hi = htonl(JAN_1970 - 1);
+  ntp_ts.lo = htonl(0xffffffff);
+  ntp_ts2.hi = htonl(JAN_1970 + 1);
+  ntp_ts2.lo = htonl(0x80000000);
+  TEST_CHECK(fabs(UTI_DiffNtp64ToDouble(&ntp_ts, &ntp_ts2) + 1.5) < 1e-9);
+  TEST_CHECK(fabs(UTI_DiffNtp64ToDouble(&ntp_ts2, &ntp_ts) - 1.5) < 1e-9);
 
   UTI_AddDoubleToTimespec(&ts, 1e-9, &ts);
 #if defined(HAVE_LONG_TIME_T) && NTP_ERA_SPLIT > 0

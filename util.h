@@ -155,6 +155,9 @@ extern void UTI_TimespecToNtp64(const struct timespec *src, NTP_int64 *dest,
 /* Convert an NTP timestamp into a timespec */
 extern void UTI_Ntp64ToTimespec(const NTP_int64 *src, struct timespec *dest);
 
+/* Calculate a - b in any epoch */
+extern double UTI_DiffNtp64ToDouble(const NTP_int64 *a, const NTP_int64 *b);
+
 /* Check if time + offset is sane */
 extern int UTI_IsTimeOffsetSane(const struct timespec *ts, double offset);
 
