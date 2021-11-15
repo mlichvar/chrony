@@ -27,6 +27,7 @@ fi
 # Default test testings
 
 default_limit=10000
+default_primary_time_offset=0.0
 default_time_offset=1e-1
 default_freq_offset=1e-4
 default_base_delay=1e-4
@@ -472,7 +473,8 @@ run_test() {
 				step=$server_step
 				start=$server_start
 				freq=""
-				[ $i -le $falsetickers ] && offset=$i.0 || offset=0.0
+				[ $i -le $falsetickers ] &&
+					offset=$i.0 || offset=$primary_time_offset
 				options=$server_chronyd_options
 			elif [ $stratum -le $server_strata ]; then
 				step=$server_step
