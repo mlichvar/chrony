@@ -942,6 +942,7 @@ process_cmd_add_source(CMD_Request *msg, char *line)
           (data.params.burst ? REQ_ADDSRC_BURST : 0) |
           (data.params.nts ? REQ_ADDSRC_NTS : 0) |
           (data.params.copy ? REQ_ADDSRC_COPY : 0) |
+          (data.params.ext_fields & NTP_EF_FLAG_EXP1 ? REQ_ADDSRC_EF_EXP1 : 0) |
           (data.params.sel_options & SRC_SELECT_PREFER ? REQ_ADDSRC_PREFER : 0) |
           (data.params.sel_options & SRC_SELECT_NOSELECT ? REQ_ADDSRC_NOSELECT : 0) |
           (data.params.sel_options & SRC_SELECT_TRUST ? REQ_ADDSRC_TRUST : 0) |

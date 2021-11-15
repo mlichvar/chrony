@@ -43,6 +43,7 @@ int
 CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
 {
   char *hostname, *cmd;
+  uint32_t ef_type;
   int n;
   
   src->port = SRC_DEFAULT_PORT;
@@ -65,6 +66,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   src->params.nts = 0;
   src->params.nts_port = SRC_DEFAULT_NTSPORT;
   src->params.copy = 0;
+  src->params.ext_fields = 0;
   src->params.authkey = INACTIVE_AUTHKEY;
   src->params.cert_set = SRC_DEFAULT_CERTSET;
   src->params.max_delay = SRC_DEFAULT_MAXDELAY;
@@ -116,6 +118,16 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
     } else if (!strcasecmp(cmd, "asymmetry")) {
       if (sscanf(line, "%lf%n", &src->params.asymmetry, &n) != 1)
         return 0;
+    } else if (!strcasecmp(cmd, "extfield")) {
+      if (sscanf(line, "%"SCNx32"%n", &ef_type, &n) != 1)
+        return 0;
+      switch (ef_type) {
+        case NTP_EF_EXP1:
+          src->params.ext_fields |= NTP_EF_FLAG_EXP1;
+          break;
+        default:
+          return 0;
+      }
     } else if (!strcasecmp(cmd, "filter")) {
       if (sscanf(line, "%d%n", &src->params.filter_length, &n) != 1)
         return 0;

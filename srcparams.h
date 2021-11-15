@@ -55,6 +55,7 @@ typedef struct {
   int nts;
   int nts_port;
   int copy;
+  int ext_fields;
   uint32_t authkey;
   uint32_t cert_set;
   double max_delay;

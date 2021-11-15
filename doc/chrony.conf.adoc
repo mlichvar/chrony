@@ -287,6 +287,25 @@ This is useful when multiple instances of `chronyd` are running on one computer
 to synchronise the system clock and other instances started with the *-x*
 option to operate as NTP servers for other computers with their NTP clocks
 synchronised to the first instance.
+*extfield* _type_:::
+This option enables an NTPv4 extension field specified by its type as a
+hexadecimal number. It will be included in requests sent to the server and
+processed in received responses if the server supports it. Note that some
+server implementations do not respond to requests containing an unknown
+extension field (*chronyd* as a server responded to such requests since
+version 2.0).
++
+The following extension field can be enabled by this option:
++
+_F323_::::
+This is an experimental extension field for some improvements that were
+proposed for the next version of the NTP protocol (NTPv5). The field contains
+root delay and dispersion in higher resolution and a monotonic receive
+timestamp, which enables a frequency transfer between the server and client. It
+can significantly improve stability of the synchronization. Generally, it
+should be expected to work only between servers and clients running the same
+version of *chronyd*.
+{blank}:::
 
 [[pool]]*pool* _name_ [_option_]...::
 The syntax of this directive is similar to that for the <<server,*server*>>
