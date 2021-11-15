@@ -508,9 +508,18 @@ test_unit(void)
   TEST_CHECK(UTI_DoubleToNtp32(65536.0) == htonl(0xffffffff));
   TEST_CHECK(UTI_DoubleToNtp32(65537.0) == htonl(0xffffffff));
 
+  TEST_CHECK(UTI_DoubleToNtp32f28(-1.0) == htonl(0));
+  TEST_CHECK(UTI_DoubleToNtp32f28(0.0) == htonl(0));
+  TEST_CHECK(UTI_DoubleToNtp32f28(1e-9) == htonl(1));
+  TEST_CHECK(UTI_DoubleToNtp32f28(4e-9) == htonl(2));
+  TEST_CHECK(UTI_DoubleToNtp32f28(8.0) == htonl(0x80000000));
+  TEST_CHECK(UTI_DoubleToNtp32f28(16.0) == htonl(0xffffffff));
+  TEST_CHECK(UTI_DoubleToNtp32f28(16.1) == htonl(0xffffffff));
+
   for (i = 0; i < 100000; i++) {
     UTI_GetRandomBytes(&ntp32_ts, sizeof (ntp32_ts));
     TEST_CHECK(UTI_DoubleToNtp32(UTI_Ntp32ToDouble(ntp32_ts)) == ntp32_ts);
+    TEST_CHECK(UTI_DoubleToNtp32f28(UTI_Ntp32f28ToDouble(ntp32_ts)) == ntp32_ts);
   }
 
   ts.tv_nsec = 0;

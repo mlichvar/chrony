@@ -133,6 +133,9 @@ extern void UTI_GetNtp64Fuzz(NTP_int64 *ts, int precision);
 extern double UTI_Ntp32ToDouble(NTP_int32 x);
 extern NTP_int32 UTI_DoubleToNtp32(double x);
 
+extern double UTI_Ntp32f28ToDouble(NTP_int32 x);
+extern NTP_int32 UTI_DoubleToNtp32f28(double x);
+
 /* Zero an NTP timestamp */
 extern void UTI_ZeroNtp64(NTP_int64 *ts);
 

@@ -637,6 +637,37 @@ UTI_DoubleToNtp32(double x)
 
 /* ================================================== */
 
+double
+UTI_Ntp32f28ToDouble(NTP_int32 x)
+{
+  return ntohl(x) / (double)(1U << 28);
+}
+
+/* ================================================== */
+
+NTP_int32
+UTI_DoubleToNtp32f28(double x)
+{
+  NTP_int32 r;
+
+  if (x >= 4294967295.0 / (1U << 28)) {
+    r = 0xffffffff;
+  } else if (x <= 0.0) {
+    r = 0;
+  } else {
+    x *= 1U << 28;
+    r = x;
+
+    /* Round up */
+    if (r < x)
+      r++;
+  }
+
+  return htonl(r);
+}
+
+/* ================================================== */
+
 void
 UTI_ZeroNtp64(NTP_int64 *ts)
 {
