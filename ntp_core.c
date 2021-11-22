@@ -2395,7 +2395,8 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
      transmit timestamp (this is verified in transmit_packet()).  For a new
      client starting with a zero origin timestamp, the third response is the
      earliest one that can be interleaved. */
-  if (kod == 0 && log_index >= 0 && message->originate_ts.lo & htonl(1) &&
+  if (kod == 0 && log_index >= 0 && info.version == 4 &&
+      message->originate_ts.lo & htonl(1) &&
       UTI_CompareNtp64(&message->receive_ts, &message->transmit_ts) != 0) {
     ntp_rx = message->originate_ts;
     local_ntp_rx = &ntp_rx;
