@@ -620,7 +620,7 @@ NCR_CreateInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
     result->auth = NAU_CreateNoneInstance();
   }
 
-  if (result->ext_field_flags)
+  if (result->ext_field_flags || result->interleaved)
     result->version = NTP_VERSION;
   else
     result->version = NAU_GetSuggestedNtpVersion(result->auth);

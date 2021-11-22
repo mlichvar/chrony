@@ -273,10 +273,11 @@ sources are unreachable.
 *version* _version_:::
 This option sets the NTP version of packets sent to the server. This can be
 useful when the server runs an old NTP implementation that does not respond to
-requests using a newer version. The default version depends on whether a key is
-specified by the *key* option and which authentication hash function the key
-is using. If the output size of the hash function is longer than 160 bits, the
-default version is 3 for compatibility with older *chronyd* servers. Otherwise,
+requests using a newer version. The default version depends on other options.
+If the *extfield* or *xleave* option is used, the default version is 4. If
+those options are not used and the *key* option specifies a key using a hash
+function with output size longer than 160 bits (e.g. SHA256), the default
+version is 3 for compatibility with older *chronyd* servers. In other cases,
 the default version is 4.
 *copy*:::
 This option specifies that the server and client are closely related, their
