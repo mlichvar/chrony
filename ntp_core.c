@@ -974,7 +974,10 @@ add_ext_exp1(NTP_Packet *message, NTP_PacketInfo *info, struct timespec *rx,
   if (info->mode != MODE_CLIENT) {
     exp1.root_delay = UTI_DoubleToNtp32f28(root_delay);
     exp1.root_dispersion = UTI_DoubleToNtp32f28(root_dispersion);
-    UTI_AddDoubleToTimespec(rx, server_mono_offset, &mono_rx);
+    if (rx)
+      UTI_AddDoubleToTimespec(rx, server_mono_offset, &mono_rx);
+    else
+      UTI_ZeroTimespec(&mono_rx);
     UTI_GetNtp64Fuzz(&ts_fuzz, message->precision);
     UTI_TimespecToNtp64(&mono_rx, &exp1.mono_receive_ts, &ts_fuzz);
     exp1.mono_epoch = htonl(server_mono_epoch);
@@ -1138,7 +1141,7 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
 
   if (ext_field_flags) {
     if (ext_field_flags & NTP_EF_FLAG_EXP1) {
-      if (!add_ext_exp1(&message, &info, &local_receive,
+      if (!add_ext_exp1(&message, &info, smooth_time ? NULL : &local_receive,
                         our_root_delay, our_root_dispersion))
         return 0;
     }
