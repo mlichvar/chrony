@@ -640,7 +640,13 @@ UTI_DoubleToNtp32(double x)
 double
 UTI_Ntp32f28ToDouble(NTP_int32 x)
 {
-  return ntohl(x) / (double)(1U << 28);
+  uint32_t r = ntohl(x);
+
+  /* Maximum value is special */
+  if (r == 0xffffffff)
+    return MAX_NTP_INT32;
+
+  return r / (double)(1U << 28);
 }
 
 /* ================================================== */

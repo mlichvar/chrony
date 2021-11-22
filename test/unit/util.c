@@ -515,7 +515,9 @@ test_unit(void)
   TEST_CHECK(UTI_DoubleToNtp32f28(8.0) == htonl(0x80000000));
   TEST_CHECK(UTI_DoubleToNtp32f28(16.0) == htonl(0xffffffff));
   TEST_CHECK(UTI_DoubleToNtp32f28(16.1) == htonl(0xffffffff));
+  TEST_CHECK(UTI_DoubleToNtp32f28(16.1) == htonl(0xffffffff));
 
+  TEST_CHECK(UTI_Ntp32f28ToDouble(htonl(0xffffffff)) >= 65535.999);
   for (i = 0; i < 100000; i++) {
     UTI_GetRandomBytes(&ntp32_ts, sizeof (ntp32_ts));
     TEST_CHECK(UTI_DoubleToNtp32(UTI_Ntp32ToDouble(ntp32_ts)) == ntp32_ts);
