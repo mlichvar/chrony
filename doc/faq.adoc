@@ -345,6 +345,15 @@ server ntp.local minpoll -6 maxpoll -6 filter 15 xleave
 hwtimestamp eth0 minpoll -6
 ----
 
+As an experimental feature added in version 4.2, `chronyd` supports an NTPv4
+extension field containing an additional timestamp to enable frequency transfer
+and significantly improve stability of synchronisation. It can be enabled by
+the `extfield F323` option. For example:
+
+----
+server ntp.local minpoll 0 maxpoll 0 xleave extfield F323
+----
+
 === Does `chronyd` have an ntpdate mode?
 
 Yes. With the `-q` option `chronyd` will set the system clock once and exit.
@@ -468,7 +477,8 @@ leap seconds from other sources (e.g. with the `leapsectz` directive in
 
 === Does `chrony` support PTP?
 
-No, the Precision Time Protocol (PTP) is not supported and there are no plans
+No, the Precision Time Protocol (PTP) is not supported as a protocol for
+synchronisation of clocks and there are no plans
 to support it. It is a complex protocol, which shares some issues with the
 NTP broadcast mode. One of the main differences between NTP and PTP is that PTP
 was designed to be easily supported in hardware (e.g. network switches and
@@ -482,6 +492,11 @@ are called PTP hardware clocks (PHC). They can be used as reference clocks
 packets (enabled by the `hwtimestamp` directive) if the NIC can timestamp other
 packets than PTP, which is usually the case at least for transmitted packets.
 The `ethtool -T` command can be used to verify the timestamping support.
+
+As an experimental feature added in version 4.2, `chrony` can use PTP as a
+transport for NTP messages (NTP over PTP) to enable hardware timestamping on
+hardware which can timestamp PTP packets only. It can be enabled by the
+`ptpport` directive.
 
 === What happened to the `commandkey` and `generatecommandkey` directives?
 
