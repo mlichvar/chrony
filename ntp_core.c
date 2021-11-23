@@ -1721,7 +1721,9 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
 
       switch (ef_type) {
         case NTP_EF_EXP1:
-          if (inst->ext_field_flags & NTP_EF_FLAG_EXP1 && ef_body_length == sizeof (*ef_exp1))
+          if (inst->ext_field_flags & NTP_EF_FLAG_EXP1 &&
+              ef_body_length == sizeof (*ef_exp1) &&
+              ntohl(((NTP_ExtFieldExp1 *)ef_body)->magic) == NTP_EF_EXP1_MAGIC)
             ef_exp1 = ef_body;
           break;
       }
