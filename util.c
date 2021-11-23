@@ -1402,29 +1402,32 @@ UTI_DropRoot(uid_t uid, gid_t gid)
 
 #define DEV_URANDOM "/dev/urandom"
 
+static FILE *urandom_file = NULL;
+
 void
 UTI_GetRandomBytesUrandom(void *buf, unsigned int len)
 {
-  static FILE *f = NULL;
-
-  if (!f)
-    f = UTI_OpenFile(NULL, DEV_URANDOM, NULL, 'R', 0);
-  if (fread(buf, 1, len, f) != len)
+  if (!urandom_file)
+    urandom_file = UTI_OpenFile(NULL, DEV_URANDOM, NULL, 'R', 0);
+  if (fread(buf, 1, len, urandom_file) != len)
     LOG_FATAL("Can't read from %s", DEV_URANDOM);
 }
 
 /* ================================================== */
 
 #ifdef HAVE_GETRANDOM
+
+static unsigned int getrandom_buf_available = 0;
+
 static void
 get_random_bytes_getrandom(char *buf, unsigned int len)
 {
   static char rand_buf[256];
-  static unsigned int available = 0, disabled = 0;
+  static unsigned int disabled = 0;
   unsigned int i;
 
   for (i = 0; i < len; i++) {
-    if (!available) {
+    if (getrandom_buf_available == 0) {
       if (disabled)
         break;
 
@@ -1433,10 +1436,10 @@ get_random_bytes_getrandom(char *buf, unsigned int len)
         break;
       }
 
-      available = sizeof (rand_buf);
+      getrandom_buf_available = sizeof (rand_buf);
     }
 
-    buf[i] = rand_buf[--available];
+    buf[i] = rand_buf[--getrandom_buf_available];
   }
 
   if (i < len)
@@ -1455,6 +1458,20 @@ UTI_GetRandomBytes(void *buf, unsigned int len)
   get_random_bytes_getrandom(buf, len);
 #else
   UTI_GetRandomBytesUrandom(buf, len);
+#endif
+}
+
+/* ================================================== */
+
+void
+UTI_ResetGetRandomFunctions(void)
+{
+  if (urandom_file) {
+    fclose(urandom_file);
+    urandom_file = NULL;
+  }
+#ifdef HAVE_GETRANDOM
+  getrandom_buf_available = 0;
 #endif
 }
 

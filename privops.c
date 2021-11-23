@@ -662,6 +662,8 @@ PRV_StartHelper(void)
         close(fd);
     }
 
+    UTI_ResetGetRandomFunctions();
+
     /* ignore signals, the process will exit on OP_QUIT request */
     UTI_SetQuitSignalsHandler(SIG_IGN, 1);
 

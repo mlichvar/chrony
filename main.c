@@ -141,6 +141,8 @@ MAI_CleanupAndExit(void)
   HSH_Finalise();
   LOG_Finalise();
 
+  UTI_ResetGetRandomFunctions();
+
   exit(exit_status);
 }
 

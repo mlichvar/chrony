@@ -224,6 +224,10 @@ extern void UTI_GetRandomBytesUrandom(void *buf, unsigned int len);
    generating long-term keys */
 extern void UTI_GetRandomBytes(void *buf, unsigned int len);
 
+/* Close /dev/urandom and drop any cached data used by the GetRandom functions
+   to prevent forked processes getting the same sequence of random numbers */
+extern void UTI_ResetGetRandomFunctions(void);
+
 /* Print data in hexadecimal format */
 extern int UTI_BytesToHex(const void *buf, unsigned int buf_len, char *hex, unsigned int hex_len);
 

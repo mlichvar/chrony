@@ -670,6 +670,10 @@ test_unit(void)
     UTI_GetRandomBytesUrandom(buf, j);
     if (j && buf[j - 1] % 2)
       c++;
+    if (random() % 10000 == 0) {
+      UTI_ResetGetRandomFunctions();
+      TEST_CHECK(!urandom_file);
+    }
   }
   TEST_CHECK(c > 46000 && c < 48000);
 
@@ -678,6 +682,12 @@ test_unit(void)
     UTI_GetRandomBytes(buf, j);
     if (j && buf[j - 1] % 2)
       c++;
+    if (random() % 10000 == 0) {
+      UTI_ResetGetRandomFunctions();
+#if HAVE_GETRANDOM
+      TEST_CHECK(getrandom_buf_available == 0);
+#endif
+    }
   }
   TEST_CHECK(c > 46000 && c < 48000);
 

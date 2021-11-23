@@ -669,6 +669,8 @@ run_helper(uid_t uid, gid_t gid, int scfilter_level)
   CNF_Finalise();
   LOG_Finalise();
 
+  UTI_ResetGetRandomFunctions();
+
   exit(0);
 }
 
@@ -709,6 +711,8 @@ NKS_PreInitialise(uid_t uid, gid_t gid, int scfilter_level)
       continue;
 
     is_helper = 1;
+
+    UTI_ResetGetRandomFunctions();
 
     snprintf(prefix, sizeof (prefix), "nks#%d:", i + 1);
     LOG_SetDebugPrefix(prefix);
