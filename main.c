@@ -76,11 +76,18 @@ static REF_Mode ref_mode = REF_ModeNormal;
 static void
 do_platform_checks(void)
 {
+  struct timespec ts;
+
   /* Require at least 32-bit integers, two's complement representation and
      the usual implementation of conversion of unsigned integers */
   assert(sizeof (int) >= 4);
   assert(-1 == ~0);
   assert((int32_t)4294967295U == (int32_t)-1);
+
+  /* Require time_t and tv_nsec in timespec to be signed */
+  ts.tv_sec = -1;
+  ts.tv_nsec = -1;
+  assert(ts.tv_sec < 0 && ts.tv_nsec < 0);
 }
 
 /* ================================================== */
