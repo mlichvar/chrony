@@ -332,7 +332,8 @@ NIO_OpenServerSocket(NTP_Remote_Address *remote_addr)
 static int
 is_ptp_socket(int sock_fd)
 {
-  return ptp_port > 0 && (sock_fd == ptp_sock_fd4 || sock_fd == ptp_sock_fd6);
+  return ptp_port > 0 && sock_fd != INVALID_SOCK_FD &&
+    (sock_fd == ptp_sock_fd4 || sock_fd == ptp_sock_fd6);
 }
 
 /* ================================================== */
