@@ -189,14 +189,10 @@ accumulate_sample(time_t rtc, struct timespec *sys)
   }
 
   /* Always use most recent sample as reference */
-  /* use sample only if n_sample is not negative*/
-  if(n_samples >=0)
-  {
   rtc_ref = rtc;
   rtc_sec[n_samples] = rtc;
   system_times[n_samples] = *sys;
   ++n_samples_since_regression;
-  }
   ++n_samples;
 }
 
@@ -633,11 +629,7 @@ handle_initial_trim(void)
   run_regression(1, &coefs_valid, &coef_ref_time, &coef_seconds_fast, &coef_gain_rate);
 
   n_samples_since_regression = 0;
-
-  /* Set sample number to -1 so the next sample is not used, as it will not yet be corrected for System Trim*/
-
-  n_samples = -1;
-
+  n_samples = 0;
 
   read_coefs_from_file();
 
