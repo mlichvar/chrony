@@ -82,15 +82,11 @@ static int skip_interrupts;
 #define MAX_SAMPLES 64
 
 /* Real time clock samples.  We store the seconds count as originally
-   measured, together with a 'trim' that compensates these values for
-   any steps made to the RTC to bring it back into line
-   occasionally.  The trim is in seconds. */
+   measured. */
 static time_t *rtc_sec = NULL;
-static double *rtc_trim = NULL;
 
 /* Reference time, against which delta times on the RTC scale are measured */
 static time_t rtc_ref;
-
 
 /* System clock samples associated with the above samples. */
 static struct timespec *system_times = NULL;
@@ -168,7 +164,6 @@ discard_samples(int new_first)
   n_to_save = n_samples - new_first;
 
   memmove(rtc_sec, rtc_sec + new_first, n_to_save * sizeof(time_t));
-  memmove(rtc_trim, rtc_trim + new_first, n_to_save * sizeof(double));
   memmove(system_times, system_times + new_first, n_to_save * sizeof(struct timespec));
 
   n_samples = n_to_save;
@@ -188,7 +183,7 @@ accumulate_sample(time_t rtc, struct timespec *sys)
   }
 
   /* Discard all samples if the RTC was stepped back (not our trim) */
-  if (n_samples > 0 && rtc_sec[n_samples - 1] - rtc >= rtc_trim[n_samples - 1]) {
+  if (n_samples > 0 && rtc_sec[n_samples - 1] >= rtc) {
     DEBUG_LOG("RTC samples discarded");
     n_samples = 0;
   }
@@ -199,7 +194,6 @@ accumulate_sample(time_t rtc, struct timespec *sys)
   {
   rtc_ref = rtc;
   rtc_sec[n_samples] = rtc;
-  rtc_trim[n_samples] = 0.0;
   system_times[n_samples] = *sys;
   ++n_samples_since_regression;
   }
@@ -227,7 +221,7 @@ run_regression(int new_sample,
   if (n_samples > 0) {
 
     for (i=0; i<n_samples; i++) {
-      rtc_rel[i] = rtc_trim[i] + (double)(rtc_sec[i] - rtc_ref);
+      rtc_rel[i] = (double)(rtc_sec[i] - rtc_ref);
       offsets[i] = ((double) (rtc_ref - system_times[i].tv_sec) -
                     (1.0e-9 * system_times[i].tv_nsec) +
                     rtc_rel[i]);
@@ -527,7 +521,6 @@ RTC_Linux_Initialise(void)
   UTI_FdSetCloexec(fd);
 
   rtc_sec = MallocArray(time_t, MAX_SAMPLES);
-  rtc_trim = MallocArray(double, MAX_SAMPLES);
   system_times = MallocArray(struct timespec, MAX_SAMPLES);
 
   /* Setup details depending on configuration options */
@@ -580,7 +573,6 @@ RTC_Linux_Finalise(void)
     LCL_RemoveParameterChangeHandler(slew_samples, NULL);
 
   Free(rtc_sec);
-  Free(rtc_trim);
   Free(system_times);
 }
 
@@ -1030,8 +1022,7 @@ RTC_Linux_GetReport(RPT_RTC_Report *report)
   report->n_samples = n_samples;
   report->n_runs = n_runs;
   if (n_samples > 1) {
-    report->span_seconds = ((rtc_sec[n_samples-1] - rtc_sec[0]) +
-                            (long)(rtc_trim[n_samples-1] - rtc_trim[0]));
+    report->span_seconds = rtc_sec[n_samples - 1] - rtc_sec[0];
   } else {
     report->span_seconds = 0;
   }
