@@ -64,7 +64,7 @@ static OperatingMode operating_mode = OM_NORMAL;
 
 /* ================================================== */
 
-static int fd = -1;
+static int fd;
 
 #define LOWEST_MEASUREMENT_PERIOD 15
 #define HIGHEST_MEASUREMENT_PERIOD 480
@@ -145,7 +145,7 @@ static double file_ref_offset, file_rate_ppm;
 /* ================================================== */
 
 /* Flag to remember whether to assume the RTC is running on UTC */
-static int rtc_on_utc = 1;
+static int rtc_on_utc;
 
 /* ================================================== */
 
