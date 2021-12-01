@@ -1333,7 +1333,8 @@ REF_DisableLocal(void)
 static int
 is_leap_close(time_t t)
 {
-  return t >= leap_when - LEAP_SECOND_CLOSE && t < leap_when + LEAP_SECOND_CLOSE;
+  return leap_when != 0 &&
+         t >= leap_when - LEAP_SECOND_CLOSE && t < leap_when + LEAP_SECOND_CLOSE;
 }
 
 /* ================================================== */
