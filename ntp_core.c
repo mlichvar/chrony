@@ -493,11 +493,16 @@ start_initial_timeout(NCR_Instance inst)
   /* In case the offline period was too short, adjust the delay to keep
      the interval between packets at least as long as the current polling
      interval */
-  SCH_GetLastEventTime(&now, NULL, NULL);
-  last_tx = UTI_DiffTimespecsToDouble(&now, &inst->local_tx.ts);
-  if (last_tx < 0.0)
-    last_tx = 0.0;
-  delay = get_transmit_delay(inst, 0, 0.0) - last_tx;
+  if (!UTI_IsZeroTimespec(&inst->local_tx.ts)) {
+    SCH_GetLastEventTime(&now, NULL, NULL);
+    last_tx = UTI_DiffTimespecsToDouble(&now, &inst->local_tx.ts);
+    if (last_tx < 0.0)
+      last_tx = 0.0;
+    delay = get_transmit_delay(inst, 0, 0.0) - last_tx;
+  } else {
+    delay = 0.0;
+  }
+
   if (delay < INITIAL_DELAY)
     delay = INITIAL_DELAY;
 
