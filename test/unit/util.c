@@ -479,8 +479,8 @@ test_unit(void)
   ts2.tv_nsec = 250000000;
   UTI_AdjustTimespec(&ts, &ts2, &ts3, &x, 2.0, -5.0);
   TEST_CHECK(fabs(x - 6.5) < 1.0e-15);
-  TEST_CHECK(ts3.tv_sec == 10);
-  TEST_CHECK(ts3.tv_nsec == 0);
+  TEST_CHECK((ts3.tv_sec == 10 && ts3.tv_nsec == 0) ||
+             (ts3.tv_sec == 9 && ts3.tv_nsec == 999999999));
 
   for (i = -32; i <= 32; i++) {
     for (j = c = 0; j < 1000; j++) {
