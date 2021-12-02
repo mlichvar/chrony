@@ -1,3 +1,22 @@
+New in version 4.2
+==================
+
+Enhancements
+------------
+* Add support for NTPv4 extension field improving synchronisation
+  stability and resolution of root delay and dispersion (experimental)
+* Add support for NTP over PTP (experimental)
+* Add support for AES-CMAC and hash functions in GnuTLS
+* Improve server interleaved mode to be more reliable and support
+  multiple clients behind NAT
+* Update seccomp filter
+* Add statistics about interleaved mode to serverstats report
+
+Bug fixes
+---------
+* Fix RTC support with 64-bit time_t on 32-bit Linux
+* Fix seccomp filter to work correctly with bind*device directives
+
 New in version 4.1
 ==================
 
