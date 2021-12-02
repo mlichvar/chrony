@@ -1660,11 +1660,11 @@ process_sample(NCR_Instance inst, NTP_Sample *sample)
 
   error_in_estimate = fabs(-sample->offset - estimated_offset);
 
-  if (inst->mono_doffset != 0.0) {
+  if (inst->mono_doffset != 0.0 && fabs(inst->mono_doffset) <= MAX_MONO_DOFFSET) {
     DEBUG_LOG("Monotonic correction offset=%.9f", inst->mono_doffset);
     SST_CorrectOffset(SRC_GetSourcestats(inst->source), inst->mono_doffset);
-    inst->mono_doffset = 0.0;
   }
+  inst->mono_doffset = 0.0;
 
   SRC_AccumulateSample(inst->source, sample);
   SRC_SelectSource(inst->source);
