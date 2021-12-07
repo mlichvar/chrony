@@ -467,7 +467,7 @@ case $OPERATINGSYSTEM in
     ;;
     SunOS)
         EXTRA_OBJECTS="sys_generic.o sys_solaris.o sys_timex.o sys_posix.o"
-        LIBS="$LIBS -lsocket -lnsl -lresolv"
+        LIBS="$LIBS -lsocket -lnsl -lkvm -lelf -lresolv"
         try_setsched=1
         try_lockmem=1
         add_def SOLARIS
