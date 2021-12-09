@@ -1238,7 +1238,7 @@ This directive specifies the maximum assumed drift (frequency error) of the
 system clock. It limits the frequency adjustment that *chronyd* is allowed to
 use to correct the measured drift. It is an additional limit to the maximum
 adjustment that can be set by the system driver (100000 ppm on Linux, 500 ppm
-on FreeBSD, NetBSD, and macOS 10.13+, 32500 ppm on Solaris).
+on FreeBSD, NetBSD, and macOS 10.13+, 32500 ppm on illumos).
 +
 By default, the maximum assumed drift is 500000 ppm, i.e. the adjustment is
 limited by the system driver rather than this directive.
@@ -1277,7 +1277,7 @@ all supported systems with the exception of macOS 12 or earlier).
 +
 For each system there is a maximum frequency offset of the clock that can be set
 by the driver. On Linux it is 100000 ppm, on FreeBSD, NetBSD and macOS 10.13+ it
-is 5000 ppm, and on Solaris it is 32500 ppm. Also, due to a kernel limitation,
+is 5000 ppm, and on illumos it is 32500 ppm. Also, due to a kernel limitation,
 setting *maxslewrate* on FreeBSD, NetBSD, macOS 10.13+ to a value between 500
 ppm and 5000 ppm will effectively set it to 500 ppm.
 +
@@ -2524,7 +2524,7 @@ file when the <<chronyc.adoc#rekey,*rekey*>> command is issued by *chronyc*).
 [[lock_all]]*lock_all*::
 The *lock_all* directive will lock the *chronyd* process into RAM so that it
 will never be paged out. This can result in lower and more consistent latency.
-The directive is supported on Linux, FreeBSD, NetBSD, and Solaris.
+The directive is supported on Linux, FreeBSD, NetBSD, and illumos.
 
 [[pidfile]]*pidfile* _file_::
 Unless *chronyd* is started with the *-Q* option, it writes its process ID
@@ -2564,7 +2564,7 @@ ptpport 319
 ----
 
 [[sched_priority]]*sched_priority* _priority_::
-On Linux, FreeBSD, NetBSD, and Solaris, the *sched_priority* directive will
+On Linux, FreeBSD, NetBSD, and illumos, the *sched_priority* directive will
 select the SCHED_FIFO real-time scheduler at the specified priority (which must
 be between 0 and 100). On macOS, this option must have either a value of 0 (the
 default) to disable the thread time constraint policy or 1 for the policy to be
@@ -2590,7 +2590,7 @@ The *user* directive sets the name of the system user to which *chronyd* will
 switch after start in order to drop root privileges.
 +
 On Linux, *chronyd* needs to be compiled with support for the *libcap* library.
-On macOS, FreeBSD, NetBSD and Solaris *chronyd* forks into two processes.
+On macOS, FreeBSD, NetBSD and illumos *chronyd* forks into two processes.
 The child process retains root privileges, but can only perform a very limited
 range of privileged system calls on behalf of the parent.
 +

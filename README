@@ -28,7 +28,7 @@ What will chrony run on?
 ========================
 
 The software is known to work on Linux, FreeBSD, NetBSD, macOS and
-Solaris.  Closely related systems may work too.  Any other system will
+illumos.  Closely related systems may work too.  Any other system will
 likely require a porting exercise.
 
 How do I set it up?

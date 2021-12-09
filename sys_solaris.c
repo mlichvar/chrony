@@ -21,7 +21,7 @@
 
   =======================================================================
 
-  Driver file for Solaris operating system
+  Driver file for illumos operating system (previously Solaris)
   */
 
 #include "config.h"

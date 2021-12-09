@@ -479,7 +479,7 @@ case $OPERATINGSYSTEM in
           add_def FEAT_PRIVDROP
           priv_ops="ADJUSTTIMEX SETTIME BINDSOCKET"
         fi
-        echo "Configuring for Solaris (" $SYSTEM "SunOS version" $VERSION ")" 
+        echo "Configuring for illumos (" $SYSTEM "SunOS version" $VERSION ")"
     ;;                                                                        
     * )
         echo "error: $SYSTEM is not supported (yet?)"

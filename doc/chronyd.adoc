@@ -100,7 +100,7 @@ directive in the configuration file. This option is useful if you want to stop
 and restart *chronyd* briefly for any reason, e.g. to install a new version.
 However, it should be used only on systems where the kernel can maintain clock
 compensation whilst not under *chronyd*'s control (i.e. Linux, FreeBSD, NetBSD,
-Solaris, and macOS 10.13 or later).
+illumos, and macOS 10.13 or later).
 
 *-R*::
 When this option is used, the <<chrony.conf.adoc#initstepslew,*initstepslew*>>
@@ -141,7 +141,7 @@ after start in order to drop root privileges. It overrides the
 _@DEFAULT_USER@_.
 +
 On Linux, *chronyd* needs to be compiled with support for the *libcap* library.
-On macOS, FreeBSD, NetBSD and Solaris *chronyd* forks into two processes.
+On macOS, FreeBSD, NetBSD, and illumos *chronyd* forks into two processes.
 The child process retains root privileges, but can only perform a very limited
 range of privileged system calls on behalf of the parent.
 
@@ -181,7 +181,7 @@ limited.
 The filters cannot be enabled with the *mailonchange* directive.
 
 *-P* _priority_::
-On Linux, FreeBSD, NetBSD, and Solaris, this option will select the SCHED_FIFO
+On Linux, FreeBSD, NetBSD, and illumos this option will select the SCHED_FIFO
 real-time scheduler at the specified priority (which must be between 0 and
 100). On macOS, this option must have either a value of 0 to disable the thread
 time constraint policy or 1 for the policy to be enabled. Other systems do not
@@ -189,7 +189,7 @@ support this option. The default value is 0.
 
 *-m*::
 This option will lock *chronyd* into RAM so that it will never be paged out.
-This mode is only supported on Linux, FreeBSD, NetBSD, and Solaris.
+This mode is only supported on Linux, FreeBSD, NetBSD, and illumos.
 
 *-x*::
 This option disables the control of the system clock. *chronyd* will not try to
