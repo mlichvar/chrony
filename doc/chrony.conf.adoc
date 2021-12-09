@@ -1099,7 +1099,11 @@ clock will be off for a longer time. On Linux with the default
 *ignore*:::
 No correction is applied to the clock for the leap second. The clock will be
 corrected later in normal operation when new measurements are made and the
-estimated offset includes the one second error.
+estimated offset includes the one second error. This option is particularly
+useful when multiple *chronyd* instances are running on the system, one
+controlling the system clock and others started with the *-x* option, which
+should rely on the first instance to correct the system clock and ignore it for
+the correction of their own NTP clock running on top of the system clock.
 {blank}::
 +
 When serving time to NTP clients that cannot be configured to correct their
