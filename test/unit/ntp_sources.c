@@ -110,7 +110,7 @@ change_remote_address(NCR_Instance inst, NTP_Remote_Address *remote_addr, int nt
 void
 test_unit(void)
 {
-  char source_line[] = "127.0.0.1 offline", conf[] = "port 0", name[64], msg[1];
+  char source_line[] = "127.0.0.1 offline", conf[] = "port 0", name[64];
   int i, j, k, slot, found, pool, prev_n;
   uint32_t hash = 0, conf_id;
   NTP_Remote_Address addrs[256], addr;
@@ -120,6 +120,7 @@ test_unit(void)
   RPT_ActivityReport report;
   CPS_NTP_Source source;
   NSR_Status status;
+  NTP_Packet msg;
 
   CNF_Initialise(0, 0);
   CNF_ParseLine(NULL, 1, conf);
@@ -272,12 +273,14 @@ test_unit(void)
 
         switch (random() % 5) {
           case 0:
+            msg.lvm = NTP_LVM(0, NTP_VERSION, random() % 2 ? MODE_CLIENT : MODE_SERVER);
             NSR_ProcessTx(get_record(slot)->remote_addr, &local_addr,
-                          &local_ts, (NTP_Packet *)msg, 0);
+                          &local_ts, &msg, 0);
             break;
           case 1:
+            msg.lvm = NTP_LVM(0, NTP_VERSION, random() % 2 ? MODE_CLIENT : MODE_SERVER);
             NSR_ProcessRx(get_record(slot)->remote_addr, &local_addr,
-                          &local_ts, (NTP_Packet *)msg, 0);
+                          &local_ts, &msg, 0);
             break;
           case 2:
             NSR_HandleBadSource(&get_record(slot)->remote_addr->ip_addr);

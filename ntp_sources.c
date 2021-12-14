@@ -1100,8 +1100,10 @@ NSR_ProcessRx(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
 
   assert(initialised);
 
-  /* Must match IP address AND port number */
-  if (find_slot2(remote_addr, &slot) == 2) {
+  /* Avoid unnecessary lookup if the packet cannot be a response from our
+     source.  Otherwise, it must match both IP address and port number. */
+  if (NTP_LVM_TO_MODE(message->lvm) != MODE_CLIENT &&
+      find_slot2(remote_addr, &slot) == 2) {
     record = get_record(slot);
 
     if (!NCR_ProcessRxKnown(record->data, local_addr, rx_ts, message, length))
@@ -1137,8 +1139,10 @@ NSR_ProcessTx(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
   SourceRecord *record;
   int slot;
 
-  /* Must match IP address AND port number */
-  if (find_slot2(remote_addr, &slot) == 2) {
+  /* Avoid unnecessary lookup if the packet cannot be a request to our
+     source.  Otherwise, it must match both IP address and port number. */
+  if (NTP_LVM_TO_MODE(message->lvm) != MODE_SERVER &&
+      find_slot2(remote_addr, &slot) == 2) {
     record = get_record(slot);
     NCR_ProcessTxKnown(record->data, local_addr, tx_ts, message, length);
   } else {
