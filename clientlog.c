@@ -751,7 +751,7 @@ static void
 int64_to_ntp64(uint64_t ts, NTP_int64 *ntp_ts)
 {
   ntp_ts->hi = htonl(ts >> 32);
-  ntp_ts->lo = htonl(ts & ((1ULL << 32) - 1));
+  ntp_ts->lo = htonl(ts);
 }
 
 /* ================================================== */
