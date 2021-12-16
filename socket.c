@@ -505,6 +505,8 @@ bind_unix_address(int sock_fd, const char *addr, int flags)
 {
   union sockaddr_all saddr;
 
+  memset(&saddr, 0, sizeof (saddr));
+
   if (snprintf(saddr.un.sun_path, sizeof (saddr.un.sun_path), "%s", addr) >=
       sizeof (saddr.un.sun_path)) {
     DEBUG_LOG("Unix socket path %s too long", addr);
@@ -536,6 +538,8 @@ static int
 connect_unix_address(int sock_fd, const char *addr)
 {
   union sockaddr_all saddr;
+
+  memset(&saddr, 0, sizeof (saddr));
 
   if (snprintf(saddr.un.sun_path, sizeof (saddr.un.sun_path), "%s", addr) >=
       sizeof (saddr.un.sun_path)) {
