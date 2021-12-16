@@ -321,7 +321,8 @@ transmit_reply(int sock_fd, int request_length, SCK_Message *message)
 
 #if !defined(HAVE_IN_PKTINFO) && defined(IP_SENDSRCADDR)
   /* On FreeBSD a local IPv4 address cannot be specified on bound socket */
-  if (message->local_addr.ip.family == IPADDR_INET4 && (sock_fd != sock_fd4 || bound_sock_fd4))
+  if (message->addr_type == SCK_ADDR_IP && message->local_addr.ip.family == IPADDR_INET4 &&
+      (sock_fd != sock_fd4 || bound_sock_fd4))
     message->local_addr.ip.family = IPADDR_UNSPEC;
 #endif
 
