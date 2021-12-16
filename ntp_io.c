@@ -594,7 +594,7 @@ NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,
 #if !defined(HAVE_IN_PKTINFO) && defined(IP_SENDSRCADDR)
   /* On FreeBSD a local IPv4 address cannot be specified on bound socket */
   if (message.local_addr.ip.family == IPADDR_INET4 &&
-      (local_addr->sock_fd != server_sock_fd4 || bound_server_sock_fd4))
+      (bound_server_sock_fd4 || !NIO_IsServerSocket(local_addr->sock_fd)))
     message.local_addr.ip.family = IPADDR_UNSPEC;
 #endif
 
