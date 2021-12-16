@@ -16,6 +16,11 @@ Bug fixes
 ---------
 * Fix RTC support with 64-bit time_t on 32-bit Linux
 * Fix seccomp filter to work correctly with bind*device directives
+* Suppress kernel adjustments of system clock (dosynctodr) on illumos
+
+Other changes
+-------------
+* Switch Solaris support to illumos
 
 New in version 4.1
 ==================
