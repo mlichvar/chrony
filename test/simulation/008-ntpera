@@ -29,7 +29,7 @@ echo "$ntp_start" | grep -q '-' && test_skip
 
 for time_offset in -1e-1 1e-1; do
 	for start_offset in 0 "2^32 - $limit"; do
-		export CLKNETSIM_START_DATE=$(awk "BEGIN {print $ntp_start + $start_offset}")
+		export CLKNETSIM_START_DATE=$(awk "BEGIN {printf \"%.0f\", $ntp_start + $start_offset}")
 		run_test || test_fail
 		check_chronyd_exit || test_fail
 		check_source_selection || test_fail
@@ -38,7 +38,7 @@ for time_offset in -1e-1 1e-1; do
 	done
 
 	for start_offset in -$limit "2^32"; do
-		export CLKNETSIM_START_DATE=$(awk "BEGIN {print $ntp_start + $start_offset}")
+		export CLKNETSIM_START_DATE=$(awk "BEGIN {printf \"%.0f\", $ntp_start + $start_offset}")
 		run_test || test_fail
 		check_chronyd_exit || test_fail
 		check_source_selection || test_fail
