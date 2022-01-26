@@ -283,6 +283,9 @@ open_io(void)
     close_io();
   }
 
+  /* Start from the first address if called again */
+  address_index = 0;
+
   return 0;
 }
 
