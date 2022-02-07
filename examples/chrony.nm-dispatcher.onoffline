@@ -7,8 +7,18 @@ export LC_ALL=C
 
 chronyc=/usr/bin/chronyc
 
-# For NetworkManager consider only up/down events
-[ $# -ge 2 ] && [ "$2" != "up" ] && [ "$2" != "down" ] && exit 0
+# For NetworkManager consider only selected events
+if [ $# -ge 2 ]; then
+    case "$2" in
+        up|down|connectivity-change)
+            ;;
+        dhcp6-change)
+            # No other action is reported for routable IPv6
+            ;;
+        *)
+            exit 0;;
+    esac
+fi
 
 # Note: for networkd-dispatcher routable.d ~= on and off.d ~= off
 
