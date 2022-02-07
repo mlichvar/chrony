@@ -1,8 +1,7 @@
 #!/bin/sh
 # This is a NetworkManager dispatcher script for chronyd to update
-# its NTP sources passed from DHCP options. Note that this script is
-# specific to NetworkManager-dispatcher due to use of the
-# DHCP4_NTP_SERVERS environment variable.
+# its NTP sources with servers from DHCP options passed by NetworkManager
+# in the DHCP4_NTP_SERVERS and DHCP6_DHCP6_NTP_SERVERS environment variables.
 
 export LC_ALL=C
 
@@ -10,17 +9,19 @@ interface=$1
 action=$2
 
 chronyc=/usr/bin/chronyc
-default_server_options=iburst
+server_options=iburst
 server_dir=/var/run/chrony-dhcp
 
 dhcp_server_file=$server_dir/$interface.sources
-# DHCP4_NTP_SERVERS is passed from DHCP options by NetworkManager.
-nm_dhcp_servers=$DHCP4_NTP_SERVERS
+dhcp_ntp_servers="$DHCP4_NTP_SERVERS $DHCP6_DHCP6_NTP_SERVERS"
 
 add_servers_from_dhcp() {
     rm -f "$dhcp_server_file"
-    for server in $nm_dhcp_servers; do
-        echo "server $server $default_server_options" >> "$dhcp_server_file"
+    for server in $dhcp_ntp_servers; do
+        # Check for invalid characters (from the DHCPv6 NTP FQDN suboption)
+        printf '%s\n' "$server" | grep -E -q '^[-A-Za-z0-9:.]{1,255}$' || continue
+
+        printf 'server %s %s\n' "$server" "$server_options" >> "$dhcp_server_file"
     done
     $chronyc reload sources > /dev/null 2>&1 || :
 }
@@ -34,10 +35,11 @@ clear_servers_from_dhcp() {
 
 mkdir -p $server_dir
 
-if [ "$action" = "up" ] || [ "$action" = "dhcp4-change" ]; then
-    add_servers_from_dhcp
-elif [ "$action" = "down" ]; then
-    clear_servers_from_dhcp
-fi
+case "$action" in
+    up|dhcp4-change|dhcp6-change)
+        add_servers_from_dhcp;;
+    down)
+        clear_servers_from_dhcp;;
+esac
 
 exit 0
