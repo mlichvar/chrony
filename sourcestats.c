@@ -698,7 +698,8 @@ SST_GetSelectionData(SST_Stats inst, struct timespec *now,
 
   /* If maxsamples is too small to have a successful regression, enable the
      selection as a special case for a fast update/print-once reference mode */
-  if (!*select_ok && inst->n_samples < 3 && inst->n_samples == inst->max_samples) {
+  if (!*select_ok && inst->n_samples < MIN_SAMPLES_FOR_REGRESS &&
+      inst->n_samples == inst->max_samples) {
     *std_dev = CNF_GetMaxJitter();
     *select_ok = 1;
   }
@@ -814,7 +815,7 @@ SST_PredictOffset(SST_Stats inst, struct timespec *when)
 {
   double elapsed;
   
-  if (inst->n_samples < 3) {
+  if (inst->n_samples < MIN_SAMPLES_FOR_REGRESS) {
     /* We don't have any useful statistics, and presumably the poll
        interval is minimal.  We can't do any useful prediction other
        than use the latest sample or zero if we don't have any samples */
