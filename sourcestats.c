@@ -211,8 +211,8 @@ SST_CreateInstance(uint32_t refid, IPAddr *addr, int min_samples, int max_sample
   SST_Stats inst;
   inst = MallocNew(struct SST_Stats_Record);
 
-  inst->min_samples = min_samples;
-  inst->max_samples = max_samples;
+  inst->max_samples = max_samples > 0 ? CLAMP(1, max_samples, MAX_SAMPLES) : MAX_SAMPLES;
+  inst->min_samples = CLAMP(1, min_samples, inst->max_samples);
   inst->fixed_min_delay = min_delay;
   inst->fixed_asymmetry = asymmetry;
 
