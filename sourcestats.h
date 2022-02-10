@@ -133,6 +133,8 @@ extern void SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *repor
 
 extern int SST_Samples(SST_Stats inst);
 
+extern int SST_GetMinSamples(SST_Stats inst);
+
 extern double SST_GetJitterAsymmetry(SST_Stats inst);
 
 #endif /* GOT_SOURCESTATS_H */

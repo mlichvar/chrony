@@ -986,6 +986,14 @@ SST_Samples(SST_Stats inst)
 
 /* ================================================== */
 
+int
+SST_GetMinSamples(SST_Stats inst)
+{
+  return inst->min_samples;
+}
+
+/* ================================================== */
+
 void
 SST_DoSourcestatsReport(SST_Stats inst, RPT_SourcestatsReport *report, struct timespec *now)
 {
