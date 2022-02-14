@@ -101,6 +101,8 @@ test_unit(void)
           TEST_CHECK(sources[l]->status > SRC_OK && sources[l]->status <= SRC_SELECTED);
           if (sources[l]->sel_options & SRC_SELECT_NOSELECT) {
             TEST_CHECK(sources[l]->status == SRC_UNSELECTABLE);
+          } else if (sources[l]->leap == LEAP_Unsynchronised) {
+            TEST_CHECK(sources[l]->status == SRC_UNSYNCHRONISED);
           } else if (sources[l]->status != SRC_BAD_DISTANCE) {
             if (sources[l]->status >= SRC_NONPREFERRED) {
               passed++;

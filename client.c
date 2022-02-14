@@ -2399,12 +2399,12 @@ process_cmd_selectdata(char *line)
   n_sources = ntohl(reply.data.n_sources.n_sources);
 
   if (verbose) {
-    printf(    "  .-- State: N - noselect, M - missing samples, d/D - large distance,\n");
-    printf(    " /           ~ - jittery, w/W - waits for others, T - not trusted,\n");
-    printf(    "|            x - falseticker, P - not preferred, U - waits for update,\n");
-    printf(    "|            S - stale, O - orphan, + - combined, * - best.\n");
-    printf(    "|        Effective options ------.  (N - noselect, P - prefer\n");
-    printf(    "|       Configured options -.     \\  T - trust, R - require)\n");
+    printf(    "  . State: N - noselect, s - unsynchronised, M - missing samples,\n");
+    printf(    " /         d/D - large distance, ~ - jittery, w/W - waits for others,\n");
+    printf(    "|          S - stale, O - orphan, T - not trusted, P - not preferred,\n");
+    printf(    "|          U - waits for update,, x - falseticker, + - combined, * - best.\n");
+    printf(    "|   Effective options   ---------.  (N - noselect, P - prefer\n");
+    printf(    "|   Configured options  ----.     \\  T - trust, R - require)\n");
     printf(    "|   Auth. enabled (Y/N) -.   \\     \\     Offset interval --.\n");
     printf(    "|                        |    |     |                       |\n");
   }

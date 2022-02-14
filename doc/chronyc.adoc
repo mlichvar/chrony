@@ -448,6 +448,7 @@ states are reported.
 The following states indicate the source is not considered selectable for
 synchronisation:
 * _N_ - has the *noselect* option.
+* _s_ - is not synchronised.
 * _M_ - does not have enough measurements.
 * _d_ - has a root distance larger than the maximum distance (configured by the
         <<chrony.conf.adoc#maxdistance,*maxdistance*>> directive).
