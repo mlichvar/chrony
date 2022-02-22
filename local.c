@@ -628,6 +628,24 @@ LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate)
 
 /* ================================================== */
 
+int
+LCL_AccumulateFrequencyAndOffsetNoHandlers(double dfreq, double doffset, double corr_rate)
+{
+  ChangeListEntry *first_handler;
+  int r;
+
+  first_handler = change_list.next;
+  change_list.next = &change_list;
+
+  r = LCL_AccumulateFrequencyAndOffset(dfreq, doffset, corr_rate);
+
+  change_list.next = first_handler;
+
+  return r;
+}
+
+/* ================================================== */
+
 void
 lcl_InvokeDispersionNotifyHandlers(double dispersion)
 {

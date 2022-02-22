@@ -162,6 +162,10 @@ extern void REF_SetManualReference
 extern void
 REF_SetUnsynchronised(void);
 
+/* Make a small correction of the clock without updating the reference
+   parameters and calling the clock change handlers */
+extern int REF_AdjustReference(double offset, double frequency);
+
 /* Announce a leap second before the full reference update */
 extern void REF_UpdateLeapStatus(NTP_Leap leap);
 

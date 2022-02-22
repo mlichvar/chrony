@@ -173,6 +173,11 @@ extern void LCL_NotifyLeap(int leap);
    a slew, in one easy step */
 extern int LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate);
 
+/* Same as the routine above, except it does not call the registered
+   parameter change handlers */
+extern int LCL_AccumulateFrequencyAndOffsetNoHandlers(double dfreq, double doffset,
+                                                      double corr_rate);
+
 /* Routine to read the system precision as a log to base 2 value. */
 extern int LCL_GetSysPrecisionAsLog(void);
 

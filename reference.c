@@ -150,6 +150,9 @@ static SCH_TimeoutID fb_drift_timeout_id;
 static double last_ref_update;
 static double last_ref_update_interval;
 
+static double last_ref_adjustment;
+static int ref_adjustments;
+
 /* ================================================== */
 
 static NTP_Leap get_tz_leap(time_t when, int *tai_offset);
@@ -286,6 +289,8 @@ REF_Initialise(void)
   UTI_ZeroTimespec(&our_ref_time);
   last_ref_update = 0.0;
   last_ref_update_interval = 0.0;
+  last_ref_adjustment = 0.0;
+  ref_adjustments = 0;
 
   LCL_AddParameterChangeHandler(handle_slew, NULL);
 
@@ -960,6 +965,27 @@ fuzz_ref_time(struct timespec *ts)
 
 /* ================================================== */
 
+static double
+get_correction_rate(double offset_sd, double update_interval)
+{
+  /* We want to correct the offset quickly, but we also want to keep the
+     frequency error caused by the correction itself low.
+
+     Define correction rate as the area of the region bounded by the graph of
+     offset corrected in time.  Set the rate so that the time needed to correct
+     an offset equal to the current sourcestats stddev will be equal to the
+     update interval multiplied by the correction time ratio (assuming linear
+     adjustment).  The offset and the time needed to make the correction are
+     inversely proportional.
+
+     This is only a suggestion and it's up to the system driver how the
+     adjustment will be executed. */
+
+  return correction_time_ratio * 0.5 * offset_sd * update_interval;
+}
+
+/* ================================================== */
+
 void
 REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
                  uint32_t ref_id, IPAddr *ref_ip, struct timespec *ref_time,
@@ -969,7 +995,7 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
 {
   double uncorrected_offset, accumulate_offset, step_offset;
   double residual_frequency, local_abs_frequency;
-  double elapsed, mono_now, update_interval, correction_rate, orig_root_distance;
+  double elapsed, mono_now, update_interval, orig_root_distance;
   struct timespec now, raw_now;
   int manual;
 
@@ -1024,21 +1050,6 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
   last_ref_update_interval = update_interval;
   last_offset = offset;
 
-  /* We want to correct the offset quickly, but we also want to keep the
-     frequency error caused by the correction itself low.
-
-     Define correction rate as the area of the region bounded by the graph of
-     offset corrected in time. Set the rate so that the time needed to correct
-     an offset equal to the current sourcestats stddev will be equal to the
-     update interval multiplied by the correction time ratio (assuming linear
-     adjustment). The offset and the time needed to make the correction are
-     inversely proportional.
-
-     This is only a suggestion and it's up to the system driver how the
-     adjustment will be executed. */
-
-  correction_rate = correction_time_ratio * 0.5 * offset_sd * update_interval;
-
   /* Check if the clock should be stepped */
   if (is_step_limit_reached(offset, uncorrected_offset)) {
     /* Cancel the uncorrected offset and correct the total offset by step */
@@ -1050,7 +1061,8 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
   }
 
   /* Adjust the clock */
-  LCL_AccumulateFrequencyAndOffset(frequency, accumulate_offset, correction_rate);
+  LCL_AccumulateFrequencyAndOffset(frequency, accumulate_offset,
+                                   get_correction_rate(offset_sd, update_interval));
     
   maybe_log_offset(offset, raw_now.tv_sec);
 
@@ -1095,6 +1107,27 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
       avg2_moving = 1;
     avg2_offset = SQUARE(offset);
   }
+
+  ref_adjustments = 0;
+}
+
+/* ================================================== */
+
+int
+REF_AdjustReference(double offset, double frequency)
+{
+  double adj_corr_rate, ref_corr_rate, mono_now;
+
+  mono_now = SCH_GetLastEventMonoTime();
+  ref_adjustments++;
+
+  adj_corr_rate = get_correction_rate(fabs(offset), mono_now - last_ref_adjustment);
+  ref_corr_rate = get_correction_rate(our_offset_sd, last_ref_update_interval) /
+                  ref_adjustments;
+  last_ref_adjustment = mono_now;
+
+  return LCL_AccumulateFrequencyAndOffsetNoHandlers(frequency, offset,
+                                                    MAX(adj_corr_rate, ref_corr_rate));
 }
 
 /* ================================================== */
