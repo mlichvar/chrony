@@ -79,6 +79,7 @@ struct RCL_Instance_Record {
   int driver_polled;
   int poll;
   int leap_status;
+  int local;
   int pps_forced;
   int pps_rate;
   int pps_active;
@@ -190,6 +191,7 @@ RCL_AddRefclock(RefclockParameters *params)
   inst->poll = params->poll;
   inst->driver_polled = 0;
   inst->leap_status = LEAP_Normal;
+  inst->local = params->local;
   inst->pps_forced = params->pps_forced;
   inst->pps_rate = params->pps_rate;
   inst->pps_active = 0;
@@ -229,6 +231,12 @@ RCL_AddRefclock(RefclockParameters *params)
       ref[2] = (index / 10) % 10 + '0';
 
     inst->ref_id = (uint32_t)ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
+  }
+
+  if (inst->local) {
+    inst->pps_forced = 1;
+    inst->lock_ref = inst->ref_id;
+    inst->leap_status = LEAP_Unsynchronised;
   }
 
   if (inst->driver->poll) {
@@ -558,8 +566,16 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
     lock_refclock = get_refclock(instance->lock_ref);
 
     if (!SPF_GetLastSample(lock_refclock->filter, &ref_sample)) {
-      DEBUG_LOG("refclock pulse ignored no ref sample");
-      return 0;
+      if (instance->local) {
+        /* Make the first sample in order to lock to itself */
+        ref_sample.time = *cooked_time;
+        ref_sample.offset = offset;
+        ref_sample.peer_delay = ref_sample.peer_dispersion = 0;
+        ref_sample.root_delay = ref_sample.root_dispersion = 0;
+      } else {
+        DEBUG_LOG("refclock pulse ignored no ref sample");
+        return 0;
+      }
     }
 
     ref_sample.root_dispersion += SPF_GetAvgSampleDispersion(lock_refclock->filter);
@@ -694,6 +710,46 @@ pps_stratum(RCL_Instance instance, struct timespec *ts)
 }
 
 static void
+get_local_stats(RCL_Instance inst, struct timespec *ref, double *freq, double *offset)
+{
+  double offset_sd, freq_sd, skew, root_delay, root_disp;
+  SST_Stats stats = SRC_GetSourcestats(inst->source);
+
+  if (SST_Samples(stats) < SST_GetMinSamples(stats)) {
+    UTI_ZeroTimespec(ref);
+    return;
+  }
+
+  SST_GetTrackingData(stats, ref, offset, &offset_sd, freq, &freq_sd,
+                      &skew, &root_delay, &root_disp);
+}
+
+static void
+follow_local(RCL_Instance inst, struct timespec *prev_ref_time, double prev_freq,
+             double prev_offset)
+{
+  SST_Stats stats = SRC_GetSourcestats(inst->source);
+  double freq, dfreq, offset, doffset, elapsed;
+  struct timespec now, ref_time;
+
+  get_local_stats(inst, &ref_time, &freq, &offset);
+
+  if (UTI_IsZeroTimespec(prev_ref_time) || UTI_IsZeroTimespec(&ref_time))
+    return;
+
+  dfreq = (freq - prev_freq) / (1.0 - prev_freq);
+  elapsed = UTI_DiffTimespecsToDouble(&ref_time, prev_ref_time);
+  doffset = offset - elapsed * prev_freq - prev_offset;
+
+  if (!REF_AdjustReference(doffset, dfreq))
+    return;
+
+  LCL_ReadCookedTime(&now, NULL);
+  SST_SlewSamples(stats, &now, dfreq, doffset);
+  SPF_SlewSamples(inst->filter, &now, dfreq, doffset);
+}
+
+static void
 poll_timeout(void *arg)
 {
   NTP_Sample sample;
@@ -713,16 +769,27 @@ poll_timeout(void *arg)
     inst->driver_polled = 0;
 
     if (SPF_GetFilteredSample(inst->filter, &sample)) {
+      double local_freq, local_offset;
+      struct timespec local_ref_time;
+
       /* Handle special case when PPS is used with the local reference */
       if (inst->pps_active && inst->lock_ref == -1)
         stratum = pps_stratum(inst, &sample.time);
       else
         stratum = inst->stratum;
 
+      if (inst->local) {
+        get_local_stats(inst, &local_ref_time, &local_freq, &local_offset);
+        inst->leap_status = LEAP_Unsynchronised;
+      }
+
       SRC_UpdateReachability(inst->source, 1);
       SRC_UpdateStatus(inst->source, stratum, inst->leap_status);
       SRC_AccumulateSample(inst->source, &sample);
       SRC_SelectSource(inst->source);
+
+      if (inst->local)
+        follow_local(inst, &local_ref_time, local_freq, local_offset);
 
       log_sample(inst, &sample.time, 1, 0, 0.0, sample.offset, sample.peer_dispersion);
     } else {

@@ -861,7 +861,7 @@ static void
 parse_refclock(char *line)
 {
   int n, poll, dpoll, filter_length, pps_rate, min_samples, max_samples, sel_options;
-  int max_lock_age, pps_forced, stratum, tai;
+  int local, max_lock_age, pps_forced, stratum, tai;
   uint32_t ref_id, lock_ref_id;
   double offset, delay, precision, max_dispersion, pulse_width;
   char *p, *cmd, *name, *param;
@@ -871,6 +871,7 @@ parse_refclock(char *line)
   poll = 4;
   dpoll = 0;
   filter_length = 64;
+  local = 0;
   pps_forced = 0;
   pps_rate = 0;
   min_samples = SRC_DEFAULT_MINSAMPLES;
@@ -929,6 +930,9 @@ parse_refclock(char *line)
       if (sscanf(line, "%d%n", &filter_length, &n) != 1) {
         break;
       }
+    } else if (!strcasecmp(cmd, "local")) {
+      n = 0;
+      local = 1;
     } else if (!strcasecmp(cmd, "rate")) {
       if (sscanf(line, "%d%n", &pps_rate, &n) != 1)
         break;
@@ -995,6 +999,7 @@ parse_refclock(char *line)
   refclock->driver_poll = dpoll;
   refclock->poll = poll;
   refclock->filter_length = filter_length;
+  refclock->local = local;
   refclock->pps_forced = pps_forced;
   refclock->pps_rate = pps_rate;
   refclock->min_samples = min_samples;

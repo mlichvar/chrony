@@ -37,6 +37,7 @@ typedef struct {
   int driver_poll;
   int poll;
   int filter_length;
+  int local;
   int pps_forced;
   int pps_rate;
   int min_samples;

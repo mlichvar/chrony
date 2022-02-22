@@ -106,4 +106,31 @@ Root delay      : 0\.000000001 seconds
 	rm -f tmp/refclocks.log
 fi
 
+refclock_offset="(+ 0.399 (sum 1e-3))"
+refclock_jitter=1e-6
+servers=1
+freq_offset="(* 1e-4 (sine 1000))"
+base_delay="(* -1.0 (equal 0.1 (min time 5000) 5000))"
+client_server_options="minpoll 4 maxpoll 4 filter 5 minsamples 64"
+client_conf="
+refclock PHC /dev/ptp0 local poll 2
+logdir tmp
+log refclocks tracking"
+chronyc_conf=""
+limit=10000
+max_sync_time=5000
+time_max_limit=1e-3
+time_rms_limit=5e-4
+freq_max_limit=2e-5
+freq_rms_limit=5e-6
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_sync || test_fail
+
+check_file_messages "20.* PHC0 .* [0-9] ? " 9999 10001 refclocks.log || test_fail
+check_file_messages "20.* PHC0 .* - ? " 2499 2501 refclocks.log || test_fail
+check_file_messages "20.* PHC0 " 0 0 tracking.log || test_fail
+rm -f tmp/refclocks.log tmp/tracking.log
+
 test_pass

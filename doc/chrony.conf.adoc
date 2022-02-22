@@ -624,6 +624,13 @@ and that *chronyd* should correct its offset by the current TAI-UTC offset. The
 <<leapsectz,*leapsectz*>> directive must be used with this option and the
 database must be kept up to date in order for this correction to work as
 expected. This option does not make sense with PPS refclocks.
+*local*:::
+This option specifies that the reference clock is an unsynchronised clock which
+is more stable than the system clock (e.g. TCXO, OCXO, or atomic clock) and
+it should be used as a local standard to stabilise the system clock. The
+refclock will bypass the source selection. There should be at most one refclock
+specified with this option and it should have the shortest polling interval
+among all configured sources.
 *minsamples* _samples_:::
 Set the minimum number of samples kept for this source. This overrides the
 <<minsamples,*minsamples*>> directive.
