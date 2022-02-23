@@ -60,8 +60,8 @@ struct sock_sample {
 
 static void read_sample(int sockfd, int event, void *anything)
 {
+  struct timespec sys_ts, ref_ts;
   struct sock_sample sample;
-  struct timespec ts;
   RCL_Instance instance;
   int s;
 
@@ -86,13 +86,18 @@ static void read_sample(int sockfd, int event, void *anything)
     return;
   }
 
-  UTI_TimevalToTimespec(&sample.tv, &ts);
-  UTI_NormaliseTimespec(&ts);
+  UTI_TimevalToTimespec(&sample.tv, &sys_ts);
+  UTI_NormaliseTimespec(&sys_ts);
+
+  if (!UTI_IsTimeOffsetSane(&sys_ts, sample.offset))
+    return;
+
+  UTI_AddDoubleToTimespec(&sys_ts, sample.offset, &ref_ts);
 
   if (sample.pulse) {
-    RCL_AddPulse(instance, &ts, sample.offset);
+    RCL_AddPulse(instance, &sys_ts, sample.offset);
   } else {
-    RCL_AddSample(instance, &ts, sample.offset, sample.leap);
+    RCL_AddSample(instance, &sys_ts, &ref_ts, sample.leap);
   }
 }
 

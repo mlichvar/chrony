@@ -95,7 +95,6 @@ static int shm_poll(RCL_Instance instance)
 {
   struct timespec receive_ts, clock_ts;
   struct shmTime t, *shm;
-  double offset;
 
   shm = (struct shmTime *)RCL_GetDriverData(instance);
 
@@ -124,9 +123,8 @@ static int shm_poll(RCL_Instance instance)
 
   UTI_NormaliseTimespec(&clock_ts);
   UTI_NormaliseTimespec(&receive_ts);
-  offset = UTI_DiffTimespecsToDouble(&clock_ts, &receive_ts);
 
-  return RCL_AddSample(instance, &receive_ts, offset, t.leap);
+  return RCL_AddSample(instance, &receive_ts, &clock_ts, t.leap);
 }
 
 RefclockDriver RCL_SHM_driver = {

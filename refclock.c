@@ -448,20 +448,24 @@ accumulate_sample(RCL_Instance instance, struct timespec *sample_time, double of
 }
 
 int
-RCL_AddSample(RCL_Instance instance, struct timespec *sample_time, double offset, int leap)
+RCL_AddSample(RCL_Instance instance, struct timespec *sample_time,
+              struct timespec *ref_time, int leap)
 {
-  double correction, dispersion;
+  double correction, dispersion, raw_offset, offset;
   struct timespec cooked_time;
 
   if (instance->pps_forced)
-    return RCL_AddPulse(instance, sample_time, -offset);
+    return RCL_AddPulse(instance, sample_time,
+                        1.0e-9 * (sample_time->tv_nsec - ref_time->tv_nsec));
+
+  raw_offset = UTI_DiffTimespecsToDouble(ref_time, sample_time);
 
   LCL_GetOffsetCorrection(sample_time, &correction, &dispersion);
   UTI_AddDoubleToTimespec(sample_time, correction, &cooked_time);
   dispersion += instance->precision;
 
   /* Make sure the timestamp and offset provided by the driver are sane */
-  if (!UTI_IsTimeOffsetSane(sample_time, offset) ||
+  if (!UTI_IsTimeOffsetSane(sample_time, raw_offset) ||
       !valid_sample_time(instance, &cooked_time))
     return 0;
 
@@ -476,18 +480,24 @@ RCL_AddSample(RCL_Instance instance, struct timespec *sample_time, double offset
       return 0;
   }
 
+  /* Calculate offset = raw_offset - correction + instance->offset
+     in parts to avoid loss of precision if there are large differences */
+  offset = ref_time->tv_sec - sample_time->tv_sec -
+           (time_t)correction + (time_t)instance->offset;
+  offset += 1.0e-9 * (ref_time->tv_nsec - sample_time->tv_nsec) -
+            (correction - (time_t)correction) + (instance->offset - (time_t)instance->offset);
+
   if (instance->tai && !convert_tai_offset(sample_time, &offset)) {
     DEBUG_LOG("refclock sample ignored unknown TAI offset");
     return 0;
   }
 
-  if (!accumulate_sample(instance, &cooked_time,
-                         offset - correction + instance->offset, dispersion))
+  if (!accumulate_sample(instance, &cooked_time, offset, dispersion))
     return 0;
 
   instance->pps_active = 0;
 
-  log_sample(instance, &cooked_time, 0, 0, offset, offset - correction + instance->offset, dispersion);
+  log_sample(instance, &cooked_time, 0, 0, raw_offset, offset, dispersion);
 
   /* for logging purposes */
   if (!instance->driver->poll)

@@ -143,7 +143,7 @@ static int phc_poll(RCL_Instance instance)
 {
   struct phc_instance *phc;
   struct timespec phc_ts, sys_ts, local_ts;
-  double offset, phc_err, local_err;
+  double phc_err, local_err;
 
   phc = (struct phc_instance *)RCL_GetDriverData(instance);
 
@@ -157,11 +157,10 @@ static int phc_poll(RCL_Instance instance)
     return 0;
   }
 
-  offset = UTI_DiffTimespecsToDouble(&phc_ts, &sys_ts);
+  DEBUG_LOG("PHC offset: %+.9f err: %.9f",
+            UTI_DiffTimespecsToDouble(&phc_ts, &sys_ts), phc_err);
 
-  DEBUG_LOG("PHC offset: %+.9f err: %.9f", offset, phc_err);
-
-  return RCL_AddSample(instance, &sys_ts, offset, LEAP_Normal);
+  return RCL_AddSample(instance, &sys_ts, &phc_ts, LEAP_Normal);
 }
 
 RefclockDriver RCL_PHC_driver = {
