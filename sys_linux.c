@@ -1008,7 +1008,7 @@ SYS_Linux_SetPHCExtTimestamping(int fd, int pin, int channel,
   pin_desc.func = enable ? PTP_PF_EXTTS : PTP_PF_NONE;
   pin_desc.chan = channel;
 
-  if (ioctl(fd, PTP_PIN_SETFUNC, &pin_desc)) {
+  if (pin >= 0 && ioctl(fd, PTP_PIN_SETFUNC, &pin_desc)) {
     DEBUG_LOG("ioctl(%s) failed : %s", "PTP_PIN_SETFUNC", strerror(errno));
     return 0;
   }

@@ -511,8 +511,10 @@ Note that some PTP clocks cannot be configured to timestamp only assert or
 clear events, and it is necessary to use the *width* option to filter wrong
 PPS samples.
 *pin*=_index_::::
-This option specifies the index of the pin to which is connected the PPS
-signal. The default value is 0.
+This option specifies the index of the pin which should be enabled for the
+PPS timestamping. If the PHC does not have configurable pins (i.e. the channel
+function is fixed), the index needs to be set to -1 to disable the pin
+configuration. The default value is 0.
 *channel*=_index_::::
 This option specifies the index of the channel for the PPS mode. The default
 value is 0.
