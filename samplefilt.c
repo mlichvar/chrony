@@ -412,29 +412,55 @@ SPF_GetFilteredSample(SPF_Instance filter, NTP_Sample *sample)
 
 /* ================================================== */
 
+static int
+get_first_last(SPF_Instance filter, int *first, int *last)
+{
+  if (filter->last < 0)
+    return 0;
+
+  /* Always slew the last sample as it may be returned even if no new
+     samples were accumulated */
+  if (filter->used > 0) {
+    *first = 0;
+    *last = filter->used - 1;
+  } else {
+    *first = *last = filter->last;
+  }
+
+  return 1;
+}
+
+
+/* ================================================== */
+
 void
 SPF_SlewSamples(SPF_Instance filter, struct timespec *when, double dfreq, double doffset)
 {
   int i, first, last;
   double delta_time;
 
-  if (filter->last < 0)
+  if (!get_first_last(filter, &first, &last))
     return;
-
-  /* Always slew the last sample as it may be returned even if no new
-     samples were accumulated */
-  if (filter->used > 0) {
-    first = 0;
-    last = filter->used - 1;
-  } else {
-    first = last = filter->last;
-  }
 
   for (i = first; i <= last; i++) {
     UTI_AdjustTimespec(&filter->samples[i].time, when, &filter->samples[i].time,
                        &delta_time, dfreq, doffset);
     filter->samples[i].offset -= delta_time;
   }
+}
+
+/* ================================================== */
+
+void
+SPF_CorrectOffset(SPF_Instance filter, double doffset)
+{
+  int i, first, last;
+
+  if (!get_first_last(filter, &first, &last))
+    return;
+
+  for (i = first; i <= last; i++)
+    filter->samples[i].offset -= doffset;
 }
 
 /* ================================================== */

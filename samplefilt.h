@@ -44,6 +44,7 @@ extern void SPF_DropSamples(SPF_Instance filter);
 extern int SPF_GetFilteredSample(SPF_Instance filter, NTP_Sample *sample);
 extern void SPF_SlewSamples(SPF_Instance filter, struct timespec *when,
                             double dfreq, double doffset);
+extern void SPF_CorrectOffset(SPF_Instance filter, double doffset);
 extern void SPF_AddDispersion(SPF_Instance filter, double dispersion);
 
 #endif

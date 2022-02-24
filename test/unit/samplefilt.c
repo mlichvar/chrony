@@ -69,6 +69,7 @@ test_unit(void)
         TEST_CHECK(!memcmp(&sample_in, &sample_out, sizeof (sample_in)));
 
         SPF_SlewSamples(filter, &sample_in.time, 0.0, 0.0);
+        SPF_CorrectOffset(filter, 0.0);
         SPF_AddDispersion(filter, 0.0);
 
         if (k + 1 < min_samples)
