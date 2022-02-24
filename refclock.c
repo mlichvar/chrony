@@ -757,6 +757,12 @@ follow_local(RCL_Instance inst, struct timespec *prev_ref_time, double prev_freq
   LCL_ReadCookedTime(&now, NULL);
   SST_SlewSamples(stats, &now, dfreq, doffset);
   SPF_SlewSamples(inst->filter, &now, dfreq, doffset);
+
+  /* Keep the offset close to zero to not lose precision */
+  if (fabs(offset) >= 1.0) {
+    SST_CorrectOffset(stats, -round(offset));
+    SPF_CorrectOffset(inst->filter, -round(offset));
+  }
 }
 
 static void
