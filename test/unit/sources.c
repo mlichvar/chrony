@@ -95,7 +95,7 @@ test_unit(void)
         double passed_lo = DBL_MAX, passed_hi = DBL_MIN;
 
         SRC_SelectSource(srcs[k]);
-        DEBUG_LOG("source %d status %u", k, sources[k]->status);
+        DEBUG_LOG("source %d status %c", k, get_status_char(sources[k]->status));
 
         for (l = 0; l <= j; l++) {
           TEST_CHECK(sources[l]->status > SRC_OK && sources[l]->status <= SRC_SELECTED);
@@ -143,6 +143,50 @@ test_unit(void)
                       (!trusted || sources[l]->sel_options & SRC_SELECT_TRUST)));
         }
       }
+    }
+
+    for (j = 0; j < sizeof (srcs) / sizeof (srcs[0]); j++) {
+      SRC_ReportSource(j, &report, &sample.time);
+      SRC_DestroyInstance(srcs[j]);
+    }
+  }
+
+  for (i = 0; i < 16; i++) {
+    DEBUG_LOG("iteration %d", i);
+
+    for (j = 0; j < sizeof (srcs) / sizeof (srcs[0]); j++) {
+      TEST_CHECK(n_sources == j);
+
+      srcs[j] = create_source(SRC_NTP, &addrs[j], 0, 0);
+      SRC_UpdateReachability(srcs[j], 1);
+
+      samples = 8;
+      for (k = 0; k < samples; k++) {
+        SCH_GetLastEventTime(&sample.time, NULL, NULL);
+        UTI_AddDoubleToTimespec(&sample.time, k - samples, &sample.time);
+        if (j != 0)
+          UTI_AddDoubleToTimespec(&sample.time, -i * (1.0e-3 / LCL_GetMaxClockError()), &sample.time);
+
+        sample.offset = (k % 2) * 1e-8;
+        sample.peer_delay = sample.root_delay = 2.0e-3 * (j + 1);
+        sample.peer_dispersion = sample.root_dispersion = 4.0e-3;
+
+        SRC_AccumulateSample(srcs[j], &sample);
+        SRC_UpdateStatus(srcs[j], 1, LEAP_Normal);
+      }
+    }
+
+    SRC_SelectSource(srcs[0]);
+
+    for (j = 0; j < sizeof (srcs) / sizeof (srcs[0]); j++) {
+      DEBUG_LOG("%d %c %f", j, get_status_char(srcs[j]->status),
+                srcs[j]->sel_info.root_distance);
+      if (j == 0)
+        TEST_CHECK(sources[j]->status == SRC_SELECTED);
+      else if (j < 11 - i)
+        TEST_CHECK(sources[j]->status == SRC_UNSELECTED);
+      else
+        TEST_CHECK(sources[j]->status == SRC_DISTANT);
     }
 
     for (j = 0; j < sizeof (srcs) / sizeof (srcs[0]); j++) {
