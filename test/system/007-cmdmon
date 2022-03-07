@@ -100,7 +100,7 @@ Total valid RX  : [0-9]+$" || test_fail
 run_chronyc "selectdata" || test_fail
 check_chronyc_output "^S Name/IP Address        Auth COpts EOpts Last Score     Interval  Leap
 =======================================================================
-M 127\.0\.0\.1                 N ----- -----    0   1\.0    \+0ns    \+0ns  \?$" || test_fail
+s 127\.0\.0\.1                 N ----- -----    0   1\.0    \+0ns    \+0ns  \?$" || test_fail
 
 run_chronyc "serverstats" || test_fail
 check_chronyc_output "^NTP packets received       : [0-9]+
