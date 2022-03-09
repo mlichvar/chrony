@@ -353,7 +353,6 @@ add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type,
       record_lock = 1;
 
       record = get_record(slot);
-      assert(!name || !UTI_IsStringIP(name));
       record->name = Strdup(name ? name : UTI_IPToString(&remote_addr->ip_addr));
       record->data = NCR_CreateInstance(remote_addr, type, params, record->name);
       record->remote_addr = NCR_GetRemoteAddress(record->data);
@@ -734,7 +733,8 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
   /* If the name is an IP address, add the source with the address directly */
   if (UTI_StringToIP(name, &remote_addr.ip_addr)) {
     remote_addr.port = port;
-    return NSR_AddSource(&remote_addr, type, params, conf_id);
+    return add_source(&remote_addr, name, type, params, INVALID_POOL,
+                      get_next_conf_id(conf_id));
   }
 
   /* Make sure the name is at least printable and has no spaces */
