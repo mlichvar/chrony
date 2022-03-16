@@ -2504,7 +2504,7 @@ The type is a name of a cryptographic hash function or cipher which is used to
 generate and verify the MAC. The default type is *MD5*, which is always
 supported.
 If *chronyd* was built with enabled support for hashing using a crypto library
-(nettle, nss, or libtomcrypt), the following functions are available: *MD5*,
+(Nettle, GnuTLS, NSS, or LibTomCrypt), the following functions are available: *MD5*,
 *SHA1*, *SHA256*, *SHA384*, *SHA512*. Depending on which library and version is
 *chronyd* using, some of the following hash functions and ciphers may
 also be available:

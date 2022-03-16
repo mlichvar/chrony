@@ -27,7 +27,7 @@ The following libraries with their development files, and programs, are needed
 to enable optional features:
 
 * pkg-config: detection of development libraries
-* Nettle, NSS, or LibTomCrypt: secure hash functions (`SECHASH`)
+* Nettle, GnuTLS, NSS, or LibTomCrypt: secure hash functions (`SECHASH`)
 * libcap: dropping root privileges on Linux (`DROPROOT`)
 * libseccomp: system call filter on Linux (`SCFILTER`)
 * GnuTLS and Nettle: Network Time Security (`NTS`)
