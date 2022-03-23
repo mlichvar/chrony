@@ -19,7 +19,11 @@ add_servers_from_dhcp() {
     rm -f "$dhcp_server_file"
     for server in $dhcp_ntp_servers; do
         # Check for invalid characters (from the DHCPv6 NTP FQDN suboption)
-        printf '%s\n' "$server" | grep -E -q '^[-A-Za-z0-9:.]{1,255}$' || continue
+        len1=$(printf '%s' "$server" | wc -c)
+        len2=$(printf '%s' "$server" | tr -d -c 'A-Za-z0-9:.-' | wc -c)
+        if [ "$len1" -ne "$len2" ] || [ "$len2" -lt 1 ] || [ "$len2" -gt 255 ]; then
+          continue
+        fi
 
         printf 'server %s %s\n' "$server" "$server_options" >> "$dhcp_server_file"
     done
