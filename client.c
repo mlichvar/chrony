@@ -3245,37 +3245,30 @@ process_line(char *line)
 
 /* ================================================== */
 
+#define MAX_LINE_LENGTH 2048
+
 static int
 process_args(int argc, char **argv, int multi)
 {
-  int total_length, i, ret = 0;
-  char *line;
+  char line[MAX_LINE_LENGTH];
+  int i, l, ret = 0;
 
-  total_length = 0;
-  for(i=0; i<argc; i++) {
-    total_length += strlen(argv[i]) + 1;
-  }
-
-  line = (char *) Malloc((2 + total_length) * sizeof(char));
-
-  for (i = 0; i < argc; i++) {
-    line[0] = '\0';
-    if (multi) {
-      strcat(line, argv[i]);
-    } else {
-      for (; i < argc; i++) {
-        strcat(line, argv[i]);
-        if (i + 1 < argc)
-          strcat(line, " ");
-      }
+  for (i = l = 0; i < argc; i++) {
+    l += snprintf(line + l, sizeof (line) - l, "%s ", argv[i]);
+    if (l >= sizeof (line)) {
+      LOG(LOGS_ERR, "Command too long");
+      return 0;
     }
+
+    if (!multi && i + 1 < argc)
+      continue;
 
     ret = process_line(line);
     if (!ret || quit)
       break;
-  }
 
-  Free(line);
+    l = 0;
+  }
 
   return ret;
 }
