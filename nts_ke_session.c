@@ -594,13 +594,13 @@ handle_step(struct timespec *raw, struct timespec *cooked, double dfreq,
 
 static int gnutls_initialised = 0;
 
-static void
+static int
 init_gnutls(void)
 {
   int r;
 
   if (gnutls_initialised)
-    return;
+    return 1;
 
   r = gnutls_global_init();
   if (r < 0)
@@ -611,8 +611,12 @@ init_gnutls(void)
   r = gnutls_priority_init2(&priority_cache,
                             "-VERS-SSL3.0:-VERS-TLS1.0:-VERS-TLS1.1:-VERS-TLS1.2:-VERS-DTLS-ALL",
                             NULL, GNUTLS_PRIORITY_INIT_DEF_APPEND);
-  if (r < 0)
-    LOG_FATAL("Could not initialise %s : %s", "priority cache", gnutls_strerror(r));
+  if (r < 0) {
+    LOG(LOGS_ERR, "Could not initialise %s : %s",
+        "priority cache for TLS", gnutls_strerror(r));
+    gnutls_global_deinit();
+    return 0;
+  }
 
   /* Use our clock instead of the system clock in certificate verification */
   gnutls_global_set_time_function(get_time);
@@ -621,6 +625,8 @@ init_gnutls(void)
   DEBUG_LOG("Initialised");
 
   LCL_AddParameterChangeHandler(handle_step, NULL);
+
+  return 1;
 }
 
 /* ================================================== */
@@ -649,7 +655,8 @@ create_credentials(const char **certs, const char **keys, int n_certs_keys,
   gnutls_certificate_credentials_t credentials = NULL;
   int i, r;
 
-  init_gnutls();
+  if (!init_gnutls())
+    return NULL;
 
   r = gnutls_certificate_allocate_credentials(&credentials);
   if (r < 0)
