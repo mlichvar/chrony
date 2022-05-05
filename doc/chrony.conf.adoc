@@ -1219,12 +1219,16 @@ This would step the system clock if the adjustment is larger than 0.1 seconds, b
 only in the first three clock updates.
 
 [[maxchange]]*maxchange* _offset_ _start_ _ignore_::
-This directive sets the maximum allowed offset corrected on a clock update. The
-check is performed only after the specified number of updates to allow a large
-initial adjustment of the system clock. When an offset larger than the
-specified maximum occurs, it will be ignored for the specified number of times
-and then *chronyd* will give up and exit (a negative value can be used to never
-exit). In both cases a message is sent to syslog.
+This directive sets the maximum offset to be accepted on a clock update. The
+offset is measured relative to the current estimate of the true time, which is
+different from the system time if a previous slew did not finish.
++
+The check is enabled after the specified number of clock updates to allow a
+large initial offset to be corrected on start. Offsets larger than the
+specified maximum will be ignored for the specified number of times. Another
+large offset will cause *chronyd* to give up and exit. A negative value
+can be used to disable the limit to ignore all large offsets. A syslog message
+will be generated when an offset is ignored or it causes the exit.
 +
 An example of the use of this directive is:
 +
