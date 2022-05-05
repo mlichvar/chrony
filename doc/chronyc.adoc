@@ -99,12 +99,15 @@ With this option multiple commands can be specified. Each argument will be
 interpreted as a whole command.
 
 *-h* _host_::
-This option allows the user to specify which host (or comma-separated list of
-addresses) running the *chronyd* program is to be contacted. This allows for
-remote monitoring, without having to connect over SSH to the other host first.
+This option specifies the host to be contacted by *chronyc*. It can be
+specified with a hostname, IP address, or path to the local Unix domain socket.
+Multiple values can be specified as a comma-separated list to provide a
+fallback.
 +
-The default is to contact *chronyd* running on the same host where
-*chronyc* is being run.
+The default value is _@CHRONYRUNDIR@/chronyd.sock,127.0.0.1,::1_, i.e. the host
+where *chronyc* is being run. First, it tries to connect to the Unix domain
+socket and if that fails (e.g. due to running under a non-root user), it
+will try to connect to 127.0.0.1 and then ::1.
 
 *-p* _port_::
 This option allows the user to specify the UDP port number which the target
