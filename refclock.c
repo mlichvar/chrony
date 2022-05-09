@@ -308,7 +308,7 @@ RCL_StartRefclocks(void)
         break;
       }
 
-      if (lock_index == -1 || lock_index == i)
+      if (lock_index == -1 || (lock_index == i && !inst->local))
         LOG(LOGS_WARN, "Invalid lock refid %s", UTI_RefidToString(inst->lock_ref));
     }
 
