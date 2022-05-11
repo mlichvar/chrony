@@ -165,17 +165,29 @@ SIV_SetKey(SIV_Instance instance, const unsigned char *key, int length)
   datum.data = (unsigned char *)key;
   datum.size = length;
 
-  /* Initialise a new cipher with the provided key (gnutls does not seem to
-     have a function to change the key directly) */
+#ifdef HAVE_GNUTLS_AEAD_CIPHER_SET_KEY
+  if (instance->cipher) {
+    r = gnutls_aead_cipher_set_key(instance->cipher, &datum);
+    if (r < 0) {
+      DEBUG_LOG("Could not set cipher key : %s", gnutls_strerror(r));
+      return 0;
+    }
+
+    return 1;
+  }
+#endif
+
+  /* Initialise a new cipher with the provided key */
   r = gnutls_aead_cipher_init(&cipher, instance->algorithm, &datum);
   if (r < 0) {
     DEBUG_LOG("Could not initialise %s : %s", "cipher", gnutls_strerror(r));
     return 0;
   }
 
-  /* Replace the previous cipher */
+  /* Destroy the previous cipher (if its key could not be changed directly) */
   if (instance->cipher)
     gnutls_aead_cipher_deinit(instance->cipher);
+
   instance->cipher = cipher;
 
   return 1;

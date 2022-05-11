@@ -988,6 +988,12 @@ if [ $feat_ntp = "1" ] && [ $feat_nts = "1" ] && [ $try_gnutls = "1" ]; then
       then
         EXTRA_OBJECTS="$EXTRA_OBJECTS siv_gnutls.o"
         add_def HAVE_SIV
+        if test_code 'gnutls_aead_cipher_set_key()' 'gnutls/crypto.h' \
+          "$test_cflags" "$test_link $LIBS" '
+            return gnutls_aead_cipher_set_key(NULL, NULL);'
+        then
+          add_def HAVE_GNUTLS_AEAD_CIPHER_SET_KEY
+        fi
       else
         if test_code 'AES128 in nettle' 'nettle/aes.h' '' "$LIBS" \
           'aes128_set_encrypt_key(NULL, NULL);'
