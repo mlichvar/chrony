@@ -592,8 +592,14 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
 
     sample_diff = UTI_DiffTimespecsToDouble(cooked_time, &ref_sample.time);
     if (fabs(sample_diff) >= (double)instance->max_lock_age / rate) {
-      DEBUG_LOG("refclock pulse ignored samplediff=%.9f",
-          sample_diff);
+      DEBUG_LOG("refclock pulse ignored samplediff=%.9f", sample_diff);
+
+      /* Restart the local mode */
+      if (instance->local) {
+        LOG(LOGS_WARN, "Local refclock lost lock");
+        SPF_DropSamples(instance->filter);
+        SRC_ResetInstance(instance->source);
+      }
       return 0;
     }
 
