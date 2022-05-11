@@ -170,11 +170,21 @@ SPF_GetAvgSampleDispersion(SPF_Instance filter)
 
 /* ================================================== */
 
-void
-SPF_DropSamples(SPF_Instance filter)
+static void
+drop_samples(SPF_Instance filter, int keep_last)
 {
   filter->index = -1;
   filter->used = 0;
+  if (!keep_last)
+    filter->last = -1;
+}
+
+/* ================================================== */
+
+void
+SPF_DropSamples(SPF_Instance filter)
+{
+  drop_samples(filter, 0);
 }
 
 /* ================================================== */
@@ -405,7 +415,7 @@ SPF_GetFilteredSample(SPF_Instance filter, NTP_Sample *sample)
   if (!combine_selected_samples(filter, n, sample))
     return 0;
 
-  SPF_DropSamples(filter);
+  drop_samples(filter, 1);
 
   return 1;
 }

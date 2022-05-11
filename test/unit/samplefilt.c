@@ -103,6 +103,7 @@ test_unit(void)
 
       } else {
         SPF_DropSamples(filter);
+        TEST_CHECK(filter->last < 0);
       }
 
       TEST_CHECK(SPF_GetNumberOfSamples(filter) == 0);
