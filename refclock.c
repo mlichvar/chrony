@@ -237,6 +237,7 @@ RCL_AddRefclock(RefclockParameters *params)
     inst->pps_forced = 1;
     inst->lock_ref = inst->ref_id;
     inst->leap_status = LEAP_Unsynchronised;
+    inst->max_lock_age = MAX(inst->max_lock_age, 3);
   }
 
   if (inst->driver->poll) {
