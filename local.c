@@ -563,6 +563,8 @@ void
 LCL_NotifyExternalTimeStep(struct timespec *raw, struct timespec *cooked,
     double offset, double dispersion)
 {
+  LCL_CancelOffsetCorrection();
+
   /* Dispatch to all handlers */
   invoke_parameter_change_handlers(raw, cooked, 0.0, offset, LCL_ChangeUnknownStep);
 

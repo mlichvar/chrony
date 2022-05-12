@@ -109,12 +109,7 @@ static void
 handle_step(struct timespec *raw, struct timespec *cooked, double dfreq,
             double doffset, LCL_ChangeType change_type, void *anything)
 {
-  if (change_type == LCL_ChangeUnknownStep) {
-    /* Reset offset and slewing */
-    slew_start = *raw;
-    offset_register = 0.0;
-    update_slew();
-  } else if (change_type == LCL_ChangeStep) {
+  if (change_type == LCL_ChangeStep) {
     UTI_AddDoubleToTimespec(&slew_start, -doffset, &slew_start);
   }
 }
