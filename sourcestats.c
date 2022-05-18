@@ -931,6 +931,7 @@ SST_LoadFromFile(SST_Stats inst, FILE *in)
 
     /* Make sure the samples are sane and they are in order */
     if (!UTI_IsTimeOffsetSane(&inst->sample_times[i], -inst->offsets[i]) ||
+        UTI_CompareTimespecs(&now, &inst->sample_times[i]) < 0 ||
         !(fabs(inst->peer_delays[i]) < 1.0e6 && fabs(inst->peer_dispersions[i]) < 1.0e6 &&
           fabs(inst->root_delays[i]) < 1.0e6 && fabs(inst->root_dispersions[i]) < 1.0e6) ||
         (i > 0 && UTI_CompareTimespecs(&inst->sample_times[i],
