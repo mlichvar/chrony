@@ -115,6 +115,7 @@ static int cmd_port = DEFAULT_CANDM_PORT;
 
 static int raw_measurements = 0;
 static int do_log_measurements = 0;
+static int do_log_selection = 0;
 static int do_log_statistics = 0;
 static int do_log_tracking = 0;
 static int do_log_rtc = 0;
@@ -1032,6 +1033,8 @@ parse_log(char *line)
         raw_measurements = 1;
       } else if (!strcmp(log_name, "measurements")) {
         do_log_measurements = 1;
+      } else if (!strcmp(log_name, "selection")) {
+        do_log_selection = 1;
       } else if (!strcmp(log_name, "statistics")) {
         do_log_statistics = 1;
       } else if (!strcmp(log_name, "tracking")) {
@@ -1925,6 +1928,14 @@ CNF_GetLogMeasurements(int *raw)
 {
   *raw = raw_measurements;
   return do_log_measurements;
+}
+
+/* ================================================== */
+
+int
+CNF_GetLogSelection(void)
+{
+  return do_log_selection;
 }
 
 /* ================================================== */

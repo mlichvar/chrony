@@ -58,6 +58,7 @@ extern char *CNF_GetLogDir(void);
 extern char *CNF_GetDumpDir(void);
 extern int CNF_GetLogBanner(void);
 extern int CNF_GetLogMeasurements(int *raw);
+extern int CNF_GetLogSelection(void);
 extern int CNF_GetLogStatistics(void);
 extern int CNF_GetLogTracking(void);
 extern int CNF_GetLogRtc(void);

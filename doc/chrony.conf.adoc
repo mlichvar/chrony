@@ -2144,6 +2144,71 @@ from the example line above):
   the source is more variable than the delay of packets sent from the source
   back. [0.00, i.e. no correction for asymmetry]
 +
+*selection*:::
+This option logs information about selection of sources for synchronisation to
+a file called _selection.log_. Note that the rate of entries written to this
+file grows quadratically with the number of specified sources (each measurement
+triggers the selection for all sources). An example line (which actually
+appears as a single line in the file) from the log file is shown below.
++
+----
+2022-05-01 02:01:20 203.0.113.15    * -----  377  1.00  \
+     4.228e+01 -1.575e-04  1.239e-04
+----
++
+The columns are as follows (the quantities in square brackets are the values
+from the example line above):
++
+. Date [2022-05-01]
+. Hour:Minute:Second. Note that the date-time pair is expressed in
+  UTC, not the local time zone. [02:01:20]
+. IP address or reference ID of the source. [203.0.113.15]
+. State of the source indicated with one of the following symbols. [*]
+{blank}::::
+Not considered selectable for synchronisation:
+* _N_ - has the *noselect* option.
+* _s_ - is not synchronised.
+* _M_ - does not have enough measurements.
+* _d_ - has a root distance larger than the maximum distance (configured by the
+        <<maxdistance,*maxdistance*>> directive).
+* _~_ - has a jitter larger than the maximum jitter (configured by the
+        <<maxjitter,*maxjitter*>> directive).
+* _w_ - waits for other sources to get out of the _M_ state.
+* _S_ - has older measurements than other sources.
+* _O_ - has a stratum equal or larger than the orphan stratum (configured by
+        the <<local,*local*>> directive).
+* _T_ - does not fully agree with sources that have the *trust* option.
+* _x_ - does not agree with other sources (falseticker).
+{blank}::::
+Considered selectable for synchronisation, but not currently used:
+* _W_ - waits for other sources to be selectable (required by the
+        <<minsources,*minsources*>> directive, or the *require* option of
+        another source).
+* _P_ - another selectable source is preferred due to the *prefer* option.
+* _U_ - waits for a new measurement (after selecting a different best source).
+* _D_ - has, or recently had, a root distance which is too large to be combined
+        with other sources (configured by the <<combinelimit,*combinelimit*>>
+        directive).
+{blank}::::
+Used for synchronisation of the local clock:
+* _+_ - combined with the best source.
+* _*_ - selected as the best source to update the reference data (e.g. root
+        delay, root dispersion).
+. Reachability register printed as an octal number. The register has 8 bits and
+  is updated on every received or missed packet from the source. A value of 377
+  indicates that a valid reply was received for all from the last eight
+  transmissions. [377]
+. Current score against the source in the _*_ state. The scoring system avoids
+  frequent reselection when multiple sources have a similar root distance. A
+  value larger than 1 indicates this source was better than the _*_ source in
+  recent selections. If the score reaches 10, the best source will be reselected
+  and the scores will be reset to 1. [1.00]
+. Interval since the last measurement of the source in seconds. [4.228e+01]
+. Lower endpoint of the interval which was expected to contain the true offset
+  of the local clock determined by the root distance of the source. [-1.575e-04]
+. Upper endpoint of the interval which was expected to contain the true offset
+  of the local clock determined by the root distance of the source. [1.239e-04]
++
 *tracking*:::
 This option logs changes to the estimate of the system's gain or loss rate, and
 any slews made, to a file called _tracking.log_. An example line (which

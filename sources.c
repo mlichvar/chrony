@@ -178,6 +178,8 @@ static double reselect_distance;
 static double stratum_weight;
 static double combine_limit;
 
+static LOG_FileID logfileid;
+
 /* Identifier of the dump file */
 #define DUMP_IDENTIFIER "SRC0\n"
 
@@ -209,6 +211,10 @@ void SRC_Initialise(void) {
 
   LCL_AddParameterChangeHandler(slew_sources, NULL);
   LCL_AddDispersionNotifyHandler(add_dispersion, NULL);
+
+  logfileid = CNF_GetLogSelection() ? LOG_FileOpen("selection",
+              "   Date (UTC) Time     IP Address   S EOpts Reach Score Last sample  Low end   High end")
+              : -1;
 }
 
 /* ================================================== */
@@ -641,6 +647,8 @@ source_to_string(SRC_Instance inst)
 static void
 mark_source(SRC_Instance inst, SRC_Status status)
 {
+  struct timespec now;
+
   inst->status = status;
 
   DEBUG_LOG("%s status=%c options=%x reach=%o/%d updates=%d distant=%d leap=%d vote=%d lo=%f hi=%f",
@@ -649,6 +657,23 @@ mark_source(SRC_Instance inst, SRC_Status status)
             inst->reachability_size, inst->updates,
             inst->distant, (int)inst->leap, inst->leap_vote,
             inst->sel_info.lo_limit, inst->sel_info.hi_limit);
+
+  if (logfileid == -1)
+    return;
+
+  SCH_GetLastEventTime(&now, NULL, NULL);
+
+  LOG_FileWrite(logfileid,
+                "%s %-15s %c -%c%c%c%c %4o %5.2f %10.3e %10.3e %10.3e",
+                UTI_TimeToLogForm(now.tv_sec), source_to_string(inst),
+                get_status_char(inst->status),
+                inst->sel_options & SRC_SELECT_NOSELECT ? 'N' : '-',
+                inst->sel_options & SRC_SELECT_PREFER ? 'P' : '-',
+                inst->sel_options & SRC_SELECT_TRUST ? 'T' : '-',
+                inst->sel_options & SRC_SELECT_REQUIRE ? 'R' : '-',
+                (unsigned int)inst->reachability, inst->sel_score,
+                inst->sel_info.last_sample_ago,
+                inst->sel_info.lo_limit, inst->sel_info.hi_limit);
 }
 
 /* ================================================== */
