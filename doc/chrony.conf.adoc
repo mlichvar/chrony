@@ -2463,13 +2463,20 @@ be enabled by the *xleave* option in the <<server,*server*>> or the
 +
 This directive is supported on Linux 3.19 and newer. The NIC must support HW
 timestamping, which can be verified with the *ethtool -T* command. The list of
-capabilities should include _SOF_TIMESTAMPING_RAW_HARDWARE_,
-_SOF_TIMESTAMPING_TX_HARDWARE_, and _SOF_TIMESTAMPING_RX_HARDWARE_. Receive
-filter _HWTSTAMP_FILTER_ALL_, or _HWTSTAMP_FILTER_NTP_ALL_, is necessary for
-timestamping of received NTP packets. Timestamping of packets received on bridged
-and bonded interfaces is supported on Linux 4.13 and newer. When *chronyd* is
-running, no other process (e.g. a PTP daemon) should be working with the NIC
-clock.
+capabilities should include _hardware-raw-clock_, _hardware-transmit_, and
+_hardware-receive_. The receive filter _all_, or _ntp_, is necessary for
+timestamping of received NTP packets. Timestamping of packets received on
+bridged and bonded interfaces is supported on Linux 4.13 and newer. If HW
+timestamping does not work for received packets, *chronyd* will use kernel
+receive timestamps instead. Transmit-only HW timestamping can still be useful
+to improve stability of the synchronisation.
++
+*chronyd* does not synchronise the NIC clock. It assumes the clock is running
+free. Multiple instances of *chronyd* can use the same interface with enabled
+HW timestamping. Applications which need HW timestamping with a synchronised
+clock (e.g. a PTP daemon) should use a virtual clock running on top of the
+physical clock created by writing to _/sys/class/ptp/ptpX/n_vclocks_. This
+feature is available on Linux 5.14 and newer.
 +
 If the kernel supports software timestamping, it will be enabled for all
 interfaces. The source of timestamps (i.e. hardware, kernel, or daemon) is
@@ -2527,7 +2534,8 @@ is selected by default. Some NICs can timestamp PTP packets only. By default,
 they will be configured with the _none_ filter and expected to provide hardware
 timestamps for transmitted packets only. Timestamping of PTP packets is useful
 with NTP-over-PTP enabled by the <<chrony.conf.adoc#ptpport,*ptpport*>>
-directive. Forcing timestamping of all packets with the _all_ filter could be
+directive, or when another application is receiving PTP packets on the
+interface. Forcing timestamping of all packets with the _all_ filter could be
 useful if the NIC supported both the _all_ and _ntp_ filters, and it should
 timestamp both NTP and PTP packets, or NTP packets on a different UDP port.
 {blank}::
