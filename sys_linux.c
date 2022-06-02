@@ -794,7 +794,7 @@ SYS_Linux_CheckKernelVersion(int req_major, int req_minor)
 
 #if defined(FEAT_PHC) || defined(HAVE_LINUX_TIMESTAMPING)
 
-#define PHC_READINGS 10
+#define PHC_READINGS 25
 
 static int
 process_phc_readings(struct timespec ts[][3], int n, double precision,
