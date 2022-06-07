@@ -794,73 +794,25 @@ SYS_Linux_CheckKernelVersion(int req_major, int req_minor)
 
 #if defined(FEAT_PHC) || defined(HAVE_LINUX_TIMESTAMPING)
 
-#define PHC_READINGS 25
-
 static int
-process_phc_readings(struct timespec ts[][3], int n, double precision,
-                     struct timespec *phc_ts, struct timespec *sys_ts, double *err)
+get_phc_readings(int phc_fd, int max_samples, struct timespec ts[][3])
 {
-  double min_delay = 0.0, delays[PTP_MAX_SAMPLES], phc_sum, sys_sum, sys_prec;
-  int i, combined;
-
-  if (n > PTP_MAX_SAMPLES)
-    return 0;
-
-  for (i = 0; i < n; i++) {
-    delays[i] = UTI_DiffTimespecsToDouble(&ts[i][2], &ts[i][0]);
-
-    if (delays[i] < 0.0) {
-      /* Step in the middle of a PHC reading? */
-      DEBUG_LOG("Bad PTP_SYS_OFFSET sample delay=%e", delays[i]);
-      return 0;
-    }
-
-    if (!i || delays[i] < min_delay)
-      min_delay = delays[i];
-  }
-
-  sys_prec = LCL_GetSysPrecisionAsQuantum();
-
-  /* Combine best readings */
-  for (i = combined = 0, phc_sum = sys_sum = 0.0; i < n; i++) {
-    if (delays[i] > min_delay + MAX(sys_prec, precision))
-      continue;
-
-    phc_sum += UTI_DiffTimespecsToDouble(&ts[i][1], &ts[0][1]);
-    sys_sum += UTI_DiffTimespecsToDouble(&ts[i][0], &ts[0][0]) + delays[i] / 2.0;
-    combined++;
-  }
-
-  assert(combined);
-
-  UTI_AddDoubleToTimespec(&ts[0][1], phc_sum / combined, phc_ts);
-  UTI_AddDoubleToTimespec(&ts[0][0], sys_sum / combined, sys_ts);
-  *err = MAX(min_delay / 2.0, precision);
-
-  return 1;
-}
-
-/* ================================================== */
-
-static int
-get_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
-               struct timespec *sys_ts, double *err)
-{
-  struct timespec ts[PHC_READINGS][3];
   struct ptp_sys_offset sys_off;
   int i;
+
+  max_samples = CLAMP(0, max_samples, PTP_MAX_SAMPLES);
 
   /* Silence valgrind */
   memset(&sys_off, 0, sizeof (sys_off));
 
-  sys_off.n_samples = PHC_READINGS;
+  sys_off.n_samples = max_samples;
 
   if (ioctl(phc_fd, PTP_SYS_OFFSET, &sys_off)) {
     DEBUG_LOG("ioctl(%s) failed : %s", "PTP_SYS_OFFSET", strerror(errno));
     return 0;
   }
 
-  for (i = 0; i < PHC_READINGS; i++) {
+  for (i = 0; i < max_samples; i++) {
     ts[i][0].tv_sec = sys_off.ts[i * 2].sec;
     ts[i][0].tv_nsec = sys_off.ts[i * 2].nsec;
     ts[i][1].tv_sec = sys_off.ts[i * 2 + 1].sec;
@@ -869,31 +821,31 @@ get_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
     ts[i][2].tv_nsec = sys_off.ts[i * 2 + 2].nsec;
   }
 
-  return process_phc_readings(ts, PHC_READINGS, precision, phc_ts, sys_ts, err);
+  return max_samples;
 }
 
 /* ================================================== */
 
 static int
-get_extended_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
-                        struct timespec *sys_ts, double *err)
+get_extended_phc_readings(int phc_fd, int max_samples, struct timespec ts[][3])
 {
 #ifdef PTP_SYS_OFFSET_EXTENDED
-  struct timespec ts[PHC_READINGS][3];
   struct ptp_sys_offset_extended sys_off;
   int i;
+
+  max_samples = CLAMP(0, max_samples, PTP_MAX_SAMPLES);
 
   /* Silence valgrind */
   memset(&sys_off, 0, sizeof (sys_off));
 
-  sys_off.n_samples = PHC_READINGS;
+  sys_off.n_samples = max_samples;
 
   if (ioctl(phc_fd, PTP_SYS_OFFSET_EXTENDED, &sys_off)) {
     DEBUG_LOG("ioctl(%s) failed : %s", "PTP_SYS_OFFSET_EXTENDED", strerror(errno));
     return 0;
   }
 
-  for (i = 0; i < PHC_READINGS; i++) {
+  for (i = 0; i < max_samples; i++) {
     ts[i][0].tv_sec = sys_off.ts[i][0].sec;
     ts[i][0].tv_nsec = sys_off.ts[i][0].nsec;
     ts[i][1].tv_sec = sys_off.ts[i][1].sec;
@@ -902,7 +854,7 @@ get_extended_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
     ts[i][2].tv_nsec = sys_off.ts[i][2].nsec;
   }
 
-  return process_phc_readings(ts, PHC_READINGS, precision, phc_ts, sys_ts, err);
+  return max_samples;
 #else
   return 0;
 #endif
@@ -911,11 +863,13 @@ get_extended_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
 /* ================================================== */
 
 static int
-get_precise_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
-		       struct timespec *sys_ts, double *err)
+get_precise_phc_readings(int phc_fd, int max_samples, struct timespec ts[][3])
 {
 #ifdef PTP_SYS_OFFSET_PRECISE
   struct ptp_sys_offset_precise sys_off;
+
+  if (max_samples < 1)
+    return 0;
 
   /* Silence valgrind */
   memset(&sys_off, 0, sizeof (sys_off));
@@ -926,11 +880,11 @@ get_precise_phc_sample(int phc_fd, double precision, struct timespec *phc_ts,
     return 0;
   }
 
-  phc_ts->tv_sec = sys_off.device.sec;
-  phc_ts->tv_nsec = sys_off.device.nsec;
-  sys_ts->tv_sec = sys_off.sys_realtime.sec;
-  sys_ts->tv_nsec = sys_off.sys_realtime.nsec;
-  *err = MAX(LCL_GetSysPrecisionAsQuantum(), precision);
+  ts[0][0].tv_sec = sys_off.sys_realtime.sec;
+  ts[0][0].tv_nsec = sys_off.sys_realtime.nsec;
+  ts[0][1].tv_sec = sys_off.device.sec;
+  ts[0][1].tv_nsec = sys_off.device.nsec;
+  ts[0][2] = ts[0][0];
 
   return 1;
 #else
@@ -974,23 +928,23 @@ SYS_Linux_OpenPHC(const char *path, int phc_index)
 /* ================================================== */
 
 int
-SYS_Linux_GetPHCSample(int fd, int nocrossts, double precision, int *reading_mode,
-                       struct timespec *phc_ts, struct timespec *sys_ts, double *err)
+SYS_Linux_GetPHCReadings(int fd, int nocrossts, int *reading_mode, int max_readings,
+                         struct timespec tss[][3])
 {
-  if ((*reading_mode == 2 || !*reading_mode) && !nocrossts &&
-      get_precise_phc_sample(fd, precision, phc_ts, sys_ts, err)) {
+  int r = 0;
+
+  if ((*reading_mode == 2 || *reading_mode == 0) && !nocrossts &&
+      (r = get_precise_phc_readings(fd, max_readings, tss)) > 0) {
     *reading_mode = 2;
-    return 1;
-  } else if ((*reading_mode == 3 || !*reading_mode) &&
-      get_extended_phc_sample(fd, precision, phc_ts, sys_ts, err)) {
+  } else if ((*reading_mode == 3 || *reading_mode == 0) &&
+             (r = get_extended_phc_readings(fd, max_readings, tss)) > 0) {
     *reading_mode = 3;
-    return 1;
-  } else if ((*reading_mode == 1 || !*reading_mode) &&
-      get_phc_sample(fd, precision, phc_ts, sys_ts, err)) {
+  } else if ((*reading_mode == 1 || *reading_mode == 0) &&
+             (r = get_phc_readings(fd, max_readings, tss)) > 0) {
     *reading_mode = 1;
-    return 1;
   }
-  return 0;
+
+  return r;
 }
 
 /* ================================================== */

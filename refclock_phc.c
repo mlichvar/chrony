@@ -75,13 +75,15 @@ static int phc_initialise(RCL_Instance instance)
   phc->nocrossts = RCL_GetDriverOption(instance, "nocrossts") ? 1 : 0;
   phc->extpps = RCL_GetDriverOption(instance, "extpps") ? 1 : 0;
 
+  phc->clock = HCL_CreateInstance(0, 16, UTI_Log2ToDouble(RCL_GetDriverPoll(instance)),
+                                  RCL_GetPrecision(instance));
+
   if (phc->extpps) {
     s = RCL_GetDriverOption(instance, "pin");
     phc->pin = s ? atoi(s) : 0;
     s = RCL_GetDriverOption(instance, "channel");
     phc->channel = s ? atoi(s) : 0;
     rising_edge = RCL_GetDriverOption(instance, "clear") ? 0 : 1;
-    phc->clock = HCL_CreateInstance(0, 16, UTI_Log2ToDouble(RCL_GetDriverPoll(instance)));
 
     if (!SYS_Linux_SetPHCExtTimestamping(phc->fd, phc->pin, phc->channel,
                                          rising_edge, !rising_edge, 1))
@@ -90,7 +92,6 @@ static int phc_initialise(RCL_Instance instance)
     SCH_AddFileHandler(phc->fd, SCH_FILE_INPUT, read_ext_pulse, instance);
   } else {
     phc->pin = phc->channel = 0;
-    phc->clock = NULL;
   }
 
   RCL_SetDriverData(instance, phc);
@@ -106,9 +107,9 @@ static void phc_finalise(RCL_Instance instance)
   if (phc->extpps) {
     SCH_RemoveFileHandler(phc->fd);
     SYS_Linux_SetPHCExtTimestamping(phc->fd, phc->pin, phc->channel, 0, 0, 0);
-    HCL_DestroyInstance(phc->clock);
   }
 
+  HCL_DestroyInstance(phc->clock);
   close(phc->fd);
   Free(phc);
 }
@@ -139,23 +140,30 @@ static void read_ext_pulse(int fd, int event, void *anything)
                      UTI_DiffTimespecsToDouble(&phc_ts, &local_ts));
 }
 
+#define PHC_READINGS 25
+
 static int phc_poll(RCL_Instance instance)
 {
+  struct timespec phc_ts, sys_ts, local_ts, readings[PHC_READINGS][3];
   struct phc_instance *phc;
-  struct timespec phc_ts, sys_ts, local_ts;
   double phc_err, local_err;
+  int n_readings;
 
   phc = (struct phc_instance *)RCL_GetDriverData(instance);
 
-  if (!SYS_Linux_GetPHCSample(phc->fd, phc->nocrossts, RCL_GetPrecision(instance),
-                              &phc->mode, &phc_ts, &sys_ts, &phc_err))
+  n_readings = SYS_Linux_GetPHCReadings(phc->fd, phc->nocrossts, &phc->mode,
+                                        PHC_READINGS, readings);
+  if (n_readings < 1)
     return 0;
 
-  if (phc->extpps) {
-    LCL_CookTime(&sys_ts, &local_ts, &local_err);
-    HCL_AccumulateSample(phc->clock, &phc_ts, &local_ts, phc_err + local_err);
+  if (!HCL_ProcessReadings(phc->clock, n_readings, readings, &phc_ts, &sys_ts, &phc_err))
     return 0;
-  }
+
+  LCL_CookTime(&sys_ts, &local_ts, &local_err);
+  HCL_AccumulateSample(phc->clock, &phc_ts, &local_ts, phc_err + local_err);
+
+  if (phc->extpps)
+    return 0;
 
   DEBUG_LOG("PHC offset: %+.9f err: %.9f",
             UTI_DiffTimespecsToDouble(&phc_ts, &sys_ts), phc_err);

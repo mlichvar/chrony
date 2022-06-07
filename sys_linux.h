@@ -41,8 +41,8 @@ extern int SYS_Linux_CheckKernelVersion(int req_major, int req_minor);
 
 extern int SYS_Linux_OpenPHC(const char *path, int phc_index);
 
-extern int SYS_Linux_GetPHCSample(int fd, int nocrossts, double precision, int *reading_mode,
-                                  struct timespec *phc_ts, struct timespec *sys_ts, double *err);
+extern int SYS_Linux_GetPHCReadings(int fd, int nocrossts, int *reading_mode, int max_readings,
+                                    struct timespec tss[][3]);
 
 extern int SYS_Linux_SetPHCExtTimestamping(int fd, int pin, int channel,
                                            int rising, int falling, int enable);

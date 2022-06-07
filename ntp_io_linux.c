@@ -59,8 +59,6 @@ struct Interface {
   /* Start of UDP data at layer 2 for IPv4 and IPv6 */
   int l2_udp4_ntp_start;
   int l2_udp6_ntp_start;
-  /* Precision of PHC readings */
-  double precision;
   /* Compensation of errors in TX and RX timestamping */
   double tx_comp;
   double rx_comp;
@@ -68,7 +66,7 @@ struct Interface {
 };
 
 /* Number of PHC readings per HW clock sample */
-#define PHC_READINGS 10
+#define PHC_READINGS 25
 
 /* Minimum interval between PHC readings */
 #define MIN_PHC_POLL -6
@@ -244,12 +242,12 @@ add_interface(CNF_HwTsInterface *conf_iface)
   iface->l2_udp4_ntp_start = 42;
   iface->l2_udp6_ntp_start = 62;
 
-  iface->precision = conf_iface->precision;
   iface->tx_comp = conf_iface->tx_comp;
   iface->rx_comp = conf_iface->rx_comp;
 
   iface->clock = HCL_CreateInstance(conf_iface->min_samples, conf_iface->max_samples,
-                                    UTI_Log2ToDouble(MAX(conf_iface->minpoll, MIN_PHC_POLL)));
+                                    UTI_Log2ToDouble(MAX(conf_iface->minpoll, MIN_PHC_POLL)),
+                                    conf_iface->precision);
 
   LOG(LOGS_INFO, "Enabled HW timestamping %son %s",
       ts_config.rx_filter == HWTSTAMP_FILTER_NONE ? "(TX only) " : "", iface->name);
@@ -566,12 +564,16 @@ process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
                      int l2_length)
 {
   struct timespec sample_phc_ts, sample_sys_ts, sample_local_ts, ts;
+  struct timespec phc_readings[PHC_READINGS][3];
   double rx_correction, ts_delay, phc_err, local_err;
+  int n_readings;
 
   if (HCL_NeedsNewSample(iface->clock, &local_ts->ts)) {
-    if (SYS_Linux_GetPHCSample(iface->phc_fd, iface->phc_nocrossts, iface->precision,
-                               &iface->phc_mode, &sample_phc_ts, &sample_sys_ts,
-                               &phc_err)) {
+    n_readings = SYS_Linux_GetPHCReadings(iface->phc_fd, iface->phc_nocrossts,
+                                          &iface->phc_mode, PHC_READINGS, phc_readings);
+    if (n_readings > 0 &&
+        HCL_ProcessReadings(iface->clock, n_readings, phc_readings,
+                             &sample_phc_ts, &sample_sys_ts, &phc_err)) {
       LCL_CookTime(&sample_sys_ts, &sample_local_ts, &local_err);
       HCL_AccumulateSample(iface->clock, &sample_phc_ts, &sample_local_ts,
                            phc_err + local_err);

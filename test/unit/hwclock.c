@@ -21,18 +21,21 @@
 #include <hwclock.c>
 #include "test.h"
 
+#define MAX_READINGS 20
+
 void
 test_unit(void)
 {
   struct timespec start_hw_ts, start_local_ts, hw_ts, local_ts, ts;
+  struct timespec readings[MAX_READINGS][3];
   HCL_Instance clock;
-  double freq, jitter, interval, dj, sum;
-  int i, j, k, count;
+  double freq, jitter, interval, dj, err, sum;
+  int i, j, k, l, n_readings, count;
 
   LCL_Initialise();
 
   for (i = 1; i <= 8; i++) {
-    clock = HCL_CreateInstance(random() % (1 << i), 1 << i, 1.0);
+    clock = HCL_CreateInstance(random() % (1 << i), 1 << i, 1.0, 1e-9);
 
     for (j = 0, count = 0, sum = 0.0; j < 100; j++) {
       UTI_ZeroTimespec(&start_hw_ts);
@@ -63,10 +66,21 @@ test_unit(void)
 
         UTI_AddDoubleToTimespec(&start_hw_ts, k * interval * freq + TST_GetRandomDouble(-jitter, jitter), &hw_ts);
 
-        if (HCL_NeedsNewSample(clock, &local_ts))
-          HCL_AccumulateSample(clock, &hw_ts, &local_ts, 2.0 * jitter);
+        if (HCL_NeedsNewSample(clock, &local_ts)) {
+          n_readings = random() % MAX_READINGS + 1;
+          for (l = 0; l < n_readings; l++) {
+            UTI_AddDoubleToTimespec(&local_ts, -TST_GetRandomDouble(0.0, jitter / 10.0), &readings[l][0]);
+            readings[l][1] = hw_ts;
+            UTI_AddDoubleToTimespec(&local_ts, TST_GetRandomDouble(0.0, jitter / 10.0), &readings[l][2]);
+          }
 
-        TEST_CHECK(clock->valid_coefs || clock->n_samples < 2);
+          UTI_ZeroTimespec(&hw_ts);
+          UTI_ZeroTimespec(&local_ts);
+          if (HCL_ProcessReadings(clock, n_readings, readings, &hw_ts, &local_ts, &err))
+            HCL_AccumulateSample(clock, &hw_ts, &local_ts, 2.0 * jitter);
+        }
+
+        TEST_CHECK(clock->valid_coefs == (clock->n_samples >= 2));
 
         if (!clock->valid_coefs)
           continue;

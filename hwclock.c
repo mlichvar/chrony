@@ -64,6 +64,9 @@ struct HCL_Instance_Record {
   /* Minimum interval between samples */
   double min_separation;
 
+  /* Expected precision of readings */
+  double precision;
+
   /* Flag indicating the offset and frequency values are valid */
   int valid_coefs;
 
@@ -92,7 +95,7 @@ handle_slew(struct timespec *raw, struct timespec *cooked, double dfreq,
 /* ================================================== */
 
 HCL_Instance
-HCL_CreateInstance(int min_samples, int max_samples, double min_separation)
+HCL_CreateInstance(int min_samples, int max_samples, double min_separation, double precision)
 {
   HCL_Instance clock;
 
@@ -110,6 +113,7 @@ HCL_CreateInstance(int min_samples, int max_samples, double min_separation)
   clock->n_samples = 0;
   clock->valid_coefs = 0;
   clock->min_separation = min_separation;
+  clock->precision = precision;
 
   LCL_AddParameterChangeHandler(handle_slew, clock);
 
@@ -136,6 +140,53 @@ HCL_NeedsNewSample(HCL_Instance clock, struct timespec *now)
     return 1;
 
   return 0;
+}
+
+/* ================================================== */
+
+int
+HCL_ProcessReadings(HCL_Instance clock, int n_readings, struct timespec tss[][3],
+                    struct timespec *hw_ts, struct timespec *local_ts, double *err)
+{
+  double delay, min_delay = 0.0, hw_sum, local_sum, local_prec;
+  int i, combined;
+
+  if (n_readings < 1)
+    return 0;
+
+  for (i = 0; i < n_readings; i++) {
+    delay = UTI_DiffTimespecsToDouble(&tss[i][2], &tss[i][0]);
+
+    if (delay < 0.0) {
+      /* Step in the middle of a reading? */
+      DEBUG_LOG("Bad reading delay=%e", delay);
+      return 0;
+    }
+
+    if (i == 0 || min_delay > delay)
+      min_delay = delay;
+  }
+
+  local_prec = LCL_GetSysPrecisionAsQuantum();
+
+  /* Combine best readings */
+  for (i = combined = 0, hw_sum = local_sum = 0.0; i < n_readings; i++) {
+    delay = UTI_DiffTimespecsToDouble(&tss[i][2], &tss[i][0]);
+    if (delay > min_delay + MAX(local_prec, clock->precision))
+      continue;
+
+    hw_sum += UTI_DiffTimespecsToDouble(&tss[i][1], &tss[0][1]);
+    local_sum += UTI_DiffTimespecsToDouble(&tss[i][0], &tss[0][0]) + delay / 2.0;
+    combined++;
+  }
+
+  assert(combined);
+
+  UTI_AddDoubleToTimespec(&tss[0][1], hw_sum / combined, hw_ts);
+  UTI_AddDoubleToTimespec(&tss[0][0], local_sum / combined, local_ts);
+  *err = MAX(min_delay / 2.0, clock->precision);
+
+  return 1;
 }
 
 /* ================================================== */
