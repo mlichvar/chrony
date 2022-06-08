@@ -569,16 +569,15 @@ process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
   double rx_correction, ts_delay, phc_err, local_err;
 
   if (HCL_NeedsNewSample(iface->clock, &local_ts->ts)) {
-    if (!SYS_Linux_GetPHCSample(iface->phc_fd, iface->phc_nocrossts, iface->precision,
-                                &iface->phc_mode, &sample_phc_ts, &sample_sys_ts,
-                                &phc_err))
-      return;
+    if (SYS_Linux_GetPHCSample(iface->phc_fd, iface->phc_nocrossts, iface->precision,
+                               &iface->phc_mode, &sample_phc_ts, &sample_sys_ts,
+                               &phc_err)) {
+      LCL_CookTime(&sample_sys_ts, &sample_local_ts, &local_err);
+      HCL_AccumulateSample(iface->clock, &sample_phc_ts, &sample_local_ts,
+                           phc_err + local_err);
 
-    LCL_CookTime(&sample_sys_ts, &sample_local_ts, &local_err);
-    HCL_AccumulateSample(iface->clock, &sample_phc_ts, &sample_local_ts,
-                         phc_err + local_err);
-
-    update_interface_speed(iface);
+      update_interface_speed(iface);
+    }
   }
 
   /* We need to transpose RX timestamps as hardware timestamps are normally
