@@ -18,8 +18,12 @@
  **********************************************************************
  */
 
-#include <hwclock.c>
+#include <config.h>
 #include "test.h"
+
+#if defined(FEAT_PHC) || defined(HAVE_LINUX_TIMESTAMPING)
+
+#include <hwclock.c>
 
 #define MAX_READINGS 20
 
@@ -30,9 +34,10 @@ test_unit(void)
   struct timespec readings[MAX_READINGS][3];
   HCL_Instance clock;
   double freq, jitter, interval, dj, err, sum;
-  int i, j, k, l, n_readings, count;
+  int i, j, k, l, new_sample, n_readings, count;
 
   LCL_Initialise();
+  TST_RegisterDummyDrivers();
 
   for (i = 1; i <= 8; i++) {
     clock = HCL_CreateInstance(random() % (1 << i), 1 << i, 1.0, 1e-9);
@@ -51,11 +56,14 @@ test_unit(void)
 
       clock->n_samples = 0;
       clock->valid_coefs = 0;
+      QNT_Reset(clock->delay_quants);
+
+      new_sample = 0;
 
       for (k = 0; k < 100; k++) {
         UTI_AddDoubleToTimespec(&start_hw_ts, k * interval * freq, &hw_ts);
         UTI_AddDoubleToTimespec(&start_local_ts, k * interval, &local_ts);
-        if (HCL_CookTime(clock, &hw_ts, &ts, NULL)) {
+        if (HCL_CookTime(clock, &hw_ts, &ts, NULL) && new_sample) {
           dj = fabs(UTI_DiffTimespecsToDouble(&ts, &local_ts) / jitter);
           DEBUG_LOG("delta/jitter %f", dj);
           if (clock->n_samples >= clock->max_samples / 2)
@@ -76,8 +84,12 @@ test_unit(void)
 
           UTI_ZeroTimespec(&hw_ts);
           UTI_ZeroTimespec(&local_ts);
-          if (HCL_ProcessReadings(clock, n_readings, readings, &hw_ts, &local_ts, &err))
+          if (HCL_ProcessReadings(clock, n_readings, readings, &hw_ts, &local_ts, &err)) {
             HCL_AccumulateSample(clock, &hw_ts, &local_ts, 2.0 * jitter);
+            new_sample = 1;
+          } else {
+            new_sample = 0;
+          }
         }
 
         TEST_CHECK(clock->valid_coefs == (clock->n_samples >= 2));
@@ -96,3 +108,10 @@ test_unit(void)
 
   LCL_Finalise();
 }
+#else
+void
+test_unit(void)
+{
+  TEST_REQUIRE(0);
+}
+#endif

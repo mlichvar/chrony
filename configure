@@ -737,7 +737,7 @@ if [ $feat_timestamping = "1" ] && [ $try_timestamping = "1" ] &&
                       &val, sizeof (val));'
 then
   add_def HAVE_LINUX_TIMESTAMPING
-  EXTRA_OBJECTS="$EXTRA_OBJECTS hwclock.o ntp_io_linux.o"
+  EXTRA_OBJECTS="$EXTRA_OBJECTS hwclock.o ntp_io_linux.o quantiles.o"
 
   if test_code 'other timestamping options' \
     'sys/types.h sys/socket.h linux/net_tstamp.h' '' '' '
@@ -830,7 +830,7 @@ if [ $feat_refclock = "1" ] && [ $feat_phc = "1" ] && [ $try_phc = "1" ] && \
     'ioctl(1, PTP_CLOCK_GETCAPS + PTP_SYS_OFFSET, 0);'
 then
   grep 'HAVE_LINUX_TIMESTAMPING' config.h > /dev/null ||
-    EXTRA_OBJECTS="$EXTRA_OBJECTS hwclock.o"
+    EXTRA_OBJECTS="$EXTRA_OBJECTS hwclock.o quantiles.o"
   add_def FEAT_PHC
 fi
 
