@@ -7,32 +7,53 @@ test_start "hwtimestamp directive"
 check_config_h 'HAVE_LINUX_TIMESTAMPING 1' || test_skip
 
 export CLKNETSIM_TIMESTAMPING=2
+export CLKNETSIM_PHC_DELAY=1e-6
+export CLKNETSIM_PHC_JITTER=1e-7
+export CLKNETSIM_PHC_JITTER_ASYM=0.4
 
 refclock_jitter=1e-8
 refclock_offset=10.0
 min_sync_time=4
 max_sync_time=20
+time_rms_limit=1e-7
+freq_rms_limit=3e-8
+jitter=1e-8
+freq_offset=1e-5
 limit=200
-server_conf="hwtimestamp eth0"
-client_server_options="minpoll 0 maxpoll 0 minsamples 32 xleave"
+server_conf="
+clockprecision 1e-9
+hwtimestamp eth0"
+client_server_options="minpoll 0 maxpoll 0 xleave"
 client_chronyd_options="-d"
 
-for client_conf in "hwtimestamp eth0" "hwtimestamp eth0
-acquisitionport 123"; do
+for client_conf in \
+		"hwtimestamp eth0 nocrossts
+		clockprecision 1e-9" \
+		"hwtimestamp eth0
+		clockprecision 1e-9
+		acquisitionport 123"; do
 	run_test || test_fail
 	check_chronyd_exit || test_fail
 	check_source_selection || test_fail
 	check_sync || test_fail
 
 	if check_config_h 'FEAT_DEBUG 1'; then
+		check_log_messages "Accepted reading" 0 2 || test_fail
+		check_log_messages "Combined .* readings" 190 220 || test_fail
 		check_log_messages "HW clock samples" 190 200 || test_fail
 		check_log_messages "HW clock reset" 0 0 || test_fail
+		check_log_messages "Missing TX timestamp" 1 1 || test_fail
 		check_log_messages "Received message.*tss=KH" 195 200 || test_fail
 		check_log_messages "Received error.*message.*tss=KH" 195 200 || test_fail
 		check_log_messages "Updated RX timestamp.*tss=1" 1 1 || test_fail
 		check_log_messages "Updated RX timestamp.*tss=2" 195 200 || test_fail
-		check_log_messages "update_tx_timestamp.*Updated" 50 140 || test_fail
-		check_log_messages "update_tx_timestamp.*Unacceptable" 50 140 || test_fail
+		if echo "$client_conf" | grep -q nocrossts; then
+			check_log_messages "update_tx_timestamp.*Updated" 180 200 || test_fail
+			check_log_messages "update_tx_timestamp.*Unacceptable" 0 10 || test_fail
+		else
+			check_log_messages "update_tx_timestamp.*Updated" 50 140 || test_fail
+			check_log_messages "update_tx_timestamp.*Unacceptable" 50 140 || test_fail
+		fi
 	fi
 done
 
