@@ -73,9 +73,9 @@ static double slew_freq;
 /* Time (raw) of last update of slewing frequency and offset */
 static struct timespec slew_start;
 
-/* Limits for the slew timeout */
-#define MIN_SLEW_TIMEOUT 1.0
-#define MAX_SLEW_TIMEOUT 1.0e4
+/* Limits for the slew length */
+#define MIN_SLEW_DURATION 1.0
+#define MAX_SLEW_DURATION 1.0e4
 
 /* Scheduler timeout ID for ending of the currently running slew */
 static SCH_TimeoutID slew_timeout_id;
@@ -180,11 +180,11 @@ update_slew(void)
 
   /* Estimate how long should the next slew take */
   if (fabs(offset_register) < MIN_OFFSET_CORRECTION) {
-    duration = MAX_SLEW_TIMEOUT;
+    duration = MAX_SLEW_DURATION;
   } else {
     duration = correction_rate / fabs(offset_register);
-    if (duration < MIN_SLEW_TIMEOUT)
-      duration = MIN_SLEW_TIMEOUT;
+    if (duration < MIN_SLEW_DURATION)
+      duration = MIN_SLEW_DURATION;
   }
 
   /* Get frequency offset needed to slew the offset in the duration
@@ -227,13 +227,13 @@ update_slew(void)
      maximum timeout and try again on the next update. */
   if (fabs(offset_register) < MIN_OFFSET_CORRECTION ||
       offset_register * slew_freq <= 0.0) {
-    duration = MAX_SLEW_TIMEOUT;
+    duration = MAX_SLEW_DURATION;
   } else {
     duration = offset_register / slew_freq;
-    if (duration < MIN_SLEW_TIMEOUT)
-      duration = MIN_SLEW_TIMEOUT;
-    else if (duration > MAX_SLEW_TIMEOUT)
-      duration = MAX_SLEW_TIMEOUT;
+    if (duration < MIN_SLEW_DURATION)
+      duration = MIN_SLEW_DURATION;
+    else if (duration > MAX_SLEW_DURATION)
+      duration = MAX_SLEW_DURATION;
   }
 
   /* Restart timer for the next update */
