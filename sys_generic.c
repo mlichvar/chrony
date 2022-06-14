@@ -80,6 +80,21 @@ static struct timespec slew_start;
 /* Scheduler timeout ID for ending of the currently running slew */
 static SCH_TimeoutID slew_timeout_id;
 
+/* Scheduled duration of the currently running slew */
+static double slew_duration;
+
+/* Expected delay in ending of the slew due to process scheduling and
+   execution time, tracked as a decaying maximum value */
+static double slew_excess_duration;
+
+/* Maximum accepted excess duration to ignore large jumps after resuming
+   suspended system and other reasons (which should be handled in the
+   scheduler), a constant to determine the minimum slew duration to avoid
+   oscillations due to the excess, and the decay constant */
+#define MAX_SLEW_EXCESS_DURATION 100.0
+#define MIN_SLEW_DURATION_EXCESS_RATIO 5.0
+#define SLEW_EXCESS_DURATION_DECAY 0.9
+
 /* Suggested offset correction rate (correction time * offset) */
 static double correction_rate;
 
@@ -164,8 +179,8 @@ clamp_freq(double freq)
 static void
 update_slew(void)
 {
+  double old_slew_freq, total_freq, corr_freq, duration, excess_duration;
   struct timespec now, end_of_slew;
-  double old_slew_freq, total_freq, corr_freq, duration;
 
   /* Remove currently running timeout */
   SCH_RemoveTimeout(slew_timeout_id);
@@ -178,13 +193,25 @@ update_slew(void)
 
   stop_fastslew(&now);
 
-  /* Estimate how long should the next slew take */
+  /* Update the maximum excess duration, decaying even when the slew did
+     not time out (i.e. frequency was set or offset accrued), but add a small
+     value to avoid denormals */
+  slew_excess_duration = (slew_excess_duration + 1.0e-9) * SLEW_EXCESS_DURATION_DECAY;
+  excess_duration = duration - slew_duration;
+  if (slew_excess_duration < excess_duration &&
+      excess_duration <= MAX_SLEW_EXCESS_DURATION)
+    slew_excess_duration = excess_duration;
+
+  /* Calculate the duration of the new slew, considering the current correction
+     rate and previous delays in stopping of the slew */
   if (fabs(offset_register) < MIN_OFFSET_CORRECTION) {
     duration = MAX_SLEW_DURATION;
   } else {
     duration = correction_rate / fabs(offset_register);
     if (duration < MIN_SLEW_DURATION)
       duration = MIN_SLEW_DURATION;
+    if (duration < MIN_SLEW_DURATION_EXCESS_RATIO * slew_excess_duration)
+      duration = MIN_SLEW_DURATION_EXCESS_RATIO * slew_excess_duration;
   }
 
   /* Get frequency offset needed to slew the offset in the duration
@@ -240,10 +267,12 @@ update_slew(void)
   UTI_AddDoubleToTimespec(&now, duration, &end_of_slew);
   slew_timeout_id = SCH_AddTimeout(&end_of_slew, handle_end_of_slew, NULL);
   slew_start = now;
+  slew_duration = duration;
 
-  DEBUG_LOG("slew offset=%e corr_rate=%e base_freq=%f total_freq=%f slew_freq=%e duration=%f slew_error=%e",
-      offset_register, correction_rate, base_freq, total_freq, slew_freq,
-      duration, slew_error);
+  DEBUG_LOG("slew offset=%e corr_rate=%e base_freq=%f total_freq=%f slew_freq=%e"
+            " duration=%f excess=%f slew_error=%e",
+            offset_register, correction_rate, base_freq, total_freq, slew_freq,
+            slew_duration, slew_excess_duration, slew_error);
 }
 
 /* ================================================== */
@@ -380,6 +409,7 @@ SYS_Generic_CompleteFreqDriver(double max_set_freq_ppm, double max_set_freq_dela
   base_freq = (*drv_read_freq)();
   slew_freq = 0.0;
   offset_register = 0.0;
+  slew_excess_duration = 0.0;
 
   max_corr_freq = CNF_GetMaxSlewRate() / 1.0e6;
 
