@@ -411,6 +411,7 @@ test_unit(void)
   NCR_Initialise();
   REF_Initialise();
   KEY_Initialise();
+  CLG_Initialise();
 
   CNF_SetupAccessRestrictions();
 
@@ -422,6 +423,9 @@ test_unit(void)
     source.params.version = random() % 4 + 1;
 
     UTI_ZeroTimespec(&current_time);
+#if HAVE_LONG_TIME_T
+    advance_time(NTP_ERA_SPLIT);
+#endif
     advance_time(TST_GetRandomDouble(1.0, 1e9));
 
     TST_GetRandomAddress(&remote_addr.ip_addr, IPADDR_UNSPEC, -1);
@@ -595,6 +599,7 @@ test_unit(void)
   TEST_CHECK(info.auth.mac.length == 72);
   TEST_CHECK(info.auth.mac.key_id == 300);
 
+  CLG_Finalise();
   KEY_Finalise();
   REF_Finalise();
   NCR_Finalise();
