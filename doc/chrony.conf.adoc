@@ -2070,7 +2070,9 @@ from the example line above):
 . RFC 5905 tests 5 through 7 (1=pass, 0=fail) [111]
 . Tests for maximum delay, maximum delay ratio and maximum delay dev ratio,
   against defined parameters, and a test for synchronisation loop (1=pass,
-  0=fail) [1111]
+  0=fail). The first test from these four also checks the server precision,
+  response time, and whether an interleaved response is acceptable for
+  synchronisation. [1111]
 . Local poll [10]
 . Remote poll [10]
 . '`Score`' (an internal score within each polling level used to decide when to
