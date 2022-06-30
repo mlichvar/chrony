@@ -166,6 +166,8 @@ signal_cleanup(int x)
 static void
 quit_timeout(void *arg)
 {
+  LOG(LOGS_INFO, "Timeout reached");
+
   /* Return with non-zero status if the clock is not synchronised */
   exit_status = REF_GetOurStratum() >= NTP_MAX_STRATUM;
   SCH_QuitProgram();
