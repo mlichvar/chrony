@@ -15,10 +15,11 @@ check_chronyd_exit || test_fail
 check_source_selection || test_fail
 check_sync || test_fail
 
-check_file_messages "111 111 1111.* 4I [DKH] [DKH]\$" 0 0 measurements.log || test_fail
+check_file_messages "111 111 .111.* 4I [DKH] [DKH]\$" 0 0 measurements.log || test_fail
 rm -f tmp/measurements.log
 
 server_conf=""
+max_sync_time=270
 
 run_test || test_fail
 check_chronyd_exit || test_fail
@@ -28,6 +29,7 @@ check_sync || test_fail
 
 check_file_messages "111 111 1111.* 4B [DKH] [DKH]\$" 2 2 measurements.log || test_fail
 check_file_messages "111 111 1111.* 4I [DKH] [DKH]\$" 30 200 measurements.log || test_fail
+check_file_messages "111 111 0111.* 4I [DKH] [DKH]\$" 1 1 measurements.log || test_fail
 rm -f tmp/measurements.log
 
 clients=2

@@ -1907,12 +1907,17 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
 
     /* Test A requires that the minimum estimate of the peer delay is not
        larger than the configured maximum, in both client modes that the server
-       processing time is sane, and in interleaved symmetric mode that the
+       processing time is sane, in interleaved client/server mode that the
+       previous response was not in basic mode (which prevents using timestamps
+       that minimise delay error), and in interleaved symmetric mode that the
        measured delay and intervals between remote timestamps don't indicate
        a missed response */
     testA = sample.peer_delay - sample.peer_dispersion <= inst->max_delay &&
             precision <= inst->max_delay &&
             !(inst->mode == MODE_CLIENT && response_time > MAX_SERVER_INTERVAL) &&
+            !(inst->mode == MODE_CLIENT && interleaved_packet &&
+              UTI_IsZeroTimespec(&inst->prev_local_tx.ts) &&
+              UTI_CompareTimespecs(&local_transmit.ts, &inst->local_tx.ts) == 0) &&
             !(inst->mode == MODE_ACTIVE && interleaved_packet &&
               (sample.peer_delay > 0.5 * prev_remote_poll_interval ||
                UTI_CompareNtp64(&message->receive_ts, &message->transmit_ts) <= 0 ||

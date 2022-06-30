@@ -496,7 +496,10 @@ test_unit(void)
 
       send_request(inst1);
       process_request(&remote_addr);
-      proc_response(inst1, 1, 1, 1, 0);
+      proc_response(inst1,
+                    !source.params.interleaved || source.params.version != 4 ||
+                      inst1->mode == MODE_ACTIVE || j != 2,
+                    1, 1, 0);
       advance_time(1 << inst1->local_poll);
     }
 
