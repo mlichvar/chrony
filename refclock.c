@@ -55,21 +55,6 @@ struct FilterSample {
   struct timespec sample_time;
 };
 
-struct MedianFilter {
-  int length;
-  int index;
-  int used;
-  int last;
-  int avg_var_n;
-  double avg_var;
-  double max_var;
-  struct FilterSample *samples;
-  int *selected;
-  double *x_data;
-  double *y_data;
-  double *w_data;
-};
-
 struct RCL_Instance_Record {
   RefclockDriver *driver;
   void *data;
