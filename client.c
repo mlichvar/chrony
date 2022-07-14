@@ -3238,8 +3238,17 @@ process_line(char *line)
   if (do_normal_submit) {
     ret = request_reply(&tx_message, &rx_message, RPY_NULL, 1);
   }
+
   fflush(stderr);
-  fflush(stdout);
+
+  if (fflush(stdout) != 0 || ferror(stdout) != 0) {
+    LOG(LOGS_ERR, "Could not write to stdout");
+
+    /* Return error for commands that print data */
+    if (!do_normal_submit)
+      return 0;
+  }
+
   return ret;
 }
 
