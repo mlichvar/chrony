@@ -783,6 +783,8 @@ NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remote_addr, int 
 static void
 adjust_poll(NCR_Instance inst, double adj)
 {
+  NTP_Sample last_sample;
+
   inst->poll_score += adj;
 
   if (inst->poll_score >= 1.0) {
@@ -808,7 +810,9 @@ adjust_poll(NCR_Instance inst, double adj)
      or it is not in a local network according to the measured delay */
   if (inst->local_poll < MIN_NONLAN_POLL &&
       (!SRC_IsReachable(inst->source) ||
-       SST_MinRoundTripDelay(SRC_GetSourcestats(inst->source)) > MAX_LAN_PEER_DELAY))
+       (SST_MinRoundTripDelay(SRC_GetSourcestats(inst->source)) > MAX_LAN_PEER_DELAY &&
+        (!inst->filter || !SPF_GetLastSample(inst->filter, &last_sample) ||
+         last_sample.peer_delay > MAX_LAN_PEER_DELAY))))
     inst->local_poll = MIN_NONLAN_POLL;
 }
 
