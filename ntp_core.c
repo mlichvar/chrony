@@ -650,7 +650,7 @@ NCR_CreateInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
   result->tx_timeout_id = 0;
   result->tx_suspended = 1;
   result->opmode = MD_OFFLINE;
-  result->local_poll = result->minpoll;
+  result->local_poll = MAX(result->minpoll, MIN_NONLAN_POLL);
   result->poll_score = 0.0;
   zero_local_timestamp(&result->local_tx);
   result->burst_good_samples_to_go = 0;
