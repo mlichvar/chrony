@@ -267,7 +267,7 @@ static ARR_Instance broadcasts;
 #define MAX_MAXDELAYDEVRATIO 1.0e6
 
 /* Minimum and maximum allowed poll interval */
-#define MIN_POLL -6
+#define MIN_POLL -7
 #define MAX_POLL 24
 
 /* Enable sub-second polling intervals only when the peer delay is not
