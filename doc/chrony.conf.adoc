@@ -176,11 +176,12 @@ Set the minimum number of samples kept for this source. This overrides the
 *maxsamples* _samples_:::
 Set the maximum number of samples kept for this source. This overrides the
 <<maxsamples,*maxsamples*>> directive.
-*filter* _samples_:::
+*filter* _polls_:::
 This option enables a median filter to reduce noise in NTP measurements. The
-filter will reduce the specified number of samples to a single sample. It is
-intended to be used with very short polling intervals in local networks where
-it is acceptable to generate a lot of NTP traffic.
+filter will process samples collected in the specified number of polls
+into a single sample. It is intended to be used with very short polling
+intervals in local networks where it is acceptable to generate a lot of NTP
+traffic.
 *offline*:::
 If the server will not be reachable when *chronyd* is started, the *offline*
 option can be specified. *chronyd* will not try to poll the server until it is

@@ -198,6 +198,7 @@ struct NCR_Instance_Record {
 
   /* Optional median filter for NTP measurements */
   SPF_Instance filter;
+  int filter_count;
 
   int burst_good_samples_to_go;
   int burst_total_samples_to_go;
@@ -318,6 +319,7 @@ static void transmit_timeout(void *arg);
 static double get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx);
 static double get_separation(int poll);
 static int parse_packet(NTP_Packet *packet, int length, NTP_PacketInfo *info);
+static void process_sample(NCR_Instance inst, NTP_Sample *sample);
 static void set_connectivity(NCR_Instance inst, SRC_Connectivity connectivity);
 
 /* ================================================== */
@@ -641,8 +643,7 @@ NCR_CreateInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
                                          params->min_delay, params->asymmetry);
 
   if (params->filter_length >= 1)
-    result->filter = SPF_CreateInstance(params->filter_length, params->filter_length,
-                                        NTP_MAX_DISPERSION, 0.0);
+    result->filter = SPF_CreateInstance(1, params->filter_length, NTP_MAX_DISPERSION, 0.0);
   else
     result->filter = NULL;
 
@@ -734,6 +735,7 @@ NCR_ResetInstance(NCR_Instance instance)
 
   if (instance->filter)
     SPF_DropSamples(instance->filter);
+  instance->filter_count = 0;
 }
 
 /* ================================================== */
@@ -1357,6 +1359,9 @@ transmit_timeout(void *arg)
     }
 
     SRC_UpdateReachability(inst->source, 0);
+
+    /* Count missing samples for the sample filter */
+    process_sample(inst, NULL);
   }
 
   /* With auto_offline take the source offline if sending failed */
@@ -1630,32 +1635,28 @@ check_sync_loop(NCR_Instance inst, NTP_Packet *message, NTP_Local_Address *local
 static void
 process_sample(NCR_Instance inst, NTP_Sample *sample)
 {
-  double estimated_offset, error_in_estimate, filtered_sample_ago;
+  double estimated_offset, error_in_estimate;
   NTP_Sample filtered_sample;
-  int filtered_samples;
 
-  /* Accumulate the sample to the median filter if it is enabled.  When the
-     filter produces a result, check if it is not too old, i.e. the filter did
-     not miss too many samples due to missing responses or failing tests. */
+  /* Accumulate the sample to the median filter if enabled and wait for
+     the configured number of samples before processing (NULL indicates
+     a missing sample) */
   if (inst->filter) {
-    SPF_AccumulateSample(inst->filter, sample);
+    if (sample)
+      SPF_AccumulateSample(inst->filter, sample);
 
-    filtered_samples = SPF_GetNumberOfSamples(inst->filter);
+    if (++inst->filter_count < SPF_GetMaxSamples(inst->filter))
+      return;
 
     if (!SPF_GetFilteredSample(inst->filter, &filtered_sample))
       return;
 
-    filtered_sample_ago = UTI_DiffTimespecsToDouble(&sample->time, &filtered_sample.time);
-
-    if (filtered_sample_ago > SOURCE_REACH_BITS / 2 * filtered_samples *
-                              UTI_Log2ToDouble(inst->local_poll)) {
-      DEBUG_LOG("filtered sample dropped ago=%f poll=%d", filtered_sample_ago,
-                inst->local_poll);
-      return;
-    }
-
     sample = &filtered_sample;
+    inst->filter_count = 0;
   }
+
+  if (!sample)
+    return;
 
   /* Get the estimated offset predicted from previous samples.  The
      convention here is that positive means local clock FAST of
@@ -2097,6 +2098,9 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
     } else {
       /* Slowly increase the polling interval if we can't get a good response */
       adjust_poll(inst, testD ? 0.02 : 0.1);
+
+      /* Count missing samples for the sample filter */
+      process_sample(inst, NULL);
     }
 
     /* If in client mode, no more packets are expected to be coming from the
