@@ -138,13 +138,14 @@ behind a lot of packets related to a download of some sort).
 If the user knows that round trip delays above a certain level should cause the
 measurement to be ignored, this level can be defined with the *maxdelay*
 option. For example, *maxdelay 0.3* would indicate that measurements with a
-round-trip delay of 0.3 seconds or more should be ignored. The default value is
-3 seconds and the maximum value is 1000 seconds.
+round-trip delay greater than 0.3 seconds should be ignored. The default value
+is 3 seconds and the maximum value is 1000 seconds.
 *maxdelayratio* _ratio_:::
 This option is similar to the *maxdelay* option above. *chronyd* keeps a record
 of the minimum round-trip delay amongst the previous measurements that it has
-buffered. If a measurement has a round trip delay that is greater than the
-specified ratio times the minimum delay, it will be rejected.
+buffered. If a measurement has a round-trip delay that is greater than the
+specified ratio times the minimum delay, it will be rejected. By default, this
+test is disabled.
 *maxdelaydevratio* _ratio_:::
 If a measurement has a ratio of the increase in the round-trip delay from the
 minimum delay amongst the previous measurements to the standard deviation of
