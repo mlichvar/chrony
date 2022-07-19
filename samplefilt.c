@@ -162,6 +162,14 @@ SPF_GetNumberOfSamples(SPF_Instance filter)
 
 /* ================================================== */
 
+int
+SPF_GetMaxSamples(SPF_Instance filter)
+{
+  return filter->max_samples;
+}
+
+/* ================================================== */
+
 double
 SPF_GetAvgSampleDispersion(SPF_Instance filter)
 {

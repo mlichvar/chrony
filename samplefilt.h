@@ -39,6 +39,7 @@ extern void SPF_DestroyInstance(SPF_Instance filter);
 extern int SPF_AccumulateSample(SPF_Instance filter, NTP_Sample *sample);
 extern int SPF_GetLastSample(SPF_Instance filter, NTP_Sample *sample);
 extern int SPF_GetNumberOfSamples(SPF_Instance filter);
+extern int SPF_GetMaxSamples(SPF_Instance filter);
 extern double SPF_GetAvgSampleDispersion(SPF_Instance filter);
 extern void SPF_DropSamples(SPF_Instance filter);
 extern int SPF_GetFilteredSample(SPF_Instance filter, NTP_Sample *sample);

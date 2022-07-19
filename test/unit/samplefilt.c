@@ -45,6 +45,8 @@ test_unit(void)
 
     filter = SPF_CreateInstance(min_samples, max_samples, 2.0, combine_ratio);
 
+    TEST_CHECK(max_samples == SPF_GetMaxSamples(filter));
+
     for (j = 0, sum_count = 0, sum_err = 0.0; j < 100; j++) {
       DEBUG_LOG("iteration %d/%d", i, j);
 
