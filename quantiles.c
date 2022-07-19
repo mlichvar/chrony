@@ -185,6 +185,14 @@ QNT_Accumulate(QNT_Instance inst, double value)
 
 /* ================================================== */
 
+int
+QNT_GetMinK(QNT_Instance inst)
+{
+  return inst->min_k;
+}
+
+/* ================================================== */
+
 double
 QNT_GetQuantile(QNT_Instance inst, int k)
 {

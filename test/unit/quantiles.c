@@ -42,6 +42,8 @@ test_unit(void)
 
     inst = QNT_CreateInstance(min_k, max_k, q, r, 1e-9);
 
+    TEST_CHECK(min_k == QNT_GetMinK(inst));
+
     for (j = 0; j < 3000; j++) {
       x = TST_GetRandomDouble(0.0, 2e-6);
       QNT_Accumulate(inst, x);
