@@ -417,6 +417,8 @@ SPF_GetFilteredSample(SPF_Instance filter, NTP_Sample *sample)
 
   n = select_samples(filter);
 
+  DEBUG_LOG("selected %d from %d samples", n, filter->used);
+
   if (n < 1)
     return 0;
 
