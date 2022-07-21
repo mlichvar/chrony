@@ -72,6 +72,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   src->params.max_delay = SRC_DEFAULT_MAXDELAY;
   src->params.max_delay_ratio = SRC_DEFAULT_MAXDELAYRATIO;
   src->params.max_delay_dev_ratio = SRC_DEFAULT_MAXDELAYDEVRATIO;
+  src->params.max_delay_quant = 0.0;
   src->params.min_delay = 0.0;
   src->params.asymmetry = SRC_DEFAULT_ASYMMETRY;
   src->params.offset = 0.0;
@@ -139,6 +140,9 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
         return 0;
     } else if (!strcasecmp(cmd, "maxdelaydevratio")) {
       if (sscanf(line, "%lf%n", &src->params.max_delay_dev_ratio, &n) != 1)
+        return 0;
+    } else if (!strcasecmp(cmd, "maxdelayquant")) {
+      if (sscanf(line, "%lf%n", &src->params.max_delay_quant, &n) != 1)
         return 0;
     } else if (!strcasecmp(cmd, "maxpoll")) {
       if (sscanf(line, "%d%n", &src->params.maxpoll, &n) != 1)

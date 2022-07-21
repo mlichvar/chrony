@@ -61,6 +61,7 @@ typedef struct {
   double max_delay;
   double max_delay_ratio;
   double max_delay_dev_ratio;
+  double max_delay_quant;
   double min_delay;
   double asymmetry;
   double offset;

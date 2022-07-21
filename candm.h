@@ -296,7 +296,8 @@ typedef struct {
   uint32_t flags;
   int32_t filter_length;
   uint32_t cert_set;
-  uint32_t reserved[2];
+  Float max_delay_quant;
+  uint32_t reserved[1];
   int32_t EOR;
 } REQ_NTP_Source;
 

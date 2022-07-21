@@ -952,6 +952,8 @@ process_cmd_add_source(CMD_Request *msg, char *line)
           (data.params.sel_options & SRC_SELECT_REQUIRE ? REQ_ADDSRC_REQUIRE : 0));
       msg->data.ntp_source.filter_length = htonl(data.params.filter_length);
       msg->data.ntp_source.cert_set = htonl(data.params.cert_set);
+      msg->data.ntp_source.max_delay_quant =
+        UTI_FloatHostToNetwork(data.params.max_delay_quant);
       memset(msg->data.ntp_source.reserved, 0, sizeof (msg->data.ntp_source.reserved));
 
       result = 1;

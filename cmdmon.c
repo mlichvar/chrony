@@ -757,6 +757,8 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
     UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_ratio);
   params.max_delay_dev_ratio =
     UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_dev_ratio);
+  params.max_delay_quant =
+    UTI_FloatNetworkToHost(rx_message->data.ntp_source.max_delay_quant);
   params.min_delay = UTI_FloatNetworkToHost(rx_message->data.ntp_source.min_delay);
   params.asymmetry = UTI_FloatNetworkToHost(rx_message->data.ntp_source.asymmetry);
   params.offset = UTI_FloatNetworkToHost(rx_message->data.ntp_source.offset);

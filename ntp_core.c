@@ -35,6 +35,7 @@
 #include "ntp_ext.h"
 #include "ntp_io.h"
 #include "memory.h"
+#include "quantiles.h"
 #include "sched.h"
 #include "reference.h"
 #include "local.h"
@@ -196,6 +197,9 @@ struct NCR_Instance_Record {
 
   SRC_Instance source;
 
+  /* Optional long-term quantile estimate of peer delay */
+  QNT_Instance delay_quant;
+
   /* Optional median filter for NTP measurements */
   SPF_Instance filter;
   int filter_count;
@@ -265,6 +269,10 @@ static ARR_Instance broadcasts;
 #define MAX_MAXDELAY 1.0e3
 #define MAX_MAXDELAYRATIO 1.0e6
 #define MAX_MAXDELAYDEVRATIO 1.0e6
+
+/* Parameters for the peer delay quantile */
+#define DELAY_QUANT_Q 100
+#define DELAY_QUANT_REPEAT 7
 
 /* Minimum and maximum allowed poll interval */
 #define MIN_POLL -7
@@ -642,6 +650,14 @@ NCR_CreateInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
                                          params->min_samples, params->max_samples,
                                          params->min_delay, params->asymmetry);
 
+  if (params->max_delay_quant > 0.0) {
+    int k = round(CLAMP(0.05, params->max_delay_quant, 0.95) * DELAY_QUANT_Q);
+    result->delay_quant = QNT_CreateInstance(k, k, DELAY_QUANT_Q, DELAY_QUANT_REPEAT,
+                                             LCL_GetSysPrecisionAsQuantum() / 2.0);
+  } else {
+    result->delay_quant = NULL;
+  }
+
   if (params->filter_length >= 1)
     result->filter = SPF_CreateInstance(1, params->filter_length, NTP_MAX_DISPERSION, 0.0);
   else
@@ -677,6 +693,8 @@ NCR_DestroyInstance(NCR_Instance instance)
   if (instance->mode == MODE_ACTIVE)
     NIO_CloseServerSocket(instance->local_addr.sock_fd);
 
+  if (instance->delay_quant)
+    QNT_DestroyInstance(instance->delay_quant);
   if (instance->filter)
     SPF_DestroyInstance(instance->filter);
 
@@ -733,6 +751,8 @@ NCR_ResetInstance(NCR_Instance instance)
   UTI_ZeroNtp64(&instance->init_remote_ntp_tx);
   zero_local_timestamp(&instance->init_local_rx);
 
+  if (instance->delay_quant)
+    QNT_Reset(instance->delay_quant);
   if (instance->filter)
     SPF_DropSamples(instance->filter);
   instance->filter_count = 0;
@@ -1551,6 +1571,22 @@ check_delay_ratio(NCR_Instance inst, SST_Stats stats,
 /* ================================================== */
 
 static int
+check_delay_quant(NCR_Instance inst, double delay)
+{
+  double quant;
+
+  quant = QNT_GetQuantile(inst->delay_quant, QNT_GetMinK(inst->delay_quant));
+
+  if (delay <= quant)
+    return 1;
+
+  DEBUG_LOG("maxdelayquant: delay=%e quant=%e", delay, quant);
+  return 0;
+}
+
+/* ================================================== */
+
+static int
 check_delay_dev_ratio(NCR_Instance inst, SST_Stats stats,
                       struct timespec *sample_time, double offset, double delay)
 {
@@ -1935,12 +1971,18 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
        administrator-defined value */
     testB = check_delay_ratio(inst, stats, &sample.time, sample.peer_delay);
 
-    /* Test C requires that the ratio of the increase in delay from the minimum
+    /* Test C either requires that the delay is less than an estimate of an
+       administrator-defined quantile, or (if the quantile is not specified)
+       it requires that the ratio of the increase in delay from the minimum
        one in the stats data register to the standard deviation of the offsets
        in the register is less than an administrator-defined value or the
        difference between measured offset and predicted offset is larger than
        the increase in delay */
-    testC = check_delay_dev_ratio(inst, stats, &sample.time, sample.offset, sample.peer_delay);
+    if (inst->delay_quant)
+      testC = check_delay_quant(inst, sample.peer_delay);
+    else
+      testC = check_delay_dev_ratio(inst, stats, &sample.time, sample.offset,
+                                    sample.peer_delay);
 
     /* Test D requires that the source is not synchronised to us and is not us
        to prevent a synchronisation loop */
@@ -2073,6 +2115,9 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
       }
 
       SRC_UpdateStatus(inst->source, MAX(inst->remote_stratum, inst->min_stratum), pkt_leap);
+
+      if (inst->delay_quant)
+        QNT_Accumulate(inst->delay_quant, sample.peer_delay);
     }
 
     if (good_packet) {

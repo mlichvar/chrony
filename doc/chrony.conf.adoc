@@ -151,6 +151,20 @@ If a measurement has a ratio of the increase in the round-trip delay from the
 minimum delay amongst the previous measurements to the standard deviation of
 the previous measurements that is greater than the specified ratio, it will be
 rejected. The default is 10.0.
+*maxdelayquant* _p_:::
+This option disables the *maxdelaydevratio* test and specifies the maximum
+acceptable delay as a quantile of the round-trip delay instead of a function of
+the minimum delay amongst the buffered measurements. If a measurement has a
+round-trip delay that is greater than a long-term estimate of the _p_-quantile,
+it will be rejected.
++
+The specified _p_ value should be between 0.05 and 0.95. For example,
+*maxdelayquant 0.2* would indicate that only measurements with the lowest 20
+percent of round-trip delays should be accepted. Note that it can take many
+measurements for the estimated quantile to reach the expected value. This
+option is intended for synchronisation in mostly static local networks with
+very short polling intervals and possibly combined with the *filter* option.
+By default, this test is disabled in favour of the *maxdelaydevratio* test.
 *mindelay* _delay_:::
 This option specifies a fixed minimum round-trip delay to be used instead of
 the minimum amongst the previous measurements. This can be useful in networks
@@ -2070,8 +2084,8 @@ from the example line above):
 . Stratum of remote computer. [2]
 . RFC 5905 tests 1 through 3 (1=pass, 0=fail) [111]
 . RFC 5905 tests 5 through 7 (1=pass, 0=fail) [111]
-. Tests for maximum delay, maximum delay ratio and maximum delay dev ratio,
-  against defined parameters, and a test for synchronisation loop (1=pass,
+. Results of the *maxdelay*, *maxdelayratio*, and *maxdelaydevratio* (or
+  *maxdelayquant*) tests, and a test for synchronisation loop (1=pass,
   0=fail). The first test from these four also checks the server precision,
   response time, and whether an interleaved response is acceptable for
   synchronisation. [1111]

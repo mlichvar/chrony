@@ -699,7 +699,8 @@ packets sent to the source is more variable than the delay of packets sent
 from the source back.
 *NTP tests*:::
 Results of RFC 5905 tests 1 through 3, 5 through 7, and tests for maximum
-delay, delay ratio, delay dev ratio, and synchronisation loop.
+delay, delay ratio, delay dev ratio (or delay quantile), and synchronisation
+loop.
 *Interleaved*:::
 This shows if the response was in the interleaved mode.
 *Authenticated*:::
