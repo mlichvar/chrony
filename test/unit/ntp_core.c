@@ -385,7 +385,7 @@ add_dummy_auth(NTP_AuthMode auth_mode, uint32_t key_id, NTP_Packet *packet, NTP_
 void
 test_unit(void)
 {
-  char source_line[] = "127.0.0.1 maxdelaydevratio 1e6";
+  char source_line[] = "127.0.0.1 maxdelaydevratio 1e6 noselect";
   char conf[][100] = {
     "allow",
     "port 0",
