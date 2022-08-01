@@ -190,6 +190,7 @@ test_unit(void)
     }
 
     for (j = 0; j < sizeof (srcs) / sizeof (srcs[0]); j++) {
+      SCH_GetLastEventTime(&sample.time, NULL, NULL);
       SRC_ReportSource(j, &report, &sample.time);
       SRC_DestroyInstance(srcs[j]);
     }
