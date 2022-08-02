@@ -703,6 +703,18 @@ was not shut down for too long and the server's certificate was not renewed too
 close to its expiration, it should be sufficient for the time checks to
 succeed.
 
+If you run your own server, you can use a self-signed certificate covering
+all dates where the client can start (e.g. years 1970-2100). The certificate
+needs to be installed on the client and specified with the `ntstrustedcerts`
+directive. The server can have multiple names and certificates. To avoid
+trusting a certificate for too long, a new certificate can be added to the
+server periodically (e.g. once per year) and the client can have the server
+name and trusted certificate updated automatically (e.g. using a package
+repository, or a cron script downloading the files directly from the server
+over HTTPS). A client that was shut down for years will still be able to
+synchronise its clock and perform the update as long as the server keeps
+the old certificate.
+
 As a last resort, you can disable the time checks by the `nocerttimecheck`
 directive. This has some important security implications. To reduce the
 security risk, you can use the `nosystemcert` and `ntstrustedcerts` directives
