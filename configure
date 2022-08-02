@@ -671,12 +671,12 @@ fi
 
 if [ $try_clock_gettime = "1" ]; then
   if test_code 'clock_gettime()' 'time.h' '' '' \
-    'clock_gettime(CLOCK_REALTIME, NULL);'
+    'clock_gettime(CLOCK_REALTIME, (void *)1);'
   then
     add_def HAVE_CLOCK_GETTIME
   else
     if test_code 'clock_gettime() in -lrt' 'time.h' '' '-lrt' \
-      'clock_gettime(CLOCK_REALTIME, NULL);'
+      'clock_gettime(CLOCK_REALTIME, (void *)1);'
     then
       add_def HAVE_CLOCK_GETTIME
       EXTRA_LIBS="$EXTRA_LIBS -lrt"
@@ -702,11 +702,12 @@ then
   use_pthread=1
 fi
 
-if test_code 'arc4random_buf()' 'stdlib.h' '' '' 'arc4random_buf(NULL, 0);'; then
+if test_code 'arc4random_buf()' 'stdlib.h' '' '' \
+    'arc4random_buf((void *)1, 1);'; then
   add_def HAVE_ARC4RANDOM
 else
   if test_code 'getrandom()' 'stdlib.h sys/random.h' '' '' \
-      'return getrandom(NULL, 256, 0);'; then
+      'return getrandom((void *)1, 1, 0);'; then
     add_def HAVE_GETRANDOM
   fi
 fi
@@ -900,7 +901,7 @@ if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ]  && [ $try_nettle = "1" ];
     add_def FEAT_SECHASH
 
     if test_code 'CMAC in nettle' 'nettle/cmac.h' "$test_cflags" "$test_link" \
-      'cmac128_update(NULL, NULL, NULL, 0, NULL);'
+      'cmac128_update((void *)1, (void *)2, (void *)3, 1, (void *)4);'
     then
       add_def HAVE_CMAC
       EXTRA_OBJECTS="$EXTRA_OBJECTS cmac_nettle.o"
@@ -925,7 +926,7 @@ fi
 
 if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ] && [ $try_tomcrypt = "1" ]; then
   if test_code 'tomcrypt' 'tomcrypt.h' '-I/usr/include/tomcrypt' '-ltomcrypt' \
-    'hash_memory_multi(find_hash("md5"), NULL, NULL, NULL, 0, NULL, 0);'
+    'hash_memory_multi(find_hash("md5"), (void *)1, (void *)2, (void *)3, 1, (void *)4, 1);'
   then
     HASH_OBJ="hash_tomcrypt.o"
     HASH_LINK="-ltomcrypt"
@@ -939,7 +940,7 @@ if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ] && [ $try_gnutls = "1" ]; 
   test_link="`pkg_config --libs gnutls`"
   if test_code 'gnutls' 'gnutls/crypto.h' \
     "$test_cflags" "$test_link" '
-      return gnutls_hash(NULL, NULL, 0);'
+      return gnutls_hash((void *)1, (void *)2, 1);'
   then
     HASH_OBJ="hash_gnutls.o"
     HASH_LINK="$test_link"
@@ -947,7 +948,7 @@ if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ] && [ $try_gnutls = "1" ]; 
     add_def FEAT_SECHASH
 
     if test_code 'CMAC in gnutls' 'gnutls/crypto.h' "$test_cflags" "$test_link" \
-      'return gnutls_hmac_init(NULL, GNUTLS_MAC_AES_CMAC_128, NULL, 0);'
+      'return gnutls_hmac_init((void *)1, GNUTLS_MAC_AES_CMAC_128, (void *)2, 0);'
     then
       add_def HAVE_CMAC
       EXTRA_OBJECTS="$EXTRA_OBJECTS cmac_gnutls.o"
@@ -970,13 +971,13 @@ if [ $feat_ntp = "1" ] && [ $feat_nts = "1" ] && [ $try_gnutls = "1" ]; then
   fi
   if test_code 'TLS1.3 in gnutls' 'gnutls/gnutls.h' \
     "$test_cflags" "$test_link $LIBS" '
-      return gnutls_init(NULL, 0) + GNUTLS_TLS1_3 +
-        gnutls_priority_init2(NULL, "", NULL, GNUTLS_PRIORITY_INIT_DEF_APPEND) +
-        gnutls_prf_rfc5705(NULL, 0, "", 0, "", 16, NULL);'
+      return gnutls_init((void *)1, 0) + GNUTLS_TLS1_3 +
+        gnutls_priority_init2((void *)1, "", NULL, GNUTLS_PRIORITY_INIT_DEF_APPEND) +
+        gnutls_prf_rfc5705((void *)1, 0, "", 0, "", 16, (void *)2);'
   then
     if test_code 'SIV in nettle' \
       'nettle/siv-cmac.h' "" "$LIBS" \
-      'siv_cmac_aes128_set_key(NULL, NULL);'
+      'siv_cmac_aes128_set_key((void *)1, (void *)2);'
     then
       EXTRA_OBJECTS="$EXTRA_OBJECTS siv_nettle.o"
       add_def HAVE_SIV
@@ -984,19 +985,19 @@ if [ $feat_ntp = "1" ] && [ $feat_nts = "1" ] && [ $try_gnutls = "1" ]; then
     else
       if test_code 'SIV in gnutls' 'gnutls/crypto.h' \
         "$test_cflags" "$test_link $LIBS" '
-          return gnutls_aead_cipher_init(NULL, GNUTLS_CIPHER_AES_128_SIV, NULL);'
+          return gnutls_aead_cipher_init((void *)1, GNUTLS_CIPHER_AES_128_SIV, (void *)2);'
       then
         EXTRA_OBJECTS="$EXTRA_OBJECTS siv_gnutls.o"
         add_def HAVE_SIV
         if test_code 'gnutls_aead_cipher_set_key()' 'gnutls/crypto.h' \
           "$test_cflags" "$test_link $LIBS" '
-            return gnutls_aead_cipher_set_key(NULL, NULL);'
+            return gnutls_aead_cipher_set_key((void *)1, (void *)2);'
         then
           add_def HAVE_GNUTLS_AEAD_CIPHER_SET_KEY
         fi
       else
         if test_code 'AES128 in nettle' 'nettle/aes.h' '' "$LIBS" \
-          'aes128_set_encrypt_key(NULL, NULL);'
+          'aes128_set_encrypt_key((void *)1, (void *)2);'
         then
           EXTRA_OBJECTS="$EXTRA_OBJECTS siv_nettle.o"
           add_def HAVE_SIV
