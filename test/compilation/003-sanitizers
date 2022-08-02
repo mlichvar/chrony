@@ -2,6 +2,8 @@
 # Run the unit and simulation tests with different compiler sanitizers
 # and under valgrind
 
+valgrind_opts="--leak-check=full --errors-for-leak-kinds=definite"
+
 cd ../..
 
 if [ "$(uname -sm)" != "Linux x86_64" ]; then
@@ -75,7 +77,7 @@ do
         pushd test/unit || exit 1
         make "$@" || exit 1
         if [ "$san_options" = "" ]; then
-          make check TEST_WRAPPER="valgrind --error-exitcode=1" || exit 1
+          make check TEST_WRAPPER="valgrind $valgrind_opts --error-exitcode=1" || exit 1
         else
           make check || exit 1
         fi
@@ -87,7 +89,7 @@ do
         pushd test/simulation || exit 1
         export CLKNETSIM_RANDOM_SEED=101
         if [ "$arch_opts" = "" -a "$san_options" = "" ]; then
-          CLKNETSIM_CLIENT_WRAPPER=valgrind ./run -i 1 || exit 1
+          CLKNETSIM_CLIENT_WRAPPER="valgrind $valgrind_opts" ./run -i 1 || exit 1
         elif [ "$CC" = "gcc" ] && ! echo $CFLAGS | grep -q "-static-libasan"; then
           libasan=$(ldd ../../chronyd | grep -o '/.*lib.*/libasan.so.[0-9]')
           CLKNETSIM_PRELOAD=$libasan ./run -i 1 || exit 1
