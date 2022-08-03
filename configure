@@ -245,6 +245,7 @@ try_lockmem=0
 feat_asyncdns=1
 feat_forcednsretry=1
 try_clock_gettime=1
+try_arc4random=1
 try_recvmmsg=1
 feat_timestamping=1
 try_timestamping=0
@@ -421,6 +422,7 @@ case $OPERATINGSYSTEM in
         try_setsched=1
         try_lockmem=1
         try_phc=1
+        try_arc4random=0
         add_def LINUX
         echo "Configuring for " $SYSTEM
     ;;
@@ -702,8 +704,10 @@ then
   use_pthread=1
 fi
 
-if test_code 'arc4random_buf()' 'stdlib.h' '' '' \
-    'arc4random_buf((void *)1, 1);'; then
+if [ $try_arc4random = "1" ] && \
+  test_code 'arc4random_buf()' 'stdlib.h' '' '' \
+    'arc4random_buf((void *)1, 1);'
+then
   add_def HAVE_ARC4RANDOM
 else
   if test_code 'getrandom()' 'stdlib.h sys/random.h' '' '' \
