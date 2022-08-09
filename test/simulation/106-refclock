@@ -7,6 +7,9 @@ check_config_h 'FEAT_REFCLOCK 1' || test_skip
 check_config_h 'FEAT_PHC 1' || test_skip
 check_config_h 'FEAT_CMDMON 1' || test_skip
 
+export CLKNETSIM_PHC_DELAY=1e-6
+export CLKNETSIM_PHC_JITTER=1e-7
+
 servers=0
 limit=1000
 refclock_jitter=$jitter
@@ -15,7 +18,7 @@ max_sync_time=70
 chronyc_start=70
 chronyc_conf="tracking"
 
-for refclock in "SHM 0" "PHC /dev/ptp0"; do
+for refclock in "SHM 0" "PHC /dev/ptp0" "PHC /dev/ptp0:nocrossts"; do
 	client_conf="refclock $refclock stratum 3 delay 1e-3 refid GPS
 logdir tmp
 log refclocks"
@@ -32,7 +35,11 @@ Root delay      : 0.001000000 seconds
 Update interval : 16\.. seconds
 .*$" || test_fail
 
-	check_file_messages "20.* GPS.*[0-9] N " 997 1001 refclocks.log || test_fail
+	if echo "$refclock" | grep -q 'PHC.*nocrossts'; then
+		check_file_messages "20.* GPS.*[0-9] N " 650 750 refclocks.log || test_fail
+	else
+		check_file_messages "20.* GPS.*[0-9] N " 997 1001 refclocks.log || test_fail
+	fi
 	check_file_messages "20.* GPS.*- N " 61 63 refclocks.log || test_fail
 	rm -f tmp/refclocks.log
 done
