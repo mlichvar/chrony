@@ -345,6 +345,15 @@ server ntp.local minpoll -6 maxpoll -6 filter 15 xleave
 hwtimestamp eth0 minpoll -6
 ----
 
+Since `chrony` version 4.3, the minimum `minpoll` is -7 and a filter using a
+long-term estimate of a delay quantile can be enabled by the `maxdelayquant`
+option to replace the default `maxdelaydevratio` filter, which is sensitive to
+outliers corrupting the minimum delay. For example:
+
+----
+server ntp.local minpoll -7 maxpoll -7 filter 31 maxdelayquant 0.3 xleave
+----
+
 As an experimental feature added in version 4.2, `chronyd` supports an NTPv4
 extension field containing an additional timestamp to enable frequency transfer
 and significantly improve stability of synchronisation. It can be enabled by
