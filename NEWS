@@ -1,3 +1,24 @@
+New in version 4.3
+==================
+
+Enhancements
+------------
+* Add local option to refclock directive to stabilise system clock
+  with more stable free-running clock (e.g. TCXO, OCXO)
+* Add maxdelayquant option to server/pool/peer directive to replace
+  maxdelaydevratio filter with long-term quantile-based filtering
+* Add selection option to log directive
+* Allow external PPS in PHC refclock without configurable pin
+* Don't accept first interleaved response to minimise error in delay
+* Don't use arc4random on Linux to avoid server performance loss
+* Improve filter option to better handle missing NTP samples
+* Improve stability with hardware timestamping and PHC refclock
+* Update seccomp filter
+
+Bug fixes
+---------
+* Fix waitsync command to reconnect when not getting response
+
 New in version 4.2
 ==================
 
