@@ -2346,7 +2346,8 @@ process_cmd_ntpdata(char *line)
                  "RX timestamping : %N\n"
                  "Total TX        : %U\n"
                  "Total RX        : %U\n"
-                 "Total valid RX  : %U\n",
+                 "Total valid RX  : %U\n"
+                 "Total good RX   : %U\n",
                  UTI_IPToString(&remote_addr), (unsigned long)UTI_IPToRefid(&remote_addr),
                  ntohs(reply.data.ntp_data.remote_port),
                  UTI_IPToString(&local_addr), (unsigned long)UTI_IPToRefid(&local_addr),
@@ -2374,6 +2375,7 @@ process_cmd_ntpdata(char *line)
                  (unsigned long)ntohl(reply.data.ntp_data.total_tx_count),
                  (unsigned long)ntohl(reply.data.ntp_data.total_rx_count),
                  (unsigned long)ntohl(reply.data.ntp_data.total_valid_count),
+                 (unsigned long)ntohl(reply.data.ntp_data.total_good_count),
                  REPORT_END);
   }
 

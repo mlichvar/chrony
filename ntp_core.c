@@ -2216,6 +2216,8 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
     inst->report.rx_tss_char = tss_chars[local_receive.source];
 
     inst->report.total_valid_count++;
+    if (good_packet)
+      inst->report.total_good_count++;
   }
 
   /* Do measurement logging */

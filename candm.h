@@ -734,7 +734,8 @@ typedef struct {
   uint32_t total_tx_count;
   uint32_t total_rx_count;
   uint32_t total_valid_count;
-  uint32_t reserved[4];
+  uint32_t total_good_count;
+  uint32_t reserved[3];
   int32_t EOR;
 } RPY_NTPData;
 

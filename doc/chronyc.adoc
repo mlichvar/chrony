@@ -662,6 +662,7 @@ RX timestamping : Kernel
 Total TX        : 24
 Total RX        : 24
 Total valid RX  : 24
+Total good RX   : 22
 ----
 +
 The fields are explained as follows:
@@ -715,7 +716,10 @@ The number of packets sent to the source.
 *Total RX*:::
 The number of all packets received from the source.
 *Total valid RX*:::
-The number of valid packets received from the source.
+The number of packets which passed the first two groups of NTP tests.
+*Total good RX*:::
+The number of packets which passed all three groups of NTP tests, i.e. the NTP
+measurement was accepted.
 
 [[add_peer]]*add peer* _name_ [_option_]...::
 The *add peer* command allows a new NTP peer to be added whilst
