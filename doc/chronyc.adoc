@@ -180,15 +180,19 @@ stratum-2 and is synchronised from a stratum-1).
 This is the time (UTC) at which the last measurement from the reference
 source was processed.
 *System time*:::
-In normal operation, *chronyd* by default never steps the system clock, because
-any jump in the time can have adverse consequences for certain application
-programs. Instead, any error in the system clock is corrected by slightly
-speeding up or slowing down the system clock until the error has been removed,
-and then returning to the system clock's normal speed. A consequence of this is
-that there will be a period when the system clock (as read by other programs)
-will be different from *chronyd*'s estimate of the current true time (which it
-reports to NTP clients when it is operating as a server). The value reported
-on this line is the difference due to this effect.
+This is the current offset between the NTP clock and system clock. The NTP
+clock is a software (virtual) clock maintained by *chronyd*, which is
+synchronised to the configured time sources and provides time to NTP clients.
+The system clock is synchronised to the NTP clock. To avoid steps in the
+system time, which might have adverse consequences for certain applications,
+the system clock is normally corrected only by speeding up or slowing down (up
+to the rate configured by the <<chrony.conf.adoc#maxslewrate,*maxslewrate*>>
+directive). If the offset is too large, this correction will take a very long
+time. A step can be forced by the <<makestep,*makestep*>> command, or the
+<<chrony.conf.adoc#makestep,*makestep*>> directive in the configuration file.
++
+Note that all other offsets reported by *chronyc* and most offsets in the log
+files are relative to the NTP clock, not the system clock.
 *Last offset*:::
 This is the estimated local offset on the last clock update. A positive value
 indicates the local time (as previously estimated true time) was ahead of the
