@@ -63,10 +63,22 @@ source. The client-server relationship is strictly hierarchical: a client might
 synchronise its system time to that of the server, but the server's system time
 will never be influenced by that of a client.
 +
+The server can be specified by its hostname or IP address. If the hostname cannot
+be resolved on start, *chronyd* will try it again in increasing intervals, and
+also when the <<chronyc.adoc#online,*online*>> command is issued in *chronyc*.
++
+The DNS record can change over time. The used address will be replaced with a
+newly resolved address when the server becomes unreachable (i.e. no valid
+response to last 8 requests), unsynchronised, a falseticker (i.e. does not
+agree with a majority of other sources), or the root distance is too large (the
+limit can be configured by the <<maxdistance,*maxdistance*>> directive). The
+automatic replacement happens at most once per 30 minutes. It can also be
+triggered manually for all sources by the <<chronyc.adoc#refresh,*refresh*>>
+command in *chronyc*.
++
 This directive can be used multiple times to specify multiple servers.
 +
-The directive is immediately followed by either the name of the
-server, or its IP address. It supports the following options:
+The directive supports the following options:
 +
 *minpoll* _poll_:::
 This option specifies the minimum interval between requests sent to the server
@@ -340,12 +352,6 @@ This option sets the desired number of sources to be used from the pool.
 *chronyd* will repeatedly try to resolve the name until it gets this number of
 sources responding to requests. The default value is 4 and the maximum value is
 16.
-+
-{blank}::
-When an NTP source is unreachable,
-marked as a falseticker, or has a distance larger than the limit set by the
-<<maxdistance,*maxdistance*>> directive, *chronyd* will try to replace the
-source with a newly resolved address of the name.
 +
 An example of the *pool* directive is
 +
