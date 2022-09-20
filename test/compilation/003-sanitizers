@@ -44,7 +44,7 @@ do
       export CC
 
       for san_options in "" "-fsanitize=address" "-fsanitize=memory"; do
-        export CFLAGS="-O2 -g -fsanitize=undefined -fsanitize=float-divide-by-zero -fno-sanitize-recover=undefined,float-divide-by-zero $san_options $arch_opts"
+        export CFLAGS="-O2 -g -fsanitize=undefined -fsanitize=float-divide-by-zero -fsanitize=float-cast-overflow -fno-sanitize-recover=all $san_options $arch_opts"
 
         # clang msan doesn't work on i686 and otherwise requires patches
         echo $CFLAGS | grep -q 'sanitize=memory' && continue
