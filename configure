@@ -979,15 +979,22 @@ if [ $feat_ntp = "1" ] && [ $feat_nts = "1" ] && [ $try_gnutls = "1" ]; then
         gnutls_priority_init2((void *)1, "", NULL, GNUTLS_PRIORITY_INIT_DEF_APPEND) +
         gnutls_prf_rfc5705((void *)1, 0, "", 0, "", 16, (void *)2);'
   then
-    if test_code 'SIV in nettle' \
+    if test_code 'AES-SIV-CMAC in nettle' \
       'nettle/siv-cmac.h' "" "$LIBS" \
       'siv_cmac_aes128_set_key((void *)1, (void *)2);'
     then
       EXTRA_OBJECTS="$EXTRA_OBJECTS siv_nettle.o"
       add_def HAVE_SIV
       add_def HAVE_NETTLE_SIV_CMAC
+      if test_code 'AES-GCM-SIV in nettle' \
+        'nettle/siv-gcm.h' "" "$LIBS" \
+        'siv_gcm_aes128_encrypt_message((void *)1, 0, NULL, 0, (void *)2, 16, (void *)3,
+                                        (void *)4);'
+      then
+        add_def HAVE_NETTLE_SIV_GCM
+      fi
     else
-      if test_code 'SIV in gnutls' 'gnutls/crypto.h' \
+      if test_code 'AES-SIV-CMAC in gnutls' 'gnutls/crypto.h' \
         "$test_cflags" "$test_link $LIBS" '
           return gnutls_aead_cipher_init((void *)1, GNUTLS_CIPHER_AES_128_SIV, (void *)2);'
       then

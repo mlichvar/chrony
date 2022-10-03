@@ -34,12 +34,25 @@
 #include "siv_nettle_int.c"
 #endif
 
+#ifdef HAVE_NETTLE_SIV_GCM
+#include <nettle/siv-gcm.h>
+#endif
+
 #include "memory.h"
 #include "siv.h"
 
 struct SIV_Instance_Record {
-  struct siv_cmac_aes128_ctx siv;
+  SIV_Algorithm algorithm;
   int key_set;
+  int min_nonce_length;
+  int max_nonce_length;
+  int tag_length;
+  union {
+    struct siv_cmac_aes128_ctx cmac_aes128;
+#ifdef HAVE_NETTLE_SIV_GCM
+    struct aes128_ctx aes128;
+#endif
+  } ctx;
 };
 
 /* ================================================== */
@@ -49,11 +62,29 @@ SIV_CreateInstance(SIV_Algorithm algorithm)
 {
   SIV_Instance instance;
 
-  if (algorithm != AEAD_AES_SIV_CMAC_256)
+  if (SIV_GetKeyLength(algorithm) <= 0)
     return NULL;
 
   instance = MallocNew(struct SIV_Instance_Record);
+  instance->algorithm = algorithm;
   instance->key_set = 0;
+
+  switch (algorithm) {
+    case AEAD_AES_SIV_CMAC_256:
+      instance->min_nonce_length = SIV_MIN_NONCE_SIZE;
+      instance->max_nonce_length = INT_MAX;
+      instance->tag_length = SIV_DIGEST_SIZE;
+      break;
+#ifdef HAVE_NETTLE_SIV_GCM
+    case AEAD_AES_128_GCM_SIV:
+      instance->min_nonce_length = SIV_GCM_NONCE_SIZE;
+      instance->max_nonce_length = SIV_GCM_NONCE_SIZE;
+      instance->tag_length = SIV_GCM_DIGEST_SIZE;
+      break;
+#endif
+    default:
+      assert(0);
+  }
 
   return instance;
 }
@@ -71,11 +102,18 @@ SIV_DestroyInstance(SIV_Instance instance)
 int
 SIV_GetKeyLength(SIV_Algorithm algorithm)
 {
-  assert(32 <= SIV_MAX_KEY_LENGTH);
+  assert(2 * AES128_KEY_SIZE <= SIV_MAX_KEY_LENGTH);
 
-  if (algorithm == AEAD_AES_SIV_CMAC_256)
-    return 32;
-  return 0;
+  switch (algorithm) {
+    case AEAD_AES_SIV_CMAC_256:
+      return 2 * AES128_KEY_SIZE;
+#ifdef HAVE_NETTLE_SIV_GCM
+    case AEAD_AES_128_GCM_SIV:
+      return AES128_KEY_SIZE;
+#endif
+    default:
+      return 0;
+  }
 }
 
 /* ================================================== */
@@ -83,10 +121,21 @@ SIV_GetKeyLength(SIV_Algorithm algorithm)
 int
 SIV_SetKey(SIV_Instance instance, const unsigned char *key, int length)
 {
-  if (length != 32)
+  if (length != SIV_GetKeyLength(instance->algorithm))
     return 0;
 
-  siv_cmac_aes128_set_key(&instance->siv, key);
+  switch (instance->algorithm) {
+    case AEAD_AES_SIV_CMAC_256:
+      siv_cmac_aes128_set_key(&instance->ctx.cmac_aes128, key);
+      break;
+#ifdef HAVE_NETTLE_SIV_GCM
+    case AEAD_AES_128_GCM_SIV:
+      aes128_set_encrypt_key(&instance->ctx.aes128, key);
+      break;
+#endif
+    default:
+      assert(0);
+  }
 
   instance->key_set = 1;
 
@@ -98,9 +147,9 @@ SIV_SetKey(SIV_Instance instance, const unsigned char *key, int length)
 int
 SIV_GetTagLength(SIV_Instance instance)
 {
-  assert(SIV_DIGEST_SIZE <= SIV_MAX_TAG_LENGTH);
-
-  return SIV_DIGEST_SIZE;
+  if (instance->tag_length < 1 || instance->tag_length > SIV_MAX_TAG_LENGTH)
+    assert(0);
+  return instance->tag_length;
 }
 
 /* ================================================== */
@@ -115,16 +164,31 @@ SIV_Encrypt(SIV_Instance instance,
   if (!instance->key_set)
     return 0;
 
-  if (nonce_length < SIV_MIN_NONCE_SIZE || assoc_length < 0 ||
+  if (nonce_length < instance->min_nonce_length ||
+      nonce_length > instance->max_nonce_length || assoc_length < 0 ||
       plaintext_length < 0 || plaintext_length > ciphertext_length ||
-      plaintext_length + SIV_DIGEST_SIZE != ciphertext_length)
+      plaintext_length + SIV_GetTagLength(instance) != ciphertext_length)
     return 0;
 
   assert(assoc && plaintext);
 
-  siv_cmac_aes128_encrypt_message(&instance->siv, nonce_length, nonce,
-                                  assoc_length, assoc,
-                                  ciphertext_length, ciphertext, plaintext);
+  switch (instance->algorithm) {
+    case AEAD_AES_SIV_CMAC_256:
+      siv_cmac_aes128_encrypt_message(&instance->ctx.cmac_aes128,
+                                      nonce_length, nonce, assoc_length, assoc,
+                                      ciphertext_length, ciphertext, plaintext);
+      break;
+#ifdef HAVE_NETTLE_SIV_GCM
+    case AEAD_AES_128_GCM_SIV:
+      siv_gcm_aes128_encrypt_message(&instance->ctx.aes128,
+                                     nonce_length, nonce, assoc_length, assoc,
+                                     ciphertext_length, ciphertext, plaintext);
+      break;
+#endif
+    default:
+      assert(0);
+  }
+
   return 1;
 }
 
@@ -140,17 +204,32 @@ SIV_Decrypt(SIV_Instance instance,
   if (!instance->key_set)
     return 0;
 
-  if (nonce_length < SIV_MIN_NONCE_SIZE || assoc_length < 0 ||
+  if (nonce_length < instance->min_nonce_length ||
+      nonce_length > instance->max_nonce_length || assoc_length < 0 ||
       plaintext_length < 0 || plaintext_length > ciphertext_length ||
-      plaintext_length + SIV_DIGEST_SIZE != ciphertext_length)
+      plaintext_length + SIV_GetTagLength(instance) != ciphertext_length)
     return 0;
 
   assert(assoc && plaintext);
 
-  if (!siv_cmac_aes128_decrypt_message(&instance->siv, nonce_length, nonce,
-                                       assoc_length, assoc,
-                                       plaintext_length, plaintext, ciphertext))
-    return 0;
+  switch (instance->algorithm) {
+    case AEAD_AES_SIV_CMAC_256:
+      if (!siv_cmac_aes128_decrypt_message(&instance->ctx.cmac_aes128,
+                                           nonce_length, nonce, assoc_length, assoc,
+                                           plaintext_length, plaintext, ciphertext))
+        return 0;
+      break;
+#ifdef HAVE_NETTLE_SIV_GCM
+    case AEAD_AES_128_GCM_SIV:
+      if (!siv_gcm_aes128_decrypt_message(&instance->ctx.aes128,
+                                          nonce_length, nonce, assoc_length, assoc,
+                                          plaintext_length, plaintext, ciphertext))
+        return 0;
+      break;
+#endif
+    default:
+      assert(0);
+  }
 
   return 1;
 }
