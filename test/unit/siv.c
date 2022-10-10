@@ -244,6 +244,12 @@ test_unit(void)
     }
 
     TEST_CHECK(SIV_GetKeyLength(tests[i].algorithm) == tests[i].key_length);
+    TEST_CHECK(SIV_GetMinNonceLength(siv) >= 1);
+    TEST_CHECK(SIV_GetMinNonceLength(siv) <= 12);
+    TEST_CHECK(SIV_GetMaxNonceLength(siv) >= 12);
+    TEST_CHECK(SIV_GetMinNonceLength(siv) <= SIV_GetMaxNonceLength(siv));
+    if (fixed_nonce_length)
+      TEST_CHECK(SIV_GetMinNonceLength(siv) == SIV_GetMaxNonceLength(siv));
 
     r = SIV_Encrypt(siv, tests[i].nonce, tests[i].nonce_length,
                     tests[i].assoc, tests[i].assoc_length,

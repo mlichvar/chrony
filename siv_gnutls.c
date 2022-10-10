@@ -196,6 +196,22 @@ SIV_SetKey(SIV_Instance instance, const unsigned char *key, int length)
 /* ================================================== */
 
 int
+SIV_GetMinNonceLength(SIV_Instance instance)
+{
+  return 1;
+}
+
+/* ================================================== */
+
+int
+SIV_GetMaxNonceLength(SIV_Instance instance)
+{
+  return INT_MAX;
+}
+
+/* ================================================== */
+
+int
 SIV_GetTagLength(SIV_Instance instance)
 {
   int len;

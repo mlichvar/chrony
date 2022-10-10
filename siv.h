@@ -53,6 +53,10 @@ extern int SIV_GetKeyLength(SIV_Algorithm algorithm);
 
 extern int SIV_SetKey(SIV_Instance instance, const unsigned char *key, int length);
 
+extern int SIV_GetMinNonceLength(SIV_Instance instance);
+
+extern int SIV_GetMaxNonceLength(SIV_Instance instance);
+
 extern int SIV_GetTagLength(SIV_Instance instance);
 
 extern int SIV_Encrypt(SIV_Instance instance,
