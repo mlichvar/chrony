@@ -127,7 +127,7 @@ int
 NNA_DecryptAuthEF(NTP_Packet *packet, NTP_PacketInfo *info, SIV_Instance siv, int ef_start,
                   unsigned char *plaintext, int buffer_length, int *plaintext_length)
 {
-  unsigned int siv_tag_length, nonce_length, ciphertext_length;
+  int siv_tag_length, nonce_length, ciphertext_length;
   unsigned char *nonce, *ciphertext;
   int ef_type, ef_body_length;
   void *ef_body;
