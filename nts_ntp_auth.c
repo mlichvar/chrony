@@ -61,23 +61,25 @@ get_padded_length(int length)
 
 int
 NNA_GenerateAuthEF(NTP_Packet *packet, NTP_PacketInfo *info, SIV_Instance siv,
-                   const unsigned char *nonce, int nonce_length,
+                   const unsigned char *nonce, int max_nonce_length,
                    const unsigned char *plaintext, int plaintext_length,
                    int min_ef_length)
 {
-  int auth_length, ciphertext_length, assoc_length;
+  int auth_length, ciphertext_length, assoc_length, nonce_length, max_siv_nonce_length;
   int nonce_padding, ciphertext_padding, additional_padding;
   unsigned char *ciphertext, *body;
   struct AuthHeader *header;
 
   assert(sizeof (*header) == 4);
 
-  if (nonce_length <= 0 || plaintext_length < 0) {
+  if (max_nonce_length <= 0 || plaintext_length < 0) {
     DEBUG_LOG("Invalid nonce/plaintext length");
     return 0;
   }
 
   assoc_length = info->length;
+  max_siv_nonce_length = SIV_GetMaxNonceLength(siv);
+  nonce_length = MIN(max_nonce_length, max_siv_nonce_length);
   ciphertext_length = SIV_GetTagLength(siv) + plaintext_length;
   nonce_padding = get_padding_length(nonce_length);
   ciphertext_padding = get_padding_length(ciphertext_length);
@@ -86,8 +88,8 @@ NNA_GenerateAuthEF(NTP_Packet *packet, NTP_PacketInfo *info, SIV_Instance siv,
   auth_length = sizeof (*header) + nonce_length + nonce_padding +
                 ciphertext_length + ciphertext_padding;
   additional_padding = MAX(min_ef_length - auth_length - 4, 0);
-  additional_padding = MAX(NTS_MIN_UNPADDED_NONCE_LENGTH - nonce_length - nonce_padding,
-                           additional_padding);
+  additional_padding = MAX(MIN(NTS_MIN_UNPADDED_NONCE_LENGTH, max_siv_nonce_length) -
+                           nonce_length - nonce_padding, additional_padding);
   auth_length += additional_padding;
 
   if (!NEF_AddBlankField(packet, info, NTP_EF_NTS_AUTH_AND_EEF, auth_length,
@@ -127,7 +129,7 @@ int
 NNA_DecryptAuthEF(NTP_Packet *packet, NTP_PacketInfo *info, SIV_Instance siv, int ef_start,
                   unsigned char *plaintext, int buffer_length, int *plaintext_length)
 {
-  int siv_tag_length, nonce_length, ciphertext_length;
+  int siv_tag_length, max_siv_nonce_length, nonce_length, ciphertext_length;
   unsigned char *nonce, *ciphertext;
   int ef_type, ef_body_length;
   void *ef_body;
@@ -155,6 +157,7 @@ NNA_DecryptAuthEF(NTP_Packet *packet, NTP_PacketInfo *info, SIV_Instance siv, in
   nonce = (unsigned char *)(header + 1);
   ciphertext = nonce + get_padded_length(nonce_length);
 
+  max_siv_nonce_length = SIV_GetMaxNonceLength(siv);
   siv_tag_length = SIV_GetTagLength(siv);
 
   if (nonce_length < 1 ||
@@ -164,8 +167,8 @@ NNA_DecryptAuthEF(NTP_Packet *packet, NTP_PacketInfo *info, SIV_Instance siv, in
     return 0;
   }
 
-  if (ef_body_length < sizeof (*header) +
-        NTS_MIN_UNPADDED_NONCE_LENGTH + get_padded_length(ciphertext_length)) {
+  if (sizeof (*header) + MIN(NTS_MIN_UNPADDED_NONCE_LENGTH, max_siv_nonce_length) +
+      get_padded_length(ciphertext_length) > ef_body_length) {
     DEBUG_LOG("Missing padding");
     return 0;
   }

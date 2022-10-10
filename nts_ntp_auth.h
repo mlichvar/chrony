@@ -32,7 +32,7 @@
 #include "siv.h"
 
 extern int NNA_GenerateAuthEF(NTP_Packet *packet, NTP_PacketInfo *info, SIV_Instance siv,
-                              const unsigned char *nonce, int nonce_length,
+                              const unsigned char *nonce, int max_nonce_length,
                               const unsigned char *plaintext, int plaintext_length,
                               int min_ef_length);
 
