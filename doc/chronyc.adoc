@@ -610,6 +610,7 @@ be reported:
 * 13: AES128
 * 14: AES256
 * 15: AEAD-AES-SIV-CMAC-256
+* 30: AEAD-AES-128-GCM-SIV
 *KLen*:::
 This column shows the length of the key in bits.
 *Last*:::

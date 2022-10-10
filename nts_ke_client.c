@@ -102,16 +102,22 @@ static int
 prepare_request(NKC_Instance inst)
 {
   NKSN_Instance session = inst->session;
-  uint16_t datum;
+  uint16_t data[2];
+  int length;
 
   NKSN_BeginMessage(session);
 
-  datum = htons(NKE_NEXT_PROTOCOL_NTPV4);
-  if (!NKSN_AddRecord(session, 1, NKE_RECORD_NEXT_PROTOCOL, &datum, sizeof (datum)))
+  data[0] = htons(NKE_NEXT_PROTOCOL_NTPV4);
+  if (!NKSN_AddRecord(session, 1, NKE_RECORD_NEXT_PROTOCOL, data, sizeof (data[0])))
     return 0;
 
-  datum = htons(AEAD_AES_SIV_CMAC_256);
-  if (!NKSN_AddRecord(session, 1, NKE_RECORD_AEAD_ALGORITHM, &datum, sizeof (datum)))
+  length = 0;
+  if (SIV_GetKeyLength(AEAD_AES_128_GCM_SIV) > 0)
+    data[length++] = htons(AEAD_AES_128_GCM_SIV);
+  if (SIV_GetKeyLength(AEAD_AES_SIV_CMAC_256) > 0)
+    data[length++] = htons(AEAD_AES_SIV_CMAC_256);
+  if (!NKSN_AddRecord(session, 1, NKE_RECORD_AEAD_ALGORITHM, data,
+                      length * sizeof (data[0])))
     return 0;
 
   if (!NKSN_EndMessage(session))
@@ -159,12 +165,14 @@ process_response(NKC_Instance inst)
         next_protocol = NKE_NEXT_PROTOCOL_NTPV4;
         break;
       case NKE_RECORD_AEAD_ALGORITHM:
-        if (length != 2 || ntohs(data[0]) != AEAD_AES_SIV_CMAC_256) {
+        if (length != 2 || (ntohs(data[0]) != AEAD_AES_SIV_CMAC_256 &&
+                            ntohs(data[0]) != AEAD_AES_128_GCM_SIV) ||
+            SIV_GetKeyLength(ntohs(data[0])) <= 0) {
           DEBUG_LOG("Unexpected NTS-KE AEAD algorithm");
           error = 1;
           break;
         }
-        aead_algorithm = AEAD_AES_SIV_CMAC_256;
+        aead_algorithm = ntohs(data[0]);
         inst->context.algorithm = aead_algorithm;
         break;
       case NKE_RECORD_ERROR:
@@ -236,7 +244,7 @@ process_response(NKC_Instance inst)
 
   if (error || inst->num_cookies == 0 ||
       next_protocol != NKE_NEXT_PROTOCOL_NTPV4 ||
-      aead_algorithm != AEAD_AES_SIV_CMAC_256)
+      aead_algorithm < 0)
     return 0;
 
   return 1;

@@ -50,7 +50,10 @@ get_nts_data(NKC_Instance inst, NKE_Context *context,
   if (random() % 2)
     return 0;
 
-  context->algorithm = AEAD_AES_SIV_CMAC_256;
+  do {
+    context->algorithm = AEAD_AES_SIV_CMAC_256 + random() %
+                         (AEAD_AES_256_GCM_SIV - AEAD_AES_SIV_CMAC_256 + 10);
+  } while (SIV_GetKeyLength(context->algorithm) <= 0);
 
   context->c2s.length = SIV_GetKeyLength(context->algorithm);
   UTI_GetRandomBytes(context->c2s.key, context->c2s.length);
@@ -75,9 +78,9 @@ static int
 get_request(NNC_Instance inst)
 {
   unsigned char nonce[NTS_MIN_UNPADDED_NONCE_LENGTH], uniq_id[NTS_MIN_UNIQ_ID_LENGTH];
+  int nonce_length, expected_length, req_cookies;
   NTP_PacketInfo info;
   NTP_Packet packet;
-  int expected_length, req_cookies;
 
   memset(&packet, 0, sizeof (packet));
   memset(&info, 0, sizeof (info));
@@ -100,6 +103,17 @@ get_request(NNC_Instance inst)
   TEST_CHECK(inst->num_cookies > 0);
   TEST_CHECK(inst->siv);
 
+  switch (inst->context.algorithm) {
+    case AEAD_AES_SIV_CMAC_256:
+      nonce_length = 16;
+      break;
+    case AEAD_AES_128_GCM_SIV:
+      nonce_length = 12;
+      break;
+    default:
+      assert(0);
+  }
+
   memcpy(nonce, inst->nonce, sizeof (nonce));
   memcpy(uniq_id, inst->uniq_id, sizeof (uniq_id));
   TEST_CHECK(NNC_PrepareForAuth(inst));
@@ -111,9 +125,10 @@ get_request(NNC_Instance inst)
                       (inst->cookies[inst->cookie_index].length + 4));
   expected_length = info.length + 4 + sizeof (inst->uniq_id) +
                     req_cookies * (4 + inst->cookies[inst->cookie_index].length) +
-                    4 + 4 + sizeof (inst->nonce) + SIV_GetTagLength(inst->siv);
-  DEBUG_LOG("length=%d cookie_length=%d expected_length=%d",
-            info.length, inst->cookies[inst->cookie_index].length, expected_length);
+                    4 + 4 + nonce_length + SIV_GetTagLength(inst->siv);
+  DEBUG_LOG("algo=%d length=%d cookie_length=%d expected_length=%d",
+            (int)inst->context.algorithm, info.length,
+            inst->cookies[inst->cookie_index].length, expected_length);
 
   if (info.length % 4 == 0 && info.length >= NTP_HEADER_LENGTH &&
       inst->cookies[inst->cookie_index].length % 4 == 0 &&
@@ -162,7 +177,10 @@ prepare_response(NNC_Instance inst, NTP_Packet *packet, NTP_PacketInfo *info, in
     return;
   }
 
-  nonce_length = random() % (sizeof (nonce)) + 1;
+  nonce_length = SIV_GetMinNonceLength(inst->siv) + random() %
+                 (MIN(SIV_GetMaxNonceLength(inst->siv), sizeof (nonce)) -
+                  SIV_GetMinNonceLength(inst->siv) + 1);
+  assert(nonce_length >= 1 && nonce_length <= sizeof (nonce));
 
   do {
     cookie_length = random() % (sizeof (cookie) + 1);

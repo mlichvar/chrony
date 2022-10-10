@@ -64,9 +64,12 @@ prepare_response(NKSN_Instance session, int valid)
 
   if (index != 5) {
     if (index == 6)
-      data[0] = htons(AEAD_AES_SIV_CMAC_256 + random() % 10 + 1);
+      do {
+        data[0] = htons(random() % 100);
+      } while (SIV_GetKeyLength(ntohs(data[0])) > 0);
     else
-      data[0] = htons(AEAD_AES_SIV_CMAC_256);
+      data[0] = htons(random() % 2 && SIV_GetKeyLength(AEAD_AES_128_GCM_SIV) > 0 ?
+                                      AEAD_AES_128_GCM_SIV : AEAD_AES_SIV_CMAC_256);
     if (index == 7)
       length = 3 + random() % 10;
     TEST_CHECK(NKSN_AddRecord(session, 1, NKE_RECORD_AEAD_ALGORITHM, data, length));
