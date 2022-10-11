@@ -37,10 +37,13 @@ prepare_request(NTP_Packet *packet, NTP_PacketInfo *info, int valid, int nak)
   NKE_Cookie cookie;
   int i, index, cookie_start, auth_start;
 
-  context.algorithm = SERVER_SIV;
+  context.algorithm = random() % 2 && SIV_GetKeyLength(AEAD_AES_128_GCM_SIV) > 0 ?
+                      AEAD_AES_128_GCM_SIV : AEAD_AES_SIV_CMAC_256;
   context.c2s.length = SIV_GetKeyLength(context.algorithm);
+  assert(context.c2s.length <= sizeof (context.c2s.key));
   UTI_GetRandomBytes(&context.c2s.key, context.c2s.length);
   context.s2c.length = SIV_GetKeyLength(context.algorithm);
+  assert(context.s2c.length <= sizeof (context.s2c.key));
   UTI_GetRandomBytes(&context.s2c.key, context.s2c.length);
 
   TEST_CHECK(NKS_GenerateCookie(&context, &cookie));
@@ -80,6 +83,7 @@ prepare_request(NTP_Packet *packet, NTP_PacketInfo *info, int valid, int nak)
 
   if (index != 2) {
     siv = SIV_CreateInstance(context.algorithm);
+    TEST_CHECK(siv);
     TEST_CHECK(SIV_SetKey(siv, context.c2s.key, context.c2s.length));
     TEST_CHECK(NNA_GenerateAuthEF(packet, info, siv, nonce, sizeof (nonce),
                                   (const unsigned char *)"", 0, 0));

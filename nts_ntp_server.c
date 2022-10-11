@@ -41,13 +41,15 @@
 #include "siv.h"
 #include "util.h"
 
-#define SERVER_SIV AEAD_AES_SIV_CMAC_256
+#define MAX_SERVER_SIVS 2
 
 struct NtsServer {
-  SIV_Instance siv;
+  SIV_Instance sivs[MAX_SERVER_SIVS];
+  SIV_Algorithm siv_algorithms[MAX_SERVER_SIVS];
   unsigned char nonce[NTS_MIN_UNPADDED_NONCE_LENGTH];
   NKE_Cookie cookies[NTS_MAX_COOKIES];
   int num_cookies;
+  int siv_index;
   NTP_int64 req_tx;
 };
 
@@ -60,6 +62,7 @@ void
 NNS_Initialise(void)
 {
   const char **certs, **keys;
+  int i;
 
   /* Create an NTS-NTP server instance only if NTS-KE server is enabled */
   if (CNF_GetNtsServerCertAndKeyFiles(&certs, &keys) <= 0) {
@@ -68,9 +71,17 @@ NNS_Initialise(void)
   }
 
   server = Malloc(sizeof (struct NtsServer));
-  server->siv = SIV_CreateInstance(SERVER_SIV);
-  if (!server->siv)
-    LOG_FATAL("Could not initialise SIV cipher");
+
+  server->siv_algorithms[0] = AEAD_AES_SIV_CMAC_256;
+  server->siv_algorithms[1] = AEAD_AES_128_GCM_SIV;
+  assert(MAX_SERVER_SIVS == 2);
+
+  for (i = 0; i < 2; i++)
+    server->sivs[i] = SIV_CreateInstance(server->siv_algorithms[i]);
+
+  /* AES-SIV-CMAC-256 is required on servers */
+  if (!server->sivs[0])
+    LOG_FATAL("Missing AES-SIV-CMAC-256");
 }
 
 /* ================================================== */
@@ -78,10 +89,15 @@ NNS_Initialise(void)
 void
 NNS_Finalise(void)
 {
+  int i;
+
   if (!server)
     return;
 
-  SIV_DestroyInstance(server->siv);
+  for (i = 0; i < MAX_SERVER_SIVS; i++) {
+    if (server->sivs[i])
+      SIV_DestroyInstance(server->sivs[i]);
+  }
   Free(server);
   server = NULL;
 }
@@ -96,6 +112,7 @@ NNS_CheckRequestAuth(NTP_Packet *packet, NTP_PacketInfo *info, uint32_t *kod)
   unsigned char plaintext[NTP_MAX_EXTENSIONS_LENGTH];
   NKE_Context context;
   NKE_Cookie cookie;
+  SIV_Instance siv;
   void *ef_body;
 
   *kod = 0;
@@ -104,6 +121,7 @@ NNS_CheckRequestAuth(NTP_Packet *packet, NTP_PacketInfo *info, uint32_t *kod)
     return 0;
 
   server->num_cookies = 0;
+  server->siv_index = -1;
   server->req_tx = packet->transmit_ts;
 
   if (info->ext_fields == 0 || info->mode != MODE_CLIENT)
@@ -163,17 +181,22 @@ NNS_CheckRequestAuth(NTP_Packet *packet, NTP_PacketInfo *info, uint32_t *kod)
     return 0;
   }
 
-  if (context.algorithm != SERVER_SIV) {
+  /* Find the SIV instance needed for authentication */
+  for (i = 0; i < MAX_SERVER_SIVS && context.algorithm != server->siv_algorithms[i]; i++)
+    ;
+  if (i == MAX_SERVER_SIVS || !server->sivs[i]) {
     DEBUG_LOG("Unexpected SIV");
     return 0;
   }
+  server->siv_index = i;
+  siv = server->sivs[i];
 
-  if (!SIV_SetKey(server->siv, context.c2s.key, context.c2s.length)) {
+  if (!SIV_SetKey(siv, context.c2s.key, context.c2s.length)) {
     DEBUG_LOG("Could not set C2S key");
     return 0;
   }
 
-  if (!NNA_DecryptAuthEF(packet, info, server->siv, auth_start,
+  if (!NNA_DecryptAuthEF(packet, info, siv, auth_start,
                          plaintext, sizeof (plaintext), &plaintext_length)) {
     *kod = NTP_KOD_NTS_NAK;
     return 0;
@@ -199,7 +222,7 @@ NNS_CheckRequestAuth(NTP_Packet *packet, NTP_PacketInfo *info, uint32_t *kod)
     }
   }
 
-  if (!SIV_SetKey(server->siv, context.s2c.key, context.s2c.length)) {
+  if (!SIV_SetKey(siv, context.s2c.key, context.s2c.length)) {
     DEBUG_LOG("Could not set S2C key");
     return 0;
   }
@@ -271,9 +294,12 @@ NNS_GenerateResponseAuth(NTP_Packet *request, NTP_PacketInfo *req_info,
 
   server->num_cookies = 0;
 
+  if (server->siv_index < 0)
+    return 0;
+
   /* Generate an authenticator field which will make the length
      of the response equal to the length of the request */
-  if (!NNA_GenerateAuthEF(response, res_info, server->siv,
+  if (!NNA_GenerateAuthEF(response, res_info, server->sivs[server->siv_index],
                           server->nonce, sizeof (server->nonce),
                           plaintext, plaintext_length,
                           req_info->length - res_info->length))

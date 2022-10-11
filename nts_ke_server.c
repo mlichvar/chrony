@@ -427,8 +427,9 @@ process_request(NKSN_Instance session)
 
         for (i = 0; i < MIN(length, sizeof (data)) / 2; i++) {
           aead_algorithm_values++;
-          if (ntohs(data[i]) == AEAD_AES_SIV_CMAC_256)
-            aead_algorithm = AEAD_AES_SIV_CMAC_256;
+          /* Use the first supported algorithm */
+          if (aead_algorithm < 0 && SIV_GetKeyLength(ntohs(data[i])) > 0)
+            aead_algorithm = ntohs(data[i]);;
         }
         break;
       case NKE_RECORD_ERROR:
@@ -862,11 +863,9 @@ NKS_GenerateCookie(NKE_Context *context, NKE_Cookie *cookie)
     return 0;
   }
 
-  /* The algorithm is hardcoded for now */
-  if (context->algorithm != AEAD_AES_SIV_CMAC_256) {
-    DEBUG_LOG("Unexpected SIV algorithm");
-    return 0;
-  }
+  /* The AEAD ID is not encoded in the cookie.  It is implied from the key
+     length (as long as only algorithms with different key lengths are
+     supported). */
 
   if (context->c2s.length < 0 || context->c2s.length > NKE_MAX_KEY_LENGTH ||
       context->s2c.length != context->c2s.length) {
@@ -954,7 +953,19 @@ NKS_DecodeCookie(NKE_Cookie *cookie, NKE_Context *context)
     return 0;
   }
 
-  context->algorithm = AEAD_AES_SIV_CMAC_256;
+  /* Select a supported algorithm corresponding to the key length, avoiding
+     potentially slow SIV_GetKeyLength() */
+  switch (plaintext_length / 2) {
+    case 16:
+      context->algorithm = AEAD_AES_128_GCM_SIV;
+      break;
+    case 32:
+      context->algorithm = AEAD_AES_SIV_CMAC_256;
+      break;
+    default:
+      DEBUG_LOG("Unknown key length");
+      return 0;
+  }
 
   context->c2s.length = plaintext_length / 2;
   context->s2c.length = plaintext_length / 2;
