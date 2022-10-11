@@ -869,7 +869,7 @@ NKS_GenerateCookie(NKE_Context *context, NKE_Cookie *cookie)
   }
 
   if (context->c2s.length < 0 || context->c2s.length > NKE_MAX_KEY_LENGTH ||
-      context->s2c.length < 0 || context->s2c.length > NKE_MAX_KEY_LENGTH) {
+      context->s2c.length != context->c2s.length) {
     DEBUG_LOG("Invalid key length");
     return 0;
   }
