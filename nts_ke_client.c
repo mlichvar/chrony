@@ -370,6 +370,13 @@ NKC_Start(NKC_Instance inst)
     return 0;
   }
 
+  /* Don't try to connect if missing the algorithm which all servers
+     are required to support */
+  if (SIV_GetKeyLength(AEAD_AES_SIV_CMAC_256) <= 0) {
+    LOG(LOGS_ERR, "Missing AES-SIV-CMAC-256");
+    return 0;
+  }
+
   /* Follow the bindacqaddress and bindacqdevice settings */
   CNF_GetBindAcquisitionAddress(inst->address.ip_addr.family, &local_addr.ip_addr);
   local_addr.port = 0;
