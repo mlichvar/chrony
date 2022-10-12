@@ -154,6 +154,7 @@ handle_helper_request(int fd, int event, void *arg)
   SCK_Message *message;
   HelperRequest *req;
   IPSockAddr client_addr;
+  ServerKey *key;
   int sock_fd;
 
   /* Receive the helper request with the NTS-KE session socket.
@@ -181,15 +182,14 @@ handle_helper_request(int fd, int event, void *arg)
   req = message->data;
 
   /* Extract the current server key and client address from the request */
-  server_keys[current_server_key].id = ntohl(req->key_id);
-  assert(sizeof (server_keys[current_server_key].key) == sizeof (req->key));
-  memcpy(server_keys[current_server_key].key, req->key,
-         sizeof (server_keys[current_server_key].key));
+  key = &server_keys[current_server_key];
+  key->id = ntohl(req->key_id);
+  assert(sizeof (key->key) == sizeof (req->key));
+  memcpy(key->key, req->key, sizeof (key->key));
   UTI_IPNetworkToHost(&req->client_addr, &client_addr.ip_addr);
   client_addr.port = ntohs(req->client_port);
 
-  if (!SIV_SetKey(server_keys[current_server_key].siv, server_keys[current_server_key].key,
-                  SIV_GetKeyLength(SERVER_COOKIE_SIV)))
+  if (!SIV_SetKey(key->siv, key->key, SIV_GetKeyLength(SERVER_COOKIE_SIV)))
     LOG_FATAL("Could not set SIV key");
 
   if (!handle_client(sock_fd, &client_addr)) {
@@ -471,28 +471,29 @@ handle_message(void *arg)
 static void
 generate_key(int index)
 {
+  ServerKey *key;
   int key_length;
 
   if (index < 0 || index >= MAX_SERVER_KEYS)
     assert(0);
 
+  key = &server_keys[index];
   key_length = SIV_GetKeyLength(SERVER_COOKIE_SIV);
-  if (key_length > sizeof (server_keys[index].key))
+  if (key_length > sizeof (key->key))
     assert(0);
 
-  UTI_GetRandomBytesUrandom(server_keys[index].key, key_length);
+  UTI_GetRandomBytesUrandom(key->key, key_length);
 
-  if (!server_keys[index].siv ||
-      !SIV_SetKey(server_keys[index].siv, server_keys[index].key, key_length))
+  if (!key->siv || !SIV_SetKey(key->siv, key->key, key_length))
     LOG_FATAL("Could not set SIV key");
 
-  UTI_GetRandomBytes(&server_keys[index].id, sizeof (server_keys[index].id));
+  UTI_GetRandomBytes(&key->id, sizeof (key->id));
 
   /* Encode the index in the lowest bits of the ID */
-  server_keys[index].id &= -1U << KEY_ID_INDEX_BITS;
-  server_keys[index].id |= index;
+  key->id &= -1U << KEY_ID_INDEX_BITS;
+  key->id |= index;
 
-  DEBUG_LOG("Generated server key %"PRIX32, server_keys[index].id);
+  DEBUG_LOG("Generated server key %"PRIX32, key->id);
 
   last_server_key_ts = SCH_GetLastEventMonoTime();
 }
