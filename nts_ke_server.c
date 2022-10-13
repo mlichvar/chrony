@@ -54,7 +54,8 @@
 #define FUTURE_KEYS 1
 
 #define DUMP_FILENAME "ntskeys"
-#define DUMP_IDENTIFIER "NKS0\n"
+#define DUMP_IDENTIFIER "NKS1\n"
+#define OLD_DUMP_IDENTIFIER "NKS0\n"
 
 #define INVALID_SOCK_FD (-7)
 
@@ -519,7 +520,7 @@ generate_key(int index)
 
   update_key_siv(key, algorithm);
 
-  DEBUG_LOG("Generated key %"PRIX32" (%d)", key->id, (int)key->siv_algorithm);
+  DEBUG_LOG("Generated key %08"PRIX32" (%d)", key->id, (int)key->siv_algorithm);
 
   last_server_key_ts = SCH_GetLastEventMonoTime();
 }
@@ -547,20 +548,19 @@ save_keys(void)
   if (!f)
     return;
 
-  key_length = SIV_GetKeyLength(server_keys[0].siv_algorithm);
   last_key_age = SCH_GetLastEventMonoTime() - last_server_key_ts;
 
-  if (fprintf(f, "%s%d %.1f\n", DUMP_IDENTIFIER, (int)server_keys[0].siv_algorithm,
-              last_key_age) < 0)
+  if (fprintf(f, "%s%.1f\n", DUMP_IDENTIFIER, last_key_age) < 0)
     goto error;
 
   for (i = 0; i < MAX_SERVER_KEYS; i++) {
     index = (current_server_key + i + 1 + FUTURE_KEYS) % MAX_SERVER_KEYS;
+    key_length = SIV_GetKeyLength(server_keys[index].siv_algorithm);
 
     if (key_length > sizeof (server_keys[index].key) ||
-        server_keys[index].siv_algorithm != server_keys[0].siv_algorithm ||
         !UTI_BytesToHex(server_keys[index].key, key_length, buf, sizeof (buf)) ||
-        fprintf(f, "%08"PRIX32" %s\n", server_keys[index].id, buf) < 0)
+        fprintf(f, "%08"PRIX32" %s %d\n", server_keys[index].id, buf,
+                (int)server_keys[index].siv_algorithm) < 0)
       goto error;
   }
 
@@ -575,7 +575,7 @@ save_keys(void)
   return;
 
 error:
-  DEBUG_LOG("Could not %s server keys", "save");
+  LOG(LOGS_ERR, "Could not %s server NTS keys", "save");
   fclose(f);
 
   if (!UTI_RemoveFile(dump_dir, DUMP_FILENAME, NULL))
@@ -584,17 +584,16 @@ error:
 
 /* ================================================== */
 
-#define MAX_WORDS 2
+#define MAX_WORDS 3
 
 static int
 load_keys(void)
 {
+  int i, index, key_length, algorithm = 0, old_ver;
   char *dump_dir, line[1024], *words[MAX_WORDS];
-  unsigned char key[SIV_MAX_KEY_LENGTH];
-  int i, index, key_length, algorithm;
+  ServerKey new_keys[MAX_SERVER_KEYS];
   double key_age;
   FILE *f;
-  uint32_t id;
 
   dump_dir = CNF_GetNtsDumpDir();
   if (!dump_dir)
@@ -604,42 +603,56 @@ load_keys(void)
   if (!f)
     return 0;
 
-  if (!fgets(line, sizeof (line), f) || strcmp(line, DUMP_IDENTIFIER) != 0 ||
-      !fgets(line, sizeof (line), f) || UTI_SplitString(line, words, MAX_WORDS) != 2 ||
-        sscanf(words[0], "%d", &algorithm) != 1 || SIV_GetKeyLength(algorithm) <= 0 ||
-        sscanf(words[1], "%lf", &key_age) != 1)
+  if (!fgets(line, sizeof (line), f) ||
+      (strcmp(line, DUMP_IDENTIFIER) != 0 && strcmp(line, OLD_DUMP_IDENTIFIER) != 0))
     goto error;
 
-  key_length = SIV_GetKeyLength(algorithm);
-  last_server_key_ts = SCH_GetLastEventMonoTime() - MAX(key_age, 0.0);
+  old_ver = strcmp(line, DUMP_IDENTIFIER) != 0;
+
+  if (!fgets(line, sizeof (line), f) ||
+      UTI_SplitString(line, words, MAX_WORDS) != (old_ver ? 2 : 1) ||
+      (old_ver && sscanf(words[0], "%d", &algorithm) != 1) ||
+      sscanf(words[old_ver ? 1 : 0], "%lf", &key_age) != 1)
+    goto error;
 
   for (i = 0; i < MAX_SERVER_KEYS && fgets(line, sizeof (line), f); i++) {
-    if (UTI_SplitString(line, words, MAX_WORDS) != 2 ||
-        sscanf(words[0], "%"PRIX32, &id) != 1)
+    if (UTI_SplitString(line, words, MAX_WORDS) != (old_ver ? 2 : 3) ||
+        sscanf(words[0], "%"PRIX32, &new_keys[i].id) != 1 ||
+        (!old_ver && sscanf(words[2], "%d", &algorithm) != 1))
       goto error;
 
-    if (UTI_HexToBytes(words[1], key, sizeof (key)) != key_length)
+    new_keys[i].siv_algorithm = algorithm;
+    key_length = SIV_GetKeyLength(algorithm);
+
+    if ((i > 0 && (new_keys[i].id - new_keys[i - 1].id) % MAX_SERVER_KEYS != 1) ||
+        key_length <= 0 ||
+        UTI_HexToBytes(words[1], new_keys[i].key, sizeof (new_keys[i].key)) != key_length)
       goto error;
-
-    index = id % MAX_SERVER_KEYS;
-
-    server_keys[index].id = id;
-    assert(sizeof (server_keys[index].key) == sizeof (key));
-    memcpy(server_keys[index].key, key, key_length);
-
-    update_key_siv(&server_keys[index], algorithm);
-
-    DEBUG_LOG("Loaded key %"PRIX32" (%d)", id, (int)algorithm);
-
-    current_server_key = (index + MAX_SERVER_KEYS - FUTURE_KEYS) % MAX_SERVER_KEYS;
   }
+
+  if (i < MAX_SERVER_KEYS)
+    goto error;
+
+  for (i = 0; i < MAX_SERVER_KEYS; i++) {
+    index = new_keys[i].id % MAX_SERVER_KEYS;
+    server_keys[index].id = new_keys[i].id;
+    memcpy(server_keys[index].key, new_keys[i].key, sizeof (server_keys[index].key));
+
+    update_key_siv(&server_keys[index], new_keys[i].siv_algorithm);
+
+    DEBUG_LOG("Loaded key %08"PRIX32" (%d)",
+              server_keys[index].id, (int)server_keys[index].siv_algorithm);
+  }
+
+  current_server_key = (index + MAX_SERVER_KEYS - FUTURE_KEYS) % MAX_SERVER_KEYS;
+  last_server_key_ts = SCH_GetLastEventMonoTime() - MAX(key_age, 0.0);
 
   fclose(f);
 
   return 1;
 
 error:
-  DEBUG_LOG("Could not %s server keys", "load");
+  LOG(LOGS_ERR, "Could not %s server NTS keys", "load");
   fclose(f);
 
   return 0;
