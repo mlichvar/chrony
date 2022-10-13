@@ -232,7 +232,7 @@ authenticated servers should be configured as trusted and required to not allow
 the unauthenticated servers to override the authenticated servers in the source
 selection. Since `chrony` version 4.0, the selection options are enabled in
 such a case automatically. This behaviour can be disabled or modified by the
-`authselmode` directive.
+`authselectmode` directive.
 
 An example of a client configuration limiting the impact of the attacks could
 be

@@ -500,8 +500,8 @@ This column displays the configured selection options of the source.
 This column displays the current effective selection options of the source,
 which can be different from the configured options due to the authentication
 selection mode (configured by the
-<<chrony.conf.adoc#authselmode,*authselmode*>> directive). The symbols are the
-same as in the *COpts* column.
+<<chrony.conf.adoc#authselectmode,*authselectmode*>> directive). The symbols
+are the same as in the *COpts* column.
 *Last*:::
 This column displays how long ago was the last measurement of the source made
 when the selection was performed.
