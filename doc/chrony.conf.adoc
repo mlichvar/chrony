@@ -1735,7 +1735,10 @@ save the keys to the _ntskeys_ file and will reload the keys from the file when
 the <<chronyc.adoc#rekey,*rekey*>> command is issued in *chronyc*. The file can
 be periodically copied from another server running *chronyd* (which does
 not have *ntsrotate* set to 0) in order to have one or more servers dedicated
-to NTS-KE. The NTS-KE servers need to be configured with the
+to NTS-KE. The file includes the subsequent key to which the NTS-KE server will
+switch on the next rotation, i.e. the process copying and reloading the file
+does not need to be timed precisely (it can be delayed by up to one rotation
+interval). The NTS-KE servers need to be configured with the
 <<ntsntpserver,*ntsntpserver*>> directive to point the clients to the right NTP
 server.
 +
