@@ -87,11 +87,13 @@ test_unit(void)
         r = NNA_GenerateAuthEF(&packet, &info, siv, nonce, SIV_GetMinNonceLength(siv) - 1,
                                plaintext, plaintext_length, 0);
         TEST_CHECK(!r);
+        TEST_CHECK(info.ext_fields == 0);
       }
       if (SIV_GetMaxNonceLength(siv) <= sizeof (nonce)) {
         r = NNA_GenerateAuthEF(&packet, &info, siv, nonce, SIV_GetMaxNonceLength(siv) - 1,
                                plaintext, plaintext_length, 0);
         TEST_CHECK(!r);
+        TEST_CHECK(info.ext_fields == 0);
       }
       r = NNA_GenerateAuthEF(&packet, &info, siv, nonce, nonce_length, plaintext,
                              plaintext_length, sizeof (packet) - info.length + 1);
