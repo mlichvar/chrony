@@ -821,6 +821,11 @@ NKS_Initialise(void)
       key_delay = key_rotation_interval - (SCH_GetLastEventMonoTime() - last_server_key_ts);
       SCH_AddTimeoutByDelay(MAX(key_delay, 0.0), key_timeout, NULL);
     }
+
+    /* Warn if keys are not saved, which can cause a flood of requests
+       after server restart */
+    if (!CNF_GetNtsDumpDir())
+      LOG(LOGS_WARN, "No ntsdumpdir to save server keys");
   }
 
   initialised = 1;
