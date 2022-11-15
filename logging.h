@@ -100,6 +100,20 @@ extern void LOG_SetMinSeverity(LOG_Severity severity);
 /* Get the minimum severity */
 extern LOG_Severity LOG_GetMinSeverity(void);
 
+/* Flags for info messages that should be logged only in specific contexts */
+typedef enum {
+  LOGC_Command = 1,
+  LOGC_SourceFile = 2,
+} LOG_Context;
+
+/* Modify current contexts */
+extern void LOG_SetContext(LOG_Context context);
+extern void LOG_UnsetContext(LOG_Context context);
+
+/* Get severity depending on the current active contexts: INFO if they contain
+   at least one of the specified contexts, DEBUG otherwise */
+extern LOG_Severity LOG_GetContextSeverity(LOG_Context contexts);
+
 /* Set a prefix for debug messages */
 extern void LOG_SetDebugPrefix(const char *prefix);
 

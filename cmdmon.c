@@ -1515,6 +1515,8 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
     }
 
     if (allowed) {
+      LOG_SetContext(LOGC_Command);
+
       switch(rx_command) {
         case REQ_NULL:
           /* Do nothing */
@@ -1762,6 +1764,8 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
           tx_message.status = htons(STT_FAILED);
           break;
       }
+
+      LOG_UnsetContext(LOGC_Command);
     } else {
       tx_message.status = htons(STT_UNAUTH);
     }

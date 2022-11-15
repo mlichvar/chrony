@@ -1704,6 +1704,8 @@ reload_source_dirs(void)
   new_ids = ARR_GetElements(ntp_source_ids);
   unresolved = 0;
 
+  LOG_SetContext(LOGC_SourceFile);
+
   qsort(new_sources, new_size, sizeof (new_sources[0]), compare_sources);
 
   for (i = j = 0; i < prev_size || j < new_size; ) {
@@ -1738,6 +1740,8 @@ reload_source_dirs(void)
       i++, j++;
     }
   }
+
+  LOG_UnsetContext(LOGC_SourceFile);
 
   for (i = 0; i < prev_size; i++)
     Free(prev_sources[i].params.name);

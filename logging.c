@@ -39,6 +39,9 @@
 /* This is used by DEBUG_LOG macro */
 LOG_Severity log_min_severity = LOGS_INFO;
 
+/* Current logging contexts */
+static LOG_Context log_contexts;
+
 /* ================================================== */
 /* Flag indicating we have initialised */
 static int initialised = 0;
@@ -72,6 +75,8 @@ void
 LOG_Initialise(void)
 {
   debug_prefix = Strdup("");
+  log_contexts = 0;
+
   initialised = 1;
   LOG_OpenFileLog(NULL);
 }
@@ -233,6 +238,30 @@ LOG_Severity
 LOG_GetMinSeverity(void)
 {
   return log_min_severity;
+}
+
+/* ================================================== */
+
+void
+LOG_SetContext(LOG_Context context)
+{
+  log_contexts |= context;
+}
+
+/* ================================================== */
+
+void
+LOG_UnsetContext(LOG_Context context)
+{
+  log_contexts &= ~context;
+}
+
+/* ================================================== */
+
+LOG_Severity
+LOG_GetContextSeverity(LOG_Context contexts)
+{
+  return log_contexts & contexts ? LOGS_INFO : LOGS_DEBUG;
 }
 
 /* ================================================== */
