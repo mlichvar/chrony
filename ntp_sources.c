@@ -317,6 +317,31 @@ rehash_records(void)
 
 /* ================================================== */
 
+static void
+log_source(SourceRecord *record, int addition, int once_per_pool)
+{
+  int pool, log_addr;
+  char *ip_str;
+
+  if (once_per_pool && record->pool_id != INVALID_POOL) {
+    if (get_pool(record->pool_id)->sources > 1)
+      return;
+    pool = 1;
+    log_addr = 0;
+  } else {
+    ip_str = UTI_IPToString(&record->remote_addr->ip_addr);
+    pool = 0;
+    log_addr = strcmp(record->name, ip_str) != 0;
+  }
+
+  LOG(LOG_GetContextSeverity(LOGC_Command | LOGC_SourceFile), "%s %s %s%s%s%s",
+      addition ? "Added" : "Removed", pool ? "pool" : "source",
+      log_addr ? ip_str : record->name,
+      log_addr ? " (" : "", log_addr ? record->name : "", log_addr ? ")" : "");
+}
+
+/* ================================================== */
+
 /* Procedure to add a new source */
 static NSR_Status
 add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type,
@@ -370,6 +395,8 @@ add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type,
 
       if (auto_start_sources && UTI_IsIPReal(&remote_addr->ip_addr))
         NCR_StartInstance(record->data);
+
+      log_source(record, 1, 1);
 
       /* The new instance is allowed to change its address immediately */
       handle_saved_address_update();
@@ -884,6 +911,7 @@ NSR_RemoveSource(IPAddr *address)
   if (find_slot(address, &slot) == 0)
     return NSR_NoSuchSource;
 
+  log_source(get_record(slot), 0, 0);
   clean_source_record(get_record(slot));
 
   /* Rehash the table to make sure there are no broken probe sequences.
@@ -906,6 +934,7 @@ NSR_RemoveSourcesById(uint32_t conf_id)
     record = get_record(i);
     if (!record->remote_addr || record->conf_id != conf_id)
       continue;
+    log_source(record, 0, 1);
     clean_source_record(record);
   }
 
