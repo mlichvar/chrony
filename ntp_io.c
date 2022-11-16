@@ -126,8 +126,14 @@ open_socket(int family, int local_port, int client_only, IPSockAddr *remote_addr
   dscp = CNF_GetNtpDscp();
   if (dscp > 0 && dscp < 64) {
 #ifdef IP_TOS
-    if (!SCK_SetIntOption(sock_fd, IPPROTO_IP, IP_TOS, dscp << 2))
-      ;
+    if (family == IPADDR_INET4)
+      if (!SCK_SetIntOption(sock_fd, IPPROTO_IP, IP_TOS, dscp << 2))
+        ;
+#endif
+#if defined(FEAT_IPV6) && defined(IPV6_TCLASS)
+    if (family == IPADDR_INET6)
+      if (!SCK_SetIntOption(sock_fd, IPPROTO_IPV6, IPV6_TCLASS, dscp << 2))
+        ;
 #endif
   }
 
