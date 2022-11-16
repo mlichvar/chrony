@@ -1799,6 +1799,9 @@ CAM_AddAccessRestriction(IPAddr *ip_addr, int subnet_bits, int allow, int all)
   if (status == ADF_BADSUBNET) {
     return 0;
   } else if (status == ADF_SUCCESS) {
+    LOG(LOG_GetContextSeverity(LOGC_Command), "%s%s %s access from %s",
+        allow ? "Allowed" : "Denied", all ? " all" : "", "command",
+        UTI_IPSubnetToString(ip_addr, subnet_bits));
     return 1;
   } else {
     return 0;

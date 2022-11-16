@@ -2856,6 +2856,10 @@ NCR_AddAccessRestriction(IPAddr *ip_addr, int subnet_bits, int allow, int all)
   if (status != ADF_SUCCESS)
     return 0;
 
+  LOG(LOG_GetContextSeverity(LOGC_Command), "%s%s %s access from %s",
+      allow ? "Allowed" : "Denied", all ? " all" : "", "NTP",
+      UTI_IPSubnetToString(ip_addr, subnet_bits));
+
   /* Keep server sockets open only when an address allowed */
   if (allow) {
     NTP_Remote_Address remote_addr;
