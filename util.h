@@ -120,6 +120,8 @@ extern int UTI_CompareIPs(const IPAddr *a, const IPAddr *b, const IPAddr *mask);
 
 extern char *UTI_IPSockAddrToString(const IPSockAddr *sa);
 
+extern char *UTI_IPSubnetToString(IPAddr *subnet, int bits);
+
 extern char *UTI_TimeToLogForm(time_t t);
 
 /* Adjust time following a frequency/offset change */

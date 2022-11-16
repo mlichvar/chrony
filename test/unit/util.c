@@ -470,6 +470,15 @@ test_unit(void)
   s = UTI_IPSockAddrToString(&ip_saddr);
   TEST_CHECK(strcmp(s, "1.2.3.4:12345") == 0);
 
+  ip = ip_saddr.ip_addr;
+  s = UTI_IPSubnetToString(&ip, 10);
+  TEST_CHECK(strcmp(s, "1.2.3.4/10") == 0);
+  s = UTI_IPSubnetToString(&ip, 32);
+  TEST_CHECK(strcmp(s, "1.2.3.4") == 0);
+  ip.family = IPADDR_UNSPEC;
+  s = UTI_IPSubnetToString(&ip, 0);
+  TEST_CHECK(strcmp(s, "any address") == 0);
+
   s = UTI_TimeToLogForm(2000000000);
   TEST_CHECK(strcmp(s, "2033-05-18 03:33:20") == 0);
 

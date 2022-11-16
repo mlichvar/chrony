@@ -552,6 +552,26 @@ UTI_IPSockAddrToString(const IPSockAddr *sa)
 /* ================================================== */
 
 char *
+UTI_IPSubnetToString(IPAddr *subnet, int bits)
+{
+  char *result;
+
+  result = NEXT_BUFFER;
+
+  if (subnet->family == IPADDR_UNSPEC)
+    snprintf(result, BUFFER_LENGTH, "%s", "any address");
+  else if ((subnet->family == IPADDR_INET4 && bits == 32) ||
+           (subnet->family == IPADDR_INET6 && bits == 128))
+    snprintf(result, BUFFER_LENGTH, "%s", UTI_IPToString(subnet));
+  else
+    snprintf(result, BUFFER_LENGTH, "%s/%d", UTI_IPToString(subnet), bits);
+
+  return result;
+}
+
+/* ================================================== */
+
+char *
 UTI_TimeToLogForm(time_t t)
 {
   struct tm *stm;
