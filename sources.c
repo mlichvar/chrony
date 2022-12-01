@@ -1546,6 +1546,8 @@ SRC_ResetSources(void)
 
   for (i = 0; i < n_sources; i++)
     SRC_ResetInstance(sources[i]);
+
+  LOG(LOGS_INFO, "Reset all sources");
 }
 
 /* ================================================== */

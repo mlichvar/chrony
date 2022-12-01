@@ -1329,6 +1329,7 @@ void
 REF_ModifyMaxupdateskew(double new_max_update_skew)
 {
   max_update_skew = new_max_update_skew * 1.0e-6;
+  LOG(LOGS_INFO, "New maxupdateskew %f ppm", new_max_update_skew);
 }
 
 /* ================================================== */
@@ -1338,6 +1339,7 @@ REF_ModifyMakestep(int limit, double threshold)
 {
   make_step_limit = limit;
   make_step_threshold = threshold;
+  LOG(LOGS_INFO, "New makestep %f %d", threshold, limit);
 }
 
 /* ================================================== */
@@ -1349,6 +1351,7 @@ REF_EnableLocal(int stratum, double distance, int orphan)
   local_stratum = CLAMP(1, stratum, NTP_MAX_STRATUM - 1);
   local_distance = distance;
   local_orphan = !!orphan;
+  LOG(LOGS_INFO, "%s local reference mode", "Enabled");
 }
 
 /* ================================================== */
@@ -1357,6 +1360,7 @@ void
 REF_DisableLocal(void)
 {
   enable_local_stratum = 0;
+  LOG(LOGS_INFO, "%s local reference mode", "Disabled");
 }
 
 /* ================================================== */

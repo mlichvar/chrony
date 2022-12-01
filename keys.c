@@ -255,6 +255,8 @@ KEY_Reload(void)
      more careful! */
   qsort(ARR_GetElements(keys), ARR_GetSize(keys), sizeof (Key), compare_keys_by_id);
 
+  LOG(LOGS_INFO, "Loaded %u symmetric keys", ARR_GetSize(keys));
+
   /* Check for duplicates */
   for (i = 1; i < ARR_GetSize(keys); i++) {
     if (get_key(i - 1)->id == get_key(i)->id)

@@ -575,7 +575,7 @@ save_keys(void)
   return;
 
 error:
-  LOG(LOGS_ERR, "Could not %s server NTS keys", "save");
+  LOG(LOGS_ERR, "Could not %s %s", "save", "server NTS keys");
   fclose(f);
 
   if (!UTI_RemoveFile(dump_dir, DUMP_FILENAME, NULL))
@@ -649,10 +649,11 @@ load_keys(void)
 
   fclose(f);
 
+  LOG(LOGS_ERR, "Loaded %s", "server NTS keys");
   return 1;
 
 error:
-  LOG(LOGS_ERR, "Could not %s server NTS keys", "load");
+  LOG(LOGS_ERR, "Could not %s %s", "load", "server NTS keys");
   fclose(f);
 
   return 0;
