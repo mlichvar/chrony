@@ -89,8 +89,8 @@ static int permanent_ts_options;
    itself.  To avoid processing of the response without the HW timestamp, we
    monitor events returned by select() and suspend reading of packets from the
    receive queue for up to 200 microseconds.  As the requests are normally
-   separated by at least 200 milliseconds, it is sufficient to monitor and
-   suspend one socket at a time. */
+   separated by at least about 1 millisecond (1/8th of the minimum poll), it is
+   sufficient to monitor and suspend one socket at a time. */
 static int monitored_socket;
 static int suspended_socket;
 static SCH_TimeoutID resume_timeout_id;
