@@ -862,11 +862,10 @@ static void
 parse_refclock(char *line)
 {
   int n, poll, dpoll, filter_length, pps_rate, min_samples, max_samples, sel_options;
-  int local, max_lock_age, pps_forced, stratum, tai;
+  int local, max_lock_age, pps_forced, sel_option, stratum, tai;
   uint32_t ref_id, lock_ref_id;
   double offset, delay, precision, max_dispersion, pulse_width;
   char *p, *cmd, *name, *param;
-  unsigned char ref[5];
   RefclockParameters *refclock;
 
   poll = 4;
@@ -912,13 +911,11 @@ parse_refclock(char *line)
     line = CPS_SplitWord(line);
 
     if (!strcasecmp(cmd, "refid")) {
-      if (sscanf(line, "%4s%n", (char *)ref, &n) != 1)
+      if ((n = CPS_ParseRefid(line, &ref_id)) == 0)
         break;
-      ref_id = (uint32_t)ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
     } else if (!strcasecmp(cmd, "lock")) {
-      if (sscanf(line, "%4s%n", (char *)ref, &n) != 1)
+      if ((n = CPS_ParseRefid(line, &lock_ref_id)) == 0)
         break;
-      lock_ref_id = (uint32_t)ref[0] << 24 | ref[1] << 16 | ref[2] << 8 | ref[3];
     } else if (!strcasecmp(cmd, "poll")) {
       if (sscanf(line, "%d%n", &poll, &n) != 1) {
         break;
@@ -971,18 +968,9 @@ parse_refclock(char *line)
     } else if (!strcasecmp(cmd, "width")) {
       if (sscanf(line, "%lf%n", &pulse_width, &n) != 1)
         break;
-    } else if (!strcasecmp(cmd, "noselect")) {
+    } else if ((sel_option = CPS_GetSelectOption(cmd)) != 0) {
       n = 0;
-      sel_options |= SRC_SELECT_NOSELECT;
-    } else if (!strcasecmp(cmd, "prefer")) {
-      n = 0;
-      sel_options |= SRC_SELECT_PREFER;
-    } else if (!strcasecmp(cmd, "trust")) {
-      n = 0;
-      sel_options |= SRC_SELECT_TRUST;
-    } else if (!strcasecmp(cmd, "require")) {
-      n = 0;
-      sel_options |= SRC_SELECT_REQUIRE;
+      sel_options |= sel_option;
     } else {
       other_parse_error("Invalid refclock option");
       return;

@@ -39,6 +39,9 @@ typedef struct {
 /* Parse a command to add an NTP server or peer */
 extern int CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src);
   
+/* Get an NTP/refclock select option */
+extern int CPS_GetSelectOption(char *option);
+
 /* Parse a command to allow/deny access */
 extern int CPS_ParseAllowDeny(char *line, int *all, IPAddr *ip, int *subnet_bits);
 
@@ -53,5 +56,8 @@ extern char *CPS_SplitWord(char *line);
 
 /* Parse a key from keyfile */
 extern int CPS_ParseKey(char *line, uint32_t *id, const char **type, char **key);
+
+/* Parse a refclock reference ID (returns number of characters) */
+extern int CPS_ParseRefid(char *line, uint32_t *ref_id);
 
 #endif /* GOT_CMDPARSE_H */

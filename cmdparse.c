@@ -44,7 +44,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
 {
   char *hostname, *cmd;
   uint32_t ef_type;
-  int n;
+  int n, sel_option;
   
   src->port = SRC_DEFAULT_PORT;
   src->params.minpoll = SRC_DEFAULT_MINPOLL;
@@ -101,14 +101,6 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
       src->params.iburst = 1;
     } else if (!strcasecmp(cmd, "offline")) {
       src->params.connectivity = SRC_OFFLINE;
-    } else if (!strcasecmp(cmd, "noselect")) {
-      src->params.sel_options |= SRC_SELECT_NOSELECT;
-    } else if (!strcasecmp(cmd, "prefer")) {
-      src->params.sel_options |= SRC_SELECT_PREFER;
-    } else if (!strcasecmp(cmd, "require")) {
-      src->params.sel_options |= SRC_SELECT_REQUIRE;
-    } else if (!strcasecmp(cmd, "trust")) {
-      src->params.sel_options |= SRC_SELECT_TRUST;
     } else if (!strcasecmp(cmd, "certset")) {
       if (sscanf(line, "%"SCNu32"%n", &src->params.cert_set, &n) != 1)
         return 0;
@@ -187,12 +179,31 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
         return 0;
     } else if (!strcasecmp(cmd, "xleave")) {
       src->params.interleaved = 1;
+    } else if ((sel_option = CPS_GetSelectOption(cmd)) != 0) {
+      src->params.sel_options |= sel_option;
     } else {
       return 0;
     }
   }
 
   return 1;
+}
+
+/* ================================================== */
+
+int
+CPS_GetSelectOption(char *option)
+{
+  if (!strcasecmp(option, "noselect")) {
+    return SRC_SELECT_NOSELECT;
+  } else if (!strcasecmp(option, "prefer")) {
+    return SRC_SELECT_PREFER;
+  } else if (!strcasecmp(option, "require")) {
+    return SRC_SELECT_REQUIRE;
+  } else if (!strcasecmp(option, "trust")) {
+    return SRC_SELECT_TRUST;
+  }
+  return 0;
 }
 
 /* ================================================== */
@@ -395,4 +406,20 @@ CPS_ParseKey(char *line, uint32_t *id, const char **type, char **key)
   }
 
   return 1;
+}
+
+/* ================================================== */
+
+int
+CPS_ParseRefid(char *line, uint32_t *ref_id)
+{
+  int i;
+
+  for (i = *ref_id = 0; line[i] && !isspace((unsigned char)line[i]); i++) {
+    if (i >= 4)
+      return 0;
+    *ref_id |= (uint32_t)line[i] << (24 - i * 8);
+  }
+
+  return i;
 }
