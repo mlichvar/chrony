@@ -1598,6 +1598,46 @@ SRC_ActiveSources(void)
 
 /* ================================================== */
 
+static SRC_Instance
+find_source(IPAddr *ip, uint32_t ref_id)
+{
+  int i;
+
+  for (i = 0; i < n_sources; i++) {
+    if ((ip->family != IPADDR_UNSPEC && sources[i]->type == SRC_NTP &&
+         UTI_CompareIPs(ip, sources[i]->ip_addr, NULL) == 0) ||
+        (ip->family == IPADDR_UNSPEC && sources[i]->type == SRC_REFCLOCK &&
+         ref_id == sources[i]->ref_id))
+      return sources[i];
+  }
+
+  return NULL;
+}
+
+/* ================================================== */
+
+int
+SRC_ModifySelectOptions(IPAddr *ip, uint32_t ref_id, int options, int mask)
+{
+  SRC_Instance inst;
+
+  inst = find_source(ip, ref_id);
+  if (!inst)
+    return 0;
+
+  if ((inst->conf_sel_options & mask) == options)
+    return 1;
+
+  inst->conf_sel_options = (inst->conf_sel_options & ~mask) | options;
+  LOG(LOGS_INFO, "Source %s selection options modified", source_to_string(inst));
+
+  update_sel_options();
+
+  return 1;
+}
+
+/* ================================================== */
+
 int
 SRC_ReportSource(int index, RPT_SourceReport *report, struct timespec *now)
 {

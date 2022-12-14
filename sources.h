@@ -131,6 +131,10 @@ extern int SRC_IsReachable(SRC_Instance inst);
 extern int SRC_ReadNumberOfSources(void);
 extern int SRC_ActiveSources(void);
 
+/* Modify selection options of an NTP source specified by address, or
+   refclock specified by its reference ID */
+extern int SRC_ModifySelectOptions(IPAddr *ip, uint32_t ref_id, int options, int mask);
+
 extern int SRC_ReportSource(int index, RPT_SourceReport *report, struct timespec *now);
 extern int SRC_ReportSourcestats(int index, RPT_SourcestatsReport *report, struct timespec *now);
 extern int SRC_GetSelectReport(int index, RPT_SelectReport *report);
