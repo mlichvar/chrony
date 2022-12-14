@@ -296,6 +296,9 @@ void SRC_DestroyInstance(SRC_Instance instance)
   int dead_index, i;
 
   assert(initialised);
+  if (instance->index < 0 || instance->index >= n_sources ||
+      instance != sources[instance->index])
+    assert(0);
 
   SST_DeleteInstance(instance->stats);
   dead_index = instance->index;
