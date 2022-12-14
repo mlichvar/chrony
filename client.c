@@ -870,6 +870,17 @@ process_cmd_doffset(CMD_Request *msg, char *line)
 /* ================================================== */
 
 static int
+convert_addsrc_sel_options(int options)
+{
+  return (options & SRC_SELECT_PREFER ? REQ_ADDSRC_PREFER : 0) |
+         (options & SRC_SELECT_NOSELECT ? REQ_ADDSRC_NOSELECT : 0) |
+         (options & SRC_SELECT_TRUST ? REQ_ADDSRC_TRUST : 0) |
+         (options & SRC_SELECT_REQUIRE ? REQ_ADDSRC_REQUIRE : 0);
+}
+
+/* ================================================== */
+
+static int
 process_cmd_add_source(CMD_Request *msg, char *line)
 {
   CPS_NTP_Source data;
@@ -946,10 +957,7 @@ process_cmd_add_source(CMD_Request *msg, char *line)
           (data.params.nts ? REQ_ADDSRC_NTS : 0) |
           (data.params.copy ? REQ_ADDSRC_COPY : 0) |
           (data.params.ext_fields & NTP_EF_FLAG_EXP1 ? REQ_ADDSRC_EF_EXP1 : 0) |
-          (data.params.sel_options & SRC_SELECT_PREFER ? REQ_ADDSRC_PREFER : 0) |
-          (data.params.sel_options & SRC_SELECT_NOSELECT ? REQ_ADDSRC_NOSELECT : 0) |
-          (data.params.sel_options & SRC_SELECT_TRUST ? REQ_ADDSRC_TRUST : 0) |
-          (data.params.sel_options & SRC_SELECT_REQUIRE ? REQ_ADDSRC_REQUIRE : 0));
+          convert_addsrc_sel_options(data.params.sel_options));
       msg->data.ntp_source.filter_length = htonl(data.params.filter_length);
       msg->data.ntp_source.cert_set = htonl(data.params.cert_set);
       msg->data.ntp_source.max_delay_quant =

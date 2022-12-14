@@ -703,6 +703,17 @@ handle_cmdaccheck(CMD_Request *rx_message, CMD_Reply *tx_message)
 
 /* ================================================== */
 
+static int
+convert_addsrc_select_options(int flags)
+{
+    return (flags & REQ_ADDSRC_PREFER ? SRC_SELECT_PREFER : 0) |
+           (flags & REQ_ADDSRC_NOSELECT ? SRC_SELECT_NOSELECT : 0) |
+           (flags & REQ_ADDSRC_TRUST ? SRC_SELECT_TRUST : 0) |
+           (flags & REQ_ADDSRC_REQUIRE ? SRC_SELECT_REQUIRE : 0);
+}
+
+/* ================================================== */
+
 static void
 handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
@@ -773,11 +784,7 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.copy = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_COPY ? 1 : 0;
   params.ext_fields =
     ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_EF_EXP1 ? NTP_EF_FLAG_EXP1 : 0;
-  params.sel_options =
-    (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_PREFER ? SRC_SELECT_PREFER : 0) |
-    (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_NOSELECT ? SRC_SELECT_NOSELECT : 0) |
-    (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_TRUST ? SRC_SELECT_TRUST : 0) |
-    (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_REQUIRE ? SRC_SELECT_REQUIRE : 0);
+  params.sel_options = convert_addsrc_select_options(ntohl(rx_message->data.ntp_source.flags));
 
   status = NSR_AddSourceByName(name, port, pool, type, &params, NULL);
   switch (status) {
@@ -1328,7 +1335,7 @@ handle_auth_data(CMD_Request *rx_message, CMD_Reply *tx_message)
 /* ================================================== */
 
 static uint16_t
-convert_select_options(int options)
+convert_sd_sel_options(int options)
 {
   return (options & SRC_SELECT_PREFER ? RPY_SD_OPTION_PREFER : 0) |
          (options & SRC_SELECT_NOSELECT ? RPY_SD_OPTION_NOSELECT : 0) |
@@ -1355,8 +1362,8 @@ handle_select_data(CMD_Request *rx_message, CMD_Reply *tx_message)
   tx_message->data.select_data.state_char = report.state_char;
   tx_message->data.select_data.authentication = report.authentication;
   tx_message->data.select_data.leap = report.leap;
-  tx_message->data.select_data.conf_options = htons(convert_select_options(report.conf_options));
-  tx_message->data.select_data.eff_options = htons(convert_select_options(report.eff_options));
+  tx_message->data.select_data.conf_options = htons(convert_sd_sel_options(report.conf_options));
+  tx_message->data.select_data.eff_options = htons(convert_sd_sel_options(report.eff_options));
   tx_message->data.select_data.last_sample_ago = htonl(report.last_sample_ago);
   tx_message->data.select_data.score = UTI_FloatHostToNetwork(report.score);
   tx_message->data.select_data.hi_limit = UTI_FloatHostToNetwork(report.hi_limit);
