@@ -164,6 +164,9 @@ for chronyc_conf in \
 	"reselectdist 1e-3" \
 	"reset sources" \
 	"selectdata" \
+	"selectopts 1.2.3.4 -noselect +trust +require +prefer" \
+	"selectopts ID#0000000001 +prefer" \
+	"selectopts PPS0 +prefer" \
 	"settime 16:30" \
 	"settime 16:30:05" \
 	"settime Nov 21, 2015 16:30:05" \
@@ -327,6 +330,8 @@ maxupdateskew 192.168.123.1 10.0
 minpoll 192.168.123.1 3
 minstratum 192.168.123.1 1
 polltarget 192.168.123.1 10
+selectopts 192.168.123.1 +trust +prefer -require
+selectdata
 delete 192.168.123.1"
 
 run_test || test_fail
@@ -345,6 +350,10 @@ check_chronyc_output "^200 OK
 200 OK
 200 OK
 200 OK
+200 OK
+S Name/IP Address        Auth COpts EOpts Last Score     Interval  Leap
+=======================================================================
+M node1\.net1\.clk            N \-PT\-\- \-PT\-\-    0   1\.0    \+0ns    \+0ns  \?
 200 OK$" || test_fail
 
 chronyc_conf="

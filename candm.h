@@ -109,7 +109,8 @@
 #define REQ_SELECT_DATA 69
 #define REQ_RELOAD_SOURCES 70
 #define REQ_DOFFSET2 71
-#define N_REQUEST_TYPES 72
+#define REQ_MODIFY_SELECTOPTS 72
+#define N_REQUEST_TYPES 73
 
 /* Structure used to exchange timespecs independent of time_t size */
 typedef struct {
@@ -371,6 +372,15 @@ typedef struct {
   int32_t EOR;
 } REQ_SelectData;
 
+/* Mask and options reuse the REQ_ADDSRC flags */
+typedef struct {
+  IPAddr address;
+  uint32_t ref_id;
+  uint32_t mask;
+  uint32_t options;
+  int32_t EOR;
+} REQ_Modify_SelectOpts;
+
 /* ================================================== */
 
 #define PKT_TYPE_CMD_REQUEST 1
@@ -477,6 +487,7 @@ typedef struct {
     REQ_NTPSourceName ntp_source_name;
     REQ_AuthData auth_data;
     REQ_SelectData select_data;
+    REQ_Modify_SelectOpts modify_select_opts;
   } data; /* Command specific parameters */
 
   /* Padding used to prevent traffic amplification.  It only defines the

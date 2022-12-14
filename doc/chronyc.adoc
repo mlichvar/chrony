@@ -522,6 +522,23 @@ This column displays the current leap status of the source.
 * _-_ indicates that a leap second will be deleted at the end of the month.
 * _?_ indicates the unknown status (i.e. no valid measurement was made).
 
+[[selectopts]]*selectopts* _address|refid_ [_+|-option_]...::
+The *selectopts* command modifies the configured selection options of an NTP
+source specified by IP address (or the _ID#XXXXXXXXXX_ identifier used for
+unknown addresses), or a reference clock specified by reference ID as a string.
++
+The selection options can be added with the *+* symbol or removed with the *-*
+symbol. The *selectdata* command can be used to verify the configuration. The
+modified options will be applied in the next source selection, e.g. when a new
+measurement is made, or the *reselect* command is executed.
++
+An example of using this command is shown below.
++
+----
+selectopts 1.2.3.4 -noselect +prefer
+selectopts GPS +trust
+----
+
 [[reselect]]*reselect*::
 To avoid excessive switching between sources, *chronyd* can stay synchronised
 to a source even when it is not currently the best one among the available

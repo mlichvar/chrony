@@ -1021,6 +1021,7 @@ give_help(void)
     "sources [-a] [-v]\0Display information about current sources\0"
     "sourcestats [-a] [-v]\0Display statistics about collected measurements\0"
     "selectdata [-a] [-v]\0Display information about source selection\0"
+    "selectopts <address|refid> <+|-options>\0Modify selection options\0"
     "reselect\0Force reselecting synchronisation source\0"
     "reselectdist <dist>\0Modify reselection distance\0"
     "\0\0"
@@ -1135,8 +1136,8 @@ command_name_generator(const char *text, int state)
     "manual", "maxdelay", "maxdelaydevratio", "maxdelayratio", "maxpoll",
     "maxupdateskew", "minpoll", "minstratum", "ntpdata", "offline", "online", "onoffline",
     "polltarget", "quit", "refresh", "rekey", "reload", "reselect", "reselectdist", "reset",
-    "retries", "rtcdata", "selectdata", "serverstats", "settime", "shutdown", "smoothing",
-    "smoothtime", "sourcename", "sources", "sourcestats",
+    "retries", "rtcdata", "selectdata", "selectopts", "serverstats", "settime",
+    "shutdown", "smoothing", "smoothtime", "sourcename", "sources", "sourcestats",
     "timeout", "tracking", "trimrtc", "waitsync", "writertc",
     NULL
   };
@@ -2900,6 +2901,55 @@ process_cmd_reset(CMD_Request *msg, char *line)
 /* ================================================== */
 
 static int
+process_cmd_selectopts(CMD_Request *msg, char *line)
+{
+  int mask, options, option;
+  uint32_t ref_id;
+  IPAddr ip_addr;
+  char *src, *opt;
+
+  src = line;
+  line = CPS_SplitWord(line);
+  ref_id = 0;
+
+  /* Don't allow hostnames to avoid conflicts with reference IDs */
+  if (!UTI_StringToIdIP(src, &ip_addr) && !UTI_StringToIP(src, &ip_addr)) {
+    ip_addr.family = IPADDR_UNSPEC;
+    if (CPS_ParseRefid(src, &ref_id) == 0) {
+      LOG(LOGS_ERR, "Invalid syntax for selectopts command");
+      return 0;
+    }
+  }
+
+  mask = options = 0;
+
+  while (*line != '\0') {
+    opt = line;
+    line = CPS_SplitWord(line);
+
+    if ((opt[0] != '+' && opt[0] != '-') || (option = CPS_GetSelectOption(opt + 1)) == 0) {
+      LOG(LOGS_ERR, "Invalid syntax for selectopts command");
+      return 0;
+    }
+
+    mask |= option;
+    if (opt[0] == '+')
+      options |= option;
+  }
+
+  UTI_IPHostToNetwork(&ip_addr, &msg->data.modify_select_opts.address);
+  msg->data.modify_select_opts.ref_id = htonl(ref_id);
+  msg->data.modify_select_opts.mask = htonl(mask);
+  msg->data.modify_select_opts.options = htonl(convert_addsrc_sel_options(options));
+
+  msg->command = htons(REQ_MODIFY_SELECTOPTS);
+
+  return 1;
+}
+
+/* ================================================== */
+
+static int
 process_cmd_waitsync(char *line)
 {
   CMD_Request request;
@@ -3201,6 +3251,8 @@ process_line(char *line)
   } else if (!strcmp(command, "selectdata")) {
     do_normal_submit = 0;
     ret = process_cmd_selectdata(line);
+  } else if (!strcmp(command, "selectopts")) {
+    do_normal_submit = process_cmd_selectopts(&tx_message, line);
   } else if (!strcmp(command, "serverstats")) {
     do_normal_submit = 0;
     ret = process_cmd_serverstats(line);

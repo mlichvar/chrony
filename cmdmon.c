@@ -144,6 +144,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* SELECT_DATA */
   PERMIT_AUTH, /* RELOAD_SOURCES */
   PERMIT_AUTH, /* DOFFSET2 */
+  PERMIT_AUTH, /* MODIFY_SELECTOPTS */
 };
 
 /* ================================================== */
@@ -1371,6 +1372,24 @@ handle_select_data(CMD_Request *rx_message, CMD_Reply *tx_message)
 }
 
 /* ================================================== */
+
+static void
+handle_modify_selectopts(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  int mask, options;
+  uint32_t ref_id;
+  IPAddr ip_addr;
+
+  UTI_IPNetworkToHost(&rx_message->data.modify_select_opts.address, &ip_addr);
+  ref_id = ntohl(rx_message->data.modify_select_opts.ref_id);
+  mask = ntohl(rx_message->data.modify_select_opts.mask);
+  options = convert_addsrc_select_options(ntohl(rx_message->data.modify_select_opts.options));
+
+  if (!SRC_ModifySelectOptions(&ip_addr, ref_id, options, mask))
+    tx_message->status = htons(STT_NOSUCHSOURCE);
+}
+
+/* ================================================== */
 /* Read a packet and process it */
 
 static void
@@ -1764,6 +1783,10 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
         case REQ_RELOAD_SOURCES:
           handle_reload_sources(&rx_message, &tx_message);
+          break;
+
+        case REQ_MODIFY_SELECTOPTS:
+          handle_modify_selectopts(&rx_message, &tx_message);
           break;
 
         default:
