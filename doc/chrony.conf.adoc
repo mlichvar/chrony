@@ -473,16 +473,41 @@ instead.
 Examples:
 +
 ----
-refclock PPS /dev/pps0 lock NMEA refid GPS
-refclock SHM 0 offset 0.5 delay 0.2 refid NMEA noselect
+refclock PPS /dev/pps0 lock NMEA refid GPS1
+refclock SOCK /var/run/chrony.clk.ttyS0.sock offset 0.5 delay 0.2 refid NMEA noselect
 refclock PPS /dev/pps1:clear refid GPS2
 ----
 +
+*SOCK*:::
+Unix domain socket driver. This driver uses a datagram socket to receive
+samples from another application running on the system. The parameter is the
+path to the socket, which *chronyd* will create on start. The format of the
+messages is described in the _refclock_sock.c_ file in the chrony source code.
++
+An application which supports the SOCK protocol is the *gpsd* daemon. It can
+provide accurate measurements using the receiver's PPS signal, and since
+version 3.25 also (much less accurate) measurements based on the timing of
+serial data (e.g. NMEA), which can be useful when the receiver does not provide
+a PPS signal, or it cannot be connected to the computer. The paths where *gpsd*
+expects the sockets to be created by *chronyd* are described in the *gpsd(8)*
+man page. Note that *gpsd* needs to be started after *chronyd* in order to
+connect to the socket.
++
+Examples:
++
+----
+refclock SOCK /var/run/chrony.ttyS0.sock refid GPS1 poll 2 filter 4
+refclock SOCK /var/run/chrony.clk.ttyUSB0.sock refid GPS2 offset 0.2 delay 0.1
+----
++
 *SHM*:::
-NTP shared memory driver. This driver uses a shared memory segment to receive
-samples from another process (e.g. *gpsd*). The parameter is the number of the
-shared memory segment, typically a small number like 0, 1, 2, or 3. The driver
-supports the following option:
+NTP shared memory driver. This driver implements the protocol of the *ntpd*
+driver type 28. It is functionally similar to the SOCK driver, but uses a
+shared memory segment instead of a socket. The parameter is the unit number,
+typically a small number like 0, 1, 2, or 3, from which is derived the key of
+the memory segment as 0x4e545030 + unit.
++
+The driver supports the following option:
 +
 *perm*=_mode_::::
 This option specifies the permissions of the shared memory segment created by
@@ -490,28 +515,21 @@ This option specifies the permissions of the shared memory segment created by
 (read-write access for owner only).
 {blank}:::
 +
+Unlike with the SOCK driver, there is no prescribed order of starting *chronyd*
+and the program providing measurements. Both are expected to create the memory
+segment if it does not exist. *chronyd* will attach to an existing segment even
+if it has a different owner than root or different permissions than the
+permissions specified by the *perm* option. The segment needs to be created
+before untrusted applications or users can execute code to prevent an attacker
+from feeding *chronyd* with false measurements. The owner and permissions of
+the segment can be verified with the *ipcs -m* command. For this reason, the
+SHM driver is deprecated in favor of SOCK.
++
 Examples:
 +
 ----
 refclock SHM 0 poll 3 refid GPS1
 refclock SHM 1:perm=0644 refid GPS2
-----
-+
-*SOCK*:::
-Unix domain socket driver. It is similar to the SHM driver, but samples are
-received from a Unix domain socket instead of shared memory and the messages
-have a different format. The parameter is the path to the socket, which
-*chronyd* creates on start. An advantage over the SHM driver is that SOCK does
-not require polling and it can receive PPS samples with incomplete time. The
-format of the messages is described in the _refclock_sock.c_ file in the chrony
-source code.
-+
-An application which supports the SOCK protocol is the *gpsd* daemon. The path
-where *gpsd* expects the socket to be created is described in the *gpsd(8)* man
-page. For example:
-+
-----
-refclock SOCK /var/run/chrony.ttyS0.sock
 ----
 +
 *PHC*:::
@@ -923,7 +941,7 @@ As an example, the following configuration using the default *mix* mode:
 server foo.example.net nts
 server bar.example.net nts
 server baz.example.net
-refclock SHM 0
+refclock SOCK /var/run/chrony.ttyS0.sock
 ----
 +
 is equivalent to the following configuration using the *ignore* mode:
@@ -933,7 +951,7 @@ authselectmode ignore
 server foo.example.net nts require trust
 server bar.example.net nts require trust
 server baz.example.net
-refclock SHM 0 require trust
+refclock /var/run/chrony.ttyS0.sock require trust
 ----
 
 [[combinelimit]]*combinelimit* _limit_::

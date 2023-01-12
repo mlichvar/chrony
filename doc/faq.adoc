@@ -499,44 +499,52 @@ it is connected to a GPIO pin, or another serial port, the PPS device needs to
 be specified on the command line as an additional data source. On Linux, the
 `ldattach` utility can be used to create a PPS device for a serial device.
 
-The message-based time source provided by `gpsd` is specified as a `SHM 0`
-refclock, or other even number if `gpsd` is configured with multiple receivers.
-
-The PPS-based time source is specified as a `SHM 1` refclock (or other odd
-number), or `SOCK /var/run/chrony.DEV.sock` where `DEV` is the name of the
+The PPS-based time source provided by `gpsd` is available as a `SHM 1`
+refclock, or other odd number if `gpsd` is configured with multiple receivers,
+and also as `SOCK /var/run/chrony.DEV.sock` where `DEV` is the name of the
 serial device (e.g. ttyS0).
 
-With `chronyd` and `gpsd` both supporting PPS, and `gpsd` providing two
-different refclocks for PPS, there are three different recommended
-configurations:
+The message-based time source is available as a `SHM 0` refclock (or other even
+number) and since `gpsd` version 3.25 also as
+`SOCK /var/run/chrony.clk.DEV.sock` where `DEV` is the name of the serial
+device.
+
+The SOCK refclocks should be preferred over SHM for better security
+(the shared memory segment needs to be created by `chronyd` or `gpsd` with an
+expected owner and permissions before an untrusted application or user has a
+chance to create its own in order to feed `chronyd` with false measurements).
+`gpsd` needs to be started after `chronyd` in order to connect to the socket.
+
+With `chronyd` and `gpsd` both supporting PPS, there are two different
+recommended configurations:
 
 ----
 # First option
 refclock SOCK /var/run/chrony.ttyS0.sock refid GPS
 
 # Second option
-refclock SHM 1 refid GPS
-
-# Third option
 refclock PPS /dev/pps0 lock NMEA refid GPS
-refclock SHM 0 offset 0.5 delay 0.1 refid NMEA noselect
+refclock SOCK /var/run/chrony.clk.ttyS0.sock offset 0.5 delay 0.1 refid NMEA noselect
 ----
 
-Each option has some advantages:
+They both have some advantages:
 
-* `SOCK` does not use polling (i.e. it can get samples earlier than `SHM`),
-  but it requires `gpsd` to be started after `chronyd` in order to connect to
-  its socket
-* `SOCK` and `SHM 1` can be more accurate than `PPS` if `gpsd` corrects for the
+* `SOCK` can be more accurate than `PPS` if `gpsd` corrects for the
   sawtooth error provided by the receiver in serial data
 * `PPS` can be used with higher PPS rates (specified by the `rate` option),
   but it requires a second refclock or another time source to pair pulses
-  with seconds, and the `SHM 0` offset needs to be specified
+  with seconds, and the `SOCK` offset needs to be specified
   <<using-pps-refclock,correctly>> to compensate for the message delay, while
   `gpsd` can apply HW-specific information
 
 If the PPS signal is not available, or cannot be used for some reason, the only
 option is the message-based timing
+
+----
+refclock SOCK /var/run/chrony.clk.ttyS0.sock offset 0.5 delay 0.1 refid GPS
+----
+
+or the SHM equivalent if using `gpsd` version before 3.25
 
 ----
 refclock SHM 0 offset 0.5 delay 0.1 refid GPS
