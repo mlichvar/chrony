@@ -58,8 +58,27 @@ struct sock_sample {
   int magic;
 };
 
+/* On 32-bit glibc-based systems enable conversion between timevals using
+   32-bit and 64-bit time_t to support SOCK clients compiled with different
+   time_t size than chrony */
+#if defined(__GLIBC_PREREQ) && __GLIBC_PREREQ(2, 34) && __TIMESIZE == 32
+#define CONVERT_TIMEVAL 1
+#if defined(_TIME_BITS) && _TIME_BITS == 64
+typedef int32_t alt_time_t;
+typedef int32_t alt_suseconds_t;
+#else
+typedef int64_t alt_time_t;
+typedef int64_t alt_suseconds_t;
+#endif
+struct alt_timeval {
+  alt_time_t tv_sec;
+  alt_suseconds_t tv_usec;
+};
+#endif
+
 static void read_sample(int sockfd, int event, void *anything)
 {
+  char buf[sizeof (struct sock_sample) + 16];
   struct timespec sys_ts, ref_ts;
   struct sock_sample sample;
   RCL_Instance instance;
@@ -67,14 +86,33 @@ static void read_sample(int sockfd, int event, void *anything)
 
   instance = (RCL_Instance)anything;
 
-  s = recv(sockfd, &sample, sizeof (sample), 0);
+  s = recv(sockfd, buf, sizeof (buf), 0);
 
   if (s < 0) {
     DEBUG_LOG("Could not read SOCK sample : %s", strerror(errno));
     return;
   }
 
-  if (s != sizeof (sample)) {
+  if (s == sizeof (sample)) {
+    memcpy(&sample, buf, sizeof (sample));
+#ifdef CONVERT_TIMEVAL
+  } else if (s == sizeof (sample) - sizeof (struct timeval) + sizeof (struct alt_timeval)) {
+    struct alt_timeval atv;
+    memcpy(&atv, buf, sizeof (atv));
+#ifndef HAVE_LONG_TIME_T
+    if (atv.tv_sec > INT32_MAX || atv.tv_sec < INT32_MIN ||
+        atv.tv_usec > INT32_MAX || atv.tv_usec < INT32_MIN) {
+      DEBUG_LOG("Could not convert 64-bit timeval");
+      return;
+    }
+#endif
+    sample.tv.tv_sec = atv.tv_sec;
+    sample.tv.tv_usec = atv.tv_usec;
+    DEBUG_LOG("Converted %u-bit timeval", 8 * sizeof (alt_time_t));
+    memcpy((char *)&sample + sizeof (struct timeval), buf + sizeof (struct alt_timeval),
+           sizeof (sample) - sizeof (struct timeval));
+#endif
+  } else {
     DEBUG_LOG("Unexpected length of SOCK sample : %d != %ld",
               s, (long)sizeof (sample));
     return;
