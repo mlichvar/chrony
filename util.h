@@ -196,6 +196,10 @@ extern int UTI_CreateDirAndParents(const char *path, mode_t mode, uid_t uid, gid
    permissions and its uid/gid must match the specified values. */
 extern int UTI_CheckDirPermissions(const char *path, mode_t perm, uid_t uid, gid_t gid);
 
+/* Check and log a warning message if a file has more permissions than
+   specified.  It does not return error if it is not an accessible file. */
+extern int UTI_CheckFilePermissions(const char *path, mode_t perm);
+
 /* Open a file.  The full path of the file is constructed from the basedir
    (may be NULL), '/' (if basedir is not NULL), name, and suffix (may be NULL).
    Created files have specified permissions (umasked).  Returns NULL on error.

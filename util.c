@@ -1248,6 +1248,29 @@ UTI_CheckDirPermissions(const char *path, mode_t perm, uid_t uid, gid_t gid)
 
 /* ================================================== */
 
+int
+UTI_CheckFilePermissions(const char *path, mode_t perm)
+{
+  mode_t extra_perm;
+  struct stat buf;
+
+  if (stat(path, &buf) < 0 || !S_ISREG(buf.st_mode)) {
+    /* Not considered an error */
+    return 1;
+  }
+
+  extra_perm = (buf.st_mode & 0777) & ~perm;
+  if (extra_perm != 0) {
+    LOG(LOGS_WARN, "%s permissions on %s", extra_perm & 0006 ?
+        (extra_perm & 0004 ? "World-readable" : "World-writable") : "Wrong", path);
+    return 0;
+  }
+
+  return 1;
+}
+
+/* ================================================== */
+
 static int
 join_path(const char *basedir, const char *name, const char *suffix,
           char *buffer, size_t length, LOG_Severity severity)

@@ -667,6 +667,8 @@ create_credentials(const char **certs, const char **keys, int n_certs_keys,
       assert(0);
 
     for (i = 0; i < n_certs_keys; i++) {
+      if (!UTI_CheckFilePermissions(keys[i], 0771))
+        ;
       r = gnutls_certificate_set_x509_key_file(credentials, certs[i], keys[i],
                                                GNUTLS_X509_FMT_PEM);
       if (r < 0)

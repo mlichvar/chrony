@@ -182,6 +182,9 @@ KEY_Reload(void)
   if (!key_file)
     return;
 
+  if (!UTI_CheckFilePermissions(key_file, 0771))
+    ;
+
   in = UTI_OpenFile(NULL, key_file, NULL, 'r', 0);
   if (!in) {
     LOG(LOGS_WARN, "Could not open keyfile %s", key_file);
