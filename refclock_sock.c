@@ -61,7 +61,8 @@ struct sock_sample {
 /* On 32-bit glibc-based systems enable conversion between timevals using
    32-bit and 64-bit time_t to support SOCK clients compiled with different
    time_t size than chrony */
-#if defined(__GLIBC_PREREQ) && __GLIBC_PREREQ(2, 34) && __TIMESIZE == 32
+#ifdef __GLIBC_PREREQ
+#if __GLIBC_PREREQ(2, 34) && __TIMESIZE == 32
 #define CONVERT_TIMEVAL 1
 #if defined(_TIME_BITS) && _TIME_BITS == 64
 typedef int32_t alt_time_t;
@@ -74,6 +75,7 @@ struct alt_timeval {
   alt_time_t tv_sec;
   alt_suseconds_t tv_usec;
 };
+#endif
 #endif
 
 static void read_sample(int sockfd, int event, void *anything)
@@ -108,7 +110,7 @@ static void read_sample(int sockfd, int event, void *anything)
 #endif
     sample.tv.tv_sec = atv.tv_sec;
     sample.tv.tv_usec = atv.tv_usec;
-    DEBUG_LOG("Converted %u-bit timeval", 8 * sizeof (alt_time_t));
+    DEBUG_LOG("Converted %d-bit timeval", 8 * (int)sizeof (alt_time_t));
     memcpy((char *)&sample + sizeof (struct timeval), buf + sizeof (struct alt_timeval),
            sizeof (sample) - sizeof (struct timeval));
 #endif
