@@ -1271,6 +1271,17 @@ UTI_CheckFilePermissions(const char *path, mode_t perm)
 
 /* ================================================== */
 
+void
+UTI_CheckReadOnlyAccess(const char *path)
+{
+  if (access(path, R_OK) != 0 && errno != ENOENT)
+    LOG(LOGS_WARN, "Missing read access to %s : %s", path, strerror(errno));
+  if (access(path, W_OK) == 0)
+    LOG(LOGS_WARN, "Having write access to %s", path);
+}
+
+/* ================================================== */
+
 static int
 join_path(const char *basedir, const char *name, const char *suffix,
           char *buffer, size_t length, LOG_Severity severity)

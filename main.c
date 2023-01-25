@@ -637,8 +637,12 @@ int main
   }
 
   /* Drop root privileges if the specified user has a non-zero UID */
-  if (!geteuid() && (pw->pw_uid || pw->pw_gid))
+  if (!geteuid() && (pw->pw_uid || pw->pw_gid)) {
     SYS_DropRoot(pw->pw_uid, pw->pw_gid, SYS_MAIN_PROCESS);
+
+    /* Warn if missing read access or having write access to keys */
+    CNF_CheckReadOnlyAccess();
+  }
 
   if (!geteuid())
     LOG(LOGS_WARN, "Running with root privileges");

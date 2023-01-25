@@ -1775,6 +1775,19 @@ CNF_CreateDirs(uid_t uid, gid_t gid)
 /* ================================================== */
 
 void
+CNF_CheckReadOnlyAccess(void)
+{
+  unsigned int i;
+
+  if (keys_file)
+    UTI_CheckReadOnlyAccess(keys_file);
+  for (i = 0; i < ARR_GetSize(nts_server_key_files); i++)
+    UTI_CheckReadOnlyAccess(*(char **)ARR_GetElement(nts_server_key_files, i));
+}
+
+/* ================================================== */
+
+void
 CNF_AddInitSources(void)
 {
   CPS_NTP_Source cps_source;

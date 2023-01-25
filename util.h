@@ -200,6 +200,10 @@ extern int UTI_CheckDirPermissions(const char *path, mode_t perm, uid_t uid, gid
    specified.  It does not return error if it is not an accessible file. */
 extern int UTI_CheckFilePermissions(const char *path, mode_t perm);
 
+/* Log a warning message if not having read access or having write access
+   to a file/directory */
+extern void UTI_CheckReadOnlyAccess(const char *path);
+
 /* Open a file.  The full path of the file is constructed from the basedir
    (may be NULL), '/' (if basedir is not NULL), name, and suffix (may be NULL).
    Created files have specified permissions (umasked).  Returns NULL on error.
