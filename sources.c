@@ -583,17 +583,17 @@ update_sel_options(void)
 /* ================================================== */
 
 static void
-log_selection_message(const char *format, const char *arg)
+log_selection_message(LOG_Severity severity, const char *format, const char *arg)
 {
   if (REF_GetMode() != REF_ModeNormal)
     return;
-  LOG(LOGS_INFO, format, arg);
+  LOG(severity, format, arg);
 }
 
 /* ================================================== */
 
 static void
-log_selection_source(const char *format, SRC_Instance inst)
+log_selection_source(LOG_Severity severity, const char *format, SRC_Instance inst)
 {
   char buf[320], *name, *ntp_name;
 
@@ -605,7 +605,7 @@ log_selection_source(const char *format, SRC_Instance inst)
   else
     snprintf(buf, sizeof (buf), "%s", name);
 
-  log_selection_message(format, buf);
+  log_selection_message(severity, format, buf);
 }
 
 /* ================================================== */
@@ -810,7 +810,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   if (n_sources == 0) {
     /* In this case, we clearly cannot synchronise to anything */
     if (selected_source_index != INVALID_SOURCE) {
-      log_selection_message("Can't synchronise: no sources", NULL);
+      log_selection_message(LOGS_INFO, "Can't synchronise: no sources", NULL);
       selected_source_index = INVALID_SOURCE;
     }
     return;
@@ -1003,7 +1003,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   if (n_endpoints == 0) {
     /* No sources provided valid endpoints */
     if (selected_source_index != INVALID_SOURCE) {
-      log_selection_message("Can't synchronise: no selectable sources", NULL);
+      log_selection_message(LOGS_INFO, "Can't synchronise: no selectable sources", NULL);
       selected_source_index = INVALID_SOURCE;
     }
     return;
@@ -1084,7 +1084,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     /* Could not even get half the reachable (trusted) sources to agree */
 
     if (selected_source_index != INVALID_SOURCE) {
-      log_selection_message("Can't synchronise: no majority", NULL);
+      log_selection_message(LOGS_WARN, "Can't synchronise: no majority", NULL);
       REF_SetUnsynchronised();
       selected_source_index = INVALID_SOURCE;
     }
@@ -1135,7 +1135,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
   if (!n_sel_sources || sel_req_source || n_sel_sources < CNF_GetMinSources()) {
     if (selected_source_index != INVALID_SOURCE) {
-      log_selection_message("Can't synchronise: %s selectable sources",
+      log_selection_message(LOGS_INFO, "Can't synchronise: %s selectable sources",
                             !n_sel_sources ? "no" :
                             sel_req_source ? "no required source in" : "not enough");
       selected_source_index = INVALID_SOURCE;
@@ -1252,7 +1252,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     }
 
     selected_source_index = max_score_index;
-    log_selection_source("Selected source %s", sources[selected_source_index]);
+    log_selection_source(LOGS_INFO, "Selected source %s", sources[selected_source_index]);
 
     /* New source has been selected, reset all scores */
     for (i = 0; i < n_sources; i++) {
