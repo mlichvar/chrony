@@ -165,6 +165,8 @@ static int max_n_sources; /* Capacity of the table */
 static int selected_source_index; /* Which source index is currently
                                      selected (set to INVALID_SOURCE
                                      if no current valid reference) */
+static int reported_no_majority;  /* Flag to avoid repeated log message
+                                     about no majority */
 
 /* Score needed to replace the currently selected source */
 #define SCORE_LIMIT 10.0
@@ -1083,8 +1085,12 @@ SRC_SelectSource(SRC_Instance updated_inst)
       (best_trust_depth > 0 && best_trust_depth <= n_sel_trust_sources / 2)) {
     /* Could not even get half the reachable (trusted) sources to agree */
 
-    if (selected_source_index != INVALID_SOURCE) {
+    if (!reported_no_majority) {
       log_selection_message(LOGS_WARN, "Can't synchronise: no majority", NULL);
+      reported_no_majority = 1;
+    }
+
+    if (selected_source_index != INVALID_SOURCE) {
       REF_SetUnsynchronised();
       selected_source_index = INVALID_SOURCE;
     }
@@ -1259,6 +1265,8 @@ SRC_SelectSource(SRC_Instance updated_inst)
       sources[i]->sel_score = 1.0;
       sources[i]->distant = 0;
     }
+
+    reported_no_majority = 0;
   }
 
   mark_source(sources[selected_source_index], SRC_SELECTED);
