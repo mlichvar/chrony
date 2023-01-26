@@ -140,6 +140,10 @@ struct SRC_Instance_Record {
 
   /* Flag indicating the source has a leap second vote */
   int leap_vote;
+
+  /* Flag indicating the source was already reported as
+     a falseticker since the last selection change */
+  int reported_falseticker;
 };
 
 /* ================================================== */
@@ -334,6 +338,7 @@ SRC_ResetInstance(SRC_Instance instance)
   instance->stratum = 0;
   instance->leap = LEAP_Unsynchronised;
   instance->leap_vote = 0;
+  instance->reported_falseticker = 0;
 
   memset(&instance->sel_info, 0, sizeof (instance->sel_info));
 
@@ -1136,6 +1141,10 @@ SRC_SelectSource(SRC_Instance updated_inst)
         sel_req_source = 0;
     } else {
       mark_source(sources[i], SRC_FALSETICKER);
+      if (!sources[i]->reported_falseticker) {
+        log_selection_source(LOGS_WARN, "Detected falseticker %s", sources[i]);
+        sources[i]->reported_falseticker = 1;
+      }
     }
   }
 
@@ -1264,6 +1273,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     for (i = 0; i < n_sources; i++) {
       sources[i]->sel_score = 1.0;
       sources[i]->distant = 0;
+      sources[i]->reported_falseticker = 0;
     }
 
     reported_no_majority = 0;
