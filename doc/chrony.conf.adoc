@@ -2239,6 +2239,13 @@ Used for synchronisation of the local clock:
 * _+_ - combined with the best source.
 * _*_ - selected as the best source to update the reference data (e.g. root
         delay, root dispersion).
+. Current effective selection options of the source. which can be different
+  from the configured options due to the authentication selection mode
+  (configured by the <<authselectmode,*authselectmode*>> directive). [-----]
+* _N_ indicates the *noselect* option.
+* _P_ indicates the *prefer* option.
+* _T_ indicates the *trust* option.
+* _R_ indicates the *require* option.
 . Reachability register printed as an octal number. The register has 8 bits and
   is updated on every received or missed packet from the source. A value of 377
   indicates that a valid reply was received for all from the last eight
