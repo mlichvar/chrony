@@ -827,6 +827,10 @@ This directory is used also by the <<ntsdumpdir2,NTS server>> to save keys.
 This directive specifies the maximum interval between NTS-KE handshakes (in
 seconds) in order to refresh the keys authenticating NTP packets. The default
 value is 2419200 (4 weeks) and the maximum value is 2^31-1 (68 years).
++
+The interval must be longer than polling intervals of all configured NTP
+sources using NTS, otherwise the source with a longer polling interval will
+refresh the keys on each poll and no NTP packets will be exchanged.
 
 [[ntstrustedcerts]]*ntstrustedcerts* [_set-ID_] _file_|_directory_::
 This directive specifies a file or directory containing certificates (in the
