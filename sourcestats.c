@@ -80,7 +80,7 @@ static LOG_FileID logfileid;
 
 struct SST_Stats_Record {
 
-  /* Reference ID and IP address of source, used for logging to statistics log */
+  /* Reference ID and IP address (NULL if not an NTP source) */
   uint32_t refid;
   IPAddr *ip_addr;
 
@@ -964,9 +964,10 @@ SST_DoSourceReport(SST_Stats inst, RPT_SourceReport *report, struct timespec *no
     report->latest_meas = inst->offsets[i];
     report->latest_meas_err = 0.5*inst->root_delays[j] + inst->root_dispersions[j];
 
-    /* Align the sample time to reduce the leak of the receive timestamp */
+    /* Align the sample time to reduce the leak of the NTP receive timestamp */
     last_sample_time = inst->sample_times[i];
-    last_sample_time.tv_nsec = 0;
+    if (inst->ip_addr)
+      last_sample_time.tv_nsec = 0;
     report->latest_meas_ago = UTI_DiffTimespecsToDouble(now, &last_sample_time);
   } else {
     report->latest_meas_ago = (uint32_t)-1;
