@@ -91,6 +91,18 @@ check_chronyd_exit || test_fail
 check_chronyc_output "^C0A87B01,192\.168\.123\.1,2,12623049..\..........,-?0\.0000.....,-?0\.000......,0\.000......,(99|100)\....,-?[0-9]\....,[0-9]\....,0\.000......,0\.000......,[0-9]+\..,Normal$" \
 	|| test_fail
 
+chronyc_options="-c -e"
+chronyc_conf="sources"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+
+check_chronyc_output "^#,.,SHM0.*
+\^,.,192\.168\.123\.1.*
+\^,.,192\.168\.123\.2.*
+\.$" \
+	|| test_fail
+
 chronyc_options=""
 server_strata=0
 chronyc_start=0.5

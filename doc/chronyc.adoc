@@ -89,6 +89,10 @@ format. Reverse DNS lookups will be disabled, time will be printed as number of
 seconds since the epoch, and values in seconds will not be converted to other
 units.
 
+*-e*::
+With this option each *chronyc* response will end with a line containing a
+single dot.
+
 *-d*::
 This option enables printing of debugging messages if *chronyc* was compiled
 with debugging support.

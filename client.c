@@ -71,6 +71,8 @@ static int source_names = 0;
 
 static int csv_mode = 0;
 
+static int end_dot = 0;
+
 /* ================================================== */
 /* Log a message. This is a minimalistic replacement of the logging.c
    implementation to avoid linking with it and other modules. */
@@ -3303,6 +3305,10 @@ process_line(char *line)
     ret = request_reply(&tx_message, &rx_message, RPY_NULL, 1);
   }
 
+  if (end_dot) {
+    printf(".\n");
+  }
+
   fflush(stderr);
 
   if (fflush(stdout) != 0 || ferror(stdout) != 0) {
@@ -3379,6 +3385,7 @@ print_help(const char *progname)
              "  -n\t\tDon't resolve hostnames\n"
              "  -N\t\tPrint original source names\n"
              "  -c\t\tEnable CSV format\n"
+             "  -e\t\tEnd responses with dot\n"
 #if DEBUG > 0
              "  -d\t\tEnable debug messages\n"
 #endif
@@ -3423,7 +3430,7 @@ main(int argc, char **argv)
   optind = 1;
 
   /* Parse short command-line options */
-  while ((opt = getopt(argc, argv, "+46acdf:h:mnNp:v")) != -1) {
+  while ((opt = getopt(argc, argv, "+46acdef:h:mnNp:v")) != -1) {
     switch (opt) {
       case '4':
       case '6':
@@ -3440,6 +3447,9 @@ main(int argc, char **argv)
 #if DEBUG > 0
         log_min_severity = LOGS_DEBUG;
 #endif
+        break;
+      case 'e':
+        end_dot = 1;
         break;
       case 'h':
         hostnames = optarg;
