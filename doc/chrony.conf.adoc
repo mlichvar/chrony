@@ -642,7 +642,9 @@ noise in the measurements. With each poll about 40 percent of the stored
 samples are discarded and one final sample is calculated as an average of the
 remaining samples. If the length is 4 or more, at least 4 samples have to be
 collected between polls. For lengths below 4, the filter has to be full. The
-default is 64.
+default is 64. With drivers that perform their own polling (PPS, PHC, SHM), the
+maximum value is adjusted to the number of driver polls per source poll, i.e.
+2^(_poll_ - _dpoll_).
 *prefer*:::
 Prefer this source over sources without the prefer option.
 *noselect*:::
