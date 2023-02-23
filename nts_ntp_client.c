@@ -46,6 +46,9 @@
 /* Maximum length of all cookies to avoid IP fragmentation */
 #define MAX_TOTAL_COOKIE_LENGTH (8 * 108)
 
+/* Retry interval for NTS-KE start (which doesn't generate network traffic) */
+#define RETRY_INTERVAL_KE_START 2.0
+
 /* Magic string of files containing keys and cookies */
 #define DUMP_IDENTIFIER "NNC0\n"
 
@@ -203,9 +206,14 @@ set_ntp_address(NNC_Instance inst, NTP_Remote_Address *negotiated_address)
 /* ================================================== */
 
 static void
-update_next_nke_attempt(NNC_Instance inst, double now)
+update_next_nke_attempt(NNC_Instance inst, int failed_start, double now)
 {
   int factor, interval;
+
+  if (failed_start) {
+    inst->next_nke_attempt = now + RETRY_INTERVAL_KE_START;
+    return;
+  }
 
   if (!inst->nke)
     return;
@@ -221,8 +229,8 @@ static int
 get_cookies(NNC_Instance inst)
 {
   NTP_Remote_Address ntp_address;
+  int got_data, failed_start = 0;
   double now;
-  int got_data;
 
   assert(inst->num_cookies == 0);
 
@@ -241,10 +249,10 @@ get_cookies(NNC_Instance inst)
     inst->nke_attempts++;
 
     if (!NKC_Start(inst->nke))
-      ;
+      failed_start = 1;
   }
 
-  update_next_nke_attempt(inst, now);
+  update_next_nke_attempt(inst, failed_start, now);
 
   /* Wait until the session stops */
   if (NKC_IsActive(inst->nke))
