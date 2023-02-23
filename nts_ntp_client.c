@@ -239,10 +239,9 @@ get_cookies(NNC_Instance inst)
     inst->nke = NKC_CreateInstance(&inst->nts_address, inst->name, inst->cert_set);
 
     inst->nke_attempts++;
-    update_next_nke_attempt(inst, now);
 
     if (!NKC_Start(inst->nke))
-      return 0;
+      ;
   }
 
   update_next_nke_attempt(inst, now);
