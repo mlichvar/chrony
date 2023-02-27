@@ -1311,6 +1311,8 @@ transmit_timeout(void *arg)
   if (!NAU_PrepareRequestAuth(inst->auth)) {
     SRC_UpdateReachability(inst->source, 0);
     restart_timeout(inst, get_transmit_delay(inst, 1, 0.0));
+    /* Count missing samples for the sample filter */
+    process_sample(inst, NULL);
     return;
   }
 
