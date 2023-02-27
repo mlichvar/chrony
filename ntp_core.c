@@ -1309,9 +1309,6 @@ transmit_timeout(void *arg)
 
   /* Prepare authentication */
   if (!NAU_PrepareRequestAuth(inst->auth)) {
-    if (inst->burst_total_samples_to_go > 0)
-      inst->burst_total_samples_to_go--;
-    adjust_poll(inst, 0.25);
     SRC_UpdateReachability(inst->source, 0);
     restart_timeout(inst, get_transmit_delay(inst, 1, 0.0));
     return;
