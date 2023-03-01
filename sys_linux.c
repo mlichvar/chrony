@@ -35,6 +35,7 @@
 
 #if defined(FEAT_PHC) || defined(HAVE_LINUX_TIMESTAMPING)
 #include <linux/ptp_clock.h>
+#include <poll.h>
 #endif
 
 #ifdef FEAT_SCFILTER
@@ -994,6 +995,16 @@ int
 SYS_Linux_ReadPHCExtTimestamp(int fd, struct timespec *phc_ts, int *channel)
 {
   struct ptp_extts_event extts_event;
+  struct pollfd pfd;
+
+  /* Make sure the read will not block in case we have multiple
+     descriptors of the same PHC (O_NONBLOCK does not work) */
+  pfd.fd = fd;
+  pfd.events = POLLIN;
+  if (poll(&pfd, 1, 0) != 1 || pfd.revents != POLLIN) {
+    DEBUG_LOG("Missing PHC extts event");
+    return 0;
+  }
 
   if (read(fd, &extts_event, sizeof (extts_event)) != sizeof (extts_event)) {
     DEBUG_LOG("Could not read PHC extts event");
