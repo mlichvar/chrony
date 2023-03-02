@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 . ./test.common
-test_start "SHM refclock"
+test_start "reference clocks"
 
 check_config_h 'FEAT_REFCLOCK 1' || test_skip
 check_config_h 'FEAT_PHC 1' || test_skip
