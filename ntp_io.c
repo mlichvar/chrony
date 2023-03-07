@@ -528,6 +528,8 @@ NIO_UnwrapMessage(SCK_Message *message, int sock_fd)
 static int
 wrap_message(SCK_Message *message, int sock_fd)
 {
+  static uint16_t sequence_id = 0;
+
   assert(PTP_NTP_PREFIX_LENGTH == 48);
 
   if (!is_ptp_socket(sock_fd))
@@ -548,6 +550,7 @@ wrap_message(SCK_Message *message, int sock_fd)
   ptp_message->header.length = htons(PTP_NTP_PREFIX_LENGTH + message->length);
   ptp_message->header.domain = PTP_DOMAIN_NTP;
   ptp_message->header.flags = htons(PTP_FLAG_UNICAST);
+  ptp_message->header.sequence_id = htons(sequence_id++);
   ptp_message->tlv_header.type = htons(PTP_TLV_NTP);
   ptp_message->tlv_header.length = htons(message->length);
   memcpy((char *)ptp_message + PTP_NTP_PREFIX_LENGTH, message->data, message->length);

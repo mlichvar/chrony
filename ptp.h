@@ -44,7 +44,12 @@ typedef struct {
   uint8_t domain;
   uint8_t min_sdoid;
   uint16_t flags;
-  uint8_t rest[26];
+  uint8_t correction[8];
+  uint8_t msg_specific[4];
+  uint8_t port_id[10];
+  uint16_t sequence_id;
+  uint8_t control;
+  int8_t interval;
 } PTP_Header;
 
 typedef struct {
