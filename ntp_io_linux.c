@@ -39,6 +39,7 @@
 #include "hwclock.h"
 #include "local.h"
 #include "logging.h"
+#include "memory.h"
 #include "ntp_core.h"
 #include "ntp_io.h"
 #include "ntp_io_linux.h"
@@ -87,15 +88,19 @@ static int permanent_ts_options;
 /* When sending client requests to a close and fast server, it is possible that
    a response will be received before the HW transmit timestamp of the request
    itself.  To avoid processing of the response without the HW timestamp, we
-   monitor events returned by select() and suspend reading of packets from the
-   receive queue for up to 200 microseconds.  As the requests are normally
-   separated by at least about 1 millisecond (1/8th of the minimum poll), it is
-   sufficient to monitor and suspend one socket at a time. */
-static int monitored_socket;
-static int suspended_socket;
-static SCH_TimeoutID resume_timeout_id;
+   suspend reading of packets from the receive queue until a HW transmit
+   timestamp is received from the error queue or a timeout reached. */
 
 #define RESUME_TIMEOUT 200.0e-6
+
+struct HwTsSocket {
+  int sock_fd;
+  int suspended;
+  SCH_TimeoutID timeout_id;
+};
+
+/* Array of (HwTsSocket *) indexed by the file descriptor */
+static ARR_Instance hw_ts_socks;
 
 /* Unbound socket keeping the kernel RX timestamping permanently enabled
    in order to avoid a race condition between receiving a server response
@@ -412,8 +417,7 @@ NIO_Linux_Initialise(void)
   /* Kernels before 4.7 ignore timestamping flags set in control messages */
   permanent_ts_options = !SYS_Linux_CheckKernelVersion(4, 7);
 
-  monitored_socket = INVALID_SOCK_FD;
-  suspended_socket = INVALID_SOCK_FD;
+  hw_ts_socks = ARR_CreateInstance(sizeof (struct HwTsSocket *));
   dummy_rxts_socket = INVALID_SOCK_FD;
 }
 
@@ -424,6 +428,10 @@ NIO_Linux_Finalise(void)
 {
   struct Interface *iface;
   unsigned int i;
+
+  for (i = 0; i < ARR_GetSize(hw_ts_socks); i++)
+    Free(*(struct HwTsSocket **)ARR_GetElement(hw_ts_socks, i));
+  ARR_DestroyInstance(hw_ts_socks);
 
   if (dummy_rxts_socket != INVALID_SOCK_FD)
     SCK_CloseSocket(dummy_rxts_socket);
@@ -472,26 +480,53 @@ NIO_Linux_SetTimestampSocketOptions(int sock_fd, int client_only, int *events)
 
 /* ================================================== */
 
+static struct HwTsSocket *
+get_hw_ts_socket(int sock_fd, int new)
+{
+  struct HwTsSocket *s, **sp;
+
+  if (sock_fd < 0)
+    return NULL;
+
+  while (sock_fd >= ARR_GetSize(hw_ts_socks)) {
+    if (!new)
+      return NULL;
+    s = NULL;
+    ARR_AppendElement(hw_ts_socks, &s);
+  }
+
+  sp = ARR_GetElement(hw_ts_socks, sock_fd);
+
+  if (!*sp && new) {
+    *sp = s = MallocNew(struct HwTsSocket);
+    s->sock_fd = sock_fd;
+    s->suspended = 0;
+    s->timeout_id = 0;
+  }
+
+  return *sp;
+}
+
+/* ================================================== */
+
 static void
 resume_socket(int sock_fd)
 {
-  if (monitored_socket == sock_fd)
-    monitored_socket = INVALID_SOCK_FD;
+  struct HwTsSocket *ts_sock = get_hw_ts_socket(sock_fd, 0);
 
-  if (sock_fd == INVALID_SOCK_FD || sock_fd != suspended_socket)
+  if (!ts_sock)
     return;
 
-  suspended_socket = INVALID_SOCK_FD;
+  if (ts_sock->suspended) {
+    SCH_SetFileHandlerEvent(ts_sock->sock_fd, SCH_FILE_INPUT, 1);
 
-  SCH_SetFileHandlerEvent(sock_fd, SCH_FILE_INPUT, 1);
-
-  DEBUG_LOG("Resumed RX processing %s timeout fd=%d",
-            resume_timeout_id ? "before" : "on", sock_fd);
-
-  if (resume_timeout_id) {
-    SCH_RemoveTimeout(resume_timeout_id);
-    resume_timeout_id = 0;
+    DEBUG_LOG("Resumed RX processing %s timeout fd=%d",
+              ts_sock->timeout_id ? "before" : "on", ts_sock->sock_fd);
   }
+
+  ts_sock->suspended = 0;
+  SCH_RemoveTimeout(ts_sock->timeout_id);
+  ts_sock->timeout_id = 0;
 }
 
 /* ================================================== */
@@ -499,8 +534,10 @@ resume_socket(int sock_fd)
 static void
 resume_timeout(void *arg)
 {
-  resume_timeout_id = 0;
-  resume_socket(suspended_socket);
+  struct HwTsSocket *ts_sock = arg;
+
+  ts_sock->timeout_id = 0;
+  resume_socket(ts_sock->sock_fd);
 }
 
 /* ================================================== */
@@ -508,33 +545,19 @@ resume_timeout(void *arg)
 static void
 suspend_socket(int sock_fd)
 {
-  resume_socket(suspended_socket);
+  struct HwTsSocket *ts_sock = get_hw_ts_socket(sock_fd, 1);
 
-  suspended_socket = sock_fd;
+  if (!ts_sock)
+    return;
 
-  SCH_SetFileHandlerEvent(suspended_socket, SCH_FILE_INPUT, 0);
-  resume_timeout_id = SCH_AddTimeoutByDelay(RESUME_TIMEOUT, resume_timeout, NULL);
+  /* Remove previous timeout if there is one */
+  SCH_RemoveTimeout(ts_sock->timeout_id);
 
-  DEBUG_LOG("Suspended RX processing fd=%d", sock_fd);
-}
+  ts_sock->suspended = 1;
+  ts_sock->timeout_id = SCH_AddTimeoutByDelay(RESUME_TIMEOUT, resume_timeout, ts_sock);
+  SCH_SetFileHandlerEvent(ts_sock->sock_fd, SCH_FILE_INPUT, 0);
 
-/* ================================================== */
-
-int
-NIO_Linux_ProcessEvent(int sock_fd, int event)
-{
-  if (sock_fd != monitored_socket)
-    return 0;
-
-  if (event == SCH_FILE_INPUT) {
-    suspend_socket(monitored_socket);
-    monitored_socket = INVALID_SOCK_FD;
-
-    /* Don't process the message yet */
-    return 1;
-  }
-
-  return 0;
+  DEBUG_LOG("Suspended RX processing fd=%d", ts_sock->sock_fd);
 }
 
 /* ================================================== */
@@ -825,11 +848,11 @@ NIO_Linux_RequestTxTimestamp(SCK_Message *message, int sock_fd)
   if (!ts_flags)
     return;
 
-  /* If a HW transmit timestamp is requested on a client socket, monitor
-     events on the socket in order to avoid processing of a fast response
-     without the HW timestamp of the request */
+  /* If a HW transmit timestamp is requested on a client-only socket,
+     suspend reading from it to avoid processing a response before the
+     HW timestamp of the request is received */
   if (ts_tx_flags & SOF_TIMESTAMPING_TX_HARDWARE && !NIO_IsServerSocket(sock_fd))
-    monitored_socket = sock_fd;
+    suspend_socket(sock_fd);
 
   /* Check if TX timestamping is disabled on this socket */
   if (permanent_ts_options || !NIO_IsServerSocket(sock_fd))

@@ -467,11 +467,6 @@ read_from_socket(int sock_fd, int event, void *anything)
   SCK_Message *messages;
   int i, received, flags = 0;
 
-#ifdef HAVE_LINUX_TIMESTAMPING
-  if (NIO_Linux_ProcessEvent(sock_fd, event))
-    return;
-#endif
-
   if (event == SCH_FILE_EXCEPTION) {
 #ifdef HAVE_LINUX_TIMESTAMPING
     flags |= SCK_FLAG_MSG_ERRQUEUE;

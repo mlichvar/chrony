@@ -35,8 +35,6 @@ extern void NIO_Linux_Finalise(void);
 
 extern int NIO_Linux_SetTimestampSocketOptions(int sock_fd, int client_only, int *events);
 
-extern int NIO_Linux_ProcessEvent(int sock_fd, int event);
-
 extern int NIO_Linux_ProcessMessage(SCK_Message *message, NTP_Local_Address *local_addr,
                                     NTP_Local_Timestamp *local_ts, int event);
 
