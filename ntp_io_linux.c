@@ -91,7 +91,7 @@ static int permanent_ts_options;
    suspend reading of packets from the receive queue until a HW transmit
    timestamp is received from the error queue or a timeout reached. */
 
-#define RESUME_TIMEOUT 200.0e-6
+#define RESUME_TIMEOUT 0.001
 
 struct HwTsSocket {
   int sock_fd;
