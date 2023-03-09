@@ -154,6 +154,7 @@ typedef struct {
 } CNF_HwTsInterface;
 
 extern int CNF_GetHwTsInterface(unsigned int index, CNF_HwTsInterface **iface);
+extern double CNF_GetHwTsTimeout(void);
 
 extern int CNF_GetPtpPort(void);
 

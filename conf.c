@@ -274,6 +274,9 @@ static int no_system_cert = 0;
 /* Array of CNF_HwTsInterface */
 static ARR_Instance hwts_interfaces;
 
+/* Timeout for resuming reading from sockets waiting for HW TX timestamp */
+static double hwts_timeout = 0.001;
+
 /* PTP event port (disabled by default) */
 static int ptp_port = 0;
 
@@ -602,6 +605,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_string(p, &hwclock_file);
   } else if (!strcasecmp(command, "hwtimestamp")) {
     parse_hwtimestamp(p);
+  } else if (!strcasecmp(command, "hwtstimeout")) {
+    parse_double(p, &hwts_timeout);
   } else if (!strcasecmp(command, "include")) {
     parse_include(p);
   } else if (!strcasecmp(command, "initstepslew")) {
@@ -2501,6 +2506,14 @@ CNF_GetHwTsInterface(unsigned int index, CNF_HwTsInterface **iface)
 
   *iface = (CNF_HwTsInterface *)ARR_GetElement(hwts_interfaces, index);
   return 1;
+}
+
+/* ================================================== */
+
+double
+CNF_GetHwTsTimeout(void)
+{
+  return hwts_timeout;
 }
 
 /* ================================================== */

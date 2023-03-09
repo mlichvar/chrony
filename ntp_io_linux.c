@@ -91,8 +91,6 @@ static int permanent_ts_options;
    suspend reading of packets from the receive queue until a HW transmit
    timestamp is received from the error queue or a timeout reached. */
 
-#define RESUME_TIMEOUT 0.001
-
 struct HwTsSocket {
   int sock_fd;
   int suspended;
@@ -546,15 +544,16 @@ static void
 suspend_socket(int sock_fd)
 {
   struct HwTsSocket *ts_sock = get_hw_ts_socket(sock_fd, 1);
+  double timeout = CNF_GetHwTsTimeout();
 
-  if (!ts_sock)
+  if (!ts_sock || timeout <= 0.0)
     return;
 
   /* Remove previous timeout if there is one */
   SCH_RemoveTimeout(ts_sock->timeout_id);
 
   ts_sock->suspended = 1;
-  ts_sock->timeout_id = SCH_AddTimeoutByDelay(RESUME_TIMEOUT, resume_timeout, ts_sock);
+  ts_sock->timeout_id = SCH_AddTimeoutByDelay(timeout, resume_timeout, ts_sock);
   SCH_SetFileHandlerEvent(ts_sock->sock_fd, SCH_FILE_INPUT, 0);
 
   DEBUG_LOG("Suspended RX processing fd=%d", ts_sock->sock_fd);
