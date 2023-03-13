@@ -613,8 +613,9 @@ following questions.
 Check the `Reach` value printed by the ``chronyc``'s `sources` command. If it
 is zero, it means `chronyd` did not get any valid responses from the NTP server
 you are trying to use. If there is a firewall between you and the server, the
-packets might be blocked. Try using a tool like `wireshark` or `tcpdump` to see
-if you are getting any responses from the server.
+requests sent to the UDP port 123 of the server or responses sent back from
+the port might be blocked. Try using a tool like `wireshark` or `tcpdump` to
+see if you are getting any responses from the server.
 
 When `chronyd` is receiving responses from the servers, the output of the
 `sources` command issued few minutes after `chronyd` start might look like
