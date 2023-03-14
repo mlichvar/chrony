@@ -1430,8 +1430,8 @@ static void
 parse_hwtimestamp(char *line)
 {
   CNF_HwTsInterface *iface;
+  int n, maxpoll_set = 0;
   char *p, filter[5];
-  int n;
 
   if (!*line) {
     command_parse_error();
@@ -1461,6 +1461,10 @@ parse_hwtimestamp(char *line)
     } else if (!strcasecmp(p, "minpoll")) {
       if (sscanf(line, "%d%n", &iface->minpoll, &n) != 1)
         break;
+    } else if (!strcasecmp(p, "maxpoll")) {
+      if (sscanf(line, "%d%n", &iface->maxpoll, &n) != 1)
+        break;
+      maxpoll_set = 1;
     } else if (!strcasecmp(p, "minsamples")) {
       if (sscanf(line, "%d%n", &iface->min_samples, &n) != 1)
         break;
@@ -1496,6 +1500,9 @@ parse_hwtimestamp(char *line)
 
   if (*p)
     command_parse_error();
+
+  if (!maxpoll_set)
+    iface->maxpoll = iface->minpoll + 1;
 }
 
 /* ================================================== */

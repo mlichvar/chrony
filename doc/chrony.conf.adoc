@@ -2549,10 +2549,15 @@ The *hwtimestamp* directive has the following options:
 +
 *minpoll* _poll_:::
 This option specifies the minimum interval between readings of the NIC clock.
-It's defined as a power of two. It should correspond to the minimum polling
+It's defined as a power of 2. It should correspond to the minimum polling
 interval of all NTP sources and the minimum expected polling interval of NTP
-clients. The default value is 0 (1 second) and the minimum value is -6 (1/64th
-of a second).
+clients. The default value is 0 (1 second), the minimum value is -6 (1/64th
+of a second), and the maximum value is 20 (about 12 days).
+*maxpoll* _poll_:::
+This option specifies the maximum interval between readings of the NIC clock,
+as a power of 2. The default value is *minpoll* + 1, i.e. 1 (2 seconds) with
+the default *minpoll* of 0. The minimum and maximum values are the same as with
+the *minpoll* option.
 *minsamples* _samples_:::
 This option specifies the minimum number of readings kept for tracking of the
 NIC clock. The default value is 2.

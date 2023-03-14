@@ -144,6 +144,7 @@ typedef enum {
 typedef struct {
   char *name;
   int minpoll;
+  int maxpoll;
   int min_samples;
   int max_samples;
   int nocrossts;

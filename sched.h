@@ -37,6 +37,7 @@ typedef enum {
   SCH_NtpClientClass,
   SCH_NtpPeerClass,
   SCH_NtpBroadcastClass,
+  SCH_PhcPollClass,
   SCH_NumberOfClasses /* needs to be last */
 } SCH_TimeoutClass;
 
