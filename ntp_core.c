@@ -2500,7 +2500,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
     return;
 
   if (local_ntp_rx)
-    CLG_SaveNtpTimestamps(local_ntp_rx, tx_ts ? &tx_ts->ts : NULL);
+    CLG_SaveNtpTimestamps(local_ntp_rx, &tx_ts->ts);
 }
 
 /* ================================================== */
