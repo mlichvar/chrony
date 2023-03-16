@@ -2455,8 +2455,6 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
     /* Don't respond unless a non-zero KoD was returned */
     if (kod == 0)
       return;
-  } else if (info.auth.mode != NTP_AUTH_NONE && info.auth.mode != NTP_AUTH_MSSNTP) {
-    CLG_LogAuthNtpRequest();
   }
 
   local_ntp_rx = NULL;
@@ -2484,6 +2482,10 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
     if (interleaved)
       CLG_DisableNtpTimestamps(&ntp_rx);
   }
+
+  CLG_UpdateNtpStats(kod != 0 && info.auth.mode != NTP_AUTH_NONE &&
+                     info.auth.mode != NTP_AUTH_MSSNTP,
+                     rx_ts->source, interleaved ? tx_ts->source : NTP_TS_DAEMON);
 
   /* Suggest the client to increase its polling interval if it indicates
      the interval is shorter than the rate limiting interval */

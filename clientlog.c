@@ -165,6 +165,8 @@ static uint32_t total_drops[MAX_SERVICES];
 static uint32_t total_ntp_auth_hits;
 static uint32_t total_ntp_interleaved_hits;
 static uint32_t total_record_drops;
+static uint32_t total_ntp_rx_timestamps[MAX_NTP_TS + 1];
+static uint32_t total_ntp_tx_timestamps[MAX_NTP_TS + 1];
 
 #define NSEC_PER_SEC 1000000000U
 
@@ -643,9 +645,14 @@ CLG_LimitServiceRate(CLG_Service service, int index)
 /* ================================================== */
 
 void
-CLG_LogAuthNtpRequest(void)
+CLG_UpdateNtpStats(int auth, NTP_Timestamp_Source rx_ts_src, NTP_Timestamp_Source tx_ts_src)
 {
-  total_ntp_auth_hits++;
+  if (auth)
+    total_ntp_auth_hits++;
+  if (rx_ts_src >= 0 && rx_ts_src <= MAX_NTP_TS)
+    total_ntp_rx_timestamps[rx_ts_src]++;
+  if (tx_ts_src >= 0 && tx_ts_src <= MAX_NTP_TS)
+    total_ntp_tx_timestamps[tx_ts_src]++;
 }
 
 /* ================================================== */
@@ -1095,4 +1102,10 @@ CLG_GetServerStatsReport(RPT_ServerStatsReport *report)
   report->ntp_span_seconds = ntp_ts_map.size > 1 ?
                              (get_ntp_tss(ntp_ts_map.size - 1)->rx_ts -
                               get_ntp_tss(0)->rx_ts) >> 32 : 0;
+  report->ntp_daemon_rx_timestamps = total_ntp_rx_timestamps[NTP_TS_DAEMON];
+  report->ntp_daemon_tx_timestamps = total_ntp_tx_timestamps[NTP_TS_DAEMON];
+  report->ntp_kernel_rx_timestamps = total_ntp_rx_timestamps[NTP_TS_KERNEL];
+  report->ntp_kernel_tx_timestamps = total_ntp_tx_timestamps[NTP_TS_KERNEL];
+  report->ntp_hw_rx_timestamps = total_ntp_rx_timestamps[NTP_TS_HARDWARE];
+  report->ntp_hw_tx_timestamps = total_ntp_tx_timestamps[NTP_TS_HARDWARE];
 }

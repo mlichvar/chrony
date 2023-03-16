@@ -120,6 +120,12 @@ typedef struct {
   uint32_t ntp_interleaved_hits;
   uint32_t ntp_timestamps;
   uint32_t ntp_span_seconds;
+  uint32_t ntp_daemon_rx_timestamps;
+  uint32_t ntp_daemon_tx_timestamps;
+  uint32_t ntp_kernel_rx_timestamps;
+  uint32_t ntp_kernel_tx_timestamps;
+  uint32_t ntp_hw_rx_timestamps;
+  uint32_t ntp_hw_tx_timestamps;
 } RPT_ServerStatsReport;
 
 typedef struct {
