@@ -2477,7 +2477,8 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
     ntp_rx = message->originate_ts;
     local_ntp_rx = &ntp_rx;
     UTI_ZeroTimespec(&local_tx.ts);
-    interleaved = CLG_GetNtpTxTimestamp(&ntp_rx, &local_tx.ts);
+    local_tx.source = NTP_TS_DAEMON;
+    interleaved = CLG_GetNtpTxTimestamp(&ntp_rx, &local_tx.ts, &local_tx.source);
 
     tx_ts = &local_tx;
     if (interleaved)
@@ -2500,7 +2501,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
     return;
 
   if (local_ntp_rx)
-    CLG_SaveNtpTimestamps(local_ntp_rx, &tx_ts->ts);
+    CLG_SaveNtpTimestamps(local_ntp_rx, &tx_ts->ts, tx_ts->source);
 }
 
 /* ================================================== */
@@ -2578,7 +2579,7 @@ NCR_ProcessTxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   local_ntp_rx = &message->receive_ts;
   new_tx = *tx_ts;
 
-  if (!CLG_GetNtpTxTimestamp(local_ntp_rx, &old_tx.ts))
+  if (!CLG_GetNtpTxTimestamp(local_ntp_rx, &old_tx.ts, &old_tx.source))
     return;
 
   /* Undo a clock adjustment between the RX and TX timestamps to minimise error
@@ -2587,7 +2588,7 @@ NCR_ProcessTxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
 
   update_tx_timestamp(&old_tx, &new_tx, local_ntp_rx, NULL, message);
 
-  CLG_UpdateNtpTxTimestamp(local_ntp_rx, &new_tx.ts);
+  CLG_UpdateNtpTxTimestamp(local_ntp_rx, &new_tx.ts, new_tx.source);
 }
 
 /* ================================================== */

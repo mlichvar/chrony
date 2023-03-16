@@ -126,7 +126,8 @@ static int active;
 /* RX and TX timestamp saved for clients using interleaved mode */
 typedef struct {
   uint64_t rx_ts;
-  uint16_t flags;
+  uint8_t flags;
+  uint8_t tx_ts_source;
   uint16_t slew_epoch;
   int32_t tx_ts_offset;
 } NtpTimestamps;
@@ -154,6 +155,9 @@ static NtpTimestampMap ntp_ts_map;
 
 /* Maximum number of timestamps moved in the array to insert a new timestamp */
 #define NTPTS_INSERT_LIMIT 64
+
+/* Maximum expected value of the timestamp source */
+#define MAX_NTP_TS NTP_TS_HARDWARE
 
 /* Global statistics */
 static uint32_t total_hits[MAX_SERVICES];
@@ -773,7 +777,8 @@ push_ntp_tss(uint32_t index)
 /* ================================================== */
 
 static void
-set_ntp_tx_offset(NtpTimestamps *tss, NTP_int64 *rx_ts, struct timespec *tx_ts)
+set_ntp_tx(NtpTimestamps *tss, NTP_int64 *rx_ts, struct timespec *tx_ts,
+           NTP_Timestamp_Source tx_src)
 {
   struct timespec ts;
 
@@ -792,12 +797,13 @@ set_ntp_tx_offset(NtpTimestamps *tss, NTP_int64 *rx_ts, struct timespec *tx_ts)
 
   tss->tx_ts_offset = (int32_t)ts.tv_nsec + (int32_t)ts.tv_sec * (int32_t)NSEC_PER_SEC;
   tss->flags |= NTPTS_VALID_TX;
+  tss->tx_ts_source = tx_src;
 }
 
 /* ================================================== */
 
 static void
-get_ntp_tx(NtpTimestamps *tss, struct timespec *tx_ts)
+get_ntp_tx(NtpTimestamps *tss, struct timespec *tx_ts, NTP_Timestamp_Source *tx_src)
 {
   int32_t offset = tss->tx_ts_offset;
   NTP_int64 ntp_ts;
@@ -814,12 +820,14 @@ get_ntp_tx(NtpTimestamps *tss, struct timespec *tx_ts)
   } else {
     UTI_ZeroTimespec(tx_ts);
   }
+
+  *tx_src = tss->tx_ts_source;
 }
 
 /* ================================================== */
 
 void
-CLG_SaveNtpTimestamps(NTP_int64 *rx_ts, struct timespec *tx_ts)
+CLG_SaveNtpTimestamps(NTP_int64 *rx_ts, struct timespec *tx_ts, NTP_Timestamp_Source tx_src)
 {
   NtpTimestamps *tss;
   uint32_t i, index;
@@ -877,7 +885,7 @@ CLG_SaveNtpTimestamps(NTP_int64 *rx_ts, struct timespec *tx_ts)
   tss->rx_ts = rx;
   tss->flags = 0;
   tss->slew_epoch = ntp_ts_map.slew_epoch;
-  set_ntp_tx_offset(tss, rx_ts, tx_ts);
+  set_ntp_tx(tss, rx_ts, tx_ts, tx_src);
 
   DEBUG_LOG("Saved RX+TX index=%"PRIu32" first=%"PRIu32" size=%"PRIu32,
             index, ntp_ts_map.first, ntp_ts_map.size);
@@ -921,7 +929,8 @@ CLG_UndoNtpTxTimestampSlew(NTP_int64 *rx_ts, struct timespec *tx_ts)
 /* ================================================== */
 
 void
-CLG_UpdateNtpTxTimestamp(NTP_int64 *rx_ts, struct timespec *tx_ts)
+CLG_UpdateNtpTxTimestamp(NTP_int64 *rx_ts, struct timespec *tx_ts,
+                         NTP_Timestamp_Source tx_src)
 {
   uint32_t index;
 
@@ -931,13 +940,14 @@ CLG_UpdateNtpTxTimestamp(NTP_int64 *rx_ts, struct timespec *tx_ts)
   if (!find_ntp_rx_ts(ntp64_to_int64(rx_ts), &index))
     return;
 
-  set_ntp_tx_offset(get_ntp_tss(index), rx_ts, tx_ts);
+  set_ntp_tx(get_ntp_tss(index), rx_ts, tx_ts, tx_src);
 }
 
 /* ================================================== */
 
 int
-CLG_GetNtpTxTimestamp(NTP_int64 *rx_ts, struct timespec *tx_ts)
+CLG_GetNtpTxTimestamp(NTP_int64 *rx_ts, struct timespec *tx_ts,
+                      NTP_Timestamp_Source *tx_src)
 {
   NtpTimestamps *tss;
   uint32_t index;
@@ -953,7 +963,7 @@ CLG_GetNtpTxTimestamp(NTP_int64 *rx_ts, struct timespec *tx_ts)
   if (tss->flags & NTPTS_DISABLED)
     return 0;
 
-  get_ntp_tx(tss, tx_ts);
+  get_ntp_tx(tss, tx_ts, tx_src);
 
   return 1;
 }

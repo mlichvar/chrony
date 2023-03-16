@@ -36,6 +36,7 @@ test_unit(void)
 {
   uint64_t ts64, prev_first_ts64, prev_last_ts64, max_step;
   uint32_t index2, prev_first, prev_size;
+  NTP_Timestamp_Source ts_src, ts_src2;
   struct timespec ts, ts2;
   int i, j, k, index, shift;
   CLG_Service s;
@@ -95,7 +96,7 @@ test_unit(void)
   TEST_CHECK(!ntp_ts_map.timestamps);
 
   UTI_ZeroNtp64(&ntp_ts);
-  CLG_SaveNtpTimestamps(&ntp_ts, NULL);
+  CLG_SaveNtpTimestamps(&ntp_ts, NULL, 0);
   TEST_CHECK(ntp_ts_map.timestamps);
   TEST_CHECK(ntp_ts_map.first == 0);
   TEST_CHECK(ntp_ts_map.size == 0);
@@ -132,8 +133,10 @@ test_unit(void)
         UTI_ZeroTimespec(&ts);
       }
 
+      ts_src = random() % (MAX_NTP_TS + 1);
       CLG_SaveNtpTimestamps(&ntp_ts,
-                            UTI_IsZeroTimespec(&ts) ? (random() % 2 ? &ts : NULL) : &ts);
+                            UTI_IsZeroTimespec(&ts) ? (random() % 2 ? &ts : NULL) : &ts,
+                            ts_src);
 
       if (j < ntp_ts_map.max_size) {
         TEST_CHECK(ntp_ts_map.size == j + 1);
@@ -144,14 +147,15 @@ test_unit(void)
       }
       TEST_CHECK(ntp_ts_map.cached_index == ntp_ts_map.size - 1);
       TEST_CHECK(get_ntp_tss(ntp_ts_map.size - 1)->slew_epoch == ntp_ts_map.slew_epoch);
-      TEST_CHECK(CLG_GetNtpTxTimestamp(&ntp_ts, &ts2));
+      TEST_CHECK(CLG_GetNtpTxTimestamp(&ntp_ts, &ts2, &ts_src2));
       TEST_CHECK(UTI_CompareTimespecs(&ts, &ts2) == 0);
+      TEST_CHECK(UTI_IsZeroTimespec(&ts) || ts_src == ts_src2);
 
       for (k = random() % 4; k > 0; k--) {
         index2 = random() % ntp_ts_map.size;
         int64_to_ntp64(get_ntp_tss(index2)->rx_ts, &ntp_ts);
         if (random() % 2)
-          TEST_CHECK(CLG_GetNtpTxTimestamp(&ntp_ts, &ts));
+          TEST_CHECK(CLG_GetNtpTxTimestamp(&ntp_ts, &ts, &ts_src2));
 
         UTI_Ntp64ToTimespec(&ntp_ts, &ts);
         UTI_AddDoubleToTimespec(&ts, TST_GetRandomDouble(-1.999, 1.999), &ts);
@@ -165,10 +169,12 @@ test_unit(void)
                      1.0e-9);
         }
 
-        CLG_UpdateNtpTxTimestamp(&ntp_ts, &ts);
+        ts_src = random() % (MAX_NTP_TS + 1);
+        CLG_UpdateNtpTxTimestamp(&ntp_ts, &ts, ts_src);
 
-        TEST_CHECK(CLG_GetNtpTxTimestamp(&ntp_ts, &ts2));
+        TEST_CHECK(CLG_GetNtpTxTimestamp(&ntp_ts, &ts2, &ts_src2));
         TEST_CHECK(UTI_CompareTimespecs(&ts, &ts2) == 0);
+        TEST_CHECK(ts_src == ts_src2);
 
         if (random() % 2) {
           uint16_t prev_epoch = ntp_ts_map.slew_epoch;
@@ -181,20 +187,20 @@ test_unit(void)
           index = random() % (ntp_ts_map.size - 1);
           if (get_ntp_tss(index)->rx_ts + 1 != get_ntp_tss(index + 1)->rx_ts) {
             int64_to_ntp64(get_ntp_tss(index)->rx_ts + 1, &ntp_ts);
-            TEST_CHECK(!CLG_GetNtpTxTimestamp(&ntp_ts, &ts));
+            TEST_CHECK(!CLG_GetNtpTxTimestamp(&ntp_ts, &ts, &ts_src2));
             int64_to_ntp64(get_ntp_tss(index + 1)->rx_ts - 1, &ntp_ts);
-            TEST_CHECK(!CLG_GetNtpTxTimestamp(&ntp_ts, &ts));
-            CLG_UpdateNtpTxTimestamp(&ntp_ts, &ts);
+            TEST_CHECK(!CLG_GetNtpTxTimestamp(&ntp_ts, &ts, &ts_src2));
+            CLG_UpdateNtpTxTimestamp(&ntp_ts, &ts, ts_src);
             CLG_UndoNtpTxTimestampSlew(&ntp_ts, &ts);
           }
         }
 
         if (random() % 2) {
           int64_to_ntp64(get_ntp_tss(0)->rx_ts - 1, &ntp_ts);
-          TEST_CHECK(!CLG_GetNtpTxTimestamp(&ntp_ts, &ts));
+          TEST_CHECK(!CLG_GetNtpTxTimestamp(&ntp_ts, &ts, &ts_src2));
           int64_to_ntp64(get_ntp_tss(ntp_ts_map.size - 1)->rx_ts + 1, &ntp_ts);
-          TEST_CHECK(!CLG_GetNtpTxTimestamp(&ntp_ts, &ts));
-          CLG_UpdateNtpTxTimestamp(&ntp_ts, &ts);
+          TEST_CHECK(!CLG_GetNtpTxTimestamp(&ntp_ts, &ts, &ts_src2));
+          CLG_UpdateNtpTxTimestamp(&ntp_ts, &ts, ts_src);
           CLG_UndoNtpTxTimestampSlew(&ntp_ts, &ts);
         }
       }
@@ -207,7 +213,7 @@ test_unit(void)
         while (ntp_ts_map.size < ntp_ts_map.max_size) {
           ts64 += get_random64() >> (shift + 8);
           int64_to_ntp64(ts64, &ntp_ts);
-          CLG_SaveNtpTimestamps(&ntp_ts, NULL);
+          CLG_SaveNtpTimestamps(&ntp_ts, NULL, 0);
           if (ntp_ts_map.cached_index + NTPTS_INSERT_LIMIT < ntp_ts_map.size)
             ts64 = get_ntp_tss(ntp_ts_map.size - 1)->rx_ts;
         }
@@ -228,7 +234,7 @@ test_unit(void)
       prev_size = ntp_ts_map.size;
       prev_first_ts64 = get_ntp_tss(0)->rx_ts;
       prev_last_ts64 = get_ntp_tss(prev_size - 1)->rx_ts;
-      CLG_SaveNtpTimestamps(&ntp_ts, NULL);
+      CLG_SaveNtpTimestamps(&ntp_ts, NULL, 0);
 
       TEST_CHECK(find_ntp_rx_ts(ts64, &index2));
 
@@ -259,13 +265,13 @@ test_unit(void)
 
       if (random() % 10 == 0) {
         CLG_DisableNtpTimestamps(&ntp_ts);
-        TEST_CHECK(!CLG_GetNtpTxTimestamp(&ntp_ts, &ts));
+        TEST_CHECK(!CLG_GetNtpTxTimestamp(&ntp_ts, &ts, &ts_src2));
       }
 
       for (k = random() % 10; k > 0; k--) {
         ts64 = get_random64() >> shift;
         int64_to_ntp64(ts64, &ntp_ts);
-        CLG_GetNtpTxTimestamp(&ntp_ts, &ts);
+        CLG_GetNtpTxTimestamp(&ntp_ts, &ts, &ts_src2);
       }
     }
 
@@ -274,8 +280,8 @@ test_unit(void)
                   LCL_ChangeUnknownStep, NULL);
       TEST_CHECK(ntp_ts_map.size == 0);
       TEST_CHECK(ntp_ts_map.cached_rx_ts == 0ULL);
-      TEST_CHECK(!CLG_GetNtpTxTimestamp(&ntp_ts, &ts));
-      CLG_UpdateNtpTxTimestamp(&ntp_ts, &ts);
+      TEST_CHECK(!CLG_GetNtpTxTimestamp(&ntp_ts, &ts, &ts_src2));
+      CLG_UpdateNtpTxTimestamp(&ntp_ts, &ts, ts_src);
     }
   }
 

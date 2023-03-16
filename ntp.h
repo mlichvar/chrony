@@ -179,4 +179,11 @@ typedef struct {
   double root_dispersion;
 } NTP_Sample;
 
+/* Possible sources of timestamps */
+typedef enum {
+  NTP_TS_DAEMON = 0,
+  NTP_TS_KERNEL,
+  NTP_TS_HARDWARE
+} NTP_Timestamp_Source;
+
 #endif /* GOT_NTP_H */

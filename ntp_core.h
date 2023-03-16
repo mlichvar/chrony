@@ -38,12 +38,6 @@ typedef enum {
   NTP_SERVER, NTP_PEER
 } NTP_Source_Type;
 
-typedef enum {
-  NTP_TS_DAEMON = 0,
-  NTP_TS_KERNEL,
-  NTP_TS_HARDWARE
-} NTP_Timestamp_Source;
-
 typedef struct {
   struct timespec ts;
   double err;
