@@ -2536,10 +2536,13 @@ physical clock created by writing to _/sys/class/ptp/ptpX/n_vclocks_. This
 feature is available on Linux 5.14 and newer.
 +
 If the kernel supports software timestamping, it will be enabled for all
-interfaces. The source of timestamps (i.e. hardware, kernel, or daemon) is
-indicated in the _measurements.log_ file if enabled by the <<log,*log
-measurements*>> directive, and the <<chronyc.adoc#ntpdata,*ntpdata*>> report in
-*chronyc*.
+interfaces automatically.
++
+The source of timestamps (i.e. hardware, kernel, or daemon) is indicated on the
+client side in the _measurements.log_ file (if enabled by the <<log,*log*>>
+directive) and the <<chronyc.adoc#ntpdata,*ntpdata*>> report. On the server
+side, the number of served timestamps from each source is provided in the
+<<chronyc.adoc#serverstats,*serverstats*>> report.
 +
 This directive can be used multiple times to enable HW timestamping on multiple
 interfaces. If the specified interface is _*_, *chronyd* will try to enable HW

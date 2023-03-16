@@ -115,7 +115,13 @@ NTS-KE connections dropped : 0
 Authenticated NTP packets  : 0
 Interleaved NTP packets    : 0
 NTP timestamps held        : 0
-NTP timestamp span         : 0$"|| test_fail
+NTP timestamp span         : 0
+NTP daemon RX timestamps   : 0
+NTP daemon TX timestamps   : [0-9]+
+NTP kernel RX timestamps   : [0-9]+
+NTP kernel TX timestamps   : 0
+NTP hardware RX timestamps : 0
+NTP hardware TX timestamps : 0$"|| test_fail
 
 run_chronyc "manual on" || test_fail
 check_chronyc_output "^200 OK$" || test_fail

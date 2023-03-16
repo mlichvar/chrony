@@ -2478,7 +2478,7 @@ process_cmd_serverstats(char *line)
   CMD_Reply reply;
 
   request.command = htons(REQ_SERVER_STATS);
-  if (!request_reply(&request, &reply, RPY_SERVER_STATS3, 0))
+  if (!request_reply(&request, &reply, RPY_SERVER_STATS4, 0))
     return 0;
 
   print_report("NTP packets received       : %U\n"
@@ -2491,7 +2491,13 @@ process_cmd_serverstats(char *line)
                "Authenticated NTP packets  : %U\n"
                "Interleaved NTP packets    : %U\n"
                "NTP timestamps held        : %U\n"
-               "NTP timestamp span         : %U\n",
+               "NTP timestamp span         : %U\n"
+               "NTP daemon RX timestamps   : %U\n"
+               "NTP daemon TX timestamps   : %U\n"
+               "NTP kernel RX timestamps   : %U\n"
+               "NTP kernel TX timestamps   : %U\n"
+               "NTP hardware RX timestamps : %U\n"
+               "NTP hardware TX timestamps : %U\n",
                (unsigned long)ntohl(reply.data.server_stats.ntp_hits),
                (unsigned long)ntohl(reply.data.server_stats.ntp_drops),
                (unsigned long)ntohl(reply.data.server_stats.cmd_hits),
@@ -2503,6 +2509,12 @@ process_cmd_serverstats(char *line)
                (unsigned long)ntohl(reply.data.server_stats.ntp_interleaved_hits),
                (unsigned long)ntohl(reply.data.server_stats.ntp_timestamps),
                (unsigned long)ntohl(reply.data.server_stats.ntp_span_seconds),
+               (unsigned long)ntohl(reply.data.server_stats.ntp_daemon_rx_timestamps),
+               (unsigned long)ntohl(reply.data.server_stats.ntp_daemon_tx_timestamps),
+               (unsigned long)ntohl(reply.data.server_stats.ntp_kernel_rx_timestamps),
+               (unsigned long)ntohl(reply.data.server_stats.ntp_kernel_tx_timestamps),
+               (unsigned long)ntohl(reply.data.server_stats.ntp_hw_rx_timestamps),
+               (unsigned long)ntohl(reply.data.server_stats.ntp_hw_tx_timestamps),
                REPORT_END);
 
   return 1;

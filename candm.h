@@ -530,7 +530,8 @@ typedef struct {
 #define RPY_SERVER_STATS2 22
 #define RPY_SELECT_DATA 23
 #define RPY_SERVER_STATS3 24
-#define N_REPLY_TYPES 25
+#define RPY_SERVER_STATS4 25
+#define N_REPLY_TYPES 26
 
 /* Status codes */
 #define STT_SUCCESS 0
@@ -676,6 +677,13 @@ typedef struct {
   uint32_t ntp_interleaved_hits;
   uint32_t ntp_timestamps;
   uint32_t ntp_span_seconds;
+  uint32_t ntp_daemon_rx_timestamps;
+  uint32_t ntp_daemon_tx_timestamps;
+  uint32_t ntp_kernel_rx_timestamps;
+  uint32_t ntp_kernel_tx_timestamps;
+  uint32_t ntp_hw_rx_timestamps;
+  uint32_t ntp_hw_tx_timestamps;
+  uint32_t reserved[4];
   int32_t EOR;
 } RPY_ServerStats;
 

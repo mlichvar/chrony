@@ -1158,6 +1158,12 @@ Authenticated NTP packets  : 189
 Interleaved NTP packets    : 43
 NTP timestamps held        : 44
 NTP timestamp span         : 120
+NTP daemon RX timestamps   : 0
+NTP daemon TX timestamps   : 1537
+NTP kernel RX timestamps   : 1590
+NTP kernel TX timestamps   : 43
+NTP hardware RX timestamps : 0
+NTP hardware TX timestamps : 0
 ----
 +
 The fields have the following meaning:
@@ -1192,6 +1198,24 @@ The number of pairs of receive and transmit timestamps that the server is
 currently holding in memory for clients using the interleaved mode.
 *NTP timestamp span*:::
 The interval (in seconds) covered by the currently held NTP timestamps.
+*NTP daemon RX timestamps*:::
+The number of NTP responses which included a receive timestamp captured by the
+daemon.
+*NTP daemon TX timestamps*:::
+The number of NTP responses which included a transmit timestamp captured by the
+daemon.
+*NTP kernel RX timestamps*:::
+The number of NTP responses which included a receive timestamp captured by the
+kernel.
+*NTP kernel TX timestamps*:::
+The number of NTP responses (in the interleaved mode) which included a transmit
+timestamp captured by the kernel.
+*NTP hardware RX timestamps*:::
+The number of NTP responses which included a receive timestamp captured by the
+NIC.
+*NTP hardware TX timestamps*:::
+The number of NTP responses (in the interleaved mode) which included a transmit
+timestamp captured by the NIC.
 {blank}::
 +
 Note that the numbers reported by this command overflow to zero after

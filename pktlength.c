@@ -157,7 +157,8 @@ static const uint16_t reply_lengths[] = {
   RPY_LENGTH_ENTRY(client_accesses_by_index),   /* CLIENT_ACCESSES_BY_INDEX3 */
   0,                                            /* SERVER_STATS2 - not supported */
   RPY_LENGTH_ENTRY(select_data),                /* SELECT_DATA */
-  RPY_LENGTH_ENTRY(server_stats),               /* SERVER_STATS3 */
+  0,                                            /* SERVER_STATS3 - not supported */
+  RPY_LENGTH_ENTRY(server_stats),               /* SERVER_STATS4 */
 };
 
 /* ================================================== */

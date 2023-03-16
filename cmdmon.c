@@ -1177,7 +1177,7 @@ handle_server_stats(CMD_Request *rx_message, CMD_Reply *tx_message)
   RPT_ServerStatsReport report;
 
   CLG_GetServerStatsReport(&report);
-  tx_message->reply = htons(RPY_SERVER_STATS3);
+  tx_message->reply = htons(RPY_SERVER_STATS4);
   tx_message->data.server_stats.ntp_hits = htonl(report.ntp_hits);
   tx_message->data.server_stats.nke_hits = htonl(report.nke_hits);
   tx_message->data.server_stats.cmd_hits = htonl(report.cmd_hits);
@@ -1189,6 +1189,14 @@ handle_server_stats(CMD_Request *rx_message, CMD_Reply *tx_message)
   tx_message->data.server_stats.ntp_interleaved_hits = htonl(report.ntp_interleaved_hits);
   tx_message->data.server_stats.ntp_timestamps = htonl(report.ntp_timestamps);
   tx_message->data.server_stats.ntp_span_seconds = htonl(report.ntp_span_seconds);
+  tx_message->data.server_stats.ntp_daemon_rx_timestamps = htonl(report.ntp_daemon_rx_timestamps);
+  tx_message->data.server_stats.ntp_daemon_tx_timestamps = htonl(report.ntp_daemon_tx_timestamps);
+  tx_message->data.server_stats.ntp_kernel_rx_timestamps = htonl(report.ntp_kernel_rx_timestamps);
+  tx_message->data.server_stats.ntp_kernel_tx_timestamps = htonl(report.ntp_kernel_tx_timestamps);
+  tx_message->data.server_stats.ntp_hw_rx_timestamps = htonl(report.ntp_hw_rx_timestamps);
+  tx_message->data.server_stats.ntp_hw_tx_timestamps = htonl(report.ntp_hw_tx_timestamps);
+  memset(tx_message->data.server_stats.reserved, 0xff,
+         sizeof (tx_message->data.server_stats.reserved));
 }
 
 /* ================================================== */
