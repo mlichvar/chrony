@@ -2330,8 +2330,8 @@ NCR_ProcessRxKnown(NCR_Instance inst, NTP_Local_Address *local_addr,
          client mode operation.
 
          This copes with the case for an isolated network where one
-         machine is set by eye and is used as the master, with the
-         other machines pointed at it.  If the master goes down, we
+         machine is set by eye and is used as the primary server, with
+         the other machines pointed at it.  If the server goes down, we
          want to be able to reset its time at startup by relying on
          one of the secondaries to flywheel it. The behaviour coded here
          is required in the secondaries to make this possible. */

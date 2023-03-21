@@ -1326,10 +1326,9 @@ It should be noted that this is not the only means of protection against using
 unreliable estimates. At all times, *chronyd* keeps track of both the estimated
 gain or loss rate, and the error bound on the estimate. When a new estimate is
 generated following another measurement from one of the sources, a weighted
-combination algorithm is used to update the master estimate. So if *chronyd*
-has an existing highly-reliable master estimate and a new estimate is generated
-which has large error bounds, the existing master estimate will dominate in the
-new master estimate.
+combination algorithm is used to update the existing estimate. If it has
+significantly smaller error bounds than the new estimate, the existing estimate
+will dominate in the new combined value.
 
 [[maxslewrate]]*maxslewrate* _rate-in-ppm_::
 The *maxslewrate* directive sets the maximum rate at which *chronyd* is allowed
