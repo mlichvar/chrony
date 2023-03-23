@@ -40,6 +40,7 @@ test_unit(void)
   double x, y, nan, inf;
   IPAddr ip, ip2, ip3;
   IPSockAddr ip_saddr;
+  Integer64 integer64;
   Timespec tspec;
   Float f;
   int i, j, c;
@@ -564,6 +565,10 @@ test_unit(void)
   TEST_CHECK(tspec.tv_nsec == htonl(ts.tv_nsec));
   UTI_TimespecNetworkToHost(&tspec, &ts2);
   TEST_CHECK(!UTI_CompareTimespecs(&ts, &ts2));
+
+  integer64 = UTI_Integer64HostToNetwork(0x1234567890ABCDEFULL);
+  TEST_CHECK(memcmp(&integer64, "\x12\x34\x56\x78\x90\xab\xcd\xef", 8) == 0);
+  TEST_CHECK(UTI_Integer64NetworkToHost(integer64) == 0x1234567890ABCDEFULL);
 
   TEST_CHECK(UTI_CmacNameToAlgorithm("AES128") == CMC_AES128);
   TEST_CHECK(UTI_CmacNameToAlgorithm("AES256") == CMC_AES256);

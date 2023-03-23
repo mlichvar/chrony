@@ -172,6 +172,9 @@ extern double UTI_Log2ToDouble(int l);
 extern void UTI_TimespecNetworkToHost(const Timespec *src, struct timespec *dest);
 extern void UTI_TimespecHostToNetwork(const struct timespec *src, Timespec *dest);
 
+uint64_t UTI_Integer64NetworkToHost(Integer64 i);
+Integer64 UTI_Integer64HostToNetwork(uint64_t i);
+
 extern double UTI_FloatNetworkToHost(Float x);
 extern Float UTI_FloatHostToNetwork(double x);
 

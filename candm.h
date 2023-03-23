@@ -122,6 +122,12 @@ typedef struct {
 /* This is used in tv_sec_high for 32-bit timestamps */
 #define TV_NOHIGHSEC 0x7fffffff
 
+/* Structure for 64-bit integers (not requiring 64-bit alignment) */
+typedef struct {
+  uint32_t high;
+  uint32_t low;
+} Integer64;
+
 /* 32-bit floating-point format consisting of 7-bit signed exponent
    and 25-bit signed coefficient without hidden bit.
    The result is calculated as: 2^(exp - 25) * coef */

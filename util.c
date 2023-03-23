@@ -909,6 +909,25 @@ UTI_TimespecHostToNetwork(const struct timespec *src, Timespec *dest)
 
 /* ================================================== */
 
+uint64_t
+UTI_Integer64NetworkToHost(Integer64 i)
+{
+  return (uint64_t)ntohl(i.high) << 32 | ntohl(i.low);
+}
+
+/* ================================================== */
+
+Integer64
+UTI_Integer64HostToNetwork(uint64_t i)
+{
+  Integer64 r;
+  r.high = htonl(i >> 32);
+  r.low = htonl(i);
+  return r;
+}
+
+/* ================================================== */
+
 #define FLOAT_EXP_BITS 7
 #define FLOAT_EXP_MIN (-(1 << (FLOAT_EXP_BITS - 1)))
 #define FLOAT_EXP_MAX (-FLOAT_EXP_MIN - 1)
