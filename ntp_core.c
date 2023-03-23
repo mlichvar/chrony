@@ -324,7 +324,7 @@ static const char tss_chars[3] = {'D', 'K', 'H'};
 /* Forward prototypes */
 
 static void transmit_timeout(void *arg);
-static double get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx);
+static double get_transmit_delay(NCR_Instance inst, int on_tx);
 static double get_separation(int poll);
 static int parse_packet(NTP_Packet *packet, int length, NTP_PacketInfo *info);
 static void process_sample(NCR_Instance inst, NTP_Sample *sample);
@@ -490,8 +490,7 @@ restart_timeout(NCR_Instance inst, double delay)
 static void
 start_initial_timeout(NCR_Instance inst)
 {
-  double delay, last_tx;
-  struct timespec now;
+  double delay;
 
   if (!inst->tx_timeout_id) {
     /* This will be the first transmission after mode change */
@@ -504,11 +503,7 @@ start_initial_timeout(NCR_Instance inst)
      the interval between packets at least as long as the current polling
      interval */
   if (!UTI_IsZeroTimespec(&inst->local_tx.ts)) {
-    SCH_GetLastEventTime(&now, NULL, NULL);
-    last_tx = UTI_DiffTimespecsToDouble(&now, &inst->local_tx.ts);
-    if (last_tx < 0.0)
-      last_tx = 0.0;
-    delay = get_transmit_delay(inst, 0, 0.0) - last_tx;
+    delay = get_transmit_delay(inst, 0);
   } else {
     delay = 0.0;
   }
@@ -779,7 +774,7 @@ NCR_ResetPoll(NCR_Instance instance)
 
     /* The timer was set with a longer poll interval, restart it */
     if (instance->tx_timeout_id)
-      restart_timeout(instance, get_transmit_delay(instance, 0, 0.0));
+      restart_timeout(instance, get_transmit_delay(instance, 0));
   }
 }
 
@@ -900,10 +895,19 @@ get_transmit_poll(NCR_Instance inst)
 /* ================================================== */
 
 static double
-get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx)
+get_transmit_delay(NCR_Instance inst, int on_tx)
 {
   int poll_to_use, stratum_diff;
-  double delay_time;
+  double delay_time, last_tx;
+  struct timespec now;
+
+  /* Calculate the interval since last transmission if known */
+  if (!on_tx && !UTI_IsZeroTimespec(&inst->local_tx.ts)) {
+    SCH_GetLastEventTime(&now, NULL, NULL);
+    last_tx = UTI_DiffTimespecsToDouble(&now, &inst->local_tx.ts);
+  } else {
+    last_tx = 0;
+  }
 
   /* If we're in burst mode, queue for immediate dispatch.
 
@@ -943,12 +947,6 @@ get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx)
                last_tx / delay_time > PEER_SAMPLING_ADJ - 0.5))
             delay_time *= PEER_SAMPLING_ADJ;
 
-          /* Substract the already spend time */
-          if (last_tx > 0.0)
-            delay_time -= last_tx;
-          if (delay_time < 0.0)
-            delay_time = 0.0;
-
           break;
         default:
           assert(0);
@@ -965,6 +963,12 @@ get_transmit_delay(NCR_Instance inst, int on_tx, double last_tx)
       assert(0);
       break;
   }
+
+  /* Subtract elapsed time */
+  if (last_tx > 0.0)
+    delay_time -= last_tx;
+  if (delay_time < 0.0)
+    delay_time = 0.0;
 
   return delay_time;
 }
@@ -1310,7 +1314,7 @@ transmit_timeout(void *arg)
   /* Prepare authentication */
   if (!NAU_PrepareRequestAuth(inst->auth)) {
     SRC_UpdateReachability(inst->source, 0);
-    restart_timeout(inst, get_transmit_delay(inst, 1, 0.0));
+    restart_timeout(inst, get_transmit_delay(inst, 1));
     /* Count missing samples for the sample filter */
     process_sample(inst, NULL);
     return;
@@ -1415,7 +1419,7 @@ transmit_timeout(void *arg)
   }
 
   /* Restart timer for this message */
-  restart_timeout(inst, get_transmit_delay(inst, 1, 0.0));
+  restart_timeout(inst, get_transmit_delay(inst, 1));
 
   /* If a client packet was just sent, schedule a timeout to close the socket
      at the time when all server replies would fail the delay test, so the
@@ -2169,8 +2173,7 @@ process_response(NCR_Instance inst, NTP_Local_Address *local_addr,
 
     /* And now, requeue the timer */
     if (inst->opmode != MD_OFFLINE) {
-      delay_time = get_transmit_delay(inst, 0,
-                     UTI_DiffTimespecsToDouble(&inst->local_rx.ts, &inst->local_tx.ts));
+      delay_time = get_transmit_delay(inst, 0);
 
       if (kod_rate) {
         LOG(LOGS_WARN, "Received KoD RATE from %s",
