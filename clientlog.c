@@ -160,13 +160,13 @@ static NtpTimestampMap ntp_ts_map;
 #define MAX_NTP_TS NTP_TS_HARDWARE
 
 /* Global statistics */
-static uint32_t total_hits[MAX_SERVICES];
-static uint32_t total_drops[MAX_SERVICES];
-static uint32_t total_ntp_auth_hits;
-static uint32_t total_ntp_interleaved_hits;
-static uint32_t total_record_drops;
-static uint32_t total_ntp_rx_timestamps[MAX_NTP_TS + 1];
-static uint32_t total_ntp_tx_timestamps[MAX_NTP_TS + 1];
+static uint64_t total_hits[MAX_SERVICES];
+static uint64_t total_drops[MAX_SERVICES];
+static uint64_t total_ntp_auth_hits;
+static uint64_t total_ntp_interleaved_hits;
+static uint64_t total_record_drops;
+static uint64_t total_ntp_rx_timestamps[MAX_NTP_TS + 1];
+static uint64_t total_ntp_tx_timestamps[MAX_NTP_TS + 1];
 
 #define NSEC_PER_SEC 1000000000U
 
