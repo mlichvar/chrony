@@ -1178,23 +1178,33 @@ handle_server_stats(CMD_Request *rx_message, CMD_Reply *tx_message)
 
   CLG_GetServerStatsReport(&report);
   tx_message->reply = htons(RPY_SERVER_STATS4);
-  tx_message->data.server_stats.ntp_hits = htonl(report.ntp_hits);
-  tx_message->data.server_stats.nke_hits = htonl(report.nke_hits);
-  tx_message->data.server_stats.cmd_hits = htonl(report.cmd_hits);
-  tx_message->data.server_stats.ntp_drops = htonl(report.ntp_drops);
-  tx_message->data.server_stats.nke_drops = htonl(report.nke_drops);
-  tx_message->data.server_stats.cmd_drops = htonl(report.cmd_drops);
-  tx_message->data.server_stats.log_drops = htonl(report.log_drops);
-  tx_message->data.server_stats.ntp_auth_hits = htonl(report.ntp_auth_hits);
-  tx_message->data.server_stats.ntp_interleaved_hits = htonl(report.ntp_interleaved_hits);
-  tx_message->data.server_stats.ntp_timestamps = htonl(report.ntp_timestamps);
-  tx_message->data.server_stats.ntp_span_seconds = htonl(report.ntp_span_seconds);
-  tx_message->data.server_stats.ntp_daemon_rx_timestamps = htonl(report.ntp_daemon_rx_timestamps);
-  tx_message->data.server_stats.ntp_daemon_tx_timestamps = htonl(report.ntp_daemon_tx_timestamps);
-  tx_message->data.server_stats.ntp_kernel_rx_timestamps = htonl(report.ntp_kernel_rx_timestamps);
-  tx_message->data.server_stats.ntp_kernel_tx_timestamps = htonl(report.ntp_kernel_tx_timestamps);
-  tx_message->data.server_stats.ntp_hw_rx_timestamps = htonl(report.ntp_hw_rx_timestamps);
-  tx_message->data.server_stats.ntp_hw_tx_timestamps = htonl(report.ntp_hw_tx_timestamps);
+  tx_message->data.server_stats.ntp_hits = UTI_Integer64HostToNetwork(report.ntp_hits);
+  tx_message->data.server_stats.nke_hits = UTI_Integer64HostToNetwork(report.nke_hits);
+  tx_message->data.server_stats.cmd_hits = UTI_Integer64HostToNetwork(report.cmd_hits);
+  tx_message->data.server_stats.ntp_drops = UTI_Integer64HostToNetwork(report.ntp_drops);
+  tx_message->data.server_stats.nke_drops = UTI_Integer64HostToNetwork(report.nke_drops);
+  tx_message->data.server_stats.cmd_drops = UTI_Integer64HostToNetwork(report.cmd_drops);
+  tx_message->data.server_stats.log_drops = UTI_Integer64HostToNetwork(report.log_drops);
+  tx_message->data.server_stats.ntp_auth_hits =
+    UTI_Integer64HostToNetwork(report.ntp_auth_hits);
+  tx_message->data.server_stats.ntp_interleaved_hits =
+    UTI_Integer64HostToNetwork(report.ntp_interleaved_hits);
+  tx_message->data.server_stats.ntp_timestamps =
+    UTI_Integer64HostToNetwork(report.ntp_timestamps);
+  tx_message->data.server_stats.ntp_span_seconds =
+    UTI_Integer64HostToNetwork(report.ntp_span_seconds);
+  tx_message->data.server_stats.ntp_daemon_rx_timestamps =
+    UTI_Integer64HostToNetwork(report.ntp_daemon_rx_timestamps);
+  tx_message->data.server_stats.ntp_daemon_tx_timestamps =
+    UTI_Integer64HostToNetwork(report.ntp_daemon_tx_timestamps);
+  tx_message->data.server_stats.ntp_kernel_rx_timestamps =
+    UTI_Integer64HostToNetwork(report.ntp_kernel_rx_timestamps);
+  tx_message->data.server_stats.ntp_kernel_tx_timestamps =
+    UTI_Integer64HostToNetwork(report.ntp_kernel_tx_timestamps);
+  tx_message->data.server_stats.ntp_hw_rx_timestamps =
+    UTI_Integer64HostToNetwork(report.ntp_hw_rx_timestamps);
+  tx_message->data.server_stats.ntp_hw_tx_timestamps =
+    UTI_Integer64HostToNetwork(report.ntp_hw_tx_timestamps);
   memset(tx_message->data.server_stats.reserved, 0xff,
          sizeof (tx_message->data.server_stats.reserved));
 }

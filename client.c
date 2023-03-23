@@ -1623,6 +1623,7 @@ print_report(const char *format, ...)
   const char *string;
   unsigned long long_uinteger;
   unsigned int uinteger;
+  uint64_t uinteger64;
   int integer;
   struct timespec *ts;
   struct tm *tm;
@@ -1814,6 +1815,10 @@ print_report(const char *format, ...)
       case 'V': /* timespec as seconds since epoch */
         ts = va_arg(ap, struct timespec *);
         printf("%s", UTI_TimespecToString(ts));
+        break;
+      case 'Q': /* uint64_t in decimal */
+        uinteger64 = va_arg(ap, uint64_t);
+        printf("%*"PRIu64, width, uinteger64);
         break;
       case 'b': /* unsigned int in binary */
         uinteger = va_arg(ap, unsigned int);
@@ -2481,40 +2486,40 @@ process_cmd_serverstats(char *line)
   if (!request_reply(&request, &reply, RPY_SERVER_STATS4, 0))
     return 0;
 
-  print_report("NTP packets received       : %U\n"
-               "NTP packets dropped        : %U\n"
-               "Command packets received   : %U\n"
-               "Command packets dropped    : %U\n"
-               "Client log records dropped : %U\n"
-               "NTS-KE connections accepted: %U\n"
-               "NTS-KE connections dropped : %U\n"
-               "Authenticated NTP packets  : %U\n"
-               "Interleaved NTP packets    : %U\n"
-               "NTP timestamps held        : %U\n"
-               "NTP timestamp span         : %U\n"
-               "NTP daemon RX timestamps   : %U\n"
-               "NTP daemon TX timestamps   : %U\n"
-               "NTP kernel RX timestamps   : %U\n"
-               "NTP kernel TX timestamps   : %U\n"
-               "NTP hardware RX timestamps : %U\n"
-               "NTP hardware TX timestamps : %U\n",
-               (unsigned long)ntohl(reply.data.server_stats.ntp_hits),
-               (unsigned long)ntohl(reply.data.server_stats.ntp_drops),
-               (unsigned long)ntohl(reply.data.server_stats.cmd_hits),
-               (unsigned long)ntohl(reply.data.server_stats.cmd_drops),
-               (unsigned long)ntohl(reply.data.server_stats.log_drops),
-               (unsigned long)ntohl(reply.data.server_stats.nke_hits),
-               (unsigned long)ntohl(reply.data.server_stats.nke_drops),
-               (unsigned long)ntohl(reply.data.server_stats.ntp_auth_hits),
-               (unsigned long)ntohl(reply.data.server_stats.ntp_interleaved_hits),
-               (unsigned long)ntohl(reply.data.server_stats.ntp_timestamps),
-               (unsigned long)ntohl(reply.data.server_stats.ntp_span_seconds),
-               (unsigned long)ntohl(reply.data.server_stats.ntp_daemon_rx_timestamps),
-               (unsigned long)ntohl(reply.data.server_stats.ntp_daemon_tx_timestamps),
-               (unsigned long)ntohl(reply.data.server_stats.ntp_kernel_rx_timestamps),
-               (unsigned long)ntohl(reply.data.server_stats.ntp_kernel_tx_timestamps),
-               (unsigned long)ntohl(reply.data.server_stats.ntp_hw_rx_timestamps),
-               (unsigned long)ntohl(reply.data.server_stats.ntp_hw_tx_timestamps),
+  print_report("NTP packets received       : %Q\n"
+               "NTP packets dropped        : %Q\n"
+               "Command packets received   : %Q\n"
+               "Command packets dropped    : %Q\n"
+               "Client log records dropped : %Q\n"
+               "NTS-KE connections accepted: %Q\n"
+               "NTS-KE connections dropped : %Q\n"
+               "Authenticated NTP packets  : %Q\n"
+               "Interleaved NTP packets    : %Q\n"
+               "NTP timestamps held        : %Q\n"
+               "NTP timestamp span         : %Q\n"
+               "NTP daemon RX timestamps   : %Q\n"
+               "NTP daemon TX timestamps   : %Q\n"
+               "NTP kernel RX timestamps   : %Q\n"
+               "NTP kernel TX timestamps   : %Q\n"
+               "NTP hardware RX timestamps : %Q\n"
+               "NTP hardware TX timestamps : %Q\n",
+               UTI_Integer64NetworkToHost(reply.data.server_stats.ntp_hits),
+               UTI_Integer64NetworkToHost(reply.data.server_stats.ntp_drops),
+               UTI_Integer64NetworkToHost(reply.data.server_stats.cmd_hits),
+               UTI_Integer64NetworkToHost(reply.data.server_stats.cmd_drops),
+               UTI_Integer64NetworkToHost(reply.data.server_stats.log_drops),
+               UTI_Integer64NetworkToHost(reply.data.server_stats.nke_hits),
+               UTI_Integer64NetworkToHost(reply.data.server_stats.nke_drops),
+               UTI_Integer64NetworkToHost(reply.data.server_stats.ntp_auth_hits),
+               UTI_Integer64NetworkToHost(reply.data.server_stats.ntp_interleaved_hits),
+               UTI_Integer64NetworkToHost(reply.data.server_stats.ntp_timestamps),
+               UTI_Integer64NetworkToHost(reply.data.server_stats.ntp_span_seconds),
+               UTI_Integer64NetworkToHost(reply.data.server_stats.ntp_daemon_rx_timestamps),
+               UTI_Integer64NetworkToHost(reply.data.server_stats.ntp_daemon_tx_timestamps),
+               UTI_Integer64NetworkToHost(reply.data.server_stats.ntp_kernel_rx_timestamps),
+               UTI_Integer64NetworkToHost(reply.data.server_stats.ntp_kernel_tx_timestamps),
+               UTI_Integer64NetworkToHost(reply.data.server_stats.ntp_hw_rx_timestamps),
+               UTI_Integer64NetworkToHost(reply.data.server_stats.ntp_hw_tx_timestamps),
                REPORT_END);
 
   return 1;

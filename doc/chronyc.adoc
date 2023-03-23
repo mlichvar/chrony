@@ -1216,10 +1216,6 @@ NIC.
 *NTP hardware TX timestamps*:::
 The number of NTP responses (in the interleaved mode) which included a transmit
 timestamp captured by the NIC.
-{blank}::
-+
-Note that the numbers reported by this command overflow to zero after
-4294967295, i.e. they are 32-bit values.
 
 [[allow]]*allow* [*all*] [_subnet_]::
 The effect of the allow command is identical to the
