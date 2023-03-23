@@ -1473,24 +1473,24 @@ request_reply(CMD_Request *request, CMD_Reply *reply, int requested_reply, int v
 /* ================================================== */
 
 static void
-print_seconds(unsigned long s)
+print_seconds(uint32_t s)
 {
-  unsigned long d;
+  uint32_t d;
 
   if (s == (uint32_t)-1) {
     printf("   -");
   } else if (s < 1200) {
-    printf("%4lu", s);
+    printf("%4"PRIu32, s);
   } else if (s < 36000) {
-    printf("%3lum", s / 60);
+    printf("%3"PRIu32"m", s / 60);
   } else if (s < 345600) {
-    printf("%3luh", s / 3600);
+    printf("%3"PRIu32"h", s / 3600);
   } else {
     d = s / 86400;
     if (d > 999) {
-      printf("%3luy", d / 365);
+      printf("%3"PRIu32"y", d / 365);
     } else {
-      printf("%3lud", d);
+      printf("%3"PRIu32"d", d);
     }
   }
 }
@@ -1621,9 +1621,9 @@ print_report(const char *format, ...)
   va_list ap;
   int i, field, sign, width, prec, spec;
   const char *string;
-  unsigned long long_uinteger;
   unsigned int uinteger;
   uint64_t uinteger64;
+  uint32_t uinteger32;
   int integer;
   struct timespec *ts;
   struct tm *tm;
@@ -1721,9 +1721,9 @@ print_report(const char *format, ...)
                spec == 'O' ? "seconds" : "ppm",
                (dbl > 0.0) ^ (spec != 'O') ? "slow" : "fast");
         break;
-      case 'I': /* interval with unit */
-        long_uinteger = va_arg(ap, unsigned long);
-        print_seconds(long_uinteger);
+      case 'I': /* uint32_t interval with unit */
+        uinteger32 = va_arg(ap, uint32_t);
+        print_seconds(uinteger32);
         break;
       case 'L': /* leap status */
         integer = va_arg(ap, int);
@@ -1790,8 +1790,8 @@ print_report(const char *format, ...)
           print_freq_ppm(dbl);
         break;
       case 'R': /* reference ID in hexdecimal */
-        long_uinteger = va_arg(ap, unsigned long);
-        printf("%08lX", long_uinteger);
+        uinteger32 = va_arg(ap, uint32_t);
+        printf("%08"PRIX32, uinteger32);
         break;
       case 'S': /* offset with unit */
         dbl = va_arg(ap, double);
@@ -1808,9 +1808,9 @@ print_report(const char *format, ...)
         strftime(buf, sizeof (buf), "%a %b %d %T %Y", tm);
         printf("%s", buf);
         break;
-      case 'U': /* unsigned long in decimal */
-        long_uinteger = va_arg(ap, unsigned long);
-        printf("%*lu", width, long_uinteger);
+      case 'U': /* uint32_t in decimal */
+        uinteger32 = va_arg(ap, uint32_t);
+        printf("%*"PRIu32, width, uinteger32);
         break;
       case 'V': /* timespec as seconds since epoch */
         ts = va_arg(ap, struct timespec *);
@@ -2067,7 +2067,7 @@ process_cmd_sources(char *line)
                  ntohs(reply.data.source_data.stratum),
                  (int16_t)ntohs(reply.data.source_data.poll),
                  ntohs(reply.data.source_data.reachability),
-                 (unsigned long)ntohl(reply.data.source_data.since_sample),
+                 ntohl(reply.data.source_data.since_sample),
                  UTI_FloatNetworkToHost(reply.data.source_data.latest_meas),
                  UTI_FloatNetworkToHost(reply.data.source_data.orig_latest_meas),
                  UTI_FloatNetworkToHost(reply.data.source_data.latest_meas_err),
@@ -2128,9 +2128,9 @@ process_cmd_sourcestats(char *line)
 
     print_report("%-25s %3U %3U  %I %+P %P  %+S  %S\n",
                  name,
-                 (unsigned long)ntohl(reply.data.sourcestats.n_samples),
-                 (unsigned long)ntohl(reply.data.sourcestats.n_runs),
-                 (unsigned long)ntohl(reply.data.sourcestats.span_seconds),
+                 ntohl(reply.data.sourcestats.n_samples),
+                 ntohl(reply.data.sourcestats.n_runs),
+                 ntohl(reply.data.sourcestats.span_seconds),
                  UTI_FloatNetworkToHost(reply.data.sourcestats.resid_freq_ppm),
                  UTI_FloatNetworkToHost(reply.data.sourcestats.skew_ppm),
                  UTI_FloatNetworkToHost(reply.data.sourcestats.est_offset),
@@ -2178,7 +2178,7 @@ process_cmd_tracking(char *line)
                "Root dispersion : %.9f seconds\n"
                "Update interval : %.1f seconds\n"
                "Leap status     : %L\n",
-               (unsigned long)ref_id, name,
+               ref_id, name,
                ntohs(reply.data.tracking.stratum),
                &ref_time,
                UTI_FloatNetworkToHost(reply.data.tracking.current_correction),
@@ -2266,10 +2266,10 @@ process_cmd_authdata(char *line)
 
     print_report("%-27s %4s %5U %4d %4d %I %4d %4d %4d %4d\n",
                  name, mode_str,
-                 (unsigned long)ntohl(reply.data.auth_data.key_id),
+                 ntohl(reply.data.auth_data.key_id),
                  ntohs(reply.data.auth_data.key_type),
                  ntohs(reply.data.auth_data.key_length),
-                 (unsigned long)ntohl(reply.data.auth_data.last_ke_ago),
+                 ntohl(reply.data.auth_data.last_ke_ago),
                  ntohs(reply.data.auth_data.ke_attempts),
                  ntohs(reply.data.auth_data.nak),
                  ntohs(reply.data.auth_data.cookies),
@@ -2364,17 +2364,16 @@ process_cmd_ntpdata(char *line)
                  "Total RX        : %U\n"
                  "Total valid RX  : %U\n"
                  "Total good RX   : %U\n",
-                 UTI_IPToString(&remote_addr), (unsigned long)UTI_IPToRefid(&remote_addr),
+                 UTI_IPToString(&remote_addr), UTI_IPToRefid(&remote_addr),
                  ntohs(reply.data.ntp_data.remote_port),
-                 UTI_IPToString(&local_addr), (unsigned long)UTI_IPToRefid(&local_addr),
+                 UTI_IPToString(&local_addr), UTI_IPToRefid(&local_addr),
                  reply.data.ntp_data.leap, reply.data.ntp_data.version,
                  reply.data.ntp_data.mode, reply.data.ntp_data.stratum,
                  reply.data.ntp_data.poll, UTI_Log2ToDouble(reply.data.ntp_data.poll),
                  reply.data.ntp_data.precision, UTI_Log2ToDouble(reply.data.ntp_data.precision),
                  UTI_FloatNetworkToHost(reply.data.ntp_data.root_delay),
                  UTI_FloatNetworkToHost(reply.data.ntp_data.root_dispersion),
-                 (unsigned long)ntohl(reply.data.ntp_data.ref_id),
-                 reply.data.ntp_data.stratum <= 1 ?
+                 ntohl(reply.data.ntp_data.ref_id), reply.data.ntp_data.stratum <= 1 ?
                    UTI_RefidToString(ntohl(reply.data.ntp_data.ref_id)) : "",
                  &ref_time,
                  UTI_FloatNetworkToHost(reply.data.ntp_data.offset),
@@ -2388,10 +2387,10 @@ process_cmd_ntpdata(char *line)
                  ntohs(reply.data.ntp_data.flags) & RPY_NTP_FLAG_INTERLEAVED,
                  ntohs(reply.data.ntp_data.flags) & RPY_NTP_FLAG_AUTHENTICATED,
                  reply.data.ntp_data.tx_tss_char, reply.data.ntp_data.rx_tss_char,
-                 (unsigned long)ntohl(reply.data.ntp_data.total_tx_count),
-                 (unsigned long)ntohl(reply.data.ntp_data.total_rx_count),
-                 (unsigned long)ntohl(reply.data.ntp_data.total_valid_count),
-                 (unsigned long)ntohl(reply.data.ntp_data.total_good_count),
+                 ntohl(reply.data.ntp_data.total_tx_count),
+                 ntohl(reply.data.ntp_data.total_rx_count),
+                 ntohl(reply.data.ntp_data.total_valid_count),
+                 ntohl(reply.data.ntp_data.total_good_count),
                  REPORT_END);
   }
 
@@ -2463,7 +2462,7 @@ process_cmd_selectdata(char *line)
                  eff_options & RPY_SD_OPTION_TRUST ? 'T' : '-',
                  eff_options & RPY_SD_OPTION_REQUIRE ? 'R' : '-',
                  '-',
-                 (unsigned long)ntohl(reply.data.select_data.last_sample_ago),
+                 ntohl(reply.data.select_data.last_sample_ago),
                  UTI_FloatNetworkToHost(reply.data.select_data.score),
                  UTI_FloatNetworkToHost(reply.data.select_data.lo_limit),
                  UTI_FloatNetworkToHost(reply.data.select_data.hi_limit),
@@ -2601,7 +2600,7 @@ process_cmd_rtcreport(char *line)
                &ref_time,
                ntohs(reply.data.rtc.n_samples),
                ntohs(reply.data.rtc.n_runs),
-               (unsigned long)ntohl(reply.data.rtc.span_seconds),
+               ntohl(reply.data.rtc.span_seconds),
                UTI_FloatNetworkToHost(reply.data.rtc.rtc_seconds_fast),
                UTI_FloatNetworkToHost(reply.data.rtc.rtc_gain_rate_ppm),
                REPORT_END);
@@ -2676,16 +2675,15 @@ process_cmd_clients(char *line)
 
       print_report("%-25s  %6U  %5U  %C  %C  %I  %6U  %5U  %C  %I\n",
                    name,
-                   (unsigned long)ntohl(client->ntp_hits),
-                   (unsigned long)ntohl(client->ntp_drops),
+                   ntohl(client->ntp_hits),
+                   ntohl(client->ntp_drops),
                    client->ntp_interval,
                    client->ntp_timeout_interval,
-                   (unsigned long)ntohl(client->last_ntp_hit_ago),
-                   (unsigned long)ntohl(nke ? client->nke_hits : client->cmd_hits),
-                   (unsigned long)ntohl(nke ? client->nke_drops : client->cmd_drops),
+                   ntohl(client->last_ntp_hit_ago),
+                   ntohl(nke ? client->nke_hits : client->cmd_hits),
+                   ntohl(nke ? client->nke_drops : client->cmd_drops),
                    nke ? client->nke_interval : client->cmd_interval,
-                   (unsigned long)ntohl(nke ? client->last_nke_hit_ago :
-                                              client->last_cmd_hit_ago),
+                   ntohl(nke ? client->last_nke_hit_ago : client->last_cmd_hit_ago),
                    REPORT_END);
     }
 
@@ -2716,7 +2714,7 @@ process_cmd_manual_list(const char *line)
     return 0;
 
   n_samples = ntohl(reply.data.manual_list.n_samples);
-  print_info_field("210 n_samples = %lu\n", (unsigned long)n_samples);
+  print_info_field("210 n_samples = %"PRIu32"\n", n_samples);
 
   print_header("#    Date     Time(UTC)    Slewed   Original   Residual");
 
@@ -2836,11 +2834,11 @@ process_cmd_activity(const char *line)
                "%U sources doing burst (return to online)\n"
                "%U sources doing burst (return to offline)\n"
                "%U sources with unknown address\n",
-               (unsigned long)ntohl(reply.data.activity.online),
-               (unsigned long)ntohl(reply.data.activity.offline),
-               (unsigned long)ntohl(reply.data.activity.burst_online),
-               (unsigned long)ntohl(reply.data.activity.burst_offline),
-               (unsigned long)ntohl(reply.data.activity.unresolved),
+               ntohl(reply.data.activity.online),
+               ntohl(reply.data.activity.offline),
+               ntohl(reply.data.activity.burst_online),
+               ntohl(reply.data.activity.burst_offline),
+               ntohl(reply.data.activity.unresolved),
                REPORT_END);
 
   return 1;
@@ -3003,7 +3001,7 @@ process_cmd_waitsync(char *line)
       skew_ppm = UTI_FloatNetworkToHost(reply.data.tracking.skew_ppm);
 
       print_report("try: %d, refid: %R, correction: %.9f, skew: %.3f\n",
-                   i, (unsigned long)ref_id, correction, skew_ppm, REPORT_END);
+                   i, ref_id, correction, skew_ppm, REPORT_END);
 
       if ((ip_addr.family != IPADDR_UNSPEC ||
            (ref_id != 0 && ref_id != 0x7f7f0101L /* LOCAL refid */)) &&
