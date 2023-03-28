@@ -88,21 +88,6 @@ static int ts_tx_flags;
 /* Flag indicating the socket options can't be changed in control messages */
 static int permanent_ts_options;
 
-/* When sending client requests to a close and fast server, it is possible that
-   a response will be received before the HW transmit timestamp of the request
-   itself.  To avoid processing of the response without the HW timestamp, we
-   suspend reading of packets from the receive queue until a HW transmit
-   timestamp is received from the error queue or a timeout reached. */
-
-struct HwTsSocket {
-  int sock_fd;
-  int suspended;
-  SCH_TimeoutID timeout_id;
-};
-
-/* Array of (HwTsSocket *) indexed by the file descriptor */
-static ARR_Instance hw_ts_socks;
-
 /* Unbound socket keeping the kernel RX timestamping permanently enabled
    in order to avoid a race condition between receiving a server response
    and the kernel actually starting to timestamp received packets after
@@ -428,7 +413,6 @@ NIO_Linux_Initialise(void)
   /* Kernels before 4.7 ignore timestamping flags set in control messages */
   permanent_ts_options = !SYS_Linux_CheckKernelVersion(4, 7);
 
-  hw_ts_socks = ARR_CreateInstance(sizeof (struct HwTsSocket *));
   dummy_rxts_socket = INVALID_SOCK_FD;
 }
 
@@ -439,10 +423,6 @@ NIO_Linux_Finalise(void)
 {
   struct Interface *iface;
   unsigned int i;
-
-  for (i = 0; i < ARR_GetSize(hw_ts_socks); i++)
-    Free(*(struct HwTsSocket **)ARR_GetElement(hw_ts_socks, i));
-  ARR_DestroyInstance(hw_ts_socks);
 
   if (dummy_rxts_socket != INVALID_SOCK_FD)
     SCK_CloseSocket(dummy_rxts_socket);
@@ -488,89 +468,6 @@ NIO_Linux_SetTimestampSocketOptions(int sock_fd, int client_only, int *events)
 
   *events |= SCH_FILE_EXCEPTION;
   return 1;
-}
-
-/* ================================================== */
-
-static struct HwTsSocket *
-get_hw_ts_socket(int sock_fd, int new)
-{
-  struct HwTsSocket *s, **sp;
-
-  if (sock_fd < 0)
-    return NULL;
-
-  while (sock_fd >= ARR_GetSize(hw_ts_socks)) {
-    if (!new)
-      return NULL;
-    s = NULL;
-    ARR_AppendElement(hw_ts_socks, &s);
-  }
-
-  sp = ARR_GetElement(hw_ts_socks, sock_fd);
-
-  if (!*sp && new) {
-    *sp = s = MallocNew(struct HwTsSocket);
-    s->sock_fd = sock_fd;
-    s->suspended = 0;
-    s->timeout_id = 0;
-  }
-
-  return *sp;
-}
-
-/* ================================================== */
-
-static void
-resume_socket(int sock_fd)
-{
-  struct HwTsSocket *ts_sock = get_hw_ts_socket(sock_fd, 0);
-
-  if (!ts_sock)
-    return;
-
-  if (ts_sock->suspended) {
-    SCH_SetFileHandlerEvent(ts_sock->sock_fd, SCH_FILE_INPUT, 1);
-
-    DEBUG_LOG("Resumed RX processing %s timeout fd=%d",
-              ts_sock->timeout_id ? "before" : "on", ts_sock->sock_fd);
-  }
-
-  ts_sock->suspended = 0;
-  SCH_RemoveTimeout(ts_sock->timeout_id);
-  ts_sock->timeout_id = 0;
-}
-
-/* ================================================== */
-
-static void
-resume_timeout(void *arg)
-{
-  struct HwTsSocket *ts_sock = arg;
-
-  ts_sock->timeout_id = 0;
-  resume_socket(ts_sock->sock_fd);
-}
-
-/* ================================================== */
-
-static void
-suspend_socket(int sock_fd)
-{
-  struct HwTsSocket *ts_sock = get_hw_ts_socket(sock_fd, 1);
-  double timeout = CNF_GetHwTsTimeout();
-
-  if (!ts_sock || timeout <= 0.0)
-    return;
-
-  /* Remove previous timeout if there is one */
-  SCH_RemoveTimeout(ts_sock->timeout_id);
-
-  ts_sock->suspended = 1;
-  ts_sock->timeout_id = SCH_AddTimeoutByDelay(timeout, resume_timeout, ts_sock);
-  SCH_SetFileHandlerEvent(ts_sock->sock_fd, SCH_FILE_INPUT, 0);
-
-  DEBUG_LOG("Suspended RX processing fd=%d", ts_sock->sock_fd);
 }
 
 /* ================================================== */
@@ -835,11 +732,6 @@ NIO_Linux_ProcessMessage(SCK_Message *message, NTP_Local_Address *local_addr,
     } else {
       DEBUG_LOG("HW clock not found for interface %d", ts_if_index);
     }
-
-    /* If a HW transmit timestamp was received, resume processing
-       of non-error messages on this socket */
-    if (is_tx)
-      resume_socket(local_addr->sock_fd);
   }
 
   if (local_ts->source == NTP_TS_DAEMON && !UTI_IsZeroTimespec(&message->timestamp.kernel) &&
@@ -902,23 +794,9 @@ NIO_Linux_RequestTxTimestamp(SCK_Message *message, int sock_fd)
   if (!ts_flags)
     return;
 
-  /* If a HW transmit timestamp is requested on a client-only socket,
-     suspend reading from it to avoid processing a response before the
-     HW timestamp of the request is received */
-  if (ts_tx_flags & SOF_TIMESTAMPING_TX_HARDWARE && !NIO_IsServerSocket(sock_fd))
-    suspend_socket(sock_fd);
-
   /* Check if TX timestamping is disabled on this socket */
   if (permanent_ts_options || !NIO_IsServerSocket(sock_fd))
     return;
 
   message->timestamp.tx_flags = ts_tx_flags;
-}
-
-/* ================================================== */
-
-void
-NIO_Linux_NotifySocketClosing(int sock_fd)
-{
-  resume_socket(sock_fd);
 }

@@ -80,7 +80,7 @@ get_random_key_id(void)
 }
 
 static void
-send_request(NCR_Instance inst)
+send_request(NCR_Instance inst, int late_hwts)
 {
   NTP_Local_Address local_addr;
   NTP_Local_Timestamp local_ts;
@@ -103,6 +103,16 @@ send_request(NCR_Instance inst)
     local_ts.source = NTP_TS_KERNEL;
 
     NCR_ProcessTxKnown(inst, &local_addr, &local_ts, &req_buffer, req_length);
+  }
+
+  if (late_hwts) {
+    inst->had_hw_tx_timestamp = 1;
+    inst->report.total_good_count++;
+  } else {
+    if (random() % 2)
+      inst->had_hw_tx_timestamp = 0;
+    else
+      inst->report.total_good_count = 0;
   }
 }
 
@@ -267,7 +277,8 @@ send_response(int interleaved, int authenticated, int allow_update, int valid_ts
 }
 
 static void
-proc_response(NCR_Instance inst, int good, int valid, int updated_sync, int updated_init)
+proc_response(NCR_Instance inst, int good, int valid, int updated_sync,
+              int updated_init, int save)
 {
   NTP_Local_Address local_addr;
   NTP_Local_Timestamp local_ts;
@@ -291,6 +302,19 @@ proc_response(NCR_Instance inst, int good, int valid, int updated_sync, int upda
   prev_init_rx_ts = inst->init_local_rx.ts;
 
   ret = NCR_ProcessRxKnown(inst, &local_addr, &local_ts, res, res_length);
+
+  if (save) {
+    TEST_CHECK(ret);
+    TEST_CHECK(inst->saved_response);
+    TEST_CHECK(inst->saved_response->timeout_id != 0);
+    TEST_CHECK(has_saved_response(inst));
+    if (random() % 2)
+      saved_response_timeout(inst);
+    else
+      transmit_timeout(inst);
+    TEST_CHECK(inst->saved_response->timeout_id == 0);
+    TEST_CHECK(!has_saved_response(inst));
+  }
 
   if (good > 0)
     TEST_CHECK(ret);
@@ -327,7 +351,7 @@ process_replay(NCR_Instance inst, NTP_Packet *packet_queue,
   do {
     res_buffer = packet_queue[random() % queue_length];
   } while (!UTI_CompareNtp64(&res_buffer.transmit_ts, &inst->remote_ntp_tx));
-  proc_response(inst, 0, 0, 0, updated_init);
+  proc_response(inst, 0, 0, 0, updated_init, 0);
   advance_time(1e-6);
 }
 
@@ -392,7 +416,7 @@ test_unit(void)
     "local",
     "keyfile ntp_core.keys"
   };
-  int i, j, k, interleaved, authenticated, valid, updated, has_updated;
+  int i, j, k, interleaved, authenticated, valid, updated, has_updated, late_hwts;
   CPS_NTP_Source source;
   NTP_Remote_Address remote_addr;
   NCR_Instance inst1, inst2;
@@ -439,6 +463,8 @@ test_unit(void)
     for (j = 0; j < 50; j++) {
       DEBUG_LOG("client/peer test iteration %d/%d", i, j);
 
+      late_hwts = random() % 2;
+      authenticated = random() % 2;
       interleaved = random() % 2 && (inst1->mode != MODE_CLIENT ||
                                      inst1->tx_count < MAX_CLIENT_INTERLEAVED_TX);
       authenticated = random() % 2;
@@ -454,35 +480,35 @@ test_unit(void)
                 (int)source.params.authkey, source.params.version,
                 interleaved, authenticated, valid, updated, has_updated);
 
-      send_request(inst1);
+      send_request(inst1, late_hwts);
 
       send_response(interleaved, authenticated, 1, 0, 1);
       DEBUG_LOG("response 1");
-      proc_response(inst1, 0, 0, 0, updated);
+      proc_response(inst1, 0, 0, 0, updated, 0);
 
       if (source.params.authkey) {
         send_response(interleaved, authenticated, 1, 1, 0);
         DEBUG_LOG("response 2");
-        proc_response(inst1, 0, 0, 0, 0);
+        proc_response(inst1, 0, 0, 0, 0, 0);
       }
 
       send_response(interleaved, authenticated, 1, 1, 1);
       DEBUG_LOG("response 3");
-      proc_response(inst1, -1, valid, valid, updated);
+      proc_response(inst1, -1, valid, valid, updated, valid && late_hwts);
       DEBUG_LOG("response 4");
-      proc_response(inst1, 0, 0, 0, 0);
+      proc_response(inst1, 0, 0, 0, 0, 0);
 
       advance_time(-1.0);
 
       send_response(interleaved, authenticated, 1, 1, 1);
       DEBUG_LOG("response 5");
-      proc_response(inst1, 0, 0, 0, updated && valid);
+      proc_response(inst1, 0, 0, 0, updated && valid, 0);
 
       advance_time(1.0);
 
       send_response(interleaved, authenticated, 1, 1, 1);
       DEBUG_LOG("response 6");
-      proc_response(inst1, 0, 0, valid && updated, updated);
+      proc_response(inst1, 0, 0, valid && updated, updated, 0);
     }
 
     NCR_DestroyInstance(inst1);
@@ -494,12 +520,12 @@ test_unit(void)
     for (j = 0; j < 20; j++) {
       DEBUG_LOG("server test iteration %d/%d", i, j);
 
-      send_request(inst1);
+      send_request(inst1, 0);
       process_request(&remote_addr);
       proc_response(inst1,
                     !source.params.interleaved || source.params.version != 4 ||
                       inst1->mode == MODE_ACTIVE || j != 2,
-                    1, 1, 0);
+                    1, 1, 0, 0);
       advance_time(1 << inst1->local_poll);
     }
 
@@ -515,7 +541,9 @@ test_unit(void)
     for (j = 0; j < 20; j++) {
       DEBUG_LOG("peer replay test iteration %d/%d", i, j);
 
-      send_request(inst1);
+      late_hwts = random() % 2;
+
+      send_request(inst1, late_hwts);
       res_buffer = req_buffer;
       assert(!res_length || res_length == req_length);
       res_length = req_length;
@@ -523,7 +551,7 @@ test_unit(void)
       TEST_CHECK(inst1->valid_timestamps == (j > 0));
 
       DEBUG_LOG("response 1->2");
-      proc_response(inst2, j > source.params.interleaved, j > 0, j > 0, 1);
+      proc_response(inst2, j > source.params.interleaved, j > 0, j > 0, 1, 0);
 
       packet_queue[(j * 2) % PACKET_QUEUE_LENGTH] = res_buffer;
 
@@ -536,14 +564,14 @@ test_unit(void)
 
       advance_time(1 << (source.params.minpoll - 1));
 
-      send_request(inst2);
+      send_request(inst2, 0);
       res_buffer = req_buffer;
       assert(res_length == req_length);
 
       TEST_CHECK(inst2->valid_timestamps == (j > 0));
 
       DEBUG_LOG("response 2->1");
-      proc_response(inst1, 1, 1, 1, 1);
+      proc_response(inst1, 1, 1, 1, 1, late_hwts);
 
       packet_queue[(j * 2 + 1) % PACKET_QUEUE_LENGTH] = res_buffer;
 

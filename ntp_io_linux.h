@@ -40,6 +40,4 @@ extern int NIO_Linux_ProcessMessage(SCK_Message *message, NTP_Local_Address *loc
 
 extern void NIO_Linux_RequestTxTimestamp(SCK_Message *message, int sock_fd);
 
-extern void NIO_Linux_NotifySocketClosing(int sock_fd);
-
 #endif

@@ -169,9 +169,6 @@ close_socket(int sock_fd)
   if (sock_fd == INVALID_SOCK_FD)
     return;
 
-#ifdef HAVE_LINUX_TIMESTAMPING
-  NIO_Linux_NotifySocketClosing(sock_fd);
-#endif
   SCH_RemoveFileHandler(sock_fd);
   SCK_CloseSocket(sock_fd);
 }

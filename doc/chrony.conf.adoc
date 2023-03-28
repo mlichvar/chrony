@@ -2618,16 +2618,13 @@ If hardware timestamping is used with a close NTP server, or the NIC or its
 driver is slow in providing the transmit timestamp of NTP requests, a response
 from the server can be received before the transmit timestamp of the request.
 To avoid calculating the offset with a less accurate transmit timestamp,
-*chronyd* suspends reading of NTP packets from the socket until the hardware
-transmit timestamp is provided. There is no guarantee that the timestamp will
-actually be provided (NICs typically have a limited rate of transmit
-timestamping). This directive configures how long should *chronyd* wait
-for the timestamp before resuming reading from the socket.
-+
-The suspension is activated only on sockets that are not expected to receive
-requests, i.e. it does not work with the *peer* directive and also with the
-*server* and *pool* directives if the ports specified by the *port* and
-*acquisitionport* directives are equal.
+*chronyd* can save the response for later processing and wait for the hardware
+transmit timestamp. There is no guarantee that the timestamp will be provided
+(NICs typically have a limited rate of transmit timestamping). This directive
+configures how long should *chronyd* wait for the timestamp after receiving a
+valid response from the server. If a second valid response is received from the
+server while waiting for the timestamp, they will be both processed
+immediately.
 +
 The default value is 0.001 seconds, which should be sufficient with most
 hardware. If you frequently see kernel transmit timestamps in the
@@ -2635,8 +2632,7 @@ _measurements.log_ file or <<chronyc.adoc#ntpdata,*ntpdata*>> report, and it is
 not a server handling a high rate of requests in the interleaved mode on the
 same interface (which would compete with timestamping of the server's own
 requests), increasing the timeout to 0.01 or possibly even longer might help.
-Note that setting a timeout longer than the NTP polling interval causes the
-responses to be ignored when the timestamp is missing.
+Note that the maximum timeout is limited by the NTP polling interval.
 
 [[keyfile]]*keyfile* _file_::
 This directive is used to specify the location of the file containing symmetric
