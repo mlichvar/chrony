@@ -78,6 +78,7 @@ default_client_min_mean_out_interval=0.0
 default_client_max_min_out_interval=inf
 
 default_cmdmon_unix=1
+default_pcap_dumps=0
 default_dns=0
 
 # Initialize test settings from their defaults
@@ -469,6 +470,9 @@ run_test() {
 
 		for i in $(seq 1 $n); do
 			test_message 2 0 "starting node $node:"
+
+			[ $pcap_dumps -ne 0 ] && export CLKNETSIM_PCAP_DUMP=tmp/pcap.$node
+
 			if [ $stratum -eq 1 ]; then
 				step=$server_step
 				start=$server_start
@@ -508,6 +512,8 @@ run_test() {
 
 	for i in $(seq 1 $[$nodes - $node + 1]); do
 		test_message 2 0 "starting node $node:"
+
+		[ $pcap_dumps -ne 0 ] && export CLKNETSIM_PCAP_DUMP=tmp/pcap.$node
 
 		options=$([ $dns -eq 0 ] && printf "%s" "-n")
 		if [ $cmdmon_unix -ne 0 ]; then
