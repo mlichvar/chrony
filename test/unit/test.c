@@ -80,6 +80,7 @@ main(int argc, char **argv)
 
   test_unit();
 
+  UTI_ResetGetRandomFunctions();
   LOG_Finalise();
 
   printf("PASS\n");

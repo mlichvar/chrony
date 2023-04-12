@@ -755,4 +755,6 @@ test_unit(void)
   TEST_CHECK(words[1] == buf + 3);
   TEST_CHECK(strcmp(words[0], "a") == 0);
   TEST_CHECK(strcmp(words[1], "b") == 0);
+
+  HSH_Finalise();
 }
