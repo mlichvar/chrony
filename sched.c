@@ -104,7 +104,10 @@ static unsigned long n_timer_queue_entries;
 static SCH_TimeoutID next_tqe_id;
 
 /* Pointer to head of free list */
-static TimerQueueEntry *tqe_free_list = NULL;
+static TimerQueueEntry *tqe_free_list;
+
+/* Array of all allocated tqe blocks to be freed in finalisation */
+static ARR_Instance tqe_blocks;
 
 /* Timestamp when was last timeout dispatched for each class */
 static struct timespec last_class_dispatch[SCH_NumberOfClasses];
@@ -133,6 +136,8 @@ SCH_Initialise(void)
 
   n_timer_queue_entries = 0;
   next_tqe_id = 0;
+  tqe_free_list = NULL;
+  tqe_blocks = ARR_CreateInstance(sizeof (TimerQueueEntry *));
 
   timer_queue.next = &timer_queue;
   timer_queue.prev = &timer_queue;
@@ -154,7 +159,13 @@ SCH_Initialise(void)
 
 void
 SCH_Finalise(void) {
+  unsigned int i;
+
   ARR_DestroyInstance(file_handlers);
+
+  for (i = 0; i < ARR_GetSize(tqe_blocks); i++)
+    Free(*(TimerQueueEntry **)ARR_GetElement(tqe_blocks, i));
+  ARR_DestroyInstance(tqe_blocks);
 
   LCL_RemoveParameterChangeHandler(handle_slew, NULL);
 
@@ -281,6 +292,7 @@ allocate_tqe(void)
     }
     new_block[0].next = NULL;
     tqe_free_list = &(new_block[TQE_ALLOC_QUANTUM - 1]);
+    ARR_AppendElement(tqe_blocks, &new_block);
   }
 
   result = tqe_free_list;
