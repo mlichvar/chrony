@@ -12,8 +12,10 @@ if [ $# -ge 2 ]; then
     case "$2" in
         up|down|connectivity-change)
             ;;
-        dhcp6-change)
-            # No other action is reported for routable IPv6
+        dhcp4-change|dhcp6-change)
+            # Actions "up" and "connectivity-change" in some cases do not
+            # guarantee that the interface has a route (e.g. a bond).
+            # dhcp(x)-change handles at least cases that use DHCP.
             ;;
         *)
             exit 0;;
