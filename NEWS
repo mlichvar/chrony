@@ -1,3 +1,25 @@
+New in version 4.4
+==================
+
+Enhancements
+------------
+* Add support for AES-GCM-SIV with Nettle >= 3.9 to shorten NTS
+  cookies to avoid some length-specific blocking of NTP on Internet
+* Add support for multiple refclocks using extpps option on one PHC
+* Add maxpoll option to hwtimestamp directive to improve PHC tracking
+  with low packet rates
+* Add hwtstimeout directive to configure timeout for late timestamps
+* Handle late hardware transmit timestamps of NTP requests on all sockets
+* Handle mismatched 32/64-bit time_t in SOCK refclock samples
+* Log important changes made by command requests (chronyc)
+* Set DSCP for IPv6 packets
+* Shorten NTS-KE retry interval when network is down
+* Warn if loading keys from file with unexpected permissions
+* Warn if source selection fails or falseticker is detected
+* Add selectopts command to modify source-specific selection options
+* Add timestamp sources to serverstats report and make its fields 64-bit
+* Add -e option to chronyc to indicate end of response
+
 New in version 4.3
 ==================
 
