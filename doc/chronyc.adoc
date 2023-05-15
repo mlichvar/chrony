@@ -970,12 +970,17 @@ current set of sources. It is equivalent to the *polltarget* option in the
 
 [[refresh]]*refresh*::
 The *refresh* command can be used to force *chronyd* to resolve the names of
-configured sources to IP addresses again, e.g. after suspending and resuming
-the machine in a different network.
+configured NTP sources to IP addresses again and replace any addresses missing
+in the list of resolved addresses.
 +
-Sources that stop responding will be replaced with newly resolved addresses
-automatically after 8 polling intervals, but this command can still be useful
-to replace them immediately and not wait until they are marked as unreachable.
+Sources that stop responding are replaced with newly resolved addresses
+automatically after 8 polling intervals. This command can be used to replace
+them immediately, e.g. after suspending and resuming the machine in a different
+network.
++
+Note that with larger pools which do not have all their IPv4 or IPv6 addresses
+included in a single DNS response (e.g. pool.ntp.org), this command will
+replace the addresses even if they are still included in the pool.
 
 [[reload]]*reload* *sources*::
 The *reload sources* command causes *chronyd* to re-read all _*.sources_ files

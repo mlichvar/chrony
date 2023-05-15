@@ -96,6 +96,9 @@ struct UnresolvedSource {
   char *name;
   /* Flag indicating addresses should be used in a random order */
   int random_order;
+  /* Flag indicating current address should be replaced only if it is
+     no longer returned by the resolver */
+  int refreshment;
   /* Next unresolved source in the list */
   struct UnresolvedSource *next;
 };
@@ -517,6 +520,19 @@ process_resolved_name(struct UnresolvedSource *us, IPAddr *ip_addrs, int n_addrs
   unsigned short first = 0;
   int i, j;
 
+  /* Keep using the current address if it is being refreshed and it is
+     still included in the resolved addresses */
+  if (us->refreshment) {
+    assert(us->pool_id == INVALID_POOL);
+
+    for (i = 0; i < n_addrs; i++) {
+      if (UTI_CompareIPs(&us->address.ip_addr, &ip_addrs[i], NULL) == 0) {
+        DEBUG_LOG("%s still fresh", UTI_IPToString(&us->address.ip_addr));
+        return;
+      }
+    }
+  }
+
   if (us->random_order)
     UTI_GetRandomBytes(&first, sizeof (first));
 
@@ -773,6 +789,7 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
   us = MallocNew(struct UnresolvedSource);
   us->name = Strdup(name);
   us->random_order = 0;
+  us->refreshment = 0;
 
   remote_addr.ip_addr.family = IPADDR_ID;
   remote_addr.ip_addr.addr.id = ++last_address_id;
@@ -962,7 +979,7 @@ NSR_RemoveAllSources(void)
 /* ================================================== */
 
 static void
-resolve_source_replacement(SourceRecord *record)
+resolve_source_replacement(SourceRecord *record, int refreshment)
 {
   struct UnresolvedSource *us;
 
@@ -976,6 +993,7 @@ resolve_source_replacement(SourceRecord *record)
      stuck to a pair of addresses if the order doesn't change, or a group of
      IPv4/IPv6 addresses if the resolver prefers inaccessible IP family */
   us->random_order = record->tentative;
+  us->refreshment = refreshment;
   us->pool_id = INVALID_POOL;
   us->address = *record->remote_addr;
 
@@ -1015,7 +1033,7 @@ NSR_HandleBadSource(IPAddr *address)
   }
   last_replacement = now;
 
-  resolve_source_replacement(record);
+  resolve_source_replacement(record, 0);
 }
 
 /* ================================================== */
@@ -1031,7 +1049,7 @@ NSR_RefreshAddresses(void)
     if (!record->remote_addr)
       continue;
 
-    resolve_source_replacement(record);
+    resolve_source_replacement(record, 1);
   }
 }
 
