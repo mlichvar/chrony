@@ -833,6 +833,12 @@ NCR_ChangeRemoteAddress(NCR_Instance inst, NTP_Remote_Address *remote_addr, int 
     inst->local_addr.sock_fd = NIO_OpenServerSocket(remote_addr);
   }
 
+  /* Reset the polling interval only if the source wasn't unreachable to
+     avoid increasing server/network load in case that is what caused
+     the source to be unreachable */
+  if (SRC_IsReachable(inst->source))
+    NCR_ResetPoll(inst);
+
   /* Update the reference ID and reset the source/sourcestats instances */
   SRC_SetRefid(inst->source, UTI_IPToRefid(&remote_addr->ip_addr),
                &inst->remote_addr.ip_addr);
