@@ -647,7 +647,7 @@ NCR_CreateInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
   result->auto_burst = params->burst;
   result->auto_offline = params->auto_offline;
   result->copy = params->copy && result->mode == MODE_CLIENT;
-  result->poll_target = params->poll_target;
+  result->poll_target = MAX(1, params->poll_target);
   result->ext_field_flags = params->ext_fields;
 
   if (params->nts) {
@@ -2900,7 +2900,7 @@ NCR_ModifyMinstratum(NCR_Instance inst, int new_min_stratum)
 void
 NCR_ModifyPolltarget(NCR_Instance inst, int new_poll_target)
 {
-  inst->poll_target = new_poll_target;
+  inst->poll_target = MAX(1, new_poll_target);
   LOG(LOGS_INFO, "Source %s new polltarget %d",
       UTI_IPToString(&inst->remote_addr.ip_addr), new_poll_target);
 }
