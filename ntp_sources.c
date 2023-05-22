@@ -988,11 +988,11 @@ resolve_source_replacement(SourceRecord *record, int refreshment)
 
   us = MallocNew(struct UnresolvedSource);
   us->name = Strdup(record->name);
-  /* If there never was a valid reply from this source (e.g. it was a bad
-     replacement), ignore the order of addresses from the resolver to not get
-     stuck to a pair of addresses if the order doesn't change, or a group of
-     IPv4/IPv6 addresses if the resolver prefers inaccessible IP family */
-  us->random_order = record->tentative;
+  /* Ignore the order of addresses from the resolver to not get
+     stuck with a pair of unreachable or otherwise unusable servers
+     (e.g. falsetickers) in case the order doesn't change, or a group
+     of servers if they are ordered by IP family */
+  us->random_order = 1;
   us->refreshment = refreshment;
   us->pool_id = INVALID_POOL;
   us->address = *record->remote_addr;
