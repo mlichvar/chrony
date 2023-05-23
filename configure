@@ -128,6 +128,7 @@ For better control, use the options below.
   --without-seccomp      Don't use seccomp even if it is available
   --disable-asyncdns     Disable asynchronous name resolving
   --disable-forcednsretry Don't retry on permanent DNS error
+  --without-aes-gcm-siv  Don't use AES-GCM-SIV for NTS even if it is available
   --without-clock-gettime Don't use clock_gettime() even if it is available
   --disable-timestamping Disable support for SW/HW timestamping
   --enable-ntp-signd     Enable support for MS-SNTP authentication in Samba
@@ -244,6 +245,7 @@ try_setsched=0
 try_lockmem=0
 feat_asyncdns=1
 feat_forcednsretry=1
+try_aes_gcm_siv=1
 try_clock_gettime=1
 try_arc4random=1
 try_recvmmsg=1
@@ -344,6 +346,9 @@ do
     ;;
     --disable-forcednsretry)
       feat_forcednsretry=0
+    ;;
+    --without-aes-gcm-siv)
+      try_aes_gcm_siv=0
     ;;
     --without-clock-gettime)
       try_clock_gettime=0
@@ -986,7 +991,7 @@ if [ $feat_ntp = "1" ] && [ $feat_nts = "1" ] && [ $try_gnutls = "1" ]; then
       EXTRA_OBJECTS="$EXTRA_OBJECTS siv_nettle.o"
       add_def HAVE_SIV
       add_def HAVE_NETTLE_SIV_CMAC
-      if test_code 'AES-GCM-SIV in nettle' \
+      if [ $try_aes_gcm_siv = "1" ] && test_code 'AES-GCM-SIV in nettle' \
         'nettle/siv-gcm.h' "" "$LIBS" \
         'siv_gcm_aes128_encrypt_message((void *)1, 0, NULL, 0, (void *)2, 16, (void *)3,
                                         (void *)4);'
