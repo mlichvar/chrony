@@ -448,7 +448,7 @@ process_request(NKSN_Instance session)
           aead_algorithm_values++;
           /* Use the first supported algorithm */
           if (aead_algorithm < 0 && SIV_GetKeyLength(ntohs(data[i])) > 0)
-            aead_algorithm = ntohs(data[i]);;
+            aead_algorithm = ntohs(data[i]);
         }
         break;
       case NKE_RECORD_ERROR:
