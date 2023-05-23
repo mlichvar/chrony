@@ -139,7 +139,7 @@ test_unit(void)
   NKSN_Instance session;
   NKE_Context context, context2;
   NKE_Cookie cookie;
-  int i, valid, l;
+  int i, j, valid, l;
   uint32_t sum, sum2;
 
   char conf[][100] = {
@@ -200,7 +200,9 @@ test_unit(void)
   save_keys();
 
   for (i = 0, sum = 0; i < MAX_SERVER_KEYS; i++) {
-    sum += server_keys[i].id + server_keys[i].key[0];
+    sum += server_keys[i].id;
+    for (j = 0; j < sizeof (server_keys[i].key); j++)
+      sum += server_keys[i].key[j];
     generate_key(i);
   }
 
@@ -208,7 +210,9 @@ test_unit(void)
   TEST_CHECK(unlink("ntskeys") == 0);
 
   for (i = 0, sum2 = 0; i < MAX_SERVER_KEYS; i++) {
-    sum2 += server_keys[i].id + server_keys[i].key[0];
+    sum2 += server_keys[i].id;
+    for (j = 0; j < sizeof (server_keys[i].key); j++)
+      sum2 += server_keys[i].key[j];
   }
 
   TEST_CHECK(sum == sum2);
