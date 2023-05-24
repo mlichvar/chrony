@@ -498,6 +498,9 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
     SCMP_SYS(getrlimit),
     SCMP_SYS(getuid),
     SCMP_SYS(getuid32),
+#ifdef __NR_membarrier
+    SCMP_SYS(membarrier),
+#endif
 #ifdef __NR_rseq
     SCMP_SYS(rseq),
 #endif
