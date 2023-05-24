@@ -978,9 +978,9 @@ automatically after 8 polling intervals. This command can be used to replace
 them immediately, e.g. after suspending and resuming the machine in a different
 network.
 +
-Note that with larger pools which do not have all their IPv4 or IPv6 addresses
-included in a single DNS response (e.g. pool.ntp.org), this command will
-replace the addresses even if they are still included in the pool.
+Note that with pools which have more than 16 addresses, or not all IPv4 or IPv6
+addresses are included in a single DNS response (e.g. pool.ntp.org), this
+command might replace the addresses even if they are still in the pool.
 
 [[reload]]*reload* *sources*::
 The *reload sources* command causes *chronyd* to re-read all _*.sources_ files
