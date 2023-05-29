@@ -650,6 +650,7 @@ load_cookies(NNC_Instance inst)
                                             sizeof (inst->context.c2s.key));
 
   if (inst->context.s2c.length != SIV_GetKeyLength(algorithm) ||
+      inst->context.s2c.length <= 0 ||
       inst->context.c2s.length != inst->context.s2c.length)
     goto error;
 
