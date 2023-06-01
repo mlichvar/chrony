@@ -42,6 +42,8 @@ test_start() {
 		su "$user" -s /bin/sh -c "touch $TEST_DIR/test" 2> /dev/null || \
 			test_skip "$user cannot access $TEST_DIR"
 		rm "$TEST_DIR/test"
+	else
+		chown 0:0 "$TEST_DIR" || test_skip "could not chown $TEST_DIR"
 	fi
 
 	echo "Testing $*:"
