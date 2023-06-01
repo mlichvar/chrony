@@ -43,7 +43,7 @@ wait_for_sync || test_fail
 run_chronyc "authdata" || test_fail
 check_chronyc_output "^Name/IP address             Mode KeyID Type KLen Last Atmp  NAK Cook CLen
 =========================================================================
-127\.0\.0\.1                    NTS     1   15  256    [0-9]    0    0    [78]  100$" || test_fail
+127\.0\.0\.1                    NTS     1   (30|15)  (128|256)    [0-9]    0    0    [78]  ( 64|100)$" || test_fail
 
 stop_chronyd || test_fail
 check_chronyd_messages || test_fail
@@ -57,7 +57,7 @@ wait_for_sync || test_fail
 run_chronyc "authdata" || test_fail
 check_chronyc_output "^Name/IP address             Mode KeyID Type KLen Last Atmp  NAK Cook CLen
 =========================================================================
-127\.0\.0\.1                    NTS     1   15  256    [0-9]    0    0    [78]  100$" || test_fail
+127\.0\.0\.1                    NTS     1   (30|15)  (128|256)    [0-9]    0    0    [78]  ( 64|100)$" || test_fail
 
 stop_chronyd || test_fail
 check_chronyd_messages || test_fail
