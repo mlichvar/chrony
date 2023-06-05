@@ -1979,7 +1979,7 @@ process_cmd_sources(char *line)
   IPAddr ip_addr;
   uint32_t i, mode, n_sources;
   char name[256], mode_ch, state_ch;
-  int all, verbose;
+  int all, verbose, ref;
 
   parse_sources_options(line, &all, &verbose);
   
@@ -2016,9 +2016,8 @@ process_cmd_sources(char *line)
     if (!all && ip_addr.family == IPADDR_ID)
       continue;
 
-    format_name(name, sizeof (name), 25,
-                mode == RPY_SD_MD_REF && ip_addr.family == IPADDR_INET4,
-                ip_addr.addr.in4, 1, &ip_addr);
+    ref = mode == RPY_SD_MD_REF && ip_addr.family == IPADDR_INET4;
+    format_name(name, sizeof (name), 25, ref, ref ? ip_addr.addr.in4 : 0, 1, &ip_addr);
 
     switch (mode) {
       case RPY_SD_MD_CLIENT:
