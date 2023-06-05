@@ -504,6 +504,7 @@ SRC_UpdateReachability(SRC_Instance inst, int reachable)
       ((!inst->reachability && inst->reachability_size == SOURCE_REACH_BITS) ||
        inst->status == SRC_BAD_DISTANCE || inst->status == SRC_JITTERY ||
        inst->status == SRC_FALSETICKER)) {
+    DEBUG_LOG("Bad source status=%c", get_status_char(inst->status));
     NSR_HandleBadSource(inst->ip_addr);
   }
 }
