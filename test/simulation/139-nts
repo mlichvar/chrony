@@ -160,8 +160,8 @@ for dns in 1 0; do
 
 	check_file_messages "	2	1	.*	4460	" 50 100 log.packets || test_fail
 	check_file_messages "	2	2	.*	4460	" 0 0 log.packets || test_fail
-	check_log_messages "Source 192.168.123.1 changed to 192.168.123.2" 6 8 || test_fail
-	check_log_messages "Source 192.168.123.2 replaced with 192.168.123.1" 6 8 || test_fail
+	check_log_messages "Source 192.168.123.1 changed to 192.168.123.2" 4 10 || test_fail
+	check_log_messages "Source 192.168.123.2 replaced with 192.168.123.1" 4 10 || test_fail
 
 	servers=2
 
