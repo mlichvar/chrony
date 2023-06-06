@@ -1006,11 +1006,10 @@ resolve_source_replacement(SourceRecord *record, int refreshment)
 void
 NSR_HandleBadSource(IPAddr *address)
 {
-  static struct timespec last_replacement;
-  struct timespec now;
+  static double last_replacement = -1e6;
   SourceRecord *record;
   IPAddr ip_addr;
-  double diff;
+  double now;
   int slot;
 
   if (!find_slot(address, &slot))
@@ -1025,9 +1024,9 @@ NSR_HandleBadSource(IPAddr *address)
     return;
 
   /* Don't resolve names too frequently */
-  SCH_GetLastEventTime(NULL, NULL, &now);
-  diff = UTI_DiffTimespecsToDouble(&now, &last_replacement);
-  if (fabs(diff) < RESOLVE_INTERVAL_UNIT * (1 << MIN_REPLACEMENT_INTERVAL)) {
+  now = SCH_GetLastEventMonoTime();
+  if (now - last_replacement <
+      RESOLVE_INTERVAL_UNIT * (1 << MIN_REPLACEMENT_INTERVAL)) {
     DEBUG_LOG("replacement postponed");
     return;
   }
