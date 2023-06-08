@@ -1167,7 +1167,7 @@ command_name_generator(const char *text, int state)
 
   while ((name = names[tab_complete_index][list_index++])) {
     if (strncmp(name, text, len) == 0) {
-      return strdup(name);
+      return Strdup(name);
     }
   }
 
