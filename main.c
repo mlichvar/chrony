@@ -331,6 +331,9 @@ go_daemon(void)
     char message[1024];
     int r;
 
+    /* Don't exit before the 'parent' */
+    waitpid(pid, NULL, 0);
+
     close(pipefd[1]);
     r = read(pipefd[0], message, sizeof (message));
     if (r) {
@@ -353,7 +356,9 @@ go_daemon(void)
     if (pid < 0) {
       LOG_FATAL("fork() failed : %s", strerror(errno));
     } else if (pid > 0) {
-      exit(0); /* In the 'parent' */
+      /* In the 'parent' */
+      close(pipefd[1]);
+      exit(0);
     } else {
       /* In the child we want to leave running as the daemon */
 
