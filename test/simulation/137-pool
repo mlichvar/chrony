@@ -62,7 +62,7 @@ check_sync || test_fail
 check_log_messages "Detected falseticker" 2 10 || test_fail
 check_log_messages "Source 192.168.123.. replaced with" 1 1 || test_fail
 check_file_messages "20.*192.168.123.* 11.1   6  6 " 15 17 measurements.log || test_fail
-check_file_messages "20.*00:01:.. 192.168.123.* 11.1   6  6 " 1 1 measurements.log || test_fail
+check_file_messages "20.*00:\(00:07\|01:..\) 192.168.123.* 11.1   6  6 " 1 1 measurements.log || test_fail
 rm -f tmp/measurements.log
 
 test_pass
