@@ -112,6 +112,9 @@ struct SRC_Instance_Record {
   /* Updates left before allowing combining */
   int distant;
 
+  /* Updates with a status requiring source replacement */
+  int bad;
+
   /* Flag indicating the status of the source */
   SRC_Status status;
 
@@ -177,6 +180,9 @@ static int reported_no_majority;  /* Flag to avoid repeated log message
 
 /* Number of updates needed to reset the distant status */
 #define DISTANT_PENALTY 32
+
+/* Number of updates needed to trigger handling of bad sources */
+#define BAD_HANDLE_THRESHOLD 4
 
 static double max_distance;
 static double max_jitter;
@@ -340,6 +346,7 @@ SRC_ResetInstance(SRC_Instance instance)
   instance->reachability = 0;
   instance->reachability_size = 0;
   instance->distant = 0;
+  instance->bad = 0;
   instance->status = SRC_BAD_STATS;
   instance->sel_score = 1.0;
   instance->stratum = 0;
@@ -679,15 +686,20 @@ mark_source(SRC_Instance inst, SRC_Status status)
   /* Try to replace NTP sources that are falsetickers, or have a root
      distance or jitter larger than the allowed maximums */
   if (inst == last_updated_inst) {
-    if (status == SRC_FALSETICKER || status == SRC_BAD_DISTANCE || status == SRC_JITTERY)
+    if (inst->bad < INT_MAX &&
+        (status == SRC_FALSETICKER || status == SRC_BAD_DISTANCE || status == SRC_JITTERY))
+      inst->bad++;
+    else
+      inst->bad = 0;
+    if (inst->bad >= BAD_HANDLE_THRESHOLD)
       handle_bad_source(inst);
   }
 
-  DEBUG_LOG("%s status=%c options=%x reach=%o/%d updates=%d distant=%d leap=%d vote=%d lo=%f hi=%f",
+  DEBUG_LOG("%s status=%c options=%x reach=%o/%d updates=%d distant=%d bad=%d leap=%d vote=%d lo=%f hi=%f",
             source_to_string(inst), get_status_char(inst->status),
             (unsigned int)inst->sel_options, (unsigned int)inst->reachability,
             inst->reachability_size, inst->updates,
-            inst->distant, (int)inst->leap, inst->leap_vote,
+            inst->distant, inst->bad, (int)inst->leap, inst->leap_vote,
             inst->sel_info.lo_limit, inst->sel_info.hi_limit);
 
   if (logfileid == -1)
