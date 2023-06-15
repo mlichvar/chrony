@@ -803,6 +803,8 @@ NCR_ResetInstance(NCR_Instance instance)
 void
 NCR_ResetPoll(NCR_Instance instance)
 {
+  instance->poll_score = 0.0;
+
   if (instance->local_poll != instance->minpoll) {
     instance->local_poll = instance->minpoll;
 
