@@ -36,7 +36,6 @@ PrivateDevices=yes
 PrivateTmp=yes
 # This breaks adjtimex()
 #PrivateUsers=yes
-ProcSubset=pid
 ProtectControlGroups=yes
 ProtectHome=yes
 ProtectHostname=yes

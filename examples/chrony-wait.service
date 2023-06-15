@@ -25,7 +25,6 @@ LockPersonality=yes
 MemoryDenyWriteExecute=yes
 PrivateDevices=yes
 PrivateUsers=yes
-ProcSubset=pid
 ProtectClock=yes
 ProtectControlGroups=yes
 ProtectHome=yes

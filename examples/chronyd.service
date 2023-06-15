@@ -24,7 +24,6 @@ LockPersonality=yes
 MemoryDenyWriteExecute=yes
 NoNewPrivileges=yes
 PrivateTmp=yes
-ProcSubset=pid
 ProtectControlGroups=yes
 ProtectHome=yes
 ProtectHostname=yes
