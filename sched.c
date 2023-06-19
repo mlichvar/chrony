@@ -163,6 +163,8 @@ SCH_Finalise(void) {
 
   ARR_DestroyInstance(file_handlers);
 
+  timer_queue.next = &timer_queue;
+  timer_queue.prev = &timer_queue;
   for (i = 0; i < ARR_GetSize(tqe_blocks); i++)
     Free(*(TimerQueueEntry **)ARR_GetElement(tqe_blocks, i));
   ARR_DestroyInstance(tqe_blocks);
