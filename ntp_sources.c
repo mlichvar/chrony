@@ -187,6 +187,7 @@ void
 NSR_Initialise(void)
 {
   n_sources = 0;
+  resolving_id = 0;
   initialised = 1;
 
   records = ARR_CreateInstance(sizeof (SourceRecord));
@@ -209,6 +210,7 @@ NSR_Finalise(void)
   ARR_DestroyInstance(records);
   ARR_DestroyInstance(pools);
 
+  SCH_RemoveTimeout(resolving_id);
   while (unresolved_sources)
     remove_unresolved_source(unresolved_sources);
 
