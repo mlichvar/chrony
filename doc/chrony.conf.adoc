@@ -72,9 +72,7 @@ newly resolved address when the server becomes unreachable (i.e. no valid
 response to last 8 requests), unsynchronised, a falseticker (i.e. does not
 agree with a majority of other sources), or the root distance is too large (the
 limit can be configured by the <<maxdistance,*maxdistance*>> directive). The
-automatic replacement happens at most once per 30 minutes. It can also be
-triggered manually for all sources by the <<chronyc.adoc#refresh,*refresh*>>
-command in *chronyc*.
+automatic replacement happens at most once per 30 minutes.
 +
 This directive can be used multiple times to specify multiple servers.
 +
