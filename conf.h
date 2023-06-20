@@ -159,6 +159,8 @@ extern double CNF_GetHwTsTimeout(void);
 
 extern int CNF_GetPtpPort(void);
 
+extern int CNF_GetRefresh(void);
+
 extern char *CNF_GetNtsDumpDir(void);
 extern char *CNF_GetNtsNtpServer(void);
 extern int CNF_GetNtsServerCertAndKeyFiles(const char ***certs, const char ***keys);

@@ -252,6 +252,9 @@ static char *leapsec_tz = NULL;
 /* Name of the user to which will be dropped root privileges. */
 static char *user;
 
+/* Address refresh interval */
+static int refresh = 1209600; /* 2 weeks */
+
 /* NTS server and client configuration */
 static char *nts_dump_dir = NULL;
 static char *nts_ntp_server = NULL;
@@ -702,6 +705,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
                     &ntp_ratelimit_burst, &ntp_ratelimit_leak);
   } else if (!strcasecmp(command, "refclock")) {
     parse_refclock(p);
+  } else if (!strcasecmp(command, "refresh")) {
+    parse_int(p, &refresh);
   } else if (!strcasecmp(command, "reselectdist")) {
     parse_double(p, &reselect_distance);
   } else if (!strcasecmp(command, "rtcautotrim")) {
@@ -2529,6 +2534,14 @@ int
 CNF_GetPtpPort(void)
 {
   return ptp_port;
+}
+
+/* ================================================== */
+
+int
+CNF_GetRefresh(void)
+{
+  return refresh;
 }
 
 /* ================================================== */

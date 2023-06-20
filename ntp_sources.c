@@ -32,6 +32,7 @@
 #include "sysincl.h"
 
 #include "array.h"
+#include "conf.h"
 #include "ntp_sources.h"
 #include "ntp_core.h"
 #include "ntp_io.h"
@@ -64,6 +65,7 @@ typedef struct {
                                    received from the source yet */
   uint32_t conf_id;             /* Configuration ID, which can be shared with
                                    different sources in case of a pool */
+  double last_resolving;        /* Time of last name resolving (monotonic) */
 } SourceRecord;
 
 /* Hash table of SourceRecord, its size is a power of two and it's never
@@ -389,6 +391,7 @@ add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type,
       record->pool_id = pool_id;
       record->tentative = 1;
       record->conf_id = conf_id;
+      record->last_resolving = SCH_GetLastEventMonoTime();
 
       record_lock = 0;
 
@@ -985,8 +988,10 @@ resolve_source_replacement(SourceRecord *record, int refreshment)
 {
   struct UnresolvedSource *us;
 
-  DEBUG_LOG("trying to replace %s (%s)",
+  DEBUG_LOG("%s %s (%s)", refreshment ? "refreshing" : "trying to replace",
             UTI_IPToString(&record->remote_addr->ip_addr), record->name);
+
+  record->last_resolving = SCH_GetLastEventMonoTime();
 
   us = MallocNew(struct UnresolvedSource);
   us->name = Strdup(record->name);
@@ -1038,6 +1043,45 @@ NSR_HandleBadSource(IPAddr *address)
                      (RESOLVE_INTERVAL_UNIT * (1 << MAX_REPLACEMENT_INTERVAL));
 
   resolve_source_replacement(record, 0);
+}
+
+/* ================================================== */
+
+static void
+maybe_refresh_source(void)
+{
+  static double last_refreshment = 0.0;
+  SourceRecord *record, *oldest_record;
+  int i, min_interval;
+  double now;
+
+  min_interval = CNF_GetRefresh();
+
+  now = SCH_GetLastEventMonoTime();
+  if (min_interval <= 0 || now < last_refreshment + min_interval)
+    return;
+
+  last_refreshment = now;
+
+  for (i = 0, oldest_record = NULL; i < ARR_GetSize(records); i++) {
+    record = get_record(i);
+    if (!record->remote_addr || UTI_IsStringIP(record->name))
+      continue;
+
+    if (!oldest_record || oldest_record->last_resolving > record->last_resolving)
+      oldest_record = record;
+  }
+
+  if (!oldest_record)
+    return;
+
+  /* Check if the name wasn't already resolved in the last interval */
+  if (now < oldest_record->last_resolving + min_interval) {
+    last_refreshment = oldest_record->last_resolving;
+    return;
+  }
+
+  resolve_source_replacement(oldest_record, 1);
 }
 
 /* ================================================== */
@@ -1179,6 +1223,8 @@ NSR_ProcessRx(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_addr,
           remove_pool_sources(record->pool_id, 1, 0);
       }
     }
+
+    maybe_refresh_source();
   } else {
     NCR_ProcessRxUnknown(remote_addr, local_addr, rx_ts, message, length);
   }
