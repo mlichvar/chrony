@@ -11,9 +11,12 @@ Enhancements
 * Add hwtstimeout directive to configure timeout for late timestamps
 * Handle late hardware transmit timestamps of NTP requests on all sockets
 * Handle mismatched 32/64-bit time_t in SOCK refclock samples
+* Improve source replacement
 * Log important changes made by command requests (chronyc)
+* Refresh address of NTP sources periodically
 * Set DSCP for IPv6 packets
 * Shorten NTS-KE retry interval when network is down
+* Update seccomp filter for musl
 * Warn if loading keys from file with unexpected permissions
 * Warn if source selection fails or falseticker is detected
 * Add selectopts command to modify source-specific selection options
