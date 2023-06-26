@@ -570,6 +570,13 @@ if [ "x$MYCFLAGS" = "x" ]; then
   fi
 fi
 
+TESTCFLAGS="-fwrapv"
+if test_code '-fwrapv' '' "$TESTCFLAGS" '' ''; then
+  GETDATE_CFLAGS="-fwrapv"
+else
+  GETDATE_CFLAGS=""
+fi
+
 if [ "x$MYCC" = "xgcc" ] || [ "x$MYCC" = "xclang" ]; then
   MYCFLAGS="$MYCFLAGS -Wmissing-prototypes -Wall"
 fi
@@ -1122,6 +1129,7 @@ do
           s%@CFLAGS@%${MYCFLAGS}%;\
           s%@CPPFLAGS@%${MYCPPFLAGS}%;\
           s%@LDFLAGS@%${MYLDFLAGS}%;\
+          s%@GETDATE_CFLAGS@%${GETDATE_CFLAGS}%;\
           s%@LIBS@%${LIBS}%;\
           s%@EXTRA_LIBS@%${EXTRA_LIBS}%;\
           s%@EXTRA_CLI_LIBS@%${EXTRA_CLI_LIBS}%;\
