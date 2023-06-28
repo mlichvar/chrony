@@ -379,9 +379,9 @@ offset. This can be suffixed by _ns_ (indicating nanoseconds), _us_
 (indicating microseconds), _ms_ (indicating milliseconds), or _s_ (indicating
 seconds). The number to the left of the square brackets shows the original
 measurement, adjusted to allow for any slews applied to the local clock
-since. The number following the _+/-_ indicator shows the margin of error in
-the measurement. Positive offsets indicate that the local clock is ahead of
-the source.
+since. Positive offsets indicate that the local clock is ahead of the source.
+The number following the _+/-_ indicator shows the margin of error in the
+measurement (NTP root distance).
 
 [[sourcestats]]*sourcestats* [*-a*] [*-v*]::
 The *sourcestats* command displays information about the drift rate and offset
