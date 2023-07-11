@@ -651,7 +651,7 @@ load_keys(void)
 
   fclose(f);
 
-  LOG(LOGS_ERR, "Loaded %s", "server NTS keys");
+  LOG(LOGS_INFO, "Loaded %s", "server NTS keys");
   return 1;
 
 error:
