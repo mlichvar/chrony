@@ -59,6 +59,8 @@ typedef struct {
   NCR_Instance data;            /* Data for the protocol engine for this source */
   char *name;                   /* Name of the source as it was specified
                                    (may be an IP address) */
+  IPAddr resolved_addr;         /* Address resolved from the name, which can be
+                                   different from remote_addr (e.g. NTS-KE) */
   int pool_id;                  /* ID of the pool from which was this source
                                    added or INVALID_POOL */
   int tentative;                /* Flag indicating there was no valid response
@@ -388,6 +390,7 @@ add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type,
       record->name = Strdup(name ? name : UTI_IPToString(&remote_addr->ip_addr));
       record->data = NCR_CreateInstance(remote_addr, type, params, record->name);
       record->remote_addr = NCR_GetRemoteAddress(record->data);
+      record->resolved_addr = remote_addr->ip_addr;
       record->pool_id = pool_id;
       record->tentative = 1;
       record->conf_id = conf_id;
@@ -440,6 +443,8 @@ change_source_address(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr
 
   record = get_record(slot1);
   NCR_ChangeRemoteAddress(record->data, new_addr, !replacement);
+  if (replacement)
+    record->resolved_addr = new_addr->ip_addr;
 
   if (record->remote_addr != NCR_GetRemoteAddress(record->data) ||
       UTI_CompareIPs(&record->remote_addr->ip_addr, &new_addr->ip_addr, NULL) != 0)
@@ -523,7 +528,7 @@ process_resolved_name(struct UnresolvedSource *us, IPAddr *ip_addrs, int n_addrs
   NTP_Remote_Address old_addr, new_addr;
   SourceRecord *record;
   unsigned short first = 0;
-  int i, j;
+  int i, j, slot;
 
   /* Keep using the current address if it is being refreshed and it is
      still included in the resolved addresses */
@@ -531,7 +536,8 @@ process_resolved_name(struct UnresolvedSource *us, IPAddr *ip_addrs, int n_addrs
     assert(us->pool_id == INVALID_POOL);
 
     for (i = 0; i < n_addrs; i++) {
-      if (UTI_CompareIPs(&us->address.ip_addr, &ip_addrs[i], NULL) == 0) {
+      if (find_slot2(&us->address, &slot) == 2 &&
+          UTI_CompareIPs(&get_record(slot)->resolved_addr, &ip_addrs[i], NULL) == 0) {
         DEBUG_LOG("%s still fresh", UTI_IPToString(&us->address.ip_addr));
         return;
       }
