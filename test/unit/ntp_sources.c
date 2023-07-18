@@ -28,6 +28,7 @@
 #include <nameserv_async.h>
 #include <ntp_core.h>
 #include <ntp_io.h>
+#include <sched.h>
 
 static char *requested_name = NULL;
 static DNS_NameResolveHandler resolve_handler = NULL;
@@ -41,9 +42,11 @@ static void *resolve_handler_arg = NULL;
   change_remote_address(inst, remote_addr, ntp_only)
 #define NCR_ProcessRxKnown(remote_addr, local_addr, ts, msg, len) (random() % 2)
 #define NIO_IsServerConnectable(addr) (random() % 2)
+#define SCH_GetLastEventMonoTime() get_mono_time()
 
 static void change_remote_address(NCR_Instance inst, NTP_Remote_Address *remote_addr,
                                   int ntp_only);
+static double get_mono_time(void);
 
 #include <ntp_sources.c>
 
@@ -96,15 +99,24 @@ change_remote_address(NCR_Instance inst, NTP_Remote_Address *remote_addr, int nt
   TEST_CHECK(record_lock);
 
   if (update && update_pos == 0)
-    r = update_random_address(remote_addr, 4);
+    r = update_random_address(random() % 2 ? remote_addr : NCR_GetRemoteAddress(inst), 4);
 
   NCR_ChangeRemoteAddress(inst, remote_addr, ntp_only);
 
   if (update && update_pos == 1)
-    r = update_random_address(remote_addr, 4);
+    r = update_random_address(random() % 2 ? remote_addr : NCR_GetRemoteAddress(inst), 4);
 
   if (r)
     TEST_CHECK(UTI_IsIPReal(&saved_address_update.old_address.ip_addr));
+}
+
+static double get_mono_time(void) {
+  static double t = 0.0;
+
+  if (random() % 2)
+    t += TST_GetRandomDouble(0.0, 100.0);
+
+  return t;
 }
 
 void
