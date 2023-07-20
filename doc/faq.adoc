@@ -43,6 +43,33 @@ For a more detailed comparison of features and performance, see the
 https://chrony.tuxfamily.org/comparison.html[comparison page] on the `chrony`
 website.
 
+=== Should I prefer `chrony` over `timesyncd` if I do not need to run a server?
+
+Generally, yes.
+
+`systemd-timesyncd` is a very simple NTP client included in the `systemd`
+suite. It lacks almost all features of `chrony` and other advanced client
+implementations listed on the
+https://chrony.tuxfamily.org/comparison.html[comparison page]. One of its main
+limitations is that it cannot poll multiple servers at the same time and detect
+servers having incorrect time (falsetickers in the NTP terminology). It should
+be used only with trusted reliable servers, ideally in local network.
+
+Using `timesyncd` with `pool.ntp.org` is problematic. The pool is very
+robust as a whole, but the individual servers run by volunteers cannot be
+relied on. Occasionally, servers drift away or make a step to distant past or
+future due to misconfiguration, problematic implementation, and other bugs
+(e.g. in firmware of a GPS receiver). The pool monitoring system detects such
+servers and quickly removes them from the pool DNS, but clients like
+`timesyncd` cannot recover from that. They follow the server as long as it
+claims to be synchronised. They need to be restarted in order to get a new
+address from the pool DNS.
+
+Note that the complexity of NTP and clock synchronisation is on the client
+side. The amount of code in `chrony` specific to NTP server is very small and
+it is disabled by default. If it was removed, it would not significantly reduce
+the amount of memory or storage needed.
+
 == Configuration issues
 
 === What is the minimum recommended configuration for an NTP client?
@@ -572,6 +599,24 @@ As an experimental feature added in version 4.2, `chrony` can use PTP as a
 transport for NTP messages (NTP over PTP) to enable hardware timestamping on
 hardware which can timestamp PTP packets only. It can be enabled by the
 `ptpport` directive.
+
+=== How can I avoid using wrong PHC refclock?
+
+If your system has multiple PHC devices, normally named by `udev` as
+_/dev/ptp0_, _/dev/ptp1_, and so on, their order can change randomly across
+reboots depending on the order of initialisation of their drivers. If a PHC
+refclock is specified by this name, `chronyd` could be using a wrong refclock
+after reboot. To prevent that, you can configure `udev` to create a stable
+symlink for `chronyd` with a rule like this (e.g. written to
+_/etc/udev/rules.d/80-phc.rules_):
+
+----
+KERNEL=="ptp[0-9]*", DEVPATH=="/devices/pci0000:00/0000:00:01.2/0000:02:00.0/ptp/*", SYMLINK+="ptp-i350-1"
+----
+
+You can get the full _DEVPATH_ of an existing PHC device with the `udevadm
+info` command. You will need to execute the `udevadm trigger` command, or
+reboot the system, for these changes to take effect.
 
 === Why are client log records dropped before reaching `clientloglimit`?
 
