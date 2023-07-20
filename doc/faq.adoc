@@ -484,7 +484,7 @@ identically configured leap-smearing servers. Note that some clients can get
 leap seconds from other sources (e.g. with the `leapsectz` directive in
 `chrony`) and they will not work correctly with a leap smearing server.
 
-=== How should `chronyd` be configuration with `gpsd`?
+=== How should `chronyd` be configured with `gpsd`?
 
 A GPS or other GNSS receiver can be used as a reference clock with `gpsd`. It
 can work as one or two separate time sources for each connected receiver. The
