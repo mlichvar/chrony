@@ -2,7 +2,7 @@
   chronyd/chronyc - Programs for keeping computer clocks accurate.
 
  **********************************************************************
- * Copyright (C) Miroslav Lichvar  2013, 2017
+ * Copyright (C) Miroslav Lichvar  2013, 2017, 2023
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
