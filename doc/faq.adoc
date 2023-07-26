@@ -40,7 +40,7 @@ on an isolated network with no hardware reference clocks in sight, `chrony`
 will probably work better for you.
 
 For a more detailed comparison of features and performance, see the
-https://chrony.tuxfamily.org/comparison.html[comparison page] on the `chrony`
+https://chrony-project.org/comparison.html[comparison page] on the `chrony`
 website.
 
 === Should I prefer `chrony` over `timesyncd` if I do not need to run a server?
@@ -50,7 +50,7 @@ Generally, yes.
 `systemd-timesyncd` is a very simple NTP client included in the `systemd`
 suite. It lacks almost all features of `chrony` and other advanced client
 implementations listed on the
-https://chrony.tuxfamily.org/comparison.html[comparison page]. One of its main
+https://chrony-project.org/comparison.html[comparison page]. One of its main
 limitations is that it cannot poll multiple servers at the same time and detect
 servers having incorrect time (falsetickers in the NTP terminology). It should
 be used only with trusted reliable servers, ideally in local network.
