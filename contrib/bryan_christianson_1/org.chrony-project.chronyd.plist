@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>org.tuxfamily.chronyd</string>
+	<string>org.chrony-project.chronyd</string>
 	<key>Program</key>
 	<string>/usr/local/sbin/chronyd</string>
 	<key>ProgramArguments</key>

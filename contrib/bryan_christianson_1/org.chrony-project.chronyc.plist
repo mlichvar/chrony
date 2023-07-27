@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>org.tuxfamily.logrotate</string>
+	<string>org.chrony-project.logrotate</string>
 	<key>KeepAlive</key>
 	<false/>
 	<key>ProgramArguments</key>
