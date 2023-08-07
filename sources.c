@@ -587,18 +587,17 @@ update_sel_options(void)
   for (i = 0; i < n_sources; i++) {
     options = sources[i]->conf_sel_options;
 
-    if (options & SRC_SELECT_NOSELECT)
-      continue;
-
-    switch (sources[i]->type) {
-      case SRC_NTP:
-        options |= sources[i]->authenticated ? auth_ntp_options : unauth_ntp_options;
-        break;
-      case SRC_REFCLOCK:
-        options |= refclk_options;
-        break;
-      default:
-        assert(0);
+    if (!(options & SRC_SELECT_NOSELECT)) {
+      switch (sources[i]->type) {
+        case SRC_NTP:
+          options |= sources[i]->authenticated ? auth_ntp_options : unauth_ntp_options;
+          break;
+        case SRC_REFCLOCK:
+          options |= refclk_options;
+          break;
+        default:
+          assert(0);
+      }
     }
 
     if (sources[i]->sel_options != options) {
