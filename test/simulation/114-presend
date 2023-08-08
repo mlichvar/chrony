@@ -3,6 +3,7 @@
 . ./test.common
 test_start "presend option"
 
+limit=9900
 min_sync_time=136
 max_sync_time=260
 client_server_options="presend 6 maxdelay 16"
