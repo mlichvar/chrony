@@ -279,6 +279,18 @@ NIO_Finalise(void)
 /* ================================================== */
 
 int
+NIO_IsHwTsEnabled(void)
+{
+#ifdef HAVE_LINUX_TIMESTAMPING
+  return NIO_Linux_IsHwTsEnabled();
+#else
+  return 0;
+#endif
+}
+
+/* ================================================== */
+
+int
 NIO_OpenClientSocket(NTP_Remote_Address *remote_addr)
 {
   switch (remote_addr->ip_addr.family) {

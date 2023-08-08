@@ -39,6 +39,9 @@ extern void NIO_Initialise(void);
 /* Function to finalise the module */
 extern void NIO_Finalise(void);
 
+/* Function to check if HW timestamping is enabled on any interface */
+extern int NIO_IsHwTsEnabled(void);
+
 /* Function to obtain a socket for sending client packets */
 extern int NIO_OpenClientSocket(NTP_Remote_Address *remote_addr);
 

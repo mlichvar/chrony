@@ -440,6 +440,14 @@ NIO_Linux_Finalise(void)
 /* ================================================== */
 
 int
+NIO_Linux_IsHwTsEnabled(void)
+{
+  return ARR_GetSize(interfaces) > 0;
+}
+
+/* ================================================== */
+
+int
 NIO_Linux_SetTimestampSocketOptions(int sock_fd, int client_only, int *events)
 {
   int val, flags;

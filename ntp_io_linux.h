@@ -33,6 +33,8 @@ extern void NIO_Linux_Initialise(void);
 
 extern void NIO_Linux_Finalise(void);
 
+extern int NIO_Linux_IsHwTsEnabled(void);
+
 extern int NIO_Linux_SetTimestampSocketOptions(int sock_fd, int client_only, int *events);
 
 extern int NIO_Linux_ProcessMessage(SCK_Message *message, NTP_Local_Address *local_addr,

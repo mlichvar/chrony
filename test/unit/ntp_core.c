@@ -35,6 +35,7 @@ static struct timespec current_time;
 static NTP_Packet req_buffer, res_buffer;
 static int req_length, res_length;
 
+#define NIO_IsHwTsEnabled() 1
 #define NIO_OpenServerSocket(addr) ((addr)->ip_addr.family != IPADDR_UNSPEC ? 100 : 0)
 #define NIO_CloseServerSocket(fd) assert(fd == 100)
 #define NIO_OpenClientSocket(addr) ((addr)->ip_addr.family != IPADDR_UNSPEC ? 101 : 0)
@@ -106,13 +107,9 @@ send_request(NCR_Instance inst, int late_hwts)
   }
 
   if (late_hwts) {
-    inst->had_hw_tx_timestamp = 1;
     inst->report.total_good_count++;
   } else {
-    if (random() % 2)
-      inst->had_hw_tx_timestamp = 0;
-    else
-      inst->report.total_good_count = 0;
+    inst->report.total_good_count = 0;
   }
 }
 

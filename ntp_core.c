@@ -215,9 +215,6 @@ struct NCR_Instance_Record {
   SPF_Instance filter;
   int filter_count;
 
-  /* Flag indicating HW transmit timestamps are expected */
-  int had_hw_tx_timestamp;
-
   /* Response waiting for a HW transmit timestamp of the request */
   struct SavedResponse *saved_response;
 
@@ -794,8 +791,6 @@ NCR_ResetInstance(NCR_Instance instance)
   if (instance->filter)
     SPF_DropSamples(instance->filter);
   instance->filter_count = 0;
-
-  instance->had_hw_tx_timestamp = 0;
 }
 
 /* ================================================== */
@@ -1966,7 +1961,7 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
      response to the request, when at least one good response has already been
      accepted to avoid incorrectly confirming a tentative source. */
   if (valid_packet && synced_packet && !saved && !inst->valid_rx &&
-      inst->had_hw_tx_timestamp && inst->local_tx.source != NTP_TS_HARDWARE &&
+      NIO_IsHwTsEnabled() && inst->local_tx.source != NTP_TS_HARDWARE &&
       inst->report.total_good_count > 0) {
     if (save_response(inst, local_addr, rx_ts, message, info))
       return 1;
@@ -2692,8 +2687,6 @@ NCR_ProcessTxKnown(NCR_Instance inst, NTP_Local_Address *local_addr,
                       message);
 
   if (tx_ts->source == NTP_TS_HARDWARE) {
-    inst->had_hw_tx_timestamp = 1;
-
     if (has_saved_response(inst))
       process_saved_response(inst);
   }
