@@ -14,6 +14,7 @@ Enhancements
 * Improve source replacement
 * Log important changes made by command requests (chronyc)
 * Refresh address of NTP sources periodically
+* Request nanosecond kernel RX timestamping on FreeBSD
 * Set DSCP for IPv6 packets
 * Shorten NTS-KE retry interval when network is down
 * Update seccomp filter for musl
