@@ -869,6 +869,11 @@ process_header(struct msghdr *msg, int msg_length, int sock_fd, int flags,
       memcpy(&message->timestamp.kernel, CMSG_DATA(cmsg), sizeof (message->timestamp.kernel));
     }
 #endif
+#ifdef SCM_REALTIME
+    else if (match_cmsg(cmsg, SOL_SOCKET, SCM_REALTIME, sizeof (message->timestamp.kernel))) {
+      memcpy(&message->timestamp.kernel, CMSG_DATA(cmsg), sizeof (message->timestamp.kernel));
+    }
+#endif
 #ifdef HAVE_LINUX_TIMESTAMPING
 #ifdef HAVE_LINUX_TIMESTAMPING_OPT_PKTINFO
     else if (match_cmsg(cmsg, SOL_SOCKET, SCM_TIMESTAMPING_PKTINFO,
@@ -1386,8 +1391,15 @@ SCK_EnableKernelRxTimestamping(int sock_fd)
     return 1;
 #endif
 #ifdef SO_TIMESTAMP
-  if (SCK_SetIntOption(sock_fd, SOL_SOCKET, SO_TIMESTAMP, 1))
+  if (SCK_SetIntOption(sock_fd, SOL_SOCKET, SO_TIMESTAMP, 1)) {
+#if defined(SO_TS_CLOCK) && defined(SO_TS_REALTIME)
+    /* We don't care about the return value - we'll get either a
+       SCM_REALTIME (if we succeded) or a SCM_TIMESTAMP (if we failed) */
+    if (!SCK_SetIntOption(sock_fd, SOL_SOCKET, SO_TS_CLOCK, SO_TS_REALTIME))
+      ;
+#endif
     return 1;
+  }
 #endif
 
   return 0;
