@@ -60,6 +60,8 @@ extern NSR_Status NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type
 extern NSR_Status NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
                                       SourceParameters *params, uint32_t *conf_id);
 
+extern const char *NSR_StatusToString(NSR_Status status);
+
 /* Function type for handlers to be called back when an attempt
  * (possibly unsuccessful) to resolve unresolved sources ends */
 typedef void (*NSR_SourceResolvingEndHandler)(void);

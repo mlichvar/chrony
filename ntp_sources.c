@@ -844,6 +844,31 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
 
 /* ================================================== */
 
+const char *
+NSR_StatusToString(NSR_Status status)
+{
+  switch (status) {
+    case NSR_Success:
+      return "Success";
+    case NSR_NoSuchSource:
+      return "No such source";
+    case NSR_AlreadyInUse:
+      return "Already in use";
+    case NSR_TooManySources:
+      return "Too many sources";
+    case NSR_InvalidAF:
+      return "Invalid address";
+    case NSR_InvalidName:
+      return "Invalid name";
+    case NSR_UnresolvedName:
+      return "Unresolved name";
+    default:
+      return "?";
+  }
+}
+
+/* ================================================== */
+
 void
 NSR_SetSourceResolvingEndHandler(NSR_SourceResolvingEndHandler handler)
 {

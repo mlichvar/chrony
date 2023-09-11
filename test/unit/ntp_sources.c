@@ -88,6 +88,8 @@ update_random_address(NTP_Remote_Address *addr, int rand_bits)
     TEST_CHECK(status == NSR_Success || status == NSR_AlreadyInUse);
   }
 
+  TEST_CHECK(strlen(NSR_StatusToString(status)) > 0);
+
   return status == NSR_Success;
 }
 

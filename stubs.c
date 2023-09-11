@@ -207,6 +207,12 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
   return NSR_TooManySources;
 }
 
+const char *
+NSR_StatusToString(NSR_Status status)
+{
+  return "NTP not supported";
+}
+
 NSR_Status
 NSR_RemoveSource(IPAddr *address)
 {
