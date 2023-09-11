@@ -1660,11 +1660,11 @@ compare_sources(const void *a, const void *b)
     return 1;
   if ((d = strcmp(sa->params.name, sb->params.name)) != 0)
     return d;
-  if ((d = (int)(sa->type) - (int)(sb->type)) != 0)
+  if ((d = (int)sa->type - (int)sb->type) != 0)
     return d;
-  if ((d = sa->pool - sb->pool) != 0)
+  if ((d = (int)sa->pool - (int)sb->pool) != 0)
     return d;
-  if ((d = sa->params.port - sb->params.port) != 0)
+  if ((d = (int)sa->params.port - (int)sb->params.port) != 0)
     return d;
   return memcmp(&sa->params.params, &sb->params.params, sizeof (sa->params.params));
 }
