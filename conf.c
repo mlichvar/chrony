@@ -1679,7 +1679,7 @@ reload_source_dirs(void)
   uint32_t *prev_ids, *new_ids;
   char buf[MAX_LINE_LENGTH];
   NSR_Status s;
-  int d;
+  int d, pass;
 
   prev_size = ARR_GetSize(ntp_source_ids);
   if (prev_size > 0 && ARR_GetSize(ntp_sources) != prev_size)
@@ -1713,36 +1713,37 @@ reload_source_dirs(void)
 
   qsort(new_sources, new_size, sizeof (new_sources[0]), compare_sources);
 
-  for (i = j = 0; i < prev_size || j < new_size; ) {
-    if (i < prev_size && j < new_size)
-      d = compare_sources(&prev_sources[i], &new_sources[j]);
-    else
-      d = i < prev_size ? -1 : 1;
+  for (pass = 0; pass < 2; pass++) {
+    for (i = j = 0; i < prev_size || j < new_size; i += d <= 0, j += d >= 0) {
+      if (i < prev_size && j < new_size)
+        d = compare_sources(&prev_sources[i], &new_sources[j]);
+      else
+        d = i < prev_size ? -1 : 1;
 
-    if (d < 0) {
-      /* Remove the missing source */
-      if (prev_sources[i].params.name[0] != '\0')
+      /* Remove missing sources before adding others to avoid conflicts */
+      if (pass == 0 && d < 0 && prev_sources[i].params.name[0] != '\0') {
         NSR_RemoveSourcesById(prev_ids[i]);
-      i++;
-    } else if (d > 0) {
-      /* Add a newly configured source */
-      source = &new_sources[j];
-      s = NSR_AddSourceByName(source->params.name, source->params.port, source->pool,
-                              source->type, &source->params.params, &new_ids[j]);
-
-      if (s == NSR_UnresolvedName) {
-        unresolved++;
-      } else if (s != NSR_Success) {
-        LOG(LOGS_ERR, "Could not add source %s", source->params.name);
-
-        /* Mark the source as not present */
-        source->params.name[0] = '\0';
       }
-      j++;
-    } else {
-      /* Keep the existing source */
-      new_ids[j] = prev_ids[i];
-      i++, j++;
+
+      /* Add new sources */
+      if (pass == 1 && d > 0) {
+        source = &new_sources[j];
+        s = NSR_AddSourceByName(source->params.name, source->params.port, source->pool,
+                                source->type, &source->params.params, &new_ids[j]);
+
+        if (s == NSR_UnresolvedName) {
+          unresolved++;
+        } else if (s != NSR_Success) {
+          LOG(LOGS_ERR, "Could not add source %s", source->params.name);
+
+          /* Mark the source as not present */
+          source->params.name[0] = '\0';
+        }
+      }
+
+      /* Keep unchanged sources */
+      if (pass == 1 && d == 0)
+        new_ids[j] = prev_ids[i];
     }
   }
 

@@ -30,6 +30,8 @@ echo "server 127.123.4.4" > $TEST_DIR/conf4.d/4.conf
 echo "server 127.123.5.1" > $TEST_DIR/conf5.d/1.sources
 echo "server 127.123.5.2" > $TEST_DIR/conf5.d/2.sources
 echo "server 127.123.5.3" > $TEST_DIR/conf5.d/3.sources
+echo "server 127.123.5.4" > $TEST_DIR/conf5.d/4.sources
+echo "server 127.123.5.5" > $TEST_DIR/conf5.d/5.sources
 
 start_chronyd || test_fail
 
@@ -46,12 +48,16 @@ check_chronyc_output "^[^=]*
 .. 127\.123\.1\.2 [^^]*
 .. 127\.123\.5\.1 [^^]*
 .. 127\.123\.5\.2 [^^]*
-.. 127\.123\.5\.3 [^^]*$" || test_fail
+.. 127\.123\.5\.3 [^^]*
+.. 127\.123\.5\.4 [^^]*
+.. 127\.123\.5\.5 [^^]*$" || test_fail
 
 rm $TEST_DIR/conf5.d/1.sources
-echo "server 127.123.5.2 minpoll 7" > $TEST_DIR/conf5.d/2.sources
-echo > $TEST_DIR/conf5.d/3.sources
-echo "server 127.123.5.4" > $TEST_DIR/conf5.d/4.sources
+echo "server 127.123.5.2 minpoll 5" > $TEST_DIR/conf5.d/2.sources
+echo "server 127.123.5.3 minpoll 7" > $TEST_DIR/conf5.d/3.sources
+echo > $TEST_DIR/conf5.d/4.sources
+echo "server 127.123.5.5" >> $TEST_DIR/conf5.d/5.sources
+echo "server 127.123.5.6" > $TEST_DIR/conf5.d/6.sources
 
 run_chronyc "reload sources" || test_fail
 
@@ -66,9 +72,12 @@ check_chronyc_output "^[^=]*
 .. 127\.123\.2\.3 [^^]*
 .. 127\.123\.4\.4 [^^]*
 .. 127\.123\.1\.2 *[05]   6 [^^]*
-.. 127\.123\.5\.2 *[05]   7 [^^]*
-.. 127\.123\.5\.4 [^^]*$" || test_fail
+.. 127\.123\.5\.5 [^^]*
+.. 127\.123\.5\.2 *[05]   5 [^^]*
+.. 127\.123\.5\.3 *[05]   7 [^^]*
+.. 127\.123\.5\.6 [^^]*$" || test_fail
 
 stop_chronyd || test_fail
+check_chronyd_message_count "Could not add source" 1 1 || test_fail
 
 test_pass
