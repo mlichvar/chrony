@@ -37,6 +37,8 @@
 struct SIV_Instance_Record {
   gnutls_cipher_algorithm_t algorithm;
   gnutls_aead_cipher_hd_t cipher;
+  int min_nonce_length;
+  int max_nonce_length;
 };
 
 /* ================================================== */
@@ -81,6 +83,10 @@ get_cipher_algorithm(SIV_Algorithm algorithm)
   switch (algorithm) {
     case AEAD_AES_SIV_CMAC_256:
       return GNUTLS_CIPHER_AES_128_SIV;
+#if HAVE_GNUTLS_SIV_GCM
+    case AEAD_AES_128_GCM_SIV:
+      return GNUTLS_CIPHER_AES_128_SIV_GCM;
+#endif
     default:
       return 0;
   }
@@ -111,6 +117,19 @@ SIV_CreateInstance(SIV_Algorithm algorithm)
   instance = MallocNew(struct SIV_Instance_Record);
   instance->algorithm = calgo;
   instance->cipher = NULL;
+
+  switch (algorithm) {
+    case AEAD_AES_SIV_CMAC_256:
+      instance->min_nonce_length = 1;
+      instance->max_nonce_length = INT_MAX;
+      break;
+    case AEAD_AES_128_GCM_SIV:
+      instance->min_nonce_length = 12;
+      instance->max_nonce_length = 12;
+      break;
+    default:
+      assert(0);
+  }
 
   instance_counter++;
 
@@ -143,6 +162,8 @@ SIV_GetKeyLength(SIV_Algorithm algorithm)
     return 0;
 
   len = gnutls_cipher_get_key_size(calgo);
+  if (len == 0)
+    return 0;
 
   if (len < 1 || len > SIV_MAX_KEY_LENGTH)
     LOG_FATAL("Invalid key length");
@@ -198,7 +219,7 @@ SIV_SetKey(SIV_Instance instance, const unsigned char *key, int length)
 int
 SIV_GetMinNonceLength(SIV_Instance instance)
 {
-  return 1;
+  return instance->min_nonce_length;
 }
 
 /* ================================================== */
@@ -206,7 +227,7 @@ SIV_GetMinNonceLength(SIV_Instance instance)
 int
 SIV_GetMaxNonceLength(SIV_Instance instance)
 {
-  return INT_MAX;
+  return instance->max_nonce_length;
 }
 
 /* ================================================== */
@@ -238,7 +259,8 @@ SIV_Encrypt(SIV_Instance instance,
   if (!instance->cipher)
     return 0;
 
-  if (nonce_length < 1 || assoc_length < 0 ||
+  if (nonce_length < instance->min_nonce_length ||
+      nonce_length > instance->max_nonce_length || assoc_length < 0 ||
       plaintext_length < 0 || ciphertext_length < 0)
     return 0;
 
@@ -269,7 +291,8 @@ SIV_Decrypt(SIV_Instance instance,
   if (!instance->cipher)
     return 0;
 
-  if (nonce_length < 1 || assoc_length < 0 ||
+  if (nonce_length < instance->min_nonce_length ||
+      nonce_length > instance->max_nonce_length || assoc_length < 0 ||
       plaintext_length < 0 || ciphertext_length < 0)
     return 0;
 

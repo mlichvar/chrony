@@ -1012,6 +1012,13 @@ if [ $feat_ntp = "1" ] && [ $feat_nts = "1" ] && [ $try_gnutls = "1" ]; then
       then
         EXTRA_OBJECTS="$EXTRA_OBJECTS siv_gnutls.o"
         add_def HAVE_SIV
+        if [ $try_aes_gcm_siv = "1" ] && test_code 'AES-GCM-SIV in gnutls' \
+          'gnutls/crypto.h' "$test_cflags" "$test_link $LIBS" '
+            return gnutls_aead_cipher_init((void *)1, GNUTLS_CIPHER_AES_128_SIV_GCM,
+                                           (void *)2);'
+        then
+          add_def HAVE_GNUTLS_SIV_GCM
+        fi
         if test_code 'gnutls_aead_cipher_set_key()' 'gnutls/crypto.h' \
           "$test_cflags" "$test_link $LIBS" '
             return gnutls_aead_cipher_set_key((void *)1, (void *)2);'
