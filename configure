@@ -991,7 +991,7 @@ if [ $feat_ntp = "1" ] && [ $feat_nts = "1" ] && [ $try_gnutls = "1" ]; then
         gnutls_priority_init2((void *)1, "", NULL, GNUTLS_PRIORITY_INIT_DEF_APPEND) +
         gnutls_prf_rfc5705((void *)1, 0, "", 0, "", 16, (void *)2);'
   then
-    if test_code 'AES-SIV-CMAC in nettle' \
+    if [ $try_nettle = "1" ] && test_code 'AES-SIV-CMAC in nettle' \
       'nettle/siv-cmac.h' "" "$LIBS" \
       'siv_cmac_aes128_set_key((void *)1, (void *)2);'
     then
