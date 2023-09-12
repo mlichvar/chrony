@@ -373,6 +373,8 @@ do_size_checks(void)
   assert(offsetof(NTP_Packet, originate_ts)    == 24);
   assert(offsetof(NTP_Packet, receive_ts)      == 32);
   assert(offsetof(NTP_Packet, transmit_ts)     == 40);
+
+  assert(sizeof (NTP_EFExpMonoRoot) == 24);
 }
 
 /* ================================================== */
