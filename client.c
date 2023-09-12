@@ -958,7 +958,7 @@ process_cmd_add_source(CMD_Request *msg, char *line)
           (data.params.burst ? REQ_ADDSRC_BURST : 0) |
           (data.params.nts ? REQ_ADDSRC_NTS : 0) |
           (data.params.copy ? REQ_ADDSRC_COPY : 0) |
-          (data.params.ext_fields & NTP_EF_FLAG_EXP1 ? REQ_ADDSRC_EF_EXP1 : 0) |
+          (data.params.ext_fields & NTP_EF_FLAG_EXP_MONO_ROOT ? REQ_ADDSRC_EF_EXP_MONO_ROOT : 0) |
           convert_addsrc_sel_options(data.params.sel_options));
       msg->data.ntp_source.filter_length = htonl(data.params.filter_length);
       msg->data.ntp_source.cert_set = htonl(data.params.cert_set);

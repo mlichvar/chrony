@@ -115,8 +115,8 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
       if (sscanf(line, "%"SCNx32"%n", &ef_type, &n) != 1)
         return 0;
       switch (ef_type) {
-        case NTP_EF_EXP1:
-          src->params.ext_fields |= NTP_EF_FLAG_EXP1;
+        case NTP_EF_EXP_MONO_ROOT:
+          src->params.ext_fields |= NTP_EF_FLAG_EXP_MONO_ROOT;
           break;
         default:
           return 0;

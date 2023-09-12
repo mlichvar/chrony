@@ -2,7 +2,7 @@
 
 . ./test.common
 
-test_start "experimental extension field"
+test_start "mono+root extension field"
 
 check_config_h 'FEAT_CMDMON 1' || test_skip
 
