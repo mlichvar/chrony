@@ -111,10 +111,10 @@ For better control, use the options below.
   --without-editline     Don't use editline even if it is available
   --disable-sechash      Disable support for hashes other than MD5
   --without-nettle       Don't use nettle even if it is available
+  --without-gnutls       Don't use gnutls even if it is available
   --without-nss          Don't use NSS even if it is available
   --without-tomcrypt     Don't use libtomcrypt even if it is available
   --disable-nts          Disable NTS support
-  --without-gnutls       Don't use gnutls even if it is available
   --disable-cmdmon       Disable command and monitoring support
   --disable-ntp          Disable NTP support
   --disable-refclock     Disable reference clock support
@@ -926,6 +926,28 @@ if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ]  && [ $try_nettle = "1" ];
   fi
 fi
 
+if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ] && [ $try_gnutls = "1" ]; then
+  test_cflags="`pkg_config --cflags gnutls`"
+  test_link="`pkg_config --libs gnutls`"
+  if test_code 'gnutls' 'gnutls/crypto.h' \
+    "$test_cflags" "$test_link" '
+      return gnutls_hash((void *)1, (void *)2, 1);'
+  then
+    HASH_OBJ="hash_gnutls.o"
+    HASH_LINK="$test_link"
+    MYCPPFLAGS="$MYCPPFLAGS $test_cflags"
+    add_def FEAT_SECHASH
+
+    if test_code 'CMAC in gnutls' 'gnutls/crypto.h' "$test_cflags" "$test_link" \
+      'return gnutls_hmac_init((void *)1, GNUTLS_MAC_AES_CMAC_128, (void *)2, 0);'
+    then
+      add_def HAVE_CMAC
+      EXTRA_OBJECTS="$EXTRA_OBJECTS cmac_gnutls.o"
+      EXTRA_CLI_OBJECTS="$EXTRA_CLI_OBJECTS cmac_gnutls.o"
+    fi
+  fi
+fi
+
 if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ]  && [ $try_nss = "1" ]; then
   test_cflags="`pkg_config --cflags nss`"
   test_link="`pkg_config --libs-only-L nss` -lfreebl3 -lnssutil3"
@@ -948,28 +970,6 @@ if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ] && [ $try_tomcrypt = "1" ]
     HASH_LINK="-ltomcrypt"
     MYCPPFLAGS="$MYCPPFLAGS -I/usr/include/tomcrypt"
     add_def FEAT_SECHASH
-  fi
-fi
-
-if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ] && [ $try_gnutls = "1" ]; then
-  test_cflags="`pkg_config --cflags gnutls`"
-  test_link="`pkg_config --libs gnutls`"
-  if test_code 'gnutls' 'gnutls/crypto.h' \
-    "$test_cflags" "$test_link" '
-      return gnutls_hash((void *)1, (void *)2, 1);'
-  then
-    HASH_OBJ="hash_gnutls.o"
-    HASH_LINK="$test_link"
-    MYCPPFLAGS="$MYCPPFLAGS $test_cflags"
-    add_def FEAT_SECHASH
-
-    if test_code 'CMAC in gnutls' 'gnutls/crypto.h' "$test_cflags" "$test_link" \
-      'return gnutls_hmac_init((void *)1, GNUTLS_MAC_AES_CMAC_128, (void *)2, 0);'
-    then
-      add_def HAVE_CMAC
-      EXTRA_OBJECTS="$EXTRA_OBJECTS cmac_gnutls.o"
-      EXTRA_CLI_OBJECTS="$EXTRA_CLI_OBJECTS cmac_gnutls.o"
-    fi
   fi
 fi
 

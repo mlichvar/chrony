@@ -25,13 +25,13 @@ touch Makefile
 for extra_config_opts in \
   "--all-privops" \
   "--disable-ipv6" \
+  "--disable-nts" \
   "--disable-scfilter" \
   "--without-aes-gcm-siv" \
-  "--without-gnutls" \
   "--without-nettle" \
-  "--without-nettle --without-nss" \
-  "--without-nettle --without-nss --without-tomcrypt" \
-  "--without-nettle --without-nss --without-tomcrypt --without-gnutls"; \
+  "--without-nettle --without-gnutls" \
+  "--without-nettle --without-gnutls --without-nss" \
+  "--without-nettle --without-gnutls --without-nss --without-tomcrypt"; \
 do
   for arch_opts in "-m32" ""; do
     pushd test/simulation/clknetsim || exit 1
