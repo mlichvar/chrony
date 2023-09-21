@@ -818,6 +818,33 @@ UTI_DiffNtp64ToDouble(const NTP_int64 *a, const NTP_int64 *b)
 
 /* ================================================== */
 
+double
+UTI_Ntp64ToDouble(NTP_int64 *src)
+{
+  NTP_int64 zero;
+
+  UTI_ZeroNtp64(&zero);
+  return UTI_DiffNtp64ToDouble(src, &zero);
+}
+
+/* ================================================== */
+
+void
+UTI_DoubleToNtp64(double src, NTP_int64 *dest)
+{
+  int32_t hi;
+
+  src = CLAMP(INT32_MIN, src, INT32_MAX);
+  hi = round(src);
+  if (hi > src)
+    hi -= 1;
+
+  dest->hi = htonl(hi);
+  dest->lo = htonl((src - hi) * (1.0e9 * NSEC_PER_NTP64));
+}
+
+/* ================================================== */
+
 /* Maximum offset between two sane times */
 #define MAX_OFFSET 4294967296.0
 

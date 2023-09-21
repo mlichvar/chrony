@@ -253,6 +253,47 @@ test_unit(void)
   TEST_CHECK(UTI_IsEqualAnyNtp64(&ntp_ts, NULL, NULL, &ntp_ts));
   TEST_CHECK(!UTI_IsEqualAnyNtp64(&ntp_ts, &ntp_fuzz, &ntp_fuzz, &ntp_fuzz));
 
+  ntp_ts.hi = htonl(0);
+  ntp_ts.lo = htonl(0);
+  x = UTI_Ntp64ToDouble(&ntp_ts);
+  TEST_CHECK(fabs(x) < 1e-10);
+  UTI_DoubleToNtp64(x, &ntp_ts2);
+  TEST_CHECK(UTI_CompareNtp64(&ntp_ts, &ntp_ts2) == 0);
+
+  ntp_ts.hi = htonl(0);
+  ntp_ts.lo = htonl(0xffffffff);
+  x = UTI_Ntp64ToDouble(&ntp_ts);
+  TEST_CHECK(fabs(x - 1.0 + 0.23e-9) < 1e-10);
+  UTI_DoubleToNtp64(x, &ntp_ts2);
+  TEST_CHECK(fabs(UTI_DiffNtp64ToDouble(&ntp_ts, &ntp_ts2)) < 0.3e-9);
+
+  ntp_ts.hi = htonl(0xffffffff);
+  ntp_ts.lo = htonl(0xffffffff);
+  x = UTI_Ntp64ToDouble(&ntp_ts);
+  TEST_CHECK(fabs(x + 0.23e-9) < 1e-10);
+  UTI_DoubleToNtp64(x, &ntp_ts2);
+  TEST_CHECK(fabs(UTI_DiffNtp64ToDouble(&ntp_ts, &ntp_ts2)) < 0.3e-9);
+
+  ntp_ts.hi = htonl(0x80000000);
+  ntp_ts.lo = htonl(0);
+  x = UTI_Ntp64ToDouble(&ntp_ts);
+  TEST_CHECK(fabs(x + 0x80000000) < 1e-10);
+  UTI_DoubleToNtp64(x, &ntp_ts2);
+  TEST_CHECK(fabs(UTI_DiffNtp64ToDouble(&ntp_ts, &ntp_ts2)) < 0.3e-9);
+
+  ntp_ts.hi = htonl(0x7fffffff);
+  ntp_ts.lo = htonl(0xffffffff);
+  x = UTI_Ntp64ToDouble(&ntp_ts);
+  TEST_CHECK(fabs(x - 2147483648) < 1.0);
+
+  ntp_ts.lo = htonl(0);
+  ntp_ts.hi = htonl(0x7fffffff);
+  UTI_DoubleToNtp64(0x7fffffff + 0.1, &ntp_ts2);
+  TEST_CHECK(UTI_CompareNtp64(&ntp_ts, &ntp_ts2) == 0);
+  ntp_ts.hi = htonl(0x80000000);
+  UTI_DoubleToNtp64(0x80000000 - 0.1, &ntp_ts);
+  TEST_CHECK(UTI_CompareNtp64(&ntp_ts, &ntp_ts2) == 0);
+
   ts.tv_sec = 1;
   ts.tv_nsec = 2;
   ts2.tv_sec = 1;
