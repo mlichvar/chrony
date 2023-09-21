@@ -1493,6 +1493,14 @@ is_zero_data(unsigned char *data, int length)
 /* ================================================== */
 
 static int
+is_exp_ef(void *body, int body_length, int expected_body_length, uint32_t magic)
+{
+  return body_length == expected_body_length && *(uint32_t *)body == htonl(magic);
+}
+
+/* ================================================== */
+
+static int
 parse_packet(NTP_Packet *packet, int length, NTP_PacketInfo *info)
 {
   int parsed, remainder, ef_length, ef_type, ef_body_length;
@@ -1579,8 +1587,8 @@ parse_packet(NTP_Packet *packet, int length, NTP_PacketInfo *info)
         info->auth.mode = NTP_AUTH_NTS;
         break;
       case NTP_EF_EXP_MONO_ROOT:
-        if (ef_body_length == sizeof (NTP_EFExpMonoRoot) &&
-            ntohl(((NTP_EFExpMonoRoot *)ef_body)->magic) == NTP_EF_EXP_MONO_ROOT_MAGIC)
+        if (is_exp_ef(ef_body, ef_body_length, sizeof (NTP_EFExpMonoRoot),
+                      NTP_EF_EXP_MONO_ROOT_MAGIC))
           info->ext_field_flags |= NTP_EF_FLAG_EXP_MONO_ROOT;
         break;
       default:
@@ -1893,8 +1901,8 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
       switch (ef_type) {
         case NTP_EF_EXP_MONO_ROOT:
           if (inst->ext_field_flags & NTP_EF_FLAG_EXP_MONO_ROOT &&
-              ef_body_length == sizeof (*ef_mono_root) &&
-              ntohl(((NTP_EFExpMonoRoot *)ef_body)->magic) == NTP_EF_EXP_MONO_ROOT_MAGIC)
+              is_exp_ef(ef_body, ef_body_length, sizeof (*ef_mono_root),
+                        NTP_EF_EXP_MONO_ROOT_MAGIC))
             ef_mono_root = ef_body;
           break;
       }
