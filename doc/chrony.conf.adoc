@@ -325,13 +325,12 @@ version 2.0).
 The following extension field can be enabled by this option:
 +
 _F323_::::
-This is an experimental extension field for some improvements that were
+An experimental extension field to enable several improvements that were
 proposed for the next version of the NTP protocol (NTPv5). The field contains
 root delay and dispersion in higher resolution and a monotonic receive
-timestamp, which enables a frequency transfer between the server and client. It
-can significantly improve stability of the synchronization. Generally, it
-should be expected to work only between servers and clients running the same
-version of *chronyd*.
+timestamp, which enables a frequency transfer between the server and client to
+significantly improve stability of the synchronisation. This field should be
+enabled only for servers known to be running *chronyd* version 4.2 or later.
 {blank}:::
 
 [[pool]]*pool* _name_ [_option_]...::
@@ -2732,8 +2731,7 @@ packets. The port recognized by the NICs is 319 (PTP event port). The default
 value is 0 (disabled).
 +
 The NTP-over-PTP support is experimental. The protocol and configuration can
-change in future. It should be used only in local networks and expected to work
-only between servers and clients running the same version of *chronyd*.
+change in future. It should be used only in local networks.
 +
 The PTP port will be open even if *chronyd* is not configured to operate as a
 server or client. The directive does not change the default protocol of
