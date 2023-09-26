@@ -314,6 +314,9 @@ static ARR_Instance broadcasts;
 /* Maximum acceptable change in server mono<->real offset */
 #define MAX_MONO_DOFFSET 16.0
 
+/* Maximum assumed frequency error in network corrections */
+#define MAX_NET_CORRECTION_FREQ 100.0e-6
+
 /* Invalid socket, different from the one in ntp_io.c */
 #define INVALID_SOCK_FD -2
 
@@ -1661,6 +1664,53 @@ parse_packet(NTP_Packet *packet, int length, NTP_PacketInfo *info)
 
 /* ================================================== */
 
+static void
+apply_net_correction(NTP_Sample *sample, NTP_Local_Timestamp *rx, NTP_Local_Timestamp *tx,
+                     double precision)
+{
+  double rx_correction, tx_correction, low_delay_correction;
+
+  /* Require some correction from transparent clocks to be present
+     in both directions (not just the local RX timestamp correction) */
+  if (rx->net_correction <= rx->rx_duration || tx->net_correction <= 0.0)
+    return;
+
+  /* With perfect corrections from PTP transparent clocks and short cables
+     the peer delay would be close to zero, or even negative if the server or
+     transparent clocks were running faster than client, which would invert the
+     sample weighting.  Adjust the correction to get a delay corresponding to
+     a direct connection to the server.  For simplicity, assume the TX and RX
+     link speeds are equal.  If not, the reported delay will be wrong, but it
+     will not cause an error in the offset. */
+  rx_correction = rx->net_correction - rx->rx_duration;
+  tx_correction = tx->net_correction - rx->rx_duration;
+
+  /* Use a slightly smaller value in the correction of delay to not overcorrect
+     if the transparent clocks run up to 100 ppm fast and keep a part of the
+     uncorrected delay for the sample weighting */
+  low_delay_correction = (rx_correction + tx_correction) *
+                         (1.0 - MAX_NET_CORRECTION_FREQ);
+
+  /* Make sure the correction is sane.  The values are not authenticated! */
+  if (low_delay_correction < 0.0 || low_delay_correction > sample->peer_delay) {
+    DEBUG_LOG("Invalid correction %.9f peer_delay=%.9f",
+              low_delay_correction, sample->peer_delay);
+    return;
+  }
+
+  /* Correct the offset and peer delay, but not the root delay to not
+     change the estimated maximum error */
+  sample->offset += (rx_correction - tx_correction) / 2.0;
+  sample->peer_delay -= low_delay_correction;
+  if (sample->peer_delay < precision)
+    sample->peer_delay = precision;
+
+  DEBUG_LOG("Applied correction rx=%.9f tx=%.9f dur=%.9f",
+            rx->net_correction, tx->net_correction, rx->rx_duration);
+}
+
+/* ================================================== */
+
 static int
 check_delay_ratio(NCR_Instance inst, SST_Stats stats,
                 struct timespec *sample_time, double delay)
@@ -1923,10 +1973,11 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
   int parsed, ef_length, ef_type, ef_body_length;
   void *ef_body;
   NTP_EFExpMonoRoot *ef_mono_root;
+  NTP_EFExpNetCorrection *ef_net_correction;
 
   NTP_Local_Timestamp local_receive, local_transmit;
   double remote_interval, local_interval, response_time;
-  double delay_time, precision, mono_doffset;
+  double delay_time, precision, mono_doffset, net_correction;
   int updated_timestamps;
 
   /* ==================== */
@@ -1934,6 +1985,7 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
   stats = SRC_GetSourcestats(inst->source);
 
   ef_mono_root = NULL;
+  ef_net_correction = NULL;
 
   /* Find requested non-authentication extension fields */
   if (inst->ext_field_flags & info->ext_field_flags) {
@@ -1948,6 +2000,12 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
               is_exp_ef(ef_body, ef_body_length, sizeof (*ef_mono_root),
                         NTP_EF_EXP_MONO_ROOT_MAGIC))
             ef_mono_root = ef_body;
+          break;
+        case NTP_EF_EXP_NET_CORRECTION:
+          if (inst->ext_field_flags & NTP_EF_FLAG_EXP_NET_CORRECTION &&
+              is_exp_ef(ef_body, ef_body_length, sizeof (*ef_net_correction),
+                        NTP_EF_EXP_NET_CORRECTION_MAGIC))
+            ef_net_correction = ef_body;
           break;
       }
     }
@@ -2055,6 +2113,12 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
       mono_doffset = 0.0;
     }
 
+    if (ef_net_correction) {
+      net_correction = UTI_Ntp64ToDouble(&ef_net_correction->correction);
+    } else {
+      net_correction = 0.0;
+    }
+
     /* Select remote and local timestamps for the new sample */
     if (interleaved_packet) {
       /* Prefer previous local TX and remote RX timestamps if it will make
@@ -2074,6 +2138,7 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
         UTI_Ntp64ToTimespec(&message->receive_ts, &remote_receive);
         UTI_Ntp64ToTimespec(&inst->remote_ntp_rx, &remote_request_receive);
         local_transmit = inst->local_tx;
+        local_transmit.net_correction = net_correction;
         root_delay = MAX(pkt_root_delay, inst->remote_root_delay);
         root_dispersion = MAX(pkt_root_dispersion, inst->remote_root_dispersion);
       }
@@ -2088,6 +2153,7 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
       remote_request_receive = remote_receive;
       local_receive = *rx_ts;
       local_transmit = inst->local_tx;
+      local_transmit.net_correction = net_correction;
       root_delay = pkt_root_delay;
       root_dispersion = pkt_root_dispersion;
     }
@@ -2131,6 +2197,9 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
                              skew * fabs(local_interval);
     sample.root_delay = root_delay + sample.peer_delay;
     sample.root_dispersion = root_dispersion + sample.peer_dispersion;
+
+    /* Apply corrections from PTP transparent clocks if available and sane */
+    apply_net_correction(&sample, &local_receive, &local_transmit, precision);
     
     /* If the source is an active peer, this is the minimum assumed interval
        between previous two transmissions (if not constrained by minpoll) */
@@ -2186,6 +2255,7 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
     sample.root_delay = sample.root_dispersion = 0.0;
     sample.time = rx_ts->ts;
     mono_doffset = 0.0;
+    net_correction = 0.0;
     local_receive = *rx_ts;
     local_transmit = inst->local_tx;
     testA = testB = testC = testD = 0;
@@ -2228,6 +2298,8 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
       UTI_ZeroNtp64(&inst->remote_ntp_monorx);
       inst->mono_doffset = 0.0;
     }
+
+    inst->local_tx.net_correction = net_correction;
 
     /* Don't use the same set of timestamps for the next sample */
     if (interleaved_packet)

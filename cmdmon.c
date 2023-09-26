@@ -783,8 +783,10 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.burst = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_BURST ? 1 : 0;
   params.nts = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_NTS ? 1 : 0;
   params.copy = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_COPY ? 1 : 0;
-  params.ext_fields = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_EF_EXP_MONO_ROOT ?
-                      NTP_EF_FLAG_EXP_MONO_ROOT : 0;
+  params.ext_fields = (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_EF_EXP_MONO_ROOT ?
+                      NTP_EF_FLAG_EXP_MONO_ROOT : 0) |
+                      (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_EF_EXP_NET_CORRECTION ?
+                      NTP_EF_FLAG_EXP_NET_CORRECTION : 0);
   params.sel_options = convert_addsrc_select_options(ntohl(rx_message->data.ntp_source.flags));
 
   status = NSR_AddSourceByName(name, port, pool, type, &params, NULL);

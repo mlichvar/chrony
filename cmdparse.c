@@ -118,6 +118,9 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
         case NTP_EF_EXP_MONO_ROOT:
           src->params.ext_fields |= NTP_EF_FLAG_EXP_MONO_ROOT;
           break;
+        case NTP_EF_EXP_NET_CORRECTION:
+          src->params.ext_fields |= NTP_EF_FLAG_EXP_NET_CORRECTION;
+          break;
         default:
           return 0;
       }

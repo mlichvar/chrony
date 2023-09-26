@@ -31,6 +31,7 @@ default_primary_time_offset=0.0
 default_time_offset=1e-1
 default_freq_offset=1e-4
 default_base_delay=1e-4
+default_delay_correction=""
 default_jitter=1e-4
 default_jitter_asymmetry=0.0
 default_wander=1e-9
@@ -460,6 +461,10 @@ run_test() {
 		for j in $(seq 1 $nodes); do
 			echo "node${i}_delay${j} = $(get_delay_expr up)"
 			echo "node${j}_delay${i} = $(get_delay_expr down)"
+			if [ -n "$delay_correction" ]; then
+				echo "node${i}_delay_correction${j} = $delay_correction"
+				echo "node${j}_delay_correction${i} = $delay_correction"
+			fi
 		done
 	done > tmp/conf
 
