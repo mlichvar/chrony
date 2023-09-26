@@ -1085,6 +1085,36 @@ add_ef_mono_root(NTP_Packet *message, NTP_PacketInfo *info, struct timespec *rx,
 /* ================================================== */
 
 static int
+add_ef_net_correction(NTP_Packet *message, NTP_PacketInfo *info,
+                      NTP_Local_Timestamp *local_rx)
+{
+  NTP_EFExpNetCorrection ef;
+
+  if (CNF_GetPtpPort() == 0) {
+    DEBUG_LOG("ptpport disabled");
+    return 1;
+  }
+
+  memset(&ef, 0, sizeof (ef));
+  ef.magic = htonl(NTP_EF_EXP_NET_CORRECTION_MAGIC);
+
+  if (info->mode != MODE_CLIENT && local_rx->net_correction > local_rx->rx_duration) {
+    UTI_DoubleToNtp64(local_rx->net_correction, &ef.correction);
+  }
+
+  if (!NEF_AddField(message, info, NTP_EF_EXP_NET_CORRECTION, &ef, sizeof (ef))) {
+    DEBUG_LOG("Could not add EF");
+    return 0;
+  }
+
+  info->ext_field_flags |= NTP_EF_FLAG_EXP_NET_CORRECTION;
+
+  return 1;
+}
+
+/* ================================================== */
+
+static int
 transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
                 int interleaved, /* Flag enabling interleaved mode */
                 int my_poll, /* The log2 of the local poll interval */
@@ -1232,6 +1262,10 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     if (ext_field_flags & NTP_EF_FLAG_EXP_MONO_ROOT) {
       if (!add_ef_mono_root(&message, &info, smooth_time ? NULL : &local_receive,
                             our_root_delay, our_root_dispersion))
+        return 0;
+    }
+    if (ext_field_flags & NTP_EF_FLAG_EXP_NET_CORRECTION) {
+      if (!add_ef_net_correction(&message, &info, local_rx))
         return 0;
     }
   }
