@@ -375,6 +375,7 @@ do_size_checks(void)
   assert(offsetof(NTP_Packet, transmit_ts)     == 40);
 
   assert(sizeof (NTP_EFExpMonoRoot) == 24);
+  assert(sizeof (NTP_EFExpNetCorrection) == 24);
 }
 
 /* ================================================== */
@@ -1594,6 +1595,11 @@ parse_packet(NTP_Packet *packet, int length, NTP_PacketInfo *info)
         if (is_exp_ef(ef_body, ef_body_length, sizeof (NTP_EFExpMonoRoot),
                       NTP_EF_EXP_MONO_ROOT_MAGIC))
           info->ext_field_flags |= NTP_EF_FLAG_EXP_MONO_ROOT;
+        break;
+      case NTP_EF_EXP_NET_CORRECTION:
+        if (is_exp_ef(ef_body, ef_body_length, sizeof (NTP_EFExpNetCorrection),
+                      NTP_EF_EXP_NET_CORRECTION_MAGIC))
+          info->ext_field_flags |= NTP_EF_FLAG_EXP_NET_CORRECTION;
         break;
       default:
         DEBUG_LOG("Unknown extension field type=%x", (unsigned int)ef_type);
