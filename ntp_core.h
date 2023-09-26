@@ -42,6 +42,8 @@ typedef struct {
   struct timespec ts;
   double err;
   NTP_Timestamp_Source source;
+  double rx_duration;
+  double net_correction;
 } NTP_Local_Timestamp;
 
 /* This is a private data type used for storing the instance record for

@@ -420,6 +420,8 @@ zero_local_timestamp(NTP_Local_Timestamp *ts)
   UTI_ZeroTimespec(&ts->ts);
   ts->err = 0.0;
   ts->source = NTP_TS_DAEMON;
+  ts->rx_duration = 0.0;
+  ts->net_correction = 0.0;
 }
 
 /* ================================================== */
@@ -1299,6 +1301,8 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     local_tx->ts = local_transmit;
     local_tx->err = local_transmit_err;
     local_tx->source = NTP_TS_DAEMON;
+    local_tx->rx_duration = 0.0;
+    local_tx->net_correction = 0.0;
   }
 
   if (local_ntp_rx)
@@ -2612,8 +2616,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
       UTI_CompareNtp64(&message->receive_ts, &message->transmit_ts) != 0) {
     ntp_rx = message->originate_ts;
     local_ntp_rx = &ntp_rx;
-    UTI_ZeroTimespec(&local_tx.ts);
-    local_tx.source = NTP_TS_DAEMON;
+    zero_local_timestamp(&local_tx);
     interleaved = CLG_GetNtpTxTimestamp(&ntp_rx, &local_tx.ts, &local_tx.source);
 
     tx_ts = &local_tx;

@@ -99,8 +99,8 @@ send_request(NCR_Instance inst, int late_hwts)
     local_addr.ip_addr.family = IPADDR_UNSPEC;
     local_addr.if_index = INVALID_IF_INDEX;
     local_addr.sock_fd = 101;
+    zero_local_timestamp(&local_ts);
     local_ts.ts = current_time;
-    local_ts.err = 0.0;
     local_ts.source = NTP_TS_KERNEL;
 
     NCR_ProcessTxKnown(inst, &local_addr, &local_ts, &req_buffer, req_length);
@@ -122,8 +122,8 @@ process_request(NTP_Remote_Address *remote_addr)
   local_addr.ip_addr.family = IPADDR_UNSPEC;
   local_addr.if_index = INVALID_IF_INDEX;
   local_addr.sock_fd = 100;
+  zero_local_timestamp(&local_ts);
   local_ts.ts = current_time;
-  local_ts.err = 0.0;
   local_ts.source = NTP_TS_KERNEL;
 
   res_length = 0;
@@ -289,8 +289,8 @@ proc_response(NCR_Instance inst, int good, int valid, int updated_sync,
   local_addr.ip_addr.family = IPADDR_UNSPEC;
   local_addr.if_index = INVALID_IF_INDEX;
   local_addr.sock_fd = NTP_LVM_TO_MODE(res->lvm) != MODE_SERVER ? 100 : 101;
+  zero_local_timestamp(&local_ts);
   local_ts.ts = current_time;
-  local_ts.err = 0.0;
   local_ts.source = NTP_TS_KERNEL;
 
   prev_rx_count = inst->report.total_rx_count;

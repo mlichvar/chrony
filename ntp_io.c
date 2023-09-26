@@ -431,6 +431,9 @@ process_message(SCK_Message *message, int sock_fd, int event)
 
   SCH_GetLastEventTime(&local_ts.ts, &local_ts.err, NULL);
   local_ts.source = NTP_TS_DAEMON;
+  local_ts.rx_duration = 0.0;
+  local_ts.net_correction = 0.0;
+
   sched_ts = local_ts.ts;
 
   if (message->addr_type != SCK_ADDR_IP) {
