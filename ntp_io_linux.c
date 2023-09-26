@@ -559,7 +559,7 @@ process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
                      NTP_Local_Timestamp *local_ts, int rx_ntp_length, int family,
                      int l2_length)
 {
-  double rx_correction, ts_delay, local_err;
+  double rx_correction = 0.0, ts_delay, local_err;
   struct timespec ts;
 
   poll_phc(iface, &local_ts->ts);
@@ -600,6 +600,10 @@ process_hw_timestamp(struct Interface *iface, struct timespec *hw_ts,
   local_ts->ts = ts;
   local_ts->err = local_err;
   local_ts->source = NTP_TS_HARDWARE;
+  local_ts->rx_duration = rx_correction;
+  /* Network correction needs to include the RX duration to avoid
+     asymmetric correction with asymmetric link speeds */
+  local_ts->net_correction = rx_correction;
 }
 
 /* ================================================== */
@@ -723,6 +727,7 @@ NIO_Linux_ProcessMessage(SCK_Message *message, NTP_Local_Address *local_addr,
 {
   struct Interface *iface;
   int is_tx, ts_if_index, l2_length;
+  double c;
 
   is_tx = event == SCH_FILE_EXCEPTION;
   iface = NULL;
@@ -783,7 +788,7 @@ NIO_Linux_ProcessMessage(SCK_Message *message, NTP_Local_Address *local_addr,
     return 1;
   }
 
-  if (!NIO_UnwrapMessage(message, local_addr->sock_fd))
+  if (!NIO_UnwrapMessage(message, local_addr->sock_fd, &c))
     return 1;
 
   if (message->length < NTP_HEADER_LENGTH || message->length > sizeof (NTP_Packet))

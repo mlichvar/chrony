@@ -64,7 +64,7 @@ extern int NIO_IsServerSocketOpen(void);
 extern int NIO_IsServerConnectable(NTP_Remote_Address *remote_addr);
 
 /* Function to unwrap an NTP message from non-native transport (e.g. PTP) */
-extern int NIO_UnwrapMessage(SCK_Message *message, int sock_fd);
+extern int NIO_UnwrapMessage(SCK_Message *message, int sock_fd, double *net_correction);
 
 /* Function to transmit a packet */
 extern int NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,

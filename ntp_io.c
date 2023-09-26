@@ -459,7 +459,7 @@ process_message(SCK_Message *message, int sock_fd, int event)
     DEBUG_LOG("Updated RX timestamp delay=%.9f tss=%u",
               UTI_DiffTimespecsToDouble(&sched_ts, &local_ts.ts), local_ts.source);
 
-  if (!NIO_UnwrapMessage(message, sock_fd))
+  if (!NIO_UnwrapMessage(message, sock_fd, &local_ts.net_correction))
     return;
 
   /* Just ignore the packet if it's not of a recognized length */
@@ -498,8 +498,9 @@ read_from_socket(int sock_fd, int event, void *anything)
 /* ================================================== */
 
 int
-NIO_UnwrapMessage(SCK_Message *message, int sock_fd)
+NIO_UnwrapMessage(SCK_Message *message, int sock_fd, double *net_correction)
 {
+  double ptp_correction;
   PTP_NtpMessage *msg;
 
   if (!is_ptp_socket(sock_fd))
@@ -525,7 +526,14 @@ NIO_UnwrapMessage(SCK_Message *message, int sock_fd)
   message->data = (char *)message->data + PTP_NTP_PREFIX_LENGTH;
   message->length -= PTP_NTP_PREFIX_LENGTH;
 
-  DEBUG_LOG("Unwrapped PTP->NTP len=%d", message->length);
+  ptp_correction = UTI_Integer64NetworkToHost(*(Integer64 *)msg->header.correction) /
+                   ((1 << 16) * 1.0e9);
+
+  /* Use the correction only if the RX duration is known (i.e. HW timestamp) */
+  if (*net_correction > 0.0)
+    *net_correction += ptp_correction;
+
+  DEBUG_LOG("Unwrapped PTP->NTP len=%d corr=%.9f", message->length, ptp_correction);
 
   return 1;
 }
