@@ -72,9 +72,9 @@ terminal.
 
 *-L* _level_::
 This option specifies the minimum severity level of messages to be written to
-the log file, syslog, or terminal. The following levels can be specified:
-0 (informational), 1 (warning), 2 (non-fatal error), and 3 (fatal error). The
-default value is 0.
+the log file, syslog, or terminal. The following levels can be specified: -1
+(debug, if compiled with enabled support for debugging), 0 (informational), 1
+(warning), 2 (non-fatal error), and 3 (fatal error). The default value is 0.
 
 *-p*::
 When run in this mode, *chronyd* will print the configuration and exit. It will
