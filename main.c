@@ -368,9 +368,9 @@ go_daemon(void)
       }
 
       /* Don't keep stdin/out/err from before. But don't close
-         the parent pipe yet. */
+         the parent pipe yet, or reusable file descriptors. */
       for (fd=0; fd<1024; fd++) {
-        if (fd != pipefd[1])
+        if (fd != pipefd[1] && !SCK_IsReusable(fd))
           close(fd);
       }
 
@@ -559,6 +559,9 @@ int main
 
   if (user_check && getuid() != 0)
     LOG_FATAL("Not superuser");
+
+  /* Initialise reusable file descriptors before fork */
+  SCK_PreInitialise();
 
   /* Turn into a daemon */
   if (!nofork) {

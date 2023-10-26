@@ -324,7 +324,7 @@ check_chronyd_messages() {
 		([ "$clock_control" -ne 0 ] || grep -q 'Disabled control of system clock' "$logfile") && \
 		([ "$minimal_config" -ne 0 ] || grep -q 'Frequency .* read from' "$logfile") && \
 		grep -q 'chronyd exiting' "$logfile" && \
-		! grep -q 'Could not' "$logfile" && \
+		! (grep -v '^.\{19\}Z D:' "$logfile" | grep -q 'Could not') && \
 		! grep -q 'Disabled command socket' "$logfile" && \
 		test_ok || test_bad
 }

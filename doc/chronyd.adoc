@@ -206,6 +206,17 @@ With this option *chronyd* will print version number to the terminal and exit.
 *-h*, *--help*::
 With this option *chronyd* will print a help message to the terminal and exit.
 
+== ENVIRONMENT VARIABLES
+
+*LISTEN_FDS*::
+On Linux systems, the systemd service manager may pass file descriptors for
+pre-initialised sockets to *chronyd*. The service manager allocates and binds
+the file descriptors, and passes a copy to each spawned instance of the
+service. This allows for zero-downtime service restarts as the sockets buffer
+client requests until the service is able to handle them. The service manager
+sets the LISTEN_FDS environment variable to the number of passed file
+descriptors.
+
 == FILES
 
 _@SYSCONFDIR@/chrony.conf_

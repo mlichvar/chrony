@@ -89,6 +89,9 @@ struct MessageHeader {
 
 static int initialised;
 
+static int first_reusable_fd;
+static int reusable_fds;
+
 /* Flags indicating in which IP families sockets can be requested */
 static int ip4_enabled;
 static int ip6_enabled;
@@ -155,6 +158,59 @@ domain_to_string(int domain)
 
 /* ================================================== */
 
+static int
+get_reusable_socket(int type, IPSockAddr *spec)
+{
+#ifdef LINUX
+  union sockaddr_all sa;
+  IPSockAddr ip_sa;
+  int sock_fd, opt;
+  socklen_t l;
+
+  /* Abort early if not an IPv4/IPv6 server socket */
+  if (!spec || spec->ip_addr.family == IPADDR_UNSPEC || spec->port == 0)
+    return INVALID_SOCK_FD;
+
+  /* Loop over available reusable sockets */
+  for (sock_fd = first_reusable_fd; sock_fd < first_reusable_fd + reusable_fds; sock_fd++) {
+
+    /* Check that types match */
+    l = sizeof (opt);
+    if (getsockopt(sock_fd, SOL_SOCKET, SO_TYPE, &opt, &l) < 0 ||
+        l != sizeof (opt) || opt != type)
+      continue;
+
+    /* Get sockaddr for reusable socket */
+    l = sizeof (sa);
+    if (getsockname(sock_fd, &sa.sa, &l) < 0 || l < sizeof (sa_family_t))
+      continue;
+    SCK_SockaddrToIPSockAddr(&sa.sa, l, &ip_sa);
+
+    /* Check that reusable socket matches specification */
+    if (ip_sa.port != spec->port || UTI_CompareIPs(&ip_sa.ip_addr, &spec->ip_addr, NULL) != 0)
+      continue;
+
+    /* Check that STREAM socket is listening */
+    l = sizeof (opt);
+    if (type == SOCK_STREAM && (getsockopt(sock_fd, SOL_SOCKET, SO_ACCEPTCONN, &opt, &l) < 0 ||
+                                l != sizeof (opt) || opt == 0))
+      continue;
+
+#if defined(FEAT_IPV6) && defined(IPV6_V6ONLY)
+    if (spec->ip_addr.family == IPADDR_INET6 &&
+        (!SCK_GetIntOption(sock_fd, IPPROTO_IPV6, IPV6_V6ONLY, &opt) || opt != 1))
+      LOG(LOGS_WARN, "Reusable IPv6 socket missing IPV6_V6ONLY option");
+#endif
+
+    return sock_fd;
+  }
+#endif
+
+  return INVALID_SOCK_FD;
+}
+
+/* ================================================== */
+
 #if defined(SOCK_CLOEXEC) || defined(SOCK_NONBLOCK)
 static int
 check_socket_flag(int sock_flag, int fd_flag, int fs_flag)
@@ -214,7 +270,7 @@ set_socket_flags(int sock_fd, int flags)
   /* Close the socket automatically on exec */
   if (
 #ifdef SOCK_CLOEXEC
-      (supported_socket_flags & SOCK_CLOEXEC) == 0 &&
+      (SCK_IsReusable(sock_fd) || (supported_socket_flags & SOCK_CLOEXEC) == 0) &&
 #endif
       !UTI_FdSetCloexec(sock_fd))
     return 0;
@@ -222,7 +278,7 @@ set_socket_flags(int sock_fd, int flags)
   /* Enable non-blocking mode */
   if ((flags & SCK_FLAG_BLOCK) == 0 &&
 #ifdef SOCK_NONBLOCK
-      (supported_socket_flags & SOCK_NONBLOCK) == 0 &&
+      (SCK_IsReusable(sock_fd) || (supported_socket_flags & SOCK_NONBLOCK) == 0) &&
 #endif
       !set_socket_nonblock(sock_fd))
     return 0;
@@ -280,6 +336,32 @@ open_socket_pair(int domain, int type, int flags, int *other_fd)
 /* ================================================== */
 
 static int
+get_ip_socket(int domain, int type, int flags, IPSockAddr *ip_sa)
+{
+  int sock_fd;
+
+  /* Check if there is a matching reusable socket */
+  sock_fd = get_reusable_socket(type, ip_sa);
+
+  if (sock_fd < 0) {
+    sock_fd = open_socket(domain, type, flags);
+
+    /* Unexpected, but make sure the new socket is not in the reusable range */
+    if (SCK_IsReusable(sock_fd))
+      LOG_FATAL("Could not open %s socket : file descriptor in reusable range",
+                domain_to_string(domain));
+  } else {
+    /* Set socket flags on reusable socket */
+    if (!set_socket_flags(sock_fd, flags))
+      return INVALID_SOCK_FD;
+  }
+
+  return sock_fd;
+}
+
+/* ================================================== */
+
+static int
 set_socket_options(int sock_fd, int flags)
 {
   /* Make the socket capable of sending broadcast packets if requested */
@@ -295,8 +377,10 @@ static int
 set_ip_options(int sock_fd, int family, int flags)
 {
 #if defined(FEAT_IPV6) && defined(IPV6_V6ONLY)
-  /* Receive only IPv6 packets on an IPv6 socket */
-  if (family == IPADDR_INET6 && !SCK_SetIntOption(sock_fd, IPPROTO_IPV6, IPV6_V6ONLY, 1))
+  /* Receive only IPv6 packets on an IPv6 socket, but do not attempt
+     to set this option on pre-initialised reuseable sockets */
+  if (family == IPADDR_INET6 && !SCK_IsReusable(sock_fd) &&
+      !SCK_SetIntOption(sock_fd, IPPROTO_IPV6, IPV6_V6ONLY, 1))
     return 0;
 #endif
 
@@ -385,6 +469,10 @@ bind_ip_address(int sock_fd, IPSockAddr *addr, int flags)
     ;
 #endif
 
+  /* Do not attempt to bind pre-initialised reusable socket */
+  if (SCK_IsReusable(sock_fd))
+    return 1;
+
   saddr_len = SCK_IPSockAddrToSockaddr(addr, (struct sockaddr *)&saddr, sizeof (saddr));
   if (saddr_len == 0)
     return 0;
@@ -457,7 +545,7 @@ open_ip_socket(IPSockAddr *remote_addr, IPSockAddr *local_addr, const char *ifac
       return INVALID_SOCK_FD;
   }
 
-  sock_fd = open_socket(domain, type, flags);
+  sock_fd = get_ip_socket(domain, type, flags, local_addr);
   if (sock_fd < 0)
     return INVALID_SOCK_FD;
 
@@ -482,7 +570,8 @@ open_ip_socket(IPSockAddr *remote_addr, IPSockAddr *local_addr, const char *ifac
     goto error;
 
   if (remote_addr || local_addr)
-    DEBUG_LOG("Opened %s%s socket fd=%d%s%s%s%s",
+    DEBUG_LOG("%s %s%s socket fd=%d%s%s%s%s",
+              SCK_IsReusable(sock_fd) ? "Reusing" : "Opened",
               type == SOCK_DGRAM ? "UDP" : type == SOCK_STREAM ? "TCP" : "?",
               family == IPADDR_INET4 ? "v4" : "v6",
               sock_fd,
@@ -1171,6 +1260,39 @@ send_message(int sock_fd, SCK_Message *message, int flags)
 /* ================================================== */
 
 void
+SCK_PreInitialise(void)
+{
+#ifdef LINUX
+  char *s, *ptr;
+
+  /* On Linux systems, the systemd service manager may pass file descriptors
+     for pre-initialised sockets to the chronyd daemon.  The service manager
+     allocates and binds the file descriptors, and passes a copy to each
+     spawned instance of the service.  This allows for zero-downtime service
+     restarts as the sockets buffer client requests until the service is able
+     to handle them.  The service manager sets the LISTEN_FDS environment
+     variable to the number of passed file descriptors, and the integer file
+     descriptors start at 3 (see SD_LISTEN_FDS_START in
+     https://www.freedesktop.org/software/systemd/man/latest/sd_listen_fds.html). */
+  first_reusable_fd = 3;
+  reusable_fds = 0;
+
+  s = getenv("LISTEN_FDS");
+  if (s) {
+    errno = 0;
+    reusable_fds = strtol(s, &ptr, 10);
+    if (errno != 0 || *ptr != '\0' || reusable_fds < 0)
+      reusable_fds = 0;
+  }
+#else
+  first_reusable_fd = 0;
+  reusable_fds = 0;
+#endif
+}
+
+/* ================================================== */
+
+void
 SCK_Initialise(int family)
 {
   ip4_enabled = family == IPADDR_INET4 || family == IPADDR_UNSPEC;
@@ -1209,9 +1331,16 @@ SCK_Initialise(int family)
 void
 SCK_Finalise(void)
 {
+  int fd;
+
   ARR_DestroyInstance(recv_sck_messages);
   ARR_DestroyInstance(recv_headers);
   ARR_DestroyInstance(recv_messages);
+
+  for (fd = first_reusable_fd; fd < first_reusable_fd + reusable_fds; fd++)
+    close(fd);
+  reusable_fds = 0;
+  first_reusable_fd = 0;
 
   initialised = 0;
 }
@@ -1354,6 +1483,14 @@ SCK_OpenUnixSocketPair(int flags, int *other_fd)
 /* ================================================== */
 
 int
+SCK_IsReusable(int fd)
+{
+  return fd >= first_reusable_fd && fd < first_reusable_fd + reusable_fds;
+}
+
+/* ================================================== */
+
+int
 SCK_SetIntOption(int sock_fd, int level, int name, int value)
 {
   if (setsockopt(sock_fd, level, name, &value, sizeof (value)) < 0) {
@@ -1410,7 +1547,7 @@ SCK_EnableKernelRxTimestamping(int sock_fd)
 int
 SCK_ListenOnSocket(int sock_fd, int backlog)
 {
-  if (listen(sock_fd, backlog) < 0) {
+  if (!SCK_IsReusable(sock_fd) && listen(sock_fd, backlog) < 0) {
     DEBUG_LOG("listen() failed : %s", strerror(errno));
     return 0;
   }
@@ -1573,6 +1710,10 @@ SCK_RemoveSocket(int sock_fd)
 void
 SCK_CloseSocket(int sock_fd)
 {
+  /* Reusable sockets are closed in finalisation */
+  if (SCK_IsReusable(sock_fd))
+    return;
+
   close(sock_fd);
 }
 
