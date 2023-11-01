@@ -497,6 +497,58 @@ pidfile /var/run/chronyd-server1.pid
 driftfile /var/lib/chrony/drift-server1
 ----
 
+=== How can `chronyd` be configured to minimise downtime during restarts?
+
+The `dumpdir` directive in _chrony.conf_ provides `chronyd` a location to save
+a measurement history of the sources it uses when the service exits. The `-r`
+option then enables `chronyd` to load state from the dump files, reducing the
+synchronisation time after a restart.
+
+Similarly, the `ntsdumpdir` directive provides a location for `chronyd` to save
+NTS cookies received from the server to avoid making a NTS-KE request when
+`chronyd` is started. When operating as an NTS server, `chronyd` also saves
+cookies keys to this directory to allow clients to continue to use the old keys
+after a server restart for a more seamless experience.
+
+On Linux systems,
+https://www.freedesktop.org/software/systemd/man/latest/sd_listen_fds.html[systemd
+socket activation] provides a mechanism to reuse server sockets across
+`chronyd` restarts, so that client requests will be buffered until the service
+is again able to handle the requests. This allows for zero-downtime service
+restarts, simplified dependency logic at boot, and on-demand service spawning
+(for instance, for separated server `chronyd` instances run with the `-x`
+flag).
+
+With socket activation, the service manager (systemd) creates sockets and
+passes file descriptors to them to the process via the `LISTEN_FDS` environment
+variable. Before opening new sockets, `chronyd` first checks for and attempts
+to reuse matching sockets passed from the service manager. For instance, if an
+IPv4 datagram socket bound on `bindaddress` and `port` is available, it will be
+used by the NTP server to accept incoming IPv4 requests.
+
+An example systemd socket unit is below, where `chronyd` is configured with
+`bindaddress 0.0.0.0`, `bindaddress ::`, `port 123`, and `ntsport 4460`.
+
+----
+[Unit]
+Description=chronyd server sockets
+
+[Socket]
+Service=chronyd.service
+# IPv4 NTP server
+ListenDatagram=0.0.0.0:123
+# IPv6 NTP server
+ListenDatagram=[::]:123
+# IPv4 NTS-KE server
+ListenStream=0.0.0.0:4460
+# IPv6 NTS-KE server
+ListenStream=[::]:4460
+BindIPv6Only=ipv6-only
+
+[Install]
+WantedBy=sockets.target
+----
+
 === Should be a leap smear enabled on NTP server?
 
 With the `smoothtime` and `leapsecmode` directives it is possible to enable a
