@@ -68,6 +68,9 @@ static struct LogFile logfiles[MAX_FILELOGS];
 /* Global prefix for debug messages */
 static char *debug_prefix;
 
+/* Log severity to character mapping (debug, info, warn, err, fatal) */
+static const char severity_chars[LOGS_FATAL - LOGS_DEBUG + 1] = {'D', 'I', 'W', 'E', 'F'};
+
 /* ================================================== */
 /* Init function */
 
@@ -145,6 +148,7 @@ void LOG_Message(LOG_Severity severity,
   struct tm *tm;
 
   assert(initialised);
+  severity = CLAMP(LOGS_DEBUG, severity, LOGS_FATAL);
 
   if (!system_log && file_log && severity >= log_min_severity) {
     /* Don't clutter up syslog with timestamps and internal debugging info */
@@ -156,7 +160,8 @@ void LOG_Message(LOG_Severity severity,
     }
 #if DEBUG > 0
     if (log_min_severity <= LOGS_DEBUG)
-      fprintf(file_log, "%s%s:%d:(%s) ", debug_prefix, filename, line_number, function_name);
+      fprintf(file_log, "%c:%s%s:%d:(%s) ", severity_chars[severity - LOGS_DEBUG],
+              debug_prefix, filename, line_number, function_name);
 #endif
   }
 
