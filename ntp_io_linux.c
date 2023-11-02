@@ -727,7 +727,7 @@ NIO_Linux_ProcessMessage(SCK_Message *message, NTP_Local_Address *local_addr,
 {
   struct Interface *iface;
   int is_tx, ts_if_index, l2_length;
-  double c;
+  double c = 0.0;
 
   is_tx = event == SCH_FILE_EXCEPTION;
   iface = NULL;
