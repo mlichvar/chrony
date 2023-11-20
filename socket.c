@@ -1336,16 +1336,11 @@ SCK_Initialise(int family)
 void
 SCK_Finalise(void)
 {
-  int fd;
-
   ARR_DestroyInstance(recv_sck_messages);
   ARR_DestroyInstance(recv_headers);
   ARR_DestroyInstance(recv_messages);
 
-  for (fd = first_reusable_fd; fd < first_reusable_fd + reusable_fds; fd++)
-    close(fd);
-  reusable_fds = 0;
-  first_reusable_fd = 0;
+  SCK_CloseReusableSockets();
 
   initialised = 0;
 }
@@ -1491,6 +1486,19 @@ int
 SCK_IsReusable(int fd)
 {
   return fd >= first_reusable_fd && fd < first_reusable_fd + reusable_fds;
+}
+
+/* ================================================== */
+
+void
+SCK_CloseReusableSockets(void)
+{
+  int fd;
+
+  for (fd = first_reusable_fd; fd < first_reusable_fd + reusable_fds; fd++)
+    close(fd);
+  reusable_fds = 0;
+  first_reusable_fd = 0;
 }
 
 /* ================================================== */

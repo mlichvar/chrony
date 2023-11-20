@@ -112,6 +112,9 @@ extern int SCK_OpenUnixSocketPair(int flags, int *other_fd);
 /* Check if a file descriptor was passed from the service manager */
 extern int SCK_IsReusable(int sock_fd);
 
+/* Close all reusable sockets before finalisation (e.g. in a helper process) */
+extern void SCK_CloseReusableSockets(void);
+
 /* Set and get a socket option of int size */
 extern int SCK_SetIntOption(int sock_fd, int level, int name, int value);
 extern int SCK_GetIntOption(int sock_fd, int level, int name, int *value);
