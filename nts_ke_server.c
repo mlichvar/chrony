@@ -685,6 +685,8 @@ run_helper(uid_t uid, gid_t gid, int scfilter_level)
 
   DEBUG_LOG("Helper started");
 
+  SCK_CloseReusableSockets();
+
   /* Suppress a log message about disabled clock control */
   log_severity = LOG_GetMinSeverity();
   LOG_SetMinSeverity(LOGS_ERR);
