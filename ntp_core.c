@@ -2302,7 +2302,7 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
     inst->local_tx.net_correction = net_correction;
 
     /* Don't use the same set of timestamps for the next sample */
-    if (interleaved_packet)
+    if (interleaved_packet || inst->presend_done > 0)
       inst->prev_local_tx = inst->local_tx;
     else
       zero_local_timestamp(&inst->prev_local_tx);
