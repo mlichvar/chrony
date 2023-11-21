@@ -314,8 +314,12 @@ void SRC_DestroyInstance(SRC_Instance instance)
   if (last_updated_inst == instance)
     last_updated_inst = NULL;
 
+  /* Force reselection if currently selected */
+  SRC_ResetInstance(instance);
+
   assert(initialised);
   if (instance->index < 0 || instance->index >= n_sources ||
+      instance->index == selected_source_index ||
       instance != sources[instance->index])
     assert(0);
 
@@ -330,10 +334,7 @@ void SRC_DestroyInstance(SRC_Instance instance)
 
   update_sel_options();
 
-  /* If this was the previous reference source, we have to reselect! */
-  if (selected_source_index == dead_index)
-    SRC_ReselectSource();
-  else if (selected_source_index > dead_index)
+  if (selected_source_index > dead_index)
     --selected_source_index;
 }
 
