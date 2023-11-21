@@ -2208,8 +2208,10 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
 
     /* Additional tests required to pass before accumulating the sample */
 
-    /* Test A requires that the minimum estimate of the peer delay is not
-       larger than the configured maximum, in both client modes that the server
+    /* Test A combines multiple tests to avoid changing the measurements log
+       format and ntpdata report.  It requires that the minimum estimate of the
+       peer delay is not larger than the configured maximum, it is not a
+       response in the 'warm up' exchange, in both client modes that the server
        processing time is sane, in interleaved client/server mode that the
        previous response was not in basic mode (which prevents using timestamps
        that minimise delay error), and in interleaved symmetric mode that the
@@ -2217,6 +2219,7 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
        a missed response */
     testA = sample.peer_delay - sample.peer_dispersion <= inst->max_delay &&
             precision <= inst->max_delay &&
+            inst->presend_done <= 0 &&
             !(inst->mode == MODE_CLIENT && response_time > MAX_SERVER_INTERVAL) &&
             !(inst->mode == MODE_CLIENT && interleaved_packet &&
               UTI_IsZeroTimespec(&inst->prev_local_tx.ts) &&
@@ -2301,8 +2304,9 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
 
     inst->local_tx.net_correction = net_correction;
 
-    /* Don't use the same set of timestamps for the next sample */
-    if (interleaved_packet || inst->presend_done > 0)
+    /* Avoid reusing timestamps of an accumulated sample when switching
+       from basic mode to interleaved mode */
+    if (interleaved_packet || !good_packet)
       inst->prev_local_tx = inst->local_tx;
     else
       zero_local_timestamp(&inst->prev_local_tx);
@@ -2321,15 +2325,11 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
   /* Accept at most one response per request.  The NTP specification recommends
      resetting local_ntp_tx to make the following packets fail test2 or test3,
      but that would not allow the code above to make multiple updates of the
-     timestamps in symmetric mode.  Also, ignore presend responses. */
+     timestamps in symmetric mode. */
   if (inst->valid_rx) {
     test2 = test3 = 0;
     valid_packet = synced_packet = good_packet = 0;
   } else if (valid_packet) {
-    if (inst->presend_done) {
-      testA = 0;
-      good_packet = 0;
-    }
     inst->valid_rx = 1;
   }
 
