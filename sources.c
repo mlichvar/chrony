@@ -357,6 +357,9 @@ SRC_ResetInstance(SRC_Instance instance)
   memset(&instance->sel_info, 0, sizeof (instance->sel_info));
 
   SST_ResetInstance(instance->stats);
+
+  if (selected_source_index == instance->index)
+    SRC_SelectSource(NULL);
 }
 
 /* ================================================== */
