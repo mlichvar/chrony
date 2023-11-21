@@ -854,11 +854,9 @@ SRC_SelectSource(SRC_Instance updated_inst)
   }
 
   if (n_sources == 0) {
-    /* In this case, we clearly cannot synchronise to anything */
-    if (selected_source_index != INVALID_SOURCE) {
-      log_selection_message(LOGS_INFO, "Can't synchronise: no sources", NULL);
-      selected_source_index = INVALID_SOURCE;
-    }
+    /* Removed sources are unselected before actual removal */
+    if (selected_source_index != INVALID_SOURCE)
+      assert(0);
     return;
   }
 
