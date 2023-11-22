@@ -519,7 +519,8 @@ restarts, simplified dependency logic at boot, and on-demand service spawning
 (for instance, for separated server `chronyd` instances run with the `-x`
 flag).
 
-With socket activation, the service manager (systemd) creates sockets and
+Socket activation is supported since `chrony` version 4.5.
+The service manager (systemd) creates sockets and
 passes file descriptors to them to the process via the `LISTEN_FDS` environment
 variable. Before opening new sockets, `chronyd` first checks for and attempts
 to reuse matching sockets passed from the service manager. For instance, if an
