@@ -1,3 +1,17 @@
+New in version 4.5
+==================
+
+Enhancements
+------------
+* Add support for AES-GCM-SIV in GnuTLS
+* Add support for corrections from PTP transparent clocks
+* Add support for systemd socket activation
+
+Bug fixes
+---------
+* Fix presend in interleaved mode
+* Fix reloading of modified sources from sourcedir
+
 New in version 4.4
 ==================
 
