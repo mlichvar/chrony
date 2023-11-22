@@ -842,9 +842,10 @@ sources using NTS, otherwise the source with a longer polling interval will
 refresh the keys on each poll and no NTP packets will be exchanged.
 
 [[ntstrustedcerts]]*ntstrustedcerts* [_set-ID_] _file_|_directory_::
-This directive specifies a file or directory containing certificates (in the
-PEM format) of trusted certificate authorities (CA) which can be used to
-verify certificates of NTS servers.
+This directive specifies a file or directory containing trusted certificates
+(in the PEM format) which are needed to verify certificates of NTS-KE servers,
+e.g. certificates of trusted certificate authorities (CA) or self-signed
+certificates of the servers.
 +
 The optional _set-ID_ argument is a number in the range 0 through 2^32-1, which
 selects the set of certificates where certificates from the specified file
