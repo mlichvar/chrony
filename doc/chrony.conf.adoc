@@ -1985,8 +1985,9 @@ all* directive.
 [[cmdport]]*cmdport* _port_::
 The *cmdport* directive allows the port that is used for run-time monitoring
 (via the *chronyc* program) to be altered from its default (323). If set to 0,
-*chronyd* will not open the port, this is useful to disable *chronyc*
-access from the Internet. (It does not disable the Unix domain command socket.)
+*chronyd* will not open the port, which disables remote *chronyc* access (with
+a non-default *bindcmdaddress*) and local access for unprivileged users. It
+does not disable the Unix domain command socket.
 +
 An example shows the syntax:
 +
@@ -1995,7 +1996,7 @@ cmdport 257
 ----
 +
 This would make *chronyd* use UDP 257 as its command port. (*chronyc* would
-need to be run with the *-p 257* switch to inter-operate correctly.)
+need to be run with the *-p 257* option to inter-operate correctly.)
 
 [[cmdratelimit]]*cmdratelimit* [_option_]...::
 This directive enables response rate limiting for command packets. It is
