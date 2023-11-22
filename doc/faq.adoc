@@ -265,11 +265,11 @@ An example of a client configuration limiting the impact of the attacks could
 be
 
 ----
-server foo.example.net iburst nts maxdelay 0.1
-server bar.example.net iburst nts maxdelay 0.2
-server baz.example.net iburst nts maxdelay 0.05
-server qux.example.net iburst nts maxdelay 0.1
-server quux.example.net iburst nts maxdelay 0.1
+server ntp1.example.net iburst nts maxdelay 0.1
+server ntp2.example.net iburst nts maxdelay 0.2
+server ntp3.example.net iburst nts maxdelay 0.05
+server ntp4.example.net iburst nts maxdelay 0.1
+server ntp5.example.net iburst nts maxdelay 0.1
 minsources 3
 maxchange 100 0 0
 makestep 0.001 1
@@ -318,7 +318,7 @@ An example of the directive for an NTP server on the Internet that you are
 allowed to poll frequently could be
 
 ----
-server foo.example.net minpoll 4 maxpoll 6 polltarget 16
+server ntp.example.net minpoll 4 maxpoll 6 polltarget 16
 ----
 
 An example using shorter polling intervals with a server located in the same
@@ -725,9 +725,9 @@ this:
 ----
 MS Name/IP address         Stratum Poll Reach LastRx Last sample
 ===============================================================================
-^* foo.example.net               2   6   377    34   +484us[ -157us] +/-   30ms
-^- bar.example.net               2   6   377    34    +33ms[  +32ms] +/-   47ms
-^+ baz.example.net               3   6   377    35  -1397us[-2033us] +/-   60ms
+^* ntp1.example.net              2   6   377    34   +484us[ -157us] +/-   30ms
+^- ntp2.example.net              2   6   377    34    +33ms[  +32ms] +/-   47ms
+^+ ntp3.example.net              3   6   377    35  -1397us[-2033us] +/-   60ms
 ----
 
 === Are NTP servers specified with the `offline` option?
@@ -797,9 +797,9 @@ successful:
 # chronyc -N authdata
 Name/IP address             Mode KeyID Type KLen Last Atmp  NAK Cook CLen
 =========================================================================
-foo.example.net              NTS     1   15  256  33m    0    0    8  100
-bar.example.net              NTS     1   15  256  33m    0    0    8  100
-baz.example.net              NTS     1   15  256  33m    0    0    8  100
+ntp1.example.net             NTS     1   15  256  33m    0    0    8  100
+ntp2.example.net             NTS     1   15  256  33m    0    0    8  100
+ntp3.example.net             NTS     1   15  256  33m    0    0    8  100
 ----
 
 The KeyID, Type, and KLen columns should have non-zero values. If they are
@@ -923,7 +923,7 @@ Name/IP Address            NP  NR  Span  Frequency  Freq Skew  Offset  Std Dev
 ==============================================================================
 PPS0                        0   0     0     +0.000   2000.000     +0ns  4000ms
 NMEA                       58  30   231    -96.494     38.406   +504ms  6080us
-foo.example.net             7   3   200     -2.991     16.141   -107us   492us
+ntp1.example.net            7   3   200     -2.991     16.141   -107us   492us
 ----
 
 the offset of the NMEA source would need to be increased by about 0.504

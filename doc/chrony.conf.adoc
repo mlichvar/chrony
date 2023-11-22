@@ -427,7 +427,7 @@ error. *chronyd* then enters its normal operating mode.
 An example of the use of the directive is:
 +
 ----
-initstepslew 30 foo.example.net bar.example.net baz.example.net
+initstepslew 30 ntp1.example.net ntp2.example.net ntp3.example.net
 ----
 +
 where 3 NTP servers are used to make the measurement. The _30_ indicates that
@@ -865,10 +865,10 @@ they change (e.g. after a renewal).
 An example is:
 +
 ----
-ntstrustedcerts /etc/pki/nts/foo.crt
-ntstrustedcerts 1 /etc/pki/nts/bar.crt
-ntstrustedcerts 1 /etc/pki/nts/baz.crt
-ntstrustedcerts 2 /etc/pki/nts/qux.crt
+ntstrustedcerts /etc/pki/nts/ca1.example.net.crt
+ntstrustedcerts 1 /etc/pki/nts/ca2.example.net.crt
+ntstrustedcerts 1 /etc/pki/nts/ca3.example.net.crt
+ntstrustedcerts 2 /etc/pki/nts/ntp2.example.net.crt
 ----
 
 [[nosystemcert]]*nosystemcert*::
@@ -965,9 +965,9 @@ before 4.0.
 As an example, the following configuration using the default *mix* mode:
 +
 ----
-server foo.example.net nts
-server bar.example.net nts
-server baz.example.net
+server ntp1.example.net nts
+server ntp2.example.net nts
+server ntp3.example.net
 refclock SOCK /var/run/chrony.ttyS0.sock
 ----
 +
@@ -975,9 +975,9 @@ is equivalent to the following configuration using the *ignore* mode:
 +
 ----
 authselectmode ignore
-server foo.example.net nts require trust
-server bar.example.net nts require trust
-server baz.example.net
+server ntp1.example.net nts require trust
+server ntp2.example.net nts require trust
+server ntp3.example.net
 refclock /var/run/chrony.ttyS0.sock require trust
 ----
 
@@ -2759,7 +2759,7 @@ the PTP transparent clocks.
 An example of client configuration is:
 +
 ----
-server foo.example.net minpoll 0 maxpoll 0 xleave port 319 extfield F324
+server ntp1.example.net minpoll 0 maxpoll 0 xleave port 319 extfield F324
 hwtimestamp * rxfilter ptp
 ptpport 319
 ----
@@ -2820,13 +2820,13 @@ the following methods:
   facilities.
 * Use public servers from the https://www.pool.ntp.org/[pool.ntp.org] project.
 
-Assuming that your NTP servers are called _foo.example.net_, _bar.example.net_
-and _baz.example.net_, your _chrony.conf_ file could contain as a minimum:
+Assuming that your NTP servers are called _ntp1.example.net_, _ntp2.example.net_
+and _ntp3.example.net_, your _chrony.conf_ file could contain as a minimum:
 
 ----
-server foo.example.net
-server bar.example.net
-server baz.example.net
+server ntp1.example.net
+server ntp2.example.net
+server ntp3.example.net
 ----
 
 However, you will probably want to include some of the other directives. The
@@ -2837,9 +2837,9 @@ synchronisation. The smallest useful configuration file would look something
 like:
 
 ----
-server foo.example.net iburst
-server bar.example.net iburst
-server baz.example.net iburst
+server ntp1.example.net iburst
+server ntp2.example.net iburst
+server ntp3.example.net iburst
 driftfile @CHRONYVARDIR@/drift
 makestep 1.0 3
 rtcsync
@@ -2863,9 +2863,9 @@ option will enable a secure synchronisation to the servers. The configuration
 file could look like:
 
 ----
-server foo.example.net iburst nts
-server bar.example.net iburst nts
-server baz.example.net iburst nts
+server ntp1.example.net iburst nts
+server ntp2.example.net iburst nts
+server ntp3.example.net iburst nts
 driftfile @CHRONYVARDIR@/drift
 makestep 1.0 3
 rtcsync
@@ -2879,14 +2879,14 @@ additional configuration to tell *chronyd* when the connection goes up and
 down. This saves the program from continuously trying to poll the servers when
 they are inaccessible.
 
-Again, assuming that your NTP servers are called _foo.example.net_,
-_bar.example.net_ and _baz.example.net_, your _chrony.conf_ file would now
+Again, assuming that your NTP servers are called _ntp1.example.net_,
+_ntp2.example.net_ and _ntp3.example.net_, your _chrony.conf_ file would now
 contain:
 
 ----
-server foo.example.net offline
-server bar.example.net offline
-server baz.example.net offline
+server ntp1.example.net offline
+server ntp2.example.net offline
+server ntp3.example.net offline
 driftfile @CHRONYVARDIR@/drift
 makestep 1.0 3
 rtcsync
@@ -3070,9 +3070,9 @@ configuration files are shown.
 For the _chrony.conf_ file, the following can be used as an example.
 
 ----
-server foo.example.net maxdelay 0.4 offline
-server bar.example.net maxdelay 0.4 offline
-server baz.example.net maxdelay 0.4 offline
+server ntp1.example.net maxdelay 0.4 offline
+server ntp2.example.net maxdelay 0.4 offline
+server ntp3.example.net maxdelay 0.4 offline
 logdir /var/log/chrony
 log statistics measurements tracking
 driftfile @CHRONYVARDIR@/drift
@@ -3131,10 +3131,10 @@ configuration).
 The configuration file could look like:
 
 ----
-server foo.example.net iburst
-server bar.example.net iburst
-server baz.example.net iburst
-server qux.example.net iburst
+server ntp1.example.net iburst
+server ntp2.example.net iburst
+server ntp3.example.net iburst
+server ntp4.example.net iburst
 makestep 1.0 3
 rtcsync
 allow

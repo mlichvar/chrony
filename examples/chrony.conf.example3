@@ -27,9 +27,9 @@
 # you can access at http://support.ntp.org/bin/view/Servers/WebHome or
 # you can use servers from the pool.ntp.org project.
 
-! server foo.example.net iburst
-! server bar.example.net iburst
-! server baz.example.net iburst
+! server ntp1.example.net iburst
+! server ntp2.example.net iburst
+! server ntp3.example.net iburst
 
 ! pool pool.ntp.org iburst
  
@@ -99,8 +99,8 @@ ntsdumpdir /var/lib/chrony
 # and edit the following lines to specify the locations of the certificate and
 # key.
 
-! ntsservercert /etc/.../foo.example.net.crt
-! ntsserverkey /etc/.../foo.example.net.key
+! ntsservercert /etc/.../nts-server.crt
+! ntsserverkey /etc/.../nts-server.key
 
 # chronyd can save the measurement history for the servers to files when
 # it exits.  This is useful in 2 situations:
@@ -238,7 +238,7 @@ ntsdumpdir /var/lib/chrony
 # several people, you need to set up a mailing list or sendmail alias
 # for them and use the address of that.)
 
-! mailonchange wibble@foo.example.net 0.5
+! mailonchange wibble@example.net 0.5
 
 #######################################################################
 ### COMMAND ACCESS
