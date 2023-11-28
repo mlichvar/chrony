@@ -174,6 +174,9 @@ static int selected_source_index; /* Which source index is currently
                                      if no current valid reference) */
 static int reported_no_majority;  /* Flag to avoid repeated log message
                                      about no majority */
+static int report_selection_loss; /* Flag to force logging a message if
+                                     selection is lost in a transient state
+                                     (SRC_WAITS_STATS, SRC_WAITS_UPDATE) */
 
 /* Score needed to replace the currently selected source */
 #define SCORE_LIMIT 10.0
@@ -201,6 +204,8 @@ static LOG_FileID logfileid;
 /* Forward prototype */
 
 static void update_sel_options(void);
+static void unselect_selected_source(LOG_Severity severity, const char *format,
+                                     const char *arg);
 static void slew_sources(struct timespec *raw, struct timespec *cooked, double dfreq,
                          double doffset, LCL_ChangeType change_type, void *anything);
 static void add_dispersion(double dispersion, void *anything);
@@ -314,12 +319,8 @@ void SRC_DestroyInstance(SRC_Instance instance)
   if (last_updated_inst == instance)
     last_updated_inst = NULL;
 
-  /* Force reselection if currently selected */
-  SRC_ResetInstance(instance);
-
   assert(initialised);
   if (instance->index < 0 || instance->index >= n_sources ||
-      instance->index == selected_source_index ||
       instance != sources[instance->index])
     assert(0);
 
@@ -336,6 +337,10 @@ void SRC_DestroyInstance(SRC_Instance instance)
 
   if (selected_source_index > dead_index)
     --selected_source_index;
+  else if (selected_source_index == dead_index)
+    unselect_selected_source(LOGS_INFO, NULL, NULL);
+
+  SRC_SelectSource(NULL);
 }
 
 /* ================================================== */
@@ -738,6 +743,26 @@ mark_ok_sources(SRC_Status status)
 }
 
 /* ================================================== */
+/* Reset the index of selected source and report the selection loss.  If no
+   message is provided, assume it is a transient state and wait for another
+   call providing a message or selection of another source, which resets the
+   report_selection_loss flag. */
+
+static void
+unselect_selected_source(LOG_Severity severity, const char *format, const char *arg)
+{
+  if (selected_source_index != INVALID_SOURCE) {
+    selected_source_index = INVALID_SOURCE;
+    report_selection_loss = 1;
+  }
+
+  if (report_selection_loss && format) {
+    log_selection_message(severity, format, arg);
+    report_selection_loss = 0;
+  }
+}
+
+/* ================================================== */
 
 static int
 combine_sources(int n_sel_sources, struct timespec *ref_time, double *offset,
@@ -854,9 +879,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   }
 
   if (n_sources == 0) {
-    /* Removed sources are unselected before actual removal */
-    if (selected_source_index != INVALID_SOURCE)
-      assert(0);
+    unselect_selected_source(LOGS_INFO, "Can't synchronise: no sources", NULL);
     return;
   }
 
@@ -1041,15 +1064,13 @@ SRC_SelectSource(SRC_Instance updated_inst)
   if (n_badstats_sources && n_sel_sources && selected_source_index == INVALID_SOURCE &&
       max_sel_reach_size < SOURCE_REACH_BITS && max_sel_reach >> 1 == max_badstat_reach) {
     mark_ok_sources(SRC_WAITS_STATS);
+    unselect_selected_source(LOGS_INFO, NULL, NULL);
     return;
   }
 
   if (n_endpoints == 0) {
     /* No sources provided valid endpoints */
-    if (selected_source_index != INVALID_SOURCE) {
-      log_selection_message(LOGS_INFO, "Can't synchronise: no selectable sources", NULL);
-      selected_source_index = INVALID_SOURCE;
-    }
+    unselect_selected_source(LOGS_INFO, "Can't synchronise: no selectable sources", NULL);
     return;
   }
 
@@ -1130,6 +1151,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     if (!reported_no_majority) {
       log_selection_message(LOGS_WARN, "Can't synchronise: no majority", NULL);
       reported_no_majority = 1;
+      report_selection_loss = 0;
     }
 
     if (selected_source_index != INVALID_SOURCE) {
@@ -1186,12 +1208,9 @@ SRC_SelectSource(SRC_Instance updated_inst)
   }
 
   if (!n_sel_sources || sel_req_source || n_sel_sources < CNF_GetMinSources()) {
-    if (selected_source_index != INVALID_SOURCE) {
-      log_selection_message(LOGS_INFO, "Can't synchronise: %s selectable sources",
-                            !n_sel_sources ? "no" :
-                            sel_req_source ? "no required source in" : "not enough");
-      selected_source_index = INVALID_SOURCE;
-    }
+    unselect_selected_source(LOGS_INFO, "Can't synchronise: %s selectable sources",
+                             !n_sel_sources ? "no" :
+                             sel_req_source ? "no required source in" : "not enough");
     mark_ok_sources(SRC_WAITS_SOURCES);
     return;
   }
@@ -1298,7 +1317,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     /* Before selecting the new synchronisation source wait until the reference
        can be updated */
     if (sources[max_score_index]->updates == 0) {
-      selected_source_index = INVALID_SOURCE;
+      unselect_selected_source(LOGS_INFO, NULL, NULL);
       mark_ok_sources(SRC_WAITS_UPDATE);
       return;
     }
@@ -1314,6 +1333,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     }
 
     reported_no_majority = 0;
+    report_selection_loss = 0;
   }
 
   mark_source(sources[selected_source_index], SRC_SELECTED);
