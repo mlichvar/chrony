@@ -986,6 +986,10 @@ command might replace the addresses even if they are still in the pool.
 The *reload sources* command causes *chronyd* to re-read all _*.sources_ files
 from the directories specified by the
 <<chrony.conf.adoc#sourcedir,*sourcedir*>> directive.
++
+Note that modified sources (e.g. specified with a new option) are not modified
+in memory. They are removed and added again, which causes them to lose old
+measurements and reset the selection state.
 
 [[sourcename]]*sourcename* _address_::
 The *sourcename* command prints the original hostname or address that was
