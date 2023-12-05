@@ -5,6 +5,7 @@
  * Copyright (C) Richard P. Curnow  1997-2003
  * Copyright (C) Timo Teras  2009
  * Copyright (C) Miroslav Lichvar  2009, 2013-2020
+ * Copyright (C) Luke Valenta  2023
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
