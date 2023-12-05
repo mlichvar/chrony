@@ -381,13 +381,25 @@ outliers corrupting the minimum delay. For example:
 server ntp.local minpoll -7 maxpoll -7 filter 31 maxdelayquant 0.3 xleave
 ----
 
-As an experimental feature added in version 4.2, `chronyd` supports an NTPv4
+Since version 4.2, `chronyd` supports an NTPv4
 extension field containing an additional timestamp to enable frequency transfer
 and significantly improve stability of synchronisation. It can be enabled by
 the `extfield F323` option. For example:
 
 ----
 server ntp.local minpoll 0 maxpoll 0 xleave extfield F323
+----
+
+Since version 4.5, `chronyd` can apply corrections from PTP one-step end-to-end
+transparent clocks (e.g. network switches) to significantly improve accuracy of
+synchronisation in local networks. It requires the PTP transport to be enabled
+by the `ptpport` directive, HW timestamping, and the `extfield F324` option.
+For example:
+
+----
+server ntp.local minpoll -4 maxpoll -4 xleave extfield F323 extfield F324 port 319
+ptpport 319
+hwtimestamp eth0 minpoll -4
 ----
 
 === Does `chronyd` have an ntpdate mode?
