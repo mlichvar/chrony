@@ -339,8 +339,10 @@ Protocol (PTP) correction field in NTP-over-PTP messages updated by one-step
 end-to-end transparent clocks in network switches and routers to significantly
 improve accuracy and stability of the synchronisation. NTP-over-PTP can be
 enabled by the <<ptpport,*ptpport*>> directive and setting the *port* option to
-the PTP port. This field should be enabled only for servers known to be running
-*chronyd* version 4.5 or later.
+the PTP port. The corrections are applied only to NTP measurements with HW
+timestamps (enabled by the <<hwtimestamp,*hwtimestamp*>> directive). This
+field should be enabled only for servers known to be running *chronyd* version
+4.5 or later.
 {blank}:::
 
 [[pool]]*pool* _name_ [_option_]...::
