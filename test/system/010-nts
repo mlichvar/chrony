@@ -45,6 +45,11 @@ check_chronyc_output "^Name/IP address             Mode KeyID Type KLen Last Atm
 =========================================================================
 127\.0\.0\.1                    NTS     1   (30|15)  (128|256)    [0-9]    0    0    [78]  ( 64|100)$" || test_fail
 
+run_chronyc "serverstats" || test_fail
+check_chronyc_output "NTS-KE connections accepted: 1
+NTS-KE connections dropped : 0
+Authenticated NTP packets  : [1-9][0-9]*" || test_fail
+
 stop_chronyd || test_fail
 check_chronyd_messages || test_fail
 check_chronyd_files || test_fail
