@@ -201,7 +201,7 @@ NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
 }
 
 NSR_Status
-NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
+NSR_AddSourceByName(char *name, int family, int port, int pool, NTP_Source_Type type,
                     SourceParameters *params, uint32_t *conf_id)
 {
   return NSR_TooManySources;

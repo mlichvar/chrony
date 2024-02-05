@@ -125,7 +125,7 @@ void
 test_unit(void)
 {
   char source_line[] = "127.0.0.1 offline", conf[] = "port 0", name[64];
-  int i, j, k, slot, found, pool, prev_n;
+  int i, j, k, family, slot, found, pool, prev_n;
   uint32_t hash = 0, conf_id;
   NTP_Remote_Address addrs[256], addr;
   NTP_Local_Address local_addr;
@@ -216,7 +216,7 @@ test_unit(void)
 
   TEST_CHECK(n_sources == 0);
 
-  status = NSR_AddSourceByName("a b", 0, 0, 0, &source.params, &conf_id);
+  status = NSR_AddSourceByName("a b", IPADDR_UNSPEC, 0, 0, 0, &source.params, &conf_id);
   TEST_CHECK(status == NSR_InvalidName);
 
   local_addr.ip_addr.family = IPADDR_INET4;
@@ -228,11 +228,13 @@ test_unit(void)
   for (i = 0; i < 500; i++) {
     for (j = 0; j < 20; j++) {
       snprintf(name, sizeof (name), "ntp%d.example.net", (int)(random() % 10));
+      family = random() % 2 ? IPADDR_UNSPEC : random() % 2 ? IPADDR_INET4 : IPADDR_INET6;
       pool = random() % 2;
       prev_n = n_sources;
 
       DEBUG_LOG("%d/%d adding source %s pool=%d", i, j, name, pool);
-      status = NSR_AddSourceByName(name, 0, pool, random() % 2 ? NTP_SERVER : NTP_PEER,
+      status = NSR_AddSourceByName(name, family, 0, pool,
+                                   random() % 2 ? NTP_SERVER : NTP_PEER,
                                    &source.params, &conf_id);
       TEST_CHECK(status == NSR_UnresolvedName);
 
@@ -242,11 +244,13 @@ test_unit(void)
       for (us = unresolved_sources; us->next; us = us->next)
         ;
       TEST_CHECK(strcmp(us->name, name) == 0);
+      TEST_CHECK(us->family == family);
       if (pool) {
         TEST_CHECK(us->address.ip_addr.family == IPADDR_UNSPEC && us->pool_id >= 0);
       } else {
         TEST_CHECK(strcmp(NSR_GetName(&us->address.ip_addr), name) == 0);
         TEST_CHECK(find_slot2(&us->address, &slot) == 2);
+        TEST_CHECK(get_record(slot)->family == family);
       }
 
       if (random() % 2) {

@@ -789,7 +789,7 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
                       NTP_EF_FLAG_EXP_NET_CORRECTION : 0);
   params.sel_options = convert_addsrc_select_options(ntohl(rx_message->data.ntp_source.flags));
 
-  status = NSR_AddSourceByName(name, port, pool, type, &params, NULL);
+  status = NSR_AddSourceByName(name, IPADDR_UNSPEC, port, pool, type, &params, NULL);
   switch (status) {
     case NSR_Success:
       break;

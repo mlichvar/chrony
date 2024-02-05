@@ -61,6 +61,8 @@ typedef struct {
                                    (may be an IP address) */
   IPAddr resolved_addr;         /* Address resolved from the name, which can be
                                    different from remote_addr (e.g. NTS-KE) */
+  int family;                   /* IP family of acceptable resolved addresses
+                                   (IPADDR_UNSPEC if any) */
   int pool_id;                  /* ID of the pool from which was this source
                                    added or INVALID_POOL */
   int tentative;                /* Flag indicating there was no valid response
@@ -98,6 +100,8 @@ struct UnresolvedSource {
   int pool_id;
   /* Name to be resolved */
   char *name;
+  /* Address family to filter resolved addresses */
+  int family;
   /* Flag indicating addresses should be used in a random order */
   int random_order;
   /* Flag indicating current address should be replaced only if it is
@@ -353,7 +357,7 @@ log_source(SourceRecord *record, int addition, int once_per_pool)
 
 /* Procedure to add a new source */
 static NSR_Status
-add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type,
+add_source(NTP_Remote_Address *remote_addr, char *name, int family, NTP_Source_Type type,
            SourceParameters *params, int pool_id, uint32_t conf_id)
 {
   SourceRecord *record;
@@ -391,6 +395,7 @@ add_source(NTP_Remote_Address *remote_addr, char *name, NTP_Source_Type type,
       record->data = NCR_CreateInstance(remote_addr, type, params, record->name);
       record->remote_addr = NCR_GetRemoteAddress(record->data);
       record->resolved_addr = remote_addr->ip_addr;
+      record->family = family;
       record->pool_id = pool_id;
       record->tentative = 1;
       record->conf_id = conf_id;
@@ -551,6 +556,10 @@ process_resolved_name(struct UnresolvedSource *us, IPAddr *ip_addrs, int n_addrs
     new_addr.ip_addr = ip_addrs[((unsigned int)i + first) % n_addrs];
 
     DEBUG_LOG("(%d) %s", i + 1, UTI_IPToString(&new_addr.ip_addr));
+
+    /* Skip addresses not from the requested family */
+    if (us->family != IPADDR_UNSPEC && us->family != new_addr.ip_addr.family)
+      continue;
 
     if (us->pool_id != INVALID_POOL) {
       /* In the pool resolving mode, try to replace a source from
@@ -768,14 +777,14 @@ NSR_Status
 NSR_AddSource(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
               SourceParameters *params, uint32_t *conf_id)
 {
-  return add_source(remote_addr, NULL, type, params, INVALID_POOL,
+  return add_source(remote_addr, NULL, IPADDR_UNSPEC, type, params, INVALID_POOL,
                     get_next_conf_id(conf_id));
 }
 
 /* ================================================== */
 
 NSR_Status
-NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
+NSR_AddSourceByName(char *name, int family, int port, int pool, NTP_Source_Type type,
                     SourceParameters *params, uint32_t *conf_id)
 {
   struct UnresolvedSource *us;
@@ -787,7 +796,9 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
   /* If the name is an IP address, add the source with the address directly */
   if (UTI_StringToIP(name, &remote_addr.ip_addr)) {
     remote_addr.port = port;
-    return add_source(&remote_addr, name, type, params, INVALID_POOL,
+    if (family != IPADDR_UNSPEC && family != remote_addr.ip_addr.family)
+      return NSR_InvalidAF;
+    return add_source(&remote_addr, name, IPADDR_UNSPEC, type, params, INVALID_POOL,
                       get_next_conf_id(conf_id));
   }
 
@@ -799,6 +810,7 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
 
   us = MallocNew(struct UnresolvedSource);
   us->name = Strdup(name);
+  us->family = family;
   us->random_order = 0;
   us->refreshment = 0;
 
@@ -835,7 +847,7 @@ NSR_AddSourceByName(char *name, int port, int pool, NTP_Source_Type type,
   for (i = 0; i < new_sources; i++) {
     if (i > 0)
       remote_addr.ip_addr.addr.id = ++last_address_id;
-    if (add_source(&remote_addr, name, type, params, us->pool_id, cid) != NSR_Success)
+    if (add_source(&remote_addr, name, family, type, params, us->pool_id, cid) != NSR_Success)
       return NSR_TooManySources;
   }
 
@@ -1026,6 +1038,7 @@ resolve_source_replacement(SourceRecord *record, int refreshment)
 
   us = MallocNew(struct UnresolvedSource);
   us->name = Strdup(record->name);
+  us->family = record->family;
   /* Ignore the order of addresses from the resolver to not get
      stuck with a pair of unreachable or otherwise unusable servers
      (e.g. falsetickers) in case the order doesn't change, or a group

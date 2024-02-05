@@ -1728,8 +1728,9 @@ reload_source_dirs(void)
       /* Add new sources */
       if (pass == 1 && d > 0) {
         source = &new_sources[j];
-        s = NSR_AddSourceByName(source->params.name, source->params.port, source->pool,
-                                source->type, &source->params.params, &new_ids[j]);
+        s = NSR_AddSourceByName(source->params.name, IPADDR_UNSPEC, source->params.port,
+                                source->pool, source->type, &source->params.params,
+                                &new_ids[j]);
 
         if (s == NSR_UnresolvedName) {
           unresolved++;
@@ -1842,8 +1843,8 @@ CNF_AddSources(void)
   for (i = 0; i < ARR_GetSize(ntp_sources); i++) {
     source = (NTP_Source *)ARR_GetElement(ntp_sources, i);
 
-    s = NSR_AddSourceByName(source->params.name, source->params.port, source->pool,
-                            source->type, &source->params.params, NULL);
+    s = NSR_AddSourceByName(source->params.name, IPADDR_UNSPEC, source->params.port,
+                            source->pool, source->type, &source->params.params, NULL);
     if (s != NSR_Success && s != NSR_UnresolvedName)
       LOG(LOGS_ERR, "Could not add source %s", source->params.name);
 
