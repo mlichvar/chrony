@@ -1664,6 +1664,8 @@ compare_sources(const void *a, const void *b)
     return d;
   if ((d = (int)sa->pool - (int)sb->pool) != 0)
     return d;
+  if ((d = (int)sa->params.family - (int)sb->params.family) != 0)
+    return d;
   if ((d = (int)sa->params.port - (int)sb->params.port) != 0)
     return d;
   return memcmp(&sa->params.params, &sb->params.params, sizeof (sa->params.params));
@@ -1728,7 +1730,7 @@ reload_source_dirs(void)
       /* Add new sources */
       if (pass == 1 && d > 0) {
         source = &new_sources[j];
-        s = NSR_AddSourceByName(source->params.name, IPADDR_UNSPEC, source->params.port,
+        s = NSR_AddSourceByName(source->params.name, source->params.family, source->params.port,
                                 source->pool, source->type, &source->params.params,
                                 &new_ids[j]);
 
@@ -1843,7 +1845,7 @@ CNF_AddSources(void)
   for (i = 0; i < ARR_GetSize(ntp_sources); i++) {
     source = (NTP_Source *)ARR_GetElement(ntp_sources, i);
 
-    s = NSR_AddSourceByName(source->params.name, IPADDR_UNSPEC, source->params.port,
+    s = NSR_AddSourceByName(source->params.name, source->params.family, source->params.port,
                             source->pool, source->type, &source->params.params, NULL);
     if (s != NSR_Success && s != NSR_UnresolvedName)
       LOG(LOGS_ERR, "Could not add source %s", source->params.name);

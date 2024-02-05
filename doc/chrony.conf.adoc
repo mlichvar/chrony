@@ -343,6 +343,12 @@ the PTP port. The corrections are applied only to NTP measurements with HW
 timestamps (enabled by the <<hwtimestamp,*hwtimestamp*>> directive). This
 field should be enabled only for servers known to be running *chronyd* version
 4.5 or later.
+*ipv4*:::
+*ipv6*:::
+These options force *chronyd* to use only IPv4 or IPv6 addresses respectively
+for this source. They do not override the *-4* or *-6* option on the *chronyd*
+command line.
+
 {blank}:::
 
 [[pool]]*pool* _name_ [_option_]...::

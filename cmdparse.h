@@ -32,6 +32,7 @@
 
 typedef struct {
   char *name;
+  int family;
   int port;
   SourceParameters params;
 } CPS_NTP_Source;

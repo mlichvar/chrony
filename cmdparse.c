@@ -46,6 +46,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   uint32_t ef_type;
   int n, sel_option;
   
+  src->family = IPADDR_UNSPEC;
   src->port = SRC_DEFAULT_PORT;
   src->params.minpoll = SRC_DEFAULT_MINPOLL;
   src->params.maxpoll = SRC_DEFAULT_MAXPOLL;
@@ -127,6 +128,10 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
     } else if (!strcasecmp(cmd, "filter")) {
       if (sscanf(line, "%d%n", &src->params.filter_length, &n) != 1)
         return 0;
+    } else if (!strcasecmp(cmd, "ipv4")) {
+      src->family = IPADDR_INET4;
+    } else if (!strcasecmp(cmd, "ipv6")) {
+      src->family = IPADDR_INET6;
     } else if (!strcasecmp(cmd, "maxdelay")) {
       if (sscanf(line, "%lf%n", &src->params.max_delay, &n) != 1)
         return 0;
