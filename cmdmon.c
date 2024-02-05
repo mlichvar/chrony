@@ -721,6 +721,7 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
   NTP_Source_Type type;
   SourceParameters params;
   NSR_Status status;
+  uint32_t flags;
   char *name;
   int pool, port;
   
@@ -750,6 +751,8 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
       return;
   }
 
+  flags = ntohl(rx_message->data.ntp_source.flags);
+
   port = ntohl(rx_message->data.ntp_source.port);
   params.minpoll = ntohl(rx_message->data.ntp_source.minpoll);
   params.maxpoll = ntohl(rx_message->data.ntp_source.maxpoll);
@@ -775,18 +778,16 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.asymmetry = UTI_FloatNetworkToHost(rx_message->data.ntp_source.asymmetry);
   params.offset = UTI_FloatNetworkToHost(rx_message->data.ntp_source.offset);
 
-  params.connectivity = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_ONLINE ?
-                        SRC_ONLINE : SRC_OFFLINE;
-  params.auto_offline = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_AUTOOFFLINE ? 1 : 0;
-  params.iburst = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_IBURST ? 1 : 0;
-  params.interleaved = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_INTERLEAVED ? 1 : 0;
-  params.burst = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_BURST ? 1 : 0;
-  params.nts = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_NTS ? 1 : 0;
-  params.copy = ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_COPY ? 1 : 0;
-  params.ext_fields = (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_EF_EXP_MONO_ROOT ?
-                      NTP_EF_FLAG_EXP_MONO_ROOT : 0) |
-                      (ntohl(rx_message->data.ntp_source.flags) & REQ_ADDSRC_EF_EXP_NET_CORRECTION ?
-                      NTP_EF_FLAG_EXP_NET_CORRECTION : 0);
+  params.connectivity = flags & REQ_ADDSRC_ONLINE ? SRC_ONLINE : SRC_OFFLINE;
+  params.auto_offline = !!(flags & REQ_ADDSRC_AUTOOFFLINE);
+  params.iburst = !!(flags & REQ_ADDSRC_IBURST);
+  params.interleaved = !!(flags & REQ_ADDSRC_INTERLEAVED);
+  params.burst = !!(flags & REQ_ADDSRC_BURST);
+  params.nts = !!(flags & REQ_ADDSRC_NTS);
+  params.copy = !!(flags & REQ_ADDSRC_COPY);
+  params.ext_fields = (flags & REQ_ADDSRC_EF_EXP_MONO_ROOT ? NTP_EF_FLAG_EXP_MONO_ROOT : 0) |
+                      (flags & REQ_ADDSRC_EF_EXP_NET_CORRECTION ?
+                       NTP_EF_FLAG_EXP_NET_CORRECTION : 0);
   params.sel_options = convert_addsrc_select_options(ntohl(rx_message->data.ntp_source.flags));
 
   status = NSR_AddSourceByName(name, IPADDR_UNSPEC, port, pool, type, &params, NULL);
