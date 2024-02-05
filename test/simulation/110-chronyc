@@ -114,7 +114,7 @@ limit=1
 for chronyc_conf in \
 	"accheck 1.2.3.4" \
 	"add peer 10.0.0.0 minpoll 2 maxpoll 6" \
-	"add server 10.0.0.0 minpoll 6 maxpoll 10 iburst burst key 1 certset 2 maxdelay 1e-3 maxdelayratio 10.0 maxdelaydevratio 10.0 maxdelayquant 0.5 mindelay 1e-4 asymmetry 0.5 offset 1e-5 minsamples 6 maxsamples 6 filter 3 offline auto_offline prefer noselect trust require xleave polltarget 20 port 123 presend 7 minstratum 3 version 4 nts ntsport 4460 copy extfield F323 extfield F324" \
+	"add server 10.0.0.0 minpoll 6 maxpoll 10 iburst burst key 1 certset 2 maxdelay 1e-3 maxdelayratio 10.0 maxdelaydevratio 10.0 maxdelayquant 0.5 mindelay 1e-4 asymmetry 0.5 offset 1e-5 minsamples 6 maxsamples 6 filter 3 offline auto_offline prefer noselect trust require xleave polltarget 20 port 123 presend 7 minstratum 3 version 4 nts ntsport 4460 copy extfield F323 extfield F324 ipv6 ipv4" \
 	"add server node1.net1.clk" \
 	"allow 1.2.3.4" \
 	"allow 1.2" \
@@ -433,7 +433,12 @@ server_conf="
 server 192.168.123.1
 noclientlog"
 
-commands=(
+check_config_h 'FEAT_IPV6 1' && commands=(
+	"add server ::1 ipv4" "^515 Invalid address family$"
+	) || commands=()
+
+commands+=(
+	"add server 192.168.123.1 ipv6" "^515 Invalid address family$"
 	"add server nosuchnode.net1.clk" "^Invalid host/IP address$"
 	"allow nosuchnode.net1.clk" "^Could not read address$"
 	"allow 192.168.123.0/2 4" "^Could not read address$"

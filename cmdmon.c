@@ -720,10 +720,10 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   NTP_Source_Type type;
   SourceParameters params;
+  int family, pool, port;
   NSR_Status status;
   uint32_t flags;
   char *name;
-  int pool, port;
   
   switch (ntohl(rx_message->data.ntp_source.type)) {
     case REQ_ADDSRC_SERVER:
@@ -753,6 +753,8 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
 
   flags = ntohl(rx_message->data.ntp_source.flags);
 
+  family = flags & REQ_ADDSRC_IPV4 ? IPADDR_INET4 :
+           flags & REQ_ADDSRC_IPV6 ? IPADDR_INET6 : IPADDR_UNSPEC;
   port = ntohl(rx_message->data.ntp_source.port);
   params.minpoll = ntohl(rx_message->data.ntp_source.minpoll);
   params.maxpoll = ntohl(rx_message->data.ntp_source.maxpoll);
@@ -790,7 +792,7 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
                        NTP_EF_FLAG_EXP_NET_CORRECTION : 0);
   params.sel_options = convert_addsrc_select_options(ntohl(rx_message->data.ntp_source.flags));
 
-  status = NSR_AddSourceByName(name, IPADDR_UNSPEC, port, pool, type, &params, NULL);
+  status = NSR_AddSourceByName(name, family, port, pool, type, &params, NULL);
   switch (status) {
     case NSR_Success:
       break;
@@ -808,6 +810,8 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
       tx_message->status = htons(STT_INVALIDNAME);
       break;
     case NSR_InvalidAF:
+      tx_message->status = htons(STT_INVALIDAF);
+      break;
     case NSR_NoSuchSource:
       assert(0);
       break;

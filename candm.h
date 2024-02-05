@@ -279,6 +279,8 @@ typedef struct {
 #define REQ_ADDSRC_COPY 0x400
 #define REQ_ADDSRC_EF_EXP_MONO_ROOT 0x800
 #define REQ_ADDSRC_EF_EXP_NET_CORRECTION 0x1000
+#define REQ_ADDSRC_IPV4 0x2000
+#define REQ_ADDSRC_IPV6 0x4000
 
 typedef struct {
   uint32_t type;

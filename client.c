@@ -962,6 +962,8 @@ process_cmd_add_source(CMD_Request *msg, char *line)
            REQ_ADDSRC_EF_EXP_MONO_ROOT : 0) |
           (data.params.ext_fields & NTP_EF_FLAG_EXP_NET_CORRECTION ?
            REQ_ADDSRC_EF_EXP_NET_CORRECTION : 0) |
+          (data.family == IPADDR_INET4 ? REQ_ADDSRC_IPV4 : 0) |
+          (data.family == IPADDR_INET6 ? REQ_ADDSRC_IPV6 : 0) |
           convert_addsrc_sel_options(data.params.sel_options));
       msg->data.ntp_source.filter_length = htonl(data.params.filter_length);
       msg->data.ntp_source.cert_set = htonl(data.params.cert_set);
