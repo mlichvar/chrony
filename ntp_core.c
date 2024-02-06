@@ -221,7 +221,7 @@ struct NCR_Instance_Record {
   int burst_good_samples_to_go;
   int burst_total_samples_to_go;
 
-  /* Report from last valid response */
+  /* Report from last valid response and packet/timestamp statistics */
   RPT_NTPReport report;
 };
 
@@ -2530,6 +2530,10 @@ NCR_ProcessRxKnown(NCR_Instance inst, NTP_Local_Address *local_addr,
   NTP_PacketInfo info;
 
   inst->report.total_rx_count++;
+  if (rx_ts->source == NTP_TS_KERNEL)
+    inst->report.total_kernel_rx_ts++;
+  else if (rx_ts->source == NTP_TS_HARDWARE)
+    inst->report.total_hw_rx_ts++;
 
   if (!parse_packet(message, length, &info))
     return 0;
@@ -2812,8 +2816,11 @@ NCR_ProcessTxKnown(NCR_Instance inst, NTP_Local_Address *local_addr,
                       message);
 
   if (tx_ts->source == NTP_TS_HARDWARE) {
+    inst->report.total_hw_tx_ts++;
     if (has_saved_response(inst))
       process_saved_response(inst);
+  } else if (tx_ts->source == NTP_TS_KERNEL) {
+    inst->report.total_kernel_tx_ts++;
   }
 }
 

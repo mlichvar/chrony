@@ -181,6 +181,10 @@ typedef struct {
   uint32_t total_rx_count;
   uint32_t total_valid_count;
   uint32_t total_good_count;
+  uint32_t total_kernel_tx_ts;
+  uint32_t total_kernel_rx_ts;
+  uint32_t total_hw_tx_ts;
+  uint32_t total_hw_rx_ts;
 } RPT_NTPReport;
 
 typedef struct {
