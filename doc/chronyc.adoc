@@ -689,6 +689,10 @@ Total TX        : 24
 Total RX        : 24
 Total valid RX  : 24
 Total good RX   : 22
+Total kernel TX : 24
+Total kernel RX : 24
+Total HW TX     : 0
+Total HW RX     : 0
 ----
 +
 The fields are explained as follows:
@@ -746,6 +750,18 @@ The number of packets which passed the first two groups of NTP tests.
 *Total good RX*:::
 The number of packets which passed all three groups of NTP tests, i.e. the NTP
 measurement was accepted.
+*Total kernel TX*:::
+The number of packets sent to the source for which a timestamp was captured by
+the kernel.
+*Total kernel RX*:::
+The number of packets received from the source for which a timestamp was
+captured by the kernel.
+*Total HW TX*:::
+The number of packets sent to the source for which a timestamp was captured by
+the NIC.
+*Total HW RX*:::
+The number of packets received from the source for which a timestamp was
+captured by the NIC.
 
 [[add_peer]]*add peer* _name_ [_option_]...::
 The *add peer* command allows a new NTP peer to be added whilst

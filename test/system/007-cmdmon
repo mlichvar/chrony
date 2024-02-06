@@ -97,7 +97,11 @@ RX timestamping : (Daemon|Kernel)
 Total TX        : [0-9]+
 Total RX        : [0-9]+
 Total valid RX  : [0-9]+
-Total good RX   : [0-9]+$" || test_fail
+Total good RX   : [0-9]+
+Total kernel TX : [0-9]+
+Total kernel RX : [0-9]+
+Total HW TX     : 0
+Total HW RX     : 0$" || test_fail
 
 run_chronyc "selectdata" || test_fail
 check_chronyc_output "^S Name/IP Address        Auth COpts EOpts Last Score     Interval  Leap

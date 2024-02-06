@@ -1230,7 +1230,7 @@ handle_ntp_data(CMD_Request *rx_message, CMD_Reply *tx_message)
     return;
   }
 
-  tx_message->reply = htons(RPY_NTP_DATA);
+  tx_message->reply = htons(RPY_NTP_DATA2);
   UTI_IPHostToNetwork(&report.remote_addr, &tx_message->data.ntp_data.remote_addr);
   UTI_IPHostToNetwork(&report.local_addr, &tx_message->data.ntp_data.local_addr);
   tx_message->data.ntp_data.remote_port = htons(report.remote_port);
@@ -1258,6 +1258,10 @@ handle_ntp_data(CMD_Request *rx_message, CMD_Reply *tx_message)
   tx_message->data.ntp_data.total_rx_count = htonl(report.total_rx_count);
   tx_message->data.ntp_data.total_valid_count = htonl(report.total_valid_count);
   tx_message->data.ntp_data.total_good_count = htonl(report.total_good_count);
+  tx_message->data.ntp_data.total_kernel_tx_ts = htonl(report.total_kernel_tx_ts);
+  tx_message->data.ntp_data.total_kernel_rx_ts = htonl(report.total_kernel_rx_ts);
+  tx_message->data.ntp_data.total_hw_tx_ts = htonl(report.total_hw_tx_ts);
+  tx_message->data.ntp_data.total_hw_rx_ts = htonl(report.total_hw_rx_ts);
   memset(tx_message->data.ntp_data.reserved, 0xff, sizeof (tx_message->data.ntp_data.reserved));
 }
 

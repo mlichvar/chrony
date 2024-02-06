@@ -247,6 +247,10 @@ Total TX        : 1
 Total RX        : 1
 Total valid RX  : 1
 Total good RX   : 0
+Total kernel TX : [01]
+Total kernel RX : 1
+Total HW TX     : 0
+Total HW RX     : 0
 S Name/IP Address        Auth COpts EOpts Last Score     Interval  Leap
 =======================================================================
 M node1\.net1\.clk            N ----- -----    0   1\.0    \+0ns    \+0ns  N
