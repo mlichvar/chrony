@@ -249,6 +249,9 @@ static REF_LeapMode leapsec_mode = REF_LeapModeSystem;
 /* Name of a system timezone containing leap seconds occuring at midnight */
 static char *leapsec_tz = NULL;
 
+/* File name of leap seconds list, usually /usr/share/zoneinfo/leap-seconds.list */
+static char *leapsec_list = NULL;
+
 /* Name of the user to which will be dropped root privileges. */
 static char *user;
 
@@ -471,6 +474,7 @@ CNF_Finalise(void)
   Free(hwclock_file);
   Free(keys_file);
   Free(leapsec_tz);
+  Free(leapsec_list);
   Free(logdir);
   Free(bind_ntp_iface);
   Free(bind_acq_iface);
@@ -620,6 +624,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_leapsecmode(p);
   } else if (!strcasecmp(command, "leapsectz")) {
     parse_string(p, &leapsec_tz);
+  } else if (!strcasecmp(command, "leapseclist")) {
+    parse_string(p, &leapsec_list);
   } else if (!strcasecmp(command, "local")) {
     parse_local(p);
   } else if (!strcasecmp(command, "lock_all")) {
@@ -2385,6 +2391,14 @@ char *
 CNF_GetLeapSecTimezone(void)
 {
   return leapsec_tz;
+}
+
+/* ================================================== */
+
+char *
+CNF_GetLeapSecList(void)
+{
+  return leapsec_list;
 }
 
 /* ================================================== */

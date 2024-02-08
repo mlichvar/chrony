@@ -166,8 +166,8 @@ RCL_AddRefclock(RefclockParameters *params)
   if (!inst->driver->init && !inst->driver->poll)
     LOG_FATAL("refclock driver %s is not compiled in", params->driver_name);
 
-  if (params->tai && !CNF_GetLeapSecTimezone())
-    LOG_FATAL("refclock tai option requires leapsectz");
+  if (params->tai && !CNF_GetLeapSecList() && !CNF_GetLeapSecTimezone())
+    LOG_FATAL("refclock tai option requires leapseclist or leapsectz");
 
   inst->data = NULL;
   inst->driver_parameter = Strdup(params->driver_parameter);

@@ -91,6 +91,7 @@ extern char *CNF_GetNtpSigndSocket(void);
 extern char *CNF_GetPidFile(void);
 extern REF_LeapMode CNF_GetLeapSecMode(void);
 extern char *CNF_GetLeapSecTimezone(void);
+extern char *CNF_GetLeapSecList(void);
 
 /* Value returned in ppm, as read from file */
 extern double CNF_GetMaxUpdateSkew(void);

@@ -680,9 +680,10 @@ trusted and required source.
 *tai*:::
 This option indicates that the reference clock keeps time in TAI instead of UTC
 and that *chronyd* should correct its offset by the current TAI-UTC offset. The
-<<leapsectz,*leapsectz*>> directive must be used with this option and the
-database must be kept up to date in order for this correction to work as
-expected. This option does not make sense with PPS refclocks.
+<<leapsectz,*leapsectz*>> or <<leapseclist,*leapseclist*>> directive must be
+used with this option and the database must be kept up to date in order for
+this correction to work as expected. This option does not make sense with PPS
+refclocks.
 *local*:::
 This option specifies that the reference clock is an unsynchronised clock which
 is more stable than the system clock (e.g. TCXO, OCXO, or atomic clock) and
@@ -1267,6 +1268,19 @@ and can be used with this directive:
 ----
 $ TZ=right/UTC date -d 'Dec 31 2008 23:59:60'
 Wed Dec 31 23:59:60 UTC 2008
+----
+
+[[leapseclist]]*leapseclist* _file_::
+This directive specifies the path to a file containing a list of leap seconds
+and TAI-UTC offsets in NIST/IERS format. It is recommended to use
+the file _leap-seconds.list_ usually included with the system timezone
+database. The behaviour of this directive is otherwise equivalent to
+<<leapsectz,*leapsectz*>>.
++
+An example of this directive is:
++
+----
+leapseclist /usr/share/zoneinfo/leap-seconds.list
 ----
 
 [[makestep]]*makestep* _threshold_ _limit_::
