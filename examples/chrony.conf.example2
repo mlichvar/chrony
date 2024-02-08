@@ -37,8 +37,8 @@ ntsdumpdir /var/lib/chrony
 # Insert/delete leap seconds by slewing instead of stepping.
 #leapsecmode slew
 
-# Get TAI-UTC offset and leap seconds from the system tz database.
-#leapsectz right/UTC
+# Set the TAI-UTC offset of the system clock.
+#leapseclist /usr/share/zoneinfo/leap-seconds.list
 
 # Specify directory for log files.
 logdir /var/log/chrony

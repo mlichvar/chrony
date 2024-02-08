@@ -126,11 +126,11 @@ ntsdumpdir /var/lib/chrony
 
 ! pidfile /var/run/chrony/chronyd.pid
 
-# If the system timezone database is kept up to date and includes the
-# right/UTC timezone, chronyd can use it to determine the current
-# TAI-UTC offset and when will the next leap second occur.
+# The system timezone database usually comes with a list of leap seconds and
+# corresponding TAI-UTC offsets.  chronyd can use it to set the offset of the
+# system TAI clock and have an additional source of leap seconds.
 
-! leapsectz right/UTC
+! leapseclist /usr/share/zoneinfo/leap-seconds.list
 
 #######################################################################
 ### INITIAL CLOCK CORRECTION
