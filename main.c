@@ -32,6 +32,7 @@
 
 #include "main.h"
 #include "sched.h"
+#include "leapdb.h"
 #include "local.h"
 #include "sys.h"
 #include "ntp_io.h"
@@ -134,6 +135,7 @@ MAI_CleanupAndExit(void)
   RCL_Finalise();
   SRC_Finalise();
   REF_Finalise();
+  LDB_Finalise();
   RTC_Finalise();
   SYS_Finalise();
 
@@ -655,6 +657,7 @@ int main
   if (!geteuid())
     LOG(LOGS_WARN, "Running with root privileges");
 
+  LDB_Initialise();
   REF_Initialise();
   SST_Initialise();
   NSR_Initialise();
