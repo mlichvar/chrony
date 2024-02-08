@@ -93,22 +93,32 @@ get_tz_leap(time_t when, int *tai_offset)
 
 /* ================================================== */
 
+static int
+check_leap_source(NTP_Leap (*src)(time_t when, int *tai_offset))
+{
+  int tai_offset = 0;
+
+  /* Check that the leap second source has good data for Jun 30 2012 and Dec 31 2012 */
+  if (src(1341014400, &tai_offset) == LEAP_InsertSecond && tai_offset == 34 &&
+      src(1356912000, &tai_offset) == LEAP_Normal && tai_offset == 35)
+    return 1;
+
+  return 0;
+}
+
+/* ================================================== */
+
 void
 LDB_Initialise(void)
 {
-  int tai_offset;
-
   leap_tzname = CNF_GetLeapSecTimezone();
-  if (leap_tzname) {
-    /* Check that the timezone has good data for Jun 30 2012 and Dec 31 2012 */
-    if (get_tz_leap(1341014400, &tai_offset) == LEAP_InsertSecond && tai_offset == 34 &&
-        get_tz_leap(1356912000, &tai_offset) == LEAP_Normal && tai_offset == 35) {
-      LOG(LOGS_INFO, "Using %s timezone to obtain leap second data", leap_tzname);
-    } else {
-      LOG(LOGS_WARN, "Timezone %s failed leap second check, ignoring", leap_tzname);
-      leap_tzname = NULL;
-    }
+  if (leap_tzname && !check_leap_source(get_tz_leap)) {
+    LOG(LOGS_WARN, "Timezone %s failed leap second check, ignoring", leap_tzname);
+    leap_tzname = NULL;
   }
+
+  if (leap_tzname)
+    LOG(LOGS_INFO, "Using %s timezone to obtain leap second data", leap_tzname);
 }
 
 /* ================================================== */
