@@ -41,24 +41,10 @@ static char *leap_tzname;
 static NTP_Leap
 get_tz_leap(time_t when, int *tai_offset)
 {
-  static time_t last_tz_leap_check;
-  static NTP_Leap tz_leap;
-  static int tz_tai_offset;
-
   struct tm stm, *tm;
   time_t t;
   char *tz_env, tz_orig[128];
-
-  *tai_offset = tz_tai_offset;
-
-  /* Do this check at most twice a day */
-  when = when / (12 * 3600) * (12 * 3600);
-  if (last_tz_leap_check == when)
-      return tz_leap;
-
-  last_tz_leap_check = when;
-  tz_leap = LEAP_Normal;
-  tz_tai_offset = 0;
+  NTP_Leap tz_leap = LEAP_Normal;
 
   tm = gmtime(&when);
   if (!tm)
@@ -79,7 +65,7 @@ get_tz_leap(time_t when, int *tai_offset)
   /* Get the TAI-UTC offset, which started at the epoch at 10 seconds */
   t = mktime(&stm);
   if (t != -1)
-    tz_tai_offset = t - when + 10;
+    *tai_offset = t - when + 10;
 
   /* Set the time to 23:59:60 and see how it overflows in mktime() */
   stm.tm_sec = 60;
@@ -101,8 +87,6 @@ get_tz_leap(time_t when, int *tai_offset)
     tz_leap = LEAP_InsertSecond;
   else if (stm.tm_sec == 1)
     tz_leap = LEAP_DeleteSecond;
-
-  *tai_offset = tz_tai_offset;
 
   return tz_leap;
 }
@@ -132,10 +116,25 @@ LDB_Initialise(void)
 NTP_Leap
 LDB_GetLeap(time_t when, int *tai_offset)
 {
-  *tai_offset = 0;
+  static time_t last_ldb_leap_check;
+  static NTP_Leap ldb_leap;
+  static int ldb_tai_offset;
+
+  /* Do this check at most twice a day */
+  when = when / (12 * 3600) * (12 * 3600);
+  if (last_ldb_leap_check == when)
+    goto out;
+
+  last_ldb_leap_check = when;
+  ldb_leap = LEAP_Normal;
+  ldb_tai_offset = 0;
+
   if (leap_tzname)
-    return get_tz_leap(when, tai_offset);
-  return LEAP_Normal;
+    ldb_leap = get_tz_leap(when, &ldb_tai_offset);
+
+out:
+  *tai_offset = ldb_tai_offset;
+  return ldb_leap;
 }
 
 /* ================================================== */
