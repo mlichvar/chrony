@@ -77,9 +77,10 @@ test_unit(void)
     "leapsectz right/UTC",
     "leapseclist leapdb.list"
   };
+  int i;
 
   CNF_Initialise(0, 0);
-  for (int i = 0; i < sizeof conf / sizeof conf[0]; i++)
+  for (i = 0; i < sizeof conf / sizeof conf[0]; i++)
     CNF_ParseLine(NULL, i + 1, conf[i]);
   LDB_Initialise();
 
