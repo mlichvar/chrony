@@ -943,6 +943,7 @@ get_date (const char *p, const time_t *now)
   tm.tm_hour += yyRelHour;
   tm.tm_min += yyRelMinutes;
   tm.tm_sec += yyRelSeconds;
+  tm.tm_wday = 0;
 
   /* Let mktime deduce tm_isdst if we have an absolute timestamp,
      or if the relative timestamp mentions days, months, or years.  */

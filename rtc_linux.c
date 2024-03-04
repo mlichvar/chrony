@@ -802,6 +802,7 @@ read_from_device(int fd_, int event, void *any)
     rtc_tm.tm_mday = rtc_raw.tm_mday;
     rtc_tm.tm_mon = rtc_raw.tm_mon;
     rtc_tm.tm_year = rtc_raw.tm_year;
+    rtc_tm.tm_wday = 0;
 
     rtc_t = t_from_rtc(&rtc_tm);
 
