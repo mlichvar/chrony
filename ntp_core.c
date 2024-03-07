@@ -3025,6 +3025,16 @@ NCR_ModifyMinstratum(NCR_Instance inst, int new_min_stratum)
 /* ================================================== */
 
 void
+NCR_ModifyOffset(NCR_Instance inst, double new_offset)
+{
+  inst->offset_correction = new_offset;
+  LOG(LOGS_INFO, "Source %s new offset %f",
+      UTI_IPToString(&inst->remote_addr.ip_addr), new_offset);
+}
+
+/* ================================================== */
+
+void
 NCR_ModifyPolltarget(NCR_Instance inst, int new_poll_target)
 {
   inst->poll_target = MAX(1, new_poll_target);

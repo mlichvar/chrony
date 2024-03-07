@@ -1445,6 +1445,20 @@ NSR_ModifyMinstratum(IPAddr *address, int new_min_stratum)
 /* ================================================== */
 
 int
+NSR_ModifyOffset(IPAddr *address, double new_offset)
+{
+  int slot;
+
+  if (!find_slot(address, &slot))
+    return 0;
+
+  NCR_ModifyOffset(get_record(slot)->data, new_offset);
+  return 1;
+}
+
+/* ================================================== */
+
+int
 NSR_ModifyPolltarget(IPAddr *address, int new_poll_target)
 {
   int slot;

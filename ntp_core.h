@@ -113,6 +113,8 @@ extern void NCR_ModifyMaxdelaydevratio(NCR_Instance inst, double new_max_delay_d
 
 extern void NCR_ModifyMinstratum(NCR_Instance inst, int new_min_stratum);
 
+extern void NCR_ModifyOffset(NCR_Instance inst, double new_offset);
+
 extern void NCR_ModifyPolltarget(NCR_Instance inst, int new_poll_target);
 
 extern void NCR_InitiateSampleBurst(NCR_Instance inst, int n_good_samples, int n_total_samples);

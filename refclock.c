@@ -321,6 +321,22 @@ RCL_ReportSource(RPT_SourceReport *report, struct timespec *now)
   }
 }
 
+int
+RCL_ModifyOffset(uint32_t ref_id, double offset)
+{
+  unsigned int i;
+
+  for (i = 0; i < ARR_GetSize(refclocks); i++) {
+    RCL_Instance inst = get_refclock(i);
+    if (inst->ref_id == ref_id) {
+      inst->offset = offset;
+      LOG(LOGS_INFO, "Source %s new offset %f", UTI_RefidToString(ref_id), offset);
+      return 1;
+    }
+  }
+  return 0;
+}
+
 void
 RCL_SetDriverData(RCL_Instance instance, void *data)
 {

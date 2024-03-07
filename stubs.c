@@ -321,6 +321,12 @@ NSR_ModifyMinstratum(IPAddr *address, int new_min_stratum)
 }
 
 int
+NSR_ModifyOffset(IPAddr *address, double new_offset)
+{
+  return 0;
+}
+
+int
 NSR_ModifyPolltarget(IPAddr *address, int new_poll_target)
 {
   return 0;
@@ -417,6 +423,12 @@ void
 RCL_ReportSource(RPT_SourceReport *report, struct timespec *now)
 {
   memset(report, 0, sizeof (*report));
+}
+
+int
+RCL_ModifyOffset(uint32_t ref_id, double offset)
+{
+  return 0;
 }
 
 #endif /* !FEAT_REFCLOCK */

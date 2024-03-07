@@ -140,6 +140,8 @@ extern int NSR_ModifyMaxdelaydevratio(IPAddr *address, double new_max_delay_rati
 
 extern int NSR_ModifyMinstratum(IPAddr *address, int new_min_stratum);
 
+extern int NSR_ModifyOffset(IPAddr *address, double new_offset);
+
 extern int NSR_ModifyPolltarget(IPAddr *address, int new_poll_target);
 
 extern int NSR_InitiateSampleBurst(int n_good_samples, int n_total_samples, IPAddr *mask, IPAddr *address);
