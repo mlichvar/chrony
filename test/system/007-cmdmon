@@ -28,6 +28,7 @@ for command in \
 	"local" \
 	"online" \
 	"onoffline" \
+	"offset $server 0.0" \
 	"maxdelay $server 1e-1" \
 	"maxdelaydevratio $server 5.0" \
 	"maxdelayratio $server 3.0" \

@@ -345,6 +345,24 @@ parse_source_address(char *word, IPAddr *address)
 /* ================================================== */
 
 static int
+parse_source_address_or_refid(char *s, IPAddr *address, uint32_t *ref_id)
+{
+  address->family = IPADDR_UNSPEC;
+  *ref_id = 0;
+
+  /* Don't allow hostnames to avoid conflicts with reference IDs */
+  if (UTI_StringToIdIP(s, address) || UTI_StringToIP(s, address))
+    return 1;
+
+  if (CPS_ParseRefid(s, ref_id) > 0)
+    return 1;
+
+  return 0;
+}
+
+/* ================================================== */
+
+static int
 read_mask_address(char *line, IPAddr *mask, IPAddr *address)
 {
   unsigned int bits;
@@ -1031,6 +1049,7 @@ give_help(void)
     "selectopts <address|refid> <+|-options>\0Modify selection options\0"
     "reselect\0Force reselecting synchronisation source\0"
     "reselectdist <dist>\0Modify reselection distance\0"
+    "offset <address|refid> <offset>\0Modify offset correction\0"
     "\0\0"
     "NTP sources:\0\0"
     "activity\0Check how many NTP sources are online/offline\0"
@@ -1141,7 +1160,8 @@ command_name_generator(const char *text, int state)
     "clients", "cmdaccheck", "cmdallow", "cmddeny", "cyclelogs", "delete",
     "deny", "dns", "dump", "exit", "help", "keygen", "local", "makestep",
     "manual", "maxdelay", "maxdelaydevratio", "maxdelayratio", "maxpoll",
-    "maxupdateskew", "minpoll", "minstratum", "ntpdata", "offline", "online", "onoffline",
+    "maxupdateskew", "minpoll", "minstratum", "ntpdata",
+    "offline", "offset", "online", "onoffline",
     "polltarget", "quit", "refresh", "rekey", "reload", "reselect", "reselectdist", "reset",
     "retries", "rtcdata", "selectdata", "selectopts", "serverstats", "settime",
     "shutdown", "smoothing", "smoothtime", "sourcename", "sources", "sourcestats",
@@ -2859,6 +2879,34 @@ process_cmd_activity(const char *line)
 /* ================================================== */
 
 static int
+process_cmd_offset(CMD_Request *msg, char *line)
+{
+  uint32_t ref_id;
+  IPAddr ip_addr;
+  double offset;
+  char *src;
+
+  src = line;
+  line = CPS_SplitWord(line);
+
+  if (!parse_source_address_or_refid(src, &ip_addr, &ref_id) ||
+      sscanf(line, "%lf", &offset) != 1) {
+    LOG(LOGS_ERR, "Invalid syntax for offset command");
+    return 0;
+  }
+
+  UTI_IPHostToNetwork(&ip_addr, &msg->data.modify_offset.address);
+  msg->data.modify_offset.ref_id = htonl(ref_id);
+  msg->data.modify_offset.new_offset = UTI_FloatHostToNetwork(offset);
+
+  msg->command = htons(REQ_MODIFY_OFFSET);
+
+  return 1;
+}
+
+/* ================================================== */
+
+static int
 process_cmd_reselectdist(CMD_Request *msg, char *line)
 {
   double dist;
@@ -2939,15 +2987,10 @@ process_cmd_selectopts(CMD_Request *msg, char *line)
 
   src = line;
   line = CPS_SplitWord(line);
-  ref_id = 0;
 
-  /* Don't allow hostnames to avoid conflicts with reference IDs */
-  if (!UTI_StringToIdIP(src, &ip_addr) && !UTI_StringToIP(src, &ip_addr)) {
-    ip_addr.family = IPADDR_UNSPEC;
-    if (CPS_ParseRefid(src, &ref_id) == 0) {
-      LOG(LOGS_ERR, "Invalid syntax for selectopts command");
-      return 0;
-    }
+  if (!parse_source_address_or_refid(src, &ip_addr, &ref_id)) {
+    LOG(LOGS_ERR, "Invalid syntax for selectopts command");
+    return 0;
   }
 
   mask = options = 0;
@@ -3249,6 +3292,8 @@ process_line(char *line)
     ret = process_cmd_ntpdata(line);
   } else if (!strcmp(command, "offline")) {
     do_normal_submit = process_cmd_offline(&tx_message, line);
+  } else if (!strcmp(command, "offset")) {
+    do_normal_submit = process_cmd_offset(&tx_message, line);
   } else if (!strcmp(command, "online")) {
     do_normal_submit = process_cmd_online(&tx_message, line);
   } else if (!strcmp(command, "onoffline")) {

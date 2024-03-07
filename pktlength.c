@@ -130,6 +130,7 @@ static const struct request_length request_lengths[] = {
   REQ_LENGTH_ENTRY(null, null),                 /* RELOAD_SOURCES */
   REQ_LENGTH_ENTRY(doffset, null),              /* DOFFSET2 */
   REQ_LENGTH_ENTRY(modify_select_opts, null),   /* MODIFY_SELECTOPTS */
+  REQ_LENGTH_ENTRY(modify_offset, null),        /* MODIFY_OFFSET */
 };
 
 static const uint16_t reply_lengths[] = {

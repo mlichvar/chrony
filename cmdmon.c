@@ -145,6 +145,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* RELOAD_SOURCES */
   PERMIT_AUTH, /* DOFFSET2 */
   PERMIT_AUTH, /* MODIFY_SELECTOPTS */
+  PERMIT_AUTH, /* MODIFY_OFFSET */
 };
 
 /* ================================================== */
@@ -1419,6 +1420,24 @@ handle_modify_selectopts(CMD_Request *rx_message, CMD_Reply *tx_message)
 }
 
 /* ================================================== */
+
+static void
+handle_modify_offset(CMD_Request *rx_message, CMD_Reply *tx_message)
+{
+  uint32_t ref_id;
+  IPAddr ip_addr;
+  double offset;
+
+  UTI_IPNetworkToHost(&rx_message->data.modify_offset.address, &ip_addr);
+  ref_id = ntohl(rx_message->data.modify_offset.ref_id);
+  offset = UTI_FloatNetworkToHost(rx_message->data.modify_offset.new_offset);
+
+  if ((ip_addr.family != IPADDR_UNSPEC && !NSR_ModifyOffset(&ip_addr, offset)) ||
+      (ip_addr.family == IPADDR_UNSPEC && !RCL_ModifyOffset(ref_id, offset)))
+    tx_message->status = htons(STT_NOSUCHSOURCE);
+}
+
+/* ================================================== */
 /* Read a packet and process it */
 
 static void
@@ -1816,6 +1835,10 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
         case REQ_MODIFY_SELECTOPTS:
           handle_modify_selectopts(&rx_message, &tx_message);
+          break;
+
+        case REQ_MODIFY_OFFSET:
+          handle_modify_offset(&rx_message, &tx_message);
           break;
 
         default:

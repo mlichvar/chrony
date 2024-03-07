@@ -556,6 +556,13 @@ The *reselectdist* command sets the reselection distance. It is equivalent to
 the <<chrony.conf.adoc#reselectdist,*reselectdist*>> directive in the
 configuration file.
 
+[[offset]]*offset* _address|refid_ _offset_::
+The *offset* command modifies the offset correction of an NTP source specified
+by IP address (or the _ID#XXXXXXXXXX_ identifier used for unknown addresses),
+or a reference clock specified by reference ID as a string. It is equivalent to
+the *offset* option in the <<chrony.conf.adoc#server,*server*>> or
+<<chrony.conf.adoc#refclock,*refclock*>> directive respectively.
+
 === NTP sources
 
 [[activity]]*activity*::

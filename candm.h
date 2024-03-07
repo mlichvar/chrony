@@ -110,7 +110,8 @@
 #define REQ_RELOAD_SOURCES 70
 #define REQ_DOFFSET2 71
 #define REQ_MODIFY_SELECTOPTS 72
-#define N_REQUEST_TYPES 73
+#define REQ_MODIFY_OFFSET 73
+#define N_REQUEST_TYPES 74
 
 /* Structure used to exchange timespecs independent of time_t size */
 typedef struct {
@@ -390,6 +391,13 @@ typedef struct {
   int32_t EOR;
 } REQ_Modify_SelectOpts;
 
+typedef struct {
+  IPAddr address;
+  uint32_t ref_id;
+  Float new_offset;
+  int32_t EOR;
+} REQ_Modify_Offset;
+
 /* ================================================== */
 
 #define PKT_TYPE_CMD_REQUEST 1
@@ -497,6 +505,7 @@ typedef struct {
     REQ_AuthData auth_data;
     REQ_SelectData select_data;
     REQ_Modify_SelectOpts modify_select_opts;
+    REQ_Modify_Offset modify_offset;
   } data; /* Command specific parameters */
 
   /* Padding used to prevent traffic amplification.  It only defines the
