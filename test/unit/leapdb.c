@@ -39,8 +39,9 @@ static void
 test_leap_source(NTP_Leap (*fn)(time_t when, int *tai_offset),
                  int skip_fakes)
 {
-  int prev_tai_offset = 34;
-  for (int i = 0; i < sizeof tests / sizeof tests[0]; ++i) {
+  int i, prev_tai_offset = 34;
+
+  for (i = 0; i < sizeof tests / sizeof tests[0]; ++i) {
     struct test_vector *t = tests + i;
 
     NTP_Leap leap;
