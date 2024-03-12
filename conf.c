@@ -298,6 +298,8 @@ static ARR_Instance ntp_sources;
 static ARR_Instance ntp_source_dirs;
 /* Array of uint32_t corresponding to ntp_sources (for sourcedirs reload) */
 static ARR_Instance ntp_source_ids;
+/* Flag indicating ntp_sources and ntp_source_ids are used for sourcedirs */
+static int conf_ntp_sources_added = 0;
 
 /* Array of RefclockParameters */
 static ARR_Instance refclock_sources;
@@ -1689,8 +1691,12 @@ reload_source_dirs(void)
   NSR_Status s;
   int d, pass;
 
+  /* Ignore reload command before adding configured sources */
+  if (!conf_ntp_sources_added)
+    return;
+
   prev_size = ARR_GetSize(ntp_source_ids);
-  if (prev_size > 0 && ARR_GetSize(ntp_sources) != prev_size)
+  if (ARR_GetSize(ntp_sources) != prev_size)
     assert(0);
 
   /* Save the current sources and their configuration IDs */
@@ -1859,7 +1865,10 @@ CNF_AddSources(void)
     Free(source->params.name);
   }
 
+  /* The arrays will be used for sourcedir (re)loading */
   ARR_SetSize(ntp_sources, 0);
+  ARR_SetSize(ntp_source_ids, 0);
+  conf_ntp_sources_added = 1;
 
   reload_source_dirs();
 }
