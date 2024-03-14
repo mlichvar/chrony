@@ -638,8 +638,10 @@ name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *any
   next = us->next;
 
   /* Don't repeat the resolving if it (permanently) failed, it was a
-     replacement of a real address, or all addresses are already resolved */
-  if (status == DNS_Failure || UTI_IsIPReal(&us->address.ip_addr) || is_resolved(us))
+     replacement of a real address, a refreshment, or all addresses are
+     already resolved */
+  if (status == DNS_Failure || UTI_IsIPReal(&us->address.ip_addr) ||
+      us->refreshment || is_resolved(us))
     remove_unresolved_source(us);
 
   /* If a restart was requested and this was the last source in the list,
