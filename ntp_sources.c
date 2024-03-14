@@ -1056,7 +1056,10 @@ resolve_source_replacement(SourceRecord *record, int refreshment)
   us->address = *record->remote_addr;
 
   append_unresolved_source(us);
-  NSR_ResolveSources();
+
+  /* Don't restart resolving round if already running */
+  if (!resolving_source)
+    NSR_ResolveSources();
 }
 
 /* ================================================== */
