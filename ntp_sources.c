@@ -645,6 +645,7 @@ name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *any
   /* If a restart was requested and this was the last source in the list,
      start with the first source again (if there still is one) */
   if (!next && resolving_restart) {
+    DEBUG_LOG("Restarting");
     next = unresolved_sources;
     resolving_restart = 0;
   }
@@ -709,11 +710,15 @@ static void
 append_unresolved_source(struct UnresolvedSource *us)
 {
   struct UnresolvedSource **i;
+  int n;
 
-  for (i = &unresolved_sources; *i; i = &(*i)->next)
+  for (i = &unresolved_sources, n = 0; *i; i = &(*i)->next, n++)
     ;
   *i = us;
   us->next = NULL;
+
+  DEBUG_LOG("Added unresolved source #%d pool_id=%d random=%d refresh=%d",
+            n + 1, us->pool_id, us->random_order, us->refreshment);
 }
 
 /* ================================================== */
