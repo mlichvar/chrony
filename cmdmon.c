@@ -531,7 +531,8 @@ handle_local(CMD_Request *rx_message, CMD_Reply *tx_message)
   if (ntohl(rx_message->data.local.on_off)) {
     REF_EnableLocal(ntohl(rx_message->data.local.stratum),
                     UTI_FloatNetworkToHost(rx_message->data.local.distance),
-                    ntohl(rx_message->data.local.orphan));
+                    ntohl(rx_message->data.local.orphan),
+                    UTI_FloatNetworkToHost(rx_message->data.local.threshold));
   } else {
     REF_DisableLocal();
   }

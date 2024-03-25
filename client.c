@@ -755,11 +755,11 @@ static int
 process_cmd_local(CMD_Request *msg, char *line)
 {
   int on_off, stratum = 0, orphan = 0;
-  double distance = 0.0;
+  double distance = 0.0, threshold = 0.0;
 
   if (!strcmp(line, "off")) {
     on_off = 0;
-  } else if (CPS_ParseLocal(line, &stratum, &orphan, &distance)) {
+  } else if (CPS_ParseLocal(line, &stratum, &orphan, &distance, &threshold)) {
     on_off = 1;
   } else {
     LOG(LOGS_ERR, "Invalid syntax for local command");
@@ -771,6 +771,7 @@ process_cmd_local(CMD_Request *msg, char *line)
   msg->data.local.stratum = htonl(stratum);
   msg->data.local.distance = UTI_FloatHostToNetwork(distance);
   msg->data.local.orphan = htonl(orphan);
+  msg->data.local.threshold = UTI_FloatHostToNetwork(threshold);
 
   return 1;
 }
