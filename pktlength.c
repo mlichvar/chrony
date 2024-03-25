@@ -111,7 +111,7 @@ static const struct request_length request_lengths[] = {
   REQ_LENGTH_ENTRY(null, null),                 /* REFRESH */
   REQ_LENGTH_ENTRY(null, server_stats),         /* SERVER_STATS */
   { 0, 0 },                                     /* CLIENT_ACCESSES_BY_INDEX2 - not supported */
-  REQ_LENGTH_ENTRY(local, null),                /* LOCAL2 */
+  { 0, 0 },                                     /* LOCAL2 - not supported */
   REQ_LENGTH_ENTRY(ntp_data, ntp_data),         /* NTP_DATA */
   { 0, 0 },                                     /* ADD_SERVER2 */
   { 0, 0 },                                     /* ADD_PEER2 */
@@ -131,6 +131,7 @@ static const struct request_length request_lengths[] = {
   REQ_LENGTH_ENTRY(doffset, null),              /* DOFFSET2 */
   REQ_LENGTH_ENTRY(modify_select_opts, null),   /* MODIFY_SELECTOPTS */
   REQ_LENGTH_ENTRY(modify_offset, null),        /* MODIFY_OFFSET */
+  REQ_LENGTH_ENTRY(local, null),                /* LOCAL3 */
 };
 
 static const uint16_t reply_lengths[] = {

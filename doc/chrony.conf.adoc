@@ -1675,6 +1675,14 @@ The current root distance can be calculated from root delay and root dispersion
 ----
 distance = delay / 2 + dispersion
 ----
+*activate* _distance_:::
+This option sets an activating root distance for the local reference. The
+local reference will not be used until the root distance drops below the
+configured value for the first time. This can be used to prevent the local
+reference from being activated on a server which has never been synchronised
+with an upstream server. The default value of 0.0 causes no activating
+distance to be used, such that the local reference is always eligible for
+activation.
 *orphan*:::
 This option enables a special '`orphan`' mode, where sources with stratum equal
 to the local _stratum_ are assumed to not serve real time. They are ignored
@@ -1697,7 +1705,7 @@ The *orphan* mode is compatible with the *ntpd*'s orphan mode (enabled by the
 An example of the directive is:
 +
 ----
-local stratum 10 orphan distance 0.1
+local stratum 10 orphan distance 0.1 activate 0.5
 ----
 
 [[ntpsigndsocket]]*ntpsigndsocket* _directory_::

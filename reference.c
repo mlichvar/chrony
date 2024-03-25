@@ -54,6 +54,8 @@ static int enable_local_stratum;
 static int local_stratum;
 static int local_orphan;
 static double local_distance;
+static int local_activate_ok;
+static double local_activate;
 static struct timespec local_ref_time;
 static NTP_Leap our_leap_status;
 static int our_leap_sec;
@@ -207,6 +209,7 @@ REF_Initialise(void)
   our_frequency_sd = 0.0;
   our_offset_sd = 0.0;
   drift_file_age = 0.0;
+  local_activate_ok = 0;
 
   /* Now see if we can get the drift file opened */
   drift_file = CNF_GetDriftFile();
@@ -245,7 +248,8 @@ REF_Initialise(void)
 
   correction_time_ratio = CNF_GetCorrectionTimeRatio();
 
-  enable_local_stratum = CNF_AllowLocalReference(&local_stratum, &local_orphan, &local_distance);
+  enable_local_stratum = CNF_AllowLocalReference(&local_stratum, &local_orphan,
+                                                 &local_distance, &local_activate);
   UTI_ZeroTimespec(&local_ref_time);
 
   leap_when = 0;
@@ -1132,7 +1136,7 @@ REF_GetReferenceParams
  double *root_dispersion
 )
 {
-  double dispersion, delta;
+  double dispersion, delta, distance;
 
   assert(initialised);
 
@@ -1142,11 +1146,16 @@ REF_GetReferenceParams
     dispersion = 0.0;
   }
 
+  distance = our_root_delay / 2 + dispersion;
+
+  if (local_activate == 0.0 || (are_we_synchronised && distance < local_activate))
+    local_activate_ok = 1;
+
   /* Local reference is active when enabled and the clock is not synchronised
      or the root distance exceeds the threshold */
 
   if (are_we_synchronised &&
-      !(enable_local_stratum && our_root_delay / 2 + dispersion > local_distance)) {
+      !(enable_local_stratum && local_activate_ok && distance > local_distance)) {
 
     *is_synchronised = 1;
 
@@ -1158,7 +1167,7 @@ REF_GetReferenceParams
     *root_delay = our_root_delay;
     *root_dispersion = dispersion;
 
-  } else if (enable_local_stratum) {
+  } else if (enable_local_stratum && local_activate_ok) {
 
     *is_synchronised = 0;
 
@@ -1258,12 +1267,13 @@ REF_ModifyMakestep(int limit, double threshold)
 /* ================================================== */
 
 void
-REF_EnableLocal(int stratum, double distance, int orphan)
+REF_EnableLocal(int stratum, double distance, int orphan, double activate)
 {
   enable_local_stratum = 1;
   local_stratum = CLAMP(1, stratum, NTP_MAX_STRATUM - 1);
   local_distance = distance;
   local_orphan = !!orphan;
+  local_activate = activate;
   LOG(LOGS_INFO, "%s local reference mode", "Enabled");
 }
 
