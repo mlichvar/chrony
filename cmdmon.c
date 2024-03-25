@@ -146,6 +146,7 @@ static const char permissions[] = {
   PERMIT_AUTH, /* DOFFSET2 */
   PERMIT_AUTH, /* MODIFY_SELECTOPTS */
   PERMIT_AUTH, /* MODIFY_OFFSET */
+  PERMIT_AUTH, /* LOCAL3 */
 };
 
 /* ================================================== */
@@ -526,12 +527,14 @@ handle_settime(CMD_Request *rx_message, CMD_Reply *tx_message)
 /* ================================================== */
 
 static void
-handle_local(CMD_Request *rx_message, CMD_Reply *tx_message)
+handle_local(CMD_Request *rx_message, CMD_Reply *tx_message, uint16_t cmd)
 {
   if (ntohl(rx_message->data.local.on_off)) {
     REF_EnableLocal(ntohl(rx_message->data.local.stratum),
                     UTI_FloatNetworkToHost(rx_message->data.local.distance),
-                    ntohl(rx_message->data.local.orphan));
+                    ntohl(rx_message->data.local.orphan),
+                    cmd == REQ_LOCAL2 ? 0 :
+                    UTI_FloatNetworkToHost(rx_message->data.local.activate));
   } else {
     REF_DisableLocal();
   }
@@ -1648,9 +1651,10 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
         case REQ_SETTIME:
           handle_settime(&rx_message, &tx_message);
           break;
-        
+
         case REQ_LOCAL2:
-          handle_local(&rx_message, &tx_message);
+        case REQ_LOCAL3:
+          handle_local(&rx_message, &tx_message, rx_command);
           break;
 
         case REQ_MANUAL:

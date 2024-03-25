@@ -1663,11 +1663,11 @@ be very close to real time. Stratum 2 computers are those which have a stratum
 of 10 indicates that the clock is so many hops away from a reference clock that
 its time is fairly unreliable.
 *distance* _distance_:::
-This option sets the threshold for the root distance which will activate the local
-reference. If *chronyd* was synchronised to some source, the local reference
-will not be activated until its root distance reaches the specified value (the
-rate at which the distance is increasing depends on how well the clock was
-tracking the source). The default value is 1 second.
+This option sets the threshold for the root distance which will activate the
+local reference. If *chronyd* was synchronised to some source, the local
+reference will not be activated until its root distance reaches the specified
+value (the rate at which the distance is increasing depends on how well the
+clock was tracking the source). The default value is 1 second.
 +
 The current root distance can be calculated from root delay and root dispersion
 (reported by the <<chronyc.adoc#tracking,*tracking*>> command in *chronyc*) as:
@@ -1675,6 +1675,14 @@ The current root distance can be calculated from root delay and root dispersion
 ----
 distance = delay / 2 + dispersion
 ----
+*activate* _distance_:::
+This option sets an activating root distance for the local reference. The
+local reference will not be used until the root distance drops below the
+configured value for the first time. This can be used to prevent the local
+reference from being activated on a server which has never been synchronised
+with an upstream server. The default value of 0.0 causes no activating
+distance to be used, such that the local reference is always eligible for
+activation.
 *orphan*:::
 This option enables a special '`orphan`' mode, where sources with stratum equal
 to the local _stratum_ are assumed to not serve real time. They are ignored
@@ -1692,12 +1700,11 @@ smallest reference ID will take over when its local reference mode activates
 +
 The *orphan* mode is compatible with the *ntpd*'s orphan mode (enabled by the
 *tos orphan* command).
-{blank}::
 +
 An example of the directive is:
 +
 ----
-local stratum 10 orphan distance 0.1
+local stratum 10 orphan distance 0.1 activate 0.5
 ----
 
 [[ntpsigndsocket]]*ntpsigndsocket* _directory_::
