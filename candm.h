@@ -237,6 +237,7 @@ typedef struct {
   int32_t stratum;
   Float distance;
   int32_t orphan;
+  Float threshold;
   int32_t EOR;
 } REQ_Local;
 

@@ -1699,6 +1699,11 @@ An example of the directive is:
 ----
 local stratum 10 orphan distance 0.1
 ----
+*threshold* _distance_:::
+This option sets an activating threshold for the local reference. The local
+reference will not be used until the root distance drops below the configured
+threshold once. This can be used to prevent the local reference being activated
+on a server which has never been synchronised with an upstream server.
 
 [[ntpsigndsocket]]*ntpsigndsocket* _directory_::
 This directive specifies the location of the Samba *ntp_signd* socket when it
