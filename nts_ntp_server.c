@@ -279,7 +279,7 @@ NNS_GenerateResponseAuth(NTP_Packet *request, NTP_PacketInfo *req_info,
   }
 
   /* NTS NAK response does not have any other fields */
-  if (kod)
+  if (kod == NTP_KOD_NTS_NAK)
     return 1;
 
   for (i = 0, plaintext_length = 0; i < server->num_cookies; i++) {
