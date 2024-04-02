@@ -242,7 +242,7 @@ accept_connection(int listening_fd, int event, void *arg)
   SCH_GetLastEventTime(&now, NULL, NULL);
 
   log_index = CLG_LogServiceAccess(CLG_NTSKE, &addr.ip_addr, &now);
-  if (log_index >= 0 && CLG_LimitServiceRate(CLG_NTSKE, log_index)) {
+  if (log_index >= 0 && CLG_LimitServiceRate(CLG_NTSKE, log_index) != CLG_PASS) {
     DEBUG_LOG("Rejected connection from %s (%s)",
               UTI_IPSockAddrToString(&addr), "rate limit");
     SCK_CloseSocket(sock_fd);

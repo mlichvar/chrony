@@ -1511,9 +1511,10 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
   /* Don't reply to all requests from hosts other than localhost if the rate
      is excessive */
-  if (!localhost && log_index >= 0 && CLG_LimitServiceRate(CLG_CMDMON, log_index)) {
-      DEBUG_LOG("Command packet discarded to limit response rate");
-      return;
+  if (!localhost && log_index >= 0 &&
+      CLG_LimitServiceRate(CLG_CMDMON, log_index) != CLG_PASS) {
+    DEBUG_LOG("Command packet discarded to limit response rate");
+    return;
   }
 
   expected_length = PKL_CommandLength(&rx_message);

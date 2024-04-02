@@ -600,7 +600,7 @@ limit_response_random(int leak_rate)
 
 /* ================================================== */
 
-int
+CLG_Limit
 CLG_LimitServiceRate(CLG_Service service, int index)
 {
   Record *record;
@@ -609,14 +609,14 @@ CLG_LimitServiceRate(CLG_Service service, int index)
   check_service_number(service);
 
   if (tokens_per_hit[service] == 0)
-    return 0;
+    return CLG_PASS;
 
   record = ARR_GetElement(records, index);
   record->drop_flags &= ~(1U << service);
 
   if (record->tokens[service] >= tokens_per_hit[service]) {
     record->tokens[service] -= tokens_per_hit[service];
-    return 0;
+    return CLG_PASS;
   }
 
   drop = limit_response_random(leak_rate[service]);
@@ -632,14 +632,14 @@ CLG_LimitServiceRate(CLG_Service service, int index)
 
   if (!drop) {
     record->tokens[service] = 0;
-    return 0;
+    return CLG_PASS;
   }
 
   record->drop_flags |= 1U << service;
   record->drops[service]++;
   total_drops[service]++;
 
-  return 1;
+  return CLG_DROP;
 }
 
 /* ================================================== */

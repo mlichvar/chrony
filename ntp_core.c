@@ -2656,6 +2656,7 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   NTP_Local_Timestamp local_tx, *tx_ts;
   NTP_int64 ntp_rx, *local_ntp_rx;
   int log_index, interleaved, poll, version;
+  CLG_Limit limit;
   uint32_t kod;
 
   /* Ignore the packet if it wasn't received by server socket */
@@ -2701,7 +2702,8 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
   log_index = CLG_LogServiceAccess(CLG_NTP, &remote_addr->ip_addr, &rx_ts->ts);
 
   /* Don't reply to all requests if the rate is excessive */
-  if (log_index >= 0 && CLG_LimitServiceRate(CLG_NTP, log_index)) {
+  limit = log_index >= 0 ? CLG_LimitServiceRate(CLG_NTP, log_index) : CLG_PASS;
+  if (limit == CLG_DROP) {
       DEBUG_LOG("NTP packet discarded to limit response rate");
       return;
   }

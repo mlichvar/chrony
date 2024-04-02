@@ -86,7 +86,7 @@ test_unit(void)
     ts.tv_sec += 1;
     index = CLG_LogServiceAccess(s, &ip, &ts);
     TEST_CHECK(index >= 0);
-    if (!CLG_LimitServiceRate(s, index))
+    if (CLG_LimitServiceRate(s, index) == CLG_PASS)
       j++;
   }
 
