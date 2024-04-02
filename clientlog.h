@@ -40,6 +40,7 @@ typedef enum {
 typedef enum {
   CLG_PASS = 0,
   CLG_DROP,
+  CLG_KOD,
 } CLG_Limit;
 
 extern void CLG_Initialise(void);

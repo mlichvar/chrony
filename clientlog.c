@@ -117,6 +117,14 @@ static int token_shift[MAX_SERVICES];
 
 static int leak_rate[MAX_SERVICES];
 
+/* Rates at which responses requesting clients to reduce their rate
+   (e.g. NTP KoD RATE) are randomly allowed (in log2, but 0 means disabled) */
+
+#define MIN_KOD_RATE 0
+#define MAX_KOD_RATE 4
+
+static int kod_rate[MAX_SERVICES];
+
 /* Limit intervals in log2 */
 static int limit_interval[MAX_SERVICES];
 
@@ -354,13 +362,14 @@ set_bucket_params(int interval, int burst, uint16_t *max_tokens,
 void
 CLG_Initialise(void)
 {
-  int i, interval, burst, lrate, slots2;
+  int i, interval, burst, lrate, krate, slots2;
 
   for (i = 0; i < MAX_SERVICES; i++) {
     max_tokens[i] = 0;
     tokens_per_hit[i] = 0;
     token_shift[i] = 0;
     leak_rate[i] = 0;
+    kod_rate[i] = 0;
     limit_interval[i] = MIN_LIMIT_INTERVAL;
 
     switch (i) {
@@ -382,6 +391,7 @@ CLG_Initialise(void)
 
     set_bucket_params(interval, burst, &max_tokens[i], &tokens_per_hit[i], &token_shift[i]);
     leak_rate[i] = CLAMP(MIN_LEAK_RATE, lrate, MAX_LEAK_RATE);
+    kod_rate[i] = CLAMP(MIN_KOD_RATE, krate, MAX_KOD_RATE);
     limit_interval[i] = CLAMP(MIN_LIMIT_INTERVAL, interval, MAX_LIMIT_INTERVAL);
   }
 
@@ -579,21 +589,21 @@ CLG_LogServiceAccess(CLG_Service service, IPAddr *client, struct timespec *now)
 /* ================================================== */
 
 static int
-limit_response_random(int leak_rate)
+limit_response_random(int rate)
 {
   static uint32_t rnd;
   static int bits_left = 0;
   int r;
 
-  if (bits_left < leak_rate) {
+  if (bits_left < rate) {
     UTI_GetRandomBytes(&rnd, sizeof (rnd));
     bits_left = 8 * sizeof (rnd);
   }
 
-  /* Return zero on average once per 2^leak_rate */
-  r = rnd % (1U << leak_rate) ? 1 : 0;
-  rnd >>= leak_rate;
-  bits_left -= leak_rate;
+  /* Return zero on average once per 2^rate */
+  r = rnd % (1U << rate) ? 1 : 0;
+  rnd >>= rate;
+  bits_left -= rate;
 
   return r;
 }
@@ -633,6 +643,10 @@ CLG_LimitServiceRate(CLG_Service service, int index)
   if (!drop) {
     record->tokens[service] = 0;
     return CLG_PASS;
+  }
+
+  if (kod_rate[service] > 0 && !limit_response_random(kod_rate[service])) {
+    return CLG_KOD;
   }
 
   record->drop_flags |= 1U << service;

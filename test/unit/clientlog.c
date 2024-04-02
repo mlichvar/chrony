@@ -35,18 +35,18 @@ void
 test_unit(void)
 {
   uint64_t ts64, prev_first_ts64, prev_last_ts64, max_step;
+  int i, j, k, kod, passes, kods, drops, index, shift;
   uint32_t index2, prev_first, prev_size;
   NTP_Timestamp_Source ts_src, ts_src2;
   struct timespec ts, ts2;
-  int i, j, k, index, shift;
   CLG_Service s;
   NTP_int64 ntp_ts;
   IPAddr ip;
   char conf[][100] = {
     "clientloglimit 20000",
     "ratelimit interval 3 burst 4 leak 3",
-    "cmdratelimit interval 3 burst 4 leak 3",
-    "ntsratelimit interval 6 burst 8 leak 3",
+    "ntsratelimit interval 4 burst 8 leak 3",
+    "cmdratelimit interval 6 burst 4 leak 3",
   };
 
   CNF_Initialise(0, 0);
@@ -80,18 +80,50 @@ test_unit(void)
   DEBUG_LOG("records %u", ARR_GetSize(records));
   TEST_CHECK(ARR_GetSize(records) == 128);
 
-  s = CLG_NTP;
+  for (kod = 0; kod <= 2; kod += 2) {
+    for (s = CLG_NTP; s <= CLG_CMDMON; s++) {
+      for (i = passes = kods = drops = 0; i < 10000; i++) {
+        kod_rate[s] = kod;
+        ts.tv_sec += 1;
+        index = CLG_LogServiceAccess(s, &ip, &ts);
+        TEST_CHECK(index >= 0);
+        switch (CLG_LimitServiceRate(s, index)) {
+          case CLG_PASS:
+            passes += 1;
+            break;
+          case CLG_DROP:
+            drops += 1;
+            break;
+          case CLG_KOD:
+            kods += 1;
+            break;
+          default:
+            assert(0);
+        }
+      }
 
-  for (i = j = 0; i < 10000; i++) {
-    ts.tv_sec += 1;
-    index = CLG_LogServiceAccess(s, &ip, &ts);
-    TEST_CHECK(index >= 0);
-    if (CLG_LimitServiceRate(s, index) == CLG_PASS)
-      j++;
+      DEBUG_LOG("service %d requests %d passes %d kods %d drops %d",
+                (int)s, i, passes, kods, drops);
+      if (kod)
+        TEST_CHECK(kods * 2.5 < drops && kods * 3.5 > drops);
+      else
+        TEST_CHECK(kods == 0);
+
+      switch (s) {
+        case CLG_NTP:
+          TEST_CHECK(passes > 1750 && passes < 2050);
+          break;
+        case CLG_NTSKE:
+          TEST_CHECK(passes > 1300 && passes < 1600);
+          break;
+        case CLG_CMDMON:
+          TEST_CHECK(passes > 1100 && passes < 1400);
+          break;
+        default:
+          assert(0);
+      }
+    }
   }
-
-  DEBUG_LOG("requests %d responses %d", i, j);
-  TEST_CHECK(j * 4 < i && j * 6 > i);
 
   TEST_CHECK(!ntp_ts_map.timestamps);
 
