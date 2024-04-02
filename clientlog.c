@@ -374,7 +374,7 @@ CLG_Initialise(void)
 
     switch (i) {
       case CLG_NTP:
-        if (!CNF_GetNTPRateLimit(&interval, &burst, &lrate))
+        if (!CNF_GetNTPRateLimit(&interval, &burst, &lrate, &krate))
           continue;
         break;
       case CLG_NTSKE:

@@ -1861,6 +1861,14 @@ source address from completely blocking responses to that address. The leak
 rate is defined as a power of 1/2 and it is 2 by default, i.e. on average at
 least every fourth request has a response. The minimum value is 1 and the
 maximum value is 4.
+*kod* _rate_:::
+This option sets the rate at which Kiss-o'-Death (KoD) RATE responses are
+randomly sent when the limits specified by the *interval* and *burst* options
+are exceeded. It is an additional stream of responses to the *leak* option. A
+KoD RATE response is a request for the client to reduce its polling rate. Few
+implementations actually support it. The rate is defined as a power of 1/2. The
+default value is 0, which means disabled. The minimum value is 0 and the maximu
+value is 4.
 {blank}::
 +
 An example use of the directive is:
@@ -1876,7 +1884,7 @@ packets, by up to 75% (with default *leak* of 2).
 [[ntsratelimit]]*ntsratelimit* [_option_]...::
 This directive enables rate limiting of NTS-KE requests. It is similar to the
 <<ratelimit,*ratelimit*>> directive, except the default interval is 6
-(1 connection per 64 seconds).
+(1 connection per 64 seconds) and the *kod* option is not supported.
 +
 An example of the use of the directive is:
 +
@@ -2024,8 +2032,8 @@ need to be run with the *-p 257* option to inter-operate correctly.)
 [[cmdratelimit]]*cmdratelimit* [_option_]...::
 This directive enables response rate limiting for command packets. It is
 similar to the <<ratelimit,*ratelimit*>> directive, except responses to
-localhost are never limited and the default interval is -4 (16 packets per
-second).
+localhost are never limited, the default interval is -4 (16 packets per
+second), and the *kod* option is not supported.
 +
 An example of the use of the directive is:
 +

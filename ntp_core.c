@@ -2717,6 +2717,13 @@ NCR_ProcessRxUnknown(NTP_Remote_Address *remote_addr, NTP_Local_Address *local_a
       return;
   }
 
+  if (limit == CLG_KOD) {
+    /* Don't respond if there is a conflict with the NTS NAK */
+    if (kod != 0)
+      return;
+    kod = KOD_RATE;
+  }
+
   local_ntp_rx = NULL;
   tx_ts = NULL;
   interleaved = 0;
