@@ -110,7 +110,7 @@ get_list_leap(time_t when, int *tai_offset)
   char line[1024];
   NTP_Leap ret_leap = LEAP_Normal;
   int ret_tai_offset = 0, prev_lsl_tai_offset = 10;
-  int64_t lsl_updated = 0, lsl_expiry = 0;
+  int64_t when1900, lsl_updated = 0, lsl_expiry = 0;
   const char *leap_sec_list = CNF_GetLeapSecList();
 
   if (!(f = UTI_OpenFile(NULL, leap_sec_list, NULL, 'r', 0))) {
@@ -122,7 +122,7 @@ get_list_leap(time_t when, int *tai_offset)
   when = (when / (24 * 3600) + 1) * (24 * 3600);
 
   /* leap-seconds.list timestamps are relative to 1 Jan 1900, 00:00:00 */
-  when += LEAP_SEC_LIST_OFFSET;
+  when1900 = when + LEAP_SEC_LIST_OFFSET;
 
   while (fgets(line, sizeof line, f) > 0) {
     int64_t lsl_when;
@@ -150,14 +150,14 @@ get_list_leap(time_t when, int *tai_offset)
     if (sscanf(line, "%"SCNd64" %d", &lsl_when, &lsl_tai_offset) != 2)
       goto error;
 
-    if (when == lsl_when) {
+    if (when1900 == lsl_when) {
       if (lsl_tai_offset > prev_lsl_tai_offset)
         ret_leap = LEAP_InsertSecond;
       else if (lsl_tai_offset < prev_lsl_tai_offset)
         ret_leap = LEAP_DeleteSecond;
       /* When is rounded to the end of the day, so offset hasn't changed yet! */
       ret_tai_offset = prev_lsl_tai_offset;
-    } else if (when > lsl_when) {
+    } else if (when1900 > lsl_when) {
       ret_tai_offset = lsl_tai_offset;
     }
 
@@ -168,7 +168,7 @@ get_list_leap(time_t when, int *tai_offset)
   if (!feof(f) || !lsl_updated || !lsl_expiry)
     goto error;
 
-  if (when >= lsl_expiry)
+  if (when1900 >= lsl_expiry)
     LOG(LOGS_WARN, "Leap second list %s needs update", leap_sec_list);
 
   goto out;
