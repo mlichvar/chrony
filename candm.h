@@ -239,6 +239,7 @@ typedef struct {
   Float distance;
   int32_t orphan;
   Float activate;
+  uint32_t reserved[2];
   int32_t EOR;
 } REQ_Local;
 

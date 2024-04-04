@@ -772,6 +772,7 @@ process_cmd_local(CMD_Request *msg, char *line)
   msg->data.local.distance = UTI_FloatHostToNetwork(distance);
   msg->data.local.orphan = htonl(orphan);
   msg->data.local.activate = UTI_FloatHostToNetwork(activate);
+  memset(msg->data.local.reserved, 0, sizeof (msg->data.local.reserved));
 
   return 1;
 }
