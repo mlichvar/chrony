@@ -175,7 +175,7 @@ static void read_ext_pulse(int fd, int event, void *anything)
   instance = anything;
   phc1 = RCL_GetDriverData(instance);
 
-  /* The Linux kernel (as of 6.2) has one shared queue of timestamps for all
+  /* Linux versions before 6.7 had one shared queue of timestamps for all
      descriptors of the same PHC.  Search for all refclocks that expect
      the timestamp. */
 
