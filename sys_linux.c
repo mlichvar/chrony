@@ -990,6 +990,14 @@ SYS_Linux_SetPHCExtTimestamping(int fd, int pin, int channel,
     return 0;
   }
 
+#if defined(PTP_MASK_CLEAR_ALL) && defined(PTP_MASK_EN_SINGLE)
+  /* Disable events from other channels on this descriptor */
+  if (ioctl(fd, PTP_MASK_CLEAR_ALL))
+    DEBUG_LOG("ioctl(%s) failed : %s", "PTP_MASK_CLEAR_ALL", strerror(errno));
+  else if (ioctl(fd, PTP_MASK_EN_SINGLE, &channel))
+    DEBUG_LOG("ioctl(%s) failed : %s", "PTP_MASK_EN_SINGLE", strerror(errno));
+#endif
+
   return 1;
 }
 
