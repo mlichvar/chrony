@@ -549,9 +549,9 @@ SST_DoNewRegression(SST_Stats inst)
         sd_weight += (peer_distances[i] - min_distance) / sd;
       weights[i] = SQUARE(sd_weight);
     }
-  }
 
-  correct_asymmetry(inst, times_back, offsets);
+    correct_asymmetry(inst, times_back, offsets);
+  }
 
   inst->regression_ok = RGR_FindBestRegression(times_back + inst->runs_samples,
                                          offsets + inst->runs_samples, weights,

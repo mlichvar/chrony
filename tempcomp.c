@@ -66,10 +66,9 @@ get_tempcomp(double temp)
     return k0 + (temp - T0) * k1 + (temp - T0) * (temp - T0) * k2;
 
   /* Otherwise interpolate/extrapolate between two nearest points */
-
-  for (i = 1; i < ARR_GetSize(points); i++) {
-    p2 = (struct Point *)ARR_GetElement(points, i);
-    if (p2->temp >= temp)
+  for (i = 1; ; i++) {
+    p2 = ARR_GetElement(points, i);
+    if (p2->temp >= temp || i + 1 >= ARR_GetSize(points))
       break;
   }
   p1 = p2 - 1;
