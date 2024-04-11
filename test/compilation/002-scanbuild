@@ -3,6 +3,7 @@
 cd ../..
 
 for opts in \
+	"--enable-debug" \
 	"--host-system=Linux" \
 	"--host-system=NetBSD" \
 	"--host-system=FreeBSD" \
