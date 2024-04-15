@@ -99,6 +99,9 @@ static int sock_fd;
 /* Flag indicating if the MS-SNTP authentication is enabled */
 static int enabled;
 
+/* Flag limiting logging of connection error messages */
+static int logged_connection_error;
+
 /* ================================================== */
 
 static void read_write_socket(int sock_fd, int event, void *anything);
@@ -134,6 +137,14 @@ open_socket(void)
   sock_fd = SCK_OpenUnixStreamSocket(path, NULL, 0);
   if (sock_fd < 0) {
     sock_fd = INVALID_SOCK_FD;
+
+    /* Log an error only once before a successful exchange to avoid
+       flooding the system log */
+    if (!logged_connection_error) {
+      LOG(LOGS_ERR, "Could not connect to signd socket %s : %s", path, strerror(errno));
+      logged_connection_error = 1;
+    }
+
     return 0;
   }
 
@@ -159,6 +170,8 @@ process_response(SignInstance *inst)
     DEBUG_LOG("Signing failed");
     return;
   }
+
+  logged_connection_error = 0;
 
   /* Check if the file descriptor is still valid */
   if (!NIO_IsServerSocket(inst->local_addr.sock_fd)) {
