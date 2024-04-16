@@ -492,7 +492,7 @@ local clock:
 This column shows the name or IP address of the source if it is an NTP server,
 or the reference ID if it is a reference clock.
 *Auth*:::
-This column indicites whether an authentication mechanism is enabled for the
+This column indicates whether an authentication mechanism is enabled for the
 source. _Y_ means yes and _N_ means no.
 *COpts*:::
 This column displays the configured selection options of the source.
