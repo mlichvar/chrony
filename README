@@ -12,7 +12,7 @@ a time service to other computers in the network.
 It is designed to perform well in a wide range of conditions, including
 intermittent network connections, heavily congested networks, changing
 temperatures (ordinary computer clocks are sensitive to temperature),
-and systems that do not run continuosly, or run on a virtual machine.
+and systems that do not run continuously, or run on a virtual machine.
 
 Typical accuracy between two machines synchronised over the Internet is
 within a few milliseconds; on a LAN, accuracy is typically in tens of
