@@ -68,8 +68,8 @@ struct SelectInfo {
 typedef enum {
   SRC_OK,               /* OK so far, not a final status! */
   SRC_UNSELECTABLE,     /* Has noselect option set */
-  SRC_UNSYNCHRONISED,   /* Provides samples but not unsynchronised */
   SRC_BAD_STATS,        /* Doesn't have valid stats data */
+  SRC_UNSYNCHRONISED,   /* Provides samples, but not synchronised */
   SRC_BAD_DISTANCE,     /* Has root distance longer than allowed maximum */
   SRC_JITTERY,          /* Had std dev larger than allowed maximum */
   SRC_WAITS_STATS,      /* Others have bad stats, selection postponed */
@@ -913,12 +913,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
       continue;
     }
 
-    /* Ignore sources which are not synchronised */
-    if (sources[i]->leap == LEAP_Unsynchronised) {
-      mark_source(sources[i], SRC_UNSYNCHRONISED);
-      continue;
-    }
-
     si = &sources[i]->sel_info;
     SST_GetSelectionData(sources[i]->stats, &now,
                          &si->lo_limit, &si->hi_limit, &si->root_distance,
@@ -930,6 +924,12 @@ SRC_SelectSource(SRC_Instance updated_inst)
       mark_source(sources[i], SRC_BAD_STATS);
       if (max_badstat_reach < sources[i]->reachability)
         max_badstat_reach = sources[i]->reachability;
+      continue;
+    }
+
+    /* Ignore sources which are not synchronised */
+    if (sources[i]->leap == LEAP_Unsynchronised) {
+      mark_source(sources[i], SRC_UNSYNCHRONISED);
       continue;
     }
 
@@ -1796,10 +1796,10 @@ get_status_char(SRC_Status status)
   switch (status) {
     case SRC_UNSELECTABLE:
       return 'N';
-    case SRC_UNSYNCHRONISED:
-      return 's';
     case SRC_BAD_STATS:
       return 'M';
+    case SRC_UNSYNCHRONISED:
+      return 's';
     case SRC_BAD_DISTANCE:
       return 'd';
     case SRC_JITTERY:
