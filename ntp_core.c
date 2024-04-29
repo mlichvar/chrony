@@ -2372,13 +2372,17 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
 
     SRC_UpdateReachability(inst->source, synced_packet);
 
-    if (synced_packet) {
-      if (inst->copy && inst->remote_stratum > 0) {
-        /* Assume the reference ID and stratum of the server */
+    if (inst->copy) {
+      /* Assume the reference ID and stratum of the server */
+      if (synced_packet && inst->remote_stratum > 0) {
         inst->remote_stratum--;
         SRC_SetRefid(inst->source, ntohl(message->reference_id), &inst->remote_addr.ip_addr);
+      } else {
+        SRC_ResetInstance(inst->source);
       }
+    }
 
+    if (synced_packet) {
       SRC_UpdateStatus(inst->source, MAX(inst->remote_stratum, inst->min_stratum), pkt_leap);
 
       if (inst->delay_quant)
