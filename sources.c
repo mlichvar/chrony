@@ -524,8 +524,8 @@ SRC_UpdateReachability(SRC_Instance inst, int reachable)
   if (inst->reachability_size < SOURCE_REACH_BITS)
       inst->reachability_size++;
 
-  if (!reachable && inst->index == selected_source_index) {
-    /* Try to select a better source */
+  /* Source selection can change with unreachable sources */
+  if (inst->reachability == 0) {
     SRC_SelectSource(NULL);
   }
 
