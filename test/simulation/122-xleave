@@ -53,7 +53,6 @@ for rpoll in 4 5 6; do
 
 	run_test || test_fail
 	check_chronyd_exit || test_fail
-	check_source_selection || test_fail
 	check_sync || test_fail
 
 	if [ $rpoll -le 5 ]; then

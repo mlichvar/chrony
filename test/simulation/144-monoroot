@@ -20,7 +20,7 @@ for options in "extfield F323" "xleave extfield F323"; do
 
 	run_test || test_fail
 	check_chronyd_exit || test_fail
-	check_source_selection || test_fail
+	check_source_selection && test_fail
 	check_sync || test_fail
 done
 
@@ -47,7 +47,7 @@ for lpoll in 5 6 7; do
 
 		run_test || test_fail
 		check_chronyd_exit || test_fail
-		check_source_selection || test_fail
+		check_source_selection && test_fail
 		check_sync || test_fail
 	done
 done

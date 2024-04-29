@@ -177,6 +177,8 @@ static int reported_no_majority;  /* Flag to avoid repeated log message
 static int report_selection_loss; /* Flag to force logging a message if
                                      selection is lost in a transient state
                                      (SRC_WAITS_STATS, SRC_WAITS_UPDATE) */
+static int forced_first_report;   /* Flag to allow one failed selection to be
+                                     logged before a successful selection */
 
 /* Score needed to replace the currently selected source */
 #define SCORE_LIMIT 10.0
@@ -862,7 +864,8 @@ SRC_SelectSource(SRC_Instance updated_inst)
   struct SelectInfo *si;
   struct timespec now, ref_time;
   int i, j, j1, j2, index, sel_prefer, n_endpoints, n_sel_sources, sel_req_source;
-  int n_badstats_sources, max_sel_reach, max_sel_reach_size, max_badstat_reach;
+  int max_badstat_reach, max_badstat_reach_size, n_badstats_sources;
+  int max_sel_reach, max_sel_reach_size;
   int depth, best_depth, trust_depth, best_trust_depth, n_sel_trust_sources;
   int combined, stratum, min_stratum, max_score_index;
   int orphan_stratum, orphan_source;
@@ -893,7 +896,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   n_badstats_sources = 0;
   sel_req_source = 0;
   max_sel_reach = max_badstat_reach = 0;
-  max_sel_reach_size = 0;
+  max_sel_reach_size = max_badstat_reach_size = 0;
   max_reach_sample_ago = 0.0;
 
   for (i = 0; i < n_sources; i++) {
@@ -924,6 +927,8 @@ SRC_SelectSource(SRC_Instance updated_inst)
       mark_source(sources[i], SRC_BAD_STATS);
       if (max_badstat_reach < sources[i]->reachability)
         max_badstat_reach = sources[i]->reachability;
+      if (max_badstat_reach_size < sources[i]->reachability_size)
+        max_badstat_reach_size = sources[i]->reachability_size;
       continue;
     }
 
@@ -1066,6 +1071,14 @@ SRC_SelectSource(SRC_Instance updated_inst)
     mark_ok_sources(SRC_WAITS_STATS);
     unselect_selected_source(LOGS_INFO, NULL, NULL);
     return;
+  }
+
+  /* Wait for a source to have full reachability register to allow one
+     failed selection to be logged before first successful selection */
+  if (!forced_first_report &&
+      MAX(max_sel_reach_size, max_badstat_reach_size) == SOURCE_REACH_BITS) {
+    report_selection_loss = 1;
+    forced_first_report = 1;
   }
 
   if (n_endpoints == 0) {
@@ -1334,6 +1347,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
     reported_no_majority = 0;
     report_selection_loss = 0;
+    forced_first_report = 1;
   }
 
   mark_source(sources[selected_source_index], SRC_SELECTED);

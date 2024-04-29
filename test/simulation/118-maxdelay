@@ -14,7 +14,6 @@ client_server_options="maxpoll 6 maxdelay 3e-5 maxdelayratio 2.0 maxdelaydevrati
 
 run_test || test_fail
 check_chronyd_exit || test_fail
-check_source_selection || test_fail
 check_packet_interval || test_fail
 check_sync || test_fail
 
