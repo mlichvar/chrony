@@ -2211,7 +2211,8 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
     /* Test A combines multiple tests to avoid changing the measurements log
        format and ntpdata report.  It requires that the minimum estimate of the
        peer delay is not larger than the configured maximum, it is not a
-       response in the 'warm up' exchange, in both client modes that the server
+       response in the 'warm up' exchange, the configured offset correction is
+       within the supported NTP interval, both client modes that the server
        processing time is sane, in interleaved client/server mode that the
        previous response was not in basic mode (which prevents using timestamps
        that minimise delay error), and in interleaved symmetric mode that the
@@ -2220,6 +2221,7 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
     testA = sample.peer_delay - sample.peer_dispersion <= inst->max_delay &&
             precision <= inst->max_delay &&
             inst->presend_done <= 0 &&
+            UTI_IsTimeOffsetSane(&sample.time, sample.offset) &&
             !(inst->mode == MODE_CLIENT && response_time > MAX_SERVER_INTERVAL) &&
             !(inst->mode == MODE_CLIENT && interleaved_packet &&
               UTI_IsZeroTimespec(&inst->prev_local_tx.ts) &&

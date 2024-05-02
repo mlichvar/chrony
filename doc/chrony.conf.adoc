@@ -2179,8 +2179,8 @@ from the example line above):
 . Results of the *maxdelay*, *maxdelayratio*, and *maxdelaydevratio* (or
   *maxdelayquant*) tests, and a test for synchronisation loop (1=pass,
   0=fail). The first test from these four also checks the server precision,
-  response time, and whether an interleaved response is acceptable for
-  synchronisation. [1111]
+  response time, validity of the measured offset, and whether an interleaved
+  response is acceptable for synchronisation. [1111]
 . Local poll [10]
 . Remote poll [10]
 . '`Score`' (an internal score within each polling level used to decide when to
