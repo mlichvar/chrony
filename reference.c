@@ -1291,7 +1291,7 @@ REF_DisableLocal(void)
 #define LEAP_SECOND_CLOSE 5
 
 static int
-is_leap_close(time_t t)
+is_leap_close(double t)
 {
   return leap_when != 0 &&
          t >= leap_when - LEAP_SECOND_CLOSE && t < leap_when + LEAP_SECOND_CLOSE;
