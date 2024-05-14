@@ -220,7 +220,7 @@ when disconnecting the network link. (It will still be necessary to use the
 <<chronyc.adoc#online,*online*>> command when the link has been established, to
 enable measurements to start.)
 *prefer*:::
-Prefer this source over sources without the *prefer* option.
+Prefer this source over other selectable sources without the *prefer* option.
 *noselect*:::
 Never select this source. This is particularly useful for monitoring.
 *trust*:::
@@ -661,7 +661,7 @@ default is 64. With drivers that perform their own polling (PPS, PHC, SHM), the
 maximum value is adjusted to the number of driver polls per source poll, i.e.
 2^(_poll_ - _dpoll_).
 *prefer*:::
-Prefer this source over sources without the prefer option.
+Prefer this source over other selectable sources without the *prefer* option.
 *noselect*:::
 Never select this source. This is useful for monitoring or with sources which
 are not very accurate, but are locked with a PPS refclock.
