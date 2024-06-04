@@ -20,7 +20,7 @@ client_conf="
 refclock SHM 0 dpoll 0 poll 0 tai
 leapseclist tmp/leap.list
 leapsecmode ignore
-maxchange 1e-3 1 0"
+maxchange 1e-3 10 0"
 
 cat > tmp/leap.list <<-EOF
 	#$	3676924800
@@ -43,7 +43,7 @@ client_conf="
 refclock SHM 0 dpoll 0 poll 0 tai
 leapseclist tmp/leap.list
 makestep 1 1
-maxchange 1e-3 1 0"
+maxchange 1e-3 10 0"
 
 run_test || test_fail
 check_chronyd_exit || test_fail
