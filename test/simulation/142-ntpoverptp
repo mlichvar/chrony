@@ -16,6 +16,7 @@ peers=2
 max_sync_time=420
 
 server_conf="
+ptpdomain 123
 ptpport 319"
 client_conf="
 ptpport 319
@@ -102,5 +103,21 @@ if check_config_h 'FEAT_DEBUG 1'; then
 
 	check_log_messages "apply_net_correction.*Applied" 0 0 || test_fail
 fi
+
+freq_offset=-1e-4
+delay_correction=""
+server_conf="ptpport 319"
+client_conf="ptpport 319
+ptpdomain 124
+authselectmode ignore
+keyfile tmp/peer.keys"
+time_max_limit=$default_time_max_limit
+time_rms_limit=$default_time_rms_limit
+freq_max_limit=$default_freq_max_limit
+freq_rms_limit=$default_freq_rms_limit
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_sync || test_fail
 
 test_pass

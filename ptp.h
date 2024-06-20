@@ -35,7 +35,6 @@
 #define PTP_VERSION_2_1 (2 | 1 << 4)
 #define PTP_TYPE_SYNC 0
 #define PTP_TYPE_DELAY_REQ 1
-#define PTP_DOMAIN_NTP 123
 #define PTP_FLAG_UNICAST (1 << (2 + 8))
 #define PTP_TLV_NTP 0x2023
 

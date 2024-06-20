@@ -2802,6 +2802,11 @@ hwtimestamp * rxfilter ptp
 ptpport 319
 ----
 
+[[ptpdomain]]*ptpdomain* _domain_::
+The *ptpdomain* directive sets the PTP domain number of transmitted and
+accepted NTP-over-PTP messages. Messages from other domains are ignored.
+The default is 123, the minimum is 0, and the maximum is 255.
+
 [[sched_priority]]*sched_priority* _priority_::
 On Linux, FreeBSD, NetBSD, and illumos, the *sched_priority* directive will
 select the SCHED_FIFO real-time scheduler at the specified priority (which must

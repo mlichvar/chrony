@@ -287,6 +287,8 @@ static double hwts_timeout = 0.001;
 
 /* PTP event port (disabled by default) */
 static int ptp_port = 0;
+/* PTP domain number of NTP-over-PTP messages */
+static int ptp_domain = 123;
 
 typedef struct {
   NTP_Source_Type type;
@@ -708,6 +710,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_source(p, command, 1);
   } else if (!strcasecmp(command, "port")) {
     parse_int(p, &ntp_port);
+  } else if (!strcasecmp(command, "ptpdomain")) {
+    parse_int(p, &ptp_domain);
   } else if (!strcasecmp(command, "ptpport")) {
     parse_int(p, &ptp_port);
   } else if (!strcasecmp(command, "ratelimit")) {
@@ -2568,6 +2572,14 @@ int
 CNF_GetPtpPort(void)
 {
   return ptp_port;
+}
+
+/* ================================================== */
+
+int
+CNF_GetPtpDomain(void)
+{
+  return ptp_domain;
 }
 
 /* ================================================== */
