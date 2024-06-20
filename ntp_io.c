@@ -513,7 +513,9 @@ NIO_UnwrapMessage(SCK_Message *message, int sock_fd, double *net_correction)
 
   msg = message->data;
 
-  if (msg->header.type != PTP_TYPE_DELAY_REQ || msg->header.version != PTP_VERSION ||
+  if ((msg->header.type != PTP_TYPE_DELAY_REQ && msg->header.type != PTP_TYPE_SYNC) ||
+      (msg->header.version != PTP_VERSION_2 &&
+       (msg->header.version != PTP_VERSION_2_1 || msg->header.min_sdoid != 0)) ||
       ntohs(msg->header.length) != message->length ||
       msg->header.domain != PTP_DOMAIN_NTP ||
       ntohs(msg->header.flags) != PTP_FLAG_UNICAST ||
@@ -561,7 +563,7 @@ wrap_message(SCK_Message *message, int sock_fd)
 
   memset(ptp_message, 0, PTP_NTP_PREFIX_LENGTH);
   ptp_message->header.type = PTP_TYPE_DELAY_REQ;
-  ptp_message->header.version = PTP_VERSION;
+  ptp_message->header.version = PTP_VERSION_2;
   ptp_message->header.length = htons(PTP_NTP_PREFIX_LENGTH + message->length);
   ptp_message->header.domain = PTP_DOMAIN_NTP;
   ptp_message->header.flags = htons(PTP_FLAG_UNICAST);
