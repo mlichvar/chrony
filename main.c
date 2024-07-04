@@ -215,7 +215,10 @@ post_init_ntp_hook(void *anything)
     REF_SetMode(ref_mode);
   }
 
-  /* Close the pipe to the foreground process so it can exit */
+  /* Send an empty message to the foreground process so it can exit.
+     If that fails, indicating the process was killed, exit too. */
+  if (!LOG_NotifyParent(""))
+    SCH_QuitProgram();
   LOG_CloseParentFd();
 
   CNF_AddSources();
@@ -338,8 +341,8 @@ go_daemon(void)
 
     close(pipefd[1]);
     r = read(pipefd[0], message, sizeof (message));
-    if (r) {
-      if (r > 0) {
+    if (r != 1 || message[0] != '\0') {
+      if (r > 1) {
         /* Print the error message from the child */
         message[sizeof (message) - 1] = '\0';
         fprintf(stderr, "%s\n", message);
