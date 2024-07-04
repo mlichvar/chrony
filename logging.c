@@ -185,7 +185,7 @@ void LOG_Message(LOG_Severity severity,
       /* Send the message also to the foreground process if it is
          still running, or stderr if it is still open */
       if (parent_fd > 0) {
-        if (write(parent_fd, buf, strlen(buf) + 1) < 0)
+        if (!LOG_NotifyParent(buf))
           ; /* Not much we can do here */
       } else if (system_log && parent_fd == 0) {
         system_log = 0;
@@ -287,6 +287,17 @@ LOG_SetParentFd(int fd)
   parent_fd = fd;
   if (file_log == stderr)
     file_log = NULL;
+}
+
+/* ================================================== */
+
+int
+LOG_NotifyParent(const char *message)
+{
+  if (parent_fd <= 0)
+    return 1;
+
+  return write(parent_fd, message, strlen(message) + 1) > 0;
 }
 
 /* ================================================== */

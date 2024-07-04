@@ -126,7 +126,10 @@ extern void LOG_OpenSystemLog(void);
 /* Stop using stderr and send fatal message to the foreground process */
 extern void LOG_SetParentFd(int fd);
 
-/* Close the pipe to the foreground process so it can exit */
+/* Send a message to the foreground process */
+extern int LOG_NotifyParent(const char *message);
+
+/* Close the pipe to the foreground process */
 extern void LOG_CloseParentFd(void);
 
 /* File logging functions */
