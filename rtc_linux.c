@@ -296,14 +296,25 @@ slew_samples
    corresponding real time clock 'DMY HMS' form, taking account of
    whether the user runs his RTC on the local time zone or UTC */
 
-static struct tm *
-rtc_from_t(const time_t *t)
+static void
+rtc_from_t(const time_t *t, struct rtc_time *rtc_raw)
 {
+  struct tm *rtc_tm;
   if (rtc_on_utc) {
-    return gmtime(t);
+    rtc_tm = gmtime(t);
   } else {
-    return localtime(t);
+    rtc_tm = localtime(t);
   }
+
+  rtc_raw->tm_sec = rtc_tm->tm_sec;
+  rtc_raw->tm_min = rtc_tm->tm_min;
+  rtc_raw->tm_hour = rtc_tm->tm_hour;
+  rtc_raw->tm_mday = rtc_tm->tm_mday;
+  rtc_raw->tm_mon = rtc_tm->tm_mon;
+  rtc_raw->tm_year = rtc_tm->tm_year;
+  rtc_raw->tm_wday = rtc_tm->tm_wday;
+  rtc_raw->tm_yday = rtc_tm->tm_yday;
+  rtc_raw->tm_isdst = rtc_tm->tm_isdst;
 }
 
 /* ================================================== */
@@ -341,14 +352,24 @@ rtc_from_t(const time_t *t)
 */
 
 static time_t
-t_from_rtc(struct tm *stm) {
-  struct tm temp1, temp2, *tm;
+t_from_rtc(struct rtc_time *rtc_raw)
+{
+  struct tm rtc_tm, temp1, temp2, *tm;
   long diff;
   time_t t1, t2;
 
-  temp1 = *stm;
+  /* Convert to seconds since 1970 */
+  rtc_tm.tm_sec = rtc_raw->tm_sec;
+  rtc_tm.tm_min = rtc_raw->tm_min;
+  rtc_tm.tm_hour = rtc_raw->tm_hour;
+  rtc_tm.tm_mday = rtc_raw->tm_mday;
+  rtc_tm.tm_mon = rtc_raw->tm_mon;
+  rtc_tm.tm_year = rtc_raw->tm_year;
+  rtc_tm.tm_wday = 0;
+
+  temp1 = rtc_tm;
   temp1.tm_isdst = 0;
-  
+
   t1 = mktime(&temp1);
 
   tm = rtc_on_utc ? gmtime(&t1) : localtime(&t1);
@@ -586,21 +607,10 @@ measurement_timeout(void *any)
 static void
 set_rtc(time_t new_rtc_time)
 {
-  struct tm rtc_tm;
   struct rtc_time rtc_raw;
   int status;
 
-  rtc_tm = *rtc_from_t(&new_rtc_time);
-
-  rtc_raw.tm_sec = rtc_tm.tm_sec;
-  rtc_raw.tm_min = rtc_tm.tm_min;
-  rtc_raw.tm_hour = rtc_tm.tm_hour;
-  rtc_raw.tm_mday = rtc_tm.tm_mday;
-  rtc_raw.tm_mon = rtc_tm.tm_mon;
-  rtc_raw.tm_year = rtc_tm.tm_year;
-  rtc_raw.tm_wday = rtc_tm.tm_wday;
-  rtc_raw.tm_yday = rtc_tm.tm_yday;
-  rtc_raw.tm_isdst = rtc_tm.tm_isdst;
+  rtc_from_t(&new_rtc_time, &rtc_raw);
 
   status = ioctl(fd, RTC_SET_TIME, &rtc_raw);
   if (status < 0) {
@@ -757,7 +767,6 @@ read_from_device(int fd_, int event, void *any)
   unsigned long data;
   struct timespec sys_time;
   struct rtc_time rtc_raw;
-  struct tm rtc_tm;
   time_t rtc_t;
   int error = 0;
 
@@ -796,15 +805,7 @@ read_from_device(int fd_, int event, void *any)
     }
 
     /* Convert RTC time into a struct timespec */
-    rtc_tm.tm_sec = rtc_raw.tm_sec;
-    rtc_tm.tm_min = rtc_raw.tm_min;
-    rtc_tm.tm_hour = rtc_raw.tm_hour;
-    rtc_tm.tm_mday = rtc_raw.tm_mday;
-    rtc_tm.tm_mon = rtc_raw.tm_mon;
-    rtc_tm.tm_year = rtc_raw.tm_year;
-    rtc_tm.tm_wday = 0;
-
-    rtc_t = t_from_rtc(&rtc_tm);
+    rtc_t = t_from_rtc(&rtc_raw);
 
     if (rtc_t == (time_t)(-1)) {
       error = 1;
@@ -922,7 +923,6 @@ RTC_Linux_TimePreInit(time_t driftfile_time)
 {
   int fd, status;
   struct rtc_time rtc_raw, rtc_raw_retry;
-  struct tm rtc_tm;
   time_t rtc_t;
   double accumulated_error, sys_offset;
   struct timespec new_sys_time, old_sys_time;
@@ -955,14 +955,7 @@ RTC_Linux_TimePreInit(time_t driftfile_time)
 
   if (status >= 0) {
     /* Convert to seconds since 1970 */
-    rtc_tm.tm_sec = rtc_raw.tm_sec;
-    rtc_tm.tm_min = rtc_raw.tm_min;
-    rtc_tm.tm_hour = rtc_raw.tm_hour;
-    rtc_tm.tm_mday = rtc_raw.tm_mday;
-    rtc_tm.tm_mon = rtc_raw.tm_mon;
-    rtc_tm.tm_year = rtc_raw.tm_year;
-    
-    rtc_t = t_from_rtc(&rtc_tm);
+    rtc_t = t_from_rtc(&rtc_raw);
 
     if (rtc_t != (time_t)(-1)) {
 
