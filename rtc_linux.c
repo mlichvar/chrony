@@ -497,8 +497,8 @@ write_coefs_to_file(int valid,time_t ref_time,double offset,double rate)
 
 /* ================================================== */
 
-static int
-switch_interrupts(int on_off)
+int
+RTC_Linux_SwitchInterrupt(int fd, int on_off)
 {
   if (ioctl(fd, on_off ? RTC_UIE_ON : RTC_UIE_OFF, 0) < 0) {
     LOG(LOGS_ERR, "Could not %s RTC interrupt : %s",
@@ -529,7 +529,7 @@ RTC_Linux_Initialise(void)
   }
 
   /* Make sure the RTC supports interrupts */
-  if (!switch_interrupts(1) || !switch_interrupts(0)) {
+  if (!RTC_Linux_SwitchInterrupt(fd, 1) || !RTC_Linux_SwitchInterrupt(fd, 0)) {
     close(fd);
     return 0;
   }
@@ -578,7 +578,7 @@ RTC_Linux_Finalise(void)
   /* Remove input file handler */
   if (fd >= 0) {
     SCH_RemoveFileHandler(fd);
-    switch_interrupts(0);
+    RTC_Linux_SwitchInterrupt(fd, 0);
     close(fd);
 
     /* Save the RTC data */
@@ -599,7 +599,7 @@ static void
 measurement_timeout(void *any)
 {
   timeout_id = 0;
-  switch_interrupts(1);
+  RTC_Linux_SwitchInterrupt(fd, 1);
 }
 
 /* ================================================== */
@@ -760,15 +760,11 @@ process_reading(time_t rtc_time, struct timespec *system_time)
 
 /* ================================================== */
 
-static void
-read_from_device(int fd_, int event, void *any)
+int
+RTC_Linux_CheckInterrupt(int fd)
 {
   int status;
   unsigned long data;
-  struct timespec sys_time;
-  struct rtc_time rtc_raw;
-  time_t rtc_t;
-  int error = 0;
 
   status = read(fd, &data, sizeof(data));
 
@@ -776,56 +772,67 @@ read_from_device(int fd_, int event, void *any)
     /* This looks like a bad error : the file descriptor was indicating it was
      * ready to read but we couldn't read anything.  Give up. */
     LOG(LOGS_ERR, "Could not read flags %s : %s", CNF_GetRtcDevice(), strerror(errno));
-    SCH_RemoveFileHandler(fd);
-    switch_interrupts(0); /* Likely to raise error too, but just to be sure... */
-    close(fd);
-    fd = -1;
-    return;
-  }    
+    return -1;
+  }
 
   if (skip_interrupts > 0) {
     /* Wait for the next interrupt, this one may be bogus */
     skip_interrupts--;
+    return 0;
+  }
+
+  /* Update interrupt detected? */
+  return (data & RTC_UF) == RTC_UF;
+}
+
+static void
+read_from_device(int fd_, int event, void *any)
+{
+  struct timespec sys_time;
+  struct rtc_time rtc_raw;
+  int status, error = 0;
+  time_t rtc_t;
+
+  status = RTC_Linux_CheckInterrupt(fd);
+  if (status < 0) {
+    SCH_RemoveFileHandler(fd);
+    RTC_Linux_SwitchInterrupt(fd, 0); /* Likely to raise error too, but just to be sure... */
+    close(fd);
+    fd = -1;
+    return;
+  } else if (status == 0) {
     return;
   }
 
-  if ((data & RTC_UF) == RTC_UF) {
-    /* Update interrupt detected */
-    
-    /* Read RTC time, sandwiched between two polls of the system clock
-       so we can bound any error. */
+  SCH_GetLastEventTime(&sys_time, NULL, NULL);
 
-    SCH_GetLastEventTime(&sys_time, NULL, NULL);
+  status = ioctl(fd, RTC_RD_TIME, &rtc_raw);
+  if (status < 0) {
+    LOG(LOGS_ERR, "Could not read time from %s : %s", CNF_GetRtcDevice(), strerror(errno));
+    error = 1;
+    goto turn_off_interrupt;
+  }
 
-    status = ioctl(fd, RTC_RD_TIME, &rtc_raw);
-    if (status < 0) {
-      LOG(LOGS_ERR, "Could not read time from %s : %s", CNF_GetRtcDevice(), strerror(errno));
-      error = 1;
-      goto turn_off_interrupt;
-    }
+  /* Convert RTC time into a struct timespec */
+  rtc_t = t_from_rtc(&rtc_raw, rtc_on_utc);
 
-    /* Convert RTC time into a struct timespec */
-    rtc_t = t_from_rtc(&rtc_raw, rtc_on_utc);
+  if (rtc_t == (time_t)(-1)) {
+    error = 1;
+    goto turn_off_interrupt;
+  }
 
-    if (rtc_t == (time_t)(-1)) {
-      error = 1;
-      goto turn_off_interrupt;
-    }      
+  process_reading(rtc_t, &sys_time);
 
-    process_reading(rtc_t, &sys_time);
-
-    if (n_samples < 4) {
-      measurement_period = LOWEST_MEASUREMENT_PERIOD;
-    } else if (n_samples < 6) {
-      measurement_period = LOWEST_MEASUREMENT_PERIOD << 1;
-    } else if (n_samples < 10) {
-      measurement_period = LOWEST_MEASUREMENT_PERIOD << 2;
-    } else if (n_samples < 14) {
-      measurement_period = LOWEST_MEASUREMENT_PERIOD << 3;
-    } else {
-      measurement_period = LOWEST_MEASUREMENT_PERIOD << 4;
-    }
-
+  if (n_samples < 4) {
+    measurement_period = LOWEST_MEASUREMENT_PERIOD;
+  } else if (n_samples < 6) {
+    measurement_period = LOWEST_MEASUREMENT_PERIOD << 1;
+  } else if (n_samples < 10) {
+    measurement_period = LOWEST_MEASUREMENT_PERIOD << 2;
+  } else if (n_samples < 14) {
+    measurement_period = LOWEST_MEASUREMENT_PERIOD << 3;
+  } else {
+    measurement_period = LOWEST_MEASUREMENT_PERIOD << 4;
   }
 
 turn_off_interrupt:
@@ -837,7 +844,7 @@ turn_off_interrupt:
         operating_mode = OM_NORMAL;
         (after_init_hook)(after_init_hook_arg);
 
-        switch_interrupts(0);
+        RTC_Linux_SwitchInterrupt(fd, 0);
     
         timeout_id = SCH_AddTimeoutByDelay((double) measurement_period, measurement_timeout, NULL);
       }
@@ -849,7 +856,7 @@ turn_off_interrupt:
         DEBUG_LOG("Could not complete after trim relock due to errors");
         operating_mode = OM_NORMAL;
 
-        switch_interrupts(0);
+        RTC_Linux_SwitchInterrupt(fd, 0);
     
         timeout_id = SCH_AddTimeoutByDelay((double) measurement_period, measurement_timeout, NULL);
       }
@@ -857,7 +864,7 @@ turn_off_interrupt:
       break;
 
     case OM_NORMAL:
-      switch_interrupts(0);
+      RTC_Linux_SwitchInterrupt(fd, 0);
     
       timeout_id = SCH_AddTimeoutByDelay((double) measurement_period, measurement_timeout, NULL);
 
@@ -879,7 +886,7 @@ RTC_Linux_TimeInit(void (*after_hook)(void *), void *anything)
 
   operating_mode = OM_INITIAL;
   timeout_id = 0;
-  switch_interrupts(1);
+  RTC_Linux_SwitchInterrupt(fd, 1);
 }
 
 /* ================================================== */
@@ -1058,7 +1065,7 @@ RTC_Linux_Trim(void)
     /* And start rapid sampling, interrupts on now */
     SCH_RemoveTimeout(timeout_id);
     timeout_id = 0;
-    switch_interrupts(1);
+    RTC_Linux_SwitchInterrupt(fd, 1);
   }
 
   return 1;

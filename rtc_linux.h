@@ -42,4 +42,7 @@ extern int RTC_Linux_Trim(void);
 
 extern void RTC_Linux_CycleLogFile(void);
 
+extern int RTC_Linux_SwitchInterrupt(int fd, int on_off);
+extern int RTC_Linux_CheckInterrupt(int fd);
+
 #endif /* _GOT_RTC_LINUX_H */
