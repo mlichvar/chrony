@@ -785,11 +785,31 @@ RTC_Linux_CheckInterrupt(int fd)
   return (data & RTC_UF) == RTC_UF;
 }
 
+time_t
+RTC_Linux_ReadTimeAfterInterrupt(int fd, int utc, struct timespec *sys_time_cooked)
+{
+  int status;
+  struct rtc_time rtc_raw;
+
+  /* Read RTC time, sandwiched between two polls of the system clock
+     so we can bound any error */
+
+  SCH_GetLastEventTime(sys_time_cooked, NULL, NULL);
+
+  status = ioctl(fd, RTC_RD_TIME, &rtc_raw);
+  if (status < 0) {
+    LOG(LOGS_ERR, "Could not read time from %s : %s", CNF_GetRtcDevice(), strerror(errno));
+    return -1;
+  }
+
+  /* Convert RTC time into a struct timespec */
+  return t_from_rtc(&rtc_raw, utc);
+}
+
 static void
 read_from_device(int fd_, int event, void *any)
 {
   struct timespec sys_time;
-  struct rtc_time rtc_raw;
   int status, error = 0;
   time_t rtc_t;
 
@@ -801,22 +821,12 @@ read_from_device(int fd_, int event, void *any)
     fd = -1;
     return;
   } else if (status == 0) {
+    /* Wait for the next interrupt, this one may be bogus */
     return;
   }
 
-  SCH_GetLastEventTime(&sys_time, NULL, NULL);
-
-  status = ioctl(fd, RTC_RD_TIME, &rtc_raw);
-  if (status < 0) {
-    LOG(LOGS_ERR, "Could not read time from %s : %s", CNF_GetRtcDevice(), strerror(errno));
-    error = 1;
-    goto turn_off_interrupt;
-  }
-
-  /* Convert RTC time into a struct timespec */
-  rtc_t = t_from_rtc(&rtc_raw, rtc_on_utc);
-
-  if (rtc_t == (time_t)(-1)) {
+  rtc_t = RTC_Linux_ReadTimeAfterInterrupt(fd, rtc_on_utc, &sys_time);
+  if (rtc_t == (time_t)-1) {
     error = 1;
     goto turn_off_interrupt;
   }
