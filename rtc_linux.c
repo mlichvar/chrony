@@ -297,10 +297,10 @@ slew_samples
    whether the user runs his RTC on the local time zone or UTC */
 
 static void
-rtc_from_t(const time_t *t, struct rtc_time *rtc_raw)
+rtc_from_t(const time_t *t, struct rtc_time *rtc_raw, int utc)
 {
   struct tm *rtc_tm;
-  if (rtc_on_utc) {
+  if (utc) {
     rtc_tm = gmtime(t);
   } else {
     rtc_tm = localtime(t);
@@ -352,7 +352,7 @@ rtc_from_t(const time_t *t, struct rtc_time *rtc_raw)
 */
 
 static time_t
-t_from_rtc(struct rtc_time *rtc_raw)
+t_from_rtc(struct rtc_time *rtc_raw, int utc)
 {
   struct tm rtc_tm, temp1, temp2, *tm;
   long diff;
@@ -372,7 +372,7 @@ t_from_rtc(struct rtc_time *rtc_raw)
 
   t1 = mktime(&temp1);
 
-  tm = rtc_on_utc ? gmtime(&t1) : localtime(&t1);
+  tm = utc ? gmtime(&t1) : localtime(&t1);
   if (!tm) {
     DEBUG_LOG("gmtime()/localtime() failed");
     return -1;
@@ -610,7 +610,7 @@ set_rtc(time_t new_rtc_time)
   struct rtc_time rtc_raw;
   int status;
 
-  rtc_from_t(&new_rtc_time, &rtc_raw);
+  rtc_from_t(&new_rtc_time, &rtc_raw, rtc_on_utc);
 
   status = ioctl(fd, RTC_SET_TIME, &rtc_raw);
   if (status < 0) {
@@ -805,7 +805,7 @@ read_from_device(int fd_, int event, void *any)
     }
 
     /* Convert RTC time into a struct timespec */
-    rtc_t = t_from_rtc(&rtc_raw);
+    rtc_t = t_from_rtc(&rtc_raw, rtc_on_utc);
 
     if (rtc_t == (time_t)(-1)) {
       error = 1;
@@ -955,7 +955,7 @@ RTC_Linux_TimePreInit(time_t driftfile_time)
 
   if (status >= 0) {
     /* Convert to seconds since 1970 */
-    rtc_t = t_from_rtc(&rtc_raw);
+    rtc_t = t_from_rtc(&rtc_raw, rtc_on_utc);
 
     if (rtc_t != (time_t)(-1)) {
 
