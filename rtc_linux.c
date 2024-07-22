@@ -929,6 +929,28 @@ RTC_Linux_WriteParameters(void)
   return(retval);
 }
 
+time_t
+RTC_Linux_ReadTimeNow(int fd, int utc, struct timespec *old_sys_time)
+{
+  struct rtc_time rtc_raw, rtc_raw_retry;
+  int status;
+
+  /* Retry reading the RTC until both read attempts give the same sec value.
+     This way the race condition is prevented that the RTC has updated itself
+     during the first read operation. */
+  do {
+    status = ioctl(fd, RTC_RD_TIME, &rtc_raw);
+    if (status >= 0) {
+      status = ioctl(fd, RTC_RD_TIME, &rtc_raw_retry);
+    }
+  } while (status >= 0 && rtc_raw.tm_sec != rtc_raw_retry.tm_sec);
+
+  /* Read system clock */
+  LCL_ReadCookedTime(old_sys_time, NULL);
+
+  return status >= 0 ? t_from_rtc(&rtc_raw, utc) : -1;
+}
+
 /* ================================================== */
 /* Try to set the system clock from the RTC, in the same manner as
    /sbin/hwclock -s would do.  We're not as picky about OS version
@@ -938,11 +960,10 @@ RTC_Linux_WriteParameters(void)
 int
 RTC_Linux_TimePreInit(time_t driftfile_time)
 {
-  int fd, status;
-  struct rtc_time rtc_raw, rtc_raw_retry;
   time_t rtc_t;
   double accumulated_error, sys_offset;
   struct timespec new_sys_time, old_sys_time;
+  int fd;
 
   coefs_file_name = CNF_GetRtcFile();
 
@@ -955,58 +976,40 @@ RTC_Linux_TimePreInit(time_t driftfile_time)
     return 0; /* Can't open it, and won't be able to later */
   }
 
-  /* Retry reading the rtc until both read attempts give the same sec value.
-     This way the race condition is prevented that the RTC has updated itself
-     during the first read operation. */
-  do {
-    status = ioctl(fd, RTC_RD_TIME, &rtc_raw);
-    if (status >= 0) {
-      status = ioctl(fd, RTC_RD_TIME, &rtc_raw_retry);
-    }
-  } while (status >= 0 && rtc_raw.tm_sec != rtc_raw_retry.tm_sec);
-
-  /* Read system clock */
-  LCL_ReadCookedTime(&old_sys_time, NULL);
+  rtc_t = RTC_Linux_ReadTimeNow(fd, rtc_on_utc, &old_sys_time);
 
   close(fd);
 
-  if (status >= 0) {
-    /* Convert to seconds since 1970 */
-    rtc_t = t_from_rtc(&rtc_raw, rtc_on_utc);
+  if (rtc_t != (time_t)(-1)) {
 
-    if (rtc_t != (time_t)(-1)) {
-
-      /* Work out approximatation to correct time (to about the
-         nearest second) */
-      if (valid_coefs_from_file) {
-        accumulated_error = file_ref_offset +
-          (rtc_t - file_ref_time) * 1.0e-6 * file_rate_ppm;
-      } else {
-        accumulated_error = 0.0;
-      }
-
-      /* Correct time */
-
-      new_sys_time.tv_sec = rtc_t;
-      /* Average error in the RTC reading */
-      new_sys_time.tv_nsec = 500000000;
-
-      UTI_AddDoubleToTimespec(&new_sys_time, -accumulated_error, &new_sys_time);
-
-      if (new_sys_time.tv_sec < driftfile_time) {
-        LOG(LOGS_WARN, "RTC time before last driftfile modification (ignored)");
-        return 0;
-      }
-
-      sys_offset = UTI_DiffTimespecsToDouble(&old_sys_time, &new_sys_time);
-
-      /* Set system time only if the step is larger than 1 second */
-      if (fabs(sys_offset) >= 1.0) {
-        if (LCL_ApplyStepOffset(sys_offset))
-          LOG(LOGS_INFO, "System time set from RTC");
-      }
+    /* Work out approximation to correct time (to about the
+       nearest second) */
+    if (valid_coefs_from_file) {
+      accumulated_error = file_ref_offset +
+        (rtc_t - file_ref_time) * 1.0e-6 * file_rate_ppm;
     } else {
+      accumulated_error = 0.0;
+    }
+
+    /* Correct time */
+
+    new_sys_time.tv_sec = rtc_t;
+    /* Average error in the RTC reading */
+    new_sys_time.tv_nsec = 500000000;
+
+    UTI_AddDoubleToTimespec(&new_sys_time, -accumulated_error, &new_sys_time);
+
+    if (new_sys_time.tv_sec < driftfile_time) {
+      LOG(LOGS_WARN, "RTC time before last driftfile modification (ignored)");
       return 0;
+    }
+
+    sys_offset = UTI_DiffTimespecsToDouble(&old_sys_time, &new_sys_time);
+
+    /* Set system time only if the step is larger than 1 second */
+    if (fabs(sys_offset) >= 1.0) {
+      if (LCL_ApplyStepOffset(sys_offset))
+        LOG(LOGS_INFO, "System time set from RTC");
     }
   } else {
     return 0;

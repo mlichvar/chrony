@@ -46,5 +46,7 @@ extern int RTC_Linux_SwitchInterrupt(int fd, int on_off);
 extern int RTC_Linux_CheckInterrupt(int fd);
 extern time_t RTC_Linux_ReadTimeAfterInterrupt(int fd, int utc,
                                                struct timespec *sys_time_cooked);
+extern time_t RTC_Linux_ReadTimeNow(int fd, int utc,
+                                    struct timespec *sys_time_cooked);
 
 #endif /* _GOT_RTC_LINUX_H */
