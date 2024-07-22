@@ -786,7 +786,9 @@ RTC_Linux_CheckInterrupt(int fd)
 }
 
 time_t
-RTC_Linux_ReadTimeAfterInterrupt(int fd, int utc, struct timespec *sys_time_cooked)
+RTC_Linux_ReadTimeAfterInterrupt(int fd, int utc,
+                                 struct timespec *sys_time_cooked,
+                                 struct timespec *sys_time_raw)
 {
   int status;
   struct rtc_time rtc_raw;
@@ -794,7 +796,7 @@ RTC_Linux_ReadTimeAfterInterrupt(int fd, int utc, struct timespec *sys_time_cook
   /* Read RTC time, sandwiched between two polls of the system clock
      so we can bound any error */
 
-  SCH_GetLastEventTime(sys_time_cooked, NULL, NULL);
+  SCH_GetLastEventTime(sys_time_cooked, NULL, sys_time_raw);
 
   status = ioctl(fd, RTC_RD_TIME, &rtc_raw);
   if (status < 0) {
@@ -825,7 +827,7 @@ read_from_device(int fd_, int event, void *any)
     return;
   }
 
-  rtc_t = RTC_Linux_ReadTimeAfterInterrupt(fd, rtc_on_utc, &sys_time);
+  rtc_t = RTC_Linux_ReadTimeAfterInterrupt(fd, rtc_on_utc, &sys_time, NULL);
   if (rtc_t == (time_t)-1) {
     error = 1;
     goto turn_off_interrupt;
@@ -930,7 +932,9 @@ RTC_Linux_WriteParameters(void)
 }
 
 time_t
-RTC_Linux_ReadTimeNow(int fd, int utc, struct timespec *old_sys_time)
+RTC_Linux_ReadTimeNow(int fd, int utc,
+                      struct timespec *old_sys_cooked,
+                      struct timespec *old_sys_raw)
 {
   struct rtc_time rtc_raw, rtc_raw_retry;
   int status;
@@ -946,7 +950,10 @@ RTC_Linux_ReadTimeNow(int fd, int utc, struct timespec *old_sys_time)
   } while (status >= 0 && rtc_raw.tm_sec != rtc_raw_retry.tm_sec);
 
   /* Read system clock */
-  LCL_ReadCookedTime(old_sys_time, NULL);
+  if (old_sys_raw)
+    LCL_ReadRawTime(old_sys_raw);
+  if (old_sys_cooked)
+    LCL_ReadCookedTime(old_sys_cooked, NULL);
 
   return status >= 0 ? t_from_rtc(&rtc_raw, utc) : -1;
 }
@@ -976,7 +983,7 @@ RTC_Linux_TimePreInit(time_t driftfile_time)
     return 0; /* Can't open it, and won't be able to later */
   }
 
-  rtc_t = RTC_Linux_ReadTimeNow(fd, rtc_on_utc, &old_sys_time);
+  rtc_t = RTC_Linux_ReadTimeNow(fd, rtc_on_utc, &old_sys_time, NULL);
 
   close(fd);
 

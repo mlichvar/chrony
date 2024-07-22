@@ -45,8 +45,10 @@ extern void RTC_Linux_CycleLogFile(void);
 extern int RTC_Linux_SwitchInterrupt(int fd, int on_off);
 extern int RTC_Linux_CheckInterrupt(int fd);
 extern time_t RTC_Linux_ReadTimeAfterInterrupt(int fd, int utc,
-                                               struct timespec *sys_time_cooked);
+                                               struct timespec *sys_time_cooked,
+                                               struct timespec *sys_time_raw);
 extern time_t RTC_Linux_ReadTimeNow(int fd, int utc,
-                                    struct timespec *sys_time_cooked);
+                                    struct timespec *sys_time_cooked,
+                                    struct timespec *sys_time_raw);
 
 #endif /* _GOT_RTC_LINUX_H */
