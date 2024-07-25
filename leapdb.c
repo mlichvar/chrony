@@ -122,7 +122,7 @@ get_list_leap(time_t when, int *tai_offset)
   when = (when / (24 * 3600) + 1) * (24 * 3600);
 
   /* leap-seconds.list timestamps are relative to 1 Jan 1900, 00:00:00 */
-  when1900 = when + LEAP_SEC_LIST_OFFSET;
+  when1900 = (int64_t)when + LEAP_SEC_LIST_OFFSET;
 
   while (fgets(line, sizeof line, f) > 0) {
     int64_t lsl_when;
