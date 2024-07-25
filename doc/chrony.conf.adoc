@@ -1875,8 +1875,8 @@ randomly sent when the limits specified by the *interval* and *burst* options
 are exceeded. It is an additional stream of responses to the *leak* option. A
 KoD RATE response is a request for the client to reduce its polling rate. Few
 implementations actually support it. The rate is defined as a power of 1/2. The
-default value is 0, which means disabled. The minimum value is 0 and the maximu
-value is 4.
+default value is 0, which means disabled. The minimum value is 0 and the
+maximum value is 4.
 {blank}::
 +
 An example use of the directive is:
