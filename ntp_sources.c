@@ -770,7 +770,18 @@ static int get_unused_pool_id(void)
 static uint32_t
 get_next_conf_id(uint32_t *conf_id)
 {
+  SourceRecord *record;
+  unsigned int i;
+
+again:
   last_conf_id++;
+
+  /* Make sure the ID is not already used (after 32-bit wraparound) */
+  for (i = 0; i < ARR_GetSize(records); i++) {
+    record = get_record(i);
+    if (record->remote_addr && record->conf_id == last_conf_id)
+      goto again;
+  }
 
   if (conf_id)
     *conf_id = last_conf_id;
