@@ -1,3 +1,23 @@
+New in version 4.6
+==================
+
+Enhancements
+------------
+* Add activate option to local directive to set activation threshold
+* Add ipv4 and ipv6 options to server/pool/peer directive
+* Add kod option to ratelimit directive for server KoD RATE support
+* Add leapseclist directive to read NIST/IERS leap-seconds.list file
+* Add ptpdomain directive to set PTP domain for NTP over PTP
+* Improve copy server option to accept unsynchronised status instantly
+* Log one selection failure on start
+* Add offset command to modify source offset correction
+* Add timestamp sources to ntpdata report
+
+Bug fixes
+---------
+* Fix crash on sources reload during initstepslew or RTC initialisation
+* Fix source refreshment to not repeat failed name resolving attempts
+
 New in version 4.5
 ==================
 
