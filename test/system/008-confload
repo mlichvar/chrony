@@ -102,7 +102,7 @@ check_chronyc_output "^[^=]*
 run_chronyc "reload sources" || test_fail
 
 stop_chronyd || test_fail
-check_chronyd_message_count "Could not add source.*\.5\.5.*in use" 3 3 || test_fail
-check_chronyd_message_count "Could not add source" 3 3 || test_fail
+check_chronyd_message_count "Could not add source.*\.5\.5.*in use" 1 1 || test_fail
+check_chronyd_message_count "Could not add source" 1 1 || test_fail
 
 test_pass

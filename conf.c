@@ -1751,7 +1751,7 @@ reload_source_dirs(void)
 
         if (s == NSR_UnresolvedName) {
           unresolved++;
-        } else if (s != NSR_Success) {
+        } else if (s != NSR_Success && (d > 0 || s != prev_sources[i].status)) {
           LOG(LOGS_ERR, "Could not add source %s : %s",
               source->params.name, NSR_StatusToString(s));
         }
