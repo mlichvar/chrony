@@ -294,6 +294,7 @@ typedef struct {
   NTP_Source_Type type;
   int pool;
   CPS_NTP_Source params;
+  NSR_Status status;
   uint32_t conf_id;
 } NTP_Source;
 
@@ -834,6 +835,7 @@ parse_source(char *line, char *type, int fatal)
   }
 
   source.params.name = Strdup(source.params.name);
+  source.status = NSR_NoSuchSource;
   source.conf_id = 0;
 
   ARR_AppendElement(ntp_sources, &source);
@@ -1735,31 +1737,31 @@ reload_source_dirs(void)
         d = i < prev_size ? -1 : 1;
 
       /* Remove missing sources before adding others to avoid conflicts */
-      if (pass == 0 && d < 0 && prev_sources[i].params.name[0] != '\0') {
+      if (pass == 0 && d < 0 && prev_sources[i].status == NSR_Success) {
         NSR_RemoveSourcesById(prev_sources[i].conf_id);
       }
 
-      /* Add new sources */
-      if (pass == 1 && d > 0) {
+      /* Add new sources and sources that could not be added before */
+      if (pass == 1 && (d > 0 || (d == 0 && prev_sources[i].status != NSR_Success))) {
         source = &new_sources[j];
         s = NSR_AddSourceByName(source->params.name, source->params.family, source->params.port,
                                 source->pool, source->type, &source->params.params,
                                 &source->conf_id);
+        source->status = s;
 
         if (s == NSR_UnresolvedName) {
           unresolved++;
         } else if (s != NSR_Success) {
           LOG(LOGS_ERR, "Could not add source %s : %s",
               source->params.name, NSR_StatusToString(s));
-
-          /* Mark the source as not present */
-          source->params.name[0] = '\0';
         }
       }
 
       /* Keep unchanged sources */
-      if (pass == 1 && d == 0)
+      if (pass == 1 && d == 0) {
+        new_sources[j].status = prev_sources[i].status;
         new_sources[j].conf_id = prev_sources[i].conf_id;
+      }
     }
   }
 
