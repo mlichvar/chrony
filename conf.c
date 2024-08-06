@@ -294,15 +294,14 @@ typedef struct {
   NTP_Source_Type type;
   int pool;
   CPS_NTP_Source params;
+  uint32_t conf_id;
 } NTP_Source;
 
 /* Array of NTP_Source */
 static ARR_Instance ntp_sources;
 /* Array of (char *) */
 static ARR_Instance ntp_source_dirs;
-/* Array of uint32_t corresponding to ntp_sources (for sourcedirs reload) */
-static ARR_Instance ntp_source_ids;
-/* Flag indicating ntp_sources and ntp_source_ids are used for sourcedirs */
+/* Flag indicating ntp_sources is used for sourcedirs after config load */
 static int conf_ntp_sources_added = 0;
 
 /* Array of RefclockParameters */
@@ -403,7 +402,6 @@ CNF_Initialise(int r, int client_only)
   init_sources = ARR_CreateInstance(sizeof (IPAddr));
   ntp_sources = ARR_CreateInstance(sizeof (NTP_Source));
   ntp_source_dirs = ARR_CreateInstance(sizeof (char *));
-  ntp_source_ids = ARR_CreateInstance(sizeof (uint32_t));
   refclock_sources = ARR_CreateInstance(sizeof (RefclockParameters));
   broadcasts = ARR_CreateInstance(sizeof (NTP_Broadcast_Destination));
 
@@ -463,7 +461,6 @@ CNF_Finalise(void)
   ARR_DestroyInstance(init_sources);
   ARR_DestroyInstance(ntp_sources);
   ARR_DestroyInstance(ntp_source_dirs);
-  ARR_DestroyInstance(ntp_source_ids);
   ARR_DestroyInstance(refclock_sources);
   ARR_DestroyInstance(broadcasts);
 
@@ -837,6 +834,8 @@ parse_source(char *line, char *type, int fatal)
   }
 
   source.params.name = Strdup(source.params.name);
+  source.conf_id = 0;
+
   ARR_AppendElement(ntp_sources, &source);
 }
 
@@ -1694,7 +1693,6 @@ reload_source_dirs(void)
 {
   NTP_Source *prev_sources, *new_sources, *source;
   unsigned int i, j, prev_size, new_size, unresolved;
-  uint32_t *prev_ids, *new_ids;
   char buf[MAX_LINE_LENGTH];
   NSR_Status s;
   int d, pass;
@@ -1703,13 +1701,9 @@ reload_source_dirs(void)
   if (!conf_ntp_sources_added)
     return;
 
-  prev_size = ARR_GetSize(ntp_source_ids);
-  if (ARR_GetSize(ntp_sources) != prev_size)
-    assert(0);
+  prev_size = ARR_GetSize(ntp_sources);
 
-  /* Save the current sources and their configuration IDs */
-  prev_ids = MallocArray(uint32_t, prev_size);
-  memcpy(prev_ids, ARR_GetElements(ntp_source_ids), prev_size * sizeof (prev_ids[0]));
+  /* Save the current sources */
   prev_sources = MallocArray(NTP_Source, prev_size);
   memcpy(prev_sources, ARR_GetElements(ntp_sources), prev_size * sizeof (prev_sources[0]));
 
@@ -1727,8 +1721,6 @@ reload_source_dirs(void)
 
   new_size = ARR_GetSize(ntp_sources);
   new_sources = ARR_GetElements(ntp_sources);
-  ARR_SetSize(ntp_source_ids, new_size);
-  new_ids = ARR_GetElements(ntp_source_ids);
   unresolved = 0;
 
   LOG_SetContext(LOGC_SourceFile);
@@ -1744,7 +1736,7 @@ reload_source_dirs(void)
 
       /* Remove missing sources before adding others to avoid conflicts */
       if (pass == 0 && d < 0 && prev_sources[i].params.name[0] != '\0') {
-        NSR_RemoveSourcesById(prev_ids[i]);
+        NSR_RemoveSourcesById(prev_sources[i].conf_id);
       }
 
       /* Add new sources */
@@ -1752,7 +1744,7 @@ reload_source_dirs(void)
         source = &new_sources[j];
         s = NSR_AddSourceByName(source->params.name, source->params.family, source->params.port,
                                 source->pool, source->type, &source->params.params,
-                                &new_ids[j]);
+                                &source->conf_id);
 
         if (s == NSR_UnresolvedName) {
           unresolved++;
@@ -1767,7 +1759,7 @@ reload_source_dirs(void)
 
       /* Keep unchanged sources */
       if (pass == 1 && d == 0)
-        new_ids[j] = prev_ids[i];
+        new_sources[j].conf_id = prev_sources[i].conf_id;
     }
   }
 
@@ -1776,7 +1768,6 @@ reload_source_dirs(void)
   for (i = 0; i < prev_size; i++)
     Free(prev_sources[i].params.name);
   Free(prev_sources);
-  Free(prev_ids);
 
   if (unresolved > 0)
     NSR_ResolveSources();
@@ -1875,7 +1866,6 @@ CNF_AddSources(void)
 
   /* The arrays will be used for sourcedir (re)loading */
   ARR_SetSize(ntp_sources, 0);
-  ARR_SetSize(ntp_source_ids, 0);
   conf_ntp_sources_added = 1;
 
   reload_source_dirs();
