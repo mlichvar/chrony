@@ -265,16 +265,13 @@ get_record(IPAddr *ip)
   }
 
   record->ip_addr = *ip;
-  for (i = 0; i < MAX_SERVICES; i++)
+  for (i = 0; i < MAX_SERVICES; i++) {
     record->last_hit[i] = INVALID_TS;
-  for (i = 0; i < MAX_SERVICES; i++)
     record->hits[i] = 0;
-  for (i = 0; i < MAX_SERVICES; i++)
     record->drops[i] = 0;
-  for (i = 0; i < MAX_SERVICES; i++)
     record->tokens[i] = max_tokens[i];
-  for (i = 0; i < MAX_SERVICES; i++)
     record->rate[i] = INVALID_RATE;
+  }
   record->ntp_timeout_rate = INVALID_RATE;
   record->drop_flags = 0;
 
