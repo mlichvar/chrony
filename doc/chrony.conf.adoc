@@ -126,6 +126,15 @@ mechanism. Unlike with the *key* option, the server and client do not need to
 share a key in a key file. NTS has a Key Establishment (NTS-KE) protocol using
 the Transport Layer Security (TLS) protocol to get the keys and cookies
 required by NTS for authentication of NTP packets.
++
+With this option, the hostname specified in the server or pool directive is the
+NTS-KE server or pool of NTS-KE servers respectively. The NTP server usually
+runs on the same host, but it can be separated from the NTS-KE server (the
+hostname or address of the NTP server is provided to the client by the NTS-KE
+server).
++
+The NTS-KE server can be specified by IP address if it is included in the
+server's certificate as a Subject Alternative Name (SAN).
 *certset* _ID_:::
 This option specifies which set of trusted certificates should be used to verify
 the server's certificate when the *nts* option is enabled. Sets of certificates
