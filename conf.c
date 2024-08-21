@@ -78,6 +78,7 @@ static void parse_makestep(char *);
 static void parse_maxchange(char *);
 static void parse_ntsserver(char *, ARR_Instance files);
 static void parse_ntstrustedcerts(char *);
+static void parse_pidfile(char *line);
 static void parse_ratelimit(char *line, int *enabled, int *interval,
                             int *burst, int *leak, int *kod);
 static void parse_refclock(char *);
@@ -703,7 +704,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "peer")) {
     parse_source(p, command, 1);
   } else if (!strcasecmp(command, "pidfile")) {
-    parse_string(p, &pidfile);
+    parse_pidfile(p);
   } else if (!strcasecmp(command, "pool")) {
     parse_source(p, command, 1);
   } else if (!strcasecmp(command, "port")) {
@@ -1525,6 +1526,20 @@ parse_hwtimestamp(char *line)
 
   if (!maxpoll_set)
     iface->maxpoll = iface->minpoll + 1;
+}
+
+/* ================================================== */
+
+static void
+parse_pidfile(char *line)
+{
+  parse_string(line, &pidfile);
+
+  /* / disables the PID file handling */
+  if (strcmp(pidfile, "/") == 0) {
+    Free(pidfile);
+    pidfile = NULL;
+  }
 }
 
 /* ================================================== */

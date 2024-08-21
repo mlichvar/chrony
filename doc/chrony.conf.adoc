@@ -2781,6 +2781,8 @@ e.g.:
 ----
 pidfile /run/chronyd.pid
 ----
++
+Setting this directive to _/_ disables writing and checking of the PID file.
 
 [[ptpport]]*ptpport* _port_::
 The *ptpport* directive enables *chronyd* to send and receive NTP messages
