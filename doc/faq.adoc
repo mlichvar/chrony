@@ -1155,6 +1155,53 @@ There are several different clocks used by `chronyd`:
   synchronised by `chronyd`. Its offset is tracked relative to the NTP clock in
   order to convert the hardware timestamps.
 
+=== How accurate is my system clock?
+
+`chronyd` does not know how accurate really is the clock it is synchronizing.
+Even if the measured offset of the clock is stable to nanoseconds, it could be
+off by milliseconds due to asymmetric network delay, e.g. caused by asymmetric
+routing or queuing delays in network switches. NTP provides root delay and root
+dispersion to enable clients to estimate the maximum error of their clock.
+
+Root delay measures the sum of round-trip times between all NTP servers on the
+path from the client to the primary time source (e.g. a GPS receiver). Half of
+the root delay is the maximum error due to asymmetric delays, assuming one
+direction (e.g. from the client to the server) has a zero delay and the other
+direction (from the server to the client) takes all of the measured delay. The
+root delay also covers timestamping errors if the server implementation and
+hardware meet the NTP requirement for transmit timestamps to never be late and
+receive timestamps to never be early.
+
+If you have additional information about the hardware and network between the
+client and primary time source, you could modify the root delay to get a better
+estimate of the maximum error. For example, from the physical distance of the
+server and signal propagation speed in the cables a minimum symmetric
+round-trip delay can be calculated and subtracted from the root delay measured
+by NTP.
+
+Root dispersion estimates errors due to instability of clocks and NTP
+measurements. `chronyd` adjusts the rate at which root dispersion grows between
+updates of the clock according to the stability of its NTP measurements. The
+minimum rate is set by the the `maxclockerror` directive. By default it is 1
+ppm (1 microsecond per second).
+
+The estimated maximum error of the NTP clock is the sum of the root dispersion
+and half of the root delay. This value is called root distance. The current
+values of root dispersion and delay are included in the `tracking` report.
+
+The estimated maximum error of the system clock, which is synchronized to the
+NTP clock, is the sum of the root distance and remaining correction of the
+system clock provided as `System time` in the `tracking` report. A maximum
+value of this estimate between updates of the clock is included in the
+`tracking` log.
+
+Note that the resolution of the root delay and root dispersion fields in NTP
+messages is about 15 microseconds and `chronyd` rounds the values up, i.e. the
+minimum root distance an NTP client can normally observe is about 22.5
+microseconds. An NTP extension field containing root delay and dispersion in a
+better resolution of about 4 nanoseconds can be enabled by the `extfield F323`
+option.
+
 == Operating systems
 
 === Does `chrony` support Windows?
