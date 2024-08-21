@@ -772,6 +772,17 @@ print all sources, even those that do not have a known address yet, with their
 names as they were specified in the configuration. This can be useful to verify
 that the names specified in the configuration are used as expected.
 
+When DNSSEC is enabled, it will not work until the time is synchronized, as it
+requires validating a signature timestamp and its expiration date, so if the
+system time is too far in the future or the past DNSSEC validation will fail and
+`chronyd` will be unable to resolve the address of the NTP server. In such cases,
+if hostnames are the only options and bare IP addresses cannot be used, DNSSEC
+can be disabled for `chronyd` using resolver-specific mechanisms, if available,
+although of course that means losing the protection afforded by DNSSEC.
+For example, when using systemd-resolved, the `SYSTEMD_NSS_RESOLVE_VALIDATE=0`
+environment variable can be set, for example in the `chronyd` systemd unit via
+`Environment=SYSTEMD_NSS_RESOLVE_VALIDATE=0`.
+
 === Is `chronyd` allowed to step the system clock?
 
 By default, `chronyd` adjusts the clock gradually by slowing it down or
