@@ -219,8 +219,14 @@ NSR_Finalise(void)
   ARR_DestroyInstance(pools);
 
   SCH_RemoveTimeout(resolving_id);
-  while (unresolved_sources)
-    remove_unresolved_source(unresolved_sources);
+
+  /* Leave the unresolved sources allocated if the async resolver is running
+     to avoid reading the name from freed memory.  The handler will not be
+     called as the scheduler should no longer be running at this point. */
+  if (!resolving_source) {
+    while (unresolved_sources)
+      remove_unresolved_source(unresolved_sources);
+  }
 
   initialised = 0;
 }
