@@ -53,4 +53,28 @@ check_log_messages "2010-01-01T0[5-9]:.*Source 192.168.123.. replaced with" 0 15
 check_file_messages "20.*192.168.123.* 11.1   6  6 " 20 500 measurements.log || test_fail
 rm -f tmp/measurements.log
 
+# 2 replaceable falsetickers and 1 replaceable unreachable server
+servers=6
+falsetickers=2
+base_delay="(+ 1e-4 (* -1 (equal 0.1 to 3)))"
+client_server_conf="
+server nodes-4-1.net1.clk
+server nodes-5-2.net1.clk
+server nodes-6-3.net1.clk"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_source_selection && test_fail
+check_packet_interval || test_fail
+check_sync || test_fail
+
+check_log_messages "Can't synchronise: no majority" 1 1 || test_fail
+check_log_messages "Detected falseticker" 0 2 || test_fail
+check_log_messages "Source 192.168.123.. replaced with" 3 60 || test_fail
+check_log_messages "Source 192.168.123.1 replaced with" 1 25 || test_fail
+check_log_messages "Source 192.168.123.2 replaced with" 1 25 || test_fail
+check_log_messages "Source 192.168.123.3 replaced with" 1 25 || test_fail
+check_file_messages "20.*192.168.123.* 11.1   6  6 " 50 800 measurements.log || test_fail
+rm -f tmp/measurements.log
+
 test_pass

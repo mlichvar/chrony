@@ -526,11 +526,6 @@ SRC_UpdateReachability(SRC_Instance inst, int reachable)
   if (inst->reachability_size < SOURCE_REACH_BITS)
       inst->reachability_size++;
 
-  /* Source selection can change with unreachable sources */
-  if (inst->reachability == 0) {
-    SRC_SelectSource(NULL);
-  }
-
   /* Check if special reference update mode failed */
   if (REF_GetMode() != REF_ModeNormal && special_mode_end()) {
     REF_SetUnsynchronised();
@@ -539,6 +534,10 @@ SRC_UpdateReachability(SRC_Instance inst, int reachable)
   /* Try to replace unreachable NTP sources */
   if (inst->reachability == 0 && inst->reachability_size == SOURCE_REACH_BITS)
     handle_bad_source(inst);
+
+  /* Source selection can change with unreachable sources */
+  if (inst->reachability == 0)
+    SRC_SelectSource(NULL);
 }
 
 /* ================================================== */
