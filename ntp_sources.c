@@ -3,7 +3,7 @@
 
  **********************************************************************
  * Copyright (C) Richard P. Curnow  1997-2003
- * Copyright (C) Miroslav Lichvar  2011-2012, 2014, 2016, 2020-2023
+ * Copyright (C) Miroslav Lichvar  2011-2012, 2014, 2016, 2020-2024
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
