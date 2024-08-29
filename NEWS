@@ -8,6 +8,7 @@ Enhancements
 * Add kod option to ratelimit directive for server KoD RATE support
 * Add leapseclist directive to read NIST/IERS leap-seconds.list file
 * Add ptpdomain directive to set PTP domain for NTP over PTP
+* Allow disabling pidfile
 * Improve copy server option to accept unsynchronised status instantly
 * Log one selection failure on start
 * Add offset command to modify source offset correction
