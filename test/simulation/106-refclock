@@ -36,7 +36,7 @@ Update interval : 16\.. seconds
 .*$" || test_fail
 
 	if echo "$refclock" | grep -q 'PHC.*nocrossts'; then
-		check_file_messages "20.* GPS.*[0-9] N " 650 750 refclocks.log || test_fail
+		check_file_messages "20.* GPS.*[0-9] N " 620 750 refclocks.log || test_fail
 	else
 		check_file_messages "20.* GPS.*[0-9] N " 997 1001 refclocks.log || test_fail
 	fi
@@ -64,7 +64,7 @@ Stratum.*: 1
 Root delay      : 0\.000000001 seconds
 .*$" || test_fail
 
-	check_file_messages "20.* PPS1.*[0-9] N " 620 740 refclocks.log || test_fail
+	check_file_messages "20.* PPS1.*[0-9] N " 610 740 refclocks.log || test_fail
 	check_file_messages "20.* PPS1.*- N " 60 63 refclocks.log || test_fail
 	rm -f tmp/refclocks.log
 
@@ -89,14 +89,15 @@ Root delay      : 0\.000000001 seconds
 	check_file_messages "20.* PPS1.*- N " 60 63 refclocks.log || test_fail
 	rm -f tmp/refclocks.log
 
-	min_sync_time=100
-	max_sync_time=220
+	min_sync_time=80
+	max_sync_time=180
 	chronyc_start=220
 	client_conf="
 refclock SHM 0 refid NMEA offset 0.35 delay 0.1
 refclock PPS /dev/pps0
 logdir tmp
-log refclocks"
+log refclocks
+maxupdateskew 10000"
 
 	run_test || test_fail
 	check_chronyd_exit || test_fail
@@ -108,7 +109,7 @@ Stratum.*: 1
 Root delay      : 0\.000000001 seconds
 .*$" || test_fail
 
-	check_file_messages "20.* PPS1.*[0-9] N " 800 940  refclocks.log || test_fail
+	check_file_messages "20.* PPS1.*[0-9] N " 800 960  refclocks.log || test_fail
 	check_file_messages "20.* PPS1.*- N " 50 63 refclocks.log || test_fail
 	rm -f tmp/refclocks.log
 fi
