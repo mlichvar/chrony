@@ -30,11 +30,12 @@
 #define NKSN_GetKeys get_keys
 
 static int
-get_keys(NKSN_Instance session, SIV_Algorithm siv, NKE_Key *c2s, NKE_Key *s2c)
+get_keys(NKSN_Instance session, SIV_Algorithm algorithm, SIV_Algorithm exporter_algorithm,
+         int next_protocol, NKE_Key *c2s, NKE_Key *s2c)
 {
-  c2s->length = SIV_GetKeyLength(siv);
+  c2s->length = SIV_GetKeyLength(algorithm);
   UTI_GetRandomBytes(c2s->key, c2s->length);
-  s2c->length = SIV_GetKeyLength(siv);
+  s2c->length = SIV_GetKeyLength(algorithm);
   UTI_GetRandomBytes(s2c->key, s2c->length);
   return 1;
 }
@@ -174,7 +175,8 @@ test_unit(void)
 
   for (i = 0; i < 10000; i++) {
     context.algorithm = AEAD_AES_SIV_CMAC_256;
-    get_keys(session, context.algorithm, &context.c2s, &context.s2c);
+    get_keys(session, context.algorithm, random() % 100, NKE_NEXT_PROTOCOL_NTPV4,
+             &context.c2s, &context.s2c);
     memset(&cookie, 0, sizeof (cookie));
     TEST_CHECK(NKS_GenerateCookie(&context, &cookie));
     TEST_CHECK(NKS_DecodeCookie(&cookie, &context2));

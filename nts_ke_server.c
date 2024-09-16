@@ -339,6 +339,7 @@ helper_signal(int x)
 static int
 prepare_response(NKSN_Instance session, int error, int next_protocol, int aead_algorithm)
 {
+  SIV_Algorithm exporter_algorithm;
   NKE_Context context;
   NKE_Cookie cookie;
   char *ntp_server;
@@ -385,8 +386,15 @@ prepare_response(NKSN_Instance session, int error, int next_protocol, int aead_a
     }
 
     context.algorithm = aead_algorithm;
+    exporter_algorithm = aead_algorithm;
 
-    if (!NKSN_GetKeys(session, aead_algorithm, &context.c2s, &context.s2c))
+    /* With AES-128-GCM-SIV, set the algorithm ID in the RFC5705 key exporter
+       context incorrectly for compatibility with older chrony clients */
+    if (exporter_algorithm == AEAD_AES_128_GCM_SIV)
+      exporter_algorithm = AEAD_AES_SIV_CMAC_256;
+
+    if (!NKSN_GetKeys(session, aead_algorithm, exporter_algorithm,
+                      NKE_NEXT_PROTOCOL_NTPV4, &context.c2s, &context.s2c))
       return 0;
 
     for (i = 0; i < NKE_MAX_COOKIES; i++) {

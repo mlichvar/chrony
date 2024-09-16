@@ -116,9 +116,19 @@ verify_message(NKSN_Instance inst)
 
   TEST_CHECK(!NKSN_GetRecord(inst, &critical, &t, &length, buffer, sizeof (buffer)));
 
-  TEST_CHECK(NKSN_GetKeys(inst, AEAD_AES_SIV_CMAC_256, &c2s, &s2c));
-  TEST_CHECK(c2s.length == SIV_GetKeyLength(AEAD_AES_SIV_CMAC_256));
-  TEST_CHECK(s2c.length == SIV_GetKeyLength(AEAD_AES_SIV_CMAC_256));
+  for (i = 0; i < 10; i++) {
+    TEST_CHECK(NKSN_GetKeys(inst, AEAD_AES_SIV_CMAC_256, random(), random(), &c2s, &s2c));
+    TEST_CHECK(c2s.length == SIV_GetKeyLength(AEAD_AES_SIV_CMAC_256));
+    TEST_CHECK(s2c.length == SIV_GetKeyLength(AEAD_AES_SIV_CMAC_256));
+
+    if (SIV_GetKeyLength(AEAD_AES_128_GCM_SIV) > 0) {
+      TEST_CHECK(NKSN_GetKeys(inst, AEAD_AES_128_GCM_SIV, random(), random(), &c2s, &s2c));
+      TEST_CHECK(c2s.length == SIV_GetKeyLength(AEAD_AES_128_GCM_SIV));
+      TEST_CHECK(s2c.length == SIV_GetKeyLength(AEAD_AES_128_GCM_SIV));
+    } else {
+      TEST_CHECK(!NKSN_GetKeys(inst, AEAD_AES_128_GCM_SIV, random(), random(), &c2s, &s2c));
+    }
+  }
 }
 
 static int

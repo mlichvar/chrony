@@ -255,6 +255,7 @@ process_response(NKC_Instance inst)
 static int
 handle_message(void *arg)
 {
+  SIV_Algorithm exporter_algorithm;
   NKC_Instance inst = arg;
 
   if (!process_response(inst)) {
@@ -262,8 +263,15 @@ handle_message(void *arg)
     return 0;
   }
 
-  if (!NKSN_GetKeys(inst->session, inst->context.algorithm,
-                    &inst->context.c2s, &inst->context.s2c))
+  exporter_algorithm = inst->context.algorithm;
+
+  /* With AES-128-GCM-SIV, set the algorithm ID in the RFC5705 key exporter
+     context incorrectly for compatibility with older chrony servers */
+  if (exporter_algorithm == AEAD_AES_128_GCM_SIV)
+    exporter_algorithm = AEAD_AES_SIV_CMAC_256;
+
+  if (!NKSN_GetKeys(inst->session, inst->context.algorithm, exporter_algorithm,
+                    NKE_NEXT_PROTOCOL_NTPV4, &inst->context.c2s, &inst->context.s2c))
     return 0;
 
   if (inst->server_name[0] != '\0') {

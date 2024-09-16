@@ -77,8 +77,11 @@ extern int NKSN_EndMessage(NKSN_Instance inst);
 extern int NKSN_GetRecord(NKSN_Instance inst, int *critical, int *type, int *body_length,
                           void *body, int buffer_length);
 
-/* Export NTS keys for a specified algorithm */
-extern int NKSN_GetKeys(NKSN_Instance inst, SIV_Algorithm siv, NKE_Key *c2s, NKE_Key *s2c);
+/* Export NTS keys for a specified algorithm (for compatibility reasons the
+   RFC5705 exporter context is allowed to have a different algorithm) */
+extern int NKSN_GetKeys(NKSN_Instance inst, SIV_Algorithm algorithm,
+                        SIV_Algorithm exporter_algorithm,
+                        int next_protocol, NKE_Key *c2s, NKE_Key *s2c);
 
 /* Check if the session has stopped */
 extern int NKSN_IsStopped(NKSN_Instance inst);
