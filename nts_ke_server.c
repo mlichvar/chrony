@@ -337,7 +337,8 @@ helper_signal(int x)
 /* ================================================== */
 
 static int
-prepare_response(NKSN_Instance session, int error, int next_protocol, int aead_algorithm)
+prepare_response(NKSN_Instance session, int error, int next_protocol, int aead_algorithm,
+                 int compliant_128gcm)
 {
   SIV_Algorithm exporter_algorithm;
   NKE_Context context;
@@ -372,6 +373,11 @@ prepare_response(NKSN_Instance session, int error, int next_protocol, int aead_a
     if (!NKSN_AddRecord(session, 1, NKE_RECORD_AEAD_ALGORITHM, &datum, sizeof (datum)))
       return 0;
 
+    if (compliant_128gcm) {
+      if (!NKSN_AddRecord(session, 0, NKE_RECORD_COMPLIANT_128GCM_EXPORT, NULL, 0))
+        return 0;
+    }
+
     if (CNF_GetNTPPort() != NTP_PORT) {
       datum = htons(CNF_GetNTPPort());
       if (!NKSN_AddRecord(session, 1, NKE_RECORD_NTPV4_PORT_NEGOTIATION, &datum, sizeof (datum)))
@@ -389,8 +395,9 @@ prepare_response(NKSN_Instance session, int error, int next_protocol, int aead_a
     exporter_algorithm = aead_algorithm;
 
     /* With AES-128-GCM-SIV, set the algorithm ID in the RFC5705 key exporter
-       context incorrectly for compatibility with older chrony clients */
-    if (exporter_algorithm == AEAD_AES_128_GCM_SIV)
+       context incorrectly for compatibility with older chrony clients unless
+       the client requested the compliant context */
+    if (exporter_algorithm == AEAD_AES_128_GCM_SIV && !compliant_128gcm)
       exporter_algorithm = AEAD_AES_SIV_CMAC_256;
 
     if (!NKSN_GetKeys(session, aead_algorithm, exporter_algorithm,
@@ -419,6 +426,7 @@ process_request(NKSN_Instance session)
   int next_protocol_records = 0, aead_algorithm_records = 0;
   int next_protocol_values = 0, aead_algorithm_values = 0;
   int next_protocol = -1, aead_algorithm = -1, error = -1;
+  int compliant_128gcm = 0;
   int i, critical, type, length;
   uint16_t data[NKE_MAX_RECORD_BODY_LENGTH / sizeof (uint16_t)];
 
@@ -459,6 +467,13 @@ process_request(NKSN_Instance session)
             aead_algorithm = ntohs(data[i]);
         }
         break;
+      case NKE_RECORD_COMPLIANT_128GCM_EXPORT:
+        if (length != 0) {
+          error = NKE_ERROR_BAD_REQUEST;
+          break;
+        }
+        compliant_128gcm = 1;
+        break;
       case NKE_RECORD_ERROR:
       case NKE_RECORD_WARNING:
       case NKE_RECORD_COOKIE:
@@ -477,7 +492,7 @@ process_request(NKSN_Instance session)
       error = NKE_ERROR_BAD_REQUEST;
   }
 
-  if (!prepare_response(session, error, next_protocol, aead_algorithm))
+  if (!prepare_response(session, error, next_protocol, aead_algorithm, compliant_128gcm))
     return 0;
 
   return 1;

@@ -92,7 +92,7 @@ prepare_request(NKSN_Instance session, int valid)
 
   if (index == 8) {
     length = random() % (sizeof (data) + 1);
-    TEST_CHECK(NKSN_AddRecord(session, 1, 1000 + random() % 1000, data, length));
+    TEST_CHECK(NKSN_AddRecord(session, 1, 2000 + random() % 1000, data, length));
   }
 
   if (random() % 2) {
@@ -106,9 +106,12 @@ prepare_request(NKSN_Instance session, int valid)
     TEST_CHECK(NKSN_AddRecord(session, 0, NKE_RECORD_NTPV4_PORT_NEGOTIATION, data, length));
   }
 
+  if (random() % 2)
+    TEST_CHECK(NKSN_AddRecord(session, 0, NKE_RECORD_COMPLIANT_128GCM_EXPORT, NULL, 0));
+
   if (random() % 2) {
     length = random() % (sizeof (data) + 1);
-    TEST_CHECK(NKSN_AddRecord(session, 0, 1000 + random() % 1000, data, length));
+    TEST_CHECK(NKSN_AddRecord(session, 0, 2000 + random() % 1000, data, length));
   }
 
   TEST_CHECK(NKSN_EndMessage(session));

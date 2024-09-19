@@ -88,8 +88,11 @@ prepare_response(NKSN_Instance session, int valid)
 
   if (random() % 2) {
     length = random() % (sizeof (data) + 1);
-    TEST_CHECK(NKSN_AddRecord(session, 0, 1000 + random() % 1000, data, length));
+    TEST_CHECK(NKSN_AddRecord(session, 0, 2000 + random() % 1000, data, length));
   }
+
+  if (random() % 2)
+    TEST_CHECK(NKSN_AddRecord(session, 0, NKE_RECORD_COMPLIANT_128GCM_EXPORT, NULL, 0));
 
   if (index != 8) {
     for (i = 0; i < NKE_MAX_COOKIES; i++) {
