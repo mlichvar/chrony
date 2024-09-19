@@ -72,6 +72,7 @@ struct NNC_Instance_Record {
   double last_nke_success;
 
   NKE_Context context;
+  NKE_Context alt_context;
   unsigned int context_id;
   NKE_Cookie cookies[NTS_MAX_COOKIES];
   int num_cookies;
@@ -105,6 +106,7 @@ reset_instance(NNC_Instance inst)
   inst->last_nke_success = 0.0;
 
   memset(&inst->context, 0, sizeof (inst->context));
+  memset(&inst->alt_context, 0, sizeof (inst->alt_context));
   inst->context_id = 0;
   memset(inst->cookies, 0, sizeof (inst->cookies));
   inst->num_cookies = 0;
@@ -165,6 +167,21 @@ check_cookies(NNC_Instance inst)
   if (inst->num_cookies > 0 &&
       ((inst->nak_response && !inst->ok_response) ||
        SCH_GetLastEventMonoTime() - inst->last_nke_success > CNF_GetNtsRefresh())) {
+
+    /* Before dropping the cookies, check whether there is an alternate set of
+       keys available (exported with the compliant context for AES-128-GCM-SIV)
+       and the NAK was the only valid response after the last NTS-KE session,
+       indicating we use incorrect keys and switching to the other set of keys
+       for the following NTP requests might work */
+    if (inst->alt_context.algorithm != AEAD_SIV_INVALID &&
+        inst->alt_context.algorithm == inst->context.algorithm &&
+        inst->nke_attempts > 0 && inst->nak_response && !inst->ok_response) {
+      inst->context = inst->alt_context;
+      inst->alt_context.algorithm = AEAD_SIV_INVALID;
+      DEBUG_LOG("Switched to compliant keys");
+      return 1;
+    }
+
     inst->num_cookies = 0;
     DEBUG_LOG("Dropped cookies");
   }
@@ -261,7 +278,7 @@ get_cookies(NNC_Instance inst)
   assert(sizeof (inst->cookies) / sizeof (inst->cookies[0]) == NTS_MAX_COOKIES);
 
   /* Get the new keys, cookies and NTP address if the session was successful */
-  got_data = NKC_GetNtsData(inst->nke, &inst->context,
+  got_data = NKC_GetNtsData(inst->nke, &inst->context, &inst->alt_context,
                             inst->cookies, &inst->num_cookies, NTS_MAX_COOKIES,
                             &ntp_address);
 
@@ -520,6 +537,7 @@ NNC_CheckResponseAuth(NNC_Instance inst, NTP_Packet *packet,
      new NTS-KE session to be started as soon as the cookies run out. */
   inst->nke_attempts = 0;
   inst->next_nke_attempt = 0.0;
+  inst->alt_context.algorithm = AEAD_SIV_INVALID;
 
   return 1;
 }
@@ -643,6 +661,7 @@ load_cookies(NNC_Instance inst)
         sscanf(words[0], "%u", &context_id) != 1 || sscanf(words[1], "%d", &algorithm) != 1)
     goto error;
 
+  inst->alt_context.algorithm = AEAD_SIV_INVALID;
   inst->context.algorithm = algorithm;
   inst->context.s2c.length = UTI_HexToBytes(words[2], inst->context.s2c.key,
                                             sizeof (inst->context.s2c.key));
@@ -687,6 +706,7 @@ error:
   fclose(f);
 
   memset(&inst->context, 0, sizeof (inst->context));
+  memset(&inst->alt_context, 0, sizeof (inst->alt_context));
   inst->num_cookies = 0;
 }
 

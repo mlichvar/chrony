@@ -52,6 +52,7 @@ struct NKC_Instance_Record {
 
   int compliant_128gcm;
   NKE_Context context;
+  NKE_Context alt_context;
   NKE_Cookie cookies[NKE_MAX_COOKIES];
   int num_cookies;
   char server_name[NKE_MAX_RECORD_BODY_LENGTH + 2];
@@ -149,6 +150,7 @@ process_response(NKC_Instance inst)
   assert(sizeof (uint16_t) == 2);
 
   inst->compliant_128gcm = 0;
+  inst->alt_context.algorithm = AEAD_SIV_INVALID;
   inst->num_cookies = 0;
   inst->ntp_address.ip_addr.family = IPADDR_UNSPEC;
   inst->ntp_address.port = 0;
@@ -286,9 +288,18 @@ handle_message(void *arg)
 
   /* With AES-128-GCM-SIV, set the algorithm ID in the RFC5705 key exporter
      context incorrectly for compatibility with older chrony servers unless
-     the server confirmed support for the compliant context */
-  if (exporter_algorithm == AEAD_AES_128_GCM_SIV && !inst->compliant_128gcm)
+     the server confirmed support for the compliant context.  Generate both
+     sets of keys in case the server uses the compliant context, but does not
+     support the negotiation record, assuming it will respond with an NTS NAK
+     to a request authenticated with the noncompliant key. */
+  if (exporter_algorithm == AEAD_AES_128_GCM_SIV && !inst->compliant_128gcm) {
+    inst->alt_context.algorithm = inst->context.algorithm;
+    if (!NKSN_GetKeys(inst->session, inst->alt_context.algorithm, exporter_algorithm,
+                      NKE_NEXT_PROTOCOL_NTPV4, &inst->alt_context.c2s, &inst->alt_context.s2c))
+      return 0;
+
     exporter_algorithm = AEAD_AES_SIV_CMAC_256;
+  }
 
   if (!NKSN_GetKeys(inst->session, inst->context.algorithm, exporter_algorithm,
                     NKE_NEXT_PROTOCOL_NTPV4, &inst->context.c2s, &inst->context.s2c))
@@ -456,7 +467,7 @@ NKC_IsActive(NKC_Instance inst)
 /* ================================================== */
 
 int
-NKC_GetNtsData(NKC_Instance inst, NKE_Context *context,
+NKC_GetNtsData(NKC_Instance inst, NKE_Context *context, NKE_Context *alt_context,
                NKE_Cookie *cookies, int *num_cookies, int max_cookies,
                IPSockAddr *ntp_address)
 {
@@ -466,6 +477,7 @@ NKC_GetNtsData(NKC_Instance inst, NKE_Context *context,
     return 0;
 
   *context = inst->context;
+  *alt_context = inst->alt_context;
 
   for (i = 0; i < inst->num_cookies && i < max_cookies; i++)
     cookies[i] = inst->cookies[i];

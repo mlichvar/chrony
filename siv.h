@@ -36,6 +36,7 @@
 
 /* Identifiers of SIV algorithms following the IANA AEAD registry */
 typedef enum {
+  AEAD_SIV_INVALID = 0,
   AEAD_AES_SIV_CMAC_256 = 15,
   AEAD_AES_SIV_CMAC_384 = 16,
   AEAD_AES_SIV_CMAC_512 = 17,

@@ -46,7 +46,7 @@ extern int NKC_Start(NKC_Instance inst);
 extern int NKC_IsActive(NKC_Instance inst);
 
 /* Get the NTS data if the session was successful */
-extern int NKC_GetNtsData(NKC_Instance inst, NKE_Context *context,
+extern int NKC_GetNtsData(NKC_Instance inst, NKE_Context *context, NKE_Context *alt_context,
                           NKE_Cookie *cookies, int *num_cookies, int max_cookies,
                           IPSockAddr *ntp_address);
 

@@ -33,7 +33,7 @@
 #define NKC_IsActive(inst) (random() % 2)
 #define NKC_GetRetryFactor(inst) (1)
 
-static int get_nts_data(NKC_Instance inst, NKE_Context *context,
+static int get_nts_data(NKC_Instance inst, NKE_Context *context, NKE_Context *alt_context,
                         NKE_Cookie *cookies, int *num_cookies, int max_cookies,
                         IPSockAddr *ntp_address);
 #define NKC_GetNtsData get_nts_data
@@ -41,7 +41,7 @@ static int get_nts_data(NKC_Instance inst, NKE_Context *context,
 #include <nts_ntp_client.c>
 
 static int
-get_nts_data(NKC_Instance inst, NKE_Context *context,
+get_nts_data(NKC_Instance inst, NKE_Context *context, NKE_Context *alt_context,
              NKE_Cookie *cookies, int *num_cookies, int max_cookies,
              IPSockAddr *ntp_address)
 {
@@ -59,6 +59,14 @@ get_nts_data(NKC_Instance inst, NKE_Context *context,
   UTI_GetRandomBytes(context->c2s.key, context->c2s.length);
   context->s2c.length = SIV_GetKeyLength(context->algorithm);
   UTI_GetRandomBytes(context->s2c.key, context->s2c.length);
+
+  if (random() % 2) {
+    *alt_context = *context;
+    UTI_GetRandomBytes(alt_context->c2s.key, alt_context->c2s.length);
+    UTI_GetRandomBytes(alt_context->s2c.key, alt_context->s2c.length);
+  } else {
+    alt_context->algorithm = AEAD_SIV_INVALID;
+  }
 
   *num_cookies = random() % max_cookies + 1;
   for (i = 0; i < *num_cookies; i++) {
