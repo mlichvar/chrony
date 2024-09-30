@@ -888,6 +888,9 @@ NKSN_GetKeys(NKSN_Instance inst, SIV_Algorithm algorithm, SIV_Algorithm exporter
     uint8_t _pad;
   } context;
 
+  if (!inst->tls_session)
+    return 0;
+
   if (length <= 0 || length > sizeof (c2s->key) || length > sizeof (s2c->key)) {
     DEBUG_LOG("Invalid algorithm");
     return 0;
