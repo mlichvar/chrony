@@ -426,8 +426,8 @@ process_request(NKSN_Instance session)
   int next_protocol_records = 0, aead_algorithm_records = 0;
   int next_protocol_values = 0, aead_algorithm_values = 0;
   int next_protocol = -1, aead_algorithm = -1, error = -1;
+  int i, j, critical, type, length;
   int compliant_128gcm = 0;
-  int i, critical, type, length;
   uint16_t data[NKE_MAX_RECORD_BODY_LENGTH / sizeof (uint16_t)];
 
   assert(NKE_MAX_RECORD_BODY_LENGTH % sizeof (uint16_t) == 0);
@@ -462,9 +462,12 @@ process_request(NKSN_Instance session)
 
         for (i = 0; i < MIN(length, sizeof (data)) / 2; i++) {
           aead_algorithm_values++;
-          /* Use the first supported algorithm */
-          if (aead_algorithm < 0 && SIV_GetKeyLength(ntohs(data[i])) > 0)
-            aead_algorithm = ntohs(data[i]);
+          /* Use the first enabled and supported algorithm */
+          for (j = 0; j < ARR_GetSize(CNF_GetNtsAeads()); j++) {
+            if (ntohs(data[i]) == *(int *)ARR_GetElement(CNF_GetNtsAeads(), j) &&
+                aead_algorithm < 0 && SIV_GetKeyLength(ntohs(data[i])) > 0)
+              aead_algorithm = ntohs(data[i]);
+          }
         }
         break;
       case NKE_RECORD_COMPLIANT_128GCM_EXPORT:

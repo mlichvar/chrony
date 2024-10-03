@@ -57,6 +57,7 @@ static int parse_string(char *line, char **result);
 static int parse_int(char *line, int *result);
 static int parse_double(char *line, double *result);
 static int parse_null(char *line);
+static int parse_ints(char *line, ARR_Instance array);
 
 static void parse_allow_deny(char *line, ARR_Instance restrictions, int allow);
 static void parse_authselectmode(char *);
@@ -261,7 +262,10 @@ static char *user;
 /* Address refresh interval */
 static int refresh = 1209600; /* 2 weeks */
 
+#define DEFAULT_NTS_AEADS "30 15"
+
 /* NTS server and client configuration */
+static ARR_Instance nts_aeads; /* array of int */
 static char *nts_dump_dir = NULL;
 static char *nts_ntp_server = NULL;
 static ARR_Instance nts_server_cert_files; /* array of (char *) */
@@ -397,6 +401,8 @@ check_number_of_args(char *line, int num)
 void
 CNF_Initialise(int r, int client_only)
 {
+  char buf[10];
+
   restarted = r;
 
   hwts_interfaces = ARR_CreateInstance(sizeof (CNF_HwTsInterface));
@@ -410,6 +416,9 @@ CNF_Initialise(int r, int client_only)
   ntp_restrictions = ARR_CreateInstance(sizeof (AllowDeny));
   cmd_restrictions = ARR_CreateInstance(sizeof (AllowDeny));
 
+  nts_aeads = ARR_CreateInstance(sizeof (int));
+  snprintf(buf, sizeof (buf), DEFAULT_NTS_AEADS);
+  parse_ints(buf, nts_aeads);
   nts_server_cert_files = ARR_CreateInstance(sizeof (char *));
   nts_server_key_files = ARR_CreateInstance(sizeof (char *));
   nts_trusted_certs_paths = ARR_CreateInstance(sizeof (char *));
@@ -469,6 +478,7 @@ CNF_Finalise(void)
   ARR_DestroyInstance(ntp_restrictions);
   ARR_DestroyInstance(cmd_restrictions);
 
+  ARR_DestroyInstance(nts_aeads);
   ARR_DestroyInstance(nts_server_cert_files);
   ARR_DestroyInstance(nts_server_key_files);
   ARR_DestroyInstance(nts_trusted_certs_paths);
@@ -679,6 +689,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     no_system_cert = parse_null(p);
   } else if (!strcasecmp(command, "ntpsigndsocket")) {
     parse_string(p, &ntp_signd_socket);
+  } else if (!strcasecmp(command, "ntsaeads")) {
+    parse_ints(p, nts_aeads);
   } else if (!strcasecmp(command, "ntsratelimit")) {
     parse_ratelimit(p, &nts_ratelimit_enabled, &nts_ratelimit_interval,
                     &nts_ratelimit_burst, &nts_ratelimit_leak, NULL);
@@ -801,6 +813,25 @@ static int
 parse_null(char *line)
 {
   check_number_of_args(line, 0);
+  return 1;
+}
+
+/* ================================================== */
+
+static int
+parse_ints(char *line, ARR_Instance array)
+{
+  char *s;
+  int v;
+
+  ARR_SetSize(array, 0);
+
+  while (*line) {
+    s = line;
+    line = CPS_SplitWord(line);
+    parse_int(s, &v);
+    ARR_AppendElement(array, &v);
+  }
   return 1;
 }
 
@@ -2595,6 +2626,14 @@ int
 CNF_GetRefresh(void)
 {
   return refresh;
+}
+
+/* ================================================== */
+
+ARR_Instance
+CNF_GetNtsAeads(void)
+{
+  return nts_aeads;
 }
 
 /* ================================================== */

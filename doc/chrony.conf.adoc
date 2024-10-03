@@ -833,6 +833,34 @@ changes in the frequency and offset of the clock. The offsets in the
 <<chronyc.adoc#sourcestats,*sourcestats*>> reports (and the _tracking.log_ and
 _statistics.log_ files) may be smaller than the actual offsets.
 
+[[ntsaeads1]]*ntsaeads* _ID_...::
+This directive specifies a list of IDs of Authenticated Encryption with
+Associated Data (AEAD) algorithms enabled for NTS authentication of NTP
+messages. The algorithms are specified in decreasing order of priority.
+Algorithms that are not supported by the installed version of the crypto
+library (Nettle, GnuTLS) are ignored.
++
+The following IDs are supported:
++
+* 15: AES-SIV-CMAC-256
+* 30: AES-128-GCM-SIV
+{blank}::
++
+The default list of IDs is _30 15_. AES-128-GCM-SIV is prefered over
+AES-SIV-CMAC-256 for shorter keys, which makes NTS cookies shorter and improves
+reliability of NTS in networks that block or limit rate of longer NTP messages.
++
+The ID of the used algorithm is reported for each server by the
+<<chronyc.adoc#authdata,*authdata*>> command.
++
+An example of the directive is:
++
+----
+ntsaeads 15
+----
++
+This list is used also by the <<ntsaeads2,NTS server>>.
+
 [[ntsdumpdir1]]*ntsdumpdir* _directory_::
 This directive specifies a directory for the client to save NTS cookies it
 received from the server in order to avoid making an NTS-KE request when
@@ -1778,6 +1806,43 @@ This directive specifies the maximum number of concurrent NTS-KE connections
 per process that the NTS server will accept. The default value is 100. The
 maximum practical value is half of the system *FD_SETSIZE* constant (usually
 1024).
+
+[[ntsaeads2]]*ntsaeads* _ID_...::
+This directive specifies a list of IDs of Authenticated Encryption with
+Associated Data (AEAD) algorithms enabled for NTS authentication of NTP
+messages. *chronyd* as a server uses the first enabled algorithm from the list
+provided by the client. Algorithms that are not supported by the installed
+version of the crypto library (Nettle, GnuTLS) are ignored.
++
+The following IDs are supported:
++
+* 15: AES-SIV-CMAC-256
+* 30: AES-128-GCM-SIV
+{blank}::
++
+The default list of IDs is _30 15_. AES-128-GCM-SIV is prefered over
+AES-SIV-CMAC-256 for shorter keys, which makes NTS cookies shorter and improves
+reliability of NTS in networks that block or limit rate of longer NTP messages.
++
+An example of the directive is:
++
+----
+ntsaeads 15
+----
++
+This list is used also by the <<ntsaeads1,NTS client>>.
++
+Note the the NTS specification (RFC 8915) requires servers to support
+AES-SIV-CMAC-256, i.e. 15 should be always included in the specified list.
++
+The AES-128-GCM-SIV keys used by *chronyd* do not comply to RFC 8915 for
+compatibility with older *chrony* clients unless the use of compliant keys is
+negotiated with an
+https://chrony-project.org/doc/spec/nts-compliant-128gcm.html[NTS-KE record].
+Support for this record was added in version 4.6.1. As a client, *chronyd* can
+interoperate with a server that uses compliant keys, but does not support the
+negotiation, if it responds to incorrectly authenticated requests with an NTS
+NAK.
 
 [[ntsdumpdir2]]*ntsdumpdir* _directory_::
 This directive specifies a directory where *chronyd* operating as an NTS server

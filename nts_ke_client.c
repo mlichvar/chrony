@@ -100,12 +100,14 @@ name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *arg
 
 /* ================================================== */
 
+#define MAX_AEAD_ALGORITHMS 4
+
 static int
 prepare_request(NKC_Instance inst)
 {
   NKSN_Instance session = inst->session;
-  uint16_t data[2];
-  int i, length;
+  uint16_t data[MAX_AEAD_ALGORITHMS];
+  int i, aead_algorithm, length;
 
   NKSN_BeginMessage(session);
 
@@ -113,11 +115,12 @@ prepare_request(NKC_Instance inst)
   if (!NKSN_AddRecord(session, 1, NKE_RECORD_NEXT_PROTOCOL, data, sizeof (data[0])))
     return 0;
 
-  length = 0;
-  if (SIV_GetKeyLength(AEAD_AES_128_GCM_SIV) > 0)
-    data[length++] = htons(AEAD_AES_128_GCM_SIV);
-  if (SIV_GetKeyLength(AEAD_AES_SIV_CMAC_256) > 0)
-    data[length++] = htons(AEAD_AES_SIV_CMAC_256);
+  for (i = length = 0; i < ARR_GetSize(CNF_GetNtsAeads()) && length < MAX_AEAD_ALGORITHMS;
+       i++) {
+    aead_algorithm = *(int *)ARR_GetElement(CNF_GetNtsAeads(), i);
+    if (SIV_GetKeyLength(aead_algorithm) > 0)
+      data[length++] = htons(aead_algorithm);
+  }
   if (!NKSN_AddRecord(session, 1, NKE_RECORD_AEAD_ALGORITHM, data,
                       length * sizeof (data[0])))
     return 0;
@@ -177,15 +180,22 @@ process_response(NKC_Instance inst)
         next_protocol = NKE_NEXT_PROTOCOL_NTPV4;
         break;
       case NKE_RECORD_AEAD_ALGORITHM:
-        if (length != 2 || (ntohs(data[0]) != AEAD_AES_SIV_CMAC_256 &&
-                            ntohs(data[0]) != AEAD_AES_128_GCM_SIV) ||
-            SIV_GetKeyLength(ntohs(data[0])) <= 0) {
-          DEBUG_LOG("Unexpected NTS-KE AEAD algorithm");
+        if (length != 2) {
+          DEBUG_LOG("Unexpected AEAD algorithm");
           error = 1;
           break;
         }
-        aead_algorithm = ntohs(data[0]);
-        inst->context.algorithm = aead_algorithm;
+        for (i = 0; i < ARR_GetSize(CNF_GetNtsAeads()); i++) {
+          if (ntohs(data[0]) == *(int *)ARR_GetElement(CNF_GetNtsAeads(), i) &&
+              SIV_GetKeyLength(ntohs(data[0])) > 0) {
+            aead_algorithm = ntohs(data[0]);
+            inst->context.algorithm = aead_algorithm;
+          }
+        }
+        if (aead_algorithm < 0) {
+          DEBUG_LOG("Unexpected AEAD algorithm");
+          error = 1;
+        }
         break;
       case NKE_RECORD_COMPLIANT_128GCM_EXPORT:
         if (length != 0) {

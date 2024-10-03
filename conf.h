@@ -29,6 +29,7 @@
 #define GOT_CONF_H
 
 #include "addressing.h"
+#include "array.h"
 #include "reference.h"
 #include "sources.h"
 
@@ -163,6 +164,7 @@ extern int CNF_GetPtpDomain(void);
 
 extern int CNF_GetRefresh(void);
 
+extern ARR_Instance CNF_GetNtsAeads(void);
 extern char *CNF_GetNtsDumpDir(void);
 extern char *CNF_GetNtsNtpServer(void);
 extern int CNF_GetNtsServerCertAndKeyFiles(const char ***certs, const char ***keys);

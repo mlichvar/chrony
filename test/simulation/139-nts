@@ -313,4 +313,31 @@ check_sync && test_fail
 check_file_messages "	3	1	.*	123	" 0 0 log.packets || test_fail
 check_file_messages "	3	2	.*	123	" 0 0 log.packets || test_fail
 
+for server_aead in "" "15" "30"; do
+	for client_aead in "" "15" "30"; do
+		server_conf="
+		ntsaeads $server_aead
+		ntsserverkey tmp/server1.key
+		ntsservercert tmp/server1.crt
+		ntsprocesses 0"
+		client_conf="
+		nosystemcert
+		ntsaeads $client_aead
+		ntstrustedcerts tmp/server1.crt
+		ntstrustedcerts tmp/server2.crt"
+		client_server_conf=""
+
+		run_test || test_fail
+		check_chronyd_exit || test_fail
+		if [ -n "$server_aead" ] && [ "$server_aead" == "$client_aead" ] &&
+		    ( [ "$server_aead" != "30" ] || check_config_h '.*_SIV_GCM 1' ); then
+			check_source_selection || test_fail
+			check_sync || test_fail
+		else
+			check_source_selection && test_fail
+			check_sync && test_fail
+		fi
+	done
+done
+
 test_pass
