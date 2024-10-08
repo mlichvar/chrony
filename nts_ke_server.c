@@ -373,7 +373,7 @@ prepare_response(NKSN_Instance session, int error, int next_protocol, int aead_a
     if (!NKSN_AddRecord(session, 1, NKE_RECORD_AEAD_ALGORITHM, &datum, sizeof (datum)))
       return 0;
 
-    if (compliant_128gcm) {
+    if (aead_algorithm == AEAD_AES_128_GCM_SIV && compliant_128gcm) {
       if (!NKSN_AddRecord(session, 0, NKE_RECORD_COMPLIANT_128GCM_EXPORT, NULL, 0))
         return 0;
     }
