@@ -2821,7 +2821,11 @@ source is specified in the configuration file with a key shorter than 80 bits.
 +
 The recommended key types are AES ciphers and SHA3 hash functions. MD5 should
 be avoided unless no other type is supported on the server and client, or
-peers.
+peers. A major weakness of MD5 for the NTP MAC is a length extension attack,
+where a man-in-the-middle attacker can add arbitrary extension fields to the
+NTP message and update the MAC to pass the verification of the extended
+message. The *extfield* option (enabling processing of the specified extension
+field) should not be used for NTP sources authenticated with an MD5 key.
 +
 The <<chronyc.adoc#keygen,*keygen*>> command of *chronyc* can be used to
 generate random keys for the key file. By default, it generates 160-bit MD5 or
