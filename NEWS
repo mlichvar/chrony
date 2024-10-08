@@ -1,3 +1,17 @@
+New in version 4.6.1
+====================
+
+Enhancements
+------------
+* Add ntsaeads directive to enable only selected AEAD algorithms for NTS
+
+Workarounds
+-----------
+* Negotiate use of compliant NTS keys with AES-128-GCM-SIV AEAD algorithm
+  (by default the keys are generated differently than in RFC 8915 for
+  compatibility with chrony server and client versions 4.4, 4.5, and 4.6)
+* Switch to compliant NTS keys if first response from server is NTS NAK
+
 New in version 4.6
 ==================
 
