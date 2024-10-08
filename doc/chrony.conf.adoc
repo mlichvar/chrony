@@ -846,7 +846,7 @@ The following IDs are supported:
 * 30: AES-128-GCM-SIV
 {blank}::
 +
-The default list of IDs is _30 15_. AES-128-GCM-SIV is prefered over
+The default list of IDs is _30 15_. AES-128-GCM-SIV is preferred over
 AES-SIV-CMAC-256 for shorter keys, which makes NTS cookies shorter and improves
 reliability of NTS in networks that block or limit rate of longer NTP messages.
 +
@@ -1820,7 +1820,7 @@ The following IDs are supported:
 * 30: AES-128-GCM-SIV
 {blank}::
 +
-The default list of IDs is _30 15_. AES-128-GCM-SIV is prefered over
+The default list of IDs is _30 15_. AES-128-GCM-SIV is preferred over
 AES-SIV-CMAC-256 for shorter keys, which makes NTS cookies shorter and improves
 reliability of NTS in networks that block or limit rate of longer NTP messages.
 +
