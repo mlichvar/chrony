@@ -154,6 +154,8 @@ static void process_ext_pulse(RCL_Instance instance, struct timespec *phc_ts)
   }
   phc->last_extts = *phc_ts;
 
+  RCL_UpdateReachability(instance);
+
   if (!HCL_CookTime(phc->clock, phc_ts, &local_ts, &local_err))
     return;
 
@@ -203,6 +205,9 @@ static int phc_poll(RCL_Instance instance)
                                         PHC_READINGS, readings);
   if (n_readings < 1)
     return 0;
+
+  if (!phc->extpps)
+    RCL_UpdateReachability(instance);
 
   if (!HCL_ProcessReadings(phc->clock, n_readings, readings, &phc_ts, &sys_ts, &phc_err))
     return 0;

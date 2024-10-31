@@ -129,6 +129,8 @@ static void read_sample(int sockfd, int event, void *anything)
   UTI_TimevalToTimespec(&sample.tv, &sys_ts);
   UTI_NormaliseTimespec(&sys_ts);
 
+  RCL_UpdateReachability(instance);
+
   if (!UTI_IsTimeOffsetSane(&sys_ts, sample.offset))
     return;
 

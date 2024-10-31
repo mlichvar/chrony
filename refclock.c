@@ -63,6 +63,7 @@ struct RCL_Instance_Record {
   int driver_poll;
   int driver_polled;
   int poll;
+  int reached;
   int leap_status;
   int local;
   int pps_forced;
@@ -175,6 +176,7 @@ RCL_AddRefclock(RefclockParameters *params)
   inst->driver_poll = params->driver_poll;
   inst->poll = params->poll;
   inst->driver_polled = 0;
+  inst->reached = 0;
   inst->leap_status = LEAP_Normal;
   inst->local = params->local;
   inst->pps_forced = params->pps_forced;
@@ -665,6 +667,12 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
   return 1;
 }
 
+void
+RCL_UpdateReachability(RCL_Instance instance)
+{
+  instance->reached++;
+}
+
 double
 RCL_GetPrecision(RCL_Instance instance)
 {
@@ -792,6 +800,9 @@ poll_timeout(void *arg)
   if (!(inst->driver->poll && inst->driver_polled < (1 << (inst->poll - inst->driver_poll)))) {
     inst->driver_polled = 0;
 
+    SRC_UpdateReachability(inst->source, inst->reached > 0);
+    inst->reached = 0;
+
     if (SPF_GetFilteredSample(inst->filter, &sample)) {
       double local_freq, local_offset;
       struct timespec local_ref_time;
@@ -807,7 +818,6 @@ poll_timeout(void *arg)
         inst->leap_status = LEAP_Unsynchronised;
       }
 
-      SRC_UpdateReachability(inst->source, 1);
       SRC_UpdateStatus(inst->source, stratum, inst->leap_status);
       SRC_AccumulateSample(inst->source, &sample);
       SRC_SelectSource(inst->source);
@@ -816,8 +826,6 @@ poll_timeout(void *arg)
         follow_local(inst, &local_ref_time, local_freq, local_offset);
 
       log_sample(inst, &sample.time, 1, 0, 0.0, sample.offset, sample.peer_dispersion);
-    } else {
-      SRC_UpdateReachability(inst->source, 0);
     }
   }
 

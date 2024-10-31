@@ -143,6 +143,8 @@ static int pps_poll(RCL_Instance instance)
 
   pps->last_seq = seq;
 
+  RCL_UpdateReachability(instance);
+
   return RCL_AddPulse(instance, &ts, 1.0e-9 * ts.tv_nsec);
 }
 

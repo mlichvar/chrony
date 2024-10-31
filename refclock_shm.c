@@ -109,6 +109,8 @@ static int shm_poll(RCL_Instance instance)
 
   shm->valid = 0;
 
+  RCL_UpdateReachability(instance);
+
   receive_ts.tv_sec = t.receiveTimeStampSec;
   clock_ts.tv_sec = t.clockTimeStampSec;
 

@@ -81,6 +81,7 @@ extern int RCL_AddSample(RCL_Instance instance, struct timespec *sample_time,
 extern int RCL_AddPulse(RCL_Instance instance, struct timespec *pulse_time, double second);
 extern int RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
                               double second, double dispersion, double raw_correction);
+extern void RCL_UpdateReachability(RCL_Instance instance);
 extern double RCL_GetPrecision(RCL_Instance instance);
 extern int RCL_GetDriverPoll(RCL_Instance instance);
 

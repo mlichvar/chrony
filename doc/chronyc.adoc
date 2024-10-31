@@ -364,9 +364,12 @@ a measurement is being made every 64 seconds. *chronyd* automatically varies
 the polling rate in response to prevailing conditions.
 *Reach*:::
 This shows the source's reachability register printed as an octal number. The
-register has 8 bits and is updated on every received or missed packet from
-the source. A value of 377 indicates that a valid reply was received for all
-from the last eight transmissions.
+register has 8 bits. It is shifted to left by one bit with each poll and it is
+updated by 1 when a valid NTP response, or just a sample in case of a reference
+clock, is received from the source. A value of 377 indicates that a valid
+response or sample was received for all of the last 8 polls. Note that samples
+can be dropped if they are not considered good enough for synchronisation, but
+the reachability register will still have 1s for their polls.
 *LastRx*:::
 This column shows how long ago the last good sample (which is shown in the next
 column) was received from the source. Measurements that failed some tests are

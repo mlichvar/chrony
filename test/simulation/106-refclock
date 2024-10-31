@@ -114,6 +114,32 @@ Root delay      : 0\.000000001 seconds
 	rm -f tmp/refclocks.log
 fi
 
+export CLKNETSIM_PHC_JITTER_OFF=$[2 * 25 * 492]
+export CLKNETSIM_PHC_JITTER_ON=$[2 * 25 * 8]
+export CLKNETSIM_PHC_JITTER=1e-6
+refclock_offset=0.0
+refclock_jitter=1e-9
+min_sync_time=5
+max_sync_time=7
+time_max_limit=1e-7
+time_rms_limit=1e-8
+client_conf="refclock PHC /dev/ptp0:nocrossts poll 0
+logdir tmp
+log refclocks"
+chronyc_start=500
+chronyc_conf="sources"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_source_selection || test_fail
+check_sync || test_fail
+check_chronyc_output "^MS.*
+=*
+#\* PHC0                          0   0   377     8 .*$" || test_fail
+
+unset CLKNETSIM_PHC_JITTER_OFF
+unset CLKNETSIM_PHC_JITTER_ON
+export CLKNETSIM_PHC_JITTER=1e-7
 refclock_offset="(+ 0.399 (sum 1e-3))"
 refclock_jitter=1e-6
 servers=1
