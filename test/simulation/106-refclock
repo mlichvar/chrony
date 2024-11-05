@@ -89,9 +89,9 @@ Root delay      : 0\.000000001 seconds
 	check_file_messages "20.* PPS1.*- N " 60 63 refclocks.log || test_fail
 	rm -f tmp/refclocks.log
 
-	min_sync_time=80
-	max_sync_time=180
-	chronyc_start=220
+	min_sync_time=180
+	max_sync_time=260
+	chronyc_start=270
 	client_conf="
 refclock SHM 0 refid NMEA offset 0.35 delay 0.1
 refclock PPS /dev/pps0
@@ -112,6 +112,30 @@ Root delay      : 0\.000000001 seconds
 	check_file_messages "20.* PPS1.*[0-9] N " 800 960  refclocks.log || test_fail
 	check_file_messages "20.* PPS1.*- N " 50 63 refclocks.log || test_fail
 	rm -f tmp/refclocks.log
+
+	min_sync_time=80
+	max_sync_time=180
+	chronyc_start=220
+	# Swapped order of SHM and PPS impacts first accepted sample
+	client_conf="
+refclock PPS /dev/pps0
+refclock SHM 0 refid NMEA offset 0.35 delay 0.1
+logdir tmp
+log refclocks
+maxupdateskew 10000"
+
+	run_test || test_fail
+	check_chronyd_exit || test_fail
+	check_source_selection || test_fail
+	check_sync || test_fail
+	check_chronyc_output "^Reference ID.*50505330 \(PPS0\)
+Stratum.*: 1
+.*
+Root delay      : 0\.000000001 seconds
+.*$" || test_fail
+
+	check_file_messages "20.* PPS0.*[0-9] N " 800 960  refclocks.log || test_fail
+	check_file_messages "20.* PPS0.*- N " 50 63 refclocks.log || test_fail
 fi
 
 export CLKNETSIM_PHC_JITTER_OFF=$[2 * 25 * 492]

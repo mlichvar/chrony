@@ -233,12 +233,10 @@ RCL_AddRefclock(RefclockParameters *params)
     if (inst->driver_poll > inst->poll)
       inst->driver_poll = inst->poll;
 
+    /* Adjust the filter length to save memory if the expected number
+       of samples is smaller */
     max_samples = 1 << (inst->poll - inst->driver_poll);
     if (max_samples < params->filter_length) {
-      if (max_samples < 4) {
-        LOG(LOGS_WARN, "Setting filter length for %s to %d",
-            UTI_RefidToString(inst->ref_id), max_samples);
-      }
       params->filter_length = max_samples;
     }
   }
@@ -246,11 +244,9 @@ RCL_AddRefclock(RefclockParameters *params)
   if (inst->driver->init && !inst->driver->init(inst))
     LOG_FATAL("refclock %s initialisation failed", params->driver_name);
 
-  /* Require the filter to have at least 4 samples to produce a filtered
-     sample, or be full for shorter lengths, and combine 60% of samples
-     closest to the median */
-  inst->filter = SPF_CreateInstance(MIN(params->filter_length, 4), params->filter_length,
-                                    params->max_dispersion, 0.6);
+  /* Don't require more than one sample per poll and combine 60% of the
+     samples closest to the median offset */
+  inst->filter = SPF_CreateInstance(1, params->filter_length, params->max_dispersion, 0.6);
 
   inst->source = SRC_CreateNewInstance(inst->ref_id, SRC_REFCLOCK, 0, params->sel_options,
                                        NULL, params->min_samples, params->max_samples,

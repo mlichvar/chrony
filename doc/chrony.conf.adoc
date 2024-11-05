@@ -661,14 +661,13 @@ value is the estimated precision of the system clock.
 Maximum allowed dispersion for filtered samples (in seconds). Samples with
 larger estimated dispersion are ignored. By default, this limit is disabled.
 *filter* _samples_:::
-This option sets the length of the median filter which is used to reduce the
-noise in the measurements. With each poll about 40 percent of the stored
-samples are discarded and one final sample is calculated as an average of the
-remaining samples. If the length is 4 or more, at least 4 samples have to be
-collected between polls. For lengths below 4, the filter has to be full. The
-default is 64. With drivers that perform their own polling (PPS, PHC, SHM), the
-maximum value is adjusted to the number of driver polls per source poll, i.e.
-2^(_poll_ - _dpoll_).
+This option sets the maximum number of samples that can be stored in the median
+filter between polls of the source. The filter combines about 60 percent of the
+samples closest to the median offset into one sample. If more samples are
+received by the driver between polls, the oldest samples will be dropped. One
+sample per poll is sufficient for the source to be selectable. The default
+is 64. Note that the PHC driver has additional filtering based on the reading
+delay.
 *prefer*:::
 Prefer this source over other selectable sources without the *prefer* option.
 *noselect*:::
