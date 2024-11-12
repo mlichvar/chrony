@@ -28,12 +28,7 @@
 
 #include "sysincl.h"
 
-#ifdef HAVE_NETTLE_SIV_CMAC
 #include <nettle/siv-cmac.h>
-#else
-#include "siv_nettle_int.c"
-#endif
-
 #ifdef HAVE_NETTLE_SIV_GCM
 #include <nettle/siv-gcm.h>
 #endif

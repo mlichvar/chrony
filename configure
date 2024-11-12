@@ -997,7 +997,6 @@ if [ $feat_ntp = "1" ] && [ $feat_nts = "1" ] && [ $try_gnutls = "1" ]; then
     then
       EXTRA_OBJECTS="$EXTRA_OBJECTS siv_nettle.o"
       add_def HAVE_SIV
-      add_def HAVE_NETTLE_SIV_CMAC
       if [ $try_aes_gcm_siv = "1" ] && test_code 'AES-GCM-SIV in nettle' \
         'nettle/siv-gcm.h' "" "$LIBS" \
         'siv_gcm_aes128_encrypt_message((void *)1, 0, NULL, 0, (void *)2, 16, (void *)3,
@@ -1024,13 +1023,6 @@ if [ $feat_ntp = "1" ] && [ $feat_nts = "1" ] && [ $try_gnutls = "1" ]; then
             return gnutls_aead_cipher_set_key((void *)1, (void *)2);'
         then
           add_def HAVE_GNUTLS_AEAD_CIPHER_SET_KEY
-        fi
-      else
-        if test_code 'AES128 in nettle' 'nettle/aes.h' '' "$LIBS" \
-          'aes128_set_encrypt_key((void *)1, (void *)2);'
-        then
-          EXTRA_OBJECTS="$EXTRA_OBJECTS siv_nettle.o"
-          add_def HAVE_SIV
         fi
       fi
     fi
