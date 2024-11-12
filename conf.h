@@ -56,7 +56,7 @@ extern void CNF_ReloadSources(void);
 
 extern int CNF_GetAcquisitionPort(void);
 extern int CNF_GetNTPPort(void);
-extern char *CNF_GetDriftFile(void);
+extern char *CNF_GetDriftFile(int *interval);
 extern char *CNF_GetLogDir(void);
 extern char *CNF_GetDumpDir(void);
 extern int CNF_GetLogBanner(void);

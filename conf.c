@@ -67,6 +67,7 @@ static void parse_bindcmdaddress(char *);
 static void parse_broadcast(char *);
 static void parse_clientloglimit(char *);
 static void parse_confdir(char *);
+static void parse_driftfile(char *);
 static void parse_fallbackdrift(char *);
 static void parse_hwtimestamp(char *);
 static void parse_include(char *);
@@ -98,6 +99,7 @@ static int acquisition_port = -1;
 static int ntp_port = NTP_PORT;
 static char *keys_file = NULL;
 static char *drift_file = NULL;
+static int drift_file_interval = 3600;
 static char *rtc_file = NULL;
 static double max_update_skew = 1000.0;
 static double correction_time_ratio = 3.0;
@@ -614,7 +616,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "deny")) {
     parse_allow_deny(p, ntp_restrictions, 0);
   } else if (!strcasecmp(command, "driftfile")) {
-    parse_string(p, &drift_file);
+    parse_driftfile(p);
   } else if (!strcasecmp(command, "dscp")) {
     parse_int(p, &ntp_dscp);
   } else if (!strcasecmp(command, "dumpdir")) {
@@ -1656,6 +1658,29 @@ parse_confdir(char *line)
 /* ================================================== */
 
 static void
+parse_driftfile(char *line)
+{
+  char *path, *opt, *val;
+
+  path = line;
+  opt = CPS_SplitWord(path);
+  val = CPS_SplitWord(opt);
+
+  if (*path == '\0' ||
+      (*opt != '\0' && (strcasecmp(opt, "interval") != 0 ||
+                        sscanf(val, "%d", &drift_file_interval) != 1 ||
+                        *CPS_SplitWord(val) != '\0'))) {
+    command_parse_error();
+    return;
+  }
+
+  Free(drift_file);
+  drift_file = Strdup(path);
+}
+
+/* ================================================== */
+
+static void
 parse_include(char *line)
 {
   glob_t gl;
@@ -1980,8 +2005,9 @@ CNF_GetAcquisitionPort(void)
 /* ================================================== */
 
 char *
-CNF_GetDriftFile(void)
+CNF_GetDriftFile(int *interval)
 {
+  *interval = drift_file_interval;
   return drift_file;
 }
 

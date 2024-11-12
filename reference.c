@@ -47,9 +47,6 @@
 /* The update interval of the reference in the local reference mode */
 #define LOCAL_REF_UPDATE_INTERVAL 64.0
 
-/* Interval between updates of the drift file */
-#define MAX_DRIFTFILE_AGE 3600.0
-
 static int are_we_synchronised;
 static int enable_local_stratum;
 static int local_stratum;
@@ -110,6 +107,7 @@ static REF_ModeEndHandler mode_end_handler = NULL;
 /* Filename of the drift file. */
 static char *drift_file=NULL;
 static double drift_file_age;
+static int drift_file_interval;
 
 static void update_drift_file(double, double);
 
@@ -213,7 +211,7 @@ REF_Initialise(void)
   local_activate_ok = 0;
 
   /* Now see if we can get the drift file opened */
-  drift_file = CNF_GetDriftFile();
+  drift_file = CNF_GetDriftFile(&drift_file_interval);
   if (drift_file) {
     in = UTI_OpenFile(NULL, drift_file, NULL, 'r', 0);
     if (in) {
@@ -1005,7 +1003,7 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
   if (drift_file) {
     /* Update drift file at most once per hour */
     drift_file_age += update_interval;
-    if (drift_file_age >= MAX_DRIFTFILE_AGE) {
+    if (drift_file_age >= drift_file_interval) {
       update_drift_file(local_abs_frequency, our_skew);
       drift_file_age = 0.0;
     }

@@ -81,8 +81,9 @@ get_driftfile_time(void)
 {
   struct stat buf;
   char *drift_file;
+  int interval;
 
-  drift_file = CNF_GetDriftFile();
+  drift_file = CNF_GetDriftFile(&interval);
   if (!drift_file)
     return 0;
 

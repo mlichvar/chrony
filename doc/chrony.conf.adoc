@@ -1136,7 +1136,7 @@ The maximum allowed slew rate can be set by the <<maxslewrate,*maxslewrate*>>
 directive. The current remaining correction is shown in the
 <<chronyc.adoc#tracking,*tracking*>> report as the *System time* value.
 
-[[driftfile]]*driftfile* _file_::
+[[driftfile]]*driftfile* _file_ [*interval* _interval_]::
 One of the main activities of the *chronyd* program is to work out the rate at
 which the system clock gains or loses time relative to real time.
 +
@@ -1154,6 +1154,10 @@ that when the system clock has advanced by a second, it has gained 100
 microseconds in reality (so the true time has only advanced by 999900
 microseconds). The second is an estimate of the error bound around the first
 value in which the true rate actually lies.
++
+The *interval* option specifies the minimum interval between updates of the
+file in seconds. The file is written only on an update of the local clock.
+The default interval is 3600 seconds.
 +
 An example of the driftfile directive is:
 +
