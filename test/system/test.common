@@ -21,8 +21,12 @@ TEST_LIBDIR=${TEST_LIBDIR:-$TEST_DIR}
 TEST_LOGDIR=${TEST_LOGDIR:-$TEST_DIR}
 TEST_RUNDIR=${TEST_RUNDIR:-$TEST_DIR}
 TEST_SCFILTER=${TEST_SCFILTER:-0}
+TEST_ROOT_USER=${TEST_ROOT_USER:-root}
+TEST_PRIVDROP_USER=${TEST_PRIVDROP_USER:-nobody}
 
 test_start() {
+	local user=$(get_user)
+
 	check_chronyd_features NTP CMDMON || test_skip "NTP/CMDMON support disabled"
 
 	[ "${#TEST_DIR}" -ge 5 ] || test_skip "invalid TEST_DIR"
@@ -36,7 +40,7 @@ test_start() {
 
 	rm -f "$TEST_LIBDIR"/* "$TEST_LOGDIR"/* "$TEST_RUNDIR"/*
 
-	if [ "$user" != "root" ]; then
+	if [ "$user" != "$TEST_ROOT_USER" ]; then
 		id -u "$user" > /dev/null 2> /dev/null || test_skip "missing user $user"
 		chown "$user:$(id -g "$user")" "$TEST_DIR" || test_skip "could not chown $TEST_DIR"
 		su "$user" -s /bin/sh -c "touch $TEST_DIR/test" 2> /dev/null || \
@@ -108,7 +112,7 @@ default_clock_control=0
 default_server=127.0.0.1
 default_server_name=127.0.0.1
 default_server_options=""
-default_user=root
+default_priv_drop=0
 
 # Initialize test settings from their defaults
 for defoptname in ${!default_*}; do
@@ -183,6 +187,14 @@ get_cmdsocket() {
 	echo "$TEST_RUNDIR/chronyd.sock"
 }
 
+get_user() {
+	if [ "$priv_drop" -ne 0 ]; then
+		echo "$TEST_PRIVDROP_USER"
+	else
+		echo "$TEST_ROOT_USER"
+	fi
+}
+
 # Find a free port in the 10000-20000 range (their use is racy)
 get_free_port() {
 	local port
@@ -197,8 +209,9 @@ get_free_port() {
 }
 
 generate_chrony_conf() {
-	local ntpport cmdport
+	local user ntpport cmdport
 
+	user=$(get_user)
 	ntpport=$(get_free_port)
 	cmdport=$(get_free_port)
 
@@ -246,7 +259,7 @@ get_chronyd_options() {
 	[ "$clock_control" -eq 0 ] && echo "-x"
 	echo "-l $(get_logfile)"
 	echo "-f $(get_conffile)"
-	echo "-u $user"
+	echo "-u $(get_user)"
 	echo "-F $TEST_SCFILTER"
 	echo "$extra_chronyd_options"
 }

@@ -22,7 +22,7 @@ certtool --generate-privkey --key-type=ed25519 --outfile $TEST_DIR/server.key \
 	&> $TEST_DIR/certtool.log
 certtool --generate-self-signed --load-privkey $TEST_DIR/server.key \
 	--template $TEST_DIR/cert.cfg --outfile $TEST_DIR/server.crt &>> $TEST_DIR/certtool.log
-chown $user $TEST_DIR/server.*
+chown "$(get_user)" $TEST_DIR/server.*
 
 ntpport=$(get_free_port)
 ntsport=$(get_free_port)
