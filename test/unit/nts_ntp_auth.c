@@ -39,6 +39,18 @@ test_unit(void)
   int i, j, r, packet_length, nonce_length, key_length;
   int plaintext_length, plaintext2_length, min_ef_length;
 
+  TEST_CHECK(get_padding_length(0) == 0);
+  TEST_CHECK(get_padding_length(1) == 3);
+  TEST_CHECK(get_padding_length(2) == 2);
+  TEST_CHECK(get_padding_length(3) == 1);
+  TEST_CHECK(get_padding_length(4) == 0);
+  TEST_CHECK(get_padded_length(0) == 0);
+  TEST_CHECK(get_padded_length(1) == 4);
+  TEST_CHECK(get_padded_length(2) == 4);
+  TEST_CHECK(get_padded_length(3) == 4);
+  TEST_CHECK(get_padded_length(4) == 4);
+  TEST_CHECK(get_padded_length(5) == 8);
+
   for (algo = 1; algo < 100; algo++) {
     siv = SIV_CreateInstance(algo);
     if (!siv) {
@@ -102,11 +114,24 @@ test_unit(void)
       r = NNA_GenerateAuthEF(&packet, &info, siv, nonce, nonce_length, plaintext,
                              plaintext_length, min_ef_length);
       TEST_CHECK(r);
+      TEST_CHECK(info.ext_fields == 1);
       TEST_CHECK(info.length - packet_length >= min_ef_length);
+      TEST_CHECK(info.length - packet_length == get_padded_length(min_ef_length) ||
+                 info.length - packet_length == 4 + 4 +
+                 get_padded_length(MAX(MIN(16, SIV_GetMaxNonceLength(siv)), nonce_length)) +
+                 get_padded_length(plaintext_length) + SIV_GetTagLength(siv));
 
       r = NNA_DecryptAuthEF(&packet, &info, siv, packet_length, plaintext2,
                             -1, &plaintext2_length);
       TEST_CHECK(!r);
+
+      if (random() % 2) {
+        for (j = 0; j < get_padding_length(nonce_length); j++)
+          ((unsigned char *)&packet)[packet_length + 4 + 4 + nonce_length + j]++;
+        for (j = packet_length + 4 + 4 + get_padded_length(nonce_length) +
+             plaintext_length + SIV_GetTagLength(siv); j < sizeof (packet); j++)
+          ((unsigned char *)&packet)[j]++;
+      }
 
       r = NNA_DecryptAuthEF(&packet, &info, siv, packet_length, plaintext2,
                             sizeof (plaintext2), &plaintext2_length);
@@ -114,8 +139,12 @@ test_unit(void)
       TEST_CHECK(plaintext_length == plaintext2_length);
       TEST_CHECK(memcmp(plaintext, plaintext2, plaintext_length) == 0);
 
-      j = random() % (packet_length + plaintext_length +
-                      nonce_length + SIV_GetTagLength(siv) + 8) / 4 * 4;
+      if (random() % 2) {
+        j = random() % (packet_length + 4 + 4 + nonce_length);
+      } else {
+        j = packet_length + 4 + 4 + get_padded_length(nonce_length);
+        j += random() % (plaintext_length + SIV_GetTagLength(siv));
+      }
       ((unsigned char *)&packet)[j]++;
       r = NNA_DecryptAuthEF(&packet, &info, siv, packet_length, plaintext2,
                             sizeof (plaintext2), &plaintext2_length);
