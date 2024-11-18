@@ -199,7 +199,7 @@ QNT_GetQuantile(QNT_Instance inst, int k)
   double estimates[MAX_REPEAT];
   int i;
 
-  if (k < inst->min_k || k - inst->min_k >= inst->n_quants)
+  if (k < inst->min_k || (k - inst->min_k) * inst->repeat >= inst->n_quants)
     assert(0);
 
   for (i = 0; i < inst->repeat; i++)
