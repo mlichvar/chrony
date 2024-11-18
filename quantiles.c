@@ -193,6 +193,22 @@ QNT_GetMinK(QNT_Instance inst)
 
 /* ================================================== */
 
+int
+QNT_GetMaxK(QNT_Instance inst)
+{
+  return inst->min_k + (inst->n_quants / inst->repeat) - 1;
+}
+
+/* ================================================== */
+
+double
+QNT_GetMinStep(QNT_Instance inst)
+{
+  return inst->min_step;
+}
+
+/* ================================================== */
+
 double
 QNT_GetQuantile(QNT_Instance inst, int k)
 {
