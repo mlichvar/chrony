@@ -199,8 +199,10 @@ HCL_ProcessReadings(HCL_Instance clock, int n_readings, struct timespec tss[][3]
 
   local_prec = LCL_GetSysPrecisionAsQuantum();
 
-  low_delay = QNT_GetQuantile(clock->delay_quants, QNT_GetMinK(clock->delay_quants));
-  high_delay = QNT_GetQuantile(clock->delay_quants, QNT_GetMaxK(clock->delay_quants));
+  low_delay = QNT_GetQuantile(clock->delay_quants, QNT_GetMinK(clock->delay_quants)) -
+              QNT_GetMinStep(clock->delay_quants) / 2.0;
+  high_delay = QNT_GetQuantile(clock->delay_quants, QNT_GetMaxK(clock->delay_quants)) +
+               QNT_GetMinStep(clock->delay_quants) / 2.0;
   low_delay = MIN(low_delay, high_delay);
   high_delay = MAX(high_delay, low_delay + local_prec);
 

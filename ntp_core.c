@@ -1742,7 +1742,7 @@ check_delay_quant(NCR_Instance inst, double delay)
 
   quant = QNT_GetQuantile(inst->delay_quant, QNT_GetMinK(inst->delay_quant));
 
-  if (delay <= quant)
+  if (delay <= quant + QNT_GetMinStep(inst->delay_quant) / 2.0)
     return 1;
 
   DEBUG_LOG("maxdelayquant: delay=%e quant=%e", delay, quant);
