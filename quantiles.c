@@ -138,22 +138,26 @@ static void
 update_estimate(struct Quantile *quantile, double value, double p, double rand,
                 double min_step)
 {
-  if (value > quantile->est && rand > (1.0 - p)) {
+  if (value >= quantile->est) {
+    if (rand < (1.0 - p))
+        return;
     quantile->step += quantile->sign > 0 ? min_step : -min_step;
-    quantile->est += quantile->step > 0.0 ? fabs(quantile->step) : min_step;
+    quantile->est += quantile->step > min_step ? quantile->step : min_step;
     if (quantile->est > value) {
       quantile->step += value - quantile->est;
-      quantile->est = value;
+      quantile->est = value + min_step / 4.0;
     }
     if (quantile->sign < 0 && quantile->step > min_step)
       quantile->step = min_step;
     quantile->sign = 1;
-  } else if (value < quantile->est && rand > p) {
+  } else {
+    if (rand < p)
+      return;
     quantile->step += quantile->sign < 0 ? min_step : -min_step;
-    quantile->est -= quantile->step > 0.0 ? fabs(quantile->step) : min_step;
+    quantile->est -= quantile->step > min_step ? quantile->step : min_step;
     if (quantile->est < value) {
       quantile->step += quantile->est - value;
-      quantile->est = value;
+      quantile->est = value - min_step / 4.0;
     }
     if (quantile->sign > 0 && quantile->step > min_step)
       quantile->step = min_step;

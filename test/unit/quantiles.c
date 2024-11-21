@@ -28,7 +28,7 @@ test_unit(void)
 {
   int i, j, k, min_k, max_k, q, r, in_order, out_order;
   QNT_Instance inst;
-  double x;
+  double x, x2;
 
   in_order = out_order = 0;
 
@@ -62,6 +62,32 @@ test_unit(void)
 
     QNT_Reset(inst);
     TEST_CHECK(inst->n_set == 0);
+
+    for (j = 0; j < 3; j++) {
+      QNT_Reset(inst);
+      x = (i + 950) / 1e9;
+      if (random() % 10)
+        x2 = (i + 951) / 1e9;
+      else
+        x2 = x;
+      for (k = 0; k < 1000; k++)
+        QNT_Accumulate(inst, random() % 2 ? x : x2);
+      for (k = 0; k < inst->n_quants; k++) {
+        TEST_CHECK(inst->quants[k].est > x - 0.4e-9);
+        TEST_CHECK(inst->quants[k].est < x2 + 0.4e-9);
+        TEST_CHECK(inst->quants[k].step < -15e-9);
+        TEST_CHECK(inst->quants[k].step > -1000e-9);
+        if (min_k * 2 == q && k < inst->repeat) {
+          if (x == x2) {
+            TEST_CHECK(inst->quants[k].step < -750e-9);
+            TEST_CHECK(inst->quants[k].step > -1000e-9);
+          } else {
+            TEST_CHECK(inst->quants[k].step < -350e-9);
+            TEST_CHECK(inst->quants[k].step > -600e-9);
+          }
+        }
+      }
+    }
 
     QNT_DestroyInstance(inst);
   }
