@@ -49,19 +49,21 @@ struct QNT_Instance_Record {
   int q;
   int min_k;
   double min_step;
+  double neg_step_limit;
   int n_set;
 };
 
 /* ================================================== */
 
 QNT_Instance
-QNT_CreateInstance(int min_k, int max_k, int q, int repeat, double min_step)
+QNT_CreateInstance(int min_k, int max_k, int q, int repeat,
+                   int large_step_delay, double min_step)
 {
   QNT_Instance inst;
   long seed;
 
   if (q < 2 || min_k > max_k || min_k < 1 || max_k >= q ||
-      repeat < 1 || repeat > MAX_REPEAT || min_step <= 0.0)
+      repeat < 1 || repeat > MAX_REPEAT || min_step <= 0.0 || large_step_delay < 0)
     assert(0);
 
   inst = MallocNew(struct QNT_Instance_Record);
@@ -71,6 +73,7 @@ QNT_CreateInstance(int min_k, int max_k, int q, int repeat, double min_step)
   inst->q = q;
   inst->min_k = min_k;
   inst->min_step = min_step;
+  inst->neg_step_limit = -large_step_delay * min_step;
 
   QNT_Reset(inst);
 
@@ -136,7 +139,7 @@ insert_initial_value(QNT_Instance inst, double value)
 
 static void
 update_estimate(struct Quantile *quantile, double value, double p, double rand,
-                double min_step)
+                double min_step, double neg_step_limit)
 {
   if (value >= quantile->est) {
     if (rand < (1.0 - p))
@@ -163,6 +166,9 @@ update_estimate(struct Quantile *quantile, double value, double p, double rand,
       quantile->step = min_step;
     quantile->sign = -1;
   }
+
+  if (quantile->step < neg_step_limit)
+    quantile->step = neg_step_limit;
 }
 
 /* ================================================== */
@@ -183,7 +189,7 @@ QNT_Accumulate(QNT_Instance inst, double value)
     p = (double)(i / inst->repeat + inst->min_k) / inst->q;
     rand = (double)random() / ((1U << 31) - 1);
 
-    update_estimate(&inst->quants[i], value, p, rand, inst->min_step);
+    update_estimate(&inst->quants[i], value, p, rand, inst->min_step, inst->neg_step_limit);
   }
 }
 

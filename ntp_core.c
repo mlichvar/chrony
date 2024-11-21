@@ -286,6 +286,7 @@ static ARR_Instance broadcasts;
 
 /* Parameters for the peer delay quantile */
 #define DELAY_QUANT_Q 100
+#define DELAY_QUANT_LARGE_STEP_DELAY 100
 #define DELAY_QUANT_REPEAT 7
 
 /* Minimum and maximum allowed poll interval */
@@ -690,6 +691,7 @@ NCR_CreateInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
   if (params->max_delay_quant > 0.0) {
     int k = round(CLAMP(0.05, params->max_delay_quant, 0.95) * DELAY_QUANT_Q);
     result->delay_quant = QNT_CreateInstance(k, k, DELAY_QUANT_Q, DELAY_QUANT_REPEAT,
+                                             DELAY_QUANT_LARGE_STEP_DELAY,
                                              LCL_GetSysPrecisionAsQuantum() / 2.0);
   } else {
     result->delay_quant = NULL;

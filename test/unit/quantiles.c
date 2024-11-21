@@ -40,7 +40,7 @@ test_unit(void)
       max_k = random() % (q - 1) + 1;
     } while (min_k > max_k);
 
-    inst = QNT_CreateInstance(min_k, max_k, q, r, 1e-9);
+    inst = QNT_CreateInstance(min_k, max_k, q, r, 900, 1e-9);
 
     TEST_CHECK(min_k == QNT_GetMinK(inst));
     TEST_CHECK(max_k == QNT_GetMaxK(inst));
@@ -76,11 +76,11 @@ test_unit(void)
         TEST_CHECK(inst->quants[k].est > x - 0.4e-9);
         TEST_CHECK(inst->quants[k].est < x2 + 0.4e-9);
         TEST_CHECK(inst->quants[k].step < -15e-9);
-        TEST_CHECK(inst->quants[k].step > -1000e-9);
+        TEST_CHECK(inst->quants[k].step > -901e-9);
         if (min_k * 2 == q && k < inst->repeat) {
           if (x == x2) {
             TEST_CHECK(inst->quants[k].step < -750e-9);
-            TEST_CHECK(inst->quants[k].step > -1000e-9);
+            TEST_CHECK(inst->quants[k].step > -901e-9);
           } else {
             TEST_CHECK(inst->quants[k].step < -350e-9);
             TEST_CHECK(inst->quants[k].step > -600e-9);
