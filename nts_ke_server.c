@@ -702,7 +702,7 @@ key_timeout(void *arg)
 /* ================================================== */
 
 static void
-run_helper(uid_t uid, gid_t gid, int scfilter_level)
+run_helper(uid_t uid, gid_t gid, int scfilter_level, int sock_fd)
 {
   LOG_Severity log_severity;
 
@@ -729,9 +729,14 @@ run_helper(uid_t uid, gid_t gid, int scfilter_level)
   if (scfilter_level != 0)
     SYS_EnableSystemCallFilter(scfilter_level, SYS_NTSKE_HELPER);
 
+  SCH_AddFileHandler(sock_fd, SCH_FILE_INPUT, handle_helper_request, NULL);
+
   SCH_MainLoop();
 
   DEBUG_LOG("Helper exiting");
+
+  SCH_RemoveFileHandler(sock_fd);
+  close(sock_fd);
 
   NKS_Finalise();
   SCK_Finalise();
@@ -792,9 +797,8 @@ NKS_PreInitialise(uid_t uid, gid_t gid, int scfilter_level)
     LOG_CloseParentFd();
 
     SCK_CloseSocket(sock_fd1);
-    SCH_AddFileHandler(sock_fd2, SCH_FILE_INPUT, handle_helper_request, NULL);
 
-    run_helper(uid, gid, scfilter_level);
+    run_helper(uid, gid, scfilter_level, sock_fd2);
   }
 
   SCK_CloseSocket(sock_fd2);
