@@ -266,7 +266,7 @@ get_chronyd_options() {
 
 # Start a chronyd instance
 start_chronyd() {
-	local pid pidfile=$(get_pidfile)
+	local pid pidfile=$(get_pidfile) wrapper_options=""
 
 	print_nondefaults
 	test_message 1 0 "starting chronyd"
@@ -277,7 +277,12 @@ start_chronyd() {
 
 	rm -f "$TEST_LOGDIR"/*.log
 
-	$CHRONYD_WRAPPER "$chronyd" $(get_chronyd_options) > "$TEST_DIR/chronyd.out" 2>&1
+	if [[ $CHRONYD_WRAPPER == *valgrind* ]]; then
+		wrapper_options="--log-file=$TEST_DIR/chronyd.valgrind --enable-debuginfod=no"
+	fi
+
+	$CHRONYD_WRAPPER $wrapper_options \
+		"$chronyd" $(get_chronyd_options) > "$TEST_DIR/chronyd.out" 2>&1
 
 	[ $? -eq 0 ] && [ -f "$pidfile" ] && ps -p "$(cat "$pidfile")" > /dev/null && test_ok || test_error
 }
@@ -324,6 +329,12 @@ stop_chronyd() {
 	done
 
 	test_ok
+
+	if [ -f "$TEST_DIR/chronyd.valgrind" ]; then
+		test_message 2 0 "checking valgrind report"
+		! grep -q 'ERROR SUMMARY: [^0]' "$TEST_DIR/chronyd.valgrind" && \
+			test_ok || test_bad
+	fi
 }
 
 # Check chronyd log for expected and unexpected messages
@@ -364,7 +375,7 @@ check_chronyd_files() {
 
 # Run a chronyc command
 run_chronyc() {
-	local host=$chronyc_host options="-n -m"
+	local host=$chronyc_host options="-n -m" wrapper_options="" ret=0
 
 	test_message 1 0 "running chronyc $([ -n "$host" ] && echo "@$host ")$*"
 
@@ -374,8 +385,23 @@ run_chronyc() {
 		options="$options -p $(grep cmdport "$(get_conffile)" | awk '{print $2}')"
 	fi
 
-	$CHRONYC_WRAPPER "$chronyc" -h "$host" $options "$@" > "$TEST_DIR/chronyc.out" && \
-		test_ok || test_error
+	if [[ $CHRONYC_WRAPPER == *valgrind* ]]; then
+		wrapper_options="--log-file=$TEST_DIR/chronyc.valgrind --enable-debuginfod=no"
+	fi
+
+	$CHRONYC_WRAPPER $wrapper_options \
+		"$chronyc" -h "$host" $options "$@" > "$TEST_DIR/chronyc.out" && \
+			test_ok || test_error
+	[ $? -ne 0 ] && ret=1
+
+	if [ -f "$TEST_DIR/chronyc.valgrind" ]; then
+		test_message 2 0 "checking valgrind report"
+		! grep -q 'ERROR SUMMARY: [^0]' "$TEST_DIR/chronyc.valgrind" && \
+			test_ok || test_bad
+		[ $? -ne 0 ] && ret=1
+	fi
+
+	return $ret
 }
 
 # Compare chronyc output with specified pattern

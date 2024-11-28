@@ -4,6 +4,8 @@
 
 check_chronyd_features SCFILTER || test_skip "SCFILTER support disabled"
 
+[[ $CHRONYD_WRAPPER == *valgrind* ]] && test_skip "SCFILTER breaks valgrind"
+
 test_start "system call filter in non-destructive tests"
 
 for level in 1 2 -1 -2; do
