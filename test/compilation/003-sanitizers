@@ -2,7 +2,7 @@
 # Run the unit and simulation tests with different compiler sanitizers
 # and under valgrind
 
-valgrind_opts="--leak-check=full --errors-for-leak-kinds=definite"
+valgrind_opts="--leak-check=full --errors-for-leak-kinds=definite --track-fds=yes"
 
 cd ../..
 
