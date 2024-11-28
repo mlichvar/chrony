@@ -3588,6 +3588,7 @@ main(int argc, char **argv)
   close_io();
   free_addresses(server_addresses);
   SCK_Finalise();
+  UTI_ResetGetRandomFunctions();
 
   return !ret;
 }
