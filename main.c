@@ -339,8 +339,11 @@ go_daemon(void)
     /* Don't exit before the 'parent' */
     waitpid(pid, NULL, 0);
 
-    close(pipefd[1]);
     r = read(pipefd[0], message, sizeof (message));
+
+    close(pipefd[0]);
+    close(pipefd[1]);
+
     if (r != 1 || message[0] != '\0') {
       if (r > 1) {
         /* Print the error message from the child */
@@ -351,8 +354,6 @@ go_daemon(void)
     } else
       exit(0);
   } else {
-    close(pipefd[0]);
-
     setsid();
 
     /* Do 2nd fork, as-per recommended practice for launching daemons. */
@@ -362,6 +363,7 @@ go_daemon(void)
       LOG_FATAL("fork() failed : %s", strerror(errno));
     } else if (pid > 0) {
       /* In the 'parent' */
+      close(pipefd[0]);
       close(pipefd[1]);
       exit(0);
     } else {
