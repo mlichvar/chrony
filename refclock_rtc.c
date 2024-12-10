@@ -26,12 +26,15 @@
 
   */
 
-#include <linux/rtc.h>
-
 #include "config.h"
 
-#include "conf.h"
 #include "refclock.h"
+
+#ifdef FEAT_RTC
+
+#include <linux/rtc.h>
+
+#include "conf.h"
 #include "local.h"
 
 #include "logging.h"
@@ -39,8 +42,6 @@
 #include "sched.h"
 #include "util.h"
 #include "rtc_linux.h"
-
-#ifdef FEAT_RTC
 
 struct refrtc_instance {
   int fd;
