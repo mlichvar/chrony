@@ -231,17 +231,8 @@ RCL_AddRefclock(RefclockParameters *params)
   }
 
   if (inst->driver->poll) {
-    int max_samples;
-
     if (inst->driver_poll > inst->poll)
       inst->driver_poll = inst->poll;
-
-    /* Adjust the filter length to save memory if the expected number
-       of samples is smaller */
-    max_samples = 1 << (inst->poll - inst->driver_poll);
-    if (max_samples < params->filter_length) {
-      params->filter_length = max_samples;
-    }
   }
 
   if (inst->driver->init && !inst->driver->init(inst))
