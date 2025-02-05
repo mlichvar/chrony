@@ -590,25 +590,40 @@ error:
 
 /* ================================================== */
 
+static socklen_t
+set_unix_sockaddr(struct sockaddr_un *sun, const char *addr)
+{
+  size_t len = strlen(addr);
+
+  if (len + 1 > sizeof (sun->sun_path)) {
+    DEBUG_LOG("Unix socket path %s too long", addr);
+    return 0;
+  }
+
+  memset(sun, 0, sizeof (*sun));
+  sun->sun_family = AF_UNIX;
+  memcpy(sun->sun_path, addr, len);
+
+  return offsetof(struct sockaddr_un, sun_path) + len + 1;
+}
+
+/* ================================================== */
+
 static int
 bind_unix_address(int sock_fd, const char *addr, int flags)
 {
   union sockaddr_all saddr;
+  socklen_t saddr_len;
 
-  memset(&saddr, 0, sizeof (saddr));
-
-  if (snprintf(saddr.un.sun_path, sizeof (saddr.un.sun_path), "%s", addr) >=
-      sizeof (saddr.un.sun_path)) {
-    DEBUG_LOG("Unix socket path %s too long", addr);
+  saddr_len = set_unix_sockaddr(&saddr.un, addr);
+  if (saddr_len == 0)
     return 0;
-  }
-  saddr.un.sun_family = AF_UNIX;
 
   if (unlink(addr) < 0)
     DEBUG_LOG("Could not remove %s : %s", addr, strerror(errno));
 
   /* PRV_BindSocket() doesn't support Unix sockets yet */
-  if (bind(sock_fd, &saddr.sa, sizeof (saddr.un)) < 0) {
+  if (bind(sock_fd, &saddr.sa, saddr_len) < 0) {
     DEBUG_LOG("Could not bind Unix socket to %s : %s", addr, strerror(errno));
     return 0;
   }
@@ -628,17 +643,13 @@ static int
 connect_unix_address(int sock_fd, const char *addr)
 {
   union sockaddr_all saddr;
+  socklen_t saddr_len;
 
-  memset(&saddr, 0, sizeof (saddr));
-
-  if (snprintf(saddr.un.sun_path, sizeof (saddr.un.sun_path), "%s", addr) >=
-      sizeof (saddr.un.sun_path)) {
-    DEBUG_LOG("Unix socket path %s too long", addr);
+  saddr_len = set_unix_sockaddr(&saddr.un, addr);
+  if (saddr_len == 0)
     return 0;
-  }
-  saddr.un.sun_family = AF_UNIX;
 
-  if (connect(sock_fd, &saddr.sa, sizeof (saddr.un)) < 0) {
+  if (connect(sock_fd, &saddr.sa, saddr_len) < 0) {
     DEBUG_LOG("Could not connect Unix socket to %s : %s", addr, strerror(errno));
     return 0;
   }
@@ -1142,14 +1153,9 @@ send_message(int sock_fd, SCK_Message *message, int flags)
                                            (struct sockaddr *)&saddr, sizeof (saddr));
       break;
     case SCK_ADDR_UNIX:
-      memset(&saddr, 0, sizeof (saddr));
-      if (snprintf(saddr.un.sun_path, sizeof (saddr.un.sun_path), "%s",
-                   message->remote_addr.path) >= sizeof (saddr.un.sun_path)) {
-        DEBUG_LOG("Unix socket path %s too long", message->remote_addr.path);
+      saddr_len = set_unix_sockaddr(&saddr.un, message->remote_addr.path);
+      if (saddr_len == 0)
         return 0;
-      }
-      saddr.un.sun_family = AF_UNIX;
-      saddr_len = sizeof (saddr.un);
       break;
     default:
       assert(0);
