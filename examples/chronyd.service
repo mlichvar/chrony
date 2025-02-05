@@ -6,10 +6,10 @@ Conflicts=ntpd.service systemd-timesyncd.service
 ConditionCapability=CAP_SYS_TIME
 
 [Service]
-Type=forking
+Type=notify
 PIDFile=/run/chrony/chronyd.pid
 EnvironmentFile=-/etc/sysconfig/chronyd
-ExecStart=/usr/sbin/chronyd $OPTIONS
+ExecStart=/usr/sbin/chronyd -n $OPTIONS
 
 CapabilityBoundingSet=~CAP_AUDIT_CONTROL CAP_AUDIT_READ CAP_AUDIT_WRITE
 CapabilityBoundingSet=~CAP_BLOCK_SUSPEND CAP_KILL CAP_LEASE CAP_LINUX_IMMUTABLE

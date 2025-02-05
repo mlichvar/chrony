@@ -107,11 +107,40 @@ delete_pidfile(void)
 
 /* ================================================== */
 
+static void
+notify_system_manager(int start)
+{
+#ifdef LINUX
+  /* The systemd protocol is documented in the sd_notify(3) man page */
+  const char *message, *path = getenv("NOTIFY_SOCKET");
+  int sock_fd;
+
+  if (!path)
+    return;
+
+  if (path[0] != '/')
+    LOG_FATAL("Unsupported notification socket");
+
+  message = start ? "READY=1" : "STOPPING=1";
+
+  sock_fd = SCK_OpenUnixDatagramSocket(path, NULL, 0);
+
+  if (sock_fd < 0 || SCK_Send(sock_fd, message, strlen(message), 0) != strlen(message))
+    LOG_FATAL("Could not send notification");
+
+  SCK_CloseSocket(sock_fd);
+#endif
+}
+
+/* ================================================== */
+
 void
 MAI_CleanupAndExit(void)
 {
   if (!initialised) exit(exit_status);
   
+  notify_system_manager(0);
+
   LCL_CancelOffsetCorrection();
   SRC_DumpSources();
 
@@ -214,6 +243,8 @@ post_init_ntp_hook(void *anything)
     ref_mode = REF_ModeNormal;
     REF_SetMode(ref_mode);
   }
+
+  notify_system_manager(1);
 
   /* Send an empty message to the foreground process so it can exit.
      If that fails, indicating the process was killed, exit too. */

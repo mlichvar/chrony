@@ -217,6 +217,14 @@ client requests until the service is able to handle them. The service manager
 sets the LISTEN_FDS environment variable to the number of passed file
 descriptors.
 
+*NOTIFY_SOCKET*::
+The systemd service manager sets this variable for services of the *notify*
+type. *chronyd* sends a message to this socket when it it is fully initialised
+and ready to accept commands (e.g. from *chronyc*), with the clock already set
+if using the *-s* option or *initstepslew* directive. It is an alternative to
+the *forking* service type, which does not need the PID file. *chronyd* needs
+to be started with the *-n* or *-d* option to not fork.
+
 == FILES
 
 _@SYSCONFDIR@/chrony.conf_
