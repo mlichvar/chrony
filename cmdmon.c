@@ -69,87 +69,6 @@ static int bound_sock_fd4;
 static int initialised = 0;
 
 /* ================================================== */
-/* Array of permission levels for command types */
-
-static const char permissions[] = {
-  PERMIT_OPEN, /* NULL */
-  PERMIT_AUTH, /* ONLINE */
-  PERMIT_AUTH, /* OFFLINE */
-  PERMIT_AUTH, /* BURST */
-  PERMIT_AUTH, /* MODIFY_MINPOLL */
-  PERMIT_AUTH, /* MODIFY_MAXPOLL */
-  PERMIT_AUTH, /* DUMP */
-  PERMIT_AUTH, /* MODIFY_MAXDELAY */
-  PERMIT_AUTH, /* MODIFY_MAXDELAYRATIO */
-  PERMIT_AUTH, /* MODIFY_MAXUPDATESKEW */
-  PERMIT_OPEN, /* LOGON */
-  PERMIT_AUTH, /* SETTIME */
-  PERMIT_AUTH, /* LOCAL */
-  PERMIT_AUTH, /* MANUAL */
-  PERMIT_OPEN, /* N_SOURCES */
-  PERMIT_OPEN, /* SOURCE_DATA */
-  PERMIT_AUTH, /* REKEY */
-  PERMIT_AUTH, /* ALLOW */
-  PERMIT_AUTH, /* ALLOWALL */
-  PERMIT_AUTH, /* DENY */
-  PERMIT_AUTH, /* DENYALL */
-  PERMIT_AUTH, /* CMDALLOW */
-  PERMIT_AUTH, /* CMDALLOWALL */
-  PERMIT_AUTH, /* CMDDENY */
-  PERMIT_AUTH, /* CMDDENYALL */
-  PERMIT_AUTH, /* ACCHECK */
-  PERMIT_AUTH, /* CMDACCHECK */
-  PERMIT_AUTH, /* ADD_SERVER */
-  PERMIT_AUTH, /* ADD_PEER */
-  PERMIT_AUTH, /* DEL_SOURCE */
-  PERMIT_AUTH, /* WRITERTC */
-  PERMIT_AUTH, /* DFREQ */
-  PERMIT_AUTH, /* DOFFSET */
-  PERMIT_OPEN, /* TRACKING */
-  PERMIT_OPEN, /* SOURCESTATS */
-  PERMIT_OPEN, /* RTCREPORT */
-  PERMIT_AUTH, /* TRIMRTC */
-  PERMIT_AUTH, /* CYCLELOGS */
-  PERMIT_AUTH, /* SUBNETS_ACCESSED */
-  PERMIT_AUTH, /* CLIENT_ACCESSES (by subnet) */
-  PERMIT_AUTH, /* CLIENT_ACCESSES_BY_INDEX */
-  PERMIT_OPEN, /* MANUAL_LIST */
-  PERMIT_AUTH, /* MANUAL_DELETE */
-  PERMIT_AUTH, /* MAKESTEP */
-  PERMIT_OPEN, /* ACTIVITY */
-  PERMIT_AUTH, /* MODIFY_MINSTRATUM */
-  PERMIT_AUTH, /* MODIFY_POLLTARGET */
-  PERMIT_AUTH, /* MODIFY_MAXDELAYDEVRATIO */
-  PERMIT_AUTH, /* RESELECT */
-  PERMIT_AUTH, /* RESELECTDISTANCE */
-  PERMIT_AUTH, /* MODIFY_MAKESTEP */
-  PERMIT_OPEN, /* SMOOTHING */
-  PERMIT_AUTH, /* SMOOTHTIME */
-  PERMIT_AUTH, /* REFRESH */
-  PERMIT_AUTH, /* SERVER_STATS */
-  PERMIT_AUTH, /* CLIENT_ACCESSES_BY_INDEX2 */
-  PERMIT_AUTH, /* LOCAL2 */
-  PERMIT_AUTH, /* NTP_DATA */
-  PERMIT_AUTH, /* ADD_SERVER2 */
-  PERMIT_AUTH, /* ADD_PEER2 */
-  PERMIT_AUTH, /* ADD_SERVER3 */
-  PERMIT_AUTH, /* ADD_PEER3 */
-  PERMIT_AUTH, /* SHUTDOWN */
-  PERMIT_AUTH, /* ONOFFLINE */
-  PERMIT_AUTH, /* ADD_SOURCE */
-  PERMIT_OPEN, /* NTP_SOURCE_NAME */
-  PERMIT_AUTH, /* RESET_SOURCES */
-  PERMIT_AUTH, /* AUTH_DATA */
-  PERMIT_AUTH, /* CLIENT_ACCESSES_BY_INDEX3 */
-  PERMIT_AUTH, /* SELECT_DATA */
-  PERMIT_AUTH, /* RELOAD_SOURCES */
-  PERMIT_AUTH, /* DOFFSET2 */
-  PERMIT_AUTH, /* MODIFY_SELECTOPTS */
-  PERMIT_AUTH, /* MODIFY_OFFSET */
-  PERMIT_AUTH, /* LOCAL3 */
-};
-
-/* ================================================== */
 
 /* This authorisation table is used for checking whether particular
    machines are allowed to make command and monitoring requests. */
@@ -249,7 +168,6 @@ void
 CAM_Initialise(void)
 {
   assert(!initialised);
-  assert(sizeof (permissions) / sizeof (permissions[0]) == N_REQUEST_TYPES);
   do_size_checks();
 
   initialised = 1;
@@ -1440,17 +1358,250 @@ handle_modify_offset(CMD_Request *rx_message, CMD_Reply *tx_message)
 }
 
 /* ================================================== */
+
+static int
+handle_readwrite_commands(int command, CMD_Request *request, CMD_Reply *reply)
+{
+  switch (command) {
+    case REQ_ADD_SOURCE:
+      handle_add_source(request, reply);
+      break;
+    case REQ_ALLOW:
+      handle_allowdeny(request, reply, 1, 0);
+      break;
+    case REQ_ALLOWALL:
+      handle_allowdeny(request, reply, 1, 1);
+      break;
+    case REQ_BURST:
+      handle_burst(request, reply);
+      break;
+    case REQ_CMDALLOW:
+      handle_cmdallowdeny(request, reply, 1, 0);
+      break;
+    case REQ_CMDALLOWALL:
+      handle_cmdallowdeny(request, reply, 1, 1);
+      break;
+    case REQ_CMDDENY:
+      handle_cmdallowdeny(request, reply, 0, 0);
+      break;
+    case REQ_CMDDENYALL:
+      handle_cmdallowdeny(request, reply, 0, 1);
+      break;
+    case REQ_CYCLELOGS:
+      handle_cyclelogs(request, reply);
+      break;
+    case REQ_DEL_SOURCE:
+      handle_del_source(request, reply);
+      break;
+    case REQ_DENY:
+      handle_allowdeny(request, reply, 0, 0);
+      break;
+    case REQ_DENYALL:
+      handle_allowdeny(request, reply, 0, 1);
+      break;
+    case REQ_DFREQ:
+      handle_dfreq(request, reply);
+      break;
+    case REQ_DOFFSET2:
+      handle_doffset(request, reply);
+      break;
+    case REQ_DUMP:
+      handle_dump(request, reply);
+      break;
+    case REQ_LOCAL3:
+      handle_local(request, reply);
+      break;
+    case REQ_MAKESTEP:
+      handle_make_step(request, reply);
+      break;
+    case REQ_MANUAL:
+      handle_manual(request, reply);
+      break;
+    case REQ_MANUAL_DELETE:
+      handle_manual_delete(request, reply);
+      break;
+    case REQ_MODIFY_MAKESTEP:
+      handle_modify_makestep(request, reply);
+      break;
+    case REQ_MODIFY_MAXDELAY:
+      handle_modify_maxdelay(request, reply);
+      break;
+    case REQ_MODIFY_MAXDELAYDEVRATIO:
+      handle_modify_maxdelaydevratio(request, reply);
+      break;
+    case REQ_MODIFY_MAXDELAYRATIO:
+      handle_modify_maxdelayratio(request, reply);
+      break;
+    case REQ_MODIFY_MAXPOLL:
+      handle_modify_maxpoll(request, reply);
+      break;
+    case REQ_MODIFY_MAXUPDATESKEW:
+      handle_modify_maxupdateskew(request, reply);
+      break;
+    case REQ_MODIFY_MINPOLL:
+      handle_modify_minpoll(request, reply);
+      break;
+    case REQ_MODIFY_MINSTRATUM:
+      handle_modify_minstratum(request, reply);
+      break;
+    case REQ_MODIFY_OFFSET:
+      handle_modify_offset(request, reply);
+      break;
+    case REQ_MODIFY_POLLTARGET:
+      handle_modify_polltarget(request, reply);
+      break;
+    case REQ_MODIFY_SELECTOPTS:
+      handle_modify_selectopts(request, reply);
+      break;
+    case REQ_OFFLINE:
+      handle_offline(request, reply);
+      break;
+    case REQ_ONLINE:
+      handle_online(request, reply);
+      break;
+    case REQ_ONOFFLINE:
+      handle_onoffline(request, reply);
+      break;
+    case REQ_REFRESH:
+      handle_refresh(request, reply);
+      break;
+    case REQ_REKEY:
+      handle_rekey(request, reply);
+      break;
+    case REQ_RELOAD_SOURCES:
+      handle_reload_sources(request, reply);
+      break;
+    case REQ_RESELECT:
+      handle_reselect(request, reply);
+      break;
+    case REQ_RESELECTDISTANCE:
+      handle_reselect_distance(request, reply);
+      break;
+    case REQ_RESET_SOURCES:
+      handle_reset_sources(request, reply);
+      break;
+    case REQ_SETTIME:
+      handle_settime(request, reply);
+      break;
+    case REQ_SHUTDOWN:
+      handle_shutdown(request, reply);
+      break;
+    case REQ_SMOOTHTIME:
+      handle_smoothtime(request, reply);
+      break;
+    case REQ_TRIMRTC:
+      handle_trimrtc(request, reply);
+      break;
+    case REQ_WRITERTC:
+      handle_writertc(request, reply);
+      break;
+    default:
+      return 0;
+  }
+
+  return 1;
+}
+
+/* ================================================== */
+
+static int
+handle_readonly_commands(int command, int full_access, CMD_Request *request, CMD_Reply *reply)
+{
+  int i, allowed = 0;
+
+  const unsigned char open_commands[] = {
+    REQ_N_SOURCES,
+    REQ_SOURCE_DATA,
+    REQ_TRACKING,
+    REQ_SOURCESTATS,
+    REQ_RTCREPORT,
+    REQ_MANUAL_LIST,
+    REQ_ACTIVITY,
+    REQ_SMOOTHING,
+    REQ_NTP_SOURCE_NAME,
+  };
+
+  if (full_access) {
+    allowed = 1;
+  } else {
+    for (i = 0; i < sizeof (open_commands); i++) {
+      if (open_commands[i] == command) {
+        allowed = 1;
+        break;
+      }
+    }
+  }
+
+  if (!allowed)
+    return 0;
+
+  switch (command) {
+    case REQ_ACCHECK:
+      handle_accheck(request, reply);
+      break;
+    case REQ_ACTIVITY:
+      handle_activity(request, reply);
+      break;
+    case REQ_AUTH_DATA:
+      handle_auth_data(request, reply);
+      break;
+    case REQ_CLIENT_ACCESSES_BY_INDEX3:
+      handle_client_accesses_by_index(request, reply);
+      break;
+    case REQ_CMDACCHECK:
+      handle_cmdaccheck(request, reply);
+      break;
+    case REQ_MANUAL_LIST:
+      handle_manual_list(request, reply);
+      break;
+    case REQ_NTP_DATA:
+      handle_ntp_data(request, reply);
+      break;
+    case REQ_NTP_SOURCE_NAME:
+      handle_ntp_source_name(request, reply);
+      break;
+    case REQ_N_SOURCES:
+      handle_n_sources(request, reply);
+      break;
+    case REQ_RTCREPORT:
+      handle_rtcreport(request, reply);
+      break;
+    case REQ_SELECT_DATA:
+      handle_select_data(request, reply);
+      break;
+    case REQ_SERVER_STATS:
+      handle_server_stats(request, reply);
+      break;
+    case REQ_SMOOTHING:
+      handle_smoothing(request, reply);
+      break;
+    case REQ_SOURCESTATS:
+      handle_sourcestats(request, reply);
+      break;
+    case REQ_SOURCE_DATA:
+      handle_source_data(request, reply);
+      break;
+    case REQ_TRACKING:
+      handle_tracking(request, reply);
+      break;
+    default:
+      return 0;
+  }
+
+  return 1;
+}
+
+/* ================================================== */
 /* Read a packet and process it */
 
 static void
 read_from_cmd_socket(int sock_fd, int event, void *anything)
 {
+  int read_length, expected_length, localhost, log_index, full_access, handled;
   SCK_Message *sck_message;
   CMD_Request rx_message;
   CMD_Reply tx_message;
   IPAddr loopback_addr, remote_ip;
-  int read_length, expected_length;
-  int localhost, allowed, log_index;
   uint16_t rx_command;
   struct timespec now, cooked_now;
 
@@ -1463,32 +1614,27 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
   /* Get current time cheaply */
   SCH_GetLastEventTime(&cooked_now, NULL, &now);
 
-  /* Check if it's from localhost (127.0.0.1, ::1, or Unix domain),
-     or an authorised address */
-  switch (sck_message->addr_type) {
-    case SCK_ADDR_IP:
-      assert(sock_fd == sock_fd4 || sock_fd == sock_fd6);
-      remote_ip = sck_message->remote_addr.ip.ip_addr;
-      SCK_GetLoopbackIPAddress(remote_ip.family, &loopback_addr);
-      localhost = UTI_CompareIPs(&remote_ip, &loopback_addr, NULL) == 0;
+  /* Check if the request came from the Unix domain socket, or network and
+     whether the address is allowed (127.0.0.1 and ::1 is always allowed) */
+  if ((sock_fd == sock_fd4 || sock_fd == sock_fd6) && sck_message->addr_type == SCK_ADDR_IP) {
+    remote_ip = sck_message->remote_addr.ip.ip_addr;
+    SCK_GetLoopbackIPAddress(remote_ip.family, &loopback_addr);
+    localhost = UTI_CompareIPs(&remote_ip, &loopback_addr, NULL) == 0;
 
-      if (!localhost && !ADF_IsAllowed(access_auth_table, &remote_ip)) {
-        DEBUG_LOG("Unauthorised host %s",
-                  UTI_IPSockAddrToString(&sck_message->remote_addr.ip));
-        return;
-      }
-
-      assert(remote_ip.family != IPADDR_UNSPEC);
-
-      break;
-    case SCK_ADDR_UNIX:
-      assert(sock_fd == sock_fdu);
-      remote_ip.family = IPADDR_UNSPEC;
-      localhost = 1;
-      break;
-    default:
-      DEBUG_LOG("Unexpected address type");
+    if (!localhost && !ADF_IsAllowed(access_auth_table, &remote_ip)) {
+      DEBUG_LOG("Unauthorised host %s",
+                UTI_IPSockAddrToString(&sck_message->remote_addr.ip));
       return;
+    }
+
+    full_access = 0;
+  } else if (sock_fd == sock_fdu && sck_message->addr_type == SCK_ADDR_UNIX) {
+    remote_ip.family = IPADDR_UNSPEC;
+    localhost = 1;
+    full_access = 1;
+  } else {
+    DEBUG_LOG("Unexpected socket/address");
+    return;
   }
 
   if (read_length < offsetof(CMD_Request, data) ||
@@ -1564,288 +1710,20 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
   /* OK, we have a valid message.  Now dispatch on message type and process it. */
 
-  if (rx_command >= N_REQUEST_TYPES) {
-    /* This should be already handled */
-    assert(0);
-  } else {
-    /* Check level of authority required to issue the command.  All commands
-       from the Unix domain socket (which is accessible only by the root and
-       chrony user/group) are allowed. */
-    if (remote_ip.family == IPADDR_UNSPEC) {
-      assert(sock_fd == sock_fdu);
-      allowed = 1;
-    } else {
-      switch (permissions[rx_command]) {
-        case PERMIT_AUTH:
-          allowed = 0;
-          break;
-        case PERMIT_LOCAL:
-          allowed = localhost;
-          break;
-        case PERMIT_OPEN:
-          allowed = 1;
-          break;
-        default:
-          assert(0);
-          allowed = 0;
-      }
-    }
+  LOG_SetContext(LOGC_Command);
 
-    if (allowed) {
-      LOG_SetContext(LOGC_Command);
+  if (full_access)
+    handled = handle_readwrite_commands(rx_command, &rx_message, &tx_message);
+  else
+    handled = 0;
 
-      switch(rx_command) {
-        case REQ_DUMP:
-          handle_dump(&rx_message, &tx_message);
-          break;
+  if (!handled)
+    handled = handle_readonly_commands(rx_command, full_access, &rx_message, &tx_message);
 
-        case REQ_ONLINE:
-          handle_online(&rx_message, &tx_message);
-          break;
+  if (!handled)
+    tx_message.status = htons(STT_UNAUTH);
 
-        case REQ_OFFLINE:
-          handle_offline(&rx_message, &tx_message);
-          break;
-
-        case REQ_BURST:
-          handle_burst(&rx_message, &tx_message);
-          break;
-
-        case REQ_MODIFY_MINPOLL:
-          handle_modify_minpoll(&rx_message, &tx_message);
-          break;
-
-        case REQ_MODIFY_MAXPOLL:
-          handle_modify_maxpoll(&rx_message, &tx_message);
-          break;
-
-        case REQ_MODIFY_MAXDELAY:
-          handle_modify_maxdelay(&rx_message, &tx_message);
-          break;
-
-        case REQ_MODIFY_MAXDELAYRATIO:
-          handle_modify_maxdelayratio(&rx_message, &tx_message);
-          break;
-
-        case REQ_MODIFY_MAXDELAYDEVRATIO:
-          handle_modify_maxdelaydevratio(&rx_message, &tx_message);
-          break;
-
-        case REQ_MODIFY_MAXUPDATESKEW:
-          handle_modify_maxupdateskew(&rx_message, &tx_message);
-          break;
-
-        case REQ_MODIFY_MAKESTEP:
-          handle_modify_makestep(&rx_message, &tx_message);
-          break;
-
-        case REQ_SETTIME:
-          handle_settime(&rx_message, &tx_message);
-          break;
-
-        case REQ_LOCAL3:
-          handle_local(&rx_message, &tx_message);
-          break;
-
-        case REQ_MANUAL:
-          handle_manual(&rx_message, &tx_message);
-          break;
-
-        case REQ_N_SOURCES:
-          handle_n_sources(&rx_message, &tx_message);
-          break;
-
-        case REQ_SOURCE_DATA:
-          handle_source_data(&rx_message, &tx_message);
-          break;
-
-        case REQ_REKEY:
-          handle_rekey(&rx_message, &tx_message);
-          break;
-
-        case REQ_ALLOW:
-          handle_allowdeny(&rx_message, &tx_message, 1, 0);
-          break;
-
-        case REQ_ALLOWALL:
-          handle_allowdeny(&rx_message, &tx_message, 1, 1);
-          break;
-
-        case REQ_DENY:
-          handle_allowdeny(&rx_message, &tx_message, 0, 0);
-          break;
-
-        case REQ_DENYALL:
-          handle_allowdeny(&rx_message, &tx_message, 0, 1);
-          break;
-
-        case REQ_CMDALLOW:
-          handle_cmdallowdeny(&rx_message, &tx_message, 1, 0);
-          break;
-
-        case REQ_CMDALLOWALL:
-          handle_cmdallowdeny(&rx_message, &tx_message, 1, 1);
-          break;
-
-        case REQ_CMDDENY:
-          handle_cmdallowdeny(&rx_message, &tx_message, 0, 0);
-          break;
-
-        case REQ_CMDDENYALL:
-          handle_cmdallowdeny(&rx_message, &tx_message, 0, 1);
-          break;
-
-        case REQ_ACCHECK:
-          handle_accheck(&rx_message, &tx_message);
-          break;
-
-        case REQ_CMDACCHECK:
-          handle_cmdaccheck(&rx_message, &tx_message);
-          break;
-
-        case REQ_ADD_SOURCE:
-          handle_add_source(&rx_message, &tx_message);
-          break;
-
-        case REQ_DEL_SOURCE:
-          handle_del_source(&rx_message, &tx_message);
-          break;
-
-        case REQ_WRITERTC:
-          handle_writertc(&rx_message, &tx_message);
-          break;
-          
-        case REQ_DFREQ:
-          handle_dfreq(&rx_message, &tx_message);
-          break;
-
-        case REQ_DOFFSET2:
-          handle_doffset(&rx_message, &tx_message);
-          break;
-
-        case REQ_TRACKING:
-          handle_tracking(&rx_message, &tx_message);
-          break;
-
-        case REQ_SMOOTHING:
-          handle_smoothing(&rx_message, &tx_message);
-          break;
-
-        case REQ_SMOOTHTIME:
-          handle_smoothtime(&rx_message, &tx_message);
-          break;
-
-        case REQ_SOURCESTATS:
-          handle_sourcestats(&rx_message, &tx_message);
-          break;
-
-        case REQ_RTCREPORT:
-          handle_rtcreport(&rx_message, &tx_message);
-          break;
-          
-        case REQ_TRIMRTC:
-          handle_trimrtc(&rx_message, &tx_message);
-          break;
-
-        case REQ_CYCLELOGS:
-          handle_cyclelogs(&rx_message, &tx_message);
-          break;
-
-        case REQ_CLIENT_ACCESSES_BY_INDEX3:
-          handle_client_accesses_by_index(&rx_message, &tx_message);
-          break;
-
-        case REQ_MANUAL_LIST:
-          handle_manual_list(&rx_message, &tx_message);
-          break;
-
-        case REQ_MANUAL_DELETE:
-          handle_manual_delete(&rx_message, &tx_message);
-          break;
-
-        case REQ_MAKESTEP:
-          handle_make_step(&rx_message, &tx_message);
-          break;
-
-        case REQ_ACTIVITY:
-          handle_activity(&rx_message, &tx_message);
-          break;
-
-        case REQ_RESELECTDISTANCE:
-          handle_reselect_distance(&rx_message, &tx_message);
-          break;
-
-        case REQ_RESELECT:
-          handle_reselect(&rx_message, &tx_message);
-          break;
-
-        case REQ_MODIFY_MINSTRATUM:
-          handle_modify_minstratum(&rx_message, &tx_message);
-          break;
-
-        case REQ_MODIFY_POLLTARGET:
-          handle_modify_polltarget(&rx_message, &tx_message);
-          break;
-
-        case REQ_REFRESH:
-          handle_refresh(&rx_message, &tx_message);
-          break;
-
-        case REQ_SERVER_STATS:
-          handle_server_stats(&rx_message, &tx_message);
-          break;
-
-        case REQ_NTP_DATA:
-          handle_ntp_data(&rx_message, &tx_message);
-          break;
-
-        case REQ_SHUTDOWN:
-          handle_shutdown(&rx_message, &tx_message);
-          break;
-
-        case REQ_ONOFFLINE:
-          handle_onoffline(&rx_message, &tx_message);
-          break;
-
-        case REQ_NTP_SOURCE_NAME:
-          handle_ntp_source_name(&rx_message, &tx_message);
-          break;
-
-        case REQ_RESET_SOURCES:
-          handle_reset_sources(&rx_message, &tx_message);
-          break;
-
-        case REQ_AUTH_DATA:
-          handle_auth_data(&rx_message, &tx_message);
-          break;
-
-        case REQ_SELECT_DATA:
-          handle_select_data(&rx_message, &tx_message);
-          break;
-
-        case REQ_RELOAD_SOURCES:
-          handle_reload_sources(&rx_message, &tx_message);
-          break;
-
-        case REQ_MODIFY_SELECTOPTS:
-          handle_modify_selectopts(&rx_message, &tx_message);
-          break;
-
-        case REQ_MODIFY_OFFSET:
-          handle_modify_offset(&rx_message, &tx_message);
-          break;
-
-        default:
-          DEBUG_LOG("Unhandled command %d", rx_command);
-          tx_message.status = htons(STT_FAILED);
-          break;
-      }
-
-      LOG_UnsetContext(LOGC_Command);
-    } else {
-      tx_message.status = htons(STT_UNAUTH);
-    }
-  }
+  LOG_UnsetContext(LOGC_Command);
 
   /* Transmit the response */
   transmit_reply(sock_fd, read_length, sck_message);

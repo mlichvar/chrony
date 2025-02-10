@@ -511,13 +511,6 @@ typedef struct {
 } CMD_Request;
 
 /* ================================================== */
-/* Authority codes for command types */
-
-#define PERMIT_OPEN 0
-#define PERMIT_LOCAL 1
-#define PERMIT_AUTH 2
-
-/* ================================================== */
 
 /* Reply codes */
 #define RPY_NULL 1
