@@ -55,7 +55,7 @@ struct request_length {
 };
 
 static const struct request_length request_lengths[] = {
-  REQ_LENGTH_ENTRY(null, null),                 /* NULL */
+  { 0, 0 },                                     /* NULL - not supported */
   REQ_LENGTH_ENTRY(online, null),               /* ONLINE */
   REQ_LENGTH_ENTRY(offline, null),              /* OFFLINE */
   REQ_LENGTH_ENTRY(burst, null),                /* BURST */
@@ -65,7 +65,7 @@ static const struct request_length request_lengths[] = {
   REQ_LENGTH_ENTRY(modify_maxdelay, null),      /* MODIFY_MAXDELAY */
   REQ_LENGTH_ENTRY(modify_maxdelayratio, null), /* MODIFY_MAXDELAYRATIO */
   REQ_LENGTH_ENTRY(modify_maxupdateskew, null), /* MODIFY_MAXUPDATESKEW */
-  REQ_LENGTH_ENTRY(logon, null),                /* LOGON */
+  { 0, 0 },                                     /* LOGON - not supported */
   REQ_LENGTH_ENTRY(settime, manual_timestamp),  /* SETTIME */
   { 0, 0 },                                     /* LOCAL */
   REQ_LENGTH_ENTRY(manual, null),               /* MANUAL */

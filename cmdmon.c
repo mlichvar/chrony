@@ -1595,10 +1595,6 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
       LOG_SetContext(LOGC_Command);
 
       switch(rx_command) {
-        case REQ_NULL:
-          /* Do nothing */
-          break;
-
         case REQ_DUMP:
           handle_dump(&rx_message, &tx_message);
           break;
@@ -1641,11 +1637,6 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
 
         case REQ_MODIFY_MAKESTEP:
           handle_modify_makestep(&rx_message, &tx_message);
-          break;
-
-        case REQ_LOGON:
-          /* Authentication is no longer supported, log-on always fails */
-          tx_message.status = htons(STT_FAILED);
           break;
 
         case REQ_SETTIME:

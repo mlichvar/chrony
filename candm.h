@@ -37,7 +37,6 @@
 #define DEFAULT_CANDM_PORT 323
 
 /* Request codes */
-#define REQ_NULL 0
 #define REQ_ONLINE 1
 #define REQ_OFFLINE 2
 #define REQ_BURST 3
@@ -222,11 +221,6 @@ typedef struct {
   Float threshold;
   int32_t EOR;
 } REQ_Modify_Makestep;
-
-typedef struct {
-  Timespec ts;
-  int32_t EOR;
-} REQ_Logon;
 
 typedef struct {
   Timespec ts;
@@ -487,7 +481,6 @@ typedef struct {
     REQ_Modify_Polltarget modify_polltarget;
     REQ_Modify_Maxupdateskew modify_maxupdateskew;
     REQ_Modify_Makestep modify_makestep;
-    REQ_Logon logon;
     REQ_Settime settime;
     REQ_Local local;
     REQ_Manual manual;
