@@ -1507,25 +1507,16 @@ handle_readwrite_commands(int command, CMD_Request *request, CMD_Reply *reply)
 static int
 handle_readonly_commands(int command, int full_access, CMD_Request *request, CMD_Reply *reply)
 {
+  ARR_Instance open_commands;
   int i, allowed = 0;
-
-  const unsigned char open_commands[] = {
-    REQ_N_SOURCES,
-    REQ_SOURCE_DATA,
-    REQ_TRACKING,
-    REQ_SOURCESTATS,
-    REQ_RTCREPORT,
-    REQ_MANUAL_LIST,
-    REQ_ACTIVITY,
-    REQ_SMOOTHING,
-    REQ_NTP_SOURCE_NAME,
-  };
 
   if (full_access) {
     allowed = 1;
   } else {
-    for (i = 0; i < sizeof (open_commands); i++) {
-      if (open_commands[i] == command) {
+    open_commands = CNF_GetOpenCommands();
+
+    for (i = 0; i < ARR_GetSize(open_commands); i++) {
+      if (*(int *)ARR_GetElement(open_commands, i) == command) {
         allowed = 1;
         break;
       }

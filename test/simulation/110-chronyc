@@ -195,6 +195,33 @@ do
 	check_chronyc_output "501 Not authorised$" || test_fail
 done
 
+for chronyc_conf in \
+	"activity" \
+	"authdata" \
+	"clients" \
+	"manual list" \
+	"ntpdata" \
+	"rtcdata" \
+	"selectdata" \
+	"serverstats" \
+	"smoothing" \
+	"sourcename 192.168.123.1" \
+	"sources" \
+	"sourcestats" \
+	"tracking"
+do
+	server_conf="opencommands ${chronyc_conf% *}"
+	run_test || test_fail
+	check_chronyd_exit || test_fail
+	check_chronyc_output "501 Not authorised$" && test_fail
+
+	server_conf="opencommands"
+	run_test || test_fail
+	check_chronyd_exit || test_fail
+	check_chronyc_output "501 Not authorised$" || test_fail
+done
+
+server_conf="server 192.168.123.1"
 cmdmon_unix=1
 
 chronyc_conf="

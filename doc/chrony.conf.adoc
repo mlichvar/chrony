@@ -2143,6 +2143,27 @@ An example of the use of the directive is:
 cmdratelimit interval 2
 ----
 
+[[opencommands]]*opencommands* [_command_]...::
+This directive specifies a list of monitoring commands to be enabled for the
+hosts allowed by the *cmdallow* directive. The following commands can be
+specified (the naming follows *chronyc*):
++
+*activity*+*+, *authdata*, *clients*, *manual*+*+, *ntpdata*, *rtcdata*+*+,
+*selectdata*, *serverstats*+*+, *smoothing*+*+, *sourcename*+*+, *sources*+*+,
+*sourcestats*, *tracking*+*+.
++
+The commands marked with +*+ are enabled by default. The protocol of these
+commands is considered stable and can be expected to work between different
+versions of *chronyc* and *chronyd*. The protocol of the other commands is not
+considered stable and different versions of *chronyc* and *chronyd* may not
+interoperate. When that happens, *chronyc* will print an '`Invalid command`' or
+'`Bad reply from daemon`' error.
++
+Note that some of the reported data can be potentially useful to attackers,
+enabling them to better observe and predict the internal state of *chronyd*.
+It is recommended to enable only commands that are actually needed for
+monitoring and limit the access to the hosts that need it.
+
 === Real-time clock (RTC)
 
 [[hwclockfile]]*hwclockfile* _file_::

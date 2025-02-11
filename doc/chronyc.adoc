@@ -50,7 +50,7 @@ running under a non-root user), it will try to connect to 127.0.0.1 and then
 ::1.
 
 Only the following monitoring commands, which do not affect the behaviour of
-*chronyd*, are allowed from the network: *activity*, *manual list*,
+*chronyd*, are allowed from the network by default: *activity*, *manual list*,
 *rtcdata*, *smoothing*, *sourcename*, *sources*, *sourcestats*, *tracking*,
 *waitsync*. The
 set of hosts from which *chronyd* will accept these commands can be configured
@@ -58,7 +58,10 @@ with the <<chrony.conf.adoc#cmdallow,*cmdallow*>> directive in the *chronyd*'s
 configuration file or the <<cmdallow,*cmdallow*>> command in *chronyc*. By
 default, the commands are accepted only from localhost (127.0.0.1 or ::1).
 
-All other commands are allowed only through the Unix domain socket. When sent
+Other monitoring commands can be enabled for network access by the
+<<chrony.conf.adoc#opencommands,*opencommands*>> directive. Monitoring commands
+with disabled network access and commands that affect the behaviour of
+*chronyd* are allowed only through the Unix domain socket. If they are sent
 over the network, *chronyd* will respond with a '`Not authorised`' error, even
 if it is from localhost.
 

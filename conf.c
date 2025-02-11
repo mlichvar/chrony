@@ -80,6 +80,7 @@ static void parse_makestep(char *);
 static void parse_maxchange(char *);
 static void parse_ntsserver(char *, ARR_Instance files);
 static void parse_ntstrustedcerts(char *);
+static void parse_open_commands(char *line);
 static void parse_pidfile(char *line);
 static void parse_ratelimit(char *line, int *enabled, int *interval,
                             int *burst, int *leak, int *kod);
@@ -326,6 +327,11 @@ typedef struct _AllowDeny {
 static ARR_Instance ntp_restrictions;
 static ARR_Instance cmd_restrictions;
 
+#define DEFAULT_OPEN_COMMANDS "activity manual rtcdata smoothing sourcename sources sourcestats tracking"
+
+/* Array of int specifying commands allowed from network */
+static ARR_Instance open_commands;
+
 typedef struct {
   NTP_Remote_Address addr;
   int interval;
@@ -403,7 +409,7 @@ check_number_of_args(char *line, int num)
 void
 CNF_Initialise(int r, int client_only)
 {
-  char buf[10];
+  char buf[128];
 
   restarted = r;
 
@@ -417,6 +423,10 @@ CNF_Initialise(int r, int client_only)
 
   ntp_restrictions = ARR_CreateInstance(sizeof (AllowDeny));
   cmd_restrictions = ARR_CreateInstance(sizeof (AllowDeny));
+
+  open_commands = ARR_CreateInstance(sizeof (int));
+  snprintf(buf, sizeof (buf), DEFAULT_OPEN_COMMANDS);
+  parse_open_commands(buf);
 
   nts_aeads = ARR_CreateInstance(sizeof (int));
   snprintf(buf, sizeof (buf), DEFAULT_NTS_AEADS);
@@ -476,6 +486,8 @@ CNF_Finalise(void)
   ARR_DestroyInstance(ntp_source_dirs);
   ARR_DestroyInstance(refclock_sources);
   ARR_DestroyInstance(broadcasts);
+
+  ARR_DestroyInstance(open_commands);
 
   ARR_DestroyInstance(ntp_restrictions);
   ARR_DestroyInstance(cmd_restrictions);
@@ -715,6 +727,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_ntsserver(p, nts_server_key_files);
   } else if (!strcasecmp(command, "ntstrustedcerts")) {
     parse_ntstrustedcerts(p);
+  } else if (!strcasecmp(command, "opencommands")) {
+    parse_open_commands(p);
   } else if (!strcasecmp(command, "peer")) {
     parse_source(p, command, 1);
   } else if (!strcasecmp(command, "pidfile")) {
@@ -1267,6 +1281,72 @@ parse_ntstrustedcerts(char *line)
 
   ARR_AppendElement(nts_trusted_certs_paths, &path);
   ARR_AppendElement(nts_trusted_certs_ids, &id);
+}
+
+/* ================================================== */
+
+static void
+add_open_command(int command)
+{
+  int i;
+
+  /* Avoid duplicates */
+  for (i = 0; i < ARR_GetSize(open_commands); i++) {
+    if (*(int *)ARR_GetElement(open_commands, i) == command)
+      return;
+  }
+
+  ARR_AppendElement(open_commands, &command);
+}
+
+/* ================================================== */
+
+static void
+parse_open_commands(char *line)
+{
+  char *s;
+
+  ARR_SetSize(open_commands, 0);
+
+  while (*line) {
+    s = line;
+    line = CPS_SplitWord(line);
+
+    if (strcasecmp(s, "activity") == 0) {
+      add_open_command(REQ_ACTIVITY);
+    } else if (strcasecmp(s, "authdata") == 0) {
+      add_open_command(REQ_N_SOURCES);
+      add_open_command(REQ_AUTH_DATA);
+    } else if (strcasecmp(s, "clients") == 0) {
+      add_open_command(REQ_CLIENT_ACCESSES_BY_INDEX3);
+    } else if (strcasecmp(s, "manual") == 0) {
+      add_open_command(REQ_MANUAL_LIST);
+    } else if (strcasecmp(s, "ntpdata") == 0) {
+      add_open_command(REQ_N_SOURCES);
+      add_open_command(REQ_NTP_DATA);
+    } else if (strcasecmp(s, "rtcdata") == 0) {
+      add_open_command(REQ_RTCREPORT);
+    } else if (strcasecmp(s, "selectdata") == 0) {
+      add_open_command(REQ_N_SOURCES);
+      add_open_command(REQ_SELECT_DATA);
+    } else if (strcasecmp(s, "serverstats") == 0) {
+      add_open_command(REQ_SERVER_STATS);
+    } else if (strcasecmp(s, "smoothing") == 0) {
+      add_open_command(REQ_SMOOTHING);
+    } else if (strcasecmp(s, "sourcename") == 0) {
+      add_open_command(REQ_NTP_SOURCE_NAME);
+    } else if (strcasecmp(s, "sources") == 0) {
+      add_open_command(REQ_N_SOURCES);
+      add_open_command(REQ_SOURCE_DATA);
+    } else if (strcasecmp(s, "sourcestats") == 0) {
+      add_open_command(REQ_N_SOURCES);
+      add_open_command(REQ_SOURCESTATS);
+    } else if (strcasecmp(s, "tracking") == 0) {
+      add_open_command(REQ_TRACKING);
+    } else {
+      command_parse_error();
+    }
+  }
 }
 
 /* ================================================== */
@@ -2226,6 +2306,14 @@ int
 CNF_GetManualEnabled(void)
 {
   return enable_manual;
+}
+
+/* ================================================== */
+
+ARR_Instance
+CNF_GetOpenCommands(void)
+{
+  return open_commands;
 }
 
 /* ================================================== */
