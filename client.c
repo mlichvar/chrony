@@ -125,12 +125,11 @@ read_line(void)
       strncpy(line, cmd, sizeof(line) - 1);
       line[sizeof(line) - 1] = '\0';
       add_history(cmd);
-      /* free the buffer allocated by readline */
-      Free(cmd);
     } else {
       /* simulate the user has entered an empty line */
       *line = '\0';
     }
+    Free(cmd);
     return( line );
 #else
     printf("%s", prompt);
