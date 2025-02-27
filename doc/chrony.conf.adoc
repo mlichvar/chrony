@@ -957,14 +957,15 @@ time, assuming the first update corrects the clock and later checks can work
 with correct time.
 
 [[refresh]]*refresh* _interval_::
-This directive specifies the interval (in seconds) between refreshing IP
-addresses of NTP sources specified by hostname. If the hostname no longer
+This directive specifies the minimum interval (in seconds) between refreshing
+IP addresses of NTP sources specified by hostname. If the hostname no longer
 resolves to the currently used address, it will be replaced with one of the new
 addresses to avoid using a server which is no longer intended for service, even
 if it is still responding correctly and would not be replaced as unreachable.
-Only one source is refreshed at a time. The default value is 1209600 (2 weeks)
-and the maximum value is 2^31-1 (68 years). A value of 0 disables the periodic
-refreshment.
+Only one source is refreshed at a time and only when a valid response is
+received (unreachable sources are replaced independently). The default value is
+1209600 (2 weeks) and the maximum value is 2^31-1 (68 years). A value of 0
+disables the periodic refreshment.
 +
 The <<chronyc.adoc#refresh,*refresh*>> command can be used to refresh all
 sources immediately.
