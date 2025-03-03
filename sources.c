@@ -66,7 +66,7 @@ struct SelectInfo {
 /* This enum contains the flag values that are used to label
    each source */
 typedef enum {
-  SRC_OK,               /* OK so far, not a final status! */
+  SRC_OK = 0,           /* OK so far, not a final status! */
   SRC_UNSELECTABLE,     /* Has noselect option set */
   SRC_BAD_STATS,        /* Doesn't have valid stats data */
   SRC_UNSYNCHRONISED,   /* Provides samples, but not synchronised */
@@ -144,9 +144,9 @@ struct SRC_Instance_Record {
   /* Flag indicating the source has a leap second vote */
   int leap_vote;
 
-  /* Flag indicating the source was already reported as
-     a falseticker since the last selection change */
-  int reported_falseticker;
+  /* Flags indicating which status was already reported for
+     the source since the last change of the system peer */
+  char reported_status[SRC_SELECTED + 1];
 };
 
 /* ================================================== */
@@ -360,8 +360,8 @@ SRC_ResetInstance(SRC_Instance instance)
   instance->stratum = 0;
   instance->leap = LEAP_Unsynchronised;
   instance->leap_vote = 0;
-  instance->reported_falseticker = 0;
 
+  memset(instance->reported_status, 0, sizeof (instance->reported_status));
   memset(&instance->sel_info, 0, sizeof (instance->sel_info));
 
   SST_ResetInstance(instance->stats);
@@ -620,20 +620,45 @@ update_sel_options(void)
 
 /* ================================================== */
 
+FORMAT_ATTRIBUTE_PRINTF(2, 3)
 static void
-log_selection_message(LOG_Severity severity, const char *format, const char *arg)
+log_selection_message(LOG_Severity severity, const char *format, ...)
 {
+  char buf[256];
+  va_list ap;
+
   if (REF_GetMode() != REF_ModeNormal)
     return;
-  LOG(severity, format, arg);
+
+  va_start(ap, format);
+  vsnprintf(buf, sizeof (buf), format, ap);
+  va_end(ap);
+
+  LOG(severity, "%s", buf);
 }
 
 /* ================================================== */
 
+FORMAT_ATTRIBUTE_PRINTF(3, 4)
 static void
-log_selection_source(LOG_Severity severity, const char *format, SRC_Instance inst)
+log_selection_source(LOG_Severity severity, SRC_Instance inst, const char *format, ...)
 {
-  char buf[320], *name, *ntp_name;
+  char buf[320], buf2[256], *name, *ntp_name, *s;
+  va_list ap;
+
+  if (REF_GetMode() != REF_ModeNormal)
+    return;
+
+  va_start(ap, format);
+  vsnprintf(buf2, sizeof (buf2), format, ap);
+  va_end(ap);
+
+  /* Replace ## with %s in the formatted string to be the source name */
+  s = strstr(buf2, "##");
+  if (!s || strchr(buf2, '%'))
+    return;
+  s[0] = '%';
+  s[1] = 's';
 
   name = source_to_string(inst);
   ntp_name = inst->type == SRC_NTP ? NSR_GetName(inst->ip_addr) : NULL;
@@ -643,7 +668,9 @@ log_selection_source(LOG_Severity severity, const char *format, SRC_Instance ins
   else
     snprintf(buf, sizeof (buf), "%s", name);
 
-  log_selection_message(severity, format, buf);
+  LOG(severity, buf2, buf);
+
+  inst->reported_status[inst->status] = 1;
 }
 
 /* ================================================== */
@@ -686,7 +713,7 @@ source_to_string(SRC_Instance inst)
 /* ================================================== */
 
 static void
-mark_source(SRC_Instance inst, SRC_Status status)
+set_source_status(SRC_Instance inst, SRC_Status status)
 {
   struct timespec now;
 
@@ -732,6 +759,30 @@ mark_source(SRC_Instance inst, SRC_Status status)
 /* ================================================== */
 
 static void
+mark_source(SRC_Instance inst, SRC_Status status)
+{
+  set_source_status(inst, status);
+
+  if (status < SRC_OK || status >= sizeof (inst->reported_status))
+    assert(0);
+
+  if (!inst->reported_status[status]) {
+    switch (status) {
+      case SRC_FALSETICKER:
+        log_selection_source(LOGS_WARN, inst, "Detected falseticker ##");
+        break;
+      case SRC_SELECTED:
+        log_selection_source(LOGS_INFO, inst, "Selected source ##");
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+/* ================================================== */
+
+static void
 mark_ok_sources(SRC_Status status)
 {
   int i;
@@ -739,7 +790,8 @@ mark_ok_sources(SRC_Status status)
   for (i = 0; i < n_sources; i++) {
     if (sources[i]->status != SRC_OK)
       continue;
-    mark_source(sources[i], status);
+    /* Don't log the status in this case (multiple sources at once) */
+    set_source_status(sources[i], status);
   }
 }
 
@@ -1161,7 +1213,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     /* Could not even get half the reachable (trusted) sources to agree */
 
     if (!reported_no_majority) {
-      log_selection_message(LOGS_WARN, "Can't synchronise: no majority", NULL);
+      log_selection_message(LOGS_WARN, "Can't synchronise: no majority");
       reported_no_majority = 1;
       report_selection_loss = 0;
     }
@@ -1212,10 +1264,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
         sel_req_source = 0;
     } else {
       mark_source(sources[i], SRC_FALSETICKER);
-      if (!sources[i]->reported_falseticker) {
-        log_selection_source(LOGS_WARN, "Detected falseticker %s", sources[i]);
-        sources[i]->reported_falseticker = 1;
-      }
     }
   }
 
@@ -1335,13 +1383,12 @@ SRC_SelectSource(SRC_Instance updated_inst)
     }
 
     selected_source_index = max_score_index;
-    log_selection_source(LOGS_INFO, "Selected source %s", sources[selected_source_index]);
 
     /* New source has been selected, reset all scores */
     for (i = 0; i < n_sources; i++) {
       sources[i]->sel_score = 1.0;
       sources[i]->distant = 0;
-      sources[i]->reported_falseticker = 0;
+      memset(sources[i]->reported_status, 0, sizeof (sources[i]->reported_status));
     }
 
     reported_no_majority = 0;
