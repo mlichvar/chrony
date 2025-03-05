@@ -141,6 +141,7 @@ have_helper(void)
 /* ======================================================================= */
 
 /* HELPER - prepare fatal error for daemon */
+FORMAT_ATTRIBUTE_PRINTF(2, 3)
 static void
 res_fatal(PrvResponse *res, const char *fmt, ...)
 {
