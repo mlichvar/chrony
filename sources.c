@@ -322,9 +322,8 @@ void SRC_DestroyInstance(SRC_Instance instance)
     last_updated_inst = NULL;
 
   assert(initialised);
-  if (instance->index < 0 || instance->index >= n_sources ||
-      instance != sources[instance->index])
-    assert(0);
+  BRIEF_ASSERT(instance->index >= 0 && instance->index < n_sources &&
+               instance == sources[instance->index]);
 
   SST_DeleteInstance(instance->stats);
   dead_index = instance->index;
@@ -763,8 +762,7 @@ mark_source(SRC_Instance inst, SRC_Status status)
 {
   set_source_status(inst, status);
 
-  if (status < SRC_OK || status >= sizeof (inst->reported_status))
-    assert(0);
+  BRIEF_ASSERT(status >= SRC_OK && status < sizeof (inst->reported_status));
 
   if (!inst->reported_status[status]) {
     switch (status) {

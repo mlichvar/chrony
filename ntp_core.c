@@ -2337,9 +2337,8 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
     inst->valid_rx = 1;
   }
 
-  if ((unsigned int)local_receive.source >= sizeof (tss_chars) ||
-      (unsigned int)local_transmit.source >= sizeof (tss_chars))
-    assert(0);
+  BRIEF_ASSERT((unsigned int)local_receive.source < sizeof (tss_chars) &&
+               (unsigned int)local_transmit.source < sizeof (tss_chars));
 
   DEBUG_LOG("NTP packet lvm=%o stratum=%d poll=%d prec=%d root_delay=%.9f root_disp=%.9f refid=%"PRIx32" [%s]",
             message->lvm, message->stratum, message->poll, message->precision,

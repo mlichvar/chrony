@@ -2828,8 +2828,7 @@ CNF_GetNtsTrustedCertsPaths(const char ***paths, uint32_t **ids)
   *paths = ARR_GetElements(nts_trusted_certs_paths);
   *ids = ARR_GetElements(nts_trusted_certs_ids);
 
-  if (ARR_GetSize(nts_trusted_certs_paths) != ARR_GetSize(nts_trusted_certs_ids))
-    assert(0);
+  BRIEF_ASSERT(ARR_GetSize(nts_trusted_certs_paths) == ARR_GetSize(nts_trusted_certs_ids));
 
   return ARR_GetSize(nts_trusted_certs_paths);
 }

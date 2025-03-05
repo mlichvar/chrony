@@ -457,9 +457,8 @@ change_source_address(NTP_Remote_Address *old_addr, NTP_Remote_Address *new_addr
   if (replacement)
     record->resolved_addr = new_addr->ip_addr;
 
-  if (record->remote_addr != NCR_GetRemoteAddress(record->data) ||
-      UTI_CompareIPs(&record->remote_addr->ip_addr, &new_addr->ip_addr, NULL) != 0)
-    assert(0);
+  BRIEF_ASSERT(record->remote_addr == NCR_GetRemoteAddress(record->data) &&
+               UTI_CompareIPs(&record->remote_addr->ip_addr, &new_addr->ip_addr, NULL) == 0);
 
   if (!UTI_IsIPReal(&old_addr->ip_addr) && UTI_IsIPReal(&new_addr->ip_addr)) {
     if (auto_start_sources)

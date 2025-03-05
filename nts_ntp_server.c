@@ -259,8 +259,7 @@ NNS_GenerateResponseAuth(NTP_Packet *request, NTP_PacketInfo *req_info,
 
   /* Make sure this is a response to the request from the last call
      of NNS_CheckRequestAuth() */
-  if (UTI_CompareNtp64(&server->req_tx, &request->transmit_ts) != 0)
-    assert(0);
+  BRIEF_ASSERT(UTI_CompareNtp64(&server->req_tx, &request->transmit_ts) == 0);
 
   for (parsed = NTP_HEADER_LENGTH; parsed < req_info->length; parsed += ef_length) {
     if (!NEF_ParseField(request, req_info->length, parsed,

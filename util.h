@@ -272,4 +272,12 @@ extern int UTI_SplitString(char *string, char **words, int max_saved_words);
 
 #define SQUARE(x) ((x) * (x))
 
+/* Macro to make an assertion with the text of a long argument replaced
+   with "0" to avoid bloating the compiled binary */
+#ifdef NDEBUG
+#define BRIEF_ASSERT(a)
+#else
+#define BRIEF_ASSERT(a) if (!(a)) assert(0)
+#endif
+
 #endif /* GOT_UTIL_H */

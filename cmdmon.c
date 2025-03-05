@@ -146,19 +146,17 @@ do_size_checks(void)
     request.command = htons(i);
     request_length = PKL_CommandLength(&request);
     padding_length = PKL_CommandPaddingLength(&request);
-    if (padding_length > MAX_PADDING_LENGTH || padding_length > request_length ||
-        request_length > sizeof (CMD_Request) ||
-        (request_length && request_length < offsetof(CMD_Request, data)))
-      assert(0);
+    BRIEF_ASSERT(padding_length <= MAX_PADDING_LENGTH && padding_length <= request_length &&
+                 request_length <= sizeof (CMD_Request) &&
+                 (request_length == 0 || request_length >= offsetof(CMD_Request, data)));
   }
 
   for (i = 1; i < N_REPLY_TYPES; i++) {
     reply.reply = htons(i);
     reply.status = STT_SUCCESS;
     reply_length = PKL_ReplyLength(&reply);
-    if ((reply_length && reply_length < offsetof(CMD_Reply, data)) ||
-        reply_length > sizeof (CMD_Reply))
-      assert(0);
+    BRIEF_ASSERT((reply_length == 0 || reply_length >= offsetof(CMD_Reply, data)) &&
+                 reply_length <= sizeof (CMD_Reply));
   }
 }
 

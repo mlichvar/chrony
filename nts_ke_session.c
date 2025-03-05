@@ -663,8 +663,7 @@ create_credentials(const char **certs, const char **keys, int n_certs_keys,
     goto error;
 
   if (certs && keys) {
-    if (trusted_certs || trusted_certs_ids)
-      assert(0);
+    BRIEF_ASSERT(!trusted_certs && !trusted_certs_ids);
 
     for (i = 0; i < n_certs_keys; i++) {
       if (!UTI_CheckFilePermissions(keys[i], 0771))
@@ -675,8 +674,7 @@ create_credentials(const char **certs, const char **keys, int n_certs_keys,
         goto error;
     }
   } else {
-    if (certs || keys || n_certs_keys > 0)
-      assert(0);
+    BRIEF_ASSERT(!certs && !keys && n_certs_keys <= 0);
 
     if (trusted_cert_set == 0 && !CNF_GetNoSystemCert()) {
       r = gnutls_certificate_set_x509_system_trust(credentials);

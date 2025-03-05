@@ -520,8 +520,7 @@ generate_key(int index)
   ServerKey *key;
   int key_length;
 
-  if (index < 0 || index >= MAX_SERVER_KEYS)
-    assert(0);
+  BRIEF_ASSERT(index >= 0 && index < MAX_SERVER_KEYS);
 
   /* Prefer AES-128-GCM-SIV if available.  Note that if older keys loaded
      from ntsdumpdir use a different algorithm, responding to NTP requests
@@ -534,8 +533,7 @@ generate_key(int index)
   key = &server_keys[index];
 
   key_length = SIV_GetKeyLength(algorithm);
-  if (key_length > sizeof (key->key))
-    assert(0);
+  BRIEF_ASSERT(key_length <= sizeof (key->key));
 
   UTI_GetRandomBytesUrandom(key->key, key_length);
   memset(key->key + key_length, 0, sizeof (key->key) - key_length);
@@ -961,8 +959,7 @@ NKS_GenerateCookie(NKE_Context *context, NKE_Cookie *cookie)
   header->key_id = htonl(key->id);
 
   nonce = cookie->cookie + sizeof (*header);
-  if (key->nonce_length > sizeof (cookie->cookie) - sizeof (*header))
-    assert(0);
+  BRIEF_ASSERT(key->nonce_length <= sizeof (cookie->cookie) - sizeof (*header));
   UTI_GetRandomBytes(nonce, key->nonce_length);
 
   plaintext_length = context->c2s.length + context->s2c.length;

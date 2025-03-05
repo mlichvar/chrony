@@ -184,10 +184,8 @@ void
 LCL_Finalise(void)
 {
   /* Make sure all handlers have been removed */
-  if (change_list.next != &change_list)
-    assert(0);
-  if (dispersion_notify_list.next != &dispersion_notify_list)
-    assert(0);
+  BRIEF_ASSERT(change_list.next == &change_list);
+  BRIEF_ASSERT(dispersion_notify_list.next == &dispersion_notify_list);
 }
 
 /* ================================================== */
@@ -225,9 +223,7 @@ LCL_AddParameterChangeHandler(LCL_ParameterChangeHandler handler, void *anything
 
   /* Check that the handler is not already registered */
   for (ptr = change_list.next; ptr != &change_list; ptr = ptr->next) {
-    if (!(ptr->handler != handler || ptr->anything != anything)) {
-      assert(0);
-    }
+    BRIEF_ASSERT(ptr->handler != handler || ptr->anything != anything);
   }
 
   new_entry = MallocNew(ChangeListEntry);
@@ -301,9 +297,7 @@ LCL_AddDispersionNotifyHandler(LCL_DispersionNotifyHandler handler, void *anythi
 
   /* Check that the handler is not already registered */
   for (ptr = dispersion_notify_list.next; ptr != &dispersion_notify_list; ptr = ptr->next) {
-    if (!(ptr->handler != handler || ptr->anything != anything)) {
-      assert(0);
-    }
+    BRIEF_ASSERT(ptr->handler != handler || ptr->anything != anything);
   }
 
   new_entry = MallocNew(DispersionNotifyListEntry);

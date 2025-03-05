@@ -946,8 +946,7 @@ process_cmd_add_source(CMD_Request *msg, char *line)
       }
 
       msg->data.ntp_source.type = htonl(type);
-      if (strlen(data.name) >= sizeof (msg->data.ntp_source.name))
-        assert(0);
+      BRIEF_ASSERT(strlen(data.name) < sizeof (msg->data.ntp_source.name));
       strncpy((char *)msg->data.ntp_source.name, data.name,
               sizeof (msg->data.ntp_source.name));
       msg->data.ntp_source.port = htonl(data.port);

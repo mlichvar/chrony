@@ -547,9 +547,9 @@ PRV_BindSocket(int sock, struct sockaddr *address, socklen_t address_len)
   PrvResponse res;
 
   SCK_SockaddrToIPSockAddr(address, address_len, &ip_saddr);
-  if (ip_saddr.port != 0 && ip_saddr.port != CNF_GetNTPPort() &&
-      ip_saddr.port != CNF_GetAcquisitionPort() && ip_saddr.port != CNF_GetPtpPort())
-    assert(0);
+  BRIEF_ASSERT(ip_saddr.port == 0 || ip_saddr.port == CNF_GetNTPPort() ||
+               ip_saddr.port == CNF_GetAcquisitionPort() ||
+               ip_saddr.port == CNF_GetPtpPort());
 
   if (!have_helper())
     return bind(sock, address, address_len);

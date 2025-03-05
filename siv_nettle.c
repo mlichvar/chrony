@@ -35,6 +35,7 @@
 
 #include "memory.h"
 #include "siv.h"
+#include "util.h"
 
 struct SIV_Instance_Record {
   SIV_Algorithm algorithm;
@@ -158,8 +159,7 @@ SIV_GetMaxNonceLength(SIV_Instance instance)
 int
 SIV_GetTagLength(SIV_Instance instance)
 {
-  if (instance->tag_length < 1 || instance->tag_length > SIV_MAX_TAG_LENGTH)
-    assert(0);
+  BRIEF_ASSERT(instance->tag_length >= 1 && instance->tag_length <= SIV_MAX_TAG_LENGTH);
   return instance->tag_length;
 }
 

@@ -104,9 +104,8 @@ NNA_GenerateAuthEF(NTP_Packet *packet, NTP_PacketInfo *info, SIV_Instance siv,
   body = (unsigned char *)(header + 1);
   ciphertext = body + nonce_length + nonce_padding;
 
-  if ((unsigned char *)header + auth_length !=
-      ciphertext + ciphertext_length + ciphertext_padding + additional_padding)
-    assert(0);
+  BRIEF_ASSERT((unsigned char *)header + auth_length ==
+               ciphertext + ciphertext_length + ciphertext_padding + additional_padding);
 
   memcpy(body, nonce, nonce_length);
   memset(body + nonce_length, 0, nonce_padding);

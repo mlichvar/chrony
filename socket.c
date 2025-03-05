@@ -1061,9 +1061,8 @@ receive_messages(int sock_fd, int flags, int max_messages, int *num_messages)
   n = ARR_GetSize(recv_headers);
   n = MIN(n, max_messages);
 
-  if (n < 1 || n > MAX_RECV_MESSAGES ||
-      n > ARR_GetSize(recv_messages) || n > ARR_GetSize(recv_sck_messages))
-    assert(0);
+  BRIEF_ASSERT(n >= 1 && n <= MAX_RECV_MESSAGES &&
+               n <= ARR_GetSize(recv_messages) && n <= ARR_GetSize(recv_sck_messages));
 
   recv_flags = get_recv_flags(flags);
 

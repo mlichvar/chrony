@@ -62,9 +62,8 @@ QNT_CreateInstance(int min_k, int max_k, int q, int repeat,
   QNT_Instance inst;
   long seed;
 
-  if (q < 2 || min_k > max_k || min_k < 1 || max_k >= q ||
-      repeat < 1 || repeat > MAX_REPEAT || min_step <= 0.0 || large_step_delay < 0)
-    assert(0);
+  BRIEF_ASSERT(q >= 2 && min_k <= max_k && min_k >= 1 && max_k < q && repeat >= 1 &&
+               repeat <= MAX_REPEAT && min_step > 0.0 && large_step_delay >= 0);
 
   inst = MallocNew(struct QNT_Instance_Record);
   inst->n_quants = (max_k - min_k + 1) * repeat;
@@ -117,8 +116,7 @@ insert_initial_value(QNT_Instance inst, double value)
 {
   int i, j, r = inst->repeat;
 
-  if (inst->n_set * r >= inst->n_quants)
-    assert(0);
+  BRIEF_ASSERT(inst->n_set * r < inst->n_quants);
 
   /* Keep the initial estimates repeated and ordered */
   for (i = inst->n_set; i > 0 && inst->quants[(i - 1) * r].est > value; i--) {
@@ -225,8 +223,7 @@ QNT_GetQuantile(QNT_Instance inst, int k)
   double estimates[MAX_REPEAT];
   int i;
 
-  if (k < inst->min_k || (k - inst->min_k) * inst->repeat >= inst->n_quants)
-    assert(0);
+  BRIEF_ASSERT(k >= inst->min_k && (k - inst->min_k) * inst->repeat < inst->n_quants);
 
   for (i = 0; i < inst->repeat; i++)
     estimates[i] = inst->quants[(k - inst->min_k) * inst->repeat + i].est;
