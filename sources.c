@@ -1222,12 +1222,23 @@ SRC_SelectSource(SRC_Instance updated_inst)
   assert(depth == 0 && trust_depth == 0);
   assert(2 * n_sel_sources == n_endpoints);
 
-  if ((best_trust_depth == 0 && best_depth <= n_sel_sources / 2) ||
-      (best_trust_depth > 0 && best_trust_depth <= n_sel_trust_sources / 2)) {
+  if (best_trust_depth > 0) {
+    best_depth = best_trust_depth;
+    n_sel_sources = n_sel_trust_sources;
+  }
+
+  if (best_depth <= n_sel_sources / 2) {
     /* Could not even get half the reachable (trusted) sources to agree */
 
     if (!reported_no_majority) {
-      log_selection_message(LOGS_WARN, "Can't synchronise: no majority");
+      if (best_depth < 2)
+        log_selection_message(LOGS_WARN, "%s (no agreement among %d %ssources)",
+                              "Can't synchronise: no majority", n_sel_sources,
+                              best_trust_depth > 0 ? "trusted " : "");
+      else
+        log_selection_message(LOGS_WARN, "%s (only %d of %d %ssources agree)",
+                              "Can't synchronise: no majority", best_depth,
+                              n_sel_sources, best_trust_depth > 0 ? "trusted " : "");
       reported_no_majority = 1;
       report_selection_loss = 0;
     }

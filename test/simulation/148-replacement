@@ -68,7 +68,7 @@ check_source_selection && test_fail
 check_packet_interval || test_fail
 check_sync || test_fail
 
-check_log_messages "Can't synchronise: no majority" 1 1 || test_fail
+check_log_messages "Can't synchronise: no majority (no agreement among 2 sources)" 1 1 || test_fail
 check_log_messages "Detected falseticker" 0 2 || test_fail
 check_log_messages "Source 192.168.123.. replaced with" 3 60 || test_fail
 check_log_messages "Source 192.168.123.1 replaced with" 1 25 || test_fail

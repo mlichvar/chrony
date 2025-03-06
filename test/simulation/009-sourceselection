@@ -24,6 +24,12 @@ for falsetickers in 3 4; do
 	# These check are expected to fail
 	check_source_selection && test_fail
 	check_sync && test_fail
+
+	if [ $falsetickers = 3 ]; then
+		check_log_messages "Can't synchronise: no majority (only 2 of 5 sources agree)" 1 1 || test_fail
+	else
+		check_log_messages "Can't synchronise: no majority (no agreement among 5 sources)" 1 1 || test_fail
+	fi
 done
 
 # Sources with large asymmetric delay should be excluded
