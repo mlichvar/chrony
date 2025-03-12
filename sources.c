@@ -767,14 +767,14 @@ mark_source(SRC_Instance inst, SRC_Status status)
   if (!inst->reported_status[status]) {
     switch (status) {
       case SRC_BAD_DISTANCE:
-        if (inst->reachability_size < SOURCE_REACH_BITS && inst->bad < BAD_HANDLE_THRESHOLD)
+        if (inst->bad < BAD_HANDLE_THRESHOLD)
           break;
         log_selection_source(LOGS_WARN, inst,
                              "Root distance of ## exceeds maxdistance of %.3f seconds",
                              max_distance);
         break;
       case SRC_JITTERY:
-        if (inst->reachability_size < SOURCE_REACH_BITS && inst->bad < BAD_HANDLE_THRESHOLD)
+        if (inst->bad < BAD_HANDLE_THRESHOLD)
           break;
         log_selection_source(LOGS_WARN, inst,
                              "Jitter of ## exceeds maxjitter of %.3f seconds",
