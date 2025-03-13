@@ -952,7 +952,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   }
 
   if (n_sources == 0) {
-    unselect_selected_source(LOGS_INFO, "Can't synchronise: no sources");
+    unselect_selected_source(LOGS_WARN, "Can't synchronise: no sources");
     return;
   }
 
@@ -1158,7 +1158,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
   if (n_endpoints == 0) {
     /* No sources provided valid endpoints */
-    unselect_selected_source(LOGS_INFO, "Can't synchronise: no selectable sources"
+    unselect_selected_source(LOGS_WARN, "Can't synchronise: no selectable sources"
                                         " (%d unreachable sources)", n_unreach_sources);
     return;
   }
@@ -1304,7 +1304,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   }
 
   if (!n_sel_sources || sel_req_source || n_sel_sources < CNF_GetMinSources()) {
-    unselect_selected_source(LOGS_INFO, "Can't synchronise: %s selectable sources",
+    unselect_selected_source(LOGS_WARN, "Can't synchronise: %s selectable sources",
                              !n_sel_sources ? "no" :
                              sel_req_source ? "no required source in" : "not enough");
     mark_ok_sources(SRC_WAITS_SOURCES);
