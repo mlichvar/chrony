@@ -22,7 +22,7 @@ run_test || test_fail
 check_chronyd_exit || test_fail
 check_sync || test_fail
 
-check_log_messages "Can't.*no selectable sources" 9 10 || test_fail
+check_log_messages "Can't.*no selectable sources (1 unreachable" 9 10 || test_fail
 check_log_messages "Selected source 192.168.123.1" 9 10 || test_fail
 
 # Pass every 20th request
@@ -43,7 +43,7 @@ run_test || test_fail
 check_chronyd_exit || test_fail
 check_sync || test_fail
 
-check_log_messages "Can't.*no selectable sources" 5 15 || test_fail
+check_log_messages "Can't.*no selectable sources (1 unreachable" 5 15 || test_fail
 check_log_messages "Selected source 192.168.123.1" 5 15 || test_fail
 
 test_pass

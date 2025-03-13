@@ -935,7 +935,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   struct timespec now, ref_time;
   int i, j, j1, j2, index, sel_prefer, n_endpoints, n_sel_sources, sel_req_source;
   int max_badstat_reach, max_badstat_reach_size, n_badstats_sources;
-  int max_sel_reach, max_sel_reach_size;
+  int max_sel_reach, max_sel_reach_size, n_unreach_sources;
   int depth, best_depth, trust_depth, best_trust_depth, n_sel_trust_sources;
   int combined, stratum, min_stratum, max_score_index;
   int orphan_stratum, orphan_source;
@@ -964,6 +964,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   n_endpoints = 0;
   n_sel_sources = n_sel_trust_sources = 0;
   n_badstats_sources = 0;
+  n_unreach_sources = 0;
   sel_req_source = 0;
   max_sel_reach = max_badstat_reach = 0;
   max_sel_reach_size = max_badstat_reach_size = 0;
@@ -985,6 +986,10 @@ SRC_SelectSource(SRC_Instance updated_inst)
       mark_source(sources[i], SRC_UNSELECTABLE);
       continue;
     }
+
+    /* Count unreachable sources for a warning message */
+    if (sources[i]->reachability == 0)
+      n_unreach_sources++;
 
     si = &sources[i]->sel_info;
     SST_GetSelectionData(sources[i]->stats, &now,
@@ -1153,7 +1158,8 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
   if (n_endpoints == 0) {
     /* No sources provided valid endpoints */
-    unselect_selected_source(LOGS_INFO, "Can't synchronise: no selectable sources");
+    unselect_selected_source(LOGS_INFO, "Can't synchronise: no selectable sources"
+                                        " (%d unreachable sources)", n_unreach_sources);
     return;
   }
 
