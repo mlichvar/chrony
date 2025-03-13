@@ -110,7 +110,8 @@ extern double CNF_GetReselectDistance(void);
 extern double CNF_GetStratumWeight(void);
 extern double CNF_GetCombineLimit(void);
 
-extern int CNF_AllowLocalReference(int *stratum, int *orphan, double *distance, double *activate);
+extern int CNF_AllowLocalReference(int *stratum, int *orphan, double *distance, double *activate,
+                                   double *wait_synced, double *wait_unsynced);
 
 extern void CNF_SetupAccessRestrictions(void);
 

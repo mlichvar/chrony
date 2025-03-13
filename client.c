@@ -753,12 +753,13 @@ process_cmd_burst(CMD_Request *msg, char *line)
 static int
 process_cmd_local(CMD_Request *msg, char *line)
 {
+  double distance = 0.0, activate = 0.0, wait_synced = 0.0, wait_unsynced = 0.0;
   int on_off, stratum = 0, orphan = 0;
-  double distance = 0.0, activate = 0.0;
 
   if (!strcmp(line, "off")) {
     on_off = 0;
-  } else if (CPS_ParseLocal(line, &stratum, &orphan, &distance, &activate)) {
+  } else if (CPS_ParseLocal(line, &stratum, &orphan, &distance, &activate,
+                            &wait_synced, &wait_unsynced)) {
     on_off = 1;
   } else {
     LOG(LOGS_ERR, "Invalid syntax for local command");
@@ -771,7 +772,8 @@ process_cmd_local(CMD_Request *msg, char *line)
   msg->data.local.distance = UTI_FloatHostToNetwork(distance);
   msg->data.local.orphan = htonl(orphan);
   msg->data.local.activate = UTI_FloatHostToNetwork(activate);
-  memset(msg->data.local.reserved, 0, sizeof (msg->data.local.reserved));
+  msg->data.local.wait_synced = UTI_FloatHostToNetwork(wait_synced);
+  msg->data.local.wait_unsynced = UTI_FloatHostToNetwork(wait_unsynced);
 
   return 1;
 }

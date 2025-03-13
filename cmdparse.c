@@ -296,7 +296,8 @@ CPS_ParseAllowDeny(char *line, int *all, IPAddr *ip, int *subnet_bits)
 /* ================================================== */
 
 int
-CPS_ParseLocal(char *line, int *stratum, int *orphan, double *distance, double *activate)
+CPS_ParseLocal(char *line, int *stratum, int *orphan, double *distance, double *activate,
+               double *wait_synced, double *wait_unsynced)
 {
   int n;
   char *cmd;
@@ -305,6 +306,8 @@ CPS_ParseLocal(char *line, int *stratum, int *orphan, double *distance, double *
   *distance = 1.0;
   *activate = 0.0;
   *orphan = 0;
+  *wait_synced = 0;
+  *wait_unsynced = -1.0;
 
   while (*line) {
     cmd = line;
@@ -323,12 +326,21 @@ CPS_ParseLocal(char *line, int *stratum, int *orphan, double *distance, double *
     } else if (!strcasecmp(cmd, "activate")) {
       if (sscanf(line, "%lf%n", activate, &n) != 1)
         return 0;
+    } else if (!strcasecmp(cmd, "waitsynced")) {
+      if (sscanf(line, "%lf%n", wait_synced, &n) != 1)
+        return 0;
+    } else if (!strcasecmp(cmd, "waitunsynced")) {
+      if (sscanf(line, "%lf%n", wait_unsynced, &n) != 1)
+        return 0;
     } else {
       return 0;
     }
 
     line += n;
   }
+
+  if (*wait_unsynced < 0.0)
+    *wait_unsynced = *orphan ? 300 : 0.0;
 
   return 1;
 }

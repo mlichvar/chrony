@@ -449,7 +449,9 @@ handle_local(CMD_Request *rx_message, CMD_Reply *tx_message)
     REF_EnableLocal(ntohl(rx_message->data.local.stratum),
                     UTI_FloatNetworkToHost(rx_message->data.local.distance),
                     ntohl(rx_message->data.local.orphan),
-                    UTI_FloatNetworkToHost(rx_message->data.local.activate));
+                    UTI_FloatNetworkToHost(rx_message->data.local.activate),
+                    UTI_FloatNetworkToHost(rx_message->data.local.wait_synced),
+                    UTI_FloatNetworkToHost(rx_message->data.local.wait_unsynced));
   } else {
     REF_DisableLocal();
   }

@@ -47,7 +47,8 @@ extern int CPS_GetSelectOption(char *option);
 extern int CPS_ParseAllowDeny(char *line, int *all, IPAddr *ip, int *subnet_bits);
 
 /* Parse a command to enable local reference */
-extern int CPS_ParseLocal(char *line, int *stratum, int *orphan, double *distance, double *activate);
+extern int CPS_ParseLocal(char *line, int *stratum, int *orphan, double *distance,
+                          double *activate, double *wait_synced, double *wait_unsynced);
 
 /* Remove extra white-space and comments */
 extern void CPS_NormalizeLine(char *line);

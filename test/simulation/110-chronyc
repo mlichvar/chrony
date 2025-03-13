@@ -145,7 +145,7 @@ for chronyc_conf in \
 	"dfreq 1.0e-3" \
 	"doffset -1.0" \
 	"dump" \
-	"local stratum 5 distance 1.0 activate 0.5 orphan" \
+	"local stratum 5 distance 1.0 activate 0.5 orphan waitsynced 100 waitunsynced 20" \
 	"local off" \
 	"makestep 10.0 3" \
 	"makestep" \
@@ -419,7 +419,7 @@ cyclelogs
 dump
 dfreq 1.0e-3
 doffset -0.01
-local stratum 5 distance 1.0 orphan
+local stratum 5 distance 1.0 orphan waitsynced 100 waitunsynced 10
 local off
 makestep 10.0 3
 makestep

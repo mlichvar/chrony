@@ -1722,10 +1722,13 @@ of 10 indicates that the clock is so many hops away from a reference clock that
 its time is fairly unreliable.
 *distance* _distance_:::
 This option sets the threshold for the root distance which will activate the local
-reference. If *chronyd* was synchronised to some source, the local reference
-will not be activated until its root distance reaches the specified value (the
-rate at which the distance is increasing depends on how well the clock was
-tracking the source). The default value is 1 second.
+reference. If *chronyd* was synchronised to a configured time source, the local
+reference will not be activated until its root distance reaches the specified
+value (the rate at which the distance is increasing depends on how well the
+clock was tracking the source). When the clock is not synchronised, it is
+considered to have an infinite root distance, i.e. the local reference
+activates as soon as allowed by the *waitunsynced* option. The default
+threshold is 1 second.
 +
 The current root distance can be calculated from root delay and root dispersion
 (reported by the <<chronyc.adoc#tracking,*tracking*>> command in *chronyc*) as:
@@ -1758,12 +1761,30 @@ smallest reference ID will take over when its local reference mode activates
 +
 The *orphan* mode is compatible with the *ntpd*'s orphan mode (enabled by the
 *tos orphan* command).
+*waitsynced* _interval_:::
+This option specifies the minimum interval (in seconds) between the last update
+of the clock and activation of the local reference as configured by the
+*distance* and *activate* options. The *distance* option can be set to 0 to
+ignore the root distance and control the activation only by the interval. In
+such case it should be at least as long as the maximum expected polling
+interval to prevent frequent activation in normal polling of the source.
+The default minimum interval is 0.
+*waitunsynced* _interval_:::
+This option specifies how long (in seconds) *chronyd* needs to wait before
+activating the local reference when the clock is not considered to be
+synchronised (e.g. after start or the source selection failing due to no
+majority). This delay prevents *chronyd* from serving incorrect time to clients
+before the configured time sources are given a chance to synchronise the local
+clock. The default interval is 300 seconds if the *orphan* option is set,
+otherwise it is 0 (i.e. local reference activates immediately).
 {blank}::
 +
-An example of the directive is:
+Examples of the directive are:
 +
 ----
+local stratum 5
 local stratum 10 orphan distance 0.1 activate 0.5
+local stratum 10 orphan distance 0.0 waitsynced 7200 waitunsynced 300
 ----
 
 [[ntpsigndsocket]]*ntpsigndsocket* _directory_::

@@ -135,6 +135,8 @@ static int local_stratum;
 static int local_orphan;
 static double local_distance;
 static double local_activate;
+static double local_wait_synced;
+static double local_wait_unsynced;
 
 /* Threshold (in seconds) - if absolute value of initial error is less
    than this, slew instead of stepping */
@@ -1123,7 +1125,8 @@ parse_log(char *line)
 static void
 parse_local(char *line)
 {
-  if (!CPS_ParseLocal(line, &local_stratum, &local_orphan, &local_distance, &local_activate))
+  if (!CPS_ParseLocal(line, &local_stratum, &local_orphan, &local_distance,
+                      &local_activate, &local_wait_synced, &local_wait_unsynced))
     command_parse_error();
   enable_local = 1;
 }
@@ -2326,13 +2329,16 @@ CNF_GetCommandPort(void) {
 /* ================================================== */
 
 int
-CNF_AllowLocalReference(int *stratum, int *orphan, double *distance, double *activate)
+CNF_AllowLocalReference(int *stratum, int *orphan, double *distance, double *activate,
+                        double *wait_synced, double *wait_unsynced)
 {
   if (enable_local) {
     *stratum = local_stratum;
     *orphan = local_orphan;
     *distance = local_distance;
     *activate = local_activate;
+    *wait_synced = local_wait_synced;
+    *wait_unsynced = local_wait_unsynced;
     return 1;
   } else {
     return 0;
