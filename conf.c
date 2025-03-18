@@ -53,11 +53,11 @@
 /* ================================================== */
 /* Forward prototypes */
 
-static int parse_string(char *line, char **result);
-static int parse_int(char *line, int *result);
-static int parse_double(char *line, double *result);
+static void parse_string(char *line, char **result);
+static void parse_int(char *line, int *result);
+static void parse_double(char *line, double *result);
 static int parse_null(char *line);
-static int parse_ints(char *line, ARR_Instance array);
+static void parse_ints(char *line, ARR_Instance array);
 
 static void parse_allow_deny(char *line, ARR_Instance restrictions, int allow);
 static void parse_authselectmode(char *);
@@ -790,39 +790,34 @@ CNF_ParseLine(const char *filename, int number, char *line)
 
 /* ================================================== */
 
-static int
+static void
 parse_string(char *line, char **result)
 {
   check_number_of_args(line, 1);
   Free(*result);
   *result = Strdup(line);
-  return 1;
 }
 
 /* ================================================== */
 
-static int
+static void
 parse_int(char *line, int *result)
 {
   check_number_of_args(line, 1);
   if (sscanf(line, "%d", result) != 1) {
     command_parse_error();
-    return 0;
   }
-  return 1;
 }
 
 /* ================================================== */
 
-static int
+static void
 parse_double(char *line, double *result)
 {
   check_number_of_args(line, 1);
   if (sscanf(line, "%lf", result) != 1) {
     command_parse_error();
-    return 0;
   }
-  return 1;
 }
 
 /* ================================================== */
@@ -836,7 +831,7 @@ parse_null(char *line)
 
 /* ================================================== */
 
-static int
+static void
 parse_ints(char *line, ARR_Instance array)
 {
   char *s;
@@ -850,7 +845,6 @@ parse_ints(char *line, ARR_Instance array)
     parse_int(s, &v);
     ARR_AppendElement(array, &v);
   }
-  return 1;
 }
 
 /* ================================================== */
