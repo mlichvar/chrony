@@ -56,7 +56,7 @@
 static void parse_string(char *line, char **result);
 static void parse_int(char *line, int *result);
 static void parse_double(char *line, double *result);
-static int parse_null(char *line);
+static void parse_null(char *line, int *result);
 static void parse_ints(char *line, ARR_Instance array);
 
 static void parse_allow_deny(char *line, ARR_Instance restrictions, int allow);
@@ -660,7 +660,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "local")) {
     parse_local(p);
   } else if (!strcasecmp(command, "lock_all")) {
-    lock_memory = parse_null(p);
+    parse_null(p, &lock_memory);
   } else if (!strcasecmp(command, "log")) {
     parse_log(p);
   } else if (!strcasecmp(command, "logbanner")) {
@@ -674,7 +674,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "makestep")) {
     parse_makestep(p);
   } else if (!strcasecmp(command, "manual")) {
-    enable_manual = parse_null(p);
+    parse_null(p, &enable_manual);
   } else if (!strcasecmp(command, "maxchange")) {
     parse_maxchange(p);
   } else if (!strcasecmp(command, "maxclockerror")) {
@@ -700,9 +700,9 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "nocerttimecheck")) {
     parse_int(p, &no_cert_time_check);
   } else if (!strcasecmp(command, "noclientlog")) {
-    no_client_log = parse_null(p);
+    parse_null(p, &no_client_log);
   } else if (!strcasecmp(command, "nosystemcert")) {
-    no_system_cert = parse_null(p);
+    parse_null(p, &no_system_cert);
   } else if (!strcasecmp(command, "ntpsigndsocket")) {
     parse_string(p, &ntp_signd_socket);
   } else if (!strcasecmp(command, "ntsaeads")) {
@@ -759,9 +759,9 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "rtcfile")) {
     parse_string(p, &rtc_file);
   } else if (!strcasecmp(command, "rtconutc")) {
-    rtc_on_utc = parse_null(p);
+    parse_null(p, &rtc_on_utc);
   } else if (!strcasecmp(command, "rtcsync")) {
-    rtc_sync = parse_null(p);
+    parse_null(p, &rtc_sync);
   } else if (!strcasecmp(command, "sched_priority")) {
     parse_int(p, &sched_priority);
   } else if (!strcasecmp(command, "server")) {
@@ -822,11 +822,11 @@ parse_double(char *line, double *result)
 
 /* ================================================== */
 
-static int
-parse_null(char *line)
+static void
+parse_null(char *line, int *result)
 {
   check_number_of_args(line, 0);
-  return 1;
+  *result = 1;
 }
 
 /* ================================================== */
