@@ -39,6 +39,11 @@
 
 /* ================================================== */
 
+#define SSCANF_IN_RANGE(s, f, x, n, min, max) \
+  (sscanf(s, f, (x), (n)) == 1 && *(x) >= (min) && *(x) <= (max))
+
+/* ================================================== */
+
 CPS_Status
 CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
 {
@@ -126,7 +131,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
           return CPS_InvalidValue;
       }
     } else if (!strcasecmp(cmd, "filter")) {
-      if (sscanf(line, "%d%n", &src->params.filter_length, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &src->params.filter_length, &n, 0, INT_MAX))
         return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "ipv4")) {
       src->family = IPADDR_INET4;
@@ -145,13 +150,13 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
       if (sscanf(line, "%lf%n", &src->params.max_delay_quant, &n) != 1)
         return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "maxpoll")) {
-      if (sscanf(line, "%d%n", &src->params.maxpoll, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &src->params.maxpoll, &n, -32, 32))
         return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "maxsamples")) {
-      if (sscanf(line, "%d%n", &src->params.max_samples, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &src->params.max_samples, &n, 0, INT_MAX))
         return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "maxsources")) {
-      if (sscanf(line, "%d%n", &src->params.max_sources, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &src->params.max_sources, &n, 1, INT_MAX))
         return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "mindelay")) {
       if (sscanf(line, "%lf%n", &src->params.min_delay, &n) != 1)
@@ -160,30 +165,30 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
       if (sscanf(line, "%d%n", &src->params.minpoll, &n) != 1)
         return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "minsamples")) {
-      if (sscanf(line, "%d%n", &src->params.min_samples, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &src->params.min_samples, &n, 0, INT_MAX))
         return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "minstratum")) {
-      if (sscanf(line, "%d%n", &src->params.min_stratum, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &src->params.min_stratum, &n, 0, NTP_MAX_STRATUM))
         return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "nts")) {
       src->params.nts = 1;
     } else if (!strcasecmp(cmd, "ntsport")) {
-      if (sscanf(line, "%d%n", &src->params.nts_port, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &src->params.nts_port, &n, 0, 65535))
         return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "offset")) {
       if (sscanf(line, "%lf%n", &src->params.offset, &n) != 1)
         return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "port")) {
-      if (sscanf(line, "%d%n", &src->port, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &src->port, &n, 0, 65535))
         return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "polltarget")) {
-      if (sscanf(line, "%d%n", &src->params.poll_target, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &src->params.poll_target, &n, 1, INT_MAX))
         return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "presend")) {
-      if (sscanf(line, "%d%n", &src->params.presend_minpoll, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &src->params.presend_minpoll, &n, -32, 32))
         return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "version")) {
-      if (sscanf(line, "%d%n", &src->params.version, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &src->params.version, &n, 1, NTP_VERSION))
         return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "xleave")) {
       src->params.interleaved = 1;
@@ -314,8 +319,7 @@ CPS_ParseLocal(char *line, int *stratum, int *orphan, double *distance, double *
     line = CPS_SplitWord(line);
 
     if (!strcasecmp(cmd, "stratum")) {
-      if (sscanf(line, "%d%n", stratum, &n) != 1 ||
-          *stratum >= NTP_MAX_STRATUM || *stratum <= 0)
+      if (!SSCANF_IN_RANGE(line, "%d%n", stratum, &n, 1, NTP_MAX_STRATUM - 1))
         return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "orphan")) {
       *orphan = 1;

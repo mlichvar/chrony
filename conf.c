@@ -50,14 +50,17 @@
 #define MAX_CONF_DIRS 10
 #define MAX_INCLUDE_LEVEL 10
 
+#define SSCANF_IN_RANGE(s, f, x, n, min, max) \
+  (sscanf(s, f, (x), (n)) == 1 && *(x) >= (min) && *(x) <= (max))
+
 /* ================================================== */
 /* Forward prototypes */
 
 static void parse_string(char *line, char **result);
-static void parse_int(char *line, int *result);
+static void parse_int(char *line, int *result, int min, int max);
 static void parse_double(char *line, double *result);
 static void parse_null(char *line, int *result);
-static void parse_ints(char *line, ARR_Instance array);
+static void parse_ints(char *line, ARR_Instance array, int min, int max);
 
 static void parse_allow_deny(char *line, ARR_Instance restrictions, int allow);
 static void parse_authselectmode(char *);
@@ -440,7 +443,7 @@ CNF_Initialise(int r, int client_only)
 
   nts_aeads = ARR_CreateInstance(sizeof (int));
   snprintf(buf, sizeof (buf), DEFAULT_NTS_AEADS);
-  parse_ints(buf, nts_aeads);
+  parse_ints(buf, nts_aeads, 0, INT_MAX);
   nts_server_cert_files = ARR_CreateInstance(sizeof (char *));
   nts_server_key_files = ARR_CreateInstance(sizeof (char *));
   nts_trusted_certs_paths = ARR_CreateInstance(sizeof (char *));
@@ -597,7 +600,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
     printf("%s%s%s\n", command, p[0] != '\0' ? " " : "", p);
 
   if (!strcasecmp(command, "acquisitionport")) {
-    parse_int(p, &acquisition_port);
+    parse_int(p, &acquisition_port, 0, 65535);
   } else if (!strcasecmp(command, "allow")) {
     parse_allow_deny(p, ntp_restrictions, 1);
   } else if (!strcasecmp(command, "authselectmode")) {
@@ -625,7 +628,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "cmddeny")) {
     parse_allow_deny(p, cmd_restrictions, 0);
   } else if (!strcasecmp(command, "cmdport")) {
-    parse_int(p, &cmd_port);
+    parse_int(p, &cmd_port, 0, 65535);
   } else if (!strcasecmp(command, "cmdratelimit")) {
     parse_ratelimit(p, &cmd_ratelimit_enabled, &cmd_ratelimit_interval,
                     &cmd_ratelimit_burst, &cmd_ratelimit_leak, NULL);
@@ -640,7 +643,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "driftfile")) {
     parse_driftfile(p);
   } else if (!strcasecmp(command, "dscp")) {
-    parse_int(p, &ntp_dscp);
+    parse_int(p, &ntp_dscp, 0, 63);
   } else if (!strcasecmp(command, "dumpdir")) {
     parse_string(p, &dumpdir);
   } else if (!strcasecmp(command, "dumponexit")) {
@@ -672,7 +675,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "log")) {
     parse_log(p);
   } else if (!strcasecmp(command, "logbanner")) {
-    parse_int(p, &log_banner);
+    parse_int(p, &log_banner, 0, INT_MAX);
   } else if (!strcasecmp(command, "logchange")) {
     parse_double(p, &log_change_threshold);
   } else if (!strcasecmp(command, "logdir")) {
@@ -694,19 +697,19 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "maxjitter")) {
     parse_double(p, &max_jitter);
   } else if (!strcasecmp(command, "maxntsconnections")) {
-    parse_int(p, &nts_server_connections);
+    parse_int(p, &nts_server_connections, 1, INT_MAX);
   } else if (!strcasecmp(command, "maxsamples")) {
-    parse_int(p, &max_samples);
+    parse_int(p, &max_samples, 0, INT_MAX);
   } else if (!strcasecmp(command, "maxslewrate")) {
     parse_double(p, &max_slew_rate);
   } else if (!strcasecmp(command, "maxupdateskew")) {
     parse_double(p, &max_update_skew);
   } else if (!strcasecmp(command, "minsamples")) {
-    parse_int(p, &min_samples);
+    parse_int(p, &min_samples, 0, INT_MAX);
   } else if (!strcasecmp(command, "minsources")) {
-    parse_int(p, &min_sources);
+    parse_int(p, &min_sources, 1, INT_MAX);
   } else if (!strcasecmp(command, "nocerttimecheck")) {
-    parse_int(p, &no_cert_time_check);
+    parse_int(p, &no_cert_time_check, 0, INT_MAX);
   } else if (!strcasecmp(command, "noclientlog")) {
     parse_null(p, &no_client_log);
   } else if (!strcasecmp(command, "nosystemcert")) {
@@ -714,7 +717,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "ntpsigndsocket")) {
     parse_string(p, &ntp_signd_socket);
   } else if (!strcasecmp(command, "ntsaeads")) {
-    parse_ints(p, nts_aeads);
+    parse_ints(p, nts_aeads, 0, INT_MAX);
   } else if (!strcasecmp(command, "ntsratelimit")) {
     parse_ratelimit(p, &nts_ratelimit_enabled, &nts_ratelimit_interval,
                     &nts_ratelimit_burst, &nts_ratelimit_leak, NULL);
@@ -724,13 +727,13 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "ntsntpserver")) {
     parse_string(p, &nts_ntp_server);
   } else if (!strcasecmp(command, "ntsport")) {
-    parse_int(p, &nts_server_port);
+    parse_int(p, &nts_server_port, 0, 65535);
   } else if (!strcasecmp(command, "ntsprocesses")) {
-    parse_int(p, &nts_server_processes);
+    parse_int(p, &nts_server_processes, 0, 1000);
   } else if (!strcasecmp(command, "ntsrefresh")) {
-    parse_int(p, &nts_refresh);
+    parse_int(p, &nts_refresh, 0, INT_MAX);
   } else if (!strcasecmp(command, "ntsrotate")) {
-    parse_int(p, &nts_rotate);
+    parse_int(p, &nts_rotate, 0, INT_MAX);
   } else if (!strcasecmp(command, "ntsservercert")) {
     parse_ntsserver(p, nts_server_cert_files);
   } else if (!strcasecmp(command, "ntsserverkey")) {
@@ -746,18 +749,18 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "pool")) {
     parse_source(p, command, 1);
   } else if (!strcasecmp(command, "port")) {
-    parse_int(p, &ntp_port);
+    parse_int(p, &ntp_port, 0, 65535);
   } else if (!strcasecmp(command, "ptpdomain")) {
-    parse_int(p, &ptp_domain);
+    parse_int(p, &ptp_domain, 0, 255);
   } else if (!strcasecmp(command, "ptpport")) {
-    parse_int(p, &ptp_port);
+    parse_int(p, &ptp_port, 0, 65535);
   } else if (!strcasecmp(command, "ratelimit")) {
     parse_ratelimit(p, &ntp_ratelimit_enabled, &ntp_ratelimit_interval,
                     &ntp_ratelimit_burst, &ntp_ratelimit_leak, &ntp_ratelimit_kod);
   } else if (!strcasecmp(command, "refclock")) {
     parse_refclock(p);
   } else if (!strcasecmp(command, "refresh")) {
-    parse_int(p, &refresh);
+    parse_int(p, &refresh, 0, INT_MAX);
   } else if (!strcasecmp(command, "reselectdist")) {
     parse_double(p, &reselect_distance);
   } else if (!strcasecmp(command, "rtcautotrim")) {
@@ -771,7 +774,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "rtcsync")) {
     parse_null(p, &rtc_sync);
   } else if (!strcasecmp(command, "sched_priority")) {
-    parse_int(p, &sched_priority);
+    parse_int(p, &sched_priority, 0, 100);
   } else if (!strcasecmp(command, "server")) {
     parse_source(p, command, 1);
   } else if (!strcasecmp(command, "smoothtime")) {
@@ -809,12 +812,21 @@ parse_string(char *line, char **result)
 /* ================================================== */
 
 static void
-parse_int(char *line, int *result)
+parse_int(char *line, int *result, int min, int max)
 {
+  char *end;
+  long r;
+
   check_number_of_args(line, 1);
-  if (sscanf(line, "%d", result) != 1) {
+
+  errno = 0;
+  r = strtol(line, &end, 10);
+  if (errno != 0 || *end != '\0')
     command_parse_error();
-  }
+  if (r < min || r > max)
+    other_parse_error("Invalid value %ld in %s directive (min %d, max %d)",
+                      r, processed_command, min, max);
+  *result = r;
 }
 
 /* ================================================== */
@@ -840,7 +852,7 @@ parse_null(char *line, int *result)
 /* ================================================== */
 
 static void
-parse_ints(char *line, ARR_Instance array)
+parse_ints(char *line, ARR_Instance array, int min, int max)
 {
   char *s;
   int v;
@@ -850,7 +862,7 @@ parse_ints(char *line, ARR_Instance array)
   while (*line) {
     s = line;
     line = CPS_SplitWord(line);
-    parse_int(s, &v);
+    parse_int(s, &v, min, max);
     ARR_AppendElement(array, &v);
   }
 }
@@ -922,7 +934,7 @@ parse_ratelimit(char *line, int *enabled, int *interval, int *burst, int *leak, 
   while (*line) {
     opt = line;
     line = CPS_SplitWord(line);
-    if (sscanf(line, "%d%n", &val, &n) != 1) {
+    if (!SSCANF_IN_RANGE(line, "%d%n", &val, &n, -32, 32)) {
       command_parse_error();
       return;
     }
@@ -1001,31 +1013,28 @@ parse_refclock(char *line)
       if ((n = CPS_ParseRefid(line, &lock_ref_id)) == 0)
         break;
     } else if (!strcasecmp(cmd, "poll")) {
-      if (sscanf(line, "%d%n", &poll, &n) != 1) {
+      if (!SSCANF_IN_RANGE(line, "%d%n", &poll, &n, -32, 32))
         break;
-      }
     } else if (!strcasecmp(cmd, "dpoll")) {
-      if (sscanf(line, "%d%n", &dpoll, &n) != 1) {
+      if (!SSCANF_IN_RANGE(line, "%d%n", &dpoll, &n, -32, 32))
         break;
-      }
     } else if (!strcasecmp(cmd, "filter")) {
-      if (sscanf(line, "%d%n", &filter_length, &n) != 1) {
+      if (!SSCANF_IN_RANGE(line, "%d%n", &filter_length, &n, 0, INT_MAX))
         break;
-      }
     } else if (!strcasecmp(cmd, "local")) {
       n = 0;
       local = 1;
     } else if (!strcasecmp(cmd, "rate")) {
-      if (sscanf(line, "%d%n", &pps_rate, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &pps_rate, &n, 1, INT_MAX))
         break;
     } else if (!strcasecmp(cmd, "minsamples")) {
-      if (sscanf(line, "%d%n", &min_samples, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &min_samples, &n, 0, INT_MAX))
         break;
     } else if (!strcasecmp(cmd, "maxlockage")) {
-      if (sscanf(line, "%d%n", &max_lock_age, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &max_lock_age, &n, 0, INT_MAX))
         break;
     } else if (!strcasecmp(cmd, "maxsamples")) {
-      if (sscanf(line, "%d%n", &max_samples, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &max_samples, &n, 0, INT_MAX))
         break;
     } else if (!strcasecmp(cmd, "offset")) {
       if (sscanf(line, "%lf%n", &offset, &n) != 1)
@@ -1043,8 +1052,7 @@ parse_refclock(char *line)
       if (sscanf(line, "%lf%n", &max_dispersion, &n) != 1)
         break;
     } else if (!strcasecmp(cmd, "stratum")) {
-      if (sscanf(line, "%d%n", &stratum, &n) != 1 ||
-          stratum >= NTP_MAX_STRATUM || stratum < 0)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &stratum, &n, 0, NTP_MAX_STRATUM - 1))
         break;
     } else if (!strcasecmp(cmd, "tai")) {
       n = 0;
@@ -1609,17 +1617,17 @@ parse_hwtimestamp(char *line)
     line = CPS_SplitWord(line);
 
     if (!strcasecmp(p, "maxsamples")) {
-      if (sscanf(line, "%d%n", &iface->max_samples, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &iface->max_samples, &n, 0, INT_MAX))
         break;
     } else if (!strcasecmp(p, "minpoll")) {
-      if (sscanf(line, "%d%n", &iface->minpoll, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &iface->minpoll, &n, -32, 32))
         break;
     } else if (!strcasecmp(p, "maxpoll")) {
-      if (sscanf(line, "%d%n", &iface->maxpoll, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &iface->maxpoll, &n, -32, 32))
         break;
       maxpoll_set = 1;
     } else if (!strcasecmp(p, "minsamples")) {
-      if (sscanf(line, "%d%n", &iface->min_samples, &n) != 1)
+      if (!SSCANF_IN_RANGE(line, "%d%n", &iface->min_samples, &n, 0, INT_MAX))
         break;
     } else if (!strcasecmp(p, "precision")) {
       if (sscanf(line, "%lf%n", &iface->precision, &n) != 1)
