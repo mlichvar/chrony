@@ -29,8 +29,6 @@
 #include <local.h>
 #include "test.h"
 
-#ifdef FEAT_NTP
-
 static struct timespec current_time;
 static NTP_Packet req_buffer, res_buffer;
 static int req_length, res_length;
@@ -638,11 +636,3 @@ test_unit(void)
   CNF_Finalise();
   HSH_Finalise();
 }
-
-#else
-void
-test_unit(void)
-{
-  TEST_REQUIRE(0);
-}
-#endif

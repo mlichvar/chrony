@@ -116,7 +116,6 @@ For better control, use the options below.
   --without-tomcrypt     Don't use libtomcrypt even if it is available
   --disable-nts          Disable NTS support
   --disable-cmdmon       Disable command and monitoring support
-  --disable-ntp          Disable NTP support
   --disable-refclock     Disable reference clock support
   --disable-phc          Disable PHC refclock driver
   --disable-pps          Disable PPS refclock driver
@@ -126,7 +125,6 @@ For better control, use the options below.
   --without-libcap       Don't use libcap even if it is available
   --enable-scfilter      Enable support for system call filtering
   --without-seccomp      Don't use seccomp even if it is available
-  --disable-asyncdns     Disable asynchronous name resolving
   --disable-forcednsretry Don't retry on permanent DNS error
   --without-aes-gcm-siv  Don't use AES-GCM-SIV for NTS even if it is available
   --without-clock-gettime Don't use clock_gettime() even if it is available
@@ -219,7 +217,6 @@ EXTRA_CLI_OBJECTS=""
 
 feat_debug=0
 feat_cmdmon=1
-feat_ntp=1
 feat_refclock=1
 feat_readline=1
 try_editline=1
@@ -243,7 +240,6 @@ try_phc=0
 feat_pps=1
 try_setsched=0
 try_lockmem=0
-feat_asyncdns=1
 feat_forcednsretry=1
 try_aes_gcm_siv=1
 try_clock_gettime=1
@@ -253,7 +249,6 @@ feat_timestamping=1
 try_timestamping=0
 feat_ntp_signd=0
 ntp_era_split=""
-use_pthread=0
 default_user="root"
 default_hwclockfile=""
 default_pidfile="/var/run/chrony/chronyd.pid"
@@ -308,9 +303,6 @@ do
     --disable-cmdmon)
       feat_cmdmon=0
     ;;
-    --disable-ntp)
-      feat_ntp=0
-    ;;
     --disable-refclock)
       feat_refclock=0
     ;;
@@ -340,9 +332,6 @@ do
     ;;
     --without-seccomp)
       try_seccomp=0
-    ;;
-    --disable-asyncdns)
-      feat_asyncdns=0
     ;;
     --disable-forcednsretry)
       feat_forcednsretry=0
@@ -504,22 +493,9 @@ if [ $feat_cmdmon = "1" ]; then
   EXTRA_OBJECTS="$EXTRA_OBJECTS cmdmon.o manual.o pktlength.o"
 fi
 
-if [ $feat_ntp = "1" ]; then
-  add_def FEAT_NTP
-  EXTRA_OBJECTS="$EXTRA_OBJECTS ntp_auth.o ntp_core.o ntp_ext.o ntp_io.o ntp_sources.o"
-  if [ $feat_ntp_signd = "1" ]; then
-    add_def FEAT_SIGND
-    EXTRA_OBJECTS="$EXTRA_OBJECTS ntp_signd.o"
-  fi
-else
-  feat_asyncdns=0
-  feat_timestamping=0
-fi
-
-if [ "$feat_cmdmon" = "1" ] || [ $feat_ntp = "1" ]; then
-  EXTRA_OBJECTS="$EXTRA_OBJECTS addrfilt.o clientlog.o keys.o nameserv.o"
-else
-  feat_ipv6=0
+if [ $feat_ntp_signd = "1" ]; then
+  add_def FEAT_SIGND
+  EXTRA_OBJECTS="$EXTRA_OBJECTS ntp_signd.o"
 fi
 
 if [ $feat_refclock = "1" ]; then
@@ -706,15 +682,15 @@ then
   exit 1
 fi
 
-if [ $feat_asyncdns = "1" ] && \
-  test_code 'pthread' 'pthread.h' '-pthread' '' '
-    pthread_t thread;
-    return (int)pthread_create(&thread, NULL, (void *)1, NULL);'
+if test_code 'pthread' 'pthread.h' '-pthread' '' '
+  pthread_t thread;
+  return (int)pthread_create(&thread, NULL, (void *)1, NULL);'
 then
-  add_def FEAT_ASYNCDNS
   add_def USE_PTHREAD_ASYNCDNS
-  EXTRA_OBJECTS="$EXTRA_OBJECTS nameserv_async.o"
-  use_pthread=1
+  MYCFLAGS="$MYCFLAGS -pthread"
+else
+  echo "error: pthread_create() not found"
+  exit 1
 fi
 
 if [ $try_arc4random = "1" ] && \
@@ -817,12 +793,10 @@ if [ $feat_scfilter = "1" ] && [ $try_seccomp = "1" ] && \
     'seccomp_init(SCMP_ACT_KILL);'
 then
   add_def FEAT_SCFILTER
-  if [ $feat_ntp = "1" ]; then
-    # NAME2IPADDRESS shouldn't be enabled together with a privops operation
-    # used by the main thread as the helper process works on one request at
-    # a time and the async resolver would block the main thread
-    priv_ops="NAME2IPADDRESS RELOADDNS"
-  fi
+  # NAME2IPADDRESS shouldn't be enabled together with a privops operation
+  # used by the main thread as the helper process works on one request at
+  # a time and the async resolver would block the main thread
+  priv_ops="NAME2IPADDRESS RELOADDNS"
   EXTRA_LIBS="$EXTRA_LIBS -lseccomp"
 fi
 
@@ -861,7 +835,6 @@ if [ $try_setsched = "1" ] && \
      pthread_setschedparam(pthread_self(), SCHED_FIFO, &sched);'
 then
   add_def HAVE_PTHREAD_SETSCHEDPARAM
-  use_pthread=1
 fi
 
 if [ $try_lockmem = "1" ] && \
@@ -978,7 +951,7 @@ EXTRA_OBJECTS="$EXTRA_OBJECTS $HASH_OBJ"
 EXTRA_CLI_OBJECTS="$EXTRA_CLI_OBJECTS $HASH_OBJ"
 LIBS="$LIBS $HASH_LINK"
 
-if [ $feat_ntp = "1" ] && [ $feat_nts = "1" ] && [ $try_gnutls = "1" ]; then
+if [ $feat_nts = "1" ] && [ $try_gnutls = "1" ]; then
   if [ "$HASH_OBJ" = "hash_gnutls.o" ]; then
     test_cflags=""
     test_link=""
@@ -1036,10 +1009,6 @@ if [ $feat_ntp = "1" ] && [ $feat_nts = "1" ] && [ $try_gnutls = "1" ]; then
       add_def FEAT_NTS
     fi
   fi
-fi
-
-if [ $use_pthread = "1" ]; then
-  MYCFLAGS="$MYCFLAGS -pthread"
 fi
 
 SYSCONFDIR=/etc
@@ -1107,7 +1076,7 @@ add_def MAIL_PROGRAM "\"$mail_program\""
 
 common_features="`get_features SECHASH IPV6 DEBUG`"
 chronyc_features="`get_features READLINE`"
-chronyd_features="`get_features CMDMON NTP REFCLOCK RTC PRIVDROP SCFILTER SIGND ASYNCDNS NTS`"
+chronyd_features="`get_features CMDMON REFCLOCK RTC PRIVDROP SCFILTER SIGND NTS`"
 add_def CHRONYC_FEATURES "\"$chronyc_features $common_features\""
 add_def CHRONYD_FEATURES "\"$chronyd_features $common_features\""
 echo "Features : $chronyd_features $chronyc_features $common_features"

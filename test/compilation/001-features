@@ -10,7 +10,6 @@ for opts in \
 	"--enable-debug" \
 	"--enable-ntp-signd" \
 	"--enable-scfilter" \
-	"--disable-asyncdns" \
 	"--disable-ipv6" \
 	"--disable-privdrop" \
 	"--disable-readline" \
@@ -18,16 +17,10 @@ for opts in \
 	"--disable-sechash" \
 	"--disable-cmdmon" \
 	"--disable-cmdmon --enable-scfilter" \
-	"--disable-ntp" \
-	"--disable-ntp --enable-scfilter" \
 	"--disable-nts" \
 	"--disable-refclock" \
 	"--disable-timestamping" \
-	"--disable-timestamping --disable-ntp" \
-	"--disable-cmdmon --disable-ntp" \
-	"--disable-cmdmon --disable-ntp --enable-scfilter" \
-	"--disable-cmdmon --disable-refclock" \
-	"--disable-cmdmon --disable-ntp --disable-refclock"
+	"--disable-cmdmon --disable-refclock"
 do
 	./configure $opts || exit 1
 	make clean

@@ -21,8 +21,6 @@
 #include <config.h>
 #include "test.h"
 
-#ifdef FEAT_NTP
-
 #include <util.h>
 #include <logging.h>
 
@@ -157,11 +155,3 @@ test_unit(void)
 
   }
 }
-
-#else
-void
-test_unit(void)
-{
-  TEST_REQUIRE(0);
-}
-#endif

@@ -27,7 +27,7 @@ TEST_PRIVDROP_USER=${TEST_PRIVDROP_USER:-nobody}
 test_start() {
 	local user=$(get_user)
 
-	check_chronyd_features NTP CMDMON || test_skip "NTP/CMDMON support disabled"
+	check_chronyd_features CMDMON || test_skip "CMDMON support disabled"
 
 	[ "${#TEST_DIR}" -ge 5 ] || test_skip "invalid TEST_DIR"
 

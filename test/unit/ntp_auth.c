@@ -29,8 +29,6 @@
 #include <socket.h>
 #include "test.h"
 
-#ifdef FEAT_NTP
-
 #include <ntp_auth.c>
 
 static void
@@ -279,11 +277,3 @@ test_unit(void)
   CNF_Finalise();
   HSH_Finalise();
 }
-
-#else
-void
-test_unit(void)
-{
-  TEST_REQUIRE(0);
-}
-#endif

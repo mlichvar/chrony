@@ -21,8 +21,6 @@
 #include <config.h>
 #include "test.h"
 
-#if defined(FEAT_NTP) || defined(FEAT_CMDMON)
-
 #include <keys.c>
 
 #define KEYS 100
@@ -164,10 +162,3 @@ test_unit(void)
   CNF_Finalise();
   HSH_Finalise();
 }
-#else
-void
-test_unit(void)
-{
-  TEST_REQUIRE(0);
-}
-#endif

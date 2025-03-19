@@ -85,13 +85,6 @@ will be built with support for dropping root privileges. On other systems no
 extra library is needed. The default user which `chronyd` should run as can be
 specified with the `--with-user` option of the `configure` script.
 
-If development files for the POSIX threads library are available, `chronyd`
-will be built with support for asynchronous resolving of hostnames specified in
-the `server`, `peer`, and `pool` directives. This allows `chronyd` operating as
-a server to respond to client requests when resolving a hostname. If you don't
-want to enable the support, specify the `--disable-asyncdns` flag to
-`configure`.
-
 If development files for the https://www.lysator.liu.se/~nisse/nettle/[Nettle],
 https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS[NSS], or
 https://www.libtom.net/LibTomCrypt/[libtomcrypt] library are available,

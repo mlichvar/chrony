@@ -21,8 +21,6 @@
 #include <config.h>
 #include "test.h"
 
-#ifdef FEAT_NTP
-
 #include <conf.h>
 #include <cmdparse.h>
 #include <nameserv_async.h>
@@ -372,11 +370,3 @@ test_unit(void)
   CNF_Finalise();
   HSH_Finalise();
 }
-
-#else
-void
-test_unit(void)
-{
-  TEST_REQUIRE(0);
-}
-#endif

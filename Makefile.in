@@ -37,7 +37,9 @@ GETDATE_CFLAGS = @GETDATE_CFLAGS@
 
 EXTRA_OBJS = @EXTRA_OBJS@
 
-OBJS = array.o cmdparse.o conf.o leapdb.o local.o logging.o main.o memory.o quantiles.o \
+OBJS = addrfilt.o array.o clientlog.o cmdparse.o conf.o keys.o leapdb.o \
+       local.o logging.o main.o memory.o nameserv.o nameserv_async.o \
+       ntp_auth.o ntp_core.o ntp_ext.o ntp_io.o ntp_sources.o quantiles.o \
        reference.o regress.o rtc.o samplefilt.o sched.o socket.o sources.o sourcestats.o \
        stubs.o smooth.o sys.o sys_null.o tempcomp.o util.o $(EXTRA_OBJS)
 
