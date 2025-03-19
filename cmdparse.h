@@ -30,6 +30,13 @@
 #include "srcparams.h"
 #include "addressing.h"
 
+typedef enum {
+  CPS_Success,
+  CPS_InvalidValue,
+  CPS_InvalidOption,
+  CPS_MissingArgument,
+} CPS_Status;
+
 typedef struct {
   char *name;
   int family;
@@ -38,7 +45,7 @@ typedef struct {
 } CPS_NTP_Source;
 
 /* Parse a command to add an NTP server or peer */
-extern int CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src);
+extern CPS_Status CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src);
   
 /* Get an NTP/refclock select option */
 extern int CPS_GetSelectOption(char *option);
@@ -47,8 +54,8 @@ extern int CPS_GetSelectOption(char *option);
 extern int CPS_ParseAllowDeny(char *line, int *all, IPAddr *ip, int *subnet_bits);
 
 /* Parse a command to enable local reference */
-extern int CPS_ParseLocal(char *line, int *stratum, int *orphan, double *distance,
-                          double *activate, double *wait_synced, double *wait_unsynced);
+extern CPS_Status CPS_ParseLocal(char *line, int *stratum, int *orphan, double *distance,
+                                 double *activate, double *wait_synced, double *wait_unsynced);
 
 /* Remove extra white-space and comments */
 extern void CPS_NormalizeLine(char *line);

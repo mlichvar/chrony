@@ -39,7 +39,7 @@
 
 /* ================================================== */
 
-int
+CPS_Status
 CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
 {
   char *hostname, *cmd;
@@ -82,7 +82,7 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
   line = CPS_SplitWord(line);
 
   if (!*hostname)
-    return 0;
+    return CPS_MissingArgument;
 
   src->name = hostname;
 
@@ -104,17 +104,17 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
       src->params.connectivity = SRC_OFFLINE;
     } else if (!strcasecmp(cmd, "certset")) {
       if (sscanf(line, "%"SCNu32"%n", &src->params.cert_set, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "key")) {
       if (sscanf(line, "%"SCNu32"%n", &src->params.authkey, &n) != 1 ||
           src->params.authkey == INACTIVE_AUTHKEY)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "asymmetry")) {
       if (sscanf(line, "%lf%n", &src->params.asymmetry, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "extfield")) {
       if (sscanf(line, "%"SCNx32"%n", &ef_type, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
       switch (ef_type) {
         case NTP_EF_EXP_MONO_ROOT:
           src->params.ext_fields |= NTP_EF_FLAG_EXP_MONO_ROOT;
@@ -123,78 +123,78 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
           src->params.ext_fields |= NTP_EF_FLAG_EXP_NET_CORRECTION;
           break;
         default:
-          return 0;
+          return CPS_InvalidValue;
       }
     } else if (!strcasecmp(cmd, "filter")) {
       if (sscanf(line, "%d%n", &src->params.filter_length, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "ipv4")) {
       src->family = IPADDR_INET4;
     } else if (!strcasecmp(cmd, "ipv6")) {
       src->family = IPADDR_INET6;
     } else if (!strcasecmp(cmd, "maxdelay")) {
       if (sscanf(line, "%lf%n", &src->params.max_delay, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "maxdelayratio")) {
       if (sscanf(line, "%lf%n", &src->params.max_delay_ratio, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "maxdelaydevratio")) {
       if (sscanf(line, "%lf%n", &src->params.max_delay_dev_ratio, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "maxdelayquant")) {
       if (sscanf(line, "%lf%n", &src->params.max_delay_quant, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "maxpoll")) {
       if (sscanf(line, "%d%n", &src->params.maxpoll, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "maxsamples")) {
       if (sscanf(line, "%d%n", &src->params.max_samples, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "maxsources")) {
       if (sscanf(line, "%d%n", &src->params.max_sources, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "mindelay")) {
       if (sscanf(line, "%lf%n", &src->params.min_delay, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "minpoll")) {
       if (sscanf(line, "%d%n", &src->params.minpoll, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "minsamples")) {
       if (sscanf(line, "%d%n", &src->params.min_samples, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "minstratum")) {
       if (sscanf(line, "%d%n", &src->params.min_stratum, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "nts")) {
       src->params.nts = 1;
     } else if (!strcasecmp(cmd, "ntsport")) {
       if (sscanf(line, "%d%n", &src->params.nts_port, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "offset")) {
       if (sscanf(line, "%lf%n", &src->params.offset, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "port")) {
       if (sscanf(line, "%d%n", &src->port, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "polltarget")) {
       if (sscanf(line, "%d%n", &src->params.poll_target, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "presend")) {
       if (sscanf(line, "%d%n", &src->params.presend_minpoll, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "version")) {
       if (sscanf(line, "%d%n", &src->params.version, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "xleave")) {
       src->params.interleaved = 1;
     } else if ((sel_option = CPS_GetSelectOption(cmd)) != 0) {
       src->params.sel_options |= sel_option;
     } else {
-      return 0;
+      return CPS_InvalidOption;
     }
   }
 
-  return 1;
+  return CPS_Success;
 }
 
 /* ================================================== */
@@ -295,7 +295,7 @@ CPS_ParseAllowDeny(char *line, int *all, IPAddr *ip, int *subnet_bits)
 
 /* ================================================== */
 
-int
+CPS_Status
 CPS_ParseLocal(char *line, int *stratum, int *orphan, double *distance, double *activate,
                double *wait_synced, double *wait_unsynced)
 {
@@ -316,24 +316,24 @@ CPS_ParseLocal(char *line, int *stratum, int *orphan, double *distance, double *
     if (!strcasecmp(cmd, "stratum")) {
       if (sscanf(line, "%d%n", stratum, &n) != 1 ||
           *stratum >= NTP_MAX_STRATUM || *stratum <= 0)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "orphan")) {
       *orphan = 1;
       n = 0;
     } else if (!strcasecmp(cmd, "distance")) {
       if (sscanf(line, "%lf%n", distance, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "activate")) {
       if (sscanf(line, "%lf%n", activate, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "waitsynced")) {
       if (sscanf(line, "%lf%n", wait_synced, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else if (!strcasecmp(cmd, "waitunsynced")) {
       if (sscanf(line, "%lf%n", wait_unsynced, &n) != 1)
-        return 0;
+        return CPS_InvalidValue;
     } else {
-      return 0;
+      return CPS_InvalidOption;
     }
 
     line += n;
@@ -342,7 +342,7 @@ CPS_ParseLocal(char *line, int *stratum, int *orphan, double *distance, double *
   if (*wait_unsynced < 0.0)
     *wait_unsynced = *orphan ? 300 : 0.0;
 
-  return 1;
+  return CPS_Success;
 }
 
 /* ================================================== */

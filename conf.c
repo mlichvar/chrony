@@ -860,6 +860,7 @@ parse_ints(char *line, ARR_Instance array)
 static void
 parse_source(char *line, char *type, int fatal)
 {
+  CPS_Status status;
   NTP_Source source;
 
   if (strcasecmp(type, "peer") == 0) {
@@ -880,9 +881,13 @@ parse_source(char *line, char *type, int fatal)
   /* Avoid comparing uninitialized data in compare_sources() */
   memset(&source.params, 0, sizeof (source.params));
 
-  if (!CPS_ParseNTPSourceAdd(line, &source.params)) {
-    if (fatal)
-      command_parse_error();
+  status = CPS_ParseNTPSourceAdd(line, &source.params);
+  if (status != CPS_Success) {
+    if (fatal) {
+      other_parse_error("Invalid %s %s directive",
+                        status == CPS_InvalidOption ? "option in" :
+                        status == CPS_InvalidValue ? "value in" : "syntax for", type);
+    }
     return;
   }
 
@@ -1127,9 +1132,16 @@ parse_log(char *line)
 static void
 parse_local(char *line)
 {
-  if (!CPS_ParseLocal(line, &local_stratum, &local_orphan, &local_distance,
-                      &local_activate, &local_wait_synced, &local_wait_unsynced))
-    command_parse_error();
+  CPS_Status status;
+
+  status = CPS_ParseLocal(line, &local_stratum, &local_orphan, &local_distance,
+                          &local_activate, &local_wait_synced, &local_wait_unsynced);
+  if (status != CPS_Success) {
+    other_parse_error("Invalid %s %s directive",
+                      status == CPS_InvalidOption ? "option in" : "value in",
+                      processed_command);
+  }
+
   enable_local = 1;
 }
 

@@ -759,7 +759,7 @@ process_cmd_local(CMD_Request *msg, char *line)
   if (!strcmp(line, "off")) {
     on_off = 0;
   } else if (CPS_ParseLocal(line, &stratum, &orphan, &distance, &activate,
-                            &wait_synced, &wait_unsynced)) {
+                            &wait_synced, &wait_unsynced) == CPS_Success) {
     on_off = 1;
   } else {
     LOG(LOGS_ERR, "Invalid syntax for local command");
@@ -907,8 +907,9 @@ static int
 process_cmd_add_source(CMD_Request *msg, char *line)
 {
   CPS_NTP_Source data;
+  CPS_Status status;
   IPAddr ip_addr;
-  int result = 0, status, type;
+  int result = 0, type;
   const char *opt_name, *word;
   
   msg->command = htons(REQ_ADD_SOURCE);
@@ -929,10 +930,7 @@ process_cmd_add_source(CMD_Request *msg, char *line)
 
   status = CPS_ParseNTPSourceAdd(line, &data);
   switch (status) {
-    case 0:
-      LOG(LOGS_ERR, "Invalid syntax for add command");
-      break;
-    default:
+    case CPS_Success:
       /* Verify that the address is resolvable (chronyc and chronyd are
          assumed to be running on the same host) */
       if (strlen(data.name) >= sizeof (msg->data.ntp_source.name) ||
@@ -993,6 +991,15 @@ process_cmd_add_source(CMD_Request *msg, char *line)
 
       result = 1;
 
+      break;
+    case CPS_InvalidOption:
+      LOG(LOGS_ERR, "Invalid %s add command", "option in");
+      break;
+    case CPS_InvalidValue:
+      LOG(LOGS_ERR, "Invalid %s add command", "value in");
+      break;
+    default:
+      LOG(LOGS_ERR, "Invalid %s add command", "syntax for");
       break;
   }
 
