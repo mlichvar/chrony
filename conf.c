@@ -363,12 +363,20 @@ command_parse_error(void)
 
 /* ================================================== */
 
+FORMAT_ATTRIBUTE_PRINTF(1, 2)
 static void
-other_parse_error(const char *message)
+other_parse_error(const char *format, ...)
 {
-    LOG_FATAL("%s at line %d%s%s",
-        message, line_number, processed_file ? " in file " : "",
-        processed_file ? processed_file : "");
+  char buf[256];
+  va_list ap;
+
+  va_start(ap, format);
+  vsnprintf(buf, sizeof (buf), format, ap);
+  va_end(ap);
+
+  LOG_FATAL("%s at line %d%s%s",
+            buf, line_number, processed_file ? " in file " : "",
+            processed_file ? processed_file : "");
 }
 
 /* ================================================== */
