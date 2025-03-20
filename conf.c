@@ -793,7 +793,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
              !strcasecmp(command, "linux_hz")) {
     LOG(LOGS_WARN, "%s directive is no longer supported", command);
   } else {
-    other_parse_error("Invalid directive");
+    other_parse_error("Invalid directive %s", command);
   }
 
   processed_file = processed_command = NULL;
@@ -1064,13 +1064,13 @@ parse_refclock(char *line)
       n = 0;
       sel_options |= sel_option;
     } else {
-      other_parse_error("Invalid refclock option");
+      other_parse_error("Invalid %s %s directive", "option in", processed_command);
       return;
     }
   }
 
   if (*cmd) {
-    command_parse_error();
+    other_parse_error("Invalid %s %s directive", "value in", processed_command);
     return;
   }
 
