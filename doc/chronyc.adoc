@@ -1467,6 +1467,13 @@ purged. An example of how to do this is shown below.
 # chronyc cyclelogs
 # rm /var/log/chrony/measurements1.log
 ----
++
+Note that log files enabled by the *log* directive are opened when the first
+entry is made. The message log file specified by the *chronyd*'s *-l* option is
+opened early on start and closed on the *cyclelogs* command only if opening of
+the new file succeeds to avoid losing messages. If *chronyd* is configured to
+drop root privileges and the directory containg the log file is not writable
+for the specified user, *chronyd* will not be able to open the file again.
 
 [[dump]]*dump*::
 The *dump* command causes *chronyd* to write its current history of

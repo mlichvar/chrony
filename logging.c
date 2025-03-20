@@ -46,6 +46,7 @@ static LOG_Context log_contexts;
 /* Flag indicating we have initialised */
 static int initialised = 0;
 
+static char *file_log_path = NULL;
 static FILE *file_log = NULL;
 static int system_log = 0;
 
@@ -92,6 +93,9 @@ LOG_Finalise(void)
 
   if (file_log)
     fclose(file_log);
+  file_log = NULL;
+  Free(file_log_path);
+  file_log_path = NULL;
 
   LOG_CycleLogFiles();
 
@@ -200,26 +204,41 @@ void LOG_Message(LOG_Severity severity,
 
 /* ================================================== */
 
-void
-LOG_OpenFileLog(const char *log_file)
+static FILE *
+open_file_log(const char *log_file, char mode)
 {
   FILE *f;
 
   if (log_file) {
-    f = UTI_OpenFile(NULL, log_file, NULL, 'A', 0640);
+    f = UTI_OpenFile(NULL, log_file, NULL, mode, 0640);
   } else {
     f = stderr;
   }
 
   /* Enable line buffering */
-  setvbuf(f, NULL, _IOLBF, BUFSIZ);
+  if (f)
+    setvbuf(f, NULL, _IOLBF, BUFSIZ);
+
+  return f;
+}
+
+/* ================================================== */
+
+void
+LOG_OpenFileLog(const char *log_file)
+{
+  if (file_log_path)
+    Free(file_log_path);
+  if (log_file)
+    file_log_path = Strdup(log_file);
+  else
+    file_log_path = NULL;
 
   if (file_log && file_log != stderr)
     fclose(file_log);
 
-  file_log = f;
+  file_log = open_file_log(file_log_path, 'A');
 }
-
 
 /* ================================================== */
 
@@ -385,13 +404,28 @@ LOG_FileWrite(LOG_FileID id, const char *format, ...)
 void
 LOG_CycleLogFiles(void)
 {
+  struct stat st;
   LOG_FileID i;
+  FILE *f;
 
+  /* The log will be opened later when an entry is logged */
   for (i = 0; i < n_filelogs; i++) {
     if (logfiles[i].file)
       fclose(logfiles[i].file);
     logfiles[i].file = NULL;
     logfiles[i].writes = 0;
+  }
+
+  /* Try to open the log specified by the -l option, but only if nothing is
+     present at its path to avoid unnecessary error messages.  Keep the
+     original file if that fails (the process might no longer have the
+     necessary privileges to write in the directory). */
+  if (file_log && file_log != stderr && stat(file_log_path, &st) < 0 && errno == ENOENT) {
+    f = open_file_log(file_log_path, 'a');
+    if (f) {
+      fclose(file_log);
+      file_log = f;
+    }
   }
 }
 
