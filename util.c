@@ -29,6 +29,12 @@
 
 #include "sysincl.h"
 
+#if defined(HAVE_NETTLE)
+#include <nettle/memops.h>
+#elif defined(HAVE_GNUTLS)
+#include <gnutls/gnutls.h>
+#endif
+
 #include "logging.h"
 #include "memory.h"
 #include "util.h"
@@ -1647,4 +1653,23 @@ UTI_SplitString(char *string, char **words, int max_saved_words)
   }
 
   return i;
+}
+
+/* ================================================== */
+
+int
+UTI_IsMemoryEqual(const void *s1, const void *s2, unsigned int len)
+{
+#if defined(HAVE_NETTLE)
+  return nettle_memeql_sec(s1, s2, len);
+#elif defined(HAVE_GNUTLS)
+  return gnutls_memcmp(s1, s2, len) == 0;
+#else
+  unsigned int i, x;
+
+  for (i = 0, x = 0; i < len; i++)
+    x |= ((const unsigned char *)s1)[i] ^ ((const unsigned char *)s2)[i];
+
+  return x == 0;
+#endif
 }

@@ -257,6 +257,11 @@ extern unsigned int UTI_HexToBytes(const char *hex, void *buf, unsigned int len)
    number of pointers to the words. */
 extern int UTI_SplitString(char *string, char **words, int max_saved_words);
 
+/* Check if two buffers of the same length contain the same data, but do the
+   comparison in constant time with respect to the returned value to avoid
+   creating a timing side channel */
+extern int UTI_IsMemoryEqual(const void *s1, const void *s2, unsigned int len);
+
 /* Macros to get maximum and minimum of two values */
 #ifdef MAX
 #undef MAX

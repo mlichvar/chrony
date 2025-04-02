@@ -32,8 +32,8 @@ handle_signal(int signal)
 void
 test_unit(void)
 {
+  char buf[16], buf2[16], *s, *s2, *words[3];
   struct timespec ts, ts2, ts3, ts4;
-  char buf[16], *s, *s2, *words[3];
   NTP_int64 ntp_ts, ntp_ts2, ntp_fuzz;
   NTP_int32 ntp32_ts;
   struct timeval tv;
@@ -796,6 +796,20 @@ test_unit(void)
   TEST_CHECK(words[1] == buf + 3);
   TEST_CHECK(strcmp(words[0], "a") == 0);
   TEST_CHECK(strcmp(words[1], "b") == 0);
+
+  for (i = 0; i < 1000; i++) {
+    UTI_GetRandomBytes(buf, sizeof (buf));
+    memcpy(buf2, buf, sizeof (buf));
+    for (j = 0; j < sizeof (buf); j++)
+      TEST_CHECK(UTI_IsMemoryEqual(buf, buf2, j));
+
+    for (j = 0; j < 8 * sizeof (buf); j++) {
+      buf2[j / 8] ^= 1U << j % 8;
+      TEST_CHECK(!UTI_IsMemoryEqual(buf, buf2, sizeof (buf)));
+      buf2[j / 8] ^= 1U << j % 8;
+      TEST_CHECK(UTI_IsMemoryEqual(buf, buf2, sizeof (buf)));
+    }
+  }
 
   HSH_Finalise();
 }

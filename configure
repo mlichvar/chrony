@@ -888,6 +888,7 @@ if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ]  && [ $try_nettle = "1" ];
     HASH_OBJ="hash_nettle.o"
     HASH_LINK="$test_link"
     MYCPPFLAGS="$MYCPPFLAGS $test_cflags"
+    add_def HAVE_NETTLE
     add_def FEAT_SECHASH
 
     if test_code 'CMAC in nettle' 'nettle/cmac.h' "$test_cflags" "$test_link" \
@@ -910,6 +911,7 @@ if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ] && [ $try_gnutls = "1" ]; 
     HASH_OBJ="hash_gnutls.o"
     HASH_LINK="$test_link"
     MYCPPFLAGS="$MYCPPFLAGS $test_cflags"
+    add_def HAVE_GNUTLS
     add_def FEAT_SECHASH
 
     if test_code 'CMAC in gnutls' 'gnutls/crypto.h' "$test_cflags" "$test_link" \
