@@ -257,6 +257,8 @@ SYS_Timex_Finalise(void)
 int
 SYS_Timex_Adjust(struct timex *txc, int ignore_error)
 {
+  static long last_constant, last_freq;
+  static int last_status = -1;
   int state;
 
 #ifdef SOLARIS
@@ -270,7 +272,24 @@ SYS_Timex_Adjust(struct timex *txc, int ignore_error)
   if (state < 0) {
     LOG(ignore_error ? LOGS_DEBUG : LOGS_FATAL,
         NTP_ADJTIME_NAME"(0x%x) failed : %s", txc->modes, strerror(errno));
+    return state;
   }
+
+  /* This a good place to verify that nothing else is touching the clock,
+     without making an additional timex call.  A clock update is normally
+     expected to have four driver calls:
+     - set_sync_status - primarily updating leap status
+     - set_frequency - correcting frequency error
+     - set_frequency - correcting phase error
+     - set_sync_status - updating leap and estimated/maximum error */
+  if (last_status != -1 &&
+      (((last_status ^ txc->status) & STA_PLL && !(txc->modes & MOD_STATUS)) ||
+       (last_constant != txc->constant && !(txc->modes & MOD_TIMECONST)) ||
+       (last_freq != txc->freq && !(txc->modes & MOD_FREQUENCY))))
+    LOG(LOGS_WARN, "System clock interference detected (another NTP client?)");
+  last_status = txc->status;
+  last_constant = txc->constant;
+  last_freq = txc->freq;
 
   return state;
 }
