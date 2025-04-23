@@ -557,8 +557,9 @@ refclock SHM 1:perm=0644 refid GPS2
 ----
 +
 *PHC*:::
-PTP hardware clock (PHC) driver. The parameter is the path to the device of
-the PTP clock which should be used as a time source. If the clock is kept in
+PTP hardware clock (PHC) driver. The parameter is the absolute path to the
+device of the PTP clock which should be used as a time source, or the name of
+the network interface whose PTP clock should be used. If the clock is kept in
 TAI instead of UTC (e.g. it is synchronised by a PTP daemon), the current
 UTC-TAI offset needs to be specified by the *offset* option. Alternatively, the
 *pps* refclock option can be enabled to treat the PHC as a PPS refclock, using

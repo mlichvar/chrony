@@ -39,7 +39,7 @@ extern void SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext conte
 
 extern int SYS_Linux_CheckKernelVersion(int req_major, int req_minor);
 
-extern int SYS_Linux_OpenPHC(const char *path, int phc_index);
+extern int SYS_Linux_OpenPHC(const char *device);
 
 extern int SYS_Linux_GetPHCReadings(int fd, int nocrossts, int *reading_mode, int max_readings,
                                     struct timespec tss[][3]);

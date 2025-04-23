@@ -74,7 +74,7 @@ static int phc_initialise(RCL_Instance instance)
 
   path = RCL_GetDriverParameter(instance);
  
-  phc_fd = SYS_Linux_OpenPHC(path, 0);
+  phc_fd = SYS_Linux_OpenPHC(path);
   if (phc_fd < 0)
     LOG_FATAL("Could not open PHC");
 

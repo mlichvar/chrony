@@ -38,6 +38,12 @@
 #include <poll.h>
 #endif
 
+#ifdef HAVE_LINUX_TIMESTAMPING
+#include <linux/sockios.h>
+#include <linux/ethtool.h>
+#include <net/if.h>
+#endif
+
 #ifdef FEAT_SCFILTER
 #include <sys/prctl.h>
 #include <seccomp.h>
@@ -47,9 +53,6 @@
 #endif
 #ifdef FEAT_RTC
 #include <linux/rtc.h>
-#endif
-#ifdef HAVE_LINUX_TIMESTAMPING
-#include <linux/sockios.h>
 #endif
 #endif
 
@@ -64,6 +67,7 @@
 #include "local.h"
 #include "logging.h"
 #include "privops.h"
+#include "socket.h"
 #include "util.h"
 
 /* Frequency scale to convert from ppm to the timex freq */
@@ -902,33 +906,100 @@ get_precise_phc_readings(int phc_fd, int max_samples, struct timespec ts[][3])
 
 /* ================================================== */
 
-int
-SYS_Linux_OpenPHC(const char *path, int phc_index)
+/* Make sure an FD is a PHC.  Return the FD if it is, or close the FD
+   and return -1 if it is not. */
+
+static int
+verify_fd_is_phc(int phc_fd)
 {
   struct ptp_clock_caps caps;
-  char phc_path[64];
-  int phc_fd;
 
-  if (!path) {
-    if (snprintf(phc_path, sizeof (phc_path), "/dev/ptp%d", phc_index) >= sizeof (phc_path))
-      return -1;
-    path = phc_path;
-  }
-
-  phc_fd = open(path, O_RDONLY);
-  if (phc_fd < 0) {
-    LOG(LOGS_ERR, "Could not open %s : %s", path, strerror(errno));
-    return -1;
-  }
-
-  /* Make sure it is a PHC */
   if (ioctl(phc_fd, PTP_CLOCK_GETCAPS, &caps)) {
     LOG(LOGS_ERR, "ioctl(%s) failed : %s", "PTP_CLOCK_GETCAPS", strerror(errno));
     close(phc_fd);
     return -1;
   }
 
-  UTI_FdSetCloexec(phc_fd);
+  return phc_fd;
+}
+
+/* ================================================== */
+
+static int
+open_phc_by_iface_name(const char *iface)
+{
+#ifdef HAVE_LINUX_TIMESTAMPING
+  struct ethtool_ts_info ts_info;
+  char phc_device[PATH_MAX];
+  struct ifreq req;
+  int sock_fd;
+
+  sock_fd = SCK_OpenUdpSocket(NULL, NULL, NULL, 0);
+  if (sock_fd < 0)
+    return -1;
+
+  memset(&req, 0, sizeof (req));
+  memset(&ts_info, 0, sizeof (ts_info));
+
+  if (snprintf(req.ifr_name, sizeof (req.ifr_name), "%s", iface) >=
+      sizeof (req.ifr_name)) {
+    SCK_CloseSocket(sock_fd);
+    return -1;
+  }
+
+  ts_info.cmd = ETHTOOL_GET_TS_INFO;
+  req.ifr_data = (char *)&ts_info;
+
+  if (ioctl(sock_fd, SIOCETHTOOL, &req)) {
+    DEBUG_LOG("ioctl(%s) failed : %s", "SIOCETHTOOL", strerror(errno));
+    SCK_CloseSocket(sock_fd);
+    return -1;
+  }
+
+  /* Simplify failure paths by closing the socket as early as possible */
+  SCK_CloseSocket(sock_fd);
+  sock_fd = -1;
+
+  if (ts_info.phc_index < 0) {
+    DEBUG_LOG("PHC missing on %s", req.ifr_name);
+    return -1;
+  }
+
+  if (snprintf(phc_device, sizeof (phc_device),
+               "/dev/ptp%d", ts_info.phc_index) >= sizeof (phc_device))
+    return -1;
+
+  return open(phc_device, O_RDONLY);
+#else
+  return -1;
+#endif
+}
+
+/* ================================================== */
+
+int
+SYS_Linux_OpenPHC(const char *device)
+{
+  int phc_fd = -1;
+
+  if (device[0] == '/') {
+    phc_fd = open(device, O_RDONLY);
+    if (phc_fd >= 0)
+      phc_fd = verify_fd_is_phc(phc_fd);
+  }
+
+  if (phc_fd < 0) {
+    phc_fd = open_phc_by_iface_name(device);
+    if (phc_fd < 0) {
+      LOG(LOGS_ERR, "Could not open PHC of iface %s : %s",
+          device, strerror(errno));
+      return -1;
+    }
+    phc_fd = verify_fd_is_phc(phc_fd);
+  }
+
+  if (phc_fd >= 0)
+    UTI_FdSetCloexec(phc_fd);
 
   return phc_fd;
 }
