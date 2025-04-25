@@ -639,7 +639,7 @@ specified by its reference ID. In this mode received PPS samples are paired
 directly with raw samples from the specified refclock.
 *rate* _rate_:::
 This option sets the rate of the pulses in the PPS signal (in Hz). This option
-controls how the pulses will be completed with real time. To actually receive
+controls how the pulses will be completed with real time. In order to receive
 more than one pulse per second, a negative *dpoll* has to be specified (-3 for
 a 5Hz signal). The default is 1.
 *maxlockage* _pulses_:::
@@ -2026,7 +2026,7 @@ time.
 BE WARNED: The server is intentionally not serving its best estimate of the
 true time. If a large offset has been accumulated, it can take a very long time
 to smooth it out. This directive should be used only when the clients are not
-configured to also poll another NTP server, because they could reject this
+configured to poll another NTP server also, because they could reject this
 server as a falseticker or fail to select a source completely.
 +
 The smoothing process is implemented with a quadratic spline function with two
@@ -2185,7 +2185,7 @@ interoperate. When that happens, *chronyc* will print an '`Invalid command`' or
 '`Bad reply from daemon`' error.
 +
 Note that some of the reported data can be potentially useful to attackers,
-enabling them to better observe and predict the internal state of *chronyd*.
+enabling them to observe and predict better the internal state of *chronyd*.
 It is recommended to enable only commands that are actually needed for
 monitoring and limit the access to the hosts that need it.
 
