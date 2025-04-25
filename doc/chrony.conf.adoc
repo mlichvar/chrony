@@ -2603,9 +2603,9 @@ log measurements statistics tracking
 A banner is periodically written to the log files enabled by the <<log,*log*>>
 directive to indicate the meanings of the columns.
 +
-The *logbanner* directive specifies after how many entries in the log file
-should be the banner written. The default is 32, and 0 can be used to disable
-it entirely.
+The *logbanner* directive specifies the cadence size of how many entries are
+written to the log file after which the banner is written anew. The default is
+32, and 0 can be used to disable it entirely.
 
 [[logchange]]*logchange* _threshold_::
 This directive sets the threshold for the adjustment of the system clock that
