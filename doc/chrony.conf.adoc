@@ -148,7 +148,7 @@ indicate that the request, or the response, or both were delayed. If only one
 of the messages was delayed the measurement error is likely to be substantial.
 +
 For small variations in the round-trip delay, *chronyd* uses a weighting scheme
-when processing the measurements. However, beyond a certain level of delay the
+when processing the measurements. Beyond a certain level of delay, however, the
 measurements are likely to be so corrupted as to be useless. (This is
 particularly so on wireless networks and other slow links, where a long delay
 probably indicates a highly asymmetric delay caused by the response waiting
@@ -1093,8 +1093,8 @@ reachable.
 
 [[reselectdist]]*reselectdist* _distance_::
 When *chronyd* selects a synchronisation source from available sources, it
-will prefer the one with the shortest synchronisation distance. However, to
-avoid frequent reselecting when there are sources with similar distance, a
+will prefer the one with the shortest synchronisation distance. To avoid
+frequent reselecting when there are sources with similar distance, however, a
 fixed distance is added to the distance for sources that are currently not
 selected. This can be set with the *reselectdist* directive. By default, the
 distance is 100 microseconds.
@@ -1117,8 +1117,8 @@ measurements and randomise low-order bits of timestamps in NTP responses. By
 default, the precision is measured on start as the minimum time to read the
 clock.
 +
-The measured value works well in most cases. However, it generally
-overestimates the precision and it can be sensitive to the CPU speed, which can
+The measured value works well in most cases. It generally overestimates the
+precision and it can be sensitive to the CPU speed, however, which can
 change over time to save power. In some cases with a high-precision clocksource
 (e.g. the Time Stamp Counter of the CPU) and hardware timestamping, setting the
 precision on the server to a smaller value can improve stability of clients'
@@ -1571,13 +1571,13 @@ allow all 1.2.0.0/16
 +
 In the first example, the effect is the same regardless of what order the three
 directives are given in. So the _1.2.0.0/16_ subnet is allowed access, except
-for the _1.2.3.0/24_ subnet, which is denied access, however the host _1.2.3.4_
+for the _1.2.3.0/24_ subnet, which is denied access, while the host _1.2.3.4_
 is allowed access.
 +
 In the second example, the *allow all 1.2.0.0/16* directive overrides the
 effect of _any_ previous directive relating to a subnet within the specified
 subnet. Within a configuration file this capability is probably rather moot;
-however, it is of greater use for reconfiguration at run-time via *chronyc*
+yet, it is of greater use for reconfiguration at run-time via *chronyc*
 with the <<chronyc.adoc#allow,*allow all*>> command.
 +
 The rules are internally represented as a tree of tables with one level per
@@ -1905,7 +1905,7 @@ This directory is used also by the <<ntsdumpdir1,NTS client>> to save NTS cookie
 This directive specifies the hostname (as a fully qualified domain name) or
 address of the NTP server(s) which is
 provided in the NTS-KE response to the clients. It allows the NTS-KE server to
-be separated from the NTP server. However, the servers need to share the keys,
+be separated from the NTP server. The servers need to share the keys, however,
 i.e. external key management needs to be enabled by setting
 <<ntsrotate,*ntsrotate*>> to 0. By default, no hostname or address is provided
 to the clients, which means they should use the same server for NTS-KE and NTP.
@@ -3019,7 +3019,7 @@ server ntp2.example.net
 server ntp3.example.net
 ----
 
-However, you will probably want to include some of the other directives. The
+You will probably want to include some of the other directives, however. The
 <<driftfile,*driftfile*>>, <<makestep,*makestep*>> and <<rtcsync,*rtcsync*>>
 might be particularly useful. Also, the *iburst* option of the
 <<server,*server*>> directive is useful to speed up the initial
@@ -3123,7 +3123,7 @@ in the form of the <<manual,*manual*>> directive and the
 <<chronyc.adoc#settime,*settime*>> command in the *chronyc* program.
 
 If the server is rebooted, *chronyd* can re-read the drift rate from the drift
-file. However, the server has no accurate estimate of the current time. To get
+file. The server has no accurate estimate of the current time, however. To get
 around this, the system can be configured so that the server can initially set
 itself to a '`majority-vote`' of selected clients' times; this allows the
 clients to '`flywheel`' the server while it is rebooting.
