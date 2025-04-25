@@ -113,7 +113,7 @@ The MAC is generated as a function of a key specified in the key file,
 which is specified by the <<keyfile,*keyfile*>> directive.
 +
 The *key* option specifies which key (with an ID in the range 1 through 2^32-1)
-should *chronyd* use to authenticate requests sent to the server and verify its
+*chronyd* should use to authenticate requests sent to the server and verify its
 responses. The server must have the same key for this number configured,
 otherwise no relationship between the computers will be possible.
 +
@@ -1875,7 +1875,7 @@ ntsaeads 15
 This list is used also by the <<ntsaeads1,NTS client>>.
 +
 Note the the NTS specification (RFC 8915) requires servers to support
-AES-SIV-CMAC-256, i.e. 15 should be always included in the specified list.
+AES-SIV-CMAC-256, i.e. 15 should always be included in the specified list.
 +
 The AES-128-GCM-SIV keys used by *chronyd* do not comply to RFC 8915 for
 compatibility with older *chrony* clients unless the use of compliant keys is
@@ -2822,7 +2822,7 @@ To avoid calculating the offset with a less accurate transmit timestamp,
 *chronyd* can save the response for later processing and wait for the hardware
 transmit timestamp. There is no guarantee that the timestamp will be provided
 (NICs typically have a limited rate of transmit timestamping). This directive
-configures how long should *chronyd* wait for the timestamp after receiving a
+configures how long *chronyd* should wait for the timestamp after receiving a
 valid response from the server. If a second valid response is received from the
 server while waiting for the timestamp, they will be both processed
 immediately.
