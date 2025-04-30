@@ -212,13 +212,25 @@ get_reusable_socket(int type, IPSockAddr *spec)
 
 /* ================================================== */
 
+static int
+get_default_inet_domain(void)
+{
+#ifdef FEAT_IPV6
+  if (!ip4_enabled && ip6_enabled)
+    return AF_INET6;
+#endif
+  return AF_INET;
+}
+
+/* ================================================== */
+
 #if defined(SOCK_CLOEXEC) || defined(SOCK_NONBLOCK)
 static int
 check_socket_flag(int sock_flag, int fd_flag, int fs_flag)
 {
   int sock_fd, fd_flags, fs_flags;
 
-  sock_fd = socket(AF_INET, SOCK_DGRAM | sock_flag, 0);
+  sock_fd = socket(get_default_inet_domain(), SOCK_DGRAM | sock_flag, 0);
   if (sock_fd < 0)
     return 0;
 
@@ -526,7 +538,7 @@ open_ip_socket(IPSockAddr *remote_addr, IPSockAddr *local_addr, const char *ifac
   else if (remote_addr)
     family = remote_addr->ip_addr.family;
   else
-    family = IPADDR_INET4;
+    family = !ip4_enabled && ip6_enabled ? IPADDR_INET6 : IPADDR_INET4;
 
   switch (family) {
     case IPADDR_INET4:
