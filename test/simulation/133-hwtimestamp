@@ -58,6 +58,21 @@ for client_conf in \
 	fi
 done
 
+if check_config_h 'FEAT_IPV6 1'; then
+	server_chronyd_options="-6"
+	client_chronyd_options="-6"
+	ip_family=6
+
+	run_test || test_fail
+	check_chronyd_exit || test_fail
+	check_source_selection || test_fail
+	check_sync || test_fail
+
+	server_chronyd_options=$default_server_chronyd_options
+	client_chronyd_options="-d"
+	ip_family=$default_ip_family
+fi
+
 server_conf+="
 server 192.168.123.2 minpoll 1 maxpoll 1 noselect"
 

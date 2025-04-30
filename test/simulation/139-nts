@@ -56,6 +56,20 @@ check_file_messages "	2	1	.*	4460	" 260 300 log.packets || test_fail
 check_file_messages "." 6 6 ntskeys || test_fail
 rm -f tmp/measurements.log
 
+if check_config_h 'FEAT_IPV6 1'; then
+	ip_family=6
+
+	run_test || test_fail
+	check_chronyd_exit || test_fail
+	check_source_selection || test_fail
+	check_sync || test_fail
+
+	check_file_messages "	2	1	.*	4460	" 260 300 log.packets || test_fail
+	check_file_messages "." 6 6 ntskeys || test_fail
+
+	ip_family=$default_ip_family
+fi
+
 client_conf+="
 ntsrefresh 120
 ntsdumpdir tmp"

@@ -78,6 +78,7 @@ default_max_sync_time=210
 default_client_min_mean_out_interval=0.0
 default_client_max_min_out_interval=inf
 
+default_ip_family=4
 default_cmdmon_unix=1
 default_pcap_dumps=0
 default_dns=0
@@ -190,6 +191,8 @@ get_node_name() {
 
 	if [ $dns -ne 0 ]; then
 		echo "node$index.net1.clk"
+	elif [ $ip_family -eq 6 ]; then
+		printf "fc00::123:%x" $index
 	else
 		echo "192.168.123.$index"
 	fi
@@ -472,6 +475,7 @@ run_test() {
 	nodes=$(get_chronyd_nodes)
 	[ -n "$chronyc_conf" ] && nodes=$[$nodes + $clients]
 
+	export CLKNETSIM_IP_FAMILY=$ip_family
 	export CLKNETSIM_UNIX_SUBNET=$[$cmdmon_unix != 0 ? 2 : 0]
 
 	for i in $(seq 1 $nodes); do
