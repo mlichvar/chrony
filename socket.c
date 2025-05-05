@@ -212,6 +212,8 @@ get_reusable_socket(int type, IPSockAddr *spec)
 
 /* ================================================== */
 
+#if defined(SOCK_CLOEXEC) || defined(SOCK_NONBLOCK)
+
 static int
 get_default_inet_domain(void)
 {
@@ -224,7 +226,6 @@ get_default_inet_domain(void)
 
 /* ================================================== */
 
-#if defined(SOCK_CLOEXEC) || defined(SOCK_NONBLOCK)
 static int
 check_socket_flag(int sock_flag, int fd_flag, int fs_flag)
 {
