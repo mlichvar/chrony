@@ -29,7 +29,7 @@
 
 #include "sysincl.h"
 
-#if defined(HAVE_NETTLE)
+#if defined(HAVE_NETTLE_MEMEQL)
 #include <nettle/memops.h>
 #elif defined(HAVE_GNUTLS)
 #include <gnutls/gnutls.h>
@@ -1660,7 +1660,7 @@ UTI_SplitString(char *string, char **words, int max_saved_words)
 int
 UTI_IsMemoryEqual(const void *s1, const void *s2, unsigned int len)
 {
-#if defined(HAVE_NETTLE)
+#if defined(HAVE_NETTLE_MEMEQL)
   return nettle_memeql_sec(s1, s2, len);
 #elif defined(HAVE_GNUTLS)
   return gnutls_memcmp(s1, s2, len) == 0;

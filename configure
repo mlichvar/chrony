@@ -898,6 +898,13 @@ if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ]  && [ $try_nettle = "1" ];
       EXTRA_OBJECTS="$EXTRA_OBJECTS cmac_nettle.o"
       EXTRA_CLI_OBJECTS="$EXTRA_CLI_OBJECTS cmac_nettle.o"
     fi
+
+    if test_code 'nettle_memeql_sec()' 'nettle/memops.h' \
+      "$test_cflags" "$test_link" \
+      'return nettle_memeql_sec("", "", 0);'
+    then
+      add_def HAVE_NETTLE_MEMEQL
+    fi
   fi
 fi
 
