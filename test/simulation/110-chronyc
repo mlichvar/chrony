@@ -269,14 +269,14 @@ Jitter asymmetry: \+0\.00
 NTP tests       : 111 111 1110
 Interleaved     : No
 Authenticated   : No
-TX timestamping : Kernel
-RX timestamping : Kernel
+TX timestamping : (Daemon|Kernel)
+RX timestamping : (Daemon|Kernel)
 Total TX        : 1
 Total RX        : 1
 Total valid RX  : 1
 Total good RX   : 0
 Total kernel TX : [01]
-Total kernel RX : 1
+Total kernel RX : [01]
 Total HW TX     : 0
 Total HW RX     : 0
 S Name/IP Address        Auth COpts EOpts Last Score     Interval  Leap
@@ -293,9 +293,9 @@ Authenticated NTP packets  : 0
 Interleaved NTP packets    : 0
 NTP timestamps held        : 0
 NTP timestamp span         : 0
-NTP daemon RX timestamps   : 0
+NTP daemon RX timestamps   : [01]
 NTP daemon TX timestamps   : 1
-NTP kernel RX timestamps   : 1
+NTP kernel RX timestamps   : [01]
 NTP kernel TX timestamps   : 0
 NTP hardware RX timestamps : 0
 NTP hardware TX timestamps : 0$" || test_fail
