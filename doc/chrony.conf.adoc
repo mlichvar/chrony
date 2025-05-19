@@ -1849,7 +1849,7 @@ This directive specifies how many helper processes will *chronyd* operating
 as an NTS server start for handling client NTS-KE requests in order to improve
 performance with multi-core CPUs and multithreading. If set to 0, no helper
 process will be started and all NTS-KE requests will be handled by the main
-*chronyd* process. The default value is 1.
+*chronyd* process. The default value is 1, and the maximum value is 1000.
 
 [[maxntsconnections]]*maxntsconnections* _connections_::
 This directive specifies the maximum number of concurrent NTS-KE connections
