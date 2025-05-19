@@ -72,9 +72,16 @@ newly resolved address when the server becomes unreachable (i.e. no valid
 response to the last 8 requests), unsynchronised, a falseticker (i.e. does not
 agree with a majority of other sources), or the root distance is too large (the
 limit can be configured by the <<maxdistance,*maxdistance*>> directive). The
-automatic replacement happens at most once per 30 minutes.
+automatic replacement happens at most once per 30 minutes and only one
+server can be replaced at a time. The address is also refreshed periodically
+when the server is working normally (the interval can be configured by the
+<<refresh,*refresh*>> directive).
 +
-This directive can be used multiple times to specify multiple servers.
+This directive can be used multiple times to specify multiple servers. Each
+server must have a different IP address to be usable by *chronyd*. If a server
+is specified by a hostname that resolves only to addresses already used by
+other servers, the server will be treated as having an unknown address (e.g.
+reported by the *chronyc* <<chronyc.adoc#activity,*activity*>> command).
 +
 The directive supports the following options:
 +
