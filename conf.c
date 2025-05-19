@@ -51,7 +51,7 @@
 #define MAX_INCLUDE_LEVEL 10
 
 #define SSCANF_IN_RANGE(s, f, x, n, min, max) \
-  (sscanf(s, f, (x), (n)) == 1 && *(x) >= (min) && *(x) <= (max))
+  (sscanf((s), (f), (x), (n)) == 1 && *(x) >= (min) && *(x) <= (max))
 
 /* ================================================== */
 /* Forward prototypes */
