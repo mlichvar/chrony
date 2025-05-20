@@ -991,6 +991,8 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
   if (step_offset != 0.0) {
     if (LCL_ApplyStepOffset(step_offset))
       LOG(LOGS_WARN, "System clock was stepped by %.6f seconds", -step_offset);
+    else
+      LCL_AccumulateOffset(step_offset, 0.0);
   }
 
   update_leap_status(leap, raw_now.tv_sec, 0);

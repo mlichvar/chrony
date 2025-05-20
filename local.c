@@ -695,8 +695,11 @@ LCL_MakeStep(void)
 
   /* Cancel remaining slew and make the step */
   LCL_AccumulateOffset(correction, 0.0);
-  if (!LCL_ApplyStepOffset(-correction))
+  if (!LCL_ApplyStepOffset(-correction)) {
+    /* Revert the correction */
+    LCL_AccumulateOffset(-correction, 0.0);
     return 0;
+  }
 
   LOG(LOGS_WARN, "System clock was stepped by %.6f seconds", correction);
 
