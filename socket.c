@@ -877,8 +877,10 @@ static int
 process_header(struct msghdr *msg, int msg_length, int sock_fd, int flags,
                SCK_Message *message)
 {
+  int r = 1, path_len, max_path_len;
   struct cmsghdr *cmsg;
-  int r = 1;
+
+  init_message_addresses(message, SCK_ADDR_UNSPEC);
 
   if (msg->msg_namelen <= sizeof (union sockaddr_all) &&
       msg->msg_namelen > sizeof (((struct sockaddr *)msg->msg_name)->sa_family)) {
@@ -891,18 +893,23 @@ process_header(struct msghdr *msg, int msg_length, int sock_fd, int flags,
         SCK_SockaddrToIPSockAddr(msg->msg_name, msg->msg_namelen, &message->remote_addr.ip);
         break;
       case AF_UNIX:
+        /* Make sure the path is terminated by '\0' */
+        max_path_len = sizeof (((struct sockaddr_un *)msg->msg_name)->sun_path);
+        path_len = strnlen(((struct sockaddr_un *)msg->msg_name)->sun_path, max_path_len);
+        if (path_len >= max_path_len) {
+          DEBUG_LOG("Unterminated path");
+          r = 0;
+          break;
+        }
         init_message_addresses(message, SCK_ADDR_UNIX);
         message->remote_addr.path = ((struct sockaddr_un *)msg->msg_name)->sun_path;
         break;
       default:
-        init_message_addresses(message, SCK_ADDR_UNSPEC);
         DEBUG_LOG("Unexpected address");
         r = 0;
         break;
     }
   } else {
-    init_message_addresses(message, SCK_ADDR_UNSPEC);
-
     if (msg->msg_namelen > sizeof (union sockaddr_all)) {
       DEBUG_LOG("Truncated source address");
       r = 0;
