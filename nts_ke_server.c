@@ -536,7 +536,8 @@ generate_key(int index)
   BRIEF_ASSERT(key_length <= sizeof (key->key));
 
   UTI_GetRandomBytesUrandom(key->key, key_length);
-  memset(key->key + key_length, 0, sizeof (key->key) - key_length);
+  if (key_length < sizeof (key->key))
+    memset(key->key + key_length, 0, sizeof (key->key) - key_length);
   UTI_GetRandomBytes(&key->id, sizeof (key->id));
 
   /* Encode the index in the lowest bits of the ID */
