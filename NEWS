@@ -1,3 +1,31 @@
+New in version 4.7
+==================
+
+Enhancements
+------------
+* Add opencommands directive to select remote monitoring commands
+* Add interval option to driftfile directive
+* Add waitsynced and waitunsynced options to local directive
+* Add sanity checks for integer values in configuration
+* Add support for systemd Type=notify service
+* Add RTC refclock driver
+* Allow PHC refclock to be specified with network interface name
+* Don't require multiple refclock samples per poll to simplify
+  filter configuration
+* Keep refclock reachable when dropping samples with large delay
+* Improve quantile-based filtering to adapt faster to larger delay
+* Improve logging of selection failures
+* Detect clock interference from other processes
+
+Bug fixes
+---------
+* Fix tracking offset after failed clock step
+
+Removed features
+----------------
+* Drop support for NTS with Nettle < 3.6 and GnuTLS < 3.6.14
+* Drop support for building without POSIX threads
+
 New in version 4.6.1
 ====================
 
