@@ -1472,7 +1472,7 @@ Note that log files enabled by the *log* directive are opened when the first
 entry is made. The message log file specified by the *chronyd*'s *-l* option is
 opened early on start and closed on the *cyclelogs* command only if opening of
 the new file succeeds to avoid losing messages. If *chronyd* is configured to
-drop root privileges and the directory containg the log file is not writable
+drop root privileges and the directory containing the log file is not writable
 for the specified user, *chronyd* will not be able to open the file again.
 
 [[dump]]*dump*::
