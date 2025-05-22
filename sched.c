@@ -47,12 +47,6 @@ static int initialised = 0;
 /* One more than the highest file descriptor that is registered */
 static unsigned int one_highest_fd;
 
-#ifndef FD_SETSIZE
-/* If FD_SETSIZE is not defined, assume that fd_set is implemented
-   as a fixed size array of bits, possibly embedded inside a record */
-#define FD_SETSIZE (sizeof(fd_set) * 8)
-#endif
-
 typedef struct {
   SCH_FileHandler       handler;
   SCH_ArbitraryArgument arg;
