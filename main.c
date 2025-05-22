@@ -126,7 +126,7 @@ notify_system_manager(int start)
   sock_fd = SCK_OpenUnixDatagramSocket(path, NULL, 0);
 
   if (sock_fd < 0 || SCK_Send(sock_fd, message, strlen(message), 0) != strlen(message))
-    LOG_FATAL("Could not send notification");
+    LOG_FATAL("Could not send notification to $NOTIFY_SOCKET");
 
   SCK_CloseSocket(sock_fd);
 #endif
