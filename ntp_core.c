@@ -1960,7 +1960,7 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
   /* The skew and estimated frequency offset relative to the remote source */
   double skew, source_freq_lo, source_freq_hi;
 
-  /* RFC 5905 packet tests */
+  /* RFC 5905 and RFC 9769 packet tests */
   int test1, test2n, test2i, test2, test3, test5, test6, test7;
   int interleaved_packet, valid_packet, synced_packet;
 
@@ -2024,7 +2024,7 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
     pkt_root_dispersion = UTI_Ntp32ToDouble(message->root_dispersion);
   }
 
-  /* Check if the packet is valid per RFC 5905, section 8.
+  /* Check if the packet is valid per RFC 5905 (section 8) and RFC 9769.
      The test values are 1 when passed and 0 when failed. */
   
   /* Test 1 checks for duplicate packet */

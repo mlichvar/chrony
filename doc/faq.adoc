@@ -338,10 +338,10 @@ with local NTP server
 server ntp.local minpoll 2 maxpoll 4 polltarget 30 maxdelaydevratio 2
 ----
 
-If your server supports the interleaved mode (e.g. it is running `chronyd`),
-the `xleave` option should be added to the `server` directive to enable the
-server to provide the client with more accurate transmit timestamps (kernel or
-preferably hardware). For example:
+If your server supports the interleaved mode (RFC 9769), e.g. it is running
+`chronyd` version 3.0 or later, the `xleave` option should be added to the
+`server` directive to enable the server to provide the client with more
+accurate transmit timestamps (kernel or preferably hardware). For example:
 
 ----
 server ntp.local minpoll 2 maxpoll 4 xleave
