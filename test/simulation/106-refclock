@@ -18,15 +18,30 @@ max_sync_time=70
 chronyc_start=70
 chronyc_conf="tracking"
 
-for refclock in "SHM 0" "PHC /dev/ptp0" "PHC /dev/ptp0:nocrossts"; do
+for refclock in "SHM 0" "RTC /dev/rtc:utc" "PHC /dev/ptp0" "PHC /dev/ptp0:nocrossts"; do
 	client_conf="refclock $refclock stratum 3 delay 1e-3 refid GPS
 logdir tmp
 log refclocks"
 
+	if [[ $refclock =~ RTC ]]; then
+		check_config_h 'FEAT_RTC 1' || continue
+		wander=0.0
+		freq_offset=0.0
+		client_chronyd_options="-x"
+	else
+		wander=$default_wander
+		freq_offset=$default_freq_offset
+		client_chronyd_options=$default_client_chronyd_options
+	fi
+
 	run_test || test_fail
 	check_chronyd_exit || test_fail
 	check_source_selection || test_fail
-	check_sync || test_fail
+	if [[ $refclock =~ RTC ]]; then
+		check_chronyc_output "System time *: 0\.10000.... seconds fast" || test_fail
+	else
+		check_sync || test_fail
+	fi
 	check_chronyc_output "^Reference ID.*47505300 \(GPS\)
 Stratum.*: 4
 .*
