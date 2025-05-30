@@ -37,10 +37,8 @@
 #include "siv.h"
 #include "socket.h"
 #include "sched.h"
+#include "tls.h"
 #include "util.h"
-
-#include <gnutls/gnutls.h>
-#include <gnutls/x509.h>
 
 #define INVALID_SOCK_FD (-8)
 
@@ -75,7 +73,7 @@ struct NKSN_Instance_Record {
   KeState state;
   int sock_fd;
   char *label;
-  gnutls_session_t tls_session;
+  TLS_Instance tls_session;
   SCH_TimeoutID timeout_id;
   int retry_factor;
 
@@ -84,8 +82,6 @@ struct NKSN_Instance_Record {
 };
 
 /* ================================================== */
-
-static gnutls_priority_t priority_cache;
 
 static int credentials_counter = 0;
 
@@ -206,71 +202,6 @@ check_message_format(struct Message *message, int eof)
 
 /* ================================================== */
 
-static gnutls_session_t
-create_tls_session(int server_mode, int sock_fd, const char *server_name,
-                   gnutls_certificate_credentials_t credentials,
-                   gnutls_priority_t priority)
-{
-  unsigned char alpn_name[sizeof (NKE_ALPN_NAME)];
-  gnutls_session_t session;
-  gnutls_datum_t alpn;
-  unsigned int flags;
-  int r;
-
-  r = gnutls_init(&session, GNUTLS_NONBLOCK | GNUTLS_NO_TICKETS |
-                  (server_mode ? GNUTLS_SERVER : GNUTLS_CLIENT));
-  if (r < 0) {
-    LOG(LOGS_ERR, "Could not %s TLS session : %s", "create", gnutls_strerror(r));
-    return NULL;
-  }
-
-  if (!server_mode) {
-    assert(server_name);
-
-    if (!UTI_IsStringIP(server_name)) {
-      r = gnutls_server_name_set(session, GNUTLS_NAME_DNS, server_name, strlen(server_name));
-      if (r < 0)
-        goto error;
-    }
-
-    flags = 0;
-
-    if (clock_updates < CNF_GetNoCertTimeCheck()) {
-      flags |= GNUTLS_VERIFY_DISABLE_TIME_CHECKS | GNUTLS_VERIFY_DISABLE_TRUSTED_TIME_CHECKS;
-      DEBUG_LOG("Disabled time checks");
-    }
-
-    gnutls_session_set_verify_cert(session, server_name, flags);
-  }
-
-  r = gnutls_priority_set(session, priority);
-  if (r < 0)
-    goto error;
-
-  r = gnutls_credentials_set(session, GNUTLS_CRD_CERTIFICATE, credentials);
-  if (r < 0)
-    goto error;
-
-  memcpy(alpn_name, NKE_ALPN_NAME, sizeof (alpn_name));
-  alpn.data = alpn_name;
-  alpn.size = sizeof (alpn_name) - 1;
-
-  r = gnutls_alpn_set_protocols(session, &alpn, 1, 0);
-  if (r < 0)
-    goto error;
-
-  gnutls_transport_set_int(session, sock_fd);
-
-  return session;
-
-error:
-  LOG(LOGS_ERR, "Could not %s TLS session : %s", "set", gnutls_strerror(r));
-  gnutls_deinit(session);
-  return NULL;
-}
-
-/* ================================================== */
-
 static void
 stop_session(NKSN_Instance inst)
 {
@@ -286,7 +217,7 @@ stop_session(NKSN_Instance inst)
   Free(inst->label);
   inst->label = NULL;
 
-  gnutls_deinit(inst->tls_session);
+  TLS_DestroyInstance(inst->tls_session);
   inst->tls_session = NULL;
 
   SCH_RemoveTimeout(inst->timeout_id);
@@ -304,21 +235,6 @@ session_timeout(void *arg)
 
   inst->timeout_id = 0;
   stop_session(inst);
-}
-
-/* ================================================== */
-
-static int
-check_alpn(NKSN_Instance inst)
-{
-  gnutls_datum_t alpn;
-
-  if (gnutls_alpn_get_selected_protocol(inst->tls_session, &alpn) < 0 ||
-      alpn.size != sizeof (NKE_ALPN_NAME) - 1 ||
-      memcmp(alpn.data, NKE_ALPN_NAME, sizeof (NKE_ALPN_NAME) - 1) != 0)
-    return 0;
-
-  return 1;
 }
 
 /* ================================================== */
@@ -364,6 +280,7 @@ static int
 handle_event(NKSN_Instance inst, int event)
 {
   struct Message *message = &inst->message;
+  TLS_Status s;
   int r;
 
   DEBUG_LOG("Session event %d fd=%d state=%d", event, inst->sock_fd, (int)inst->state);
@@ -390,55 +307,27 @@ handle_event(NKSN_Instance inst, int event)
       return 0;
 
     case KE_HANDSHAKE:
-      r = gnutls_handshake(inst->tls_session);
+      s = TLS_DoHandshake(inst->tls_session);
 
-      if (r < 0) {
-        if (gnutls_error_is_fatal(r)) {
-          gnutls_datum_t cert_error;
-
-          /* Get a description of verification errors */
-          if (r != GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR ||
-              gnutls_certificate_verification_status_print(
-                          gnutls_session_get_verify_cert_status(inst->tls_session),
-                          gnutls_certificate_type_get(inst->tls_session), &cert_error, 0) < 0)
-            cert_error.data = NULL;
-
-          LOG(inst->server ? LOGS_DEBUG : LOGS_ERR,
-              "TLS handshake with %s failed : %s%s%s", inst->label, gnutls_strerror(r),
-              cert_error.data ? " " : "", cert_error.data ? (const char *)cert_error.data : "");
-
-          if (cert_error.data)
-            gnutls_free(cert_error.data);
-
+      switch (s) {
+        case TLS_SUCCESS:
+          break;
+        case TLS_AGAIN_OUTPUT:
+        case TLS_AGAIN_INPUT:
+          set_input_output(inst, s == TLS_AGAIN_OUTPUT);
+          return 0;
+        default:
           stop_session(inst);
 
           /* Increase the retry interval if the handshake did not fail due
              to the other end closing the connection */
-          if (r != GNUTLS_E_PULL_ERROR && r != GNUTLS_E_PREMATURE_TERMINATION)
+          if (s != TLS_CLOSED)
             inst->retry_factor = NKE_RETRY_FACTOR2_TLS;
 
           return 0;
-        }
-
-        /* Disable output when the handshake is trying to receive data */
-        set_input_output(inst, gnutls_record_get_direction(inst->tls_session));
-        return 0;
       }
 
       inst->retry_factor = NKE_RETRY_FACTOR2_TLS;
-
-      if (DEBUG) {
-        char *description = gnutls_session_get_desc(inst->tls_session);
-        DEBUG_LOG("Handshake with %s completed %s",
-                  inst->label, description ? description : "");
-        gnutls_free(description);
-      }
-
-      if (!check_alpn(inst)) {
-        LOG(inst->server ? LOGS_DEBUG : LOGS_ERR, "NTS-KE not supported by %s", inst->label);
-        stop_session(inst);
-        return 0;
-      }
 
       /* Client will send a request to the server */
       change_state(inst, inst->server ? KE_RECEIVE : KE_SEND);
@@ -448,16 +337,17 @@ handle_event(NKSN_Instance inst, int event)
       assert(inst->new_message && message->complete);
       assert(message->length <= sizeof (message->data) && message->length > message->sent);
 
-      r = gnutls_record_send(inst->tls_session, &message->data[message->sent],
-                             message->length - message->sent);
+      s = TLS_Send(inst->tls_session, &message->data[message->sent],
+                   message->length - message->sent, &r);
 
-      if (r < 0) {
-        if (gnutls_error_is_fatal(r)) {
-          LOG(inst->server ? LOGS_DEBUG : LOGS_ERR,
-              "Could not send NTS-KE message to %s : %s", inst->label, gnutls_strerror(r));
+      switch (s) {
+        case TLS_SUCCESS:
+          break;
+        case TLS_AGAIN_OUTPUT:
+          return 0;
+        default:
           stop_session(inst);
-        }
-        return 0;
+          return 0;
       }
 
       DEBUG_LOG("Sent %d bytes to %s", r, inst->label);
@@ -480,26 +370,24 @@ handle_event(NKSN_Instance inst, int event)
           return 0;
         }
 
-        r = gnutls_record_recv(inst->tls_session, &message->data[message->length],
-                               sizeof (message->data) - message->length);
+        s = TLS_Receive(inst->tls_session, &message->data[message->length],
+                        sizeof (message->data) - message->length, &r);
 
-        if (r < 0) {
-          /* Handle a renegotiation request on both client and server as
-             a protocol error */
-          if (gnutls_error_is_fatal(r) || r == GNUTLS_E_REHANDSHAKE) {
-            LOG(inst->server ? LOGS_DEBUG : LOGS_ERR,
-                "Could not receive NTS-KE message from %s : %s",
-                inst->label, gnutls_strerror(r));
+        switch (s) {
+          case TLS_SUCCESS:
+            break;
+          case TLS_AGAIN_INPUT:
+            return 0;
+          default:
             stop_session(inst);
-          }
-          return 0;
+            return 0;
         }
 
         DEBUG_LOG("Received %d bytes from %s", r, inst->label);
 
         message->length += r;
 
-      } while (gnutls_record_check_pending(inst->tls_session) > 0);
+      } while (TLS_CheckPending(inst->tls_session));
 
       if (!check_message_format(message, r == 0)) {
         LOG(inst->server ? LOGS_DEBUG : LOGS_ERR,
@@ -519,18 +407,18 @@ handle_event(NKSN_Instance inst, int event)
       return 1;
 
     case KE_SHUTDOWN:
-      r = gnutls_bye(inst->tls_session, GNUTLS_SHUT_RDWR);
+      s = TLS_Shutdown(inst->tls_session);
 
-      if (r < 0) {
-        if (gnutls_error_is_fatal(r)) {
-          DEBUG_LOG("Shutdown with %s failed : %s", inst->label, gnutls_strerror(r));
+      switch (s) {
+        case TLS_SUCCESS:
+          break;
+        case TLS_AGAIN_OUTPUT:
+        case TLS_AGAIN_INPUT:
+          set_input_output(inst, s == TLS_AGAIN_OUTPUT);
+          return 0;
+        default:
           stop_session(inst);
           return 0;
-        }
-
-        /* Disable output when the TLS shutdown is trying to receive data */
-        set_input_output(inst, gnutls_record_get_direction(inst->tls_session));
-        return 0;
       }
 
       SCK_ShutdownConnection(inst->sock_fd);
@@ -592,36 +480,18 @@ handle_step(struct timespec *raw, struct timespec *cooked, double dfreq,
 
 /* ================================================== */
 
-static int gnutls_initialised = 0;
+static int tls_initialised = 0;
 
 static int
-init_gnutls(void)
+init_tls(void)
 {
-  int r;
-
-  if (gnutls_initialised)
+  if (tls_initialised)
     return 1;
 
-  r = gnutls_global_init();
-  if (r < 0)
-    LOG_FATAL("Could not initialise %s : %s", "gnutls", gnutls_strerror(r));
-
-  /* Prepare a priority cache for server and client NTS-KE sessions
-     (the NTS specification requires TLS1.3 or later) */
-  r = gnutls_priority_init2(&priority_cache,
-                            "-VERS-SSL3.0:-VERS-TLS1.0:-VERS-TLS1.1:-VERS-TLS1.2:-VERS-DTLS-ALL",
-                            NULL, GNUTLS_PRIORITY_INIT_DEF_APPEND);
-  if (r < 0) {
-    LOG(LOGS_ERR, "Could not initialise %s : %s",
-        "priority cache for TLS", gnutls_strerror(r));
-    gnutls_global_deinit();
+  if (!TLS_Initialise(&get_time))
     return 0;
-  }
 
-  /* Use our clock instead of the system clock in certificate verification */
-  gnutls_global_set_time_function(get_time);
-
-  gnutls_initialised = 1;
+  tls_initialised = 1;
   DEBUG_LOG("Initialised");
 
   LCL_AddParameterChangeHandler(handle_step, NULL);
@@ -632,16 +502,15 @@ init_gnutls(void)
 /* ================================================== */
 
 static void
-deinit_gnutls(void)
+deinit_tls(void)
 {
-  if (!gnutls_initialised || credentials_counter > 0)
+  if (!tls_initialised || credentials_counter > 0)
     return;
 
   LCL_RemoveParameterChangeHandler(handle_step, NULL);
 
-  gnutls_priority_deinit(priority_cache);
-  gnutls_global_deinit();
-  gnutls_initialised = 0;
+  TLS_Finalise();
+  tls_initialised = 0;
   DEBUG_LOG("Deinitialised");
 }
 
@@ -652,67 +521,21 @@ create_credentials(const char **certs, const char **keys, int n_certs_keys,
                    const char **trusted_certs, uint32_t *trusted_certs_ids,
                    int n_trusted_certs, uint32_t trusted_cert_set)
 {
-  gnutls_certificate_credentials_t credentials = NULL;
-  int i, r;
+  TLS_Credentials credentials;
 
-  if (!init_gnutls())
+  if (!init_tls())
     return NULL;
 
-  r = gnutls_certificate_allocate_credentials(&credentials);
-  if (r < 0)
-    goto error;
-
-  if (certs && keys) {
-    BRIEF_ASSERT(!trusted_certs && !trusted_certs_ids);
-
-    for (i = 0; i < n_certs_keys; i++) {
-      if (!UTI_CheckFilePermissions(keys[i], 0771))
-        ;
-      r = gnutls_certificate_set_x509_key_file(credentials, certs[i], keys[i],
-                                               GNUTLS_X509_FMT_PEM);
-      if (r < 0)
-        goto error;
-    }
-  } else {
-    BRIEF_ASSERT(!certs && !keys && n_certs_keys <= 0);
-
-    if (trusted_cert_set == 0 && !CNF_GetNoSystemCert()) {
-      r = gnutls_certificate_set_x509_system_trust(credentials);
-      if (r < 0)
-        goto error;
-    }
-
-    if (trusted_certs && trusted_certs_ids) {
-      for (i = 0; i < n_trusted_certs; i++) {
-        struct stat buf;
-
-        if (trusted_certs_ids[i] != trusted_cert_set)
-          continue;
-
-        if (stat(trusted_certs[i], &buf) == 0 && S_ISDIR(buf.st_mode))
-          r = gnutls_certificate_set_x509_trust_dir(credentials, trusted_certs[i],
-                                                    GNUTLS_X509_FMT_PEM);
-        else
-          r = gnutls_certificate_set_x509_trust_file(credentials, trusted_certs[i],
-                                                     GNUTLS_X509_FMT_PEM);
-        if (r < 0)
-          goto error;
-
-        DEBUG_LOG("Added %d trusted certs from %s", r, trusted_certs[i]);
-      }
-    }
+  credentials = TLS_CreateCredentials(certs, keys, n_certs_keys, trusted_certs,
+                                      trusted_certs_ids, n_trusted_certs, trusted_cert_set);
+  if (!credentials) {
+    deinit_tls();
+    return NULL;
   }
 
   credentials_counter++;
 
-  return (NKSN_Credentials)credentials;
-
-error:
-  LOG(LOGS_ERR, "Could not set credentials : %s", gnutls_strerror(r));
-  if (credentials)
-    gnutls_certificate_free_credentials(credentials);
-  deinit_gnutls();
-  return NULL;
+  return credentials;
 }
 
 /* ================================================== */
@@ -737,9 +560,9 @@ NKSN_CreateClientCertCredentials(const char **certs, uint32_t *ids,
 void
 NKSN_DestroyCertCredentials(NKSN_Credentials credentials)
 {
-  gnutls_certificate_free_credentials((gnutls_certificate_credentials_t)credentials);
+  TLS_DestroyCredentials(credentials);
   credentials_counter--;
-  deinit_gnutls();
+  deinit_tls();
 }
 
 /* ================================================== */
@@ -789,9 +612,9 @@ NKSN_StartSession(NKSN_Instance inst, int sock_fd, const char *label,
 {
   assert(inst->state == KE_STOPPED);
 
-  inst->tls_session = create_tls_session(inst->server, sock_fd, inst->server_name,
-                                         (gnutls_certificate_credentials_t)credentials,
-                                         priority_cache);
+  inst->tls_session = TLS_CreateInstance(inst->server, sock_fd, inst->server_name,
+                                         NKE_ALPN_NAME, credentials,
+                                         clock_updates < CNF_GetNoCertTimeCheck());
   if (!inst->tls_session)
     return 0;
 
@@ -899,19 +722,15 @@ NKSN_GetKeys(NKSN_Instance inst, SIV_Algorithm algorithm, SIV_Algorithm exporter
   context.algorithm = htons(exporter_algorithm);
 
   context.is_s2c = 0;
-  if (gnutls_prf_rfc5705(inst->tls_session,
-                         sizeof (NKE_EXPORTER_LABEL) - 1, NKE_EXPORTER_LABEL,
-                         sizeof (context) - 1, (char *)&context,
-                         length, (char *)c2s->key) < 0) {
+  if (!TLS_ExportKey(inst->tls_session, sizeof (NKE_EXPORTER_LABEL) - 1, NKE_EXPORTER_LABEL,
+                     sizeof (context) - 1, &context, length, c2s->key)) {
     DEBUG_LOG("Could not export key");
     return 0;
   }
 
   context.is_s2c = 1;
-  if (gnutls_prf_rfc5705(inst->tls_session,
-                         sizeof (NKE_EXPORTER_LABEL) - 1, NKE_EXPORTER_LABEL,
-                         sizeof (context) - 1, (char *)&context,
-                         length, (char *)s2c->key) < 0) {
+  if (!TLS_ExportKey(inst->tls_session, sizeof (NKE_EXPORTER_LABEL) - 1, NKE_EXPORTER_LABEL,
+                     sizeof (context) - 1, &context, length, s2c->key)) {
     DEBUG_LOG("Could not export key");
     return 0;
   }
