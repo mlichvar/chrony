@@ -4,6 +4,8 @@
 
 test_start "address refreshment"
 
+check_config_h 'FEAT_CMDMON 1' || test_skip
+
 limit=1000
 servers=5
 client_conf="logdir tmp

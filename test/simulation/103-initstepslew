@@ -52,7 +52,7 @@ client_conf="initstepslew 5 192.168.123.1 192.168.123.2"
 
 min_sync_time=1
 max_sync_time=500
-server_conf="deny all"
+server_conf="deny 192.168.0.0/16"
 
 run_test || test_fail
 check_chronyd_exit || test_fail
