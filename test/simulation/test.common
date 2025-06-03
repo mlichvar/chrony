@@ -39,6 +39,7 @@ default_refclock_jitter=""
 default_refclock_offset=0.0
 
 default_update_interval=0
+default_update_executable=""
 default_shift_pll=2
 
 default_server_strata=1
@@ -463,7 +464,9 @@ run_simulation() {
 		-o tmp/log.offset -f tmp/log.freq -p tmp/log.packets \
 		-R $(awk "BEGIN {print $update_interval < 0 ? 2^-($update_interval) : 1}") \
 		-r $(awk "BEGIN {print $max_sync_time * 2^$update_interval}") \
-		-l $(awk "BEGIN {print $limit * 2^$update_interval}") && test_ok || test_error
+		-l $(awk "BEGIN {print $limit * 2^$update_interval}") \
+		$([ "$update_executable" != "" ] && printf "%s" "-e $update_executable") && \
+			test_ok || test_error
 }
 
 run_test() {
