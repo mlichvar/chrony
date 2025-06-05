@@ -4,6 +4,8 @@
 
 test_start "IPv6 addressing"
 
+check_config_h 'FEAT_IPV6 1' || test_skip
+
 ip_family=6
 
 run_test || test_fail
