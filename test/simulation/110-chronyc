@@ -219,6 +219,11 @@ do
 	run_test || test_fail
 	check_chronyd_exit || test_fail
 	check_chronyc_output "501 Not authorised$" || test_fail
+
+	server_conf="cmddeny 192.168.123.2"
+	run_test || test_fail
+	check_chronyd_exit || test_fail
+	check_chronyc_output "506 Cannot talk to daemon$" || test_fail
 done
 
 server_conf="server 192.168.123.1"
