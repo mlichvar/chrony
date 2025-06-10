@@ -5,6 +5,7 @@
  * Copyright (C) Richard P. Curnow  1997-2003
  * Copyright (C) John G. Hasler  2009
  * Copyright (C) Miroslav Lichvar  2009-2012, 2014-2018
+ * Copyright (C) Shachar Raindel  2025
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
