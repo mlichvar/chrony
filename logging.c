@@ -91,7 +91,7 @@ LOG_Finalise(void)
   if (system_log)
     closelog();
 
-  if (file_log)
+  if (file_log && file_log != stderr)
     fclose(file_log);
   file_log = NULL;
   Free(file_log_path);
