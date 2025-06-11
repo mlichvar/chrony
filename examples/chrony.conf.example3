@@ -21,10 +21,12 @@
 #######################################################################
 ### SPECIFY YOUR NTP SERVERS
 # Most computers using chrony will send measurement requests to one or
-# more 'NTP servers'.  You will probably find that your Internet Service
+# more NTP servers.  The general recommendation is to have at least
+# three NTP servers to be able to detect one server providing incorrect
+# time (falseticker).  You will probably find that your Internet Service
 # Provider or company have one or more NTP servers that you can specify.
 # Failing that, there are a lot of public NTP servers.  There is a list
-# you can access at http://support.ntp.org/bin/view/Servers/WebHome or
+# you can access at https://support.ntp.org/bin/view/Servers/WebHome or
 # you can use servers from the pool.ntp.org project.
 
 ! server ntp1.example.net iburst

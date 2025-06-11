@@ -1,5 +1,10 @@
-# Use public servers from the pool.ntp.org project.
-# Please consider joining the pool (https://www.pool.ntp.org/join.html).
+# Note: The general recommendation for an NTP client is to have at least
+# three NTP servers to be able to detect one server providing incorrect
+# time (falseticker).
+
+# Use four public NTP servers from the pool.ntp.org project. If this
+# host has a static public IP address, please consider joining the pool:
+# https://www.ntppool.org/join.html
 pool pool.ntp.org iburst
 
 # Record the rate at which the system clock gains/losses time.
