@@ -16,9 +16,11 @@ Enhancements
 * Improve quantile-based filtering to adapt faster to larger delay
 * Improve logging of selection failures
 * Detect clock interference from other processes
+* Try to reopen message log (-l option) on cyclelogs command
 
 Bug fixes
 ---------
+* Fix sourcedir reloading to not multiply sources
 * Fix tracking offset after failed clock step
 
 Removed features
