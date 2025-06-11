@@ -138,12 +138,15 @@ static void refrtc_finalise(RCL_Instance instance)
 
   rtc = RCL_GetDriverData(instance);
 
-  if (!rtc->polling) {
-    SCH_RemoveFileHandler(rtc->fd);
-    RTC_Linux_SwitchInterrupt(rtc->fd, 0);
+  if (rtc->fd >= 0) {
+    if (!rtc->polling) {
+      SCH_RemoveFileHandler(rtc->fd);
+      RTC_Linux_SwitchInterrupt(rtc->fd, 0);
+    }
+
+    close(rtc->fd);
   }
 
-  close(rtc->fd);
   Free(rtc);
 }
 
