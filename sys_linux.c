@@ -96,9 +96,6 @@ static int max_tick_bias;
 static int hz;
 static double dhz; /* And dbl prec version of same for arithmetic */
 
-/* Flag indicating whether adjtimex() can step the clock */
-static int have_setoffset;
-
 /* The assumed rate at which the effective frequency and tick values are
    updated in the kernel */
 static int tick_update_hz;
@@ -298,28 +295,16 @@ get_version_specific_details(void)
   get_kernel_version(&major, &minor, &patch);
   DEBUG_LOG("Linux kernel major=%d minor=%d patch=%d", major, minor, patch);
 
-  if (kernelvercmp(major, minor, patch, 2, 2, 0) < 0) {
+  if (kernelvercmp(major, minor, patch, 2, 6, 39) < 0) {
     LOG_FATAL("Kernel version not supported, sorry.");
   }
 
-  if (kernelvercmp(major, minor, patch, 2, 6, 27) >= 0 &&
-      kernelvercmp(major, minor, patch, 2, 6, 33) < 0) {
-    /* In tickless kernels before 2.6.33 the frequency is updated in
-       a half-second interval */
-    tick_update_hz = 2;
-  } else if (kernelvercmp(major, minor, patch, 4, 19, 0) < 0) {
+  if (kernelvercmp(major, minor, patch, 4, 19, 0) < 0) {
     /* In kernels before 4.19 the frequency is updated only on internal ticks
        (CONFIG_HZ).  As their rate cannot be reliably detected from the user
        space, and it may not even be constant (CONFIG_NO_HZ - aka tickless),
        assume the lowest commonly used constant rate */
     tick_update_hz = 100;
-  }
-
-  /* ADJ_SETOFFSET support */
-  if (kernelvercmp(major, minor, patch, 2, 6, 39) < 0) {
-    have_setoffset = 0;
-  } else {
-    have_setoffset = 1;
   }
 
   DEBUG_LOG("hz=%d nominal_tick=%d max_tick_bias=%d tick_update_hz=%d",
@@ -338,34 +323,6 @@ reset_adjtime_offset(void)
   txc.offset = 0;
 
   SYS_Timex_Adjust(&txc, 0);
-}
-
-/* ================================================== */
-
-static int
-test_step_offset(void)
-{
-  struct timex txc;
-
-  /* Zero maxerror and check it's reset to a maximum after ADJ_SETOFFSET.
-     This seems to be the only way how to verify that the kernel really
-     supports the ADJ_SETOFFSET mode as it doesn't return an error on unknown
-     mode. */
-
-  txc.modes = MOD_MAXERROR;
-  txc.maxerror = 0;
-
-  if (SYS_Timex_Adjust(&txc, 1) < 0 || txc.maxerror != 0)
-    return 0;
-
-  txc.modes = ADJ_SETOFFSET | ADJ_NANO;
-  txc.time.tv_sec = 0;
-  txc.time.tv_usec = 0;
-
-  if (SYS_Timex_Adjust(&txc, 1) < 0 || txc.maxerror < 100000)
-    return 0;
-
-  return 1;
 }
 
 /* ================================================== */
@@ -392,15 +349,10 @@ SYS_Linux_Initialise(void)
 
   reset_adjtime_offset();
 
-  if (have_setoffset && !test_step_offset()) {
-    LOG(LOGS_INFO, "adjtimex() doesn't support ADJ_SETOFFSET");
-    have_setoffset = 0;
-  }
-
   SYS_Timex_InitialiseWithFunctions(1.0e6 * max_tick_bias / nominal_tick,
                                     1.0 / tick_update_hz,
                                     read_frequency, set_frequency,
-                                    have_setoffset ? apply_step_offset : NULL,
+                                    apply_step_offset,
                                     0.0, 0.0, NULL, NULL);
 }
 
