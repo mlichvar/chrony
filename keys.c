@@ -265,9 +265,6 @@ KEY_Reload(void)
     if (get_key(i - 1)->id == get_key(i)->id)
       LOG(LOGS_WARN, "Detected duplicate key %"PRIu32, get_key(i - 1)->id);
   }
-
-  /* Erase any passwords from stack */
-  memset(line, 0, sizeof (line));
 }
 
 /* ================================================== */
