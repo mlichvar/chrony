@@ -1364,6 +1364,7 @@ FILE *
 UTI_OpenFile(const char *basedir, const char *name, const char *suffix,
              char mode, mode_t perm)
 {
+  uint64_t attempts = 0, warn_attempts = 100;
   const char *file_mode;
   char path[PATH_MAX];
   LOG_Severity severity;
@@ -1407,6 +1408,12 @@ try_again:
         return NULL;
       }
       DEBUG_LOG("Removed %s", path);
+
+      if (++attempts == warn_attempts) {
+        LOG(LOGS_WARN, "Failing to replace %s (%"PRIu64" attempts)", path, attempts);
+        warn_attempts *= 10;
+      }
+
       goto try_again;
     }
     LOG(severity, "Could not open %s : %s", path, strerror(errno));
