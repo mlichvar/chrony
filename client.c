@@ -47,6 +47,8 @@
 #include <editline/readline.h>
 #endif
 
+#define MAX_UNIX_SOCKET_LENGTH (sizeof ((struct sockaddr_un *)NULL)->sun_path)
+
 /* ================================================== */
 
 struct Address {
@@ -60,6 +62,9 @@ struct Address {
 static ARR_Instance server_addresses;
 
 static int sock_fd = -1;
+
+static char sock_dir1[MAX_UNIX_SOCKET_LENGTH];
+static char sock_dir2[MAX_UNIX_SOCKET_LENGTH];
 
 static volatile int quit = 0;
 
@@ -208,34 +213,138 @@ free_addresses(ARR_Instance addresses)
 }
 
 /* ================================================== */
+
+/* Bind a Unix domain socket and connect it to the server chronyd socket.
+
+   Access to the sockets is restricted by the permissions and ownership
+   of the directory in which they are bound (by default /var/run/chrony).
+   The location of the chronyc socket follows the location of the chronyd
+   socket.  Due to the possibility of chronyc running under a different
+   user, the permissions of the chronyc socket need to be loosened on
+   most systems (illumos is an exception) to allow chronyd to send a
+   response to the chronyc socket.
+
+   Unfortunately, there does not seem to be a safe and portable way to
+   do that directly (e.g. a compromised chronyd process could replace it
+   with a symlink and cause a privileged chronyc process to change the
+   permissions of something else).
+
+   The workaround is to bind the socket in a randomly named subdirectory
+   hidden in another subdirectory to avoid matching an existing path and
+   force the bind()/chmod() call to fail if the visible upper directory
+   is replaced.
+
+   Note that the socket cannot be moved once bound, because the source
+   address that chronyd will see would not match the actual path and the
+   responses would not reach chronyc. */
+
+static int
+open_unix_socket(char *server_path)
+{
+  char *sock_dir0, sock_path[MAX_UNIX_SOCKET_LENGTH], rand_dir[16 + 1];
+  int i, s, dir_fd1 = -1;
+  struct stat st;
+
+  /* Check if the server socket is accessible */
+  s = SCK_OpenUnixDatagramSocket(server_path, NULL, 0);
+  if (s < 0)
+    return -1;
+
+  SCK_CloseSocket(s);
+
+  /* Generate the random hidden component of the socket path */
+  for (i = 0; i + 1 < sizeof (rand_dir); i++) {
+    do
+      UTI_GetRandomBytesUrandom(&rand_dir[i], sizeof (rand_dir[i]));
+    while (!isalnum((unsigned char)rand_dir[i]));
+  }
+  rand_dir[i] = '\0';
+
+  /* Format the paths of the subdirectories and socket:
+     sock_dir0 = dirname(server_path)
+     sock_dir1 = sock_dir0/chronyc.$PID
+     sock_dir2 = sock_dir0/chronyc.$PID/$RANDOM
+     sock_path = sock_dir0/chronyc.$PID/$RANDOM/sock */
+
+  sock_dir0 = UTI_PathToDir(server_path);
+  if (snprintf(sock_dir1, sizeof (sock_dir1),
+               "%s/chronyc.%d", sock_dir0, (int)getpid()) >= sizeof (sock_dir1) ||
+      snprintf(sock_dir2, sizeof (sock_dir2),
+               "%s/%s", sock_dir1, rand_dir) >= sizeof (sock_dir1) ||
+      snprintf(sock_path, sizeof (sock_path),
+               "%s/sock", sock_dir2) >= sizeof (sock_path)) {
+    LOG(LOGS_ERR, "Server socket path %s is too long", server_path);
+    Free(sock_dir0);
+    goto error1;
+  }
+
+  Free(sock_dir0);
+
+  if (mkdir(sock_dir1, 0711) < 0 && errno != EEXIST) {
+    LOG(LOGS_ERR, "Could not create %s : %s", sock_dir1, strerror(errno));
+    goto error1;
+  }
+
+  dir_fd1 = open(sock_dir1, O_RDONLY | O_NOFOLLOW);
+  if (dir_fd1 < 0 || fstat(dir_fd1, &st) < 0) {
+    LOG(LOGS_ERR, "Could not open/stat %s : %s", sock_dir1, strerror(errno));
+    goto error2;
+  }
+
+  if (!S_ISDIR(st.st_mode) || (st.st_mode & 0777 & ~0711) != 0 || st.st_uid != geteuid()) {
+    LOG(LOGS_ERR, "Unexpected mode/owner of %s", sock_dir1);
+    goto error2;
+  }
+
+  if (mkdirat(dir_fd1, rand_dir, 0711) < 0) {
+    LOG(LOGS_ERR, "Could not create %s : %s", sock_dir2, strerror(errno));
+    goto error2;
+  }
+
+  s = SCK_OpenUnixDatagramSocket(server_path, sock_path, 0);
+  if (s < 0) {
+    LOG(LOGS_ERR, "Could not bind/connect client Unix socket");
+    goto error3;
+  }
+
+  if (chmod(sock_path, 0666) < 0 ||
+      chmod(sock_dir2, 0711) < 0 ||
+      fchmod(dir_fd1, 0711) < 0) {
+    LOG(LOGS_ERR, "Could not change socket or directory permissions : %s", strerror(errno));
+    SCK_RemoveSocket(s);
+    SCK_CloseSocket(s);
+    goto error3;
+  }
+
+  close(dir_fd1);
+
+  return s;
+
+error3:
+  rmdir(sock_dir2);
+error2:
+  rmdir(sock_dir1);
+error1:
+  if (dir_fd1 >= 0)
+    close(dir_fd1);
+  sock_dir1[0] = '\0';
+  sock_dir2[0] = '\0';
+
+  return -1;
+}
+
+/* ================================================== */
 /* Initialise the socket used to talk to the daemon */
 
 static int
 open_socket(struct Address *addr)
 {
-  char *dir, *local_addr;
-  size_t local_addr_len;
-
   switch (addr->type) {
     case SCK_ADDR_IP:
       sock_fd = SCK_OpenUdpSocket(&addr->addr.ip, NULL, NULL, 0);
       break;
     case SCK_ADDR_UNIX:
-      /* Construct path of our socket.  Use the same directory as the server
-         socket and include our process ID to allow multiple chronyc instances
-         running at the same time. */
-
-      dir = UTI_PathToDir(addr->addr.path);
-      local_addr_len = strlen(dir) + 50;
-      local_addr = Malloc(local_addr_len);
-
-      snprintf(local_addr, local_addr_len, "%s/chronyc.%d.sock", dir, (int)getpid());
-
-      sock_fd = SCK_OpenUnixDatagramSocket(addr->addr.path, local_addr,
-                                           SCK_FLAG_ALL_PERMISSIONS);
-      Free(dir);
-      Free(local_addr);
-
+      sock_fd = open_unix_socket(addr->addr.path);
       break;
     default:
       assert(0);
@@ -257,6 +366,14 @@ close_io(void)
 
   SCK_RemoveSocket(sock_fd);
   SCK_CloseSocket(sock_fd);
+
+  if (sock_dir2[0] != '\0')
+    rmdir(sock_dir2);
+  if (sock_dir1[0] != '\0')
+    rmdir(sock_dir1);
+  sock_dir2[0] = '\0';
+  sock_dir1[0] = '\0';
+
   sock_fd = -1;
 }
 
