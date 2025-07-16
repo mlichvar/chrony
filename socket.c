@@ -641,12 +641,6 @@ bind_unix_address(int sock_fd, const char *addr, int flags)
     return 0;
   }
 
-  /* Allow access to everyone with access to the directory if requested */
-  if (flags & SCK_FLAG_ALL_PERMISSIONS && chmod(addr, 0666) < 0) {
-    DEBUG_LOG("Could not change permissions of %s : %s", addr, strerror(errno));
-    return 0;
-  }
-
   return 1;
 }
 

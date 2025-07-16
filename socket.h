@@ -34,8 +34,7 @@
 #define SCK_FLAG_BLOCK 1
 #define SCK_FLAG_BROADCAST 2
 #define SCK_FLAG_RX_DEST_ADDR 4
-#define SCK_FLAG_ALL_PERMISSIONS 8
-#define SCK_FLAG_PRIV_BIND 16
+#define SCK_FLAG_PRIV_BIND 8
 
 /* Flags for receiving and sending messages */
 #define SCK_FLAG_MSG_ERRQUEUE 1
