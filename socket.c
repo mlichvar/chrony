@@ -604,18 +604,18 @@ error:
 /* ================================================== */
 
 static socklen_t
-set_unix_sockaddr(struct sockaddr_un *sun, const char *addr)
+set_unix_sockaddr(struct sockaddr_un *sa, const char *addr)
 {
   size_t len = strlen(addr);
 
-  if (len + 1 > sizeof (sun->sun_path)) {
+  if (len + 1 > sizeof (sa->sun_path)) {
     DEBUG_LOG("Unix socket path %s too long", addr);
     return 0;
   }
 
-  memset(sun, 0, sizeof (*sun));
-  sun->sun_family = AF_UNIX;
-  memcpy(sun->sun_path, addr, len);
+  memset(sa, 0, sizeof (*sa));
+  sa->sun_family = AF_UNIX;
+  memcpy(sa->sun_path, addr, len);
 
   return offsetof(struct sockaddr_un, sun_path) + len + 1;
 }
