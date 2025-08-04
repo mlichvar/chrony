@@ -133,6 +133,7 @@ For better control, use the options below.
   --with-ntp-era=SECONDS Specify earliest assumed NTP time in seconds
                          since 1970-01-01 [50*365 days ago]
   --with-user=USER       Specify default chronyd user [root]
+  --with-chronyc-user=USER Specify default chronyc user [root]
   --with-hwclockfile=PATH Specify default path to hwclock(8) adjtime file
   --with-pidfile=PATH    Specify default pidfile [/var/run/chrony/chronyd.pid]
   --with-rtcdevice=PATH  Specify default path to RTC device [/dev/rtc]
@@ -250,6 +251,7 @@ try_timestamping=0
 feat_ntp_signd=0
 ntp_era_split=""
 default_user="root"
+default_chronyc_user="root"
 default_hwclockfile=""
 default_pidfile="/var/run/chrony/chronyd.pid"
 default_rtcdevice="/dev/rtc"
@@ -353,6 +355,9 @@ do
     ;;
     --with-user=* )
       default_user=`echo $option | sed -e 's/^.*=//;'`
+    ;;
+    --with-chronyc-user=* )
+      default_chronyc_user=`echo $option | sed -e 's/^.*=//;'`
     ;;
     --with-hwclockfile=* )
       default_hwclockfile=`echo $option | sed -e 's/^.*=//;'`
@@ -1080,6 +1085,7 @@ add_def DEFAULT_HWCLOCK_FILE "\"$default_hwclockfile\""
 add_def DEFAULT_PID_FILE "\"$default_pidfile\""
 add_def DEFAULT_RTC_DEVICE "\"$default_rtcdevice\""
 add_def DEFAULT_USER "\"$default_user\""
+add_def DEFAULT_CHRONYC_USER "\"$default_chronyc_user\""
 add_def DEFAULT_COMMAND_SOCKET "\"$CHRONYRUNDIR/chronyd.sock\""
 add_def MAIL_PROGRAM "\"$mail_program\""
 
@@ -1123,6 +1129,7 @@ do
           s%@DEFAULT_PID_FILE@%${default_pidfile}%;\
           s%@DEFAULT_RTC_DEVICE@%${default_rtcdevice}%;\
           s%@DEFAULT_USER@%${default_user}%;\
+          s%@DEFAULT_CHRONYC_USER@%${default_chronyc_user}%;\
           s%@CHRONY_VERSION@%${CHRONY_VERSION}%;" \
           < ${f}.in > $f
 done

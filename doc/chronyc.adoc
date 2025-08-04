@@ -121,6 +121,13 @@ This option allows the user to specify the UDP port number which the target
 *chronyd* is using for its monitoring connections. This defaults to 323; there
 would rarely be a need to change this.
 
+*-u* _user_::
+This option sets the name of the user to which *chronyc* will switch when it is
+started under the root user in order to drop its privileges. *chronyc* will not
+try to change its identity if the option is set to _root_, or the effective
+user ID of the started process is not 0. The compiled-in default value is
+_@DEFAULT_CHRONYC_USER@_.
+
 *-f* _file_::
 This option is ignored and is provided only for compatibility.
 

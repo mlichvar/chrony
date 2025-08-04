@@ -390,7 +390,7 @@ run_chronyc() {
 	fi
 
 	$CHRONYC_WRAPPER $wrapper_options \
-		"$chronyc" -h "$host" $options "$@" > "$TEST_DIR/chronyc.out" && \
+		"$chronyc" -h "$host" -u "$(get_user)" $options "$@" > "$TEST_DIR/chronyc.out" && \
 			test_ok || test_error
 	[ $? -ne 0 ] && ret=1
 

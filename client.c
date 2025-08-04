@@ -3590,9 +3590,11 @@ print_help(const char *progname)
              "  -m\t\tAccept multiple commands\n"
              "  -h HOST\tSpecify server (%s)\n"
              "  -p PORT\tSpecify UDP port (%d)\n"
+             "  -u USER\tSpecify user (%s)\n"
              "  -v, --version\tPrint version and exit\n"
              "      --help\tPrint usage and exit\n",
-             progname, DEFAULT_COMMAND_SOCKET",127.0.0.1,::1", DEFAULT_CANDM_PORT);
+             progname, DEFAULT_COMMAND_SOCKET",127.0.0.1,::1",
+             DEFAULT_CANDM_PORT, DEFAULT_CHRONYC_USER);
 }
 
 /* ================================================== */
@@ -3609,10 +3611,11 @@ int
 main(int argc, char **argv)
 {
   char *line;
+  const char *hostnames = NULL, *user = DEFAULT_CHRONYC_USER;
   const char *progname = argv[0];
-  const char *hostnames = NULL;
   int opt, ret = 1, multi = 0, family = IPADDR_UNSPEC;
   int port = DEFAULT_CANDM_PORT;
+  struct passwd *pw;
 
   /* Parse long command-line options */
   for (optind = 1; optind < argc; optind++) {
@@ -3628,7 +3631,7 @@ main(int argc, char **argv)
   optind = 1;
 
   /* Parse short command-line options */
-  while ((opt = getopt(argc, argv, "+46acdef:h:mnNp:v")) != -1) {
+  while ((opt = getopt(argc, argv, "+46acdef:h:mnNp:u:v")) != -1) {
     switch (opt) {
       case '4':
       case '6':
@@ -3664,6 +3667,9 @@ main(int argc, char **argv)
       case 'p':
         port = atoi(optarg);
         break;
+      case 'u':
+        user = optarg;
+        break;
       case 'v':
         print_version();
         return 0;
@@ -3671,6 +3677,14 @@ main(int argc, char **argv)
         print_help(progname);
         return 1;
     }
+  }
+
+  /* Drop root privileges if configured to do so */
+  if (strcmp(user, "root") != 0 && geteuid() == 0) {
+    pw = getpwnam(user);
+    if (!pw)
+      LOG_FATAL("Could not get user/group ID of %s", user);
+    UTI_DropRoot(pw->pw_uid, pw->pw_gid);
   }
 
   if (isatty(0) && isatty(1) && isatty(2)) {
