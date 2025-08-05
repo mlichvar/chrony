@@ -686,7 +686,8 @@ NCR_CreateInstance(NTP_Remote_Address *remote_addr, NTP_Source_Type type,
                                          SRC_NTP, NAU_IsAuthEnabled(result->auth),
                                          params->sel_options, &result->remote_addr.ip_addr,
                                          params->min_samples, params->max_samples,
-                                         params->min_delay, params->asymmetry);
+                                         params->min_delay, params->asymmetry,
+                                         params->max_unreach);
 
   if (params->max_delay_quant > 0.0) {
     int k = round(CLAMP(0.05, params->max_delay_quant, 0.95) * DELAY_QUANT_Q);

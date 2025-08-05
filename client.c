@@ -1104,7 +1104,7 @@ process_cmd_add_source(CMD_Request *msg, char *line)
       msg->data.ntp_source.cert_set = htonl(data.params.cert_set);
       msg->data.ntp_source.max_delay_quant =
         UTI_FloatHostToNetwork(data.params.max_delay_quant);
-      memset(msg->data.ntp_source.reserved, 0, sizeof (msg->data.ntp_source.reserved));
+      msg->data.ntp_source.max_unreach = htonl(data.params.max_unreach);
 
       result = 1;
 

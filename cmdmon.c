@@ -686,6 +686,7 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.max_sources = ntohl(rx_message->data.ntp_source.max_sources);
   params.min_samples = ntohl(rx_message->data.ntp_source.min_samples);
   params.max_samples = ntohl(rx_message->data.ntp_source.max_samples);
+  params.max_unreach = ntohl(rx_message->data.ntp_source.max_unreach);
   params.filter_length = ntohl(rx_message->data.ntp_source.filter_length);
   params.authkey = ntohl(rx_message->data.ntp_source.authkey);
   params.nts_port = ntohl(rx_message->data.ntp_source.nts_port);

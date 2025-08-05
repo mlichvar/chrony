@@ -479,7 +479,8 @@ synchronisation:
 * _~_ - has a jitter larger than the maximum jitter (configured by the
         <<chrony.conf.adoc#maxjitter,*maxjitter*>> directive).
 * _w_ - waits for other sources to get out of the _M_ state.
-* _S_ - has older measurements than other sources.
+* _S_ - has only measurements older than reachable sources, or is unreachable
+        for too many polls (configured by the *maxunreach* option).
 * _O_ - has a stratum equal or larger than the orphan stratum (configured by
         the <<chrony.conf.adoc#local,*local*>> directive).
 * _T_ - does not fully agree with sources that have the *trust* option.

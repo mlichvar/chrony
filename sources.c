@@ -106,13 +106,20 @@ struct SRC_Instance_Record {
   /* Number of set bits in the reachability register */
   int reachability_size;
 
-  /* Updates since last reference update */
+  /* Number of reachability updates with cleared register */
+  int unreachable_run;
+
+  /* Maximum number of reachability updates with cleared register to still
+     allow selection */
+  int max_unreachable_run;
+
+  /* Number of selection updates since last reference update */
   int updates;
 
-  /* Updates left before allowing combining */
+  /* Number of selection updates left before allowing combining again */
   int distant;
 
-  /* Updates with a status requiring source replacement */
+  /* Number of selection updates with a status requiring source replacement */
   int bad;
 
   /* Flag indicating the status of the source */
@@ -259,7 +266,8 @@ void SRC_Finalise(void)
 
 SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, int authenticated,
                                    int sel_options, IPAddr *addr, int min_samples,
-                                   int max_samples, double min_delay, double asymmetry)
+                                   int max_samples, double min_delay, double asymmetry,
+                                   int max_unreach)
 {
   SRC_Instance result;
 
@@ -295,6 +303,7 @@ SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, int authentic
   result->authenticated = authenticated;
   result->conf_sel_options = sel_options;
   result->sel_options = sel_options;
+  result->max_unreachable_run = max_unreach;
   result->active = 0;
 
   SRC_SetRefid(result, ref_id, addr);
@@ -351,6 +360,7 @@ SRC_ResetInstance(SRC_Instance instance)
   instance->updates = 0;
   instance->reachability = 0;
   instance->reachability_size = 0;
+  instance->unreachable_run = 0;
   instance->distant = 0;
   instance->bad = 0;
   instance->status = SRC_BAD_STATS;
@@ -524,6 +534,13 @@ SRC_UpdateReachability(SRC_Instance inst, int reachable)
   if (inst->reachability_size < SOURCE_REACH_BITS)
       inst->reachability_size++;
 
+  if (inst->reachability == 0) {
+    if (inst->unreachable_run < INT_MAX)
+      inst->unreachable_run++;
+  } else {
+    inst->unreachable_run = 0;
+  }
+
   /* Check if special reference update mode failed */
   if (REF_GetMode() != REF_ModeNormal && special_mode_end()) {
     REF_SetUnsynchronised();
@@ -545,6 +562,7 @@ SRC_ResetReachability(SRC_Instance inst)
 {
   inst->reachability = 0;
   inst->reachability_size = 0;
+  inst->unreachable_run = 0;
   SRC_UpdateReachability(inst, 0);
 }
 
@@ -1059,8 +1077,11 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
     /* Reachability is not a requirement for selection.  An unreachable source
        can still be selected if its newest sample is not older than the oldest
-       sample from reachable sources. */
-    if (!sources[i]->reachability && max_reach_sample_ago < si->last_sample_ago) {
+       sample from reachable sources and the number of consecutive unreachable
+       updates does not exceed the configured maximum. */
+    if (sources[i]->reachability == 0 &&
+        (si->last_sample_ago > max_reach_sample_ago ||
+         sources[i]->unreachable_run > sources[i]->max_unreachable_run)) {
       mark_source(sources[i], SRC_STALE);
       continue;
     }

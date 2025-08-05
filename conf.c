@@ -958,7 +958,7 @@ static void
 parse_refclock(char *line)
 {
   int n, poll, dpoll, filter_length, pps_rate, min_samples, max_samples, sel_options;
-  int local, max_lock_age, pps_forced, sel_option, stratum, tai;
+  int local, max_lock_age, max_unreach, pps_forced, sel_option, stratum, tai;
   uint32_t ref_id, lock_ref_id;
   double offset, delay, precision, max_dispersion, pulse_width;
   char *p, *cmd, *name, *param;
@@ -972,6 +972,7 @@ parse_refclock(char *line)
   pps_rate = 0;
   min_samples = SRC_DEFAULT_MINSAMPLES;
   max_samples = SRC_DEFAULT_MAXSAMPLES;
+  max_unreach = SRC_DEFAULT_MAXUNREACH;
   sel_options = 0;
   offset = 0.0;
   delay = 1e-9;
@@ -1036,6 +1037,9 @@ parse_refclock(char *line)
     } else if (!strcasecmp(cmd, "maxsamples")) {
       if (!SSCANF_IN_RANGE(line, "%d%n", &max_samples, &n, 0, INT_MAX))
         break;
+    } else if (!strcasecmp(cmd, "maxunreach")) {
+      if (!SSCANF_IN_RANGE(line, "%d%n", &max_unreach, &n, 0, INT_MAX))
+        break;
     } else if (!strcasecmp(cmd, "offset")) {
       if (sscanf(line, "%lf%n", &offset, &n) != 1)
         break;
@@ -1085,6 +1089,7 @@ parse_refclock(char *line)
   refclock->pps_rate = pps_rate;
   refclock->min_samples = min_samples;
   refclock->max_samples = max_samples;
+  refclock->max_unreach = max_unreach;
   refclock->sel_options = sel_options;
   refclock->stratum = stratum;
   refclock->tai = tai;

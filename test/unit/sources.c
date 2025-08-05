@@ -28,7 +28,8 @@ create_source(SRC_Type type, IPAddr *addr, int authenticated, int sel_options)
 
   return SRC_CreateNewInstance(UTI_IPToRefid(addr), type, authenticated, sel_options,
                                type == SRC_NTP ? addr : NULL,
-                               SRC_DEFAULT_MINSAMPLES, SRC_DEFAULT_MAXSAMPLES, 0.0, 1.0);
+                               SRC_DEFAULT_MINSAMPLES, SRC_DEFAULT_MAXSAMPLES, 0.0, 1.0,
+                               SRC_DEFAULT_MAXUNREACH);
 }
 
 void

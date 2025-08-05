@@ -49,6 +49,7 @@ typedef struct {
   int max_sources;
   int min_samples;
   int max_samples;
+  int max_unreach;
   int filter_length;
   int interleaved;
   int sel_options;
@@ -79,6 +80,7 @@ typedef struct {
 #define SRC_DEFAULT_MAXSOURCES 4
 #define SRC_DEFAULT_MINSAMPLES (-1)
 #define SRC_DEFAULT_MAXSAMPLES (-1)
+#define SRC_DEFAULT_MAXUNREACH 100000
 #define SRC_DEFAULT_ASYMMETRY 1.0
 #define SRC_DEFAULT_NTSPORT 4460
 #define SRC_DEFAULT_CERTSET 0

@@ -244,7 +244,7 @@ RCL_AddRefclock(RefclockParameters *params)
 
   inst->source = SRC_CreateNewInstance(inst->ref_id, SRC_REFCLOCK, 0, params->sel_options,
                                        NULL, params->min_samples, params->max_samples,
-                                       0.0, 0.0);
+                                       0.0, 0.0, params->max_unreach);
 
   DEBUG_LOG("refclock %s refid=%s poll=%d dpoll=%d filter=%d",
       params->driver_name, UTI_RefidToString(inst->ref_id),

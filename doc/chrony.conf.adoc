@@ -218,6 +218,12 @@ Set the minimum number of samples kept for this source. This overrides the
 *maxsamples* _samples_:::
 Set the maximum number of samples kept for this source. This overrides the
 <<maxsamples,*maxsamples*>> directive.
+*maxunreach* _polls_:::
+This option specifies the maximum number of polls that this source can stay
+selected for synchronisation when it is unreachable (i.e. no valid response was
+received to the last 8 requests). Only sources with at least one sample more
+recent than the oldest sample of all reachable sources can be selected. The
+default is 100000.
 *filter* _polls_:::
 This option enables a median filter to reduce noise in NTP measurements. The
 filter will process samples collected in the specified number of polls
@@ -731,6 +737,12 @@ Set the minimum number of samples kept for this source. This overrides the
 *maxsamples* _samples_:::
 Set the maximum number of samples kept for this source. This overrides the
 <<maxsamples,*maxsamples*>> directive.
+*maxunreach* _polls_:::
+This option specifies the maximum number of polls that this source can stay
+selected for synchronisation when it is unreachable (i.e. no valid sample was
+received in the last 8 polls). Only sources with at least one sample more
+recent than the oldest sample of all reachable sources can be selected.
+The default is 100000.
 
 [[manual]]*manual*::
 The *manual* directive enables support at run-time for the

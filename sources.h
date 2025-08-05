@@ -69,7 +69,8 @@ typedef enum {
 
 extern SRC_Instance SRC_CreateNewInstance(uint32_t ref_id, SRC_Type type, int authenticated,
                                           int sel_options, IPAddr *addr, int min_samples,
-                                          int max_samples, double min_delay, double asymmetry);
+                                          int max_samples, double min_delay, double asymmetry,
+                                          int max_unreach);
 
 /* Function to get rid of a source when it is being unconfigured.
    This may cause the current reference source to be reselected, if this

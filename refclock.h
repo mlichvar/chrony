@@ -42,6 +42,7 @@ typedef struct {
   int pps_rate;
   int min_samples;
   int max_samples;
+  int max_unreach;
   int sel_options;
   int max_lock_age;
   int stratum;
