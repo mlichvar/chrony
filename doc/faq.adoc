@@ -165,6 +165,13 @@ versions or implementations of the libraries might make different system calls.
 If the filter is missing some system call, `chronyd` could be killed even in
 normal operation.
 
+The impact of potential security issues in `chronyc` can be reduced by running
+`chronyc` under the _chrony_ user instead of root, or another unprivileged user
+if access to the Unix domain socket is not needed. Since version 4.8, `chronyc`
+drops root privileges automatically if it is started with the `-u` option
+specifying the _chrony_ user, or the name was specified to be the compiled-in
+default by the `--with-chronyc-user` option of the configure script.
+
 === How can I make the system clock more secure?
 
 An NTP client synchronising the system clock to an NTP server is susceptible to
@@ -897,7 +904,9 @@ measurements from both sources.
 
 If the first source was significantly better than the second source, it can
 take many hours before the second source is selected, depending on its polling
-interval. You can force a faster reselection by increasing the clock error rate
+interval. You can force a faster reselection by reducing the maximum number of
+polls the source can still be selected when unreachable (`maxunreach` option
+supported since `chrony` version 4.8), increasing the clock error rate
 (`maxclockerror` directive), shortening the polling interval (`maxpoll`
 option), or reducing the number of samples (`maxsamples` option).
 
