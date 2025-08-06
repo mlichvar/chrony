@@ -180,6 +180,7 @@ TLS_CreateInstance(int server_mode, int sock_fd, const char *server_name,
                                   (server_mode ? GNUTLS_SERVER : GNUTLS_CLIENT));
   if (r < 0) {
     LOG(LOGS_ERR, "Could not %s TLS session : %s", "create", gnutls_strerror(r));
+    inst->session = NULL;
     goto error;
   }
 
