@@ -174,7 +174,7 @@ TLS_CreateInstance(int server_mode, int sock_fd, const char *server_name, const 
   inst->session = NULL;
   inst->server = server_mode;
   inst->label = Strdup(label);
-  inst->alpn_name = alpn_name ? Strdup(alpn_name) : NULL;
+  inst->alpn_name = Strdup(alpn_name);
 
   r = gnutls_init(&inst->session, GNUTLS_NONBLOCK | GNUTLS_NO_TICKETS |
                                   (server_mode ? GNUTLS_SERVER : GNUTLS_CLIENT));
@@ -238,9 +238,7 @@ TLS_DestroyInstance(TLS_Instance inst)
     gnutls_deinit(inst->session);
 
   Free(inst->label);
-
-  if (inst->alpn_name)
-    Free(inst->alpn_name);
+  Free(inst->alpn_name);
 
   Free(inst);
 }
