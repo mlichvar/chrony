@@ -64,8 +64,8 @@ extern void TLS_DestroyCredentials(TLS_Credentials credentials);
 
 /* Create new TLS session instance */
 extern TLS_Instance TLS_CreateInstance(int server_mode, int sock_fd, const char *server_name,
-                                       const char *alpn_name, TLS_Credentials credentials,
-                                       int disable_time_checks);
+                                       const char *label, const char *alpn_name,
+                                       TLS_Credentials credentials, int disable_time_checks);
 
 /* Destroy TLS instance */
 extern void TLS_DestroyInstance(TLS_Instance inst);

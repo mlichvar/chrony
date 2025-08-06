@@ -613,7 +613,7 @@ NKSN_StartSession(NKSN_Instance inst, int sock_fd, const char *label,
   assert(inst->state == KE_STOPPED);
 
   inst->tls_session = TLS_CreateInstance(inst->server, sock_fd, inst->server_name,
-                                         NKE_ALPN_NAME, credentials,
+                                         label, NKE_ALPN_NAME, credentials,
                                          clock_updates < CNF_GetNoCertTimeCheck());
   if (!inst->tls_session)
     return 0;

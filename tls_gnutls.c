@@ -42,7 +42,7 @@
 struct TLS_Instance_Record {
   gnutls_session_t session;
   int server;
-  char *server_name;
+  char *label;
   char *alpn_name;
 };
 
@@ -162,7 +162,7 @@ TLS_DestroyCredentials(TLS_Credentials credentials)
 /* ================================================== */
 
 TLS_Instance
-TLS_CreateInstance(int server_mode, int sock_fd, const char *server_name,
+TLS_CreateInstance(int server_mode, int sock_fd, const char *server_name, const char *label,
                    const char *alpn_name, TLS_Credentials credentials, int disable_time_checks)
 {
   gnutls_datum_t alpn;
@@ -173,7 +173,7 @@ TLS_CreateInstance(int server_mode, int sock_fd, const char *server_name,
 
   inst->session = NULL;
   inst->server = server_mode;
-  inst->server_name = server_name ? Strdup(server_name) : NULL;
+  inst->label = Strdup(label);
   inst->alpn_name = alpn_name ? Strdup(alpn_name) : NULL;
 
   r = gnutls_init(&inst->session, GNUTLS_NONBLOCK | GNUTLS_NO_TICKETS |
@@ -237,8 +237,7 @@ TLS_DestroyInstance(TLS_Instance inst)
   if (inst->session)
     gnutls_deinit(inst->session);
 
-  if (inst->server_name)
-    Free(inst->server_name);
+  Free(inst->label);
 
   if (inst->alpn_name)
     Free(inst->alpn_name);
@@ -280,7 +279,7 @@ TLS_DoHandshake(TLS_Instance inst)
         cert_error.data = NULL;
 
       LOG(inst->server ? LOGS_DEBUG : LOGS_ERR,
-          "TLS handshake with %s failed : %s%s%s", inst->server_name, gnutls_strerror(r),
+          "TLS handshake with %s failed : %s%s%s", inst->label, gnutls_strerror(r),
           cert_error.data ? " " : "", cert_error.data ? (const char *)cert_error.data : "");
 
       if (cert_error.data)
@@ -299,13 +298,12 @@ TLS_DoHandshake(TLS_Instance inst)
 
   if (DEBUG) {
     char *description = gnutls_session_get_desc(inst->session);
-    DEBUG_LOG("Handshake with %s completed %s", inst->server_name,
-              description ? description : "");
+    DEBUG_LOG("Handshake with %s completed %s", inst->label, description ? description : "");
     gnutls_free(description);
   }
 
   if (!check_alpn(inst)) {
-    LOG(inst->server ? LOGS_DEBUG : LOGS_ERR, "NTS-KE not supported by %s", inst->server_name);
+    LOG(inst->server ? LOGS_DEBUG : LOGS_ERR, "NTS-KE not supported by %s", inst->label);
     return TLS_FAILED;
   }
 
@@ -327,7 +325,7 @@ TLS_Send(TLS_Instance inst, const void *data, int length, int *sent)
   if (r < 0) {
     if (gnutls_error_is_fatal(r)) {
       LOG(inst->server ? LOGS_DEBUG : LOGS_ERR,
-          "Could not send NTS-KE message to %s : %s", inst->server_name, gnutls_strerror(r));
+          "Could not send NTS-KE message to %s : %s", inst->label, gnutls_strerror(r));
       return TLS_FAILED;
     }
 
@@ -356,8 +354,7 @@ TLS_Receive(TLS_Instance inst, void *data, int length, int *received)
        a protocol error */
     if (gnutls_error_is_fatal(r) || r == GNUTLS_E_REHANDSHAKE) {
       LOG(inst->server ? LOGS_DEBUG : LOGS_ERR,
-          "Could not receive NTS-KE message from %s : %s",
-          inst->server_name, gnutls_strerror(r));
+          "Could not receive NTS-KE message from %s : %s", inst->label, gnutls_strerror(r));
       return TLS_FAILED;
     }
 
@@ -386,7 +383,7 @@ TLS_Shutdown(TLS_Instance inst)
 
   if (r < 0) {
     if (gnutls_error_is_fatal(r)) {
-      DEBUG_LOG("Shutdown with %s failed : %s", inst->server_name, gnutls_strerror(r));
+      DEBUG_LOG("Shutdown with %s failed : %s", inst->label, gnutls_strerror(r));
       return TLS_FAILED;
     }
 
