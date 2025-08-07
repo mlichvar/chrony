@@ -220,7 +220,7 @@ add_interface(CNF_HwTsInterface *conf_iface)
 
   SCK_CloseSocket(sock_fd);
 
-  phc_fd = SYS_Linux_OpenPHC(req.ifr_name);
+  phc_fd = SYS_Linux_OpenPHC(req.ifr_name, O_RDONLY);
   if (phc_fd < 0)
     return 0;
 

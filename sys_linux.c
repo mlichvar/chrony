@@ -879,7 +879,7 @@ verify_fd_is_phc(int phc_fd)
 /* ================================================== */
 
 static int
-open_phc_by_iface_name(const char *iface)
+open_phc_by_iface_name(const char *iface, int flags)
 {
 #ifdef HAVE_LINUX_TIMESTAMPING
   struct ethtool_ts_info ts_info;
@@ -922,7 +922,7 @@ open_phc_by_iface_name(const char *iface)
                "/dev/ptp%d", ts_info.phc_index) >= sizeof (phc_device))
     return -1;
 
-  return open(phc_device, O_RDONLY);
+  return open(phc_device, flags);
 #else
   return -1;
 #endif
@@ -931,18 +931,18 @@ open_phc_by_iface_name(const char *iface)
 /* ================================================== */
 
 int
-SYS_Linux_OpenPHC(const char *device)
+SYS_Linux_OpenPHC(const char *device, int flags)
 {
   int phc_fd = -1;
 
   if (device[0] == '/') {
-    phc_fd = open(device, O_RDONLY);
+    phc_fd = open(device, flags);
     if (phc_fd >= 0)
       phc_fd = verify_fd_is_phc(phc_fd);
   }
 
   if (phc_fd < 0) {
-    phc_fd = open_phc_by_iface_name(device);
+    phc_fd = open_phc_by_iface_name(device, flags);
     if (phc_fd < 0) {
       LOG(LOGS_ERR, "Could not open PHC of iface %s : %s",
           device, strerror(errno));
