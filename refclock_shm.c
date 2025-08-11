@@ -109,8 +109,6 @@ static int shm_poll(RCL_Instance instance)
 
   shm->valid = 0;
 
-  RCL_UpdateReachability(instance);
-
   receive_ts.tv_sec = t.receiveTimeStampSec;
   clock_ts.tv_sec = t.clockTimeStampSec;
 
@@ -126,7 +124,7 @@ static int shm_poll(RCL_Instance instance)
   UTI_NormaliseTimespec(&clock_ts);
   UTI_NormaliseTimespec(&receive_ts);
 
-  return RCL_AddSample(instance, &receive_ts, &clock_ts, t.leap);
+  return RCL_AddSample(instance, &receive_ts, &clock_ts, t.leap, 1);
 }
 
 RefclockDriver RCL_SHM_driver = {

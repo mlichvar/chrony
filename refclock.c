@@ -427,9 +427,20 @@ convert_tai_offset(struct timespec *sample_time, double *offset)
 }
 
 static int
-accumulate_sample(RCL_Instance instance, struct timespec *sample_time, double offset, double dispersion)
+accumulate_sample(RCL_Instance instance, struct timespec *sample_time, double offset, double dispersion,
+                  int quality)
 {
   NTP_Sample sample;
+
+  instance->reached++;
+
+  /* Don't accumulate the sample if the driver is suggesting it should be
+     dropped due to low quality.  The only reason it went so far was to update
+     the reachability. */
+  if (quality < 1) {
+    DEBUG_LOG("refclock sample ignored quality=%d", quality);
+    return 0;
+  }
 
   sample.time = *sample_time;
   sample.offset = offset;
@@ -443,14 +454,14 @@ accumulate_sample(RCL_Instance instance, struct timespec *sample_time, double of
 
 int
 RCL_AddSample(RCL_Instance instance, struct timespec *sample_time,
-              struct timespec *ref_time, int leap)
+              struct timespec *ref_time, int leap, int quality)
 {
   double correction, dispersion, raw_offset, offset;
   struct timespec cooked_time;
 
   if (instance->pps_forced)
     return RCL_AddPulse(instance, sample_time,
-                        1.0e-9 * (sample_time->tv_nsec - ref_time->tv_nsec));
+                        1.0e-9 * (sample_time->tv_nsec - ref_time->tv_nsec), quality);
 
   raw_offset = UTI_DiffTimespecsToDouble(ref_time, sample_time);
 
@@ -486,7 +497,7 @@ RCL_AddSample(RCL_Instance instance, struct timespec *sample_time,
     return 0;
   }
 
-  if (!accumulate_sample(instance, &cooked_time, offset, dispersion))
+  if (!accumulate_sample(instance, &cooked_time, offset, dispersion, quality))
     return 0;
 
   instance->pps_active = 0;
@@ -501,7 +512,7 @@ RCL_AddSample(RCL_Instance instance, struct timespec *sample_time,
 }
 
 int
-RCL_AddPulse(RCL_Instance instance, struct timespec *pulse_time, double second)
+RCL_AddPulse(RCL_Instance instance, struct timespec *pulse_time, double second, int quality)
 {
   double correction, dispersion;
   struct timespec cooked_time;
@@ -513,7 +524,7 @@ RCL_AddPulse(RCL_Instance instance, struct timespec *pulse_time, double second)
   if (!UTI_IsTimeOffsetSane(pulse_time, 0.0))
     return 0;
 
-  return RCL_AddCookedPulse(instance, &cooked_time, second, dispersion, correction);
+  return RCL_AddCookedPulse(instance, &cooked_time, second, dispersion, correction, quality);
 }
 
 static int
@@ -539,7 +550,7 @@ check_pulse_edge(RCL_Instance instance, double offset, double distance)
 
 int
 RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
-                   double second, double dispersion, double raw_correction)
+                   double second, double dispersion, double raw_correction, int quality)
 {
   double offset;
   int rate;
@@ -641,7 +652,7 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
       return 0;
   }
 
-  if (!accumulate_sample(instance, cooked_time, offset, dispersion))
+  if (!accumulate_sample(instance, cooked_time, offset, dispersion, quality))
     return 0;
 
   instance->leap_status = leap;
@@ -655,12 +666,6 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
     instance->driver_polled++;
 
   return 1;
-}
-
-void
-RCL_UpdateReachability(RCL_Instance instance)
-{
-  instance->reached++;
 }
 
 double

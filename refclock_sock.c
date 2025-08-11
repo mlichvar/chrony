@@ -129,17 +129,15 @@ static void read_sample(int sockfd, int event, void *anything)
   UTI_TimevalToTimespec(&sample.tv, &sys_ts);
   UTI_NormaliseTimespec(&sys_ts);
 
-  RCL_UpdateReachability(instance);
-
   if (!UTI_IsTimeOffsetSane(&sys_ts, sample.offset))
     return;
 
   UTI_AddDoubleToTimespec(&sys_ts, sample.offset, &ref_ts);
 
   if (sample.pulse) {
-    RCL_AddPulse(instance, &sys_ts, sample.offset);
+    RCL_AddPulse(instance, &sys_ts, sample.offset, 1);
   } else {
-    RCL_AddSample(instance, &sys_ts, &ref_ts, sample.leap);
+    RCL_AddSample(instance, &sys_ts, &ref_ts, sample.leap, 1);
   }
 }
 

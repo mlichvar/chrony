@@ -58,9 +58,7 @@ static int refrtc_add_sample(RCL_Instance instance, struct timespec *now,
   rtc_ts.tv_sec = rtc_sec;
   rtc_ts.tv_nsec = rtc_nsec;
 
-  RCL_UpdateReachability(instance);
-
-  status = RCL_AddSample(instance, now, &rtc_ts, LEAP_Normal);
+  status = RCL_AddSample(instance, now, &rtc_ts, LEAP_Normal, 1);
 
   return status;
 }
