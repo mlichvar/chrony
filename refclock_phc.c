@@ -198,7 +198,7 @@ static int phc_poll(RCL_Instance instance)
   struct timespec phc_ts, sys_ts, local_ts, readings[PHC_READINGS][3];
   struct phc_instance *phc;
   double phc_err, local_err;
-  int n_readings;
+  int n_readings, quality;
 
   phc = (struct phc_instance *)RCL_GetDriverData(instance);
 
@@ -210,13 +210,18 @@ static int phc_poll(RCL_Instance instance)
   if (!phc->extpps)
     RCL_UpdateReachability(instance);
 
-  if (!HCL_ProcessReadings(phc->clock, n_readings, readings, &phc_ts, &sys_ts, &phc_err))
+  if (!HCL_ProcessReadings(phc->clock, n_readings, readings,
+                           &phc_ts, &sys_ts, &phc_err, &quality))
     return 0;
 
   LCL_CookTime(&sys_ts, &local_ts, &local_err);
-  HCL_AccumulateSample(phc->clock, &phc_ts, &local_ts, phc_err + local_err);
+  if (quality > 0)
+    HCL_AccumulateSample(phc->clock, &phc_ts, &local_ts, phc_err + local_err);
 
   if (phc->extpps)
+    return 0;
+
+  if (quality <= 0)
     return 0;
 
   DEBUG_LOG("PHC offset: %+.9f err: %.9f",

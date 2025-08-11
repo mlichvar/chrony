@@ -519,7 +519,7 @@ poll_phc(struct Interface *iface, struct timespec *now)
   struct timespec sample_phc_ts, sample_sys_ts, sample_local_ts;
   struct timespec phc_readings[PHC_READINGS][3];
   double phc_err, local_err, interval;
-  int n_readings;
+  int n_readings, quality;
 
   if (!HCL_NeedsNewSample(iface->clock, now))
     return;
@@ -543,7 +543,8 @@ poll_phc(struct Interface *iface, struct timespec *now)
     return;
 
   if (!HCL_ProcessReadings(iface->clock, n_readings, phc_readings,
-                           &sample_phc_ts, &sample_sys_ts, &phc_err))
+                           &sample_phc_ts, &sample_sys_ts, &phc_err, &quality) ||
+      quality <= 0)
     return;
 
   LCL_CookTime(&sample_sys_ts, &sample_local_ts, &local_err);

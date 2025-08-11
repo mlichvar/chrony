@@ -32,9 +32,9 @@ test_unit(void)
 {
   struct timespec start_hw_ts, start_local_ts, hw_ts, local_ts, ts;
   struct timespec readings[MAX_READINGS][3];
+  int i, j, k, l, new_sample, n_readings, count, quality;
   HCL_Instance clock;
   double freq, jitter, interval, dj, err, sum;
-  int i, j, k, l, new_sample, n_readings, count;
 
   LCL_Initialise();
   TST_RegisterDummyDrivers();
@@ -84,11 +84,13 @@ test_unit(void)
 
           UTI_ZeroTimespec(&hw_ts);
           UTI_ZeroTimespec(&local_ts);
-          if (HCL_ProcessReadings(clock, n_readings, readings, &hw_ts, &local_ts, &err)) {
-            HCL_AccumulateSample(clock, &hw_ts, &local_ts, 2.0 * jitter);
-            new_sample = 1;
-          } else {
-            new_sample = 0;
+          new_sample = 0;
+          if (HCL_ProcessReadings(clock, n_readings, readings, &hw_ts, &local_ts, &err, &quality)) {
+            TEST_CHECK(quality >= 0 && quality <= 2);
+            if (quality > 0) {
+              HCL_AccumulateSample(clock, &hw_ts, &local_ts, 2.0 * jitter);
+              new_sample = 1;
+            }
           }
         }
 

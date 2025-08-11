@@ -163,7 +163,8 @@ HCL_NeedsNewSample(HCL_Instance clock, struct timespec *now)
 
 int
 HCL_ProcessReadings(HCL_Instance clock, int n_readings, struct timespec tss[][3],
-                    struct timespec *hw_ts, struct timespec *local_ts, double *err)
+                    struct timespec *hw_ts, struct timespec *local_ts, double *err,
+                    int *quality)
 {
   double delay, raw_delay, min_delay, low_delay, high_delay, e, pred_err;
   double delay_sum, hw_sum, local_sum, local_prec, freq;
@@ -228,11 +229,13 @@ HCL_ProcessReadings(HCL_Instance clock, int n_readings, struct timespec tss[][3]
     UTI_AddDoubleToTimespec(&tss[0][1], hw_sum / combined, hw_ts);
     UTI_AddDoubleToTimespec(&tss[0][0], local_sum / combined, local_ts);
     *err = MAX(delay_sum / combined / 2.0, clock->precision);
+    *quality = 2;
     return 1;
   }
 
-  /* Accept the reading with minimum delay if its interval does not contain
-     the current offset predicted from previous samples */
+  /* Indicate acceptable quality of the reading with minimum delay if its
+     interval does not contain the current offset predicted from previous
+     samples, or a new sample is needed to get the tracking working */
 
   *hw_ts = tss[min_reading][1];
   UTI_AddDoubleToTimespec(&tss[min_reading][0], min_delay / freq / 2.0, local_ts);
@@ -242,11 +245,14 @@ HCL_ProcessReadings(HCL_Instance clock, int n_readings, struct timespec tss[][3]
   LCL_CookTime(local_ts, &ts1, NULL);
   if (!HCL_CookTime(clock, hw_ts, &ts2, &e) ||
       ((pred_err = UTI_DiffTimespecsToDouble(&ts1, &ts2)) > *err)) {
-    DEBUG_LOG("Accepted reading err=%e prerr=%e", *err, pred_err);
-    return 1;
+    *quality = 1;
+  } else {
+    *quality = 0;
   }
 
-  return 0;
+  DEBUG_LOG("Min-delay reading err=%e prerr=%e ql=%d", *err, pred_err, *quality);
+
+  return 1;
 }
 
 /* ================================================== */

@@ -38,10 +38,14 @@ extern void HCL_DestroyInstance(HCL_Instance clock);
 /* Check if a new sample should be accumulated at this time */
 extern int HCL_NeedsNewSample(HCL_Instance clock, struct timespec *now);
 
-/* Process new readings of the HW clock in form of (sys, hw, sys) triplets and
-   produce a sample which can be accumulated */
+/* Process new readings of the HW clock in the form of (sys, hw, sys) triplets
+   and produce a sample which can be accumulated by HCL_AccumulateSample().
+   Indicate the quality of the sample relative to already processed samples as
+   a value of 0, 1, or 2, where a sample of quality 0 should normally be
+   dropped. */
 extern int HCL_ProcessReadings(HCL_Instance clock, int n_readings, struct timespec tss[][3],
-                               struct timespec *hw_ts, struct timespec *local_ts, double *err);
+                               struct timespec *hw_ts, struct timespec *local_ts, double *err,
+                               int *quality);
 
 /* Accumulate a new sample */
 extern void HCL_AccumulateSample(HCL_Instance clock, struct timespec *hw_ts,
