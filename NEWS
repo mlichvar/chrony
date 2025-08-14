@@ -1,3 +1,18 @@
+New in version 4.8
+==================
+
+Enhancements
+------------
+* Add maxunreach option to limit selection of unreachable sources
+* Add -u option to chronyc to drop root privileges (default chronyc
+  user is set by configure script)
+
+Bug fixes
+---------
+* Hide chronyc socket to mitigate unsafe permissions change
+* Fix refclock extpps option to work on Linux >= 6.15
+* Validate refclock samples for reachability updates
+
 New in version 4.7
 ==================
 
