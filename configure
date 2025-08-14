@@ -666,13 +666,15 @@ then
 fi
 
 if [ $try_clock_gettime = "1" ]; then
-  if test_code 'clock_gettime()' 'time.h' '' '' \
-    'clock_gettime(CLOCK_REALTIME, (void *)1);'
+  if test_code 'clock_gettime()' 'time.h' '' '' '
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);'
   then
     add_def HAVE_CLOCK_GETTIME
   else
-    if test_code 'clock_gettime() in -lrt' 'time.h' '' '-lrt' \
-      'clock_gettime(CLOCK_REALTIME, (void *)1);'
+    if test_code 'clock_gettime() in -lrt' 'time.h' '' '-lrt' '
+      struct timespec ts;
+      clock_gettime(CLOCK_REALTIME, &ts);'
     then
       add_def HAVE_CLOCK_GETTIME
       EXTRA_LIBS="$EXTRA_LIBS -lrt"
@@ -699,13 +701,16 @@ else
 fi
 
 if [ $try_arc4random = "1" ] && \
-  test_code 'arc4random_buf()' 'stdlib.h' '' '' \
-    'arc4random_buf((void *)1, 1);'
+  test_code 'arc4random_buf()' 'stdlib.h' '' '' '
+    char c;
+    arc4random_buf(&c, 1);'
 then
   add_def HAVE_ARC4RANDOM
 else
-  if test_code 'getrandom()' 'stdlib.h sys/random.h' '' '' \
-      'return getrandom((void *)1, 1, 0);'; then
+  if test_code 'getrandom()' 'stdlib.h sys/random.h' '' '' '
+    char c;
+    return getrandom(&c, 1, 0);'
+  then
     add_def HAVE_GETRANDOM
   fi
 fi
