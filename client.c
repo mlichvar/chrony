@@ -4,7 +4,7 @@
  **********************************************************************
  * Copyright (C) Richard P. Curnow  1997-2003
  * Copyright (C) Lonnie Abelbeck  2016, 2018
- * Copyright (C) Miroslav Lichvar  2009-2024
+ * Copyright (C) Miroslav Lichvar  2009-2025
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of version 2 of the GNU General Public License as
