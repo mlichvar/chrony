@@ -545,12 +545,14 @@ UTI_CompareIPs(const IPAddr *a, const IPAddr *b, const IPAddr *mask)
 char *
 UTI_IPSockAddrToString(const IPSockAddr *sa)
 {
-  char *result;
+  char buf[BUFFER_LENGTH], *result;
+
+  /* Copy to a separate buffer to avoid a compiler warning */
+  snprintf(buf, sizeof (buf), "%s", UTI_IPToString(&sa->ip_addr));
 
   result = NEXT_BUFFER;
   snprintf(result, BUFFER_LENGTH,
-           sa->ip_addr.family != IPADDR_INET6 ? "%s:%hu" : "[%s]:%hu",
-           UTI_IPToString(&sa->ip_addr), sa->port);
+           sa->ip_addr.family != IPADDR_INET6 ? "%s:%hu" : "[%s]:%hu", buf, sa->port);
 
   return result;
 }
