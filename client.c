@@ -270,7 +270,7 @@ open_unix_socket(char *server_path)
   if (snprintf(sock_dir1, sizeof (sock_dir1),
                "%s/chronyc.%d", sock_dir0, (int)getpid()) >= sizeof (sock_dir1) ||
       snprintf(sock_dir2, sizeof (sock_dir2),
-               "%s/%s", sock_dir1, rand_dir) >= sizeof (sock_dir1) ||
+               "%s/%s", sock_dir1, rand_dir) >= sizeof (sock_dir2) ||
       snprintf(sock_path, sizeof (sock_path),
                "%s/sock", sock_dir2) >= sizeof (sock_path)) {
     LOG(LOGS_ERR, "Server socket path %s is too long", server_path);
