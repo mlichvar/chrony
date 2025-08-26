@@ -193,6 +193,8 @@ test_unit(void)
 
     server_cred = NKSN_CreateServerCertCredentials(&cert, &key, 1);
     client_cred = NKSN_CreateClientCertCredentials(&cert, &cert_id, 1, 0);
+    TEST_CHECK(server_cred);
+    TEST_CHECK(client_cred);
 
     TEST_CHECK(socketpair(AF_UNIX, SOCK_STREAM, 0, sock_fds) == 0);
     TEST_CHECK(fcntl(sock_fds[0], F_SETFL, O_NONBLOCK) == 0);
