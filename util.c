@@ -1203,7 +1203,7 @@ create_dir(char *p, mode_t mode, uid_t uid, gid_t gid)
   }
 
   /* Set its owner */
-  if (chown(p, uid, gid) < 0) {
+  if (lchown(p, uid, gid) < 0) {
     LOG(LOGS_ERR, "Could not change ownership of %s : %s", p, strerror(errno));
     /* Don't leave it there with incorrect ownership */
     rmdir(p);
