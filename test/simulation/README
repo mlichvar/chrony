@@ -1,7 +1,7 @@
 This is a collection of simulation tests using the clknetsim simulator
 (supported on Linux only).
 
-https://github.com/mlichvar/clknetsim
+https://gitlab.com/chrony/clknetsim
 
 The CLKNETSIM_PATH environment variable should point to the directory where
 clknetsim was downloaded and compiled. If the variable is not set, the tests
