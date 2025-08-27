@@ -213,7 +213,10 @@ generate_chrony_conf() {
 
 	user=$(get_user)
 	ntpport=$(get_free_port)
-	cmdport=$(get_free_port)
+	while true; do
+		cmdport=$(get_free_port)
+		[ "$ntpport" -ne "$cmdport" ] && break
+	done
 
 	echo "0.0 10000" > "$TEST_LIBDIR/driftfile"
 	echo "1 MD5 abcdefghijklmnopq" > "$TEST_DIR/keys"
