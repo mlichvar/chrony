@@ -944,8 +944,7 @@ SYS_Linux_OpenPHC(const char *device, int flags)
   if (phc_fd < 0) {
     phc_fd = open_phc_by_iface_name(device, flags);
     if (phc_fd < 0) {
-      LOG(LOGS_ERR, "Could not open PHC of iface %s : %s",
-          device, strerror(errno));
+      LOG(LOGS_ERR, "Could not open PHC (of) %s", device);
       return -1;
     }
     phc_fd = verify_fd_is_phc(phc_fd);
