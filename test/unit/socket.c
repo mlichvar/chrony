@@ -191,6 +191,7 @@ test_unit(void)
         s3 = SCK_AcceptConnection(s1, &sa2);
         TEST_CHECK(UTI_CompareIPs(&sa1.ip_addr, &sa2.ip_addr, NULL) == 0);
 
+        fcntl(s3, F_SETFL, fcntl(s3, F_GETFL) & ~O_NONBLOCK);
         send_and_recv(SCK_ADDR_IP, 1, 1, s3, s2);
 
         SCK_ShutdownConnection(s2);
@@ -227,6 +228,7 @@ test_unit(void)
     s3 = SCK_AcceptConnection(s1, &sa2);
     TEST_CHECK(sa2.ip_addr.family == IPADDR_UNSPEC);
 
+    fcntl(s3, F_SETFL, fcntl(s3, F_GETFL) & ~O_NONBLOCK);
     send_and_recv(SCK_ADDR_UNIX, 1, i % 2, s3, s2);
 
     if (i % 4)
