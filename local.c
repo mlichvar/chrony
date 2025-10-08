@@ -97,7 +97,141 @@ static double precision_quantum;
 
 static double max_clock_error;
 
+#define NSEC_PER_SEC 1000000000
+
 /* ================================================== */
+
+/* Ask the system for the resolution of the system clock.  The Linux
+   clock_getres() is not usable, because it reports the internal timer
+   resolution, which is 1 ns when high-resolution timers are enabled,
+   even when using a lower-resolution clocksource. */
+
+static int
+get_clock_resolution(void)
+{
+#if defined(HAVE_CLOCK_GETTIME) && !defined(LINUX)
+  struct timespec res;
+
+  if (clock_getres(CLOCK_REALTIME, &res) < 0)
+    return 0;
+
+  return NSEC_PER_SEC * res.tv_sec + res.tv_nsec;
+#else
+  return 0;
+#endif
+}
+
+/* ================================================== */
+
+#if defined(LINUX) && defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC_RAW)
+
+static int
+compare_ints(const void *a, const void *b)
+{
+  return *(const int *)a - *(const int *)b;
+}
+
+#define READINGS 64
+
+/* On Linux, try to measure the actual resolution of the system
+   clock by performing a varying amount of busy work between clock
+   readings and finding the minimum change in the measured interval.
+   Require a change of at least two nanoseconds to ignore errors
+   caused by conversion to timespec.  Use the raw monotonic clock
+   to avoid the impact of potential frequency changes due to NTP
+   adjustments made by other processes, and the kernel dithering of
+   the 32-bit multiplier. */
+
+static int
+measure_clock_resolution(void)
+{
+  int i, j, b, busy, diffs[READINGS - 1], diff2, min;
+  struct timespec start_ts, ts[READINGS];
+  uint32_t acc;
+
+  if (clock_gettime(CLOCK_MONOTONIC_RAW, &start_ts) < 0)
+    return 0;
+
+  for (acc = 0, busy = 1; busy < 100000; busy = busy * 3 / 2 + 1) {
+    for (i = 0, b = busy * READINGS; i < READINGS; i++, b -= busy) {
+      if (clock_gettime(CLOCK_MONOTONIC_RAW, &ts[i]) < 0)
+        return 0;
+
+      for (j = b; j > 0; j--)
+        acc += (acc & 1) + (uint32_t)ts[i].tv_nsec;
+    }
+
+    /* Give up after 0.1 seconds */
+    if (UTI_DiffTimespecsToDouble(&ts[READINGS - 1], &start_ts) > 0.1) {
+      DEBUG_LOG("Measurement too slow");
+      return 0;
+    }
+
+    for (i = 0; i < READINGS - 1; i++) {
+      diffs[i] = NSEC_PER_SEC * (ts[i + 1].tv_sec - ts[i].tv_sec) +
+                 (ts[i + 1].tv_nsec - ts[i].tv_nsec);
+
+      /* Make sure the differences are sane.  A resolution larger than the
+         reading time will be measured in measure_clock_read_delay(). */
+      if (diffs[i] <= 0 || diffs[i] > NSEC_PER_SEC)
+        return 0;
+    }
+
+    /* Sort the differences and keep values unique within 1 ns from the
+       first half of the array, which are less likely to be impacted by CPU
+       interruptions */
+    qsort(diffs, READINGS - 1, sizeof (diffs[0]), compare_ints);
+    for (i = 1, j = 0; i < READINGS / 2; i++) {
+      if (diffs[j] + 1 < diffs[i])
+        diffs[++j] = diffs[i];
+    }
+    j++;
+
+#if 0
+    for (i = 0; i < j; i++)
+      DEBUG_LOG("busy %d diff %d %d", busy, i, diffs[i]);
+#endif
+
+    /* Require at least three unique differences to be more confident
+       with the result */
+    if (j < 3)
+      continue;
+
+    /* Find the smallest difference between the unique differences */
+    for (i = 1, min = 0; i < j; i++) {
+      diff2 = diffs[i] - diffs[i - 1];
+      if (min == 0 || min > diff2)
+        min = diff2;
+    }
+
+    if (min == 0)
+      continue;
+
+    /* Prevent the compiler from optimising the busy work out */
+    if (acc == 0)
+      min += 1;
+
+    return min;
+  }
+
+  return 0;
+}
+
+#else
+static int
+measure_clock_resolution(void)
+{
+  return 0;
+}
+#endif
+
+/* ================================================== */
+
+/* As a fallback, measure how long it takes to read the clock.  It
+   typically takes longer than the resolution of the clock (and it
+   depends on the CPU speed), i.e. every reading gives a different
+   value, but handle also low-resolution clocks that might give
+   the same reading multiple times. */
 
 /* Define the number of increments of the system clock that we want
    to see to be fairly sure that we've got something approaching
@@ -106,10 +240,8 @@ static double max_clock_error;
    under 1s of busy waiting. */
 #define NITERS 100
 
-#define NSEC_PER_SEC 1000000000
-
-static double
-measure_clock_precision(void)
+static int
+measure_clock_read_delay(void)
 {
   struct timespec ts, old_ts;
   int iters, diff, best;
@@ -135,7 +267,28 @@ measure_clock_precision(void)
 
   assert(best > 0);
 
-  return 1.0e-9 * best;
+  return best;
+}
+
+/* ================================================== */
+
+static double
+measure_clock_precision(void)
+{
+  int res, delay, prec;
+
+  res = get_clock_resolution();
+  if (res <= 0)
+    res = measure_clock_resolution();
+
+  delay = measure_clock_read_delay();
+
+  if (res > 0)
+    prec = MIN(res, delay);
+  else
+    prec = delay;
+
+  return prec / 1.0e9;
 }
 
 /* ================================================== */

@@ -1133,23 +1133,29 @@ distances are in milliseconds.
 
 [[clockprecision]]*clockprecision* _precision_::
 The *clockprecision* directive specifies the precision of the system clock (in
-seconds). It is used by *chronyd* to estimate the minimum noise in NTP
-measurements and randomise low-order bits of timestamps in NTP responses. By
-default, the precision is measured on start-up as the minimum time to read the
-clock.
+seconds). This value is used by *chronyd* as the minimum expected error and
+amount of noise in NTP and refclock measurements, and to randomise low-order
+bits of timestamps in NTP responses to make them less predictable. The minimum
+value is 1 nanosecond and the maximum value is 1 second.
 +
-The measured value works well in most cases. It generally overestimates the
-precision and it can be sensitive to the CPU speed, however, which can
-change over time to save power. In some cases with a high-precision clocksource
-(e.g. the Time Stamp Counter of the CPU) and hardware timestamping, setting the
-precision on the server to a smaller value can improve stability of clients'
-NTP measurements. The server's precision is reported on clients by the
+By default, *chronyd* tries to determine the precision on start-up as the
+resolution of the clock. On Linux, it tries to measure the resolution by
+observing the minimum change in differences between consecutive readings of the
+clock. On other systems it relies on the *clock_getres(2)* system function.
++
+If the measurement fails, or the value provided by the system is too large, the
+minimum measured time needed to read the clock will be used instead. This value
+is typically larger than the resolution, and it is sensitive to the CPU speed,
+however, which can change over time to save power.
++
+The server's precision is reported on clients by the
 <<chronyc.adoc#ntpdata,*ntpdata*>> command.
 +
-An example setting the precision to 8 nanoseconds is:
+An example setting the precision to 1 nanosecond (e.g. when the system clock is
+using a Time Stamp Counter (TSC) updated at a rate of at least 1 GHz) is:
 +
 ----
-clockprecision 8e-9
+clockprecision 1e-9
 ----
 
 [[corrtimeratio]]*corrtimeratio* _ratio_::
