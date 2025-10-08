@@ -130,7 +130,7 @@ get_list_leap(time_t when, int *tai_offset)
     char *p;
 
     /* Ignore blank lines */
-    for (p = line; *p && isspace(*p); ++p)
+    for (p = line; *p && isspace((unsigned char)*p); ++p)
       ;
     if (!*p)
       continue;
