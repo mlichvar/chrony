@@ -48,7 +48,7 @@
 #ifdef FEAT_SCFILTER
 #include <sys/prctl.h>
 #include <seccomp.h>
-#include <termios.h>
+#include <linux/termios.h>
 #ifdef FEAT_PPS
 #include <linux/pps.h>
 #endif
@@ -615,7 +615,7 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
   const static int fcntls[] = { F_GETFD, F_SETFD, F_GETFL, F_SETFL };
 
   const static unsigned long ioctls[] = {
-    FIONREAD, TCGETS, TIOCGWINSZ,
+    FIONREAD, TCGETS, TCGETS2, TIOCGWINSZ,
 #if defined(FEAT_PHC) || defined(HAVE_LINUX_TIMESTAMPING)
     PTP_EXTTS_REQUEST, PTP_SYS_OFFSET,
 #ifdef PTP_PIN_SETFUNC
