@@ -48,7 +48,7 @@
 #ifdef FEAT_SCFILTER
 #include <sys/prctl.h>
 #include <seccomp.h>
-#include <linux/termios.h>
+#include <termios.h>
 #ifdef FEAT_PPS
 #include <linux/pps.h>
 #endif
@@ -63,6 +63,7 @@
 #endif
 
 #include "sys_linux.h"
+#include "sys_linux_scmp.h"
 #include "sys_timex.h"
 #include "conf.h"
 #include "local.h"
@@ -615,7 +616,7 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
   const static int fcntls[] = { F_GETFD, F_SETFD, F_GETFL, F_SETFL };
 
   const static unsigned long ioctls[] = {
-    FIONREAD, TCGETS, TCGETS2, TIOCGWINSZ,
+    FIONREAD, TCGETS, TIOCGWINSZ,
 #if defined(FEAT_PHC) || defined(HAVE_LINUX_TIMESTAMPING)
     PTP_EXTTS_REQUEST, PTP_SYS_OFFSET,
 #ifdef PTP_PIN_SETFUNC
@@ -726,6 +727,14 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
     for (i = 0; i < sizeof (ioctls) / sizeof (*ioctls); i++) {
       if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 1,
                            SCMP_A1(SCMP_CMP_EQ, ioctls[i])) < 0)
+        goto add_failed;
+    }
+
+    /* Allow selected ioctls that need to be specified in a separate
+       file to avoid conflicting headers (e.g. TCGETS2) */
+    for (i = 0; SYS_Linux_GetExtraScmpIoctl(i) != 0; i++) {
+      if (seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 1,
+                           SCMP_A1(SCMP_CMP_EQ, SYS_Linux_GetExtraScmpIoctl(i))) < 0)
         goto add_failed;
     }
   }

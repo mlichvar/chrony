@@ -808,6 +808,7 @@ then
   # a time and the async resolver would block the main thread
   priv_ops="NAME2IPADDRESS RELOADDNS"
   EXTRA_LIBS="$EXTRA_LIBS -lseccomp"
+  EXTRA_OBJECTS="$EXTRA_OBJECTS sys_linux_scmp.o"
 fi
 
 if [ "x$priv_ops" != "x" ]; then
