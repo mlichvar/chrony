@@ -634,12 +634,11 @@ process_sw_timestamp(struct timespec *sw_ts, NTP_Local_Timestamp *local_ts)
    with optional VLAN tags. */
 
 static int
-extract_udp_data(unsigned char *msg, NTP_Remote_Address *remote_addr, int len)
+extract_udp_data(SCK_Message *message)
 {
-  unsigned char *msg_start = msg;
-
-  remote_addr->ip_addr.family = IPADDR_UNSPEC;
-  remote_addr->port = 0;
+  NTP_Remote_Address *remote_addr = &message->remote_addr.ip;
+  unsigned char *msg = message->data;
+  int len = message->length;
 
   /* Skip MACs */
   if (len < 12)
@@ -715,9 +714,11 @@ extract_udp_data(unsigned char *msg, NTP_Remote_Address *remote_addr, int len)
 
   /* Move the message to fix alignment of its fields */
   if (len > 0)
-    memmove(msg_start, msg, len);
+    memmove(message->data, msg, len);
 
-  return len;
+  message->length = len;
+
+  return 1;
 }
 
 /* ================================================== */
@@ -769,11 +770,15 @@ NIO_Linux_ProcessMessage(SCK_Message *message, NTP_Local_Address *local_addr,
      extract the UDP data and also the destination address with port as there
      currently doesn't seem to be a better way to get them both. */
   l2_length = message->length;
-  message->length = extract_udp_data(message->data, &message->remote_addr.ip, message->length);
 
-  DEBUG_LOG("Extracted message for %s fd=%d len=%d",
-            UTI_IPSockAddrToString(&message->remote_addr.ip),
-            local_addr->sock_fd, message->length);
+  if (extract_udp_data(message)) {
+    DEBUG_LOG("Extracted message for %s fd=%d len=%d",
+              UTI_IPSockAddrToString(&message->remote_addr.ip),
+              local_addr->sock_fd, message->length);
+  } else {
+    DEBUG_LOG("Could not extract message");
+    return 1;
+  }
 
   /* Update assumed position of UDP data at layer 2 for next received packet */
   if (iface && message->length) {
