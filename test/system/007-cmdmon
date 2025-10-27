@@ -68,7 +68,7 @@ check_chronyc_output "^Name/IP address             Mode KeyID Type KLen Last Atm
 run_chronyc "clients" || test_fail
 check_chronyc_output "^Hostname                      NTP   Drop Int IntL Last     Cmd   Drop Int  Last
 ===============================================================================
-.*127\.0\.0\.1               [0-9 ]+    0 [-0-9 ]+   -  [ 0-9]+       0      0   -     -.*$" \
+.*127\.0\.0\.1               [0-9 ]+    0 [-0-9 ]+   -  [-0-9 ]+       0      0   -     -.*$" \
 	|| test_fail
 
 run_chronyc "ntpdata $server" || test_fail
