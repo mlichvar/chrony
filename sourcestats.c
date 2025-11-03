@@ -675,20 +675,6 @@ SST_GetSelectionData(SST_Stats inst, struct timespec *now,
   *offset_lo_limit = offset - *root_distance;
   *offset_hi_limit = offset + *root_distance;
 
-#if 0
-  double average_offset, elapsed;
-  int average_ok;
-  /* average_ok ignored for now */
-  elapsed = UTI_DiffTimespecsToDouble(now, &inst->offset_time);
-  average_offset = inst->estimated_offset + inst->estimated_frequency * elapsed;
-  if (fabs(average_offset - offset) <=
-      inst->peer_dispersions[j] + 0.5 * inst->peer_delays[i]) {
-    average_ok = 1;
-  } else {
-    average_ok = 0;
-  }
-#endif
-
   i = get_runsbuf_index(inst, 0);
   *first_sample_ago = UTI_DiffTimespecsToDouble(now, &inst->sample_times[i]);
   i = get_runsbuf_index(inst, inst->n_samples - 1);
