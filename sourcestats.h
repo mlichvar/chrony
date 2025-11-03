@@ -67,15 +67,10 @@ extern void SST_DoNewRegression(SST_Stats inst);
 extern void SST_GetFrequencyRange(SST_Stats inst, double *lo, double *hi);
 
 /* Get data needed for selection */
-extern void
-SST_GetSelectionData(SST_Stats inst, struct timespec *now,
-                     double *offset_lo_limit,
-                     double *offset_hi_limit,
-                     double *root_distance,
-                     double *variance,
-                     double *first_sample_ago,
-                     double *last_sample_ago,
-                     int *select_ok);
+extern int SST_GetSelectionData(SST_Stats inst, struct timespec *now,
+                                double *offset_lo_limit, double *offset_hi_limit,
+                                double *root_distance, double *variance,
+                                double *first_sample_ago, double *last_sample_ago);
 
 /* Get data needed when setting up tracking on this source */
 extern void

@@ -1010,10 +1010,10 @@ SRC_SelectSource(SRC_Instance updated_inst)
       n_unreach_sources++;
 
     si = &sources[i]->sel_info;
-    SST_GetSelectionData(sources[i]->stats, &now,
-                         &si->lo_limit, &si->hi_limit, &si->root_distance,
-                         &si->std_dev, &first_sample_ago,
-                         &si->last_sample_ago, &si->select_ok);
+    si->select_ok = SST_GetSelectionData(sources[i]->stats, &now,
+                                         &si->lo_limit, &si->hi_limit, &si->root_distance,
+                                         &si->std_dev, &first_sample_ago,
+                                         &si->last_sample_ago);
 
     if (!si->select_ok) {
       ++n_badstats_sources;

@@ -644,22 +644,16 @@ SST_GetFrequencyRange(SST_Stats inst,
 
 /* ================================================== */
 
-void
-SST_GetSelectionData(SST_Stats inst, struct timespec *now,
-                     double *offset_lo_limit,
-                     double *offset_hi_limit,
-                     double *root_distance,
-                     double *std_dev,
-                     double *first_sample_ago,
-                     double *last_sample_ago,
-                     int *select_ok)
+int
+SST_GetSelectionData(SST_Stats inst, struct timespec *now, double *offset_lo_limit,
+                     double *offset_hi_limit, double *root_distance, double *std_dev,
+                     double *first_sample_ago, double *last_sample_ago)
 {
   double offset, sample_elapsed;
   int i, j;
   
   if (!inst->n_samples) {
-    *select_ok = 0;
-    return;
+    return 0;
   }
 
   i = get_runsbuf_index(inst, inst->best_single_sample);
@@ -680,19 +674,20 @@ SST_GetSelectionData(SST_Stats inst, struct timespec *now,
   i = get_runsbuf_index(inst, inst->n_samples - 1);
   *last_sample_ago = UTI_DiffTimespecsToDouble(now, &inst->sample_times[i]);
 
-  *select_ok = inst->regression_ok;
-
   /* If maxsamples is too small to have a successful regression, enable the
      selection as a special case for a fast update/print-once reference mode */
-  if (!*select_ok && inst->n_samples < MIN_SAMPLES_FOR_REGRESS &&
+  if (!inst->regression_ok && inst->n_samples < MIN_SAMPLES_FOR_REGRESS &&
       inst->n_samples == inst->max_samples) {
     *std_dev = CNF_GetMaxJitter();
-    *select_ok = 1;
+  } else if (!inst->regression_ok) {
+    return 0;
   }
 
-  DEBUG_LOG("n=%d off=%f dist=%f sd=%f first_ago=%f last_ago=%f selok=%d",
+  DEBUG_LOG("n=%d off=%f dist=%f sd=%f first_ago=%f last_ago=%f",
             inst->n_samples, offset, *root_distance, *std_dev,
-            *first_sample_ago, *last_sample_ago, *select_ok);
+            *first_sample_ago, *last_sample_ago);
+
+  return 1;
 }
 
 /* ================================================== */
