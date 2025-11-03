@@ -954,7 +954,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
   int max_badstat_reach, max_badstat_reach_size, n_badstats_sources;
   int max_sel_reach, max_sel_reach_size, n_unreach_sources;
   int depth, best_depth, trust_depth, best_trust_depth, n_sel_trust_sources;
-  int combined, stratum, min_stratum, max_score_index;
+  int combined, stratum, min_sel_stratum, max_score_index;
   int orphan_stratum, orphan_source;
   double src_offset, src_offset_sd, src_frequency, src_frequency_sd, src_skew;
   double src_root_delay, src_root_dispersion;
@@ -1361,12 +1361,12 @@ SRC_SelectSource(SRC_Instance updated_inst)
   /* Find minimum stratum */
 
   index = sel_sources[0];
-  min_stratum = sources[index]->stratum;
+  min_sel_stratum = sources[index]->stratum;
   for (i = 1; i < n_sel_sources; i++) {
     index = sel_sources[i];
     stratum = sources[index]->stratum;
-    if (stratum < min_stratum)
-      min_stratum = stratum;
+    if (min_sel_stratum > stratum)
+      min_sel_stratum = stratum;
   }
 
   /* Update scores and find the source with maximum score */
@@ -1377,7 +1377,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
   if (selected_source_index != INVALID_SOURCE)
     sel_src_distance = sources[selected_source_index]->sel_info.root_distance +
-      (sources[selected_source_index]->stratum - min_stratum) * stratum_weight;
+      (sources[selected_source_index]->stratum - min_sel_stratum) * stratum_weight;
 
   for (i = 0; i < n_sources; i++) {
     /* Reset score for non-selectable sources */
@@ -1389,7 +1389,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     }
 
     distance = sources[i]->sel_info.root_distance +
-      (sources[i]->stratum - min_stratum) * stratum_weight;
+      (sources[i]->stratum - min_sel_stratum) * stratum_weight;
     if (sources[i]->type == SRC_NTP)
       distance += reselect_distance;
 
