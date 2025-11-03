@@ -54,7 +54,6 @@ static int initialised = 0;
 /* ================================================== */
 /* Structure used to hold info for selecting between sources */
 struct SelectInfo {
-  int select_ok;
   double std_dev;
   double root_distance;
   double lo_limit;
@@ -1010,12 +1009,10 @@ SRC_SelectSource(SRC_Instance updated_inst)
       n_unreach_sources++;
 
     si = &sources[i]->sel_info;
-    si->select_ok = SST_GetSelectionData(sources[i]->stats, &now,
-                                         &si->lo_limit, &si->hi_limit, &si->root_distance,
-                                         &si->std_dev, &first_sample_ago,
-                                         &si->last_sample_ago);
 
-    if (!si->select_ok) {
+    if (!SST_GetSelectionData(sources[i]->stats, &now, &si->lo_limit, &si->hi_limit,
+                              &si->root_distance, &si->std_dev, &first_sample_ago,
+                              &si->last_sample_ago)) {
       ++n_badstats_sources;
       mark_source(sources[i], SRC_BAD_STATS);
       if (max_badstat_reach < sources[i]->reachability)
