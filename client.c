@@ -2579,7 +2579,7 @@ process_cmd_selectdata(char *line)
     printf(    "  . State: N - noselect, s - unsynchronised, M - missing samples, r - stratum\n");
     printf(    " /         d/D - large distance, ~ - jittery, w/W - waits for others,\n");
     printf(    "|          S - stale, O - orphan, T - not trusted, P - not preferred,\n");
-    printf(    "|          U - waits for update,, x - falseticker, + - combined, * - best.\n");
+    printf(    "|          U - waits for update, x - falseticker, + - combined, * - best.\n");
     printf(    "|   Effective options   ---------.  (N - noselect, P - prefer\n");
     printf(    "|   Configured options  ----.     \\  T - trust, R - require)\n");
     printf(    "|   Auth. enabled (Y/N) -.   \\     \\     Offset interval --.\n");
