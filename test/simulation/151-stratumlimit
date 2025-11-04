@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+. ./test.common
+
+test_start "minstratum and maxstratum options"
+
+client_conf="
+minstratum 3
+maxstratum 5"
+
+for s in 3 5; do
+	server_conf="local stratum $s"
+	run_test || test_fail
+	check_chronyd_exit || test_fail
+	check_source_selection || test_fail
+	check_packet_interval || test_fail
+	check_sync || test_fail
+
+	check_log_messages "Stratum of .* stratum" 0 0 || test_fail
+done
+
+for s in 2 6; do
+	server_conf="local stratum $s"
+	run_test || test_fail
+	check_chronyd_exit || test_fail
+	check_source_selection && test_fail
+	check_packet_interval || test_fail
+	check_sync && test_fail
+
+	check_log_messages "Stratum of .* stratum" 0 0 || test_fail
+	if [ $s -lt 3 ]; then
+		check_log_messages "Stratum of .* below minstratum of 3" 1 1 || test_fail
+	else
+		check_log_messages "Stratum of .* above maxstratum of 5" 1 1 || test_fail
+	fi
+done
+
+test_pass

@@ -71,8 +71,10 @@ also when the <<chronyc.adoc#online,*online*>> command is issued in *chronyc*.
 The DNS record can change over time. The used address will be replaced with a
 newly resolved address when the server becomes unreachable (i.e. no valid
 response to the last 8 requests), unsynchronised, a falseticker (i.e. does not
-agree with a majority of other sources), or the root distance is too large (the
-limit can be configured by the <<maxdistance,*maxdistance*>> directive). The
+agree with a majority of other sources), the root distance is too large (the
+limit can be configured by the <<maxdistance,*maxdistance*>> directive), or
+the stratum is too small or too large (the limits can be configured by the
+<<minstratum,*minstratum*>> and <<maxstratum,*maxstratum*>> directives). The
 automatic replacement happens at most once per 30 minutes and only one
 server can be replaced at a time. The address is also refreshed periodically
 when the server is working normally (the interval can be configured by the
@@ -318,7 +320,8 @@ with lower stratum are normally slightly preferred. This option can be used to
 increase stratum of the source to the specified minimum, so *chronyd* will
 avoid selecting that source. This is useful with low-stratum sources that are
 known to be unreliable or inaccurate and that should be used only when other
-sources are unreachable.
+sources are unreachable. Note that the <<minstratum,*minstratum*>> directive
+is distinct from this option.
 *version* _version_:::
 This option sets the NTP version of packets sent to the server. This can be
 useful when the server runs an old NTP implementation that does not respond to
@@ -1101,6 +1104,16 @@ be rejected by the source selection algorithm. This prevents synchronisation
 with sources that have a small root distance, but their time is too variable.
 +
 By default, the maximum jitter is 1 second.
+
+[[maxstratum]]*maxstratum* _stratum_::
+The *maxstratum* directive sets the maximum allowed stratum of the sources to
+be selected for synchronisation. The default value is 15. The useful range is 0
+to 15.
+
+[[minstratum]]*minstratum* _stratum_::
+The *minstratum* directive sets the minimum allowed stratum of the sources to
+be selected for synchronisation. The default value is 0. The useful range is 0
+to 15.
 
 [[minsources]]*minsources* _sources_::
 The *minsources* directive sets the minimum number of sources that need to be
@@ -2450,6 +2463,9 @@ Not considered selectable for synchronisation:
 * _N_ - has the *noselect* option.
 * _s_ - is not synchronised.
 * _M_ - does not have enough measurements.
+* _r_ - has a stratum outside of the allowed range (configured by the
+        <<minstratum,*minstratum*>> and <<maxstratum,*maxstratum*>>
+        directives).
 * _d_ - has a root distance larger than the maximum distance (configured by the
         <<maxdistance,*maxdistance*>> directive).
 * _~_ - has a jitter larger than the maximum jitter (configured by the

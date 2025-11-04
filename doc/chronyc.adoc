@@ -474,6 +474,9 @@ synchronisation:
 * _N_ - has the *noselect* option.
 * _M_ - does not have enough measurements.
 * _s_ - is not synchronised.
+* _r_ - has a stratum outside of the allowed range (configured by the
+        <<chrony.conf.adoc#minstratum,*minstratum*>> and
+        <<chrony.conf.adoc#maxstratum,*maxstratum*>> directives).
 * _d_ - has a root distance larger than the maximum distance (configured by the
         <<chrony.conf.adoc#maxdistance,*maxdistance*>> directive).
 * _~_ - has a jitter larger than the maximum jitter (configured by the

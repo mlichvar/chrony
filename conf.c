@@ -115,6 +115,8 @@ static double clock_precision = 0.0; /* in seconds */
 static SRC_AuthSelectMode authselect_mode = SRC_AUTHSELECT_MIX;
 static double max_distance = 3.0;
 static double max_jitter = 1.0;
+static int max_stratum = NTP_MAX_STRATUM - 1;
+static int min_stratum = 0;
 static double reselect_distance = 1e-4;
 static double stratum_weight = 1e-3;
 static double combine_limit = 3.0;
@@ -702,12 +704,16 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_int(p, &max_samples, 0, INT_MAX);
   } else if (!strcasecmp(command, "maxslewrate")) {
     parse_double(p, &max_slew_rate);
+  } else if (!strcasecmp(command, "maxstratum")) {
+    parse_int(p, &max_stratum, 0, INT_MAX);
   } else if (!strcasecmp(command, "maxupdateskew")) {
     parse_double(p, &max_update_skew);
   } else if (!strcasecmp(command, "minsamples")) {
     parse_int(p, &min_samples, 0, INT_MAX);
   } else if (!strcasecmp(command, "minsources")) {
     parse_int(p, &min_sources, 1, INT_MAX);
+  } else if (!strcasecmp(command, "minstratum")) {
+    parse_int(p, &min_stratum, 0, INT_MAX);
   } else if (!strcasecmp(command, "nocerttimecheck")) {
     parse_int(p, &no_cert_time_check, 0, INT_MAX);
   } else if (!strcasecmp(command, "noclientlog")) {
@@ -2307,6 +2313,22 @@ double
 CNF_GetMaxJitter(void)
 {
   return max_jitter;
+}
+
+/* ================================================== */
+
+int
+CNF_GetMaxStratum(void)
+{
+  return max_stratum;
+}
+
+/* ================================================== */
+
+int
+CNF_GetMinStratum(void)
+{
+  return min_stratum;
 }
 
 /* ================================================== */

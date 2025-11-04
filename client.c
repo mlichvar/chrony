@@ -2576,7 +2576,7 @@ process_cmd_selectdata(char *line)
   n_sources = ntohl(reply.data.n_sources.n_sources);
 
   if (verbose) {
-    printf(    "  . State: N - noselect, s - unsynchronised, M - missing samples,\n");
+    printf(    "  . State: N - noselect, s - unsynchronised, M - missing samples, r - stratum\n");
     printf(    " /         d/D - large distance, ~ - jittery, w/W - waits for others,\n");
     printf(    "|          S - stale, O - orphan, T - not trusted, P - not preferred,\n");
     printf(    "|          U - waits for update,, x - falseticker, + - combined, * - best.\n");

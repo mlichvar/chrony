@@ -106,6 +106,8 @@ extern double CNF_GetClockPrecision(void);
 extern SRC_AuthSelectMode CNF_GetAuthSelectMode(void);
 extern double CNF_GetMaxDistance(void);
 extern double CNF_GetMaxJitter(void);
+extern int CNF_GetMaxStratum(void);
+extern int CNF_GetMinStratum(void);
 extern double CNF_GetReselectDistance(void);
 extern double CNF_GetStratumWeight(void);
 extern double CNF_GetCombineLimit(void);
