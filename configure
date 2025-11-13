@@ -748,9 +748,10 @@ then
     struct scm_ts_pktinfo pktinfo;
     pktinfo.if_index = pktinfo.pkt_length = 0;
     return pktinfo.if_index + pktinfo.pkt_length + HWTSTAMP_FILTER_NTP_ALL +
-           SCM_TIMESTAMPING_PKTINFO +
+           SCM_TIMESTAMPING_PKTINFO + SOF_TIMESTAMPING_OPT_ID +
            SOF_TIMESTAMPING_OPT_PKTINFO + SOF_TIMESTAMPING_OPT_TX_SWHW;'; then
     add_def HAVE_LINUX_TIMESTAMPING_RXFILTER_NTP 1
+    add_def HAVE_LINUX_TIMESTAMPING_OPT_ID 1
     add_def HAVE_LINUX_TIMESTAMPING_OPT_PKTINFO 1
     add_def HAVE_LINUX_TIMESTAMPING_OPT_TX_SWHW 1
   fi

@@ -626,7 +626,7 @@ NIO_SendPacket(NTP_Packet *packet, NTP_Remote_Address *remote_addr,
 
 #ifdef HAVE_LINUX_TIMESTAMPING
   if (process_tx)
-    NIO_Linux_RequestTxTimestamp(&message, local_addr->sock_fd);
+    NIO_Linux_RequestTxTimestamp(&message, local_addr->sock_fd, remote_addr);
 #endif
 
   if (!SCK_SendMessage(local_addr->sock_fd, &message, 0))

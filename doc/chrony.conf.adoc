@@ -2881,6 +2881,38 @@ same interface (which would compete with timestamping of the server's own
 requests), increasing the timeout to 0.01 or possibly even longer might help.
 Note that the maximum timeout is limited by the NTP polling interval.
 
+[[maxtxbuffers]]*maxtxbuffers* _messages_::
+When *chronyd* gets a kernel or hardware transmit timestamp after sending an
+NTP message to a server, peer, or client (using interleaved mode), it needs the
+address and content of the message to be able to correctly assign the
+timestamp to the server, peer, or client. The timestamps are processed
+asynchronously. The kernel provides with each timestamp the data-link frame
+that was timestamped, but *chronyd* can extract the necessary data only from
+plain IPv4 and IPv6 packets in Ethernet frames, possibly including VLAN tags.
+If the NTP packets are transmitted by a non-Ethernet device, or they are
+encapsulated in another layer (e.g. a WireGuard tunnel), *chronyd* is not
+able to extract the data and use the kernel or hardware transmit timestamps,
+having to fall back to less accurate daemon timestamps.
++
+On Linux 6.13 and newer, *chronyd* supports an alternative method of processing
+kernel and hardware transmit timestamps, which works with any device that can
+provide kernel and/or hardware transmit timestamps. *chronyd* can save its
+transmitted messages with their addresses and ports in a ring buffer, each
+assigned an ID that the kernel will provide back with the timestamp. This
+transmit ID enables *chronyd* to assign the timestamp to the correct server,
+peer, or client.
++
+The directive specifies the maximum number of messages that *chronyd* is
+allowed to save in the ring buffer. The minimum value is 0 and the maximum
+value is 1048576. It needs about 1.5 KB of allocated memory per message.
+*chronyd* will log a warning if the number of messages is insufficient for the
+actual rate of transmit timestamping. The default value is 0 (disabled).
++
+Example:
+----
+maxtxbuffers 128
+----
+
 [[keyfile]]*keyfile* _file_::
 This directive is used to specify the location of the file containing symmetric
 keys, which are shared between NTP servers and clients, or peers, in order to

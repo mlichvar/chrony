@@ -44,6 +44,7 @@
 #include "ntp_io.h"
 #include "ntp_io_linux.h"
 #include "ntp_sources.h"
+#include "ptp.h"
 #include "sched.h"
 #include "socket.h"
 #include "sys_linux.h"
@@ -93,6 +94,24 @@ static int permanent_ts_options;
    and the kernel actually starting to timestamp received packets after
    enabling the timestamping and sending a request */
 static int dummy_rxts_socket;
+
+struct SavedTxMessage {
+  uint32_t tx_id;
+  int length;
+  NTP_Remote_Address remote_addr;
+  union {
+    NTP_Packet ntp_msg;
+    PTP_NtpMessage ptp_msg;
+  } message;
+};
+
+/* Ring buffer of transmitted messages to provide missing data needed for
+   processing of transmit timestamps */
+static ARR_Instance saved_tx_messages;
+static uint32_t last_saved_tx_id;
+
+/* Transmit IDs start at a non-zero value to detect missing kernel support */
+#define MIN_SAVED_TX_ID 0x1000
 
 #define INVALID_SOCK_FD -3
 
@@ -367,8 +386,8 @@ void
 NIO_Linux_Initialise(void)
 {
   CNF_HwTsInterface *conf_iface;
+  int hwts, tx_buffers;
   unsigned int i;
-  int hwts;
 
   interfaces = ARR_CreateInstance(sizeof (struct Interface));
 
@@ -407,6 +426,32 @@ NIO_Linux_Initialise(void)
 #endif
   }
 
+  saved_tx_messages = NULL;
+  last_saved_tx_id = 0;
+  tx_buffers = CNF_GetMaxTxBuffers();
+
+  if (tx_buffers > 0) {
+#if defined(HAVE_LINUX_TIMESTAMPING_OPT_ID) && defined(SCM_TS_OPT_ID)
+    /* Enable identification of packets looped back to the error queue using
+       a 32-bit integer and mapping of the IDs to saved messages to be able to
+       process TX timestamps of packets going out over tunnels or non-Ethernet
+       interfaces, where extract_udp_data() fails, or does not extract the
+       NTP message.  If the SCM_TS_OPT_ID control message (setting the ID for
+       given packet) is not supported by the kernel, a zero ID will be received
+       and this functionality disabled in get_saved_tx_message(). */
+
+    if (check_timestamping_option(SOF_TIMESTAMPING_OPT_ID)) {
+      ts_tx_flags |= SOF_TIMESTAMPING_OPT_ID;
+
+      saved_tx_messages = ARR_CreateInstance(sizeof (struct SavedTxMessage));
+      ARR_SetSize(saved_tx_messages, tx_buffers);
+      memset(ARR_GetElements(saved_tx_messages), 0,
+             tx_buffers * sizeof (struct SavedTxMessage));
+    } else
+#endif
+      LOG(LOGS_WARN, "Transmit ID not supported");
+  }
+
   /* Enable IP_PKTINFO in messages looped back to the error queue */
   ts_flags |= SOF_TIMESTAMPING_OPT_CMSG;
 
@@ -423,6 +468,9 @@ NIO_Linux_Finalise(void)
 {
   struct Interface *iface;
   unsigned int i;
+
+  if (saved_tx_messages)
+    ARR_DestroyInstance(saved_tx_messages);
 
   if (dummy_rxts_socket != INVALID_SOCK_FD)
     SCK_CloseSocket(dummy_rxts_socket);
@@ -630,6 +678,73 @@ process_sw_timestamp(struct timespec *sw_ts, NTP_Local_Timestamp *local_ts)
 }
 
 /* ================================================== */
+
+static void
+save_tx_message(SCK_Message *message, NTP_Remote_Address *remote_addr)
+{
+  struct SavedTxMessage *saved_msg;
+
+  if (!saved_tx_messages || ARR_GetSize(saved_tx_messages) == 0 ||
+      message->length > sizeof (saved_msg->message))
+    return;
+
+  last_saved_tx_id++;
+  if (last_saved_tx_id < MIN_SAVED_TX_ID)
+    last_saved_tx_id = MIN_SAVED_TX_ID;
+
+  saved_msg = ARR_GetElement(saved_tx_messages,
+                             last_saved_tx_id % ARR_GetSize(saved_tx_messages));
+  saved_msg->tx_id = last_saved_tx_id;
+  saved_msg->length = message->length;
+  saved_msg->remote_addr = *remote_addr;
+  memcpy(&saved_msg->message, message->data, message->length);
+
+  message->timestamp.tx_id = saved_msg->tx_id;
+}
+
+/* ================================================== */
+
+static int
+get_saved_tx_message(SCK_Message *message)
+{
+#ifdef HAVE_LINUX_TIMESTAMPING_OPT_ID
+  struct SavedTxMessage *saved_msg;
+
+  if (!saved_tx_messages)
+    return 0;
+
+  if (message->timestamp.tx_id < MIN_SAVED_TX_ID) {
+    LOG(LOGS_WARN, "Transmit ID not supported");
+
+    ARR_DestroyInstance(saved_tx_messages);
+    saved_tx_messages = NULL;
+    ts_tx_flags &= ~SOF_TIMESTAMPING_OPT_ID;
+    return 0;
+  }
+
+  saved_msg = ARR_GetElement(saved_tx_messages,
+                             message->timestamp.tx_id % ARR_GetSize(saved_tx_messages));
+
+  if (message->timestamp.tx_id != saved_msg->tx_id) {
+    static int warned = 0;
+    if (!warned) {
+      LOG(LOGS_WARN, "maxtxbuffers too small");
+      warned = 1;
+    }
+    return 0;
+  }
+
+  message->data = &saved_msg->message;
+  message->length = saved_msg->length;
+  message->remote_addr.ip = saved_msg->remote_addr;
+
+  return 1;
+#else
+  return 0;
+#endif
+}
+
+/* ================================================== */
 /* Extract UDP data from a layer 2 message.  Supported is Ethernet
    with optional VLAN tags. */
 
@@ -771,7 +886,11 @@ NIO_Linux_ProcessMessage(SCK_Message *message, NTP_Local_Address *local_addr,
      currently doesn't seem to be a better way to get them both. */
   l2_length = message->length;
 
-  if (extract_udp_data(message)) {
+  if (get_saved_tx_message(message)) {
+    DEBUG_LOG("Found saved message for %s fd=%d len=%d",
+              UTI_IPSockAddrToString(&message->remote_addr.ip),
+              local_addr->sock_fd, message->length);
+  } else if (extract_udp_data(message)) {
     DEBUG_LOG("Extracted message for %s fd=%d len=%d",
               UTI_IPSockAddrToString(&message->remote_addr.ip),
               local_addr->sock_fd, message->length);
@@ -808,10 +927,13 @@ NIO_Linux_ProcessMessage(SCK_Message *message, NTP_Local_Address *local_addr,
 /* ================================================== */
 
 void
-NIO_Linux_RequestTxTimestamp(SCK_Message *message, int sock_fd)
+NIO_Linux_RequestTxTimestamp(SCK_Message *message, int sock_fd,
+                             NTP_Remote_Address *remote_addr)
 {
   if (!ts_flags)
     return;
+
+  save_tx_message(message, remote_addr);
 
   /* Check if TX timestamping is disabled on this socket */
   if (permanent_ts_options || !NIO_IsServerSocket(sock_fd))

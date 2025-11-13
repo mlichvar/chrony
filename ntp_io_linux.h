@@ -40,6 +40,7 @@ extern int NIO_Linux_SetTimestampSocketOptions(int sock_fd, int client_only, int
 extern int NIO_Linux_ProcessMessage(SCK_Message *message, NTP_Local_Address *local_addr,
                                     NTP_Local_Timestamp *local_ts, int event);
 
-extern void NIO_Linux_RequestTxTimestamp(SCK_Message *message, int sock_fd);
+extern void NIO_Linux_RequestTxTimestamp(SCK_Message *message, int sock_fd,
+                                         NTP_Remote_Address *remote_addr);
 
 #endif

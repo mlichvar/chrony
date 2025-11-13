@@ -300,6 +300,9 @@ static ARR_Instance hwts_interfaces;
 /* Timeout for resuming reading from sockets waiting for HW TX timestamp */
 static double hwts_timeout = 0.001;
 
+/* Maximum number of saved messages for TX timestamp identification */
+static int max_tx_buffers = 0;
+
 /* PTP event port (disabled by default) */
 static int ptp_port = 0;
 /* PTP domain number of NTP-over-PTP messages */
@@ -708,6 +711,8 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_int(p, &max_stratum, 0, INT_MAX);
   } else if (!strcasecmp(command, "maxupdateskew")) {
     parse_double(p, &max_update_skew);
+  } else if (!strcasecmp(command, "maxtxbuffers")) {
+    parse_int(p, &max_tx_buffers, 0, 1048576);
   } else if (!strcasecmp(command, "minsamples")) {
     parse_int(p, &min_samples, 0, INT_MAX);
   } else if (!strcasecmp(command, "minsources")) {
@@ -2774,6 +2779,14 @@ double
 CNF_GetHwTsTimeout(void)
 {
   return hwts_timeout;
+}
+
+/* ================================================== */
+
+int
+CNF_GetMaxTxBuffers(void)
+{
+  return max_tx_buffers;
 }
 
 /* ================================================== */
