@@ -67,6 +67,7 @@ typedef struct {
     int if_index;
     int l2_length;
     int tx_flags;
+    uint32_t tx_id;
   } timestamp;
 
   int descriptor;

@@ -850,6 +850,7 @@ init_message_nonaddress(SCK_Message *message)
   message->timestamp.if_index = INVALID_IF_INDEX;
   message->timestamp.l2_length = 0;
   message->timestamp.tx_flags = 0;
+  message->timestamp.tx_id = 0;
 
   message->descriptor = INVALID_SOCK_FD;
 }
@@ -1020,6 +1021,8 @@ process_header(struct msghdr *msg, int msg_length, int sock_fd, int flags,
         log_message(sock_fd, 1, message, "Unexpected extended error in", NULL);
         r = 0;
       }
+
+      message->timestamp.tx_id = err.ee_data;
     }
 #endif
     else if (match_cmsg(cmsg, SOL_SOCKET, SCM_RIGHTS, 0)) {
@@ -1251,6 +1254,19 @@ send_message(int sock_fd, SCK_Message *message, int flags)
 
     *ts_tx_flags = message->timestamp.tx_flags;
   }
+
+#ifdef SCM_TS_OPT_ID
+  if (message->timestamp.tx_id != 0) {
+    uint32_t *tx_id;
+
+    tx_id = add_control_message(&msg, SOL_SOCKET, SCM_TS_OPT_ID,
+                                sizeof (*tx_id), sizeof (cmsg_buf));
+    if (!tx_id)
+      return 0;
+
+    *tx_id = message->timestamp.tx_id;
+  }
+#endif
 #endif
 
   if (flags & SCK_FLAG_MSG_DESCRIPTOR) {
