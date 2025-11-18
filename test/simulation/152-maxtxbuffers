@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+. ./test.common
+
+test_start "maxtxbuffers directive"
+
+check_config_h 'FEAT_DEBUG 1' || test_skip
+check_config_h 'HAVE_LINUX_TIMESTAMPING 1' || test_skip
+
+server_conf="maxtxbuffers 4"
+client_conf="maxtxbuffers 4
+logdir tmp
+log measurements"
+server_chronyd_options="-d"
+client_chronyd_options="-d"
+
+run_test || test_fail
+
+check_chronyd_exit || test_fail
+check_source_selection || test_fail
+check_packet_interval || test_fail
+check_sync || test_fail
+
+check_log_messages "Transmit ID not supported" 0 0 || test_skip
+check_log_messages "maxtxbuffers too small" 0 0 || test_fail
+check_log_messages "Found saved message" 30 60 || test_fail
+check_file_messages "111 111 1111.* 4B K K\$" 30 60 measurements.log || test_fail
+check_file_messages "111 111 1111.* 4B [^K] .\$" 0 0 measurements.log || test_fail
+
+test_pass
