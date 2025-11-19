@@ -560,7 +560,7 @@ else
 fi
 
 if [ "x$MYCC" = "xgcc" ] || [ "x$MYCC" = "xclang" ]; then
-  MYCFLAGS="$MYCFLAGS -Wmissing-prototypes -Wall"
+  MYCFLAGS="$MYCFLAGS -Wmissing-prototypes -Wshadow -Wall"
 fi
 
 if [ "x$PKG_CONFIG" = "x" ]; then
