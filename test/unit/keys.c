@@ -84,7 +84,7 @@ uint32_t write_random_key(FILE *f)
 }
 
 static void
-generate_key_file(const char *name, uint32_t *keys)
+generate_key_file(const char *name, uint32_t *key_ids)
 {
   FILE *f;
   int i;
@@ -92,7 +92,7 @@ generate_key_file(const char *name, uint32_t *keys)
   f = fopen(name, "w");
   TEST_CHECK(f);
   for (i = 0; i < KEYS; i++)
-    keys[i] = write_random_key(f);
+    key_ids[i] = write_random_key(f);
   fclose(f);
 }
 
@@ -100,7 +100,7 @@ void
 test_unit(void)
 {
   int i, j, data_len, auth_len, type, bits, s, timing_fails, timing_iters;
-  uint32_t keys[KEYS], key;
+  uint32_t key_ids[KEYS], key;
   unsigned char data[100], auth[MAX_HASH_LENGTH], auth2[MAX_HASH_LENGTH];
   struct timespec ts1, ts2;
   double diff1, diff2;
@@ -113,41 +113,41 @@ test_unit(void)
     CNF_ParseLine(NULL, i + 1, conf[i]);
   LCL_Initialise();
 
-  generate_key_file(KEYFILE, keys);
+  generate_key_file(KEYFILE, key_ids);
   KEY_Initialise();
 
   for (i = 0; i < 100; i++) {
     DEBUG_LOG("iteration %d", i);
 
     if (i) {
-      generate_key_file(KEYFILE, keys);
+      generate_key_file(KEYFILE, key_ids);
       KEY_Reload();
     }
 
     UTI_GetRandomBytes(data, sizeof (data));
 
     for (j = 0; j < KEYS; j++) {
-      TEST_CHECK(KEY_KeyKnown(keys[j]));
-      TEST_CHECK(KEY_GetAuthLength(keys[j]) >= 16);
+      TEST_CHECK(KEY_KeyKnown(key_ids[j]));
+      TEST_CHECK(KEY_GetAuthLength(key_ids[j]) >= 16);
 
       data_len = random() % (sizeof (data) + 1);
-      auth_len = KEY_GenerateAuth(keys[j], data, data_len, auth, sizeof (auth));
+      auth_len = KEY_GenerateAuth(key_ids[j], data, data_len, auth, sizeof (auth));
       TEST_CHECK(auth_len >= 16);
 
-      TEST_CHECK(KEY_CheckAuth(keys[j], data, data_len, auth, auth_len, auth_len));
+      TEST_CHECK(KEY_CheckAuth(key_ids[j], data, data_len, auth, auth_len, auth_len));
 
-      if (j > 0 && keys[j - 1] != keys[j])
-        TEST_CHECK(!KEY_CheckAuth(keys[j - 1], data, data_len, auth, auth_len, auth_len));
+      if (j > 0 && key_ids[j - 1] != key_ids[j])
+        TEST_CHECK(!KEY_CheckAuth(key_ids[j - 1], data, data_len, auth, auth_len, auth_len));
 
       auth_len = random() % auth_len + 1;
       if (auth_len < MAX_HASH_LENGTH)
         auth[auth_len]++;
-      TEST_CHECK(KEY_CheckAuth(keys[j], data, data_len, auth, auth_len, auth_len));
+      TEST_CHECK(KEY_CheckAuth(key_ids[j], data, data_len, auth, auth_len, auth_len));
 
       auth[auth_len - 1]++;
-      TEST_CHECK(!KEY_CheckAuth(keys[j], data, data_len, auth, auth_len, auth_len));
+      TEST_CHECK(!KEY_CheckAuth(key_ids[j], data, data_len, auth, auth_len, auth_len));
 
-      TEST_CHECK(KEY_GetKeyInfo(keys[j], &type, &bits));
+      TEST_CHECK(KEY_GetKeyInfo(key_ids[j], &type, &bits));
       TEST_CHECK(type > 0 && bits > 0);
     }
 

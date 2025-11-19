@@ -104,7 +104,7 @@ static int logged_connection_error;
 
 /* ================================================== */
 
-static void read_write_socket(int sock_fd, int event, void *anything);
+static void read_write_socket(int fd, int event, void *anything);
 
 /* ================================================== */
 
@@ -193,7 +193,7 @@ process_response(SignInstance *inst)
 /* ================================================== */
 
 static void
-read_write_socket(int sock_fd, int event, void *anything)
+read_write_socket(int fd, int event, void *anything)
 {
   SignInstance *inst;
   uint32_t response_length;
@@ -208,7 +208,7 @@ read_write_socket(int sock_fd, int event, void *anything)
     if (!inst->sent)
       SCH_GetLastEventTime(NULL, NULL, &inst->request_ts);
 
-    s = SCK_Send(sock_fd, (char *)&inst->request + inst->sent,
+    s = SCK_Send(fd, (char *)&inst->request + inst->sent,
                  inst->request_length - inst->sent, 0);
 
     if (s < 0) {
@@ -223,7 +223,7 @@ read_write_socket(int sock_fd, int event, void *anything)
       return;
 
     /* Disable output and wait for a response */
-    SCH_SetFileHandlerEvent(sock_fd, SCH_FILE_OUTPUT, 0);
+    SCH_SetFileHandlerEvent(fd, SCH_FILE_OUTPUT, 0);
   }
 
   if (event == SCH_FILE_INPUT) {
@@ -234,7 +234,7 @@ read_write_socket(int sock_fd, int event, void *anything)
     }
 
     assert(inst->received < sizeof (inst->response));
-    s = SCK_Receive(sock_fd, (char *)&inst->response + inst->received,
+    s = SCK_Receive(fd, (char *)&inst->response + inst->received,
                     sizeof (inst->response) - inst->received, 0);
 
     if (s <= 0) {
@@ -265,7 +265,7 @@ read_write_socket(int sock_fd, int event, void *anything)
     /* Move the head and enable output for the next packet */
     queue_head = NEXT_QUEUE_INDEX(queue_head);
     if (!IS_QUEUE_EMPTY())
-      SCH_SetFileHandlerEvent(sock_fd, SCH_FILE_OUTPUT, 1);
+      SCH_SetFileHandlerEvent(fd, SCH_FILE_OUTPUT, 1);
   }
 }
 

@@ -968,7 +968,7 @@ parse_ratelimit(char *line, int *enabled, int *interval, int *burst, int *leak, 
 static void
 parse_refclock(char *line)
 {
-  int n, poll, dpoll, filter_length, pps_rate, min_samples, max_samples, sel_options;
+  int n, poll, dpoll, filter_length, pps_rate, min_samples_, max_samples_, sel_options;
   int local, max_lock_age, max_unreach, pps_forced, sel_option, stratum, tai;
   uint32_t ref_id, lock_ref_id;
   double offset, delay, precision, max_dispersion, pulse_width;
@@ -981,8 +981,8 @@ parse_refclock(char *line)
   local = 0;
   pps_forced = 0;
   pps_rate = 0;
-  min_samples = SRC_DEFAULT_MINSAMPLES;
-  max_samples = SRC_DEFAULT_MAXSAMPLES;
+  min_samples_ = SRC_DEFAULT_MINSAMPLES;
+  max_samples_ = SRC_DEFAULT_MAXSAMPLES;
   max_unreach = SRC_DEFAULT_MAXUNREACH;
   sel_options = 0;
   offset = 0.0;
@@ -1040,13 +1040,13 @@ parse_refclock(char *line)
       if (!SSCANF_IN_RANGE(line, "%d%n", &pps_rate, &n, 1, INT_MAX))
         break;
     } else if (!strcasecmp(cmd, "minsamples")) {
-      if (!SSCANF_IN_RANGE(line, "%d%n", &min_samples, &n, 0, INT_MAX))
+      if (!SSCANF_IN_RANGE(line, "%d%n", &min_samples_, &n, 0, INT_MAX))
         break;
     } else if (!strcasecmp(cmd, "maxlockage")) {
       if (!SSCANF_IN_RANGE(line, "%d%n", &max_lock_age, &n, 0, INT_MAX))
         break;
     } else if (!strcasecmp(cmd, "maxsamples")) {
-      if (!SSCANF_IN_RANGE(line, "%d%n", &max_samples, &n, 0, INT_MAX))
+      if (!SSCANF_IN_RANGE(line, "%d%n", &max_samples_, &n, 0, INT_MAX))
         break;
     } else if (!strcasecmp(cmd, "maxunreach")) {
       if (!SSCANF_IN_RANGE(line, "%d%n", &max_unreach, &n, 0, INT_MAX))
@@ -1098,8 +1098,8 @@ parse_refclock(char *line)
   refclock->local = local;
   refclock->pps_forced = pps_forced;
   refclock->pps_rate = pps_rate;
-  refclock->min_samples = min_samples;
-  refclock->max_samples = max_samples;
+  refclock->min_samples = min_samples_;
+  refclock->max_samples = max_samples_;
   refclock->max_unreach = max_unreach;
   refclock->sel_options = sel_options;
   refclock->stratum = stratum;
@@ -2448,16 +2448,16 @@ CNF_GetLogChange(void)
 /* ================================================== */
 
 void
-CNF_GetMailOnChange(int *enabled, double *threshold, char **user)
+CNF_GetMailOnChange(int *enabled, double *threshold, char **user_)
 {
   if (mail_user_on_change) {
     *enabled = 1;
     *threshold = mail_change_threshold;
-    *user = mail_user_on_change;
+    *user_ = mail_user_on_change;
   } else {
     *enabled = 0;
     *threshold = 0.0;
-    *user = NULL;
+    *user_ = NULL;
   }
 }  
 

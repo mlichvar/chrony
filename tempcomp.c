@@ -115,20 +115,20 @@ read_timeout(void *arg)
 }
 
 static void
-read_points(const char *filename)
+read_points(const char *path)
 {
   FILE *f;
   char line[256];
   struct Point *p;
 
-  f = UTI_OpenFile(NULL, filename, NULL, 'R', 0);
+  f = UTI_OpenFile(NULL, path, NULL, 'R', 0);
 
   points = ARR_CreateInstance(sizeof (struct Point));
 
   while (fgets(line, sizeof (line), f)) {
     p = (struct Point *)ARR_GetNewElement(points);
     if (sscanf(line, "%lf %lf", &p->temp, &p->comp) != 2) {
-      LOG_FATAL("Could not read tempcomp point from %s", filename);
+      LOG_FATAL("Could not read tempcomp point from %s", path);
       break;
     }
   }
@@ -136,7 +136,7 @@ read_points(const char *filename)
   fclose(f);
 
   if (ARR_GetSize(points) < 2)
-    LOG_FATAL("Not enough points in %s", filename);
+    LOG_FATAL("Not enough points in %s", path);
 }
 
 void

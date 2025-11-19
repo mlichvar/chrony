@@ -134,13 +134,13 @@ verify_message(NKSN_Instance inst)
 static int
 handle_request(void *arg)
 {
-  NKSN_Instance server = arg;
+  NKSN_Instance inst = arg;
 
-  verify_message(server);
+  verify_message(inst);
 
   request_received = 1;
 
-  send_message(server);
+  send_message(inst);
 
   return 1;
 }
@@ -148,11 +148,11 @@ handle_request(void *arg)
 static int
 handle_response(void *arg)
 {
-  NKSN_Instance client = arg;
+  NKSN_Instance inst = arg;
 
   response_received = 1;
 
-  verify_message(client);
+  verify_message(inst);
 
   return 1;
 }

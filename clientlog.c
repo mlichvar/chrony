@@ -328,30 +328,28 @@ expand_hashtable(void)
 /* ================================================== */
 
 static void
-set_bucket_params(int interval, int burst, uint16_t *max_tokens,
-                  uint16_t *tokens_per_packet, int *token_shift)
+set_bucket_params(int interval, int burst, uint16_t *mtokens, uint16_t *tphit, int *tshift)
 {
   interval = CLAMP(MIN_LIMIT_INTERVAL, interval, MAX_LIMIT_INTERVAL);
   burst = CLAMP(MIN_LIMIT_BURST, burst, MAX_LIMIT_BURST);
 
   if (interval >= -TS_FRAC) {
     /* Find the smallest shift with which the maximum number fits in 16 bits */
-    for (*token_shift = 0; *token_shift < interval + TS_FRAC; (*token_shift)++) {
-      if (burst << (TS_FRAC + interval - *token_shift) < 1U << 16)
+    for (*tshift = 0; *tshift < interval + TS_FRAC; (*tshift)++) {
+      if (burst << (TS_FRAC + interval - *tshift) < 1U << 16)
         break;
     }
   } else {
     /* Coarse rate limiting */
-    *token_shift = interval + TS_FRAC;
-    *tokens_per_packet = 1;
-    burst = MAX(1U << -*token_shift, burst);
+    *tshift = interval + TS_FRAC;
+    *tphit = 1;
+    burst = MAX(1U << -*tshift, burst);
   }
 
-  *tokens_per_packet = 1U << (TS_FRAC + interval - *token_shift);
-  *max_tokens = *tokens_per_packet * burst;
+  *tphit = 1U << (TS_FRAC + interval - *tshift);
+  *mtokens = *tphit * burst;
 
-  DEBUG_LOG("Tokens max %d packet %d shift %d",
-            *max_tokens, *tokens_per_packet, *token_shift);
+  DEBUG_LOG("Tokens max %d packet %d shift %d", *mtokens, *tphit, *tshift);
 }
 
 /* ================================================== */

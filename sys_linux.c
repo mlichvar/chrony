@@ -94,7 +94,7 @@ static int current_delta_tick;
 static int max_tick_bias;
 
 /* The kernel USER_HZ constant */
-static int hz;
+static int sys_hz;
 static double dhz; /* And dbl prec version of same for arithmetic */
 
 /* The assumed rate at which the effective frequency and tick values are
@@ -149,8 +149,8 @@ set_frequency(double freq_ppm)
      USER_HZ <= 250, the maximum frequency adjustment of 500 ppm overlaps at
      least two ticks and we can stick to the current tick if it's next to the
      required tick. */
-  if (hz <= 250 && (required_delta_tick + 1 == current_delta_tick ||
-                    required_delta_tick - 1 == current_delta_tick)) {
+  if (sys_hz <= 250 && (required_delta_tick + 1 == current_delta_tick ||
+                        required_delta_tick - 1 == current_delta_tick)) {
     required_delta_tick = current_delta_tick;
   }
 
@@ -278,13 +278,14 @@ get_kernel_version(int *major, int *minor, int *patch)
 static void
 get_version_specific_details(void)
 {
-  int major, minor, patch;
+  int hz, major, minor, patch;
   
   hz = get_hz();
 
   if (!hz)
     hz = guess_hz();
 
+  sys_hz = hz;
   dhz = (double) hz;
   nominal_tick = (1000000L + (hz/2))/hz; /* Mirror declaration in kernel */
   max_tick_bias = nominal_tick / 10;
