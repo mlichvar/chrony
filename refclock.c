@@ -294,23 +294,21 @@ RCL_StartRefclocks(void)
   }
 }
 
-void
-RCL_ReportSource(RPT_SourceReport *report, struct timespec *now)
+int
+RCL_ReportSource(uint32_t ref_id, RPT_SourceReport *report)
 {
   unsigned int i;
-  uint32_t ref_id;
-
-  assert(report->ip_addr.family == IPADDR_INET4);
-  ref_id = report->ip_addr.addr.in4;
 
   for (i = 0; i < ARR_GetSize(refclocks); i++) {
     RCL_Instance inst = get_refclock(i);
     if (inst->ref_id == ref_id) {
       report->poll = inst->poll;
       report->mode = RPT_LOCAL_REFERENCE;
-      break;
+      return 1;
     }
   }
+
+  return 0;
 }
 
 int

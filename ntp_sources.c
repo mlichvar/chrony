@@ -1523,20 +1523,17 @@ NSR_InitiateSampleBurst(int n_good_samples, int n_total_samples,
 }
 
 /* ================================================== */
-/* The ip address is assumed to be completed on input, that is how we
-   identify the source record. */
 
-void
-NSR_ReportSource(RPT_SourceReport *report, struct timespec *now)
+int
+NSR_ReportSource(IPAddr *ip_addr, RPT_SourceReport *report)
 {
   int slot;
 
-  if (find_slot(&report->ip_addr, &slot)) {
-    NCR_ReportSource(get_record(slot)->data, report, now);
-  } else {
-    report->poll = 0;
-    report->latest_meas_ago = 0;
-  }
+  if (!find_slot(ip_addr, &slot))
+    return 0;
+
+  NCR_ReportSource(get_record(slot)->data, report);
+  return 1;
 }
 
 /* ================================================== */

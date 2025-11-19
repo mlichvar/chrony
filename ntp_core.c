@@ -3098,7 +3098,7 @@ NCR_InitiateSampleBurst(NCR_Instance inst, int n_good_samples, int n_total_sampl
 /* ================================================== */
 
 void
-NCR_ReportSource(NCR_Instance inst, RPT_SourceReport *report, struct timespec *now)
+NCR_ReportSource(NCR_Instance inst, RPT_SourceReport *report)
 {
   report->poll = get_transmit_poll(inst);
 

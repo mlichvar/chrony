@@ -106,10 +106,10 @@ RCL_StartRefclocks(void)
 {
 }
 
-void
-RCL_ReportSource(RPT_SourceReport *report, struct timespec *now)
+int
+RCL_ReportSource(uint32_t ref_id, RPT_SourceReport *report)
 {
-  memset(report, 0, sizeof (*report));
+  return 0;
 }
 
 int

@@ -146,7 +146,7 @@ extern int NSR_ModifyPolltarget(IPAddr *address, int new_poll_target);
 
 extern int NSR_InitiateSampleBurst(int n_good_samples, int n_total_samples, IPAddr *mask, IPAddr *address);
 
-extern void NSR_ReportSource(RPT_SourceReport *report, struct timespec *now);
+extern int NSR_ReportSource(IPAddr *ip_addr, RPT_SourceReport *report);
 
 extern int NSR_GetAuthReport(IPAddr *address, RPT_AuthReport *report);
 
