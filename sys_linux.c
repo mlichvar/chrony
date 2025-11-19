@@ -94,8 +94,7 @@ static int current_delta_tick;
 static int max_tick_bias;
 
 /* The kernel USER_HZ constant */
-static int sys_hz;
-static double dhz; /* And dbl prec version of same for arithmetic */
+static double sys_hz;
 
 /* The assumed rate at which the effective frequency and tick values are
    updated in the kernel */
@@ -138,8 +137,8 @@ set_frequency(double freq_ppm)
   double required_freq;
   int required_delta_tick;
 
-  required_delta_tick = round(freq_ppm / dhz);
-  required_freq = -(freq_ppm - dhz * required_delta_tick);
+  required_delta_tick = round(freq_ppm / sys_hz);
+  required_freq = -(freq_ppm - sys_hz * required_delta_tick);
   required_tick = nominal_tick - required_delta_tick;
 
   txc.modes = ADJ_TICK | ADJ_FREQUENCY;
@@ -150,7 +149,7 @@ set_frequency(double freq_ppm)
 
   current_delta_tick = required_delta_tick;
 
-  return dhz * current_delta_tick - txc.freq / FREQ_SCALE;
+  return sys_hz * current_delta_tick - txc.freq / FREQ_SCALE;
 }
 
 /* ================================================== */
@@ -167,7 +166,7 @@ read_frequency(void)
 
   current_delta_tick = nominal_tick - txc.tick;
 
-  return dhz * current_delta_tick - txc.freq / FREQ_SCALE;
+  return sys_hz * current_delta_tick - txc.freq / FREQ_SCALE;
 }
 
 /* ================================================== */
@@ -271,7 +270,7 @@ get_version_specific_details(void)
     hz = guess_hz();
 
   sys_hz = hz;
-  dhz = (double) hz;
+
   nominal_tick = (1000000L + (hz/2))/hz; /* Mirror declaration in kernel */
   max_tick_bias = nominal_tick / 10;
 
