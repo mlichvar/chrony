@@ -139,21 +139,6 @@ set_frequency(double freq_ppm)
   int required_delta_tick;
 
   required_delta_tick = round(freq_ppm / dhz);
-
-  /* Older kernels (pre-2.6.18) don't apply the frequency offset exactly as
-     set by adjtimex() and a scaling constant (that depends on the internal
-     kernel HZ constant) would be needed to compensate for the error. Because
-     chronyd is closed loop it doesn't matter much if we don't scale the
-     required frequency, but we want to prevent thrashing between two states
-     when the system's frequency error is close to a multiple of USER_HZ.  With
-     USER_HZ <= 250, the maximum frequency adjustment of 500 ppm overlaps at
-     least two ticks and we can stick to the current tick if it's next to the
-     required tick. */
-  if (sys_hz <= 250 && (required_delta_tick + 1 == current_delta_tick ||
-                        required_delta_tick - 1 == current_delta_tick)) {
-    required_delta_tick = current_delta_tick;
-  }
-
   required_freq = -(freq_ppm - dhz * required_delta_tick);
   required_tick = nominal_tick - required_delta_tick;
 
