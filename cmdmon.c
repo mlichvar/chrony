@@ -719,8 +719,7 @@ handle_add_source(CMD_Request *rx_message, CMD_Reply *tx_message)
   params.nts = !!(flags & REQ_ADDSRC_NTS);
   params.copy = !!(flags & REQ_ADDSRC_COPY);
   params.ext_fields = (flags & REQ_ADDSRC_EF_EXP_MONO_ROOT ? NTP_EF_FLAG_EXP_MONO_ROOT : 0) |
-                      (flags & REQ_ADDSRC_EF_EXP_NET_CORRECTION ?
-                       NTP_EF_FLAG_EXP_NET_CORRECTION : 0);
+                      (flags & REQ_ADDSRC_EF_NET_CORRECTION ? NTP_EF_FLAG_NET_CORRECTION : 0);
   params.sel_options = convert_addsrc_select_options(ntohl(rx_message->data.ntp_source.flags));
 
   status = NSR_AddSourceByName(name, family, port, pool, type, &params, NULL);

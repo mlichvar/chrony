@@ -352,6 +352,21 @@ This option can be used multiple times to enable multiple extension fields.
 +
 The following extension fields are supported:
 +
+_10A_::::
+The Network Correction extension field enabling the use of the Precision Time
+Protocol (PTP) corrections in NTP-over-PTP messages updated by
+one-step end-to-end transparent clocks (e.g. network switches). It can
+significantly improve the accuracy and stability of the synchronisation. NTP
+over PTP needs to be enabled by the <<ptpport,*ptpport*>> directive and setting
+the *port* option to the PTP port. The corrections are applied only to NTP
+measurements with HW timestamps (enabled by the <<hwtimestamp,*hwtimestamp*>>
+directive).
++
+This field should be enabled only for servers known to be running *chronyd*
+version 4.9 or later, or other implementations supporting the Network
+Correction extension field. *chronyd* versions 4.5-4.8 supported an experimental
+version of this extension field (type _F324_), which is no longer supported,
+but type _F324_ is accepted as an alias for _10A_.
 _F323_::::
 An experimental extension field to enable several improvements that were
 proposed for the next version of the NTP protocol (NTPv5). The field contains
@@ -359,16 +374,6 @@ root delay and dispersion in higher resolution and a monotonic receive
 timestamp, which enables a frequency transfer between the server and client to
 significantly improve stability of the synchronisation. This field should be
 enabled only for servers known to be running *chronyd* version 4.2 or later.
-_F324_::::
-An experimental extension field to enable the use of the Precision Time
-Protocol (PTP) correction field in NTP-over-PTP messages updated by one-step
-end-to-end transparent clocks in network switches and routers to significantly
-improve accuracy and stability of the synchronisation. NTP-over-PTP can be
-enabled by the <<ptpport,*ptpport*>> directive and setting the *port* option to
-the PTP port. The corrections are applied only to NTP measurements with HW
-timestamps (enabled by the <<hwtimestamp,*hwtimestamp*>> directive). This
-field should be enabled only for servers known to be running *chronyd* version
-4.5 or later.
 *ipv4*:::
 *ipv6*:::
 These options force *chronyd* to use only IPv4 or IPv6 addresses respectively
@@ -3000,29 +3005,30 @@ Setting this directive to _/_ disables writing and checking of the PID file.
 
 [[ptpport]]*ptpport* _port_::
 The *ptpport* directive enables *chronyd* to send and receive NTP messages
-contained in PTP event messages (NTP-over-PTP) to enable hardware timestamping
+contained in PTP event messages (NTP over PTP) to enable hardware timestamping
 on NICs that cannot timestamp NTP packets, but can timestamp unicast PTP
 packets, and also use corrections provided by PTP one-step end-to-end
 transparent clocks in network switches and routers. The port recognized by the
 NICs and PTP transparent clocks is 319 (PTP event port). The default value is 0
 (disabled).
 +
-The NTP-over-PTP support is experimental. The protocol and configuration can
-change in future. It should be used only in local networks.
+Support for NTP over PTP was added in *chronyd* version 4.9.
+Versions 4.2-4.8 supported an experimental version of the transport, which is
+not compatible with the final specification.
 +
 The PTP port will be open even if *chronyd* is not configured to operate as a
 server or client. The directive does not change the default protocol of
-specified NTP sources. Each NTP source that should use NTP-over-PTP needs to
+specified NTP sources. Each NTP source that should use NTP over PTP needs to
 be specified with the *port* option set to the PTP port. To actually enable
 hardware timestamping on NICs that can timestamp PTP packets only, the
 *rxfilter* option of the *hwtimestamp* directive needs to be set to _ptp_. The
-extension field _F324_ needs to be enabled to use the corrections provided by
+extension field _10A_ needs to be enabled to use the corrections provided by
 the PTP transparent clocks.
 +
 An example of client configuration is:
 +
 ----
-server ntp1.example.net minpoll 0 maxpoll 0 xleave port 319 extfield F324
+server ntp1.example.net minpoll 0 maxpoll 0 xleave port 319 extfield 10A
 hwtimestamp * rxfilter ptp
 ptpport 319
 ----

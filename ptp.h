@@ -36,7 +36,9 @@
 #define PTP_TYPE_SYNC 0
 #define PTP_TYPE_DELAY_REQ 1
 #define PTP_FLAG_UNICAST (1 << (2 + 8))
-#define PTP_TLV_NTP 0x2023
+#define PTP_TLV_ORGEXT2 0x0003
+#define PTP_TLV_ORGEXT21 0x8000
+#define PTP_IANA_TLV_NTP_MSG "\x00\x00\x5E\x00\x00\x01"
 
 typedef struct {
   uint8_t type;
@@ -56,12 +58,14 @@ typedef struct {
 typedef struct {
   uint16_t type;
   uint16_t length;
-} PTP_TlvHeader;
+  uint8_t org_id_subtype[6];
+  uint16_t pad;
+} PTP_TlvNtpHeader;
 
 typedef struct {
   PTP_Header header;
   uint8_t origin_ts[10];
-  PTP_TlvHeader tlv_header;
+  PTP_TlvNtpHeader tlv_header;
   NTP_Packet ntp_msg;
 } PTP_NtpMessage;
 

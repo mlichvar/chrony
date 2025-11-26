@@ -401,11 +401,12 @@ server ntp.local minpoll 0 maxpoll 0 xleave extfield F323
 Since version 4.5, `chronyd` can apply corrections from PTP one-step end-to-end
 transparent clocks (e.g. network switches) to significantly improve accuracy of
 synchronisation in local networks. It requires the PTP transport to be enabled
-by the `ptpport` directive, HW timestamping, and the `extfield F324` option.
-For example:
+by the `ptpport` directive, `port` option, HW timestamping, and the `extfield
+F324` option (in versions 4.5-4.8) or `extfield 10A` option (version 4.9 and
+later). For example:
 
 ----
-server ntp.local minpoll -4 maxpoll -4 xleave extfield F323 extfield F324 port 319
+server ntp.local minpoll -4 maxpoll -4 xleave extfield F323 extfield 10A port 319
 ptpport 319
 hwtimestamp eth0 minpoll -4
 ----
@@ -668,13 +669,15 @@ packets (enabled by the `hwtimestamp` directive) if the NIC can timestamp other
 packets than PTP, which is usually the case at least for transmitted packets.
 The `ethtool -T` command can be used to verify the timestamping support.
 
-As an experimental feature added in version 4.2, `chrony` can use PTP as a
-transport for NTP messages (NTP over PTP) to enable hardware timestamping on
-hardware which can timestamp PTP packets only. It can be enabled by the
-`ptpport` directive. Since version 4.5, `chrony` can also apply corrections
-provided by PTP one-step end-to-end transparent clocks to reach the accuracy of
-ordinary PTP clocks. The application of PTP corrections can be enabled by the
-`extfield F324` option.
+As an experimental feature added in version 4.2, and fully supported since
+version 4.9, `chrony` can use PTP as a transport for NTP messages (NTP over
+PTP) to enable hardware timestamping on hardware which can timestamp only PTP
+packets. NTP over PTP can be enabled by the `ptpport` directive and setting the
+`port` option to the PTP port 319. Since version 4.5, `chrony` can also apply
+corrections provided by PTP one-step end-to-end transparent clocks (e.g.
+network switches) to reach the accuracy of ordinary PTP clocks. The application
+of PTP corrections can be enabled by the `extfield F324` option in versions
+before 4.9, or `extfield 10A` in later versions.
 
 === How can I avoid using wrong PHC refclock?
 

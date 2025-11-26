@@ -378,8 +378,8 @@ do_size_checks(void)
   assert(offsetof(NTP_Packet, receive_ts)      == 32);
   assert(offsetof(NTP_Packet, transmit_ts)     == 40);
 
+  assert(sizeof (NTP_EFNetCorrection) == 24);
   assert(sizeof (NTP_EFExpMonoRoot) == 24);
-  assert(sizeof (NTP_EFExpNetCorrection) == 24);
 }
 
 /* ================================================== */
@@ -1094,7 +1094,7 @@ static int
 add_ef_net_correction(NTP_Packet *message, NTP_PacketInfo *info,
                       NTP_Local_Timestamp *local_rx)
 {
-  NTP_EFExpNetCorrection ef;
+  NTP_EFNetCorrection ef;
 
   if (CNF_GetPtpPort() == 0) {
     DEBUG_LOG("ptpport disabled");
@@ -1102,18 +1102,17 @@ add_ef_net_correction(NTP_Packet *message, NTP_PacketInfo *info,
   }
 
   memset(&ef, 0, sizeof (ef));
-  ef.magic = htonl(NTP_EF_EXP_NET_CORRECTION_MAGIC);
 
   if (info->mode != MODE_CLIENT && local_rx->net_correction > local_rx->rx_duration) {
     UTI_DoubleToNtp64(local_rx->net_correction, &ef.correction);
   }
 
-  if (!NEF_AddField(message, info, NTP_EF_EXP_NET_CORRECTION, &ef, sizeof (ef))) {
+  if (!NEF_AddField(message, info, NTP_EF_NET_CORRECTION, &ef, sizeof (ef))) {
     DEBUG_LOG("Could not add EF");
     return 0;
   }
 
-  info->ext_field_flags |= NTP_EF_FLAG_EXP_NET_CORRECTION;
+  info->ext_field_flags |= NTP_EF_FLAG_NET_CORRECTION;
 
   return 1;
 }
@@ -1265,13 +1264,13 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     return 0;
 
   if (ext_field_flags) {
+    if (ext_field_flags & NTP_EF_FLAG_NET_CORRECTION) {
+      if (!add_ef_net_correction(&message, &info, local_rx))
+        return 0;
+    }
     if (ext_field_flags & NTP_EF_FLAG_EXP_MONO_ROOT) {
       if (!add_ef_mono_root(&message, &info, smooth_time ? NULL : &local_receive,
                             our_root_delay, our_root_dispersion))
-        return 0;
-    }
-    if (ext_field_flags & NTP_EF_FLAG_EXP_NET_CORRECTION) {
-      if (!add_ef_net_correction(&message, &info, local_rx))
         return 0;
     }
   }
@@ -1631,15 +1630,14 @@ parse_packet(NTP_Packet *packet, int length, NTP_PacketInfo *info)
       case NTP_EF_NTS_AUTH_AND_EEF:
         info->auth.mode = NTP_AUTH_NTS;
         break;
+      case NTP_EF_NET_CORRECTION:
+        if (ef_body_length == sizeof (NTP_EFNetCorrection))
+          info->ext_field_flags |= NTP_EF_FLAG_NET_CORRECTION;
+        break;
       case NTP_EF_EXP_MONO_ROOT:
         if (is_exp_ef(ef_body, ef_body_length, sizeof (NTP_EFExpMonoRoot),
                       NTP_EF_EXP_MONO_ROOT_MAGIC))
           info->ext_field_flags |= NTP_EF_FLAG_EXP_MONO_ROOT;
-        break;
-      case NTP_EF_EXP_NET_CORRECTION:
-        if (is_exp_ef(ef_body, ef_body_length, sizeof (NTP_EFExpNetCorrection),
-                      NTP_EF_EXP_NET_CORRECTION_MAGIC))
-          info->ext_field_flags |= NTP_EF_FLAG_EXP_NET_CORRECTION;
         break;
       default:
         DEBUG_LOG("Unknown extension field type=%x", (unsigned int)ef_type);
@@ -1975,8 +1973,8 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
   /* Extension fields */
   int parsed, ef_length, ef_type, ef_body_length;
   void *ef_body;
+  NTP_EFNetCorrection *ef_net_correction;
   NTP_EFExpMonoRoot *ef_mono_root;
-  NTP_EFExpNetCorrection *ef_net_correction;
 
   NTP_Local_Timestamp local_receive, local_transmit;
   double remote_interval, local_interval, response_time;
@@ -1998,17 +1996,16 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
         break;
 
       switch (ef_type) {
+        case NTP_EF_NET_CORRECTION:
+          if (inst->ext_field_flags & NTP_EF_FLAG_NET_CORRECTION &&
+              ef_body_length == sizeof (*ef_net_correction))
+            ef_net_correction = ef_body;
+          break;
         case NTP_EF_EXP_MONO_ROOT:
           if (inst->ext_field_flags & NTP_EF_FLAG_EXP_MONO_ROOT &&
               is_exp_ef(ef_body, ef_body_length, sizeof (*ef_mono_root),
                         NTP_EF_EXP_MONO_ROOT_MAGIC))
             ef_mono_root = ef_body;
-          break;
-        case NTP_EF_EXP_NET_CORRECTION:
-          if (inst->ext_field_flags & NTP_EF_FLAG_EXP_NET_CORRECTION &&
-              is_exp_ef(ef_body, ef_body_length, sizeof (*ef_net_correction),
-                        NTP_EF_EXP_NET_CORRECTION_MAGIC))
-            ef_net_correction = ef_body;
           break;
       }
     }

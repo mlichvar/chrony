@@ -519,8 +519,11 @@ NIO_UnwrapMessage(SCK_Message *message, int sock_fd, double *net_correction)
       ntohs(msg->header.length) != message->length ||
       msg->header.domain != CNF_GetPtpDomain() ||
       ntohs(msg->header.flags) != PTP_FLAG_UNICAST ||
-      ntohs(msg->tlv_header.type) != PTP_TLV_NTP ||
-      ntohs(msg->tlv_header.length) != message->length - PTP_NTP_PREFIX_LENGTH) {
+      (ntohs(msg->tlv_header.type) != PTP_TLV_ORGEXT2 &&
+       ntohs(msg->tlv_header.type) != PTP_TLV_ORGEXT21) ||
+      ntohs(msg->tlv_header.length) != 8 + message->length - PTP_NTP_PREFIX_LENGTH ||
+      memcmp(msg->tlv_header.org_id_subtype, PTP_IANA_TLV_NTP_MSG,
+             sizeof (msg->tlv_header.org_id_subtype)) != 0) {
     DEBUG_LOG("Unexpected PTP message");
     return 0;
   }
@@ -547,7 +550,7 @@ wrap_message(SCK_Message *message, int sock_fd)
 {
   static uint16_t sequence_id = 0;
 
-  assert(PTP_NTP_PREFIX_LENGTH == 48);
+  assert(PTP_NTP_PREFIX_LENGTH == 56);
 
   if (!is_ptp_socket(sock_fd))
     return 1;
@@ -568,8 +571,10 @@ wrap_message(SCK_Message *message, int sock_fd)
   ptp_message->header.domain = CNF_GetPtpDomain();
   ptp_message->header.flags = htons(PTP_FLAG_UNICAST);
   ptp_message->header.sequence_id = htons(sequence_id++);
-  ptp_message->tlv_header.type = htons(PTP_TLV_NTP);
-  ptp_message->tlv_header.length = htons(message->length);
+  ptp_message->tlv_header.type = htons(PTP_TLV_ORGEXT2);
+  ptp_message->tlv_header.length = htons(8 + message->length);
+  memcpy(ptp_message->tlv_header.org_id_subtype, PTP_IANA_TLV_NTP_MSG,
+         sizeof (ptp_message->tlv_header.org_id_subtype));
   memcpy((char *)ptp_message + PTP_NTP_PREFIX_LENGTH, message->data, message->length);
 
   message->data = ptp_message;

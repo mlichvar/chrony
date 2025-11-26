@@ -122,11 +122,12 @@ CPS_ParseNTPSourceAdd(char *line, CPS_NTP_Source *src)
       if (sscanf(line, "%"SCNx32"%n", &ef_type, &n) != 1)
         return CPS_InvalidValue;
       switch (ef_type) {
+        case NTP_EF_NET_CORRECTION:
+        case 0xF324:
+          src->params.ext_fields |= NTP_EF_FLAG_NET_CORRECTION;
+          break;
         case NTP_EF_EXP_MONO_ROOT:
           src->params.ext_fields |= NTP_EF_FLAG_EXP_MONO_ROOT;
-          break;
-        case NTP_EF_EXP_NET_CORRECTION:
-          src->params.ext_fields |= NTP_EF_FLAG_EXP_NET_CORRECTION;
           break;
         default:
           return CPS_InvalidValue;

@@ -115,11 +115,17 @@ typedef struct {
 
 /* Non-authentication extension fields and corresponding internal flags */
 
+#define NTP_EF_NET_CORRECTION           0x010A
 #define NTP_EF_EXP_MONO_ROOT            0xF323
-#define NTP_EF_EXP_NET_CORRECTION       0xF324
 
-#define NTP_EF_FLAG_EXP_MONO_ROOT       0x1
-#define NTP_EF_FLAG_EXP_NET_CORRECTION  0x2
+#define NTP_EF_FLAG_NET_CORRECTION      0x1
+#define NTP_EF_FLAG_EXP_MONO_ROOT       0x2
+
+/* Network Correction extension field */
+typedef struct {
+  NTP_int64 correction;
+  uint32_t pad[4];
+} NTP_EFNetCorrection;
 
 /* Pre-NTPv5 experimental extension field */
 typedef struct {
@@ -131,15 +137,6 @@ typedef struct {
 } NTP_EFExpMonoRoot;
 
 #define NTP_EF_EXP_MONO_ROOT_MAGIC      0xF5BEDD9AU
-
-/* Experimental extension field to provide PTP corrections */
-typedef struct {
-  uint32_t magic;
-  NTP_int64 correction;
-  uint32_t reserved[3];
-} NTP_EFExpNetCorrection;
-
-#define NTP_EF_EXP_NET_CORRECTION_MAGIC 0x07AC2CEBU
 
 /* Authentication extension fields */
 

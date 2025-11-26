@@ -1093,10 +1093,10 @@ process_cmd_add_source(CMD_Request *msg, char *line)
           (data.params.burst ? REQ_ADDSRC_BURST : 0) |
           (data.params.nts ? REQ_ADDSRC_NTS : 0) |
           (data.params.copy ? REQ_ADDSRC_COPY : 0) |
+          (data.params.ext_fields & NTP_EF_FLAG_NET_CORRECTION ?
+           REQ_ADDSRC_EF_NET_CORRECTION : 0) |
           (data.params.ext_fields & NTP_EF_FLAG_EXP_MONO_ROOT ?
            REQ_ADDSRC_EF_EXP_MONO_ROOT : 0) |
-          (data.params.ext_fields & NTP_EF_FLAG_EXP_NET_CORRECTION ?
-           REQ_ADDSRC_EF_EXP_NET_CORRECTION : 0) |
           (data.family == IPADDR_INET4 ? REQ_ADDSRC_IPV4 : 0) |
           (data.family == IPADDR_INET6 ? REQ_ADDSRC_IPV6 : 0) |
           convert_addsrc_sel_options(data.params.sel_options));
