@@ -297,14 +297,20 @@ slew_samples
    corresponding real time clock 'DMY HMS' form, taking account of
    whether the user runs his RTC on the local time zone or UTC */
 
-static void
+static int
 rtc_from_t(const time_t *t, struct rtc_time *rtc_raw, int utc)
 {
   struct tm *rtc_tm;
+
   if (utc) {
     rtc_tm = gmtime(t);
   } else {
     rtc_tm = localtime(t);
+  }
+
+  if (!rtc_tm) {
+    DEBUG_LOG("gmtime()/localtime() failed");
+    return 0;
   }
 
   rtc_raw->tm_sec = rtc_tm->tm_sec;
@@ -316,6 +322,8 @@ rtc_from_t(const time_t *t, struct rtc_time *rtc_raw, int utc)
   rtc_raw->tm_wday = rtc_tm->tm_wday;
   rtc_raw->tm_yday = rtc_tm->tm_yday;
   rtc_raw->tm_isdst = rtc_tm->tm_isdst;
+
+  return 1;
 }
 
 /* ================================================== */
@@ -609,15 +617,11 @@ static void
 set_rtc(time_t new_rtc_time)
 {
   struct rtc_time rtc_raw;
-  int status;
 
-  rtc_from_t(&new_rtc_time, &rtc_raw, rtc_on_utc);
-
-  status = ioctl(rtc_fd, RTC_SET_TIME, &rtc_raw);
-  if (status < 0) {
+  if (!rtc_from_t(&new_rtc_time, &rtc_raw, rtc_on_utc) ||
+      ioctl(rtc_fd, RTC_SET_TIME, &rtc_raw) < 0) {
     LOG(LOGS_ERR, "Could not set RTC time");
   }
-
 }
 
 /* ================================================== */
