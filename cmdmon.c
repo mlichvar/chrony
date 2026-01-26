@@ -1603,7 +1603,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
   CMD_Reply tx_message;
   IPAddr loopback_addr, remote_ip;
   uint16_t rx_command;
-  struct timespec now, cooked_now;
+  struct timespec cooked_now;
 
   sck_message = SCK_ReceiveMessage(sock_fd, 0);
   if (!sck_message)
@@ -1612,7 +1612,7 @@ read_from_cmd_socket(int sock_fd, int event, void *anything)
   read_length = sck_message->length;
 
   /* Get current time cheaply */
-  SCH_GetLastEventTime(&cooked_now, NULL, &now);
+  SCH_GetLastEventTime(&cooked_now, NULL, NULL);
 
   /* Check if the request came from the Unix domain socket, or network and
      whether the address is allowed (127.0.0.1 and ::1 is always allowed) */
