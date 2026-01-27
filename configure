@@ -666,18 +666,18 @@ then
 fi
 
 if [ $try_clock_gettime = "1" ]; then
-  if test_code 'clock_gettime()' 'time.h' '' '' '
+  if ! test_code 'clock_gettime()' 'time.h' '' '' '
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);'
   then
-    add_def HAVE_CLOCK_GETTIME
-  else
     if test_code 'clock_gettime() in -lrt' 'time.h' '' '-lrt' '
       struct timespec ts;
       clock_gettime(CLOCK_REALTIME, &ts);'
     then
-      add_def HAVE_CLOCK_GETTIME
       EXTRA_LIBS="$EXTRA_LIBS -lrt"
+    else
+      echo "error: clock_gettime() not found"
+      exit 1
     fi
   fi
 fi
@@ -829,7 +829,6 @@ then
 fi
 
 if [ $feat_refclock = "1" ] && [ $feat_phc = "1" ] && [ $try_phc = "1" ] && \
-  grep '#define HAVE_CLOCK_GETTIME' config.h > /dev/null && \
   test_code '<linux/ptp_clock.h>' 'sys/ioctl.h linux/ptp_clock.h' '' '' \
     'ioctl(1, PTP_CLOCK_GETCAPS + PTP_SYS_OFFSET, 0);'
 then

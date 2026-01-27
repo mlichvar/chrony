@@ -109,7 +109,7 @@ static double max_clock_error;
 static int
 get_clock_resolution(void)
 {
-#if defined(HAVE_CLOCK_GETTIME) && !defined(LINUX)
+#ifndef LINUX
   struct timespec res;
 
   if (clock_getres(CLOCK_REALTIME, &res) < 0)
@@ -123,7 +123,7 @@ get_clock_resolution(void)
 
 /* ================================================== */
 
-#if defined(LINUX) && defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_MONOTONIC_RAW)
+#if defined(LINUX) && defined(CLOCK_MONOTONIC_RAW)
 
 static int
 compare_ints(const void *a, const void *b)
@@ -499,17 +499,8 @@ void LCL_RemoveDispersionNotifyHandler(LCL_DispersionNotifyHandler handler, void
 void
 LCL_ReadRawTime(struct timespec *ts)
 {
-#if HAVE_CLOCK_GETTIME
   if (clock_gettime(CLOCK_REALTIME, ts) < 0)
     LOG_FATAL("clock_gettime() failed : %s", strerror(errno));
-#else
-  struct timeval tv;
-
-  if (gettimeofday(&tv, NULL) < 0)
-    LOG_FATAL("gettimeofday() failed : %s", strerror(errno));
-
-  UTI_TimevalToTimespec(&tv, ts);
-#endif
 }
 
 /* ================================================== */
