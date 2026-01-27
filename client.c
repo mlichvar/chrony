@@ -1396,7 +1396,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
   new_attempt = 1;
 
   do {
-    if (gettimeofday(&tv, NULL))
+    if (clock_gettime(CLOCK_REALTIME, &ts_now) < 0)
       return 0;
 
     if (new_attempt) {
@@ -1405,7 +1405,7 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
       if (n_attempts > max_retries)
         return 0;
 
-      UTI_TimevalToTimespec(&tv, &ts_start);
+      ts_start = ts_now;
 
       UTI_GetRandomBytes(&request->sequence, sizeof (request->sequence));
       request->attempt = htons(n_attempts);
@@ -1427,8 +1427,6 @@ submit_request(CMD_Request *request, CMD_Reply *reply)
       if (SCK_Send(sock_fd, (void *)request, command_length, 0) < 0)
         return 0;
     }
-
-    UTI_TimevalToTimespec(&tv, &ts_now);
 
     /* Check if the clock wasn't stepped back */
     if (UTI_CompareTimespecs(&ts_now, &ts_start) < 0)

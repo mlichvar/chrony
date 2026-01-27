@@ -45,8 +45,8 @@ main(int argc, char **argv)
 {
   LOG_Severity log_severity;
   char *test_name, *s;
+  struct timespec ts;
   int i, seed = 0;
-  struct timeval tv;
 
   test_name = argv[0];
   s = strrchr(test_name, '.');
@@ -69,8 +69,8 @@ main(int argc, char **argv)
     }
   }
 
-  gettimeofday(&tv, NULL);
-  srandom(seed ? seed : tv.tv_sec ^ (tv.tv_usec << 10));
+  clock_gettime(CLOCK_REALTIME, &ts);
+  srandom(seed ? seed : ts.tv_sec ^ (ts.tv_nsec << 10));
 
   printf("Testing %-30s ", test_name);
   fflush(stdout);
