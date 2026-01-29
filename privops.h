@@ -41,9 +41,9 @@ int PRV_AdjustTimex(struct timex *txc);
 #endif
 
 #ifdef PRIVOPS_SETTIME
-int PRV_SetTime(const struct timeval *tp, const struct timezone *tzp);
+int PRV_SetTime(clockid_t clockid, const struct timespec *tp);
 #else
-#define PRV_SetTime settimeofday
+#define PRV_SetTime clock_settime
 #endif
 
 #ifdef PRIVOPS_BINDSOCKET

@@ -245,8 +245,8 @@ apply_step_offset(double offset)
   UTI_AddDoubleToTimespec(&old_time, -offset, &new_time);
   UTI_TimespecToTimeval(&new_time, &new_time_tv);
 
-  if (PRV_SetTime(&new_time_tv, NULL) < 0) {
-    DEBUG_LOG("settimeofday() failed");
+  if (PRV_SetTime(CLOCK_REALTIME, &new_time_tv) < 0) {
+    DEBUG_LOG("clock_settime() failed");
     return 0;
   }
 

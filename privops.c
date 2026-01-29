@@ -65,7 +65,7 @@ typedef struct {
 #endif
 
 typedef struct {
-  struct timeval tv;
+  struct timespec ts;
 } ReqSetTime;
 
 typedef struct {
@@ -225,13 +225,13 @@ do_adjust_timex(const ReqAdjustTimex *req, PrvResponse *res)
 
 /* ======================================================================= */
 
-/* HELPER - perform settimeofday() */
+/* HELPER - perform clock_settime() */
 
 #ifdef PRIVOPS_SETTIME
 static void
 do_set_time(const ReqSetTime *req, PrvResponse *res)
 {
-  res->rc = settimeofday(&req->tv, NULL);
+  res->rc = clock_settime(CLOCK_REALTIME, &req->ts);
   if (res->rc)
     res->res_errno = errno;
 }
@@ -508,25 +508,24 @@ PRV_AdjustTimex(struct timex *tmx)
 
 /* ======================================================================= */
 
-/* DAEMON - request settimeofday() */
+/* DAEMON - request clock_settime() */
 
 #ifdef PRIVOPS_SETTIME
 int
-PRV_SetTime(const struct timeval *tp, const struct timezone *tzp)
+PRV_SetTime(clockid_t clockid, const struct timespec *tp)
 {
   PrvRequest req;
   PrvResponse res;
 
-  /* only support setting the time */
-  assert(tp != NULL);
-  assert(tzp == NULL);
+  if (clockid != CLOCK_REALTIME)
+    return -1;
 
   if (!have_helper())
-    return settimeofday(tp, NULL);
+    return clock_settime(clockid, tp);
 
   memset(&req, 0, sizeof (req));
   req.op = OP_SETTIME;
-  req.data.set_time.tv = *tp;
+  req.data.set_time.ts = *tp;
 
   submit_request(&req, &res);
 
