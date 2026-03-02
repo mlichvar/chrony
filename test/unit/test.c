@@ -36,6 +36,8 @@ TST_Fail(int line)
 void
 TST_Skip(int line)
 {
+  LOG_Finalise();
+
   printf("SKIP (on line %d)\n", line);
   exit(0);
 }
