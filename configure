@@ -911,7 +911,7 @@ HASH_LINK=""
 if [ $feat_sechash = "1" ] && [ "x$HASH_LINK" = "x" ]  && [ $try_nettle = "1" ]; then
   test_cflags="`pkg_config --cflags nettle`"
   test_link="`pkg_config --libs nettle`"
-  if test_code 'nettle' 'nettle/nettle-meta.h nettle/sha2.h' \
+  if test_code 'nettle' 'nettle/nettle-meta.h nettle/sha2.h nettle/version.h' \
     "$test_cflags" "$test_link" \
     'return nettle_hashes[0]->context_size;'
   then
