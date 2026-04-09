@@ -201,6 +201,13 @@ still track its offset and frequency relative to the estimated true time. This
 option allows *chronyd* to be started without the capability to adjust or set
 the system clock (e.g. in some containers) to operate as an NTP server.
 
+*-N* _fd_::
+This option specifies a file descriptor that *chronyd* will write a newline
+to after it is fully initialised. This is to notify a service supervisor that
+*chronyd* is in a ready state. When using this option, it should also be
+specified that this is a non-forking service by using either the *-n* or *-d*
+option.
+
 *-v*, *--version*::
 With this option *chronyd* will print version number to the terminal and exit.
 

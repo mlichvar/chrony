@@ -70,6 +70,8 @@ static int exit_status = 0;
 
 static int reload = 0;
 
+static int notify_fd = 0;
+
 static REF_Mode ref_mode = REF_ModeNormal;
 
 /* ================================================== */
@@ -110,6 +112,14 @@ delete_pidfile(void)
 static void
 notify_system_manager(int start)
 {
+  /* s6-style ready notification using a pipe from the parent */
+  if (start && notify_fd) {
+    if (write(notify_fd, "\n", 1) != 1)
+      LOG_FATAL("Could not send notification requested by -N option");
+    close(notify_fd);
+    notify_fd = 0;
+  }
+
 #ifdef LINUX
   /* The systemd protocol is documented in the sd_notify(3) man page */
   const char *message, *path = getenv("NOTIFY_SOCKET");
@@ -454,6 +464,7 @@ print_help(const char *progname)
              "  -P PRIORITY\tSet process priority (0)\n"
              "  -m\t\tLock memory\n"
              "  -x\t\tDon't control clock\n"
+             "  -N FD\t\tNotify supervisor\n"
              "  -v, --version\tPrint version and exit\n"
              "  -h, --help\tPrint usage and exit\n",
              progname, DEFAULT_CONF_FILE, DEFAULT_USER);
@@ -512,7 +523,7 @@ int main
   optind = 1;
 
   /* Parse short command-line options */
-  while ((opt = getopt(argc, argv, "46df:F:hl:L:mnpP:qQrRst:u:Uvx")) != -1) {
+  while ((opt = getopt(argc, argv, "46df:F:hl:L:mnN:pP:qQrRst:u:Uvx")) != -1) {
     switch (opt) {
       case '4':
       case '6':
@@ -540,6 +551,9 @@ int main
         break;
       case 'n':
         nofork = 1;
+        break;
+      case 'N':
+        notify_fd = parse_int_arg(optarg);
         break;
       case 'p':
         print_config = 1;
