@@ -456,7 +456,7 @@ case $OPERATINGSYSTEM in
         add_def OPENBSD
         if [ $feat_droproot = "1" ]; then
           add_def FEAT_PRIVDROP
-          priv_ops="ADJUSTTIME ADJUSTFREQ SETTIME"
+          priv_ops="ADJUSTTIME ADJUSTFREQ SETTIME BINDSOCKET"
         fi
         echo "Configuring for $SYSTEM"
     ;;

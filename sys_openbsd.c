@@ -222,9 +222,12 @@ SYS_OpenBSD_DropRoot(uid_t uid, gid_t gid, SYS_ProcessContext context, int clock
 void
 SYS_OpenBSD_EnableSystemCallFilter(int level, SYS_ProcessContext context)
 {
-  int needs_main_misc = 0, needs_recvfd = 0, needs_sendfd = 0, needs_settime = 0;
+  int needs_inet = 0, needs_recvfd = 0, needs_sendfd = 0, needs_settime = 0;
+  int needs_main_misc = 0, priv_bind;
   const char **certs, **keys;
   char promises[128];
+
+  priv_bind = CNF_GetNTPPort() > 0 && CNF_GetNTPPort() < 1024;
 
   /* If level == 0, SYS_EnableSystemCallFilter() is not called.  Therefore
      only a value of 1 is valid here. */
@@ -239,21 +242,30 @@ SYS_OpenBSD_EnableSystemCallFilter(int level, SYS_ProcessContext context)
        inet         => allow connections to/from internet
        unix         => allow handling unix sockets
        dns          => allow DNS resolution
-       sendfd       => allow send fd to nts_ke helper thread. In
-                       NKS_Initialize() open_socket() -> accept_connection()
-       settime      => allow set time if system call filter is enabled and user is root */
+       sendfd       => allow sending fd to privops helper (for binding sockets
+                       to privileged ports) and/or NTS-KE helper (in
+                       NKS_Initialize() open_socket() -> accept_connection())
+       settime      => allow set time if system call filter is enabled and user
+                       is root (i.e. privops helper is not used) */
+    needs_inet = 1;
     needs_main_misc = 1;
 
     if (geteuid() == 0)
       needs_settime = 1;
 
-    if (CNF_GetNtsServerCertAndKeyFiles(&certs, &keys) > 0 &&
-        CNF_GetNtsServerProcesses() > 0)
+    if (priv_bind || (CNF_GetNtsServerCertAndKeyFiles(&certs, &keys) > 0 &&
+                      CNF_GetNtsServerProcesses() > 0))
       needs_sendfd = 1;
   } else if (context == SYS_PRIVOPS_HELPER) {
     /* stdio        => allow libc stdio calls
+       inet         => allow binding of sockets
+       recvfd       => allow receiving fd from main process
        settime      => allow set/adjust time */
     needs_settime = 1;
+    if (priv_bind) {
+      needs_inet = 1;
+      needs_recvfd = 1;
+    }
   } else if (context == SYS_NTSKE_HELPER) {
     /* stdio        => allow libc stdio calls
        recvfd       => allow receiving fd from main process. In run_helper()
@@ -261,8 +273,9 @@ SYS_OpenBSD_EnableSystemCallFilter(int level, SYS_ProcessContext context)
     needs_recvfd = 1;
   }
 
-  if (snprintf(promises, sizeof (promises), "stdio%s%s%s%s",
-               needs_main_misc ? " rpath wpath cpath inet unix dns" : "",
+  if (snprintf(promises, sizeof (promises), "stdio%s%s%s%s%s",
+               needs_inet ? " inet" : "",
+               needs_main_misc ? " rpath wpath cpath unix dns" : "",
                needs_recvfd ? " recvfd" : "",
                needs_sendfd ? " sendfd" : "",
                needs_settime ? " settime" : "") >= sizeof (promises))
