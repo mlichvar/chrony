@@ -222,6 +222,10 @@ SYS_OpenBSD_DropRoot(uid_t uid, gid_t gid, SYS_ProcessContext context, int clock
 void
 SYS_OpenBSD_EnableSystemCallFilter(int level, SYS_ProcessContext context)
 {
+  int needs_main_misc = 0, needs_recvfd = 0, needs_sendfd = 0, needs_settime = 0;
+  const char **certs, **keys;
+  char promises[128];
+
   /* If level == 0, SYS_EnableSystemCallFilter() is not called.  Therefore
      only a value of 1 is valid here. */
   if (level != 1 && context == SYS_MAIN_PROCESS)
@@ -238,42 +242,36 @@ SYS_OpenBSD_EnableSystemCallFilter(int level, SYS_ProcessContext context)
        sendfd       => allow send fd to nts_ke helper thread. In
                        NKS_Initialize() open_socket() -> accept_connection()
        settime      => allow set time if system call filter is enabled and user is root */
-    const char **certs, **keys;
+    needs_main_misc = 1;
+
+    if (geteuid() == 0)
+      needs_settime = 1;
 
     if (CNF_GetNtsServerCertAndKeyFiles(&certs, &keys) > 0 &&
-        CNF_GetNtsServerProcesses() > 0) {
-      /* NTS-KE helper(s) will be forked, the 'sendfd' promise is necessary */
-      if (geteuid() == 0) {
-        /* Running as root, in addition settime pledge promise needed */
-        if (pledge("stdio rpath wpath cpath inet unix dns sendfd settime", NULL) < 0)
-          LOG_FATAL("pledge() failed");
-      } else {
-        if (pledge("stdio rpath wpath cpath inet unix dns sendfd", NULL) < 0)
-          LOG_FATAL("pledge() failed");
-      }
-    } else {
-      /* No NTS-KE helper(s) will be forked, no need to set 'sendfd' promise */
-      if (geteuid() == 0) {
-        /* Running as root, in addition settime pledge promise needed */
-        if (pledge("stdio rpath wpath cpath inet unix dns settime", NULL) < 0)
-          LOG_FATAL("pledge() failed");
-      } else {
-        if (pledge("stdio rpath wpath cpath inet unix dns", NULL) < 0)
-          LOG_FATAL("pledge() failed");
-      }
-    }
+        CNF_GetNtsServerProcesses() > 0)
+      needs_sendfd = 1;
   } else if (context == SYS_PRIVOPS_HELPER) {
     /* stdio        => allow libc stdio calls
        settime      => allow set/adjust time */
-    if (pledge("stdio settime", NULL) < 0)
-      LOG_FATAL("pledge() failed");
+    needs_settime = 1;
   } else if (context == SYS_NTSKE_HELPER) {
     /* stdio        => allow libc stdio calls
        recvfd       => allow receiving fd from main process. In run_helper()
                        -> handle_helper_request() */
-    if (pledge("stdio recvfd", NULL) < 0)
-      LOG_FATAL("pledge() failed");
+    needs_recvfd = 1;
   }
+
+  if (snprintf(promises, sizeof (promises), "stdio%s%s%s%s",
+               needs_main_misc ? " rpath wpath cpath inet unix dns" : "",
+               needs_recvfd ? " recvfd" : "",
+               needs_sendfd ? " sendfd" : "",
+               needs_settime ? " settime" : "") >= sizeof (promises))
+    assert(0);
+
+  DEBUG_LOG("Pledging: %s", promises);
+
+  if (pledge(promises, NULL) < 0)
+    LOG_FATAL("pledge() failed");
 
   LOG(context == SYS_MAIN_PROCESS ? LOGS_INFO : LOGS_DEBUG, "Loaded pledge filter");
 }
