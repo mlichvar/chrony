@@ -42,6 +42,7 @@
 struct TLS_Instance_Record {
   gnutls_session_t session;
   int server;
+  char *server_name;
   char *label;
   char *alpn_name;
 };
@@ -167,12 +168,13 @@ TLS_CreateInstance(int server_mode, int sock_fd, const char *server_name, const 
 {
   gnutls_datum_t alpn;
   unsigned int flags;
-  int r;
+  int r, name_len;
 
   TLS_Instance inst = MallocNew(struct TLS_Instance_Record);
 
   inst->session = NULL;
   inst->server = server_mode;
+  inst->server_name = NULL;
   inst->label = Strdup(label);
   inst->alpn_name = Strdup(alpn_name);
 
@@ -187,9 +189,17 @@ TLS_CreateInstance(int server_mode, int sock_fd, const char *server_name, const 
   if (!server_mode) {
     assert(server_name);
 
-    if (!UTI_IsStringIP(server_name)) {
-      r = gnutls_server_name_set(inst->session, GNUTLS_NAME_DNS, server_name,
-                                 strlen(server_name));
+    inst->server_name = Strdup(server_name);
+
+    /* Remove the trailing dot from the hostname if present as expected by
+       gnutls_server_name_set() and gnutls_session_set_verify_cert() */
+    name_len = strlen(inst->server_name);
+    if (name_len > 1 && inst->server_name[name_len - 1] == '.')
+      inst->server_name[name_len - 1] = '\0';
+
+    if (!UTI_IsStringIP(inst->server_name)) {
+      r = gnutls_server_name_set(inst->session, GNUTLS_NAME_DNS, inst->server_name,
+                                 strlen(inst->server_name));
       if (r < 0)
         goto error;
     }
@@ -201,7 +211,7 @@ TLS_CreateInstance(int server_mode, int sock_fd, const char *server_name, const 
       DEBUG_LOG("Disabled time checks");
     }
 
-    gnutls_session_set_verify_cert(inst->session, server_name, flags);
+    gnutls_session_set_verify_cert(inst->session, inst->server_name, flags);
   }
 
   r = gnutls_priority_set(inst->session, priority_cache);
@@ -237,6 +247,8 @@ TLS_DestroyInstance(TLS_Instance inst)
   if (inst->session)
     gnutls_deinit(inst->session);
 
+  if (inst->server_name)
+    Free(inst->server_name);
   Free(inst->label);
   Free(inst->alpn_name);
 
