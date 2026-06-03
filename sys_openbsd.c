@@ -79,7 +79,7 @@ set_frequency(double freq_ppm)
   if (PRV_AdjustFreq(&freq, NULL))
     LOG_FATAL("adjfreq() failed");
 
-  return read_frequency();
+  return (double)-freq / (1000LL << 32);
 }
 
 /* ================================================== */
