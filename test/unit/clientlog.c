@@ -73,7 +73,7 @@ test_unit(void)
   struct timespec ts, ts2;
   CLG_Service s;
   NTP_int64 ntp_ts;
-  IPAddr ip;
+  IPAddr ip, ip2;
   char *env, conf[][100] = {
     "clientloglimit 20000",
     "ratelimit interval 3 burst 4 leak 3",
@@ -89,6 +89,18 @@ test_unit(void)
   CLG_Initialise();
 
   TEST_CHECK(ARR_GetSize(records) == 16);
+
+  TST_GetRandomAddress(&ip, IPADDR_INET4, 8);
+  while (UTI_CompareIPs(&ip, &ip2, NULL) == 0)
+    TST_GetRandomAddress(&ip2, IPADDR_INET4, 8);
+  TEST_CHECK(is_ip_equal(&ip, &ip));
+  TEST_CHECK(!is_ip_equal(&ip, &ip2));
+  TST_GetRandomAddress(&ip, IPADDR_INET6, 8);
+  TEST_CHECK(!is_ip_equal(&ip, &ip2));
+  while (UTI_CompareIPs(&ip, &ip2, NULL) == 0)
+    TST_GetRandomAddress(&ip2, IPADDR_INET6, 8);
+  TEST_CHECK(is_ip_equal(&ip, &ip));
+  TEST_CHECK(!is_ip_equal(&ip, &ip2));
 
   /* Expected format of the variable: ITERS:BITS */
   if ((env = getenv("BENCH_CLIENTLOG"))) {

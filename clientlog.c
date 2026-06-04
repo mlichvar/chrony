@@ -214,6 +214,24 @@ compare_total_hits(Record *x, Record *y)
 
 /* ================================================== */
 
+static int
+is_ip_equal(const IPAddr *a, const IPAddr *b)
+{
+  if (a->family != b->family)
+    return 0;
+
+  switch (a->family) {
+    case IPADDR_INET4:
+      return a->addr.in4 == b->addr.in4;
+    case IPADDR_INET6:
+      return memcmp(a->addr.in6, b->addr.in6, sizeof (a->addr.in6)) == 0;
+  }
+
+  return 0;
+}
+
+/* ================================================== */
+
 static Record *
 get_record(IPAddr *ip)
 {
@@ -231,14 +249,15 @@ get_record(IPAddr *ip)
     for (i = 0, oldest_record = NULL; i < SLOT_SIZE; i++) {
       record = ARR_GetElement(records, first + i);
 
-      if (!UTI_CompareIPs(ip, &record->ip_addr, NULL))
+      if (is_ip_equal(ip, &record->ip_addr))
         return record;
 
       if (record->ip_addr.family == IPADDR_UNSPEC)
         break;
 
-      for (j = 0; j < MAX_SERVICES; j++) {
-        if (j == 0 || compare_ts(last_hit, record->last_hit[j]) < 0)
+      last_hit = record->last_hit[0];
+      for (j = 1; j < MAX_SERVICES; j++) {
+        if (compare_ts(last_hit, record->last_hit[j]) < 0)
           last_hit = record->last_hit[j];
       }
 
@@ -265,13 +284,16 @@ get_record(IPAddr *ip)
   }
 
   record->ip_addr = *ip;
-  for (i = 0; i < MAX_SERVICES; i++) {
+  for (i = 0; i < MAX_SERVICES; i++)
     record->last_hit[i] = INVALID_TS;
+  for (i = 0; i < MAX_SERVICES; i++)
     record->hits[i] = 0;
+  for (i = 0; i < MAX_SERVICES; i++)
     record->drops[i] = 0;
+  for (i = 0; i < MAX_SERVICES; i++)
     record->tokens[i] = max_tokens[i];
+  for (i = 0; i < MAX_SERVICES; i++)
     record->rate[i] = INVALID_RATE;
-  }
   record->ntp_timeout_rate = INVALID_RATE;
   record->drop_flags = 0;
 
