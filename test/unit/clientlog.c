@@ -29,6 +29,40 @@ get_random64(void)
   return ((uint64_t)random() << 40) ^ ((uint64_t)random() << 20) ^ random();
 }
 
+static int bench(char *opts)
+{
+  struct timespec ts, ts_start, ts_end;
+  int i, index, iters, bits;
+  IPAddr ip;
+  char *s;
+
+  s = strchr(opts, ':');
+  if (!s)
+    return 0;
+
+  *s = '\0';
+  iters = atoi(opts);
+  bits = atoi(s + 1);
+
+  UTI_ZeroTimespec(&ts);
+
+  clock_gettime(CLOCK_MONOTONIC, &ts_start);
+
+  for (i = 0; i < iters; i++) {
+    TST_GetRandomAddress(&ip, IPADDR_INET4, bits);
+    index = CLG_LogServiceAccess(CLG_NTP, &ip, &ts);
+    TEST_CHECK(index >= 0);
+    UTI_AddDoubleToTimespec(&ts, 1.0e-6, &ts);
+  }
+
+  clock_gettime(CLOCK_MONOTONIC, &ts_end);
+
+  printf("\nCLG_LogServiceAccess(): %.3f ns\n",
+         UTI_DiffTimespecsToDouble(&ts_end, &ts_start) / iters * 1.0e9);
+
+  return 1;
+}
+
 void
 test_unit(void)
 {
@@ -40,7 +74,7 @@ test_unit(void)
   CLG_Service s;
   NTP_int64 ntp_ts;
   IPAddr ip;
-  char conf[][100] = {
+  char *env, conf[][100] = {
     "clientloglimit 20000",
     "ratelimit interval 3 burst 4 leak 3",
     "ntsratelimit interval 4 burst 8 leak 3",
@@ -55,6 +89,11 @@ test_unit(void)
   CLG_Initialise();
 
   TEST_CHECK(ARR_GetSize(records) == 16);
+
+  /* Expected format of the variable: ITERS:BITS */
+  if ((env = getenv("BENCH_CLIENTLOG"))) {
+    exit(!bench(env));
+  }
 
   for (i = 0; i < 500; i++) {
     DEBUG_LOG("iteration %d", i);
