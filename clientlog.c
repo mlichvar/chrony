@@ -61,7 +61,7 @@ typedef struct {
 /* Hash table of records, there is a fixed number of records per slot */
 static ARR_Instance records;
 
-#define SLOT_BITS 4
+#define SLOT_BITS 3
 
 /* Number of records in one slot of the hash table */
 #define SLOT_SIZE (1U << SLOT_BITS)

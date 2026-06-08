@@ -88,7 +88,7 @@ test_unit(void)
   LCL_Initialise();
   CLG_Initialise();
 
-  TEST_CHECK(ARR_GetSize(records) == 16);
+  TEST_CHECK(ARR_GetSize(records) == 8);
 
   TST_GetRandomAddress(&ip, IPADDR_INET4, 8);
   while (UTI_CompareIPs(&ip, &ip2, NULL) == 0)
