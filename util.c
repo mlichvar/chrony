@@ -450,10 +450,11 @@ UTI_IPToHash(const IPAddr *ip)
   while (!seed)
     UTI_GetRandomBytes(&seed, sizeof (seed));
 
+  /* Calculate the FNV-1a 32-bit hash */
   for (i = 0, hash = seed; i < len; i++)
-    hash = 71 * hash + addr[i];
+    hash = (hash ^ addr[i]) * 16777619;
 
-  return hash + seed;
+  return hash;
 }
 
 /* ================================================== */
