@@ -1452,7 +1452,7 @@ use to correct the measured drift. It is an additional limit to the maximum
 adjustment that can be set by the system driver (100000 ppm on Linux and
 OpenBSD, 500 ppm on FreeBSD, NetBSD, and macOS 10.13+, 32500 ppm on illumos).
 +
-By default, the maximum assumed drift is 500000 ppm, i.e. the adjustment is
+By default, the maximum assumed drift is 100000 ppm, i.e. the adjustment is
 limited by the system driver rather than this directive.
 
 [[maxupdateskew]]*maxupdateskew* _skew-in-ppm_::

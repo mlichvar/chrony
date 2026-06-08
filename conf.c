@@ -108,7 +108,7 @@ static char *rtc_file = NULL;
 static double max_update_skew = 1000.0;
 static double correction_time_ratio = 3.0;
 static double max_clock_error = 1.0; /* in ppm */
-static double max_drift = 500000.0; /* in ppm */
+static double max_drift = 100000.0; /* in ppm */
 static double max_slew_rate = 1e6 / 12.0; /* in ppm */
 static double clock_precision = 0.0; /* in seconds */
 

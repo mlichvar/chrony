@@ -326,7 +326,7 @@ LCL_Initialise(void)
   /* This is the maximum allowed frequency offset in ppm, the time must
      never stop or run backwards */
   max_freq_ppm = CNF_GetMaxDrift();
-  max_freq_ppm = CLAMP(0.0, max_freq_ppm, 500000.0);
+  max_freq_ppm = CLAMP(0.0, max_freq_ppm, 100000.0);
 
   max_clock_error = CNF_GetMaxClockError() * 1e-6;
 }
