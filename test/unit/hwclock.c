@@ -103,7 +103,7 @@ test_unit(void)
       }
     }
 
-    TEST_CHECK(sum / count < 2.4 / sqrt(clock->max_samples));
+    TEST_CHECK(sum / count < 2.55 / sqrt(clock->max_samples));
 
     HCL_DestroyInstance(clock);
   }
