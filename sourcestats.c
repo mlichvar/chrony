@@ -49,7 +49,7 @@
 
 /* The minimum and maximum assumed skew */
 #define MIN_SKEW 1.0e-12
-#define MAX_SKEW 1.0e+02
+#define MAX_SKEW 1.0e+00
 
 /* The minimum standard deviation */
 #define MIN_STDDEV 1.0e-9
