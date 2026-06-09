@@ -1154,8 +1154,9 @@ UTI_SetQuitSignalsHandler(void (*handler)(int), int ignore_sigpipe)
 char *
 UTI_PathToDir(const char *path)
 {
-  char *dir, *slash;
+  const char *slash;
   size_t dir_len;
+  char *dir;
 
   slash = strrchr(path, '/');
 
