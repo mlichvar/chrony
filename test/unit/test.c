@@ -72,7 +72,7 @@ main(int argc, char **argv)
   }
 
   clock_gettime(CLOCK_REALTIME, &ts);
-  srandom(seed ? seed : ts.tv_sec ^ (ts.tv_nsec << 10));
+  srandom(seed ? seed : ts.tv_sec ^ ((uint32_t)ts.tv_nsec << 10));
 
   printf("Testing %-30s ", test_name);
   fflush(stdout);
