@@ -1,0 +1,23 @@
+#!/bin/sh
+# This is a networkd-dispatcher script for chronyd to set its NTP sources
+# online or offline when a network interface is configured or removed. It
+# should be installed in the off.d, no-carrier.d, routable.d, and configured.d
+# directories.
+
+export LC_ALL=C
+
+chronyc=/usr/bin/chronyc
+
+# Consider only selected states
+case "$OperationalState:$AdministrativeState" in
+    routable:configured)
+        ;;
+    no-carrier:*|off:*)
+        ;;
+    *:*)
+        exit 0;;
+esac
+
+$chronyc onoffline > /dev/null 2>&1
+
+exit 0
