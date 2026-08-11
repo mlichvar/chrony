@@ -39,17 +39,23 @@ static int req_length, res_length;
 #define NIO_OpenClientSocket(addr) ((addr)->ip_addr.family != IPADDR_UNSPEC ? 101 : 0)
 #define NIO_CloseClientSocket(fd) assert(fd == 101)
 #define NIO_IsServerSocket(fd) (fd == 100)
-#define NIO_IsServerSocketOpen() 1
+#define NIO_IsServerSocketOpen() 0
 #define NIO_SendPacket(msg, to, from, len, process_tx) (memcpy(&req_buffer, msg, len), req_length = len, 1)
 #define SCH_AddTimeoutByDelay(delay, handler, arg) (1 ? 102 : (handler(arg), 1))
 #define SCH_AddTimeoutInClass(delay, separation, randomness, class, handler, arg) \
   add_timeout_in_class(delay, separation, randomness, class, handler, arg)
 #define SCH_RemoveTimeout(id) assert(!id || id == 102)
+#define SCH_GetLastEventTime(cooked, err, raw) \
+  do { \
+    LCL_ReadCookedTime(cooked, err); \
+    UTI_AddDoubleToTimespec(cooked, -(random() % 1000 / 1000.0), cooked); \
+  } while (0)
 #define LCL_ReadRawTime(ts) (*ts = current_time)
 #define LCL_ReadCookedTime(ts, err) do {double *p = err; *ts = current_time; if (p) *p = 0.0;} while (0)
 #define LCL_GetSysPrecisionAsLog() (random() % 10 - 30)
 #define SRC_UpdateReachability(inst, reach)
 #define SRC_ResetReachability(inst)
+#define REF_GetOurStratum() 10
 
 static SCH_TimeoutID
 add_timeout_in_class(double min_delay, double separation, double randomness,
