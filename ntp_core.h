@@ -101,6 +101,8 @@ extern void NCR_SlewTimes(NCR_Instance inst, struct timespec *when, double dfreq
    (i.e. stop sampling it) */
 extern void NCR_SetConnectivity(NCR_Instance inst, SRC_Connectivity connectivity);
 
+extern SRC_Connectivity NCR_GetConnectivity(NCR_Instance inst);
+
 extern void NCR_ModifyMinpoll(NCR_Instance inst, int new_minpoll);
 
 extern void NCR_ModifyMaxpoll(NCR_Instance inst, int new_maxpoll);

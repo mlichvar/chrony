@@ -2972,6 +2972,16 @@ NCR_SetConnectivity(NCR_Instance inst, SRC_Connectivity connectivity)
 
 /* ================================================== */
 
+SRC_Connectivity
+NCR_GetConnectivity(NCR_Instance inst)
+{
+  if (inst->opmode == MD_ONLINE || inst->opmode == MD_BURST_WAS_ONLINE)
+    return SRC_ONLINE;
+  return SRC_OFFLINE;
+}
+
+/* ================================================== */
+
 void
 NCR_ModifyMinpoll(NCR_Instance inst, int new_minpoll)
 {

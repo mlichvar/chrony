@@ -12,4 +12,23 @@ check_source_selection || test_fail
 check_packet_interval || test_fail
 check_sync || test_fail
 
+limit=10000
+client_server_conf="server nosuch.clk"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_source_selection && test_fail
+check_sync && test_fail
+
+check_log_messages "Could not resolve any hostnames yet" 1 1 || test_fail
+
+client_server_conf="server nosuch.clk offline
+server 192.168.123.1"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_source_selection || test_fail
+
+check_log_messages "Could not resolve any hostnames yet" 0 0 || test_fail
+
 test_pass

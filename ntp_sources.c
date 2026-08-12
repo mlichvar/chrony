@@ -615,6 +615,26 @@ resolve_sources_timeout(void *arg)
 
 /* ================================================== */
 
+static int
+has_online_unresolved_source(void)
+{
+  SourceRecord *record;
+  unsigned int i;
+
+  for (i = 0; i < ARR_GetSize(records); i++) {
+    record = get_record(i);
+    if (!record->remote_addr || UTI_IsIPReal(&record->remote_addr->ip_addr))
+      continue;
+
+    if (NCR_GetConnectivity(record->data) == SRC_ONLINE)
+      return 1;
+  }
+
+  return 0;
+}
+
+/* ================================================== */
+
 static void
 name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *anything)
 {
@@ -674,7 +694,8 @@ name_resolve_handler(DNS_Status status, int n_addrs, IPAddr *ip_addrs, void *any
       resolving_id = SCH_AddTimeoutByDelay(RESOLVE_INTERVAL_UNIT * (1 << resolving_interval),
                                            resolve_sources_timeout, NULL);
 
-      if (!any_resolved_sources && resolving_interval == MAX_RESOLVE_INTERVAL)
+      if (!any_resolved_sources && resolving_interval == MAX_RESOLVE_INTERVAL &&
+          has_online_unresolved_source())
         LOG_ONCE(LOGS_WARN, "Could not resolve any hostnames yet (misconfigured DNS?)");
     } else {
       resolving_interval = 0;
