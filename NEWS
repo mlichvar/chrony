@@ -1,3 +1,29 @@
+New in version 4.9
+==================
+
+Enhancements
+------------
+* Add support for OpenBSD
+* Add refclock driver for OpenBSD timedelta sensors
+* Add "optional" option to refclock directive to ignore missing devices
+* Add maxntsretry option to server/pool directive to configure maximum
+  NTS-KE retry interval
+* Add maxtxbuffers directive to enable processing of hardware and kernel
+  TX timestamps from non-Ethernet devices and tunnels
+* Add minstratum and maxstratum directives to limit acceptable strata
+* Add -N option for s6-style service notification
+* Improve measurement of local clock precision
+* Reduce impact of client logging on server performance
+* Update NTP-over-PTP support to final specification
+* Update Nettle support for version 4.0
+* Update seccomp filter
+* Warn if no hostnames of online sources can be resolved
+* Add -w option to chronyc to enable wider output for IPv6 addresses
+
+Bug fixes
+---------
+* Fix ratelimit directives to accept burst values over 32
+
 New in version 4.8
 ==================
 
