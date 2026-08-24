@@ -997,7 +997,8 @@ process_header(struct msghdr *msg, int msg_length, int sock_fd, int flags,
       struct scm_ts_pktinfo ts_pktinfo;
 
       memcpy(&ts_pktinfo, CMSG_DATA(cmsg), sizeof (ts_pktinfo));
-      message->timestamp.if_index = ts_pktinfo.if_index;
+      if (ts_pktinfo.if_index != 0)
+        message->timestamp.if_index = ts_pktinfo.if_index;
       message->timestamp.l2_length = ts_pktinfo.pkt_length;
     }
 #endif
