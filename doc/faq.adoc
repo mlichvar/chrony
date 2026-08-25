@@ -666,7 +666,7 @@ routers) in order to make more stable and accurate measurements. PTP relies on
 the hardware support. NTP does not rely on any support in the hardware, but if
 it had the same support as PTP, it could perform equally well.
 
-On Linux, `chrony` supports hardware clocks that some NICs have for PTP. They
+On Linux, `chronyd` supports hardware clocks that some NICs have for PTP. They
 are called PTP hardware clocks (PHC). They can be used as reference clocks
 (specified by the `refclock` directive) and for hardware timestamping of NTP
 packets (enabled by the `hwtimestamp` directive) if the NIC can timestamp other
@@ -674,14 +674,24 @@ packets than PTP, which is usually the case at least for transmitted packets.
 The `ethtool -T` command can be used to verify the timestamping support.
 
 As an experimental feature added in version 4.2, and fully supported since
-version 4.9, `chrony` can use PTP as a transport for NTP messages (NTP over
-PTP) to enable hardware timestamping on hardware which can timestamp only PTP
+version 4.9, `chronyd` can use PTP as a transport for NTP messages (NTP over
+PTP specified in RFC 10030) to enable hardware timestamping on hardware that
+can timestamp only PTP
 packets. NTP over PTP can be enabled by the `ptpport` directive and setting the
-`port` option to the PTP port 319. Since version 4.5, `chrony` can also apply
-corrections provided by PTP one-step end-to-end transparent clocks (e.g.
+`port` option to the PTP port 319. Since version 4.5, `chronyd` can also apply
+delay corrections provided by PTP one-step end-to-end transparent clocks (e.g.
 network switches) to reach the accuracy of ordinary PTP clocks. The application
 of PTP corrections can be enabled by the `extfield F324` option in versions
 before 4.9, or `extfield 10A` in later versions.
+
+When the network has PTP boundary clocks, or transparent clocks that cannot
+provide delay corrections in NTP-over-PTP messages, `chronyd` can be combined
+with one or more instances of `ptp4l` and `phc2sys` from `linuxptp` to improve
+accuracy and resilience against failures by using multiple PTP and/or NTP time
+sources simultaneously. The `clock_servo` option can be set to `refclock_sock`
+or `ntpshm` to work as a `SOCK` or `SHM` refclock for `chronyd` respectively.
+The `timemaster` program included in `linuxptp` can configure and start all the
+programs needed for this combined setup.
 
 === How can I avoid using wrong PHC refclock?
 

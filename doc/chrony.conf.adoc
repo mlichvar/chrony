@@ -3044,7 +3044,11 @@ transparent clocks in network switches and routers. The port recognized by the
 NICs and PTP transparent clocks is 319 (PTP event port). The default value is 0
 (disabled).
 +
-Support for NTP over PTP was added in *chronyd* version 4.9.
+Support for NTP over PTP (RFC 10030) was added in *chronyd* version 4.9.
+It sends NTP-over-PTP messages as PTPv2 Delay_Req messages with the
+ORGANIZATION_EXTENSION TLV. It accepts PTPv2 and PTPv2.1 Delay_Req and Sync
+messages with the ORGANIZATION_EXTENSION or
+ORGANIZATION_EXTENSION_DO_NOT_PROPAGATE TLV.
 Versions 4.2-4.8 supported an experimental version of the transport, which is
 not compatible with the final specification.
 +
