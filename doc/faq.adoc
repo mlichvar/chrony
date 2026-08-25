@@ -515,8 +515,12 @@ allow
 cmdport 11323
 bindcmdaddress /var/run/chrony/chronyd-server1.sock
 pidfile /var/run/chronyd-server1.pid
-driftfile /var/lib/chrony/drift-server1
 ----
+
+The `chrony` source code includes
+https://gitlab.com/chrony/chrony/-/raw/master/examples/multi-chronyd.sh[multi-chronyd.sh],
+an example bash script that automates the configuration and startup of the
+client and server instances.
 
 === How can `chronyd` be configured to minimise downtime during restarts?
 
