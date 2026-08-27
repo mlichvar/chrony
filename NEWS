@@ -14,7 +14,7 @@ Enhancements
 * Add -N option for s6-style service notification
 * Improve measurement of local clock precision
 * Reduce impact of client logging on server performance
-* Update NTP-over-PTP support to final specification
+* Update NTP-over-PTP support to final specification (RFC 10030)
 * Update Nettle support for version 4.0
 * Update seccomp filter
 * Warn if no hostnames of online sources can be resolved
@@ -23,6 +23,7 @@ Enhancements
 Bug fixes
 ---------
 * Fix ratelimit directives to accept burst values over 32
+* Fix handling of hardware RX timestamps with zero interface index
 
 New in version 4.8
 ==================
