@@ -333,6 +333,10 @@ update_interface_speed(struct Interface *iface)
 
   link_speed = ethtool_cmd_speed(&cmd);
 
+  /* Ignore an unknown speed to keep the last known value */
+  if (link_speed <= 0)
+    return;
+
   if (iface->link_speed != link_speed) {
     iface->link_speed = link_speed;
     DEBUG_LOG("Updated speed of %s to %d Mb/s", iface->name, link_speed);
