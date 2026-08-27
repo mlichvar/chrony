@@ -384,7 +384,7 @@ handle_modify_minstratum(CMD_Request *rx_message, CMD_Reply *tx_message)
 {
   IPAddr address;
 
-  UTI_IPNetworkToHost(&rx_message->data.modify_minpoll.address, &address);
+  UTI_IPNetworkToHost(&rx_message->data.modify_minstratum.address, &address);
   if (!NSR_ModifyMinstratum(&address,
                             ntohl(rx_message->data.modify_minstratum.new_min_stratum)))
     tx_message->status = htons(STT_NOSUCHSOURCE);
