@@ -3611,7 +3611,7 @@ print_help(const char *progname)
              "  -h HOST\tSpecify server (%s)\n"
              "  -p PORT\tSpecify UDP port (%d)\n"
              "  -u USER\tSpecify user (%s)\n"
-             "  -w\t\tWide output\n"
+             "  -w\t\tEnable wide output\n"
              "  -v, --version\tPrint version and exit\n"
              "      --help\tPrint usage and exit\n",
              progname, DEFAULT_COMMAND_SOCKET",127.0.0.1,::1",
