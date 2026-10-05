@@ -75,6 +75,8 @@ static int no_dns = 0;
 
 static int source_names = 0;
 
+static int exp_mode = 0;
+
 static int csv_mode = 0;
 
 static int end_dot = 0;
@@ -1863,6 +1865,34 @@ print_report(const char *format, ...)
           spec = 'V';
           break;
       }
+
+      if (exp_mode && spec == 'f') {
+        prec = 7;
+        spec = 'e';
+      }
+    } else if (exp_mode) {
+      switch (spec) {
+        case 'F':
+        case 'O':
+          prec = 7;
+          break;
+        case 'P':
+          width = 10;
+          prec = 2;
+          spec = 'e';
+          break;
+        case 'S':
+          width = sign ? 7 : 6;
+          prec = 0;
+          spec = 'e';
+          break;
+        case 'f':
+          if (width == 0 || width >= 7) {
+            prec = width > 0 ? width - 7 : 7;
+            spec = 'e';
+          }
+          break;
+      }
     }
 
     switch (spec) {
@@ -1877,8 +1907,8 @@ print_report(const char *format, ...)
       case 'F': /* absolute frequency in ppm with fast/slow keyword */
       case 'O': /* absolute offset in seconds with fast/slow keyword */
         dbl = va_arg(ap, double);
-        printf("%*.*f %s %s", width, prec, fabs(dbl),
-               spec == 'O' ? "seconds" : "ppm",
+        printf(exp_mode ? "%*.*e %s %s" : "%*.*f %s %s",
+               width, prec, fabs(dbl), spec == 'O' ? "seconds" : "ppm",
                (dbl > 0.0) ^ (spec != 'O') ? "slow" : "fast");
         break;
       case 'I': /* uint32_t interval with unit */
@@ -1994,6 +2024,10 @@ print_report(const char *format, ...)
       case 'd': /* signed int in decimal */
         integer = va_arg(ap, int);
         printf("%*d", width, integer);
+        break;
+      case 'e': /* double */
+        dbl = va_arg(ap, double);
+        printf(sign ? "%+*.*e" : "%*.*e", width, prec, dbl);
         break;
       case 'f': /* double */
         dbl = va_arg(ap, double);
@@ -3603,6 +3637,7 @@ print_help(const char *progname)
              "  -6\t\tUse IPv6 addresses only\n"
              "  -n\t\tDon't resolve hostnames\n"
              "  -N\t\tPrint original source names\n"
+             "  -E\t\tPrint values in exponential notation\n"
              "  -c\t\tEnable CSV format\n"
              "  -e\t\tEnd responses with dot\n"
 #if DEBUG > 0
@@ -3653,7 +3688,7 @@ main(int argc, char **argv)
   optind = 1;
 
   /* Parse short command-line options */
-  while ((opt = getopt(argc, argv, "+46acdef:h:mnNp:u:vw")) != -1) {
+  while ((opt = getopt(argc, argv, "+46acdeEf:h:mnNp:u:vw")) != -1) {
     switch (opt) {
       case '4':
       case '6':
@@ -3673,6 +3708,9 @@ main(int argc, char **argv)
         break;
       case 'e':
         end_dot = 1;
+        break;
+      case 'E':
+        exp_mode = 1;
         break;
       case 'h':
         hostnames = optarg;

@@ -86,6 +86,11 @@ sources that were specified in the configuration file, or *chronyc* commands.
 Without the *-n* and *-N* option, the printed hostnames are obtained from
 reverse DNS lookups and can be different from the specified hostnames.
 
+*-E*::
+With this option most floating-point values (e.g. time and frequency offsets)
+will be printed in exponential notation and values in seconds will not be
+converted to other units. This option can be combined with the *-c* option.
+
 *-c*::
 This option enables printing of reports in a comma-separated values (CSV)
 format. Reverse DNS lookups will be disabled, time will be printed as number of

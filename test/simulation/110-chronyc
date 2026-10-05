@@ -103,6 +103,26 @@ check_chronyc_output "^#,.,SHM0.*
 \.$" \
 	|| test_fail
 
+chronyc_options="-c -E"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+
+check_chronyc_output "^#,.,SHM0,.*,-?[0-9]\.[0-9]+e-0[0-9],-?[0-9]\.[0-9]+e-0[0-9],-?[0-9]\.[0-9]+e-0[0-9]
+\^,.,192\.168\.123\.1,.*,-?[0-9]\.[0-9]+e-0[0-9],-?[0-9]\.[0-9]+e-0[0-9],-?[0-9]\.[0-9]+e-0[0-9]
+\^,.,192\.168\.123\.2,.*,0\.0000000e\+00,0\.0000000e\+00,0\.0000000e\+00" \
+	|| test_fail
+
+chronyc_options="-E"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+
+check_chronyc_output "#\? SHM0.* [+-][1-9]e-0[1-9]. [+-][1-9]e-0[1-9].* [1-9]e-0[1-9]
+\^\* node1.* [+-][1-9]e-0[1-9]. [+-][1-9]e-0[1-9].* [1-9]e-0[1-9]
+\^\? node2.* \+0e\+00. \+0e\+00.* 0e\+00$" \
+	|| test_fail
+
 client_conf=""
 client_server_conf="
 server node1.net1.clk
