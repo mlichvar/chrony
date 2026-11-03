@@ -789,8 +789,7 @@ poll_timeout(void *arg)
         inst->synchronised = 0;
       }
 
-      SRC_UpdateStatus(inst->source, stratum, inst->synchronised ?
-                                              LEAP_Normal : LEAP_Unsynchronised);
+      SRC_UpdateStatus(inst->source, stratum, inst->synchronised);
       SRC_AccumulateSample(inst->source, &sample);
       SRC_SelectSource(inst->source);
 

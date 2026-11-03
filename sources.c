@@ -142,14 +142,11 @@ struct SRC_Instance_Record {
 
   struct SelectInfo sel_info;
 
+  /* Flag indicating that the source is synchronised */
+  int synchronised;
+
   /* Current stratum */
   int stratum;
-
-  /* Current leap status */
-  NTP_Leap leap;
-
-  /* Flag indicating the source has a leap second vote */
-  int leap_vote;
 
   /* Flags indicating which status was already reported for
      the source since the last change of the system peer */
@@ -369,9 +366,8 @@ SRC_ResetInstance(SRC_Instance instance)
   instance->bad = 0;
   instance->status = SRC_BAD_STATS;
   instance->sel_score = 1.0;
+  instance->synchronised = 0;
   instance->stratum = 0;
-  instance->leap = LEAP_Unsynchronised;
-  instance->leap_vote = 0;
 
   memset(instance->reported_status, 0, sizeof (instance->reported_status));
   memset(&instance->sel_info, 0, sizeof (instance->sel_info));
@@ -403,46 +399,14 @@ SRC_GetSourcestats(SRC_Instance instance)
 
 /* ================================================== */
 
-static NTP_Leap
-get_leap_status(void)
-{
-  int i, leap_votes, leap_ins, leap_del;
-
-  /* Accept a leap second if more than half of the sources with a vote agree */
-
-  for (i = leap_ins = leap_del = leap_votes = 0; i < n_sources; i++) {
-    if (!sources[i]->leap_vote)
-      continue;
-
-    leap_votes++;
-    if (sources[i]->leap == LEAP_InsertSecond)
-      leap_ins++;
-    else if (sources[i]->leap == LEAP_DeleteSecond)
-      leap_del++;
-  }
-
-  if (leap_ins > leap_votes / 2)
-    return LEAP_InsertSecond;
-  else if (leap_del > leap_votes / 2)
-    return LEAP_DeleteSecond;
-  else
-    return LEAP_Normal;
-}
-
-/* ================================================== */
-
 void
-SRC_UpdateStatus(SRC_Instance inst, int stratum, NTP_Leap leap)
+SRC_UpdateStatus(SRC_Instance inst, int stratum, int synced)
 {
+  inst->synchronised = synced;
   inst->stratum = stratum;
 
-  if (REF_IsLeapSecondClose(NULL, 0.0))
-    return;
-
-  inst->leap = leap;
-
-  if (inst->leap_vote)
-    REF_UpdateLeapStatus(get_leap_status());
+  if (synced && inst->status >= SRC_UNSELECTED)
+    REF_UpdateLeapStatus(LEAP_Normal);
 }
 
 /* ================================================== */
@@ -458,17 +422,11 @@ SRC_UpdateStatus(SRC_Instance inst, int stratum, NTP_Leap leap)
 void
 SRC_AccumulateSample(SRC_Instance inst, NTP_Sample *sample)
 {
-
   assert(initialised);
 
   DEBUG_LOG("src=%s ts=%s offset=%e delay=%e disp=%e",
             source_to_string(inst), UTI_TimespecToString(&sample->time), -sample->offset,
             sample->root_delay, sample->root_dispersion);
-
-  if (REF_IsLeapSecondClose(&sample->time, sample->offset)) {
-    LOG(LOGS_INFO, "Dropping sample around leap second");
-    return;
-  }
 
   SST_AccumulateSample(inst->stats, sample);
   SST_DoNewRegression(inst->stats);
@@ -752,11 +710,11 @@ set_source_status(SRC_Instance inst, SRC_Status status)
       handle_bad_source(inst);
   }
 
-  DEBUG_LOG("%s status=%c options=%x reach=%o/%d updates=%d distant=%d bad=%d leap=%d vote=%d lo=%f hi=%f",
+  DEBUG_LOG("%s status=%c options=%x reach=%o/%d updates=%d distant=%d bad=%d lo=%f hi=%f",
             source_to_string(inst), get_status_char(inst->status),
             (unsigned int)inst->sel_options, (unsigned int)inst->reachability,
             inst->reachability_size, inst->updates,
-            inst->distant, inst->bad, (int)inst->leap, inst->leap_vote,
+            inst->distant, inst->bad,
             inst->sel_info.lo_limit, inst->sel_info.hi_limit);
 
   if (logfileid == -1)
@@ -975,7 +933,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
   double best_lo, best_hi, distance, sel_src_distance, max_score;
   double best_trust_lo, best_trust_hi;
   double first_sample_ago, max_reach_sample_ago;
-  NTP_Leap leap_status;
 
   if (updated_inst) {
     updated_inst->updates++;
@@ -1003,9 +960,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
 
   for (i = 0; i < n_sources; i++) {
     assert(sources[i]->status != SRC_OK);
-
-    /* Don't allow the source to vote on leap seconds unless it's selectable */
-    sources[i]->leap_vote = 0;
 
     /* If some sources are specified with the require option, at least one
        of them will have to be selectable in order to update the clock */
@@ -1037,7 +991,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
     }
 
     /* Ignore sources which are not synchronised */
-    if (sources[i]->leap == LEAP_Unsynchronised) {
+    if (!sources[i]->synchronised) {
       mark_source(sources[i], SRC_UNSYNCHRONISED);
       continue;
     }
@@ -1349,15 +1303,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
     return;
   }
 
-  /* Enable the selectable sources (and trusted if there are any) to
-     vote on leap seconds */
-  for (i = 0; i < n_sel_sources; i++) {
-    index = sel_sources[i];
-    if (best_trust_depth && !(sources[index]->sel_options & SRC_SELECT_TRUST))
-      continue;
-    sources[index]->leap_vote = 1;
-  }
-
   /* If there are any sources with prefer option, reduce the list again
      only to the preferred sources */
   for (i = 0; i < n_sel_sources; i++) {
@@ -1488,8 +1433,6 @@ SRC_SelectSource(SRC_Instance updated_inst)
   for (i = 0; i < n_sources; i++)
     sources[i]->updates = 0;
 
-  leap_status = get_leap_status();
-
   /* Now just use the statistics of the selected source combined with
      the other selectable sources for trimming the local clock */
 
@@ -1502,7 +1445,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
                              &src_frequency, &src_frequency_sd, &src_skew);
 
   REF_SetReference(sources[selected_source_index]->stratum,
-                   leap_status, combined,
+                   LEAP_Normal, combined,
                    sources[selected_source_index]->ref_id,
                    sources[selected_source_index]->ip_addr,
                    &ref_time, src_offset, src_offset_sd,
@@ -1619,7 +1562,7 @@ save_source(SRC_Instance inst)
   if (fprintf(f, "%s%s\n%d %o %d %d %d\n",
               DUMP_IDENTIFIER, ntp_name, inst->authenticated,
               (unsigned int)inst->reachability, inst->reachability_size,
-              inst->stratum, (int)inst->leap) < 0 ||
+              inst->stratum, inst->synchronised ? LEAP_Normal : LEAP_Unsynchronised) < 0 ||
       !SST_SaveToFile(inst->stats, f)) {
     fclose(f);
     if (!UTI_RemoveFile(dumpdir, filename, ".dat"))
@@ -1675,7 +1618,7 @@ load_source(SRC_Instance inst)
                &auth, &reach, &reach_size, &stratum, &leap) != 5 ||
         (!auth && inst->authenticated) ||
         stratum < 0 || stratum >= NTP_MAX_STRATUM ||
-        leap < LEAP_Normal || leap >= LEAP_Unsynchronised ||
+        (leap != LEAP_Normal && leap != LEAP_Unsynchronised) ||
       !SST_LoadFromFile(inst->stats, f)) {
     LOG(LOGS_WARN, "Could not load dump file for %s", source_to_string(inst));
     fclose(f);
@@ -1684,8 +1627,8 @@ load_source(SRC_Instance inst)
 
   inst->reachability = reach & ((1U << SOURCE_REACH_BITS) - 1);
   inst->reachability_size = CLAMP(0, reach_size, SOURCE_REACH_BITS);
+  inst->synchronised = leap == LEAP_Normal;
   inst->stratum = stratum;
-  inst->leap = leap;
 
   LOG(LOGS_INFO, "Loaded dump file for %s", source_to_string(inst));
 
@@ -1988,7 +1931,7 @@ SRC_GetSelectReport(int index, RPT_SelectReport *report)
     report->ip_addr.family = IPADDR_UNSPEC;
   report->state_char = get_status_char(inst->status);
   report->authentication = inst->authenticated;
-  report->leap = inst->leap;
+  report->leap = inst->synchronised ? LEAP_Normal : LEAP_Unsynchronised;
   report->conf_options = inst->conf_sel_options;
   report->eff_options = inst->sel_options;
   report->last_sample_ago = inst->sel_info.last_sample_ago;

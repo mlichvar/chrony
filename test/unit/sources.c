@@ -82,7 +82,7 @@ test_unit(void)
         sample.root_dispersion = sample.peer_dispersion;
 
         if (random() % 2)
-          SRC_UpdateStatus(srcs[j], 1, random() % 4);
+          SRC_UpdateStatus(srcs[j], 1, random() % 2);
 
         DEBUG_LOG("source %d sample %d offset %f delay %f disp %f", j, k,
                   sample.offset, sample.peer_delay, sample.peer_dispersion);
@@ -102,7 +102,7 @@ test_unit(void)
           TEST_CHECK(sources[l]->status > SRC_OK && sources[l]->status <= SRC_SELECTED);
           if (sources[l]->sel_options & SRC_SELECT_NOSELECT) {
             TEST_CHECK(sources[l]->status == SRC_UNSELECTABLE);
-          } else if (sources[l]->leap == LEAP_Unsynchronised) {
+          } else if (!sources[l]->synchronised) {
             TEST_CHECK(sources[l]->status == SRC_UNSYNCHRONISED);
           } else if (sources[l]->status != SRC_BAD_DISTANCE) {
             if (sources[l]->status >= SRC_NONPREFERRED) {
@@ -137,12 +137,6 @@ test_unit(void)
         TEST_CHECK(!trusted || !passed || (passed_lo >= trusted_lo && passed_hi <= trusted_hi));
         TEST_CHECK(!passed || !trusted || trusted_passed >= 1);
         TEST_CHECK(!passed || !required || required_passed > 0);
-
-        for (l = 0; l <= j; l++) {
-          TEST_CHECK(sources[l]->leap_vote ==
-                     (sources[l]->status >= SRC_NONPREFERRED &&
-                      (!trusted || sources[l]->sel_options & SRC_SELECT_TRUST)));
-        }
       }
     }
 
@@ -173,7 +167,7 @@ test_unit(void)
         sample.peer_dispersion = sample.root_dispersion = 4.0e-3;
 
         SRC_AccumulateSample(srcs[j], &sample);
-        SRC_UpdateStatus(srcs[j], 1, LEAP_Normal);
+        SRC_UpdateStatus(srcs[j], 1, 1);
       }
     }
 

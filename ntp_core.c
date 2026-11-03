@@ -2384,7 +2384,7 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
     }
 
     if (synced_packet) {
-      SRC_UpdateStatus(inst->source, MAX(inst->remote_stratum, inst->min_stratum), pkt_leap);
+      SRC_UpdateStatus(inst->source, MAX(inst->remote_stratum, inst->min_stratum), 1);
 
       if (inst->delay_quant)
         QNT_Accumulate(inst->delay_quant, sample.peer_delay);

@@ -88,8 +88,8 @@ extern void SRC_SetRefid(SRC_Instance instance, uint32_t ref_id, IPAddr *addr);
 /* Function to get access to the sourcestats instance */
 extern SST_Stats SRC_GetSourcestats(SRC_Instance instance);
 
-/* Function to update the stratum and leap status of the source */
-extern void SRC_UpdateStatus(SRC_Instance instance, int stratum, NTP_Leap leap);
+/* Function to update the stratum and synchronised status of the source */
+extern void SRC_UpdateStatus(SRC_Instance instance, int stratum, int synced);
 
 /* Function to accumulate a new sample from the source */
 extern void SRC_AccumulateSample(SRC_Instance instance, NTP_Sample *sample);
