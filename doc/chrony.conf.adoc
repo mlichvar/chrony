@@ -2573,9 +2573,8 @@ values from the example line above) :
 . The estimated local offset at the epoch, which is normally corrected by
   slewing the local clock (in seconds, positive indicates the clock is fast of
   UTC). [-8.621e-06]
-. Leap status (_N_ means normal, _+_ means that the last minute of this month
-  has 61 seconds, _-_ means that the last minute of the month has 59 seconds,
-  _?_ means the clock is not currently synchronised.) [N]
+. Leap status (_N_ means normal, _?_ means the clock is not currently
+  synchronised.) [N]
 . The number of combined sources. [2]
 . The estimated standard deviation of the combined offset (in seconds).
   [2.940e-03]
@@ -2642,9 +2641,7 @@ from the example line above):
 . Reference ID of the reference clock from which the measurement came. [PPS2]
 . Sequence number of driver poll within one polling interval for raw samples,
   or _-_ for filtered samples. [7]
-. Leap status (_N_ means normal, _+_ means that the last minute of the current
-  month has 61 seconds, _-_ means that the last minute of the month has 59
-  seconds). [N]
+. Leap status (_N_ means normal, _?_ means unsynchronised). [N]
 . Flag indicating whether the sample comes from PPS source. (1 for yes,
   0 for no, or _-_ for filtered sample). [1]
 . Local clock error measured by reference clock driver, or _-_ for filtered sample.

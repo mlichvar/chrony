@@ -66,7 +66,7 @@ struct RCL_Instance_Record {
   int driver_polled;
   int poll;
   int reached;
-  int leap_status;
+  int synchronised;
   int local;
   int pps_forced;
   int pps_rate;
@@ -182,7 +182,7 @@ RCL_AddRefclock(RefclockParameters *params)
   inst->poll = params->poll;
   inst->driver_polled = 0;
   inst->reached = 0;
-  inst->leap_status = LEAP_Normal;
+  inst->synchronised = 1;
   inst->local = params->local;
   inst->pps_forced = params->pps_forced;
   inst->pps_rate = params->pps_rate;
@@ -228,7 +228,7 @@ RCL_AddRefclock(RefclockParameters *params)
   if (inst->local) {
     inst->pps_forced = 1;
     inst->lock_ref = inst->ref_id;
-    inst->leap_status = LEAP_Unsynchronised;
+    inst->synchronised = 0;
     inst->max_lock_age = MAX(inst->max_lock_age, 3);
   }
 
@@ -481,16 +481,12 @@ RCL_AddSample(RCL_Instance instance, struct timespec *sample_time,
       !valid_sample_time(instance, &cooked_time))
     return 0;
 
-  switch (leap) {
-    case LEAP_Normal:
-    case LEAP_InsertSecond:
-    case LEAP_DeleteSecond:
-      instance->leap_status = leap;
-      break;
-    default:
-      DEBUG_LOG("refclock sample ignored bad leap %d", leap);
-      return 0;
+  if (leap != LEAP_Normal) {
+    DEBUG_LOG("refclock sample ignored bad leap %d", leap);
+    return 0;
   }
+
+  instance->synchronised = 1;
 
   /* Calculate offset = raw_offset - correction + instance->offset
      in parts to avoid loss of precision if there are large differences */
@@ -559,15 +555,14 @@ int
 RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
                    double second, double dispersion, double raw_correction, int quality)
 {
+  int rate, synced;
   double offset;
-  int rate;
-  NTP_Leap leap;
 
   if (!UTI_IsTimeOffsetSane(cooked_time, second) ||
       !valid_sample_time(instance, cooked_time))
     return 0;
 
-  leap = LEAP_Normal;
+  synced = 1;
   dispersion += instance->precision;
   rate = instance->pps_rate;
 
@@ -630,7 +625,7 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
     if (!check_pulse_edge(instance, ref_sample.offset - offset, 0.0))
       return 0;
 
-    leap = lock_refclock->leap_status;
+    synced = lock_refclock->synchronised;
 
     DEBUG_LOG("refclock pulse offset=%.9f offdiff=%.9f samplediff=%.9f",
               offset, ref_sample.offset - offset, sample_diff);
@@ -639,6 +634,7 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
     int is_synchronised, stratum;
     double root_delay, root_dispersion, distance;
     uint32_t ref_id;
+    NTP_Leap leap;
 
     /* Ignore the pulse if we are not well synchronized and the local
        reference is not active */
@@ -662,7 +658,7 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
   if (!accumulate_sample(instance, cooked_time, offset, dispersion, quality))
     return 0;
 
-  instance->leap_status = leap;
+  instance->synchronised = synced;
   instance->pps_active = 1;
 
   log_sample(instance, cooked_time, 0, 1, offset + raw_correction - instance->offset,
@@ -817,10 +813,11 @@ poll_timeout(void *arg)
 
       if (inst->local) {
         get_local_stats(inst, &local_ref_time, &local_freq, &local_offset);
-        inst->leap_status = LEAP_Unsynchronised;
+        inst->synchronised = 0;
       }
 
-      SRC_UpdateStatus(inst->source, stratum, inst->leap_status);
+      SRC_UpdateStatus(inst->source, stratum, inst->synchronised ?
+                                              LEAP_Normal : LEAP_Unsynchronised);
       SRC_AccumulateSample(inst->source, &sample);
       SRC_SelectSource(inst->source);
 
@@ -860,8 +857,6 @@ add_dispersion(double dispersion, void *anything)
 static void
 log_sample(RCL_Instance instance, struct timespec *sample_time, int filtered, int pulse, double raw_offset, double cooked_offset, double dispersion)
 {
-  char sync_stats[4] = {'N', '+', '-', '?'};
-
   if (logfileid == -1)
     return;
 
@@ -871,7 +866,7 @@ log_sample(RCL_Instance instance, struct timespec *sample_time, int filtered, in
       (int)sample_time->tv_nsec / 1000,
       UTI_RefidToString(instance->ref_id),
       instance->driver_polled,
-      sync_stats[instance->leap_status],
+      instance->synchronised ? 'N' : '?',
       pulse,
       raw_offset,
       cooked_offset,
@@ -881,7 +876,7 @@ log_sample(RCL_Instance instance, struct timespec *sample_time, int filtered, in
       UTI_TimeToLogForm(sample_time->tv_sec),
       (int)sample_time->tv_nsec / 1000,
       UTI_RefidToString(instance->ref_id),
-      sync_stats[instance->leap_status],
+      instance->synchronised ? 'N' : '?',
       cooked_offset,
       dispersion);
   }

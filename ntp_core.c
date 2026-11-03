@@ -2052,7 +2052,7 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
   test5 = saved || NAU_CheckResponseAuth(inst->auth, message, info);
 
   /* Test 6 checks for unsynchronised server */
-  test6 = pkt_leap != LEAP_Unsynchronised &&
+  test6 = pkt_leap == LEAP_Normal &&
           message->stratum < NTP_MAX_STRATUM &&
           message->stratum != NTP_INVALID_STRATUM; 
 

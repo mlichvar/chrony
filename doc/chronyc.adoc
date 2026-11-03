@@ -262,8 +262,7 @@ clock_error <= |system_time_offset| + root_dispersion + (0.5 * root_delay)
 *Update interval*:::
 This is the interval between the last two clock updates.
 *Leap status*:::
-This is the leap status, which can be _Normal_, _Insert second_, _Delete
-second_ or _Not synchronised_.
+This is the leap status, which can be _Normal_ or _Not synchronised_.
 
 [[makestep]]*makestep*::
 *makestep* _threshold_ _limit_::
@@ -547,9 +546,7 @@ expected to contain the true offset of the local clock considering the root
 distance at the time of the selection.
 *Leap*:::
 This column displays the current leap status of the source.
-* _N_ indicates the normal status (no leap second).
-* _+_ indicates that a leap second will be inserted at the end of the month.
-* _-_ indicates that a leap second will be deleted at the end of the month.
+* _N_ indicates the normal status.
 * _?_ indicates the unknown status (i.e. no valid measurement was made).
 
 [[selectopts]]*selectopts* _address|refid_ [_+|-option_]...::
