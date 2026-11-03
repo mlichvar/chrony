@@ -34,7 +34,6 @@
 #include "reference.h"
 #include "util.h"
 #include "conf.h"
-#include "leapdb.h"
 #include "logging.h"
 #include "local.h"
 #include "sched.h"
@@ -673,17 +672,10 @@ set_leap_timeout(time_t now)
 static void
 update_leap_status(NTP_Leap leap, time_t now, int reset)
 {
-  NTP_Leap ldb_leap;
   int leap_sec, tai_offset;
 
   leap_sec = 0;
   tai_offset = 0;
-
-  if (now) {
-    ldb_leap = LDB_GetLeap(now, &tai_offset);
-    if (leap == LEAP_Normal)
-      leap = ldb_leap;
-  }
 
   if (leap == LEAP_InsertSecond || leap == LEAP_DeleteSecond) {
     /* Check that leap second is allowed today */
@@ -1336,11 +1328,7 @@ int REF_IsLeapSecondClose(struct timespec *ts, double offset)
 int
 REF_GetTaiOffset(struct timespec *ts)
 {
-  int tai_offset;
-
-  LDB_GetLeap(ts->tv_sec, &tai_offset);
-
-  return tai_offset;
+  return TAI_UTC_OFFSET;
 }
 
 /* ================================================== */

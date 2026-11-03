@@ -752,11 +752,8 @@ can be selected and used for synchronisation only if they agree with the
 trusted and required source.
 *tai*:::
 This option indicates that the reference clock keeps time in TAI instead of UTC
-and that *chronyd* should correct its offset by the current TAI-UTC offset. The
-<<leapsectz,*leapsectz*>> or <<leapseclist,*leapseclist*>> directive must be
-used with this option and the database must be kept up to date in order for
-this correction to work as expected. This option does not make sense with PPS
-refclocks.
+and that *chronyd* should correct its offset by the current TAI-UTC offset.
+This option does not make sense with PPS refclocks.
 *local*:::
 This option specifies that the reference clock is an unsynchronised clock which
 is more stable than the system clock (e.g. TCXO, OCXO, or atomic clock) and
@@ -1362,57 +1359,6 @@ The duration of the leap smear can be calculated from the specified wander as
 +
 ----
 duration = sqrt(4 / wander)
-----
-
-[[leapsectz]]*leapsectz* _timezone_::
-This directive specifies a timezone in the system timezone database which
-*chronyd* can use to determine when the next leap second occurs and what
-the current offset between TAI and UTC is. It will periodically check if 23:59:59
-and 23:59:60 are valid times in the timezone. This normally works with the
-_right/UTC_ timezone.
-+
-When a leap second is announced, the timezone needs to be updated at least 12
-hours before the leap second. It is not necessary to restart *chronyd*.
-+
-This directive is useful with reference clocks and other time sources that do
-not announce leap seconds, or announce them too late for an NTP server to
-forward them to its own clients. Clients of leap smearing servers must not
-use this directive.
-+
-It is also useful when the system clock is required to have correct TAI-UTC
-offset. Note that the offset is set only when leap seconds are handled by the
-kernel, i.e. <<leapsecmode,*leapsecmode*>> is set to *system*.
-+
-The specified timezone is not used as an exclusive source of information about
-leap seconds. If a majority of time sources announce on the last day of June or
-December that a leap second should be inserted or deleted, it will be accepted
-even if it is not included in the timezone.
-+
-An example of the directive is:
-+
-----
-leapsectz right/UTC
-----
-+
-The following shell command verifies that the timezone contains leap seconds
-and can be used with this directive:
-+
-----
-$ TZ=right/UTC date -d 'Dec 31 2008 23:59:60'
-Wed Dec 31 23:59:60 UTC 2008
-----
-
-[[leapseclist]]*leapseclist* _file_::
-This directive specifies the path to a file containing a list of leap seconds
-and TAI-UTC offsets in NIST/IERS format. It is recommended to use
-the file _leap-seconds.list_ usually included with the system timezone
-database. The behaviour of this directive is otherwise equivalent to
-<<leapsectz,*leapsectz*>>.
-+
-An example of this directive is:
-+
-----
-leapseclist /usr/share/zoneinfo/leap-seconds.list
 ----
 
 [[makestep]]*makestep* _threshold_ _limit_::
@@ -3426,9 +3372,7 @@ hardware reference clock (e.g. a GPS receiver), it can be specified by the
 The amount of memory used for logging client accesses can be increased in order
 to enable clients to use the interleaved mode even when the server has a large
 number of clients, and better support rate limiting if it is enabled by the
-<<ratelimit,*ratelimit*>> directive. The system timezone database, if it is
-kept up to date and includes the _right/UTC_ timezone, can be used as a
-reliable source to determine when a leap second will be applied to UTC. The
+<<ratelimit,*ratelimit*>> directive. The
 *-r* option with the <<dumpdir,*dumpdir*>> directive shortens the time in which
 *chronyd* will not be able to serve time to its clients when it needs to be
 restarted (e.g. after upgrading to a newer version, or a change in the
@@ -3445,7 +3389,6 @@ makestep 1.0 3
 rtcsync
 allow
 clientloglimit 100000000
-leapsectz right/UTC
 driftfile @CHRONYVARDIR@/drift
 dumpdir @CHRONYRUNDIR@
 ----

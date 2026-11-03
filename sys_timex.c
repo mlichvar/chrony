@@ -33,6 +33,7 @@
 #include "privops.h"
 #include "sys_generic.h"
 #include "sys_timex.h"
+#include "util.h"
 #include "logging.h"
 
 #ifdef PRIVOPS_ADJUSTTIMEX
@@ -211,6 +212,8 @@ initialise_timex(void)
   txc.modes = MOD_STATUS;
   txc.status = sys_status;
   SYS_Timex_Adjust(&txc, 0);
+
+  set_leap(0, TAI_UTC_OFFSET);
 }
 
 /* ================================================== */

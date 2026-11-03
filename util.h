@@ -35,6 +35,9 @@
 #include "cmac.h"
 #include "hash.h"
 
+/* The current offset between TAI and UTC in seconds */
+#define TAI_UTC_OFFSET 37
+
 /* Zero a timespec */
 extern void UTI_ZeroTimespec(struct timespec *ts);
 
