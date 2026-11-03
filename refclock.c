@@ -409,28 +409,6 @@ RCL_GetDriverOption(RCL_Instance instance, char *name)
 }
 
 static int
-convert_tai_offset(struct timespec *sample_time, double *offset)
-{
-  struct timespec tai_ts, utc_ts;
-  int tai_offset;
-
-  /* Get approximate TAI-UTC offset for the reference time in TAI */
-  UTI_AddDoubleToTimespec(sample_time, *offset, &tai_ts);
-  tai_offset = REF_GetTaiOffset(&tai_ts);
-
-  /* Get TAI-UTC offset for the reference time in UTC +/- 1 second */
-  UTI_AddDoubleToTimespec(&tai_ts, -tai_offset, &utc_ts);
-  tai_offset = REF_GetTaiOffset(&utc_ts);
-
-  if (!tai_offset)
-    return 0;
-
-  *offset -= tai_offset;
-
-  return 1;
-}
-
-static int
 accumulate_sample(RCL_Instance instance, struct timespec *sample_time, double offset, double dispersion,
                   int quality)
 {
@@ -492,10 +470,8 @@ RCL_AddSample(RCL_Instance instance, struct timespec *sample_time,
   offset += 1.0e-9 * (ref_time->tv_nsec - sample_time->tv_nsec) -
             (correction - (time_t)correction) + (instance->offset - (time_t)instance->offset);
 
-  if (instance->tai && !convert_tai_offset(sample_time, &offset)) {
-    DEBUG_LOG("refclock sample ignored unknown TAI offset");
-    return 0;
-  }
+  if (instance->tai)
+    offset -= TAI_UTC_OFFSET;
 
   if (!accumulate_sample(instance, &cooked_time, offset, dispersion, quality))
     return 0;

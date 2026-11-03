@@ -193,9 +193,6 @@ extern void REF_DisableLocal(void);
    provided timestamp with an offset, is close to a leap second */
 extern int REF_IsLeapSecondClose(struct timespec *ts, double offset);
 
-/* Return TAI-UTC offset corresponding to a time in UTC if available */
-extern int REF_GetTaiOffset(struct timespec *ts);
-
 extern void REF_GetTrackingReport(RPT_TrackingReport *rep);
 
 #endif /* GOT_REFERENCE_H */

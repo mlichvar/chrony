@@ -55,6 +55,13 @@ Update interval : 16\.. seconds
 	rm -f tmp/refclocks.log
 done
 
+client_conf="refclock PHC /dev/ptp0 tai"
+refclock_offset="(+ -37)"
+
+run_test || test_fail
+check_chronyd_exit || test_fail
+check_sync || test_fail
+
 if check_config_h 'FEAT_PPS 1'; then
 	refclock_offset=0.35
 	refclock_jitter=0.05

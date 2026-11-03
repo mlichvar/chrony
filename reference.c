@@ -1325,14 +1325,6 @@ int REF_IsLeapSecondClose(struct timespec *ts, double offset)
 
 /* ================================================== */
 
-int
-REF_GetTaiOffset(struct timespec *ts)
-{
-  return TAI_UTC_OFFSET;
-}
-
-/* ================================================== */
-
 void
 REF_GetTrackingReport(RPT_TrackingReport *rep)
 {
