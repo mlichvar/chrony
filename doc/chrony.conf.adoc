@@ -1280,87 +1280,6 @@ By default (or if the specified maximum or minimum is 0), no fallbacks are used
 and the clock frequency changes only with new measurements from NTP sources,
 reference clocks, or manual input.
 
-[[leapsecmode]]*leapsecmode* _mode_::
-A leap second is an adjustment that is occasionally applied to UTC to keep it
-close to the mean solar time. When a leap second is inserted, the last day of
-June or December has an extra second 23:59:60.
-+
-For computer clocks that is a problem. The Unix time is defined as number of
-seconds since 00:00:00 UTC on 1 January 1970 without leap seconds. The system
-clock cannot have time 23:59:60, every minute has 60 seconds and every day has
-86400 seconds by definition. The inserted leap second is skipped and the clock
-is suddenly ahead of UTC by one second. The *leapsecmode* directive selects how
-that error is corrected. There are four options:
-+
-*system*:::
-When inserting a leap second, the kernel steps the system clock backwards by
-one second when the clock gets to 00:00:00 UTC. When deleting a leap second, it
-steps forward by one second when the clock gets to 23:59:59 UTC. This is the
-default mode when the system driver supports leap seconds (i.e. all supported
-systems with the exception of macOS 12 and earlier).
-*step*:::
-This is similar to the *system* mode, except the clock is stepped by
-*chronyd* instead of the kernel. It can be useful to avoid bugs in the kernel
-code that would be executed in the *system* mode. This is the default mode
-when the system driver does not support leap seconds.
-*slew*:::
-The clock is corrected by slewing started at 00:00:00 UTC when a leap second
-is inserted or 23:59:59 UTC when a leap second is deleted. This might be
-preferred over the *system* and *step* modes when applications running on the
-system are sensitive to jumps in the system time and it is acceptable that the
-clock will be off for a longer time. On Linux with the default
-<<maxslewrate,*maxslewrate*>> value the correction takes 12 seconds.
-*ignore*:::
-No correction is applied to the clock for the leap second. The clock will be
-corrected later in normal operation when new measurements are made and the
-estimated offset includes the one second error. This option is particularly
-useful when multiple *chronyd* instances are running on the system, one
-controlling the system clock and others started with the *-x* option, which
-should rely on the first instance to correct the system clock and ignore it for
-the correction of their own NTP clock running on top of the system clock.
-{blank}::
-+
-When serving time to NTP clients that cannot be configured to correct their
-clocks for a leap second by slewing, or to clients that would correct at
-slightly different rates when it is necessary to keep them close together, the
-*slew* mode can be combined with the <<smoothtime,*smoothtime*>> directive to
-enable a server leap smear.
-+
-When smearing a leap second, the leap status is suppressed on the server and
-the served time is corrected slowly by slewing instead of stepping. The clients
-do not need any special configuration as they do not know there is any leap
-second and they follow the server time which eventually brings them back to
-UTC. Care must be taken to ensure they use only NTP servers that smear the
-leap second in exactly the same way for synchronisation.
-+
-This feature must be used carefully, because the server is intentionally not
-serving its best estimate of the true time.
-+
-A recommended configuration to enable a server leap smear is:
-+
-----
-leapsecmode slew
-maxslewrate 1000
-smoothtime 400 0.001024 leaponly
-----
-+
-The first directive is necessary to disable the clock step which would reset
-the smoothing process. The second directive limits the slewing rate of the
-local clock to 1000 ppm, which improves the stability of the smoothing process
-when the local correction starts and ends. The third directive enables the
-server time smoothing process. It will start when the clock gets to 00:00:00
-UTC and it will take 62500 seconds (about 17.36 hours) to finish. The frequency
-offset will be changing by 0.001024 ppm per second and will reach a maximum of
-32 ppm in 31250 seconds. The *leaponly* option makes the duration of the leap
-smear constant and allows the clients to safely synchronise with multiple
-identically configured leap smearing servers.
-+
-The duration of the leap smear can be calculated from the specified wander as
-+
-----
-duration = sqrt(4 / wander)
-----
-
 [[makestep]]*makestep* _threshold_ _limit_::
 Normally *chronyd* will cause the system to gradually correct any time offset
 by slowing down or speeding up the clock as required. In certain situations,
@@ -2064,9 +1983,7 @@ The first two arguments of the directive are the maximum frequency offset of
 the smoothed time to the tracked NTP time (in ppm) and the maximum rate at
 which the frequency offset is allowed to change (in ppm per second). *leaponly*
 is an optional third argument that enables a mode where only leap seconds are
-smoothed out and normal offset and frequency changes are ignored. The *leaponly*
-option is useful in a combination with the <<leapsecmode,*leapsecmode slew*>>
-directive to allow the clients to use multiple time smoothing servers safely.
+smoothed out and normal offset and frequency changes are ignored.
 +
 The smoothing process is activated automatically when 1/10000 of the estimated
 skew of the local clock falls below the maximum rate of frequency change. It

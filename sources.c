@@ -406,7 +406,7 @@ SRC_UpdateStatus(SRC_Instance inst, int stratum, int synced)
   inst->stratum = stratum;
 
   if (synced && inst->status >= SRC_UNSELECTED)
-    REF_UpdateLeapStatus(LEAP_Normal);
+    REF_UpdateSyncStatus();
 }
 
 /* ================================================== */
@@ -1445,7 +1445,7 @@ SRC_SelectSource(SRC_Instance updated_inst)
                              &src_frequency, &src_frequency_sd, &src_skew);
 
   REF_SetReference(sources[selected_source_index]->stratum,
-                   LEAP_Normal, combined,
+                   1, combined,
                    sources[selected_source_index]->ref_id,
                    sources[selected_source_index]->ip_addr,
                    &ref_time, src_offset, src_offset_sd,

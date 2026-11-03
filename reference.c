@@ -56,9 +56,6 @@ static double local_activate;
 static double local_wait_synced;
 static double local_wait_unsynced;
 static struct timespec local_ref_time;
-static NTP_Leap our_leap_status;
-static int our_leap_sec;
-static int our_tai_offset;
 static int our_stratum;
 static uint32_t our_ref_id;
 static IPAddr our_ref_ip;
@@ -113,19 +110,6 @@ static int drift_file_interval;
 
 static void update_drift_file(double, double);
 
-/* Leap second handling mode */
-static REF_LeapMode leap_mode;
-
-/* Time of UTC midnight of the upcoming or previous leap second */
-static time_t leap_when;
-
-/* Flag indicating the clock was recently corrected for leap second and it may
-   not have correct time yet (missing 23:59:60 in the UTC time scale) */
-static int leap_in_progress;
-
-/* Timer for the leap second handler */
-static SCH_TimeoutID leap_timeout_id;
-
 /* ================================================== */
 
 static LOG_FileID logfileid;
@@ -156,10 +140,6 @@ static int ref_adjustments;
 
 /* ================================================== */
 
-static void update_leap_status(NTP_Leap leap, time_t now, int reset);
-
-/* ================================================== */
-
 static void
 handle_slew(struct timespec *raw,
             struct timespec *cooked,
@@ -169,7 +149,6 @@ handle_slew(struct timespec *raw,
             void *anything)
 {
   double delta;
-  struct timespec now;
 
   if (!UTI_IsZeroTimespec(&our_ref_time))
     UTI_AdjustTimespec(&our_ref_time, cooked, &our_ref_time, &delta, dfreq, doffset);
@@ -177,13 +156,6 @@ handle_slew(struct timespec *raw,
   if (change_type == LCL_ChangeUnknownStep) {
     last_ref_update = 0.0;
     REF_SetUnsynchronised();
-  }
-
-  /* When the clock was stepped, check if that doesn't change our leap status
-     and also reset the leap timeout to undo the shift in the scheduler */
-  if (change_type != LCL_ChangeAdjust && our_leap_sec && !leap_in_progress) {
-    LCL_ReadRawTime(&now);
-    update_leap_status(our_leap_status, now.tv_sec, 1);
   }
 }
 
@@ -198,9 +170,6 @@ REF_Initialise(void)
 
   mode = REF_ModeNormal;
   are_we_synchronised = 0;
-  our_leap_status = LEAP_Unsynchronised;
-  our_leap_sec = 0;
-  our_tai_offset = 0;
   initialised = 1;
   our_root_dispersion = 1.0;
   our_root_delay = 1.0;
@@ -256,14 +225,6 @@ REF_Initialise(void)
   UTI_ZeroTimespec(&local_ref_time);
   unsynchronised_since = SCH_GetLastEventMonoTime();
 
-  leap_when = 0;
-  leap_timeout_id = 0;
-  leap_in_progress = 0;
-  leap_mode = CNF_GetLeapSecMode();
-  /* Switch to step mode if the system driver doesn't support leap */
-  if (leap_mode == REF_LeapModeSystem && !LCL_CanSystemLeap())
-    leap_mode = REF_LeapModeStep;
-
   CNF_GetMakeStep(&make_step_limit, &make_step_threshold);
   CNF_GetMaxChange(&max_offset_delay, &max_offset_ignore, &max_offset);
   CNF_GetMailOnChange(&do_mail_change, &mail_change_threshold, &mail_change_user);
@@ -295,8 +256,6 @@ REF_Initialise(void)
 void
 REF_Finalise(void)
 {
-  update_leap_status(LEAP_Unsynchronised, 0, 0);
-
   if (drift_file) {
     update_drift_file(LCL_ReadAbsoluteFrequency(), our_skew);
   }
@@ -329,14 +288,6 @@ void
 REF_SetModeEndHandler(REF_ModeEndHandler handler)
 {
   mode_end_handler = handler;
-}
-
-/* ================================================== */
-
-REF_LeapMode
-REF_GetLeapMode(void)
-{
-  return leap_mode;
 }
 
 /* ================================================== */
@@ -569,155 +520,6 @@ is_offset_ok(double offset)
 
 /* ================================================== */
 
-static int
-is_leap_second_day(time_t when)
-{
-  struct tm *stm;
-
-  stm = gmtime(&when);
-  if (!stm)
-    return 0;
-
-  /* Allow leap second only on the last day of June and December */
-  return (stm->tm_mon == 5 && stm->tm_mday == 30) ||
-         (stm->tm_mon == 11 && stm->tm_mday == 31);
-}
-
-/* ================================================== */
-
-static void
-leap_end_timeout(void *arg)
-{
-  leap_timeout_id = 0;
-  leap_in_progress = 0;
-
-  if (our_tai_offset)
-    our_tai_offset += our_leap_sec;
-  our_leap_sec = 0;
-
-  if (leap_mode == REF_LeapModeSystem)
-    LCL_SetSystemLeap(our_leap_sec, our_tai_offset);
-
-  if (our_leap_status == LEAP_InsertSecond ||
-      our_leap_status == LEAP_DeleteSecond)
-    our_leap_status = LEAP_Normal;
-}
-
-/* ================================================== */
-
-static void
-leap_start_timeout(void *arg)
-{
-  leap_in_progress = 1;
-
-  switch (leap_mode) {
-    case REF_LeapModeSystem:
-      DEBUG_LOG("Waiting for system clock leap second correction");
-      break;
-    case REF_LeapModeSlew:
-      LCL_NotifyLeap(our_leap_sec);
-      LCL_AccumulateOffset(our_leap_sec, 0.0);
-      LOG(LOGS_WARN, "Adjusting system clock for leap second");
-      break;
-    case REF_LeapModeStep:
-      LCL_NotifyLeap(our_leap_sec);
-      LCL_ApplyStepOffset(our_leap_sec);
-      LOG(LOGS_WARN, "System clock was stepped for leap second");
-      break;
-    case REF_LeapModeIgnore:
-      LOG(LOGS_WARN, "Ignoring leap second");
-      break;
-    default:
-      break;
-  }
-
-  /* Wait until the leap second is over with some extra room to be safe */
-  leap_timeout_id = SCH_AddTimeoutByDelay(2.0, leap_end_timeout, NULL);
-}
-
-/* ================================================== */
-
-static void
-set_leap_timeout(time_t now)
-{
-  struct timespec when;
-
-  /* Stop old timer if there is one */
-  SCH_RemoveTimeout(leap_timeout_id);
-  leap_timeout_id = 0;
-  leap_in_progress = 0;
-
-  if (!our_leap_sec)
-    return;
-
-  leap_when = (now / (24 * 3600) + 1) * (24 * 3600);
-
-  /* Insert leap second at 0:00:00 UTC, delete at 23:59:59 UTC.  If the clock
-     will be corrected by the system, timeout slightly sooner to be sure it
-     will happen before the system correction. */
-  when.tv_sec = leap_when;
-  when.tv_nsec = 0;
-  if (our_leap_sec < 0)
-    when.tv_sec--;
-  if (leap_mode == REF_LeapModeSystem) {
-    when.tv_sec--;
-    when.tv_nsec = 500000000;
-  }
-
-  leap_timeout_id = SCH_AddTimeout(&when, leap_start_timeout, NULL);
-}
-
-/* ================================================== */
-
-static void
-update_leap_status(NTP_Leap leap, time_t now, int reset)
-{
-  int leap_sec, tai_offset;
-
-  leap_sec = 0;
-  tai_offset = 0;
-
-  if (leap == LEAP_InsertSecond || leap == LEAP_DeleteSecond) {
-    /* Check that leap second is allowed today */
-
-    if (is_leap_second_day(now)) {
-      if (leap == LEAP_InsertSecond) {
-        leap_sec = 1;
-      } else {
-        leap_sec = -1;
-      }
-    } else {
-      leap = LEAP_Normal;
-    }
-  }
-  
-  if ((leap_sec != our_leap_sec || tai_offset != our_tai_offset)
-      && !REF_IsLeapSecondClose(NULL, 0.0)) {
-    our_leap_sec = leap_sec;
-    our_tai_offset = tai_offset;
-
-    switch (leap_mode) {
-      case REF_LeapModeSystem:
-        LCL_SetSystemLeap(our_leap_sec, our_tai_offset);
-        /* Fall through */
-      case REF_LeapModeSlew:
-      case REF_LeapModeStep:
-      case REF_LeapModeIgnore:
-        set_leap_timeout(now);
-        break;
-      default:
-        assert(0);
-        break;
-    }
-  } else if (reset) {
-    set_leap_timeout(now);
-  }
-
-  our_leap_status = leap;
-}
-
-/* ================================================== */
-
 static double
 get_root_dispersion(struct timespec *ts)
 {
@@ -750,7 +552,6 @@ write_log(struct timespec *now, int combined_sources, double freq,
           double offset, double offset_sd, double uncorrected_offset,
           double orig_root_distance)
 {
-  const char leap_codes[4] = {'N', '+', '-', '?'};
   double root_dispersion, max_error;
   static double last_sys_offset = 0.0;
 
@@ -767,7 +568,7 @@ write_log(struct timespec *now, int combined_sources, double freq,
                 our_ref_ip.family != IPADDR_UNSPEC ?
                   UTI_IPToString(&our_ref_ip) : UTI_RefidToString(our_ref_id),
                 our_stratum, freq, 1.0e6 * our_skew, offset,
-                leap_codes[our_leap_status], combined_sources, offset_sd,
+                are_we_synchronised ? 'N' : '?', combined_sources, offset_sd,
                 uncorrected_offset, our_root_delay, root_dispersion, max_error);
 }
 
@@ -901,7 +702,7 @@ get_correction_rate(double offset_sd, double update_interval)
 /* ================================================== */
 
 void
-REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
+REF_SetReference(int stratum, int synced, int combined_sources,
                  uint32_t ref_id, IPAddr *ref_ip, struct timespec *ref_time,
                  double offset, double offset_sd,
                  double frequency, double frequency_sd, double skew,
@@ -921,7 +722,7 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
     return;
   }
 
-  manual = leap == LEAP_Unsynchronised;
+  manual = !synced;
 
   mono_now = SCH_GetLastEventMonoTime();
   LCL_ReadRawTime(&raw_now);
@@ -946,7 +747,7 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
 
   orig_root_distance = our_root_delay / 2.0 + get_root_dispersion(&now);
 
-  are_we_synchronised = leap != LEAP_Unsynchronised;
+  are_we_synchronised = synced;
   our_stratum = stratum + 1;
   our_ref_id = ref_id;
   if (ref_ip)
@@ -987,7 +788,6 @@ REF_SetReference(int stratum, NTP_Leap leap, int combined_sources,
       LCL_AccumulateOffset(step_offset, 0.0);
   }
 
-  update_leap_status(leap, raw_now.tv_sec, 0);
   update_sync_status(&now);
 
   /* Add a random error of up to one second to the reference time to make it
@@ -1060,7 +860,7 @@ REF_SetManualReference
   /* We are not synchronised to an external source, as such.  This is
      only supposed to be used with the local source option, really.
      Log as MANU in the tracking log, packets will have NTP_REFID_LOCAL. */
-  REF_SetReference(0, LEAP_Unsynchronised, 1, 0x4D414E55UL, NULL,
+  REF_SetReference(0, 0, 1, 0x4D414E55UL, NULL,
                    ref_time, offset, 0.0, frequency, skew, skew, 0.0, 0.0);
 }
 
@@ -1089,7 +889,6 @@ REF_SetUnsynchronised(void)
     schedule_fb_drift();
   }
 
-  update_leap_status(LEAP_Unsynchronised, 0, 0);
   our_ref_ip.family = IPADDR_INET4;
   our_ref_ip.addr.in4 = 0;
   our_stratum = 0;
@@ -1107,19 +906,15 @@ REF_SetUnsynchronised(void)
 /* ================================================== */
 
 void
-REF_UpdateLeapStatus(NTP_Leap leap)
+REF_UpdateSyncStatus(void)
 {
-  struct timespec raw_now, now;
+  struct timespec now;
 
   /* Wait for a full reference update if not already synchronised */
   if (!are_we_synchronised)
     return;
 
-  SCH_GetLastEventTime(&now, NULL, &raw_now);
-
-  update_leap_status(leap, raw_now.tv_sec, 0);
-
-  /* Update also the synchronisation status */
+  SCH_GetLastEventTime(&now, NULL, NULL);
   update_sync_status(&now);
 }
 
@@ -1130,7 +925,7 @@ REF_GetReferenceParams
 (
  struct timespec *local_time,
  int *is_synchronised,
- NTP_Leap *leap_status,
+ int *is_local,
  int *stratum,
  uint32_t *ref_id,
  struct timespec *ref_time,
@@ -1164,10 +959,10 @@ REF_GetReferenceParams
         distance > local_distance)) {
 
     *is_synchronised = 1;
+    *is_local = 0;
 
     *stratum = our_stratum;
 
-    *leap_status = !leap_in_progress ? our_leap_status : LEAP_Unsynchronised;
     *ref_id = our_ref_id;
     *ref_time = our_ref_time;
     *root_delay = our_root_delay;
@@ -1176,6 +971,7 @@ REF_GetReferenceParams
   } else if (enable_local_stratum && local_activate_ok && wait_local_ok) {
 
     *is_synchronised = 0;
+    *is_local = 1;
 
     *stratum = local_stratum;
     *ref_id = NTP_REFID_LOCAL;
@@ -1191,18 +987,14 @@ REF_GetReferenceParams
 
     *ref_time = local_ref_time;
 
-    /* Not much else we can do for leap second bits - maybe need to
-       have a way for the administrator to feed leap bits in */
-    *leap_status = LEAP_Normal;
-    
     *root_delay = 0.0;
     *root_dispersion = 0.0;
     
   } else {
 
     *is_synchronised = 0;
+    *is_local = 0;
 
-    *leap_status = LEAP_Unsynchronised;
     *stratum = NTP_MAX_STRATUM;
     *ref_id = NTP_REFID_UNSYNC;
     UTI_ZeroTimespec(ref_time);
@@ -1221,13 +1013,12 @@ int
 REF_GetOurStratum(void)
 {
   struct timespec now_cooked, ref_time;
-  int synchronised, stratum;
-  NTP_Leap leap_status;
+  int synchronised, local, stratum;
   uint32_t ref_id;
   double root_delay, root_dispersion;
 
   SCH_GetLastEventTime(&now_cooked, NULL, NULL);
-  REF_GetReferenceParams(&now_cooked, &synchronised, &leap_status, &stratum,
+  REF_GetReferenceParams(&now_cooked, &synchronised, &local, &stratum,
                          &ref_id, &ref_time, &root_delay, &root_dispersion);
 
   return stratum;
@@ -1297,50 +1088,23 @@ REF_DisableLocal(void)
 
 /* ================================================== */
 
-#define LEAP_SECOND_CLOSE 5
-
-static int
-is_leap_close(double t)
-{
-  return leap_when != 0 &&
-         t >= leap_when - LEAP_SECOND_CLOSE && t < leap_when + LEAP_SECOND_CLOSE;
-}
-
-/* ================================================== */
-
-int REF_IsLeapSecondClose(struct timespec *ts, double offset)
-{
-  struct timespec now, now_raw;
-
-  SCH_GetLastEventTime(&now, NULL, &now_raw);
-
-  if (is_leap_close(now.tv_sec) || is_leap_close(now_raw.tv_sec))
-    return 1;
-
-  if (ts && (is_leap_close(ts->tv_sec) || is_leap_close(ts->tv_sec + offset)))
-    return 1;
-
-  return 0;
-}
-
-/* ================================================== */
-
 void
 REF_GetTrackingReport(RPT_TrackingReport *rep)
 {
   struct timespec now_raw, now_cooked;
+  int synchronised, local;
   double correction;
-  int synchronised;
 
   LCL_ReadRawTime(&now_raw);
   LCL_GetOffsetCorrection(&now_raw, &correction, NULL);
   UTI_AddDoubleToTimespec(&now_raw, correction, &now_cooked);
 
   REF_GetReferenceParams(&now_cooked, &synchronised,
-                         &rep->leap_status, &rep->stratum,
+                         &local, &rep->stratum,
                          &rep->ref_id, &rep->ref_time,
                          &rep->root_delay, &rep->root_dispersion);
 
+  rep->leap_status = synchronised || local ? LEAP_Normal : LEAP_Unsynchronised;
   if (rep->stratum == NTP_MAX_STRATUM && !synchronised)
     rep->stratum = 0;
 

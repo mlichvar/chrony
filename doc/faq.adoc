@@ -183,7 +183,7 @@ can
 
 * make fake responses, or modify real responses from the server, to create an
   arbitrarily large time and frequency offset, make the server appear more
-  accurate, insert a leap second, etc.
+  accurate, etc.
 * delay the requests and/or responses to create a limited time offset and
   temporarily also a limited frequency offset
 * drop the requests or responses to prevent updates of the clock with new
@@ -574,20 +574,6 @@ BindIPv6Only=ipv6-only
 [Install]
 WantedBy=sockets.target
 ----
-
-=== Should be a leap smear enabled on NTP server?
-
-With the `smoothtime` and `leapsecmode` directives it is possible to enable a
-server leap smear in order to hide leap seconds from clients and force them to
-follow a slow server's adjustment instead.
-
-This feature should be used only in local networks and only when necessary,
-e.g. when the clients cannot be configured to handle the leap seconds as
-needed, or their number is so large that configuring them all would be
-impractical. The clients should use only one leap-smearing server, or multiple
-identically configured leap-smearing servers. Note that some clients can get
-leap seconds from other sources (e.g. with the `leapsectz` directive in
-`chrony`) and they will not work correctly with a leap smearing server.
 
 === How should `chronyd` be configured with `gpsd`?
 

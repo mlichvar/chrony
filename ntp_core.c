@@ -1146,12 +1146,12 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
   NTP_Packet message;
   struct timespec local_receive, local_transmit;
   double smooth_offset, local_transmit_err;
+  NTP_Leap leap_status;
   int ret, precision;
   NTP_int64 ts_fuzz;
 
   /* Parameters read from reference module */
-  int are_we_synchronised, our_stratum, smooth_time;
-  NTP_Leap leap_status;
+  int are_we_synchronised, is_local, our_stratum, smooth_time;
   uint32_t our_ref_id;
   struct timespec our_ref_time;
   double our_root_delay, our_root_dispersion;
@@ -1182,20 +1182,17 @@ transmit_packet(NTP_Mode my_mode, /* The mode this machine wants to be */
     UTI_ZeroTimespec(&our_ref_time);
   } else {
     REF_GetReferenceParams(&local_transmit,
-                           &are_we_synchronised, &leap_status,
+                           &are_we_synchronised, &is_local,
                            &our_stratum,
                            &our_ref_id, &our_ref_time,
                            &our_root_delay, &our_root_dispersion);
+
+    leap_status = are_we_synchronised || is_local ? LEAP_Normal : LEAP_Unsynchronised;
 
     /* Get current smoothing offset when sending packet to a client */
     if (SMT_IsEnabled() && (my_mode == MODE_SERVER || my_mode == MODE_BROADCAST)) {
       smooth_offset = SMT_GetOffset(&local_transmit);
       smooth_time = fabs(smooth_offset) > LCL_GetSysPrecisionAsQuantum();
-
-      /* Suppress leap second when smoothing and slew mode are enabled */
-      if (REF_GetLeapMode() == REF_LeapModeSlew &&
-          (leap_status == LEAP_InsertSecond || leap_status == LEAP_DeleteSecond))
-        leap_status = LEAP_Normal;
     }
 
     precision = LCL_GetSysPrecisionAsLog();
@@ -1793,10 +1790,9 @@ static int
 check_sync_loop(NCR_Instance inst, NTP_Packet *message, NTP_Local_Address *local_addr,
                 struct timespec *local_ts)
 {
+  int are_we_synchronised, is_local, our_stratum;
   double our_root_delay, our_root_dispersion;
-  int are_we_synchronised, our_stratum;
   struct timespec our_ref_time;
-  NTP_Leap leap_status;
   uint32_t our_ref_id;
 
   /* Check if a client or peer can be synchronised to us */
@@ -1813,7 +1809,7 @@ check_sync_loop(NCR_Instance inst, NTP_Packet *message, NTP_Local_Address *local
   /* Compare our reference data with the source to make sure it is not us
      (e.g. due to a misconfiguration) */
 
-  REF_GetReferenceParams(local_ts, &are_we_synchronised, &leap_status, &our_stratum,
+  REF_GetReferenceParams(local_ts, &are_we_synchronised, &is_local, &our_stratum,
                          &our_ref_id, &our_ref_time, &our_root_delay, &our_root_dispersion);
 
   if (message->stratum == our_stratum &&

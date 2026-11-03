@@ -603,22 +603,21 @@ RCL_AddCookedPulse(RCL_Instance instance, struct timespec *cooked_time,
     DEBUG_LOG("refclock pulse offset=%.9f offdiff=%.9f samplediff=%.9f",
               offset, ref_sample.offset - offset, sample_diff);
   } else {
+    int is_synchronised, is_local, stratum;
     struct timespec ref_time;
-    int is_synchronised, stratum;
     double root_delay, root_dispersion, distance;
     uint32_t ref_id;
-    NTP_Leap leap;
 
     /* Ignore the pulse if we are not well synchronized and the local
        reference is not active */
 
-    REF_GetReferenceParams(cooked_time, &is_synchronised, &leap, &stratum,
+    REF_GetReferenceParams(cooked_time, &is_synchronised, &is_local, &stratum,
         &ref_id, &ref_time, &root_delay, &root_dispersion);
     distance = fabs(root_delay) / 2 + root_dispersion;
 
-    if (leap == LEAP_Unsynchronised || distance >= 0.5 / rate) {
+    if (!(is_synchronised || is_local) || distance >= 0.5 / rate) {
       DEBUG_LOG("refclock pulse ignored offset=%.9f sync=%d dist=%.9f",
-                offset, leap != LEAP_Unsynchronised, distance);
+                offset, is_synchronised || is_local, distance);
       /* Drop also all stored samples */
       SPF_DropSamples(instance->filter);
       return 0;
@@ -678,21 +677,19 @@ valid_sample_time(RCL_Instance instance, struct timespec *sample_time)
 static int
 pps_stratum(RCL_Instance instance, struct timespec *ts)
 {
+  int is_synchronised, is_local, stratum;
   struct timespec ref_time;
-  int is_synchronised, stratum;
   unsigned int i;
   double root_delay, root_dispersion;
-  NTP_Leap leap;
   uint32_t ref_id;
   RCL_Instance refclock;
 
-  REF_GetReferenceParams(ts, &is_synchronised, &leap, &stratum,
+  REF_GetReferenceParams(ts, &is_synchronised, &is_local, &stratum,
       &ref_id, &ref_time, &root_delay, &root_dispersion);
 
   /* Don't change our stratum if the local reference is active
      or this is the current source */
-  if (ref_id == instance->ref_id ||
-      (!is_synchronised && leap != LEAP_Unsynchronised))
+  if (ref_id == instance->ref_id || is_local)
     return stratum - 1;
 
   /* Or the current source is another PPS refclock */ 

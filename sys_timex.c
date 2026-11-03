@@ -281,10 +281,10 @@ SYS_Timex_Adjust(struct timex *txc, int ignore_error)
   /* This a good place to verify that nothing else is touching the clock,
      without making an additional timex call.  A clock update is normally
      expected to have four driver calls:
-     - set_sync_status - primarily updating leap status
+     - set_sync_status - updating sync status and estimated/maximum error
      - set_frequency - correcting frequency error
      - set_frequency - correcting phase error
-     - set_sync_status - updating leap and estimated/maximum error */
+     - set_sync_status - updating sync status and estimated/maximum error */
   if (last_status != -1 &&
       (((last_status ^ txc->status) & STA_PLL && !(txc->modes & MOD_STATUS)) ||
        (last_constant != txc->constant && !(txc->modes & MOD_TIMECONST)) ||

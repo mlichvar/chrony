@@ -75,7 +75,6 @@ static void parse_fallbackdrift(char *);
 static void parse_hwtimestamp(char *);
 static void parse_include(char *);
 static void parse_initstepslew(char *);
-static void parse_leapsecmode(char *);
 static void parse_local(char *);
 static void parse_log(char *);
 static void parse_mailonchange(char *);
@@ -256,9 +255,6 @@ static double tempcomp_T0, tempcomp_k0, tempcomp_k1, tempcomp_k2;
 
 static int sched_priority = 0;
 static int lock_memory = 0;
-
-/* Leap second handling mode */
-static REF_LeapMode leapsec_mode = REF_LeapModeSystem;
 
 /* Name of the user to which will be dropped root privileges. */
 static char *user;
@@ -659,8 +655,6 @@ CNF_ParseLine(const char *filename, int number, char *line)
     parse_initstepslew(p);
   } else if (!strcasecmp(command, "keyfile")) {
     parse_string(p, &keys_file);
-  } else if (!strcasecmp(command, "leapsecmode")) {
-    parse_leapsecmode(p);
   } else if (!strcasecmp(command, "local")) {
     parse_local(p);
   } else if (!strcasecmp(command, "lock_all")) {
@@ -789,6 +783,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
   } else if (!strcasecmp(command, "commandkey") ||
              !strcasecmp(command, "generatecommandkey") ||
              !strcasecmp(command, "leapseclist") ||
+             !strcasecmp(command, "leapsecmode") ||
              !strcasecmp(command, "leapsectz") ||
              !strcasecmp(command, "linux_freq_scale") ||
              !strcasecmp(command, "linux_hz")) {
@@ -1196,23 +1191,6 @@ parse_initstepslew(char *line)
       }
     }
   }
-}
-
-/* ================================================== */
-
-static void
-parse_leapsecmode(char *line)
-{
-  if (!strcasecmp(line, "system"))
-    leapsec_mode = REF_LeapModeSystem;
-  else if (!strcasecmp(line, "slew"))
-    leapsec_mode = REF_LeapModeSlew;
-  else if (!strcasecmp(line, "step"))
-    leapsec_mode = REF_LeapModeStep;
-  else if (!strcasecmp(line, "ignore"))
-    leapsec_mode = REF_LeapModeIgnore;
-  else
-    command_parse_error();
 }
 
 /* ================================================== */
@@ -2603,14 +2581,6 @@ char *
 CNF_GetPidFile(void)
 {
   return pidfile;
-}
-
-/* ================================================== */
-
-REF_LeapMode
-CNF_GetLeapSecMode(void)
-{
-  return leapsec_mode;
 }
 
 /* ================================================== */
