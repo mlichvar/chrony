@@ -724,7 +724,7 @@ typedef struct {
 } RPY_Activity;
 
 #define RPY_SMT_FLAG_ACTIVE 0x1
-#define RPY_SMT_FLAG_LEAPONLY 0x2
+#define RPY_SMT_FLAG_LEAPONLY 0x2 /* No longer used */
 
 typedef struct {
   uint32_t flags;

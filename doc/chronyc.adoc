@@ -1337,8 +1337,7 @@ The fields are explained as follows:
 +
 *Active*:::
 This shows if the server time smoothing is currently active. Possible values
-are _Yes_ and _No_. If the *leaponly* option is included in the *smoothtime*
-directive, _(leap second only)_ will be shown on the line.
+are _Yes_ and _No_.
 *Offset*:::
 This is the current offset applied to the time sent to NTP clients. Positive
 value means the clients are getting time that's ahead of true time.

@@ -77,10 +77,6 @@ static struct stage stages[NUM_STAGES];
 /* Enabled/disabled smoothing */
 static int enabled;
 
-/* Enabled/disabled mode where only leap seconds are smoothed out and normal
-   offset/frequency changes are ignored */
-static int leap_only_mode;
-
 /* Maximum skew/max_wander ratio to start updating offset and frequency */
 #define UNLOCK_SKEW_WANDER_RATIO 10000
 
@@ -218,7 +214,7 @@ update_smoothing(struct timespec *now, double offset, double freq)
 {
   /* Don't accept offset/frequency until the clock has stabilized */
   if (locked) {
-    if (REF_GetSkew() / max_wander < UNLOCK_SKEW_WANDER_RATIO || leap_only_mode)
+    if (REF_GetSkew() / max_wander < UNLOCK_SKEW_WANDER_RATIO)
       SMT_Activate(now);
     return;
   }
@@ -239,12 +235,8 @@ handle_slew(struct timespec *raw, struct timespec *cooked, double dfreq,
 {
   double delta;
 
-  if (change_type == LCL_ChangeAdjust) {
-    if (leap_only_mode)
-      update_smoothing(cooked, 0.0, 0.0);
-    else
-      update_smoothing(cooked, doffset, dfreq);
-  }
+  if (change_type == LCL_ChangeAdjust)
+    update_smoothing(cooked, doffset, dfreq);
 
   if (!UTI_IsZeroTimespec(&last_update))
     UTI_AdjustTimespec(&last_update, cooked, &last_update, &delta, dfreq, doffset);
@@ -252,7 +244,7 @@ handle_slew(struct timespec *raw, struct timespec *cooked, double dfreq,
 
 void SMT_Initialise(void)
 {
-  CNF_GetSmooth(&max_freq, &max_wander, &leap_only_mode);
+  CNF_GetSmooth(&max_freq, &max_wander);
   if (max_freq <= 0.0 || max_wander <= 0.0) {
       enabled = 0;
       return;
@@ -302,8 +294,7 @@ SMT_Activate(struct timespec *now)
   if (!enabled || !locked)
     return;
 
-  LOG(LOGS_INFO, "Activated %s%s", "time smoothing", leap_only_mode ?
-      " (leap seconds only)" : "");
+  LOG(LOGS_INFO, "Activated %s", "time smoothing");
   locked = 0;
   last_update = *now;
 }
@@ -326,17 +317,6 @@ SMT_Reset(struct timespec *now)
   LOG(LOGS_INFO, "Reset %s", "time smoothing");
 }
 
-void
-SMT_Leap(struct timespec *now, int leap)
-{
-  /* When the leap-only mode is disabled, the leap second will be accumulated
-     in handle_slew() as a normal offset */
-  if (!enabled || !leap_only_mode)
-    return;
-
-  update_smoothing(now, leap, 0.0);
-}
-
 int
 SMT_GetSmoothingReport(RPT_SmoothingReport *report, struct timespec *now)
 {
@@ -347,7 +327,6 @@ SMT_GetSmoothingReport(RPT_SmoothingReport *report, struct timespec *now)
     return 0;
 
   report->active = !locked;
-  report->leap_only = leap_only_mode;
 
   get_smoothing(now, &report->offset, &report->freq_ppm, &report->wander_ppm);
 

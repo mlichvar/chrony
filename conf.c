@@ -245,7 +245,6 @@ static int cmd_ratelimit_leak = 2;
 /* Smoothing constants */
 static double smooth_max_freq = 0.0; /* in ppm */
 static double smooth_max_wander = 0.0; /* in ppm/s */
-static int smooth_leap_only = 0;
 
 /* Temperature sensor, update interval and compensation coefficients */
 static char *tempcomp_sensor_file = NULL;
@@ -787,7 +786,7 @@ CNF_ParseLine(const char *filename, int number, char *line)
              !strcasecmp(command, "leapsectz") ||
              !strcasecmp(command, "linux_freq_scale") ||
              !strcasecmp(command, "linux_hz")) {
-    LOG(LOGS_WARN, "%s directive is no longer supported", command);
+    LOG(LOGS_WARN, "%s directive %s", command, "is no longer supported");
   } else {
     other_parse_error("Invalid directive %s", command);
   }
@@ -1523,12 +1522,13 @@ parse_smoothtime(char *line)
   }
 
   line = CPS_SplitWord(CPS_SplitWord(line));
-  smooth_leap_only = 0;
 
   if (*line) {
-    if (!strcasecmp(line, "leaponly"))
-      smooth_leap_only = 1;
-    else
+    /* With no leap second support leaponly completely disables smoothing */
+    if (!strcasecmp(line, "leaponly")) {
+      LOG(LOGS_WARN, "leaponly option %s", "is no longer supported");
+      smooth_max_freq = 0.0;
+    } else
       command_parse_error();
   }
 }
@@ -2633,11 +2633,10 @@ int CNF_GetCommandRateLimit(int *interval, int *burst, int *leak)
 /* ================================================== */
 
 void
-CNF_GetSmooth(double *max_freq, double *max_wander, int *leap_only)
+CNF_GetSmooth(double *max_freq, double *max_wander)
 {
   *max_freq = smooth_max_freq;
   *max_wander = smooth_max_wander;
-  *leap_only = smooth_leap_only;
 }
 
 /* ================================================== */

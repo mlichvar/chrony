@@ -145,7 +145,6 @@ typedef struct {
 
 typedef struct {
   int active;
-  int leap_only;
   double offset;
   double freq_ppm;
   double wander_ppm;

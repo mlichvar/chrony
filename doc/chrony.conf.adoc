@@ -1958,7 +1958,7 @@ An example of the use of the directive is:
 ntsratelimit interval 3 burst 1
 ----
 
-[[smoothtime]]*smoothtime* _max-freq_ _max-wander_ [*leaponly*]::
+[[smoothtime]]*smoothtime* _max-freq_ _max-wander_::
 The *smoothtime* directive can be used to enable smoothing of the time that
 *chronyd* serves to its clients to make it easier for them to track it and keep
 their clocks close together even when large offset or frequency corrections are
@@ -1981,9 +1981,7 @@ reset*>> command.
 +
 The first two arguments of the directive are the maximum frequency offset of
 the smoothed time to the tracked NTP time (in ppm) and the maximum rate at
-which the frequency offset is allowed to change (in ppm per second). *leaponly*
-is an optional third argument that enables a mode where only leap seconds are
-smoothed out and normal offset and frequency changes are ignored.
+which the frequency offset is allowed to change (in ppm per second).
 +
 The smoothing process is activated automatically when 1/10000 of the estimated
 skew of the local clock falls below the maximum rate of frequency change. It

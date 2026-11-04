@@ -860,8 +860,7 @@ handle_smoothing(CMD_Request *rx_message, CMD_Reply *tx_message)
   }
 
   tx_message->reply  = htons(RPY_SMOOTHING);
-  tx_message->data.smoothing.flags = htonl((report.active ? RPY_SMT_FLAG_ACTIVE : 0) |
-                                           (report.leap_only ? RPY_SMT_FLAG_LEAPONLY : 0));
+  tx_message->data.smoothing.flags = htonl(report.active ? RPY_SMT_FLAG_ACTIVE : 0);
   tx_message->data.smoothing.offset = UTI_FloatHostToNetwork(report.offset);
   tx_message->data.smoothing.freq_ppm = UTI_FloatHostToNetwork(report.freq_ppm);
   tx_message->data.smoothing.wander_ppm = UTI_FloatHostToNetwork(report.wander_ppm);

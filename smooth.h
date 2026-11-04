@@ -41,8 +41,6 @@ extern void SMT_Activate(struct timespec *now);
 
 extern void SMT_Reset(struct timespec *now);
 
-extern void SMT_Leap(struct timespec *now, int leap);
-
 extern int SMT_GetSmoothingReport(RPT_SmoothingReport *report, struct timespec *now);
 
 #endif

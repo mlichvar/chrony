@@ -13,7 +13,7 @@ server node1.net1.clk
 server 192.168.123.2"
 client_conf="
 refclock SHM 0 noselect
-smoothtime 400 0.001 leaponly"
+smoothtime 400 0.001"
 cmdmon_unix=0
 
 chronyc_conf="activity
@@ -64,12 +64,12 @@ SHM0                       [0-9 ]+ [0-9 ]+ [0-9 ]+ [ +-][012]\.... [0-9 ]+\.... 
 210 n_samples = 0
 #    Date     Time\(UTC\)    Slewed   Original   Residual
 =======================================================
-Active         : Yes \(leap second only\)
-Offset         : \+0\.000000000 seconds
-Frequency      : \+0\.000000 ppm
-Wander         : \+0\.000000 ppm per second
+Active         : Yes 
+Offset         : [+-]0\.000...... seconds
+Frequency      : [+-]0\....... ppm
+Wander         : [+-]0\.001000 ppm per second
 Last update    : [0-9]+\.. seconds ago
-Remaining time : 0\.0 seconds
+Remaining time : [0-9]+\.. seconds
 try: 1, refid: C0A87B01, correction: 0\.000......, skew: .\....
 513 RTC driver not running$" \
 || test_fail
