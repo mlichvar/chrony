@@ -128,12 +128,6 @@ ntsdumpdir /var/lib/chrony
 
 ! pidfile /var/run/chrony/chronyd.pid
 
-# The system timezone database usually comes with a list of leap seconds and
-# corresponding TAI-UTC offsets.  chronyd can use it to set the offset of the
-# system TAI clock and have an additional source of leap seconds.
-
-! leapseclist /usr/share/zoneinfo/leap-seconds.list
-
 #######################################################################
 ### INITIAL CLOCK CORRECTION
 # This option is useful to quickly correct the clock on start if it's
@@ -146,18 +140,6 @@ ntsdumpdir /var/lib/chrony
 # (especially backwards), so be careful!
 
 ! makestep 1.0 3
-
-#######################################################################
-### LEAP SECONDS
-# A leap second is an occasional one-second correction of the UTC
-# time scale.  By default, chronyd tells the kernel to insert/delete
-# the leap second, which makes a backward/forward step to correct the
-# clock for it.  As with the makestep directive, this jump can upset
-# some applications.  If you prefer chronyd to make a gradual
-# correction, causing the clock to be off for a longer time, uncomment
-# the following line.
-
-! leapsecmode slew
 
 #######################################################################
 ### LOGGING
