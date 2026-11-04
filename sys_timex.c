@@ -64,9 +64,6 @@
 /* Saved timex status */
 static int sys_status;
 
-/* Saved TAI-UTC offset */
-static int sys_tai_offset;
-
 /* ================================================== */
 
 static double
@@ -106,52 +103,6 @@ set_frequency(double freq_ppm)
   SYS_Timex_Adjust(&txc, 0);
 
   return convert_timex_frequency(&txc);
-}
-
-/* ================================================== */
-
-static void
-set_leap(int leap, int tai_offset)
-{
-  struct timex txc;
-  int applied, prev_status;
-
-  txc.modes = 0;
-  applied = SYS_Timex_Adjust(&txc, 0) == TIME_WAIT;
-
-  prev_status = sys_status;
-  sys_status &= ~(STA_INS | STA_DEL);
-
-  if (leap > 0)
-    sys_status |= STA_INS;
-  else if (leap < 0)
-    sys_status |= STA_DEL;
-
-  txc.modes = MOD_STATUS;
-  txc.status = sys_status;
-
-#ifdef MOD_TAI
-  if (tai_offset) {
-    txc.modes |= MOD_TAI;
-    txc.constant = tai_offset;
-
-    if (applied && !(sys_status & (STA_INS | STA_DEL)))
-      sys_tai_offset += prev_status & STA_INS ? 1 : -1;
-
-    if (sys_tai_offset != tai_offset) {
-      sys_tai_offset = tai_offset;
-      LOG(LOGS_INFO, "System clock TAI offset set to %d seconds", tai_offset);
-    }
-  }
-#endif
-
-  SYS_Timex_Adjust(&txc, 0);
-
-  if (prev_status != sys_status) {
-    LOG(LOGS_INFO, "System clock status %s leap second",
-        leap ? (leap > 0 ? "set to insert" : "set to delete") :
-        (applied ? "reset after" : "set to not insert/delete"));
-  }
 }
 
 /* ================================================== */
@@ -200,7 +151,6 @@ initialise_timex(void)
   struct timex txc;
 
   sys_status = STA_UNSYNC;
-  sys_tai_offset = 0;
 
   /* Reset PLL offset */
   txc.modes = MOD_OFFSET | MOD_STATUS;
@@ -213,7 +163,23 @@ initialise_timex(void)
   txc.status = sys_status;
   SYS_Timex_Adjust(&txc, 0);
 
-  set_leap(0, TAI_UTC_OFFSET);
+#ifdef MOD_TAI
+#ifdef LINUX
+  /* On Linux ntp_gettime() may not provide tai and ntp_gettimex()
+     may not be available */
+  if (txc.tai == TAI_UTC_OFFSET)
+    return;
+#elif NTP_API >= 4
+  struct ntptimeval ntptv;
+  if (ntp_gettime(&ntptv) >= 0 && ntptv.tai == TAI_UTC_OFFSET)
+    return;
+#endif
+
+  txc.modes = MOD_TAI;
+  txc.constant = TAI_UTC_OFFSET;
+  if (SYS_Timex_Adjust(&txc, 1) >= 0)
+    LOG(LOGS_INFO, "System clock TAI offset set to %d seconds", TAI_UTC_OFFSET);
+#endif
 }
 
 /* ================================================== */
