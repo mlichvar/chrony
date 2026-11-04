@@ -194,7 +194,7 @@ SYS_OpenBSD_Initialise(void)
                                  read_frequency, set_frequency, NULL,
                                  0.0, 0.0,
                                  NULL, NULL,
-                                 NULL, set_sync_status);
+                                 set_sync_status);
 }
 
 /* ================================================== */

@@ -393,7 +393,6 @@ SYS_Generic_CompleteFreqDriver(double max_set_freq_ppm, double max_set_freq_dela
                                double min_fastslew_offset, double max_fastslew_rate,
                                lcl_AccrueOffsetDriver sys_accrue_offset,
                                lcl_OffsetCorrectionDriver sys_get_offset_correction,
-                               lcl_SetLeapDriver sys_set_leap,
                                lcl_SetSyncStatusDriver sys_set_sync_status)
 {
   max_freq = max_set_freq_ppm;
@@ -418,7 +417,7 @@ SYS_Generic_CompleteFreqDriver(double max_set_freq_ppm, double max_set_freq_dela
   lcl_RegisterSystemDrivers(read_frequency, set_frequency,
                             accrue_offset, sys_apply_step_offset ?
                               sys_apply_step_offset : apply_step_offset,
-                            offset_convert, sys_set_leap, set_sync_status);
+                            offset_convert, set_sync_status);
 
   LCL_AddParameterChangeHandler(handle_step, NULL);
 }

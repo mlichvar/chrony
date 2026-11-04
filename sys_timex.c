@@ -244,7 +244,7 @@ SYS_Timex_InitialiseWithFunctions(double max_set_freq_ppm, double max_set_freq_d
                                  sys_apply_step_offset,
                                  min_fastslew_offset, max_fastslew_rate,
                                  sys_accrue_offset, sys_get_offset_correction,
-                                 set_leap, set_sync_status);
+                                 set_sync_status);
 }
 
 /* ================================================== */

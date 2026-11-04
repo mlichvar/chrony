@@ -59,7 +59,6 @@ static lcl_SetFrequencyDriver drv_set_freq;
 static lcl_AccrueOffsetDriver drv_accrue_offset;
 static lcl_ApplyStepOffsetDriver drv_apply_step_offset;
 static lcl_OffsetCorrectionDriver drv_offset_convert;
-static lcl_SetLeapDriver drv_set_leap;
 static lcl_SetSyncStatusDriver drv_set_sync_status;
 
 /* ================================================== */
@@ -711,20 +710,6 @@ LCL_NotifyExternalTimeStep(struct timespec *raw, struct timespec *cooked,
 
 /* ================================================== */
 
-void
-LCL_NotifyLeap(int leap)
-{
-  struct timespec raw, cooked;
-
-  LCL_ReadRawTime(&raw);
-  LCL_CookTime(&raw, &cooked, NULL);
-
-  /* Dispatch to all handlers as if the clock was stepped */
-  invoke_parameter_change_handlers(&raw, &cooked, 0.0, -leap, LCL_ChangeStep);
-}
-
-/* ================================================== */
-
 int
 LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate)
 {
@@ -802,7 +787,6 @@ lcl_RegisterSystemDrivers(lcl_ReadFrequencyDriver read_freq,
                           lcl_AccrueOffsetDriver accrue_offset,
                           lcl_ApplyStepOffsetDriver apply_step_offset,
                           lcl_OffsetCorrectionDriver offset_convert,
-                          lcl_SetLeapDriver set_leap,
                           lcl_SetSyncStatusDriver set_sync_status)
 {
   drv_read_freq = read_freq;
@@ -810,7 +794,6 @@ lcl_RegisterSystemDrivers(lcl_ReadFrequencyDriver read_freq,
   drv_accrue_offset = accrue_offset;
   drv_apply_step_offset = apply_step_offset;
   drv_offset_convert = offset_convert;
-  drv_set_leap = set_leap;
   drv_set_sync_status = set_sync_status;
 
   current_freq_ppm = (*drv_read_freq)();
@@ -858,24 +841,6 @@ LCL_CancelOffsetCorrection(void)
   LCL_ReadRawTime(&raw);
   LCL_GetOffsetCorrection(&raw, &correction, NULL);
   LCL_AccumulateOffset(correction, 0.0);
-}
-
-/* ================================================== */
-
-int
-LCL_CanSystemLeap(void)
-{
-  return drv_set_leap ? 1 : 0;
-}
-
-/* ================================================== */
-
-void
-LCL_SetSystemLeap(int leap, int tai_offset)
-{
-  if (drv_set_leap) {
-    (drv_set_leap)(leap, tai_offset);
-  }
 }
 
 /* ================================================== */

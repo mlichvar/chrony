@@ -127,7 +127,7 @@ SYS_Null_Initialise(void)
   LCL_ReadRawTime(&last_update);
 
   lcl_RegisterSystemDrivers(read_frequency, set_frequency, accrue_offset,
-                            apply_step_offset, offset_convert, NULL, NULL);
+                            apply_step_offset, offset_convert, NULL);
 
   LOG(LOGS_INFO, "Disabled control of system clock");
 }

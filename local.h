@@ -165,10 +165,6 @@ extern int LCL_ApplyStepOffset(double offset);
 extern void LCL_NotifyExternalTimeStep(struct timespec *raw, struct timespec *cooked,
     double offset, double dispersion);
 
-/* Routine to invoke notify handlers on leap second when the system clock
-   doesn't correct itself */
-extern void LCL_NotifyLeap(int leap);
-
 /* Perform the combination of modifying the frequency and applying
    a slew, in one easy step */
 extern int LCL_AccumulateFrequencyAndOffset(double dfreq, double doffset, double corr_rate);
@@ -204,16 +200,6 @@ extern int LCL_MakeStep(void);
 
 /* Routine to cancel the outstanding system clock correction */
 extern void LCL_CancelOffsetCorrection(void);
-
-/* Check if the system driver supports leap seconds, i.e. LCL_SetSystemLeap
-   does something */
-extern int LCL_CanSystemLeap(void);
-
-/* Routine to set the system clock to correct itself for a leap second and also
-   set its TAI-UTC offset.  If supported, leap second will be inserted at the
-   end of the day if the argument is positive, deleted if negative, and zero
-   resets the setting. */
-extern void LCL_SetSystemLeap(int leap, int tai_offset);
 
 /* Routine to set a frequency correction (in ppm) that should be applied
    to local clock to compensate for temperature changes.  A positive

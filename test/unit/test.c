@@ -180,5 +180,5 @@ void
 TST_RegisterDummyDrivers(void)
 {
   lcl_RegisterSystemDrivers(read_frequency, set_frequency, accrue_offset,
-                            apply_step_offset, offset_convert, NULL, NULL);
+                            apply_step_offset, offset_convert, NULL);
 }
