@@ -50,6 +50,8 @@
 
 #define MAX_UNIX_SOCKET_LENGTH (sizeof ((struct sockaddr_un *)NULL)->sun_path)
 
+#define CLIENT_UNIX_SOCKET_NAME "sock"
+
 /* ================================================== */
 
 struct Address {
@@ -65,7 +67,9 @@ static ARR_Instance server_addresses;
 static int sock_fd = -1;
 
 static char sock_dir1[MAX_UNIX_SOCKET_LENGTH];
-static char sock_dir2[MAX_UNIX_SOCKET_LENGTH];
+static char sock_rand_dir[16 + 1];
+static int sock_dir1_fd = -1;
+static int sock_dir2_fd = -1;
 
 static volatile int quit = 0;
 
@@ -219,6 +223,38 @@ free_addresses(ARR_Instance addresses)
 
 /* ================================================== */
 
+/* Remove the socket created by open_unix_socket() and the directories
+   that had to be created for it */
+
+static void
+remove_unix_socket(void)
+{
+  if (sock_dir2_fd >= 0) {
+    if (unlinkat(sock_dir2_fd, CLIENT_UNIX_SOCKET_NAME, 0) < 0 && errno != ENOENT)
+      LOG(LOGS_ERR, "Could not remove %s/%s/%s : %s",
+          sock_dir1, sock_rand_dir, CLIENT_UNIX_SOCKET_NAME, strerror(errno));
+    close(sock_dir2_fd);
+    sock_dir2_fd = -1;
+  }
+
+  if (sock_dir1_fd >= 0) {
+    if (sock_rand_dir[0] != '\0' && unlinkat(sock_dir1_fd, sock_rand_dir, AT_REMOVEDIR) < 0)
+      LOG(LOGS_ERR, "Could not remove %s/%s : %s",
+          sock_dir1, sock_rand_dir, strerror(errno));
+    sock_rand_dir[0] = '\0';
+    close(sock_dir1_fd);
+    sock_dir1_fd = -1;
+  }
+
+  if (sock_dir1[0] != '\0') {
+    if (rmdir(sock_dir1))
+      DEBUG_LOG("Could not remove %s : %s", sock_dir1, strerror(errno));
+    sock_dir1[0] = '\0';
+  }
+}
+
+/* ================================================== */
+
 /* Bind a Unix domain socket and connect it to the server chronyd socket.
 
    Access to the sockets is restricted by the permissions and ownership
@@ -236,8 +272,11 @@ free_addresses(ARR_Instance addresses)
 
    The workaround is to bind the socket in a randomly named subdirectory
    hidden in another subdirectory to avoid matching an existing path and
-   force the bind()/chmod() call to fail if the visible upper directory
-   is replaced.
+   force the bind() call to fail if the visible upper directory is
+   replaced.  The directory needs to be opened before the bind() call
+   (which reveals the hidden directory to other processes) in order to
+   change the socket permissions by fchmodat() and later remove the socket
+   by unlinkat().
 
    Note that the socket cannot be moved once bound, because the source
    address that chronyd will see would not match the actual path and the
@@ -246,9 +285,9 @@ free_addresses(ARR_Instance addresses)
 static int
 open_unix_socket(char *server_path)
 {
-  char *sock_dir0, sock_path[MAX_UNIX_SOCKET_LENGTH], rand_dir[16 + 1];
-  int i, s, dir_fd1 = -1;
+  char *sock_dir0, sock_path[MAX_UNIX_SOCKET_LENGTH], sock_dir2[MAX_UNIX_SOCKET_LENGTH];
   struct stat st;
+  int i, s;
 
   /* Check if the server socket is accessible */
   s = SCK_OpenUnixDatagramSocket(server_path, NULL, 0);
@@ -258,12 +297,12 @@ open_unix_socket(char *server_path)
   SCK_CloseSocket(s);
 
   /* Generate the random hidden component of the socket path */
-  for (i = 0; i + 1 < sizeof (rand_dir); i++) {
+  for (i = 0; i + 1 < sizeof (sock_rand_dir); i++) {
     do
-      UTI_GetRandomBytesUrandom(&rand_dir[i], sizeof (rand_dir[i]));
-    while (!isalnum((unsigned char)rand_dir[i]));
+      UTI_GetRandomBytesUrandom(&sock_rand_dir[i], sizeof (sock_rand_dir[i]));
+    while (!isalnum((unsigned char)sock_rand_dir[i]));
   }
-  rand_dir[i] = '\0';
+  sock_rand_dir[i] = '\0';
 
   /* Format the paths of the subdirectories and socket:
      sock_dir0 = dirname(server_path)
@@ -275,9 +314,9 @@ open_unix_socket(char *server_path)
   if (snprintf(sock_dir1, sizeof (sock_dir1),
                "%s/chronyc.%d", sock_dir0, (int)getpid()) >= sizeof (sock_dir1) ||
       snprintf(sock_dir2, sizeof (sock_dir2),
-               "%s/%s", sock_dir1, rand_dir) >= sizeof (sock_dir2) ||
+               "%s/%s", sock_dir1, sock_rand_dir) >= sizeof (sock_dir2) ||
       snprintf(sock_path, sizeof (sock_path),
-               "%s/sock", sock_dir2) >= sizeof (sock_path)) {
+               "%s/%s", sock_dir2, CLIENT_UNIX_SOCKET_NAME) >= sizeof (sock_path)) {
     LOG(LOGS_ERR, "Server socket path %s is too long", server_path);
     Free(sock_dir0);
     goto error1;
@@ -290,8 +329,8 @@ open_unix_socket(char *server_path)
     goto error1;
   }
 
-  dir_fd1 = open(sock_dir1, O_RDONLY | O_NOFOLLOW);
-  if (dir_fd1 < 0 || fstat(dir_fd1, &st) < 0) {
+  sock_dir1_fd = open(sock_dir1, O_RDONLY | O_NOFOLLOW | O_DIRECTORY);
+  if (sock_dir1_fd < 0 || fstat(sock_dir1_fd, &st) < 0) {
     LOG(LOGS_ERR, "Could not open/stat %s : %s", sock_dir1, strerror(errno));
     goto error2;
   }
@@ -301,39 +340,47 @@ open_unix_socket(char *server_path)
     goto error2;
   }
 
-  if (mkdirat(dir_fd1, rand_dir, 0711) < 0) {
+  if (mkdirat(sock_dir1_fd, sock_rand_dir, 0711) < 0) {
     LOG(LOGS_ERR, "Could not create %s : %s", sock_dir2, strerror(errno));
     goto error2;
   }
 
-  s = SCK_OpenUnixDatagramSocket(server_path, sock_path, 0);
+  sock_dir2_fd = openat(sock_dir1_fd, sock_rand_dir, O_RDONLY | O_NOFOLLOW | O_DIRECTORY);
+  if (sock_dir2_fd < 0 || fstat(sock_dir2_fd, &st) < 0) {
+    LOG(LOGS_ERR, "Could not open/stat %s : %s", sock_dir2, strerror(errno));
+    goto error3;
+  }
+
+  if (!S_ISDIR(st.st_mode) || (st.st_mode & 0777 & ~0711) != 0 || st.st_uid != geteuid()) {
+    LOG(LOGS_ERR, "Unexpected mode/owner of %s", sock_dir2);
+    goto error3;
+  }
+
+  s = SCK_OpenUnixDatagramSocket(server_path, sock_path, SCK_FLAG_NO_REMOVE);
   if (s < 0) {
     LOG(LOGS_ERR, "Could not bind/connect client Unix socket");
     goto error3;
   }
 
-  if (chmod(sock_path, 0666) < 0 ||
-      chmod(sock_dir2, 0711) < 0 ||
-      fchmod(dir_fd1, 0711) < 0) {
+  if (fchmodat(sock_dir2_fd, CLIENT_UNIX_SOCKET_NAME, 0666, 0) < 0 ||
+      fchmod(sock_dir2_fd, 0711) < 0 ||
+      fchmod(sock_dir1_fd, 0711) < 0) {
     LOG(LOGS_ERR, "Could not change socket or directory permissions : %s", strerror(errno));
-    SCK_RemoveSocket(s);
     SCK_CloseSocket(s);
     goto error3;
   }
 
-  close(dir_fd1);
+  UTI_FdSetCloexec(sock_dir1_fd);
+  UTI_FdSetCloexec(sock_dir2_fd);
 
   return s;
 
-error3:
-  rmdir(sock_dir2);
-error2:
-  rmdir(sock_dir1);
 error1:
-  if (dir_fd1 >= 0)
-    close(dir_fd1);
   sock_dir1[0] = '\0';
-  sock_dir2[0] = '\0';
+error2:
+  sock_rand_dir[0] = '\0';
+error3:
+  remove_unix_socket();
 
   return -1;
 }
@@ -369,17 +416,10 @@ close_io(void)
   if (sock_fd < 0)
     return;
 
-  SCK_RemoveSocket(sock_fd);
   SCK_CloseSocket(sock_fd);
-
-  if (sock_dir2[0] != '\0')
-    rmdir(sock_dir2);
-  if (sock_dir1[0] != '\0')
-    rmdir(sock_dir1);
-  sock_dir2[0] = '\0';
-  sock_dir1[0] = '\0';
-
   sock_fd = -1;
+
+  remove_unix_socket();
 }
 
 /* ================================================== */
