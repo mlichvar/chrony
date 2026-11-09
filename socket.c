@@ -632,7 +632,7 @@ bind_unix_address(int sock_fd, const char *addr, int flags)
   if (saddr_len == 0)
     return 0;
 
-  if (unlink(addr) < 0)
+  if (!(flags & SCK_FLAG_NO_REMOVE) && unlink(addr) < 0)
     DEBUG_LOG("Could not remove %s : %s", addr, strerror(errno));
 
   /* PRV_BindSocket() doesn't support Unix sockets yet */
@@ -694,7 +694,8 @@ open_unix_socket(const char *remote_addr, const char *local_addr, int type, int 
   return sock_fd;
 
 error:
-  SCK_RemoveSocket(sock_fd);
+  if (!(flags & SCK_FLAG_NO_REMOVE))
+    SCK_RemoveSocket(sock_fd);
   SCK_CloseSocket(sock_fd);
   return INVALID_SOCK_FD;
 }
