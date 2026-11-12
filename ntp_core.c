@@ -2096,7 +2096,9 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
        It will correct old measurements kept in sourcestats before accumulating
        the new sample.  In the interleaved mode, cancel the correction out in
        remote timestamps of the previous request and response, which were
-       captured before the source accumulated the new time corrections. */
+       captured before the source accumulated the new time corrections.  A peer
+       in the symmetric active mode slews its saved transmit timestamp with its
+       clock, so the timestamp is already corrected when it is sent. */
     if (ef_mono_root && inst->remote_mono_epoch == ntohl(ef_mono_root->mono_epoch) &&
         !UTI_IsZeroNtp64(&ef_mono_root->mono_receive_ts) &&
         !UTI_IsZeroNtp64(&inst->remote_ntp_monorx)) {
@@ -2139,7 +2141,8 @@ process_response(NCR_Instance inst, int saved, NTP_Local_Address *local_addr,
         root_dispersion = MAX(pkt_root_dispersion, inst->remote_root_dispersion);
       }
       UTI_Ntp64ToTimespec(&message->transmit_ts, &remote_transmit);
-      UTI_AddDoubleToTimespec(&remote_transmit, -mono_doffset, &remote_transmit);
+      if (NTP_LVM_TO_MODE(message->lvm) != MODE_ACTIVE)
+        UTI_AddDoubleToTimespec(&remote_transmit, -mono_doffset, &remote_transmit);
       UTI_Ntp64ToTimespec(&inst->remote_ntp_tx, &prev_remote_transmit);
       local_receive = inst->local_rx;
     } else {
