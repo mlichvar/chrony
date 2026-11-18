@@ -619,6 +619,9 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
     PTP_EXTTS_REQUEST, PTP_SYS_OFFSET,
 #ifdef PTP_PIN_SETFUNC
     PTP_PIN_SETFUNC,
+#if defined(PTP_MASK_CLEAR_ALL) && defined(PTP_MASK_EN_SINGLE)
+    PTP_MASK_CLEAR_ALL, PTP_MASK_EN_SINGLE,
+#endif
 #endif
 #ifdef PTP_SYS_OFFSET_EXTENDED
     PTP_SYS_OFFSET_EXTENDED,
