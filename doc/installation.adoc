@@ -83,7 +83,9 @@ shown. Otherwise, `Makefile` will be generated.
 On Linux, if development files for the libcap library are available, `chronyd`
 will be built with support for dropping root privileges. On other systems no
 extra library is needed. The default user which `chronyd` should run as can be
-specified with the `--with-user` option of the `configure` script.
+specified with the `--with-user` option of the `configure` script. By default,
+`chronyc` uses the same user, unless a different one is specified by the
+`--with-chronyc-user` option.
 
 If development files for the https://www.lysator.liu.se/~nisse/nettle/[Nettle],
 https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS[NSS], or

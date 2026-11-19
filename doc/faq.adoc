@@ -170,7 +170,8 @@ The impact of potential security issues in `chronyc` can be reduced by running
 if access to the Unix domain socket is not needed. Since version 4.8, `chronyc`
 drops root privileges automatically if it is started with the `-u` option
 specifying the _chrony_ user, or the name was specified to be the compiled-in
-default by the `--with-chronyc-user` option of the configure script.
+default by the `--with-chronyc-user` option of the configure script (since
+version 4.10 the default value follows the `--with-user` option).
 
 === How can I make the system clock more secure?
 
