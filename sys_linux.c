@@ -564,7 +564,16 @@ SYS_Linux_EnableSystemCallFilter(int level, SYS_ProcessContext context)
     SCMP_SYS(execveat),
 #endif
     SCMP_SYS(fork),
+#ifdef __NR_io_uring_setup
+    SCMP_SYS(io_uring_enter),
+    SCMP_SYS(io_uring_register),
+    SCMP_SYS(io_uring_setup),
+#endif
+    SCMP_SYS(link),
+    SCMP_SYS(linkat),
     SCMP_SYS(ptrace),
+    SCMP_SYS(symlink),
+    SCMP_SYS(symlinkat),
     SCMP_SYS(vfork),
   };
 
