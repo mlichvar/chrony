@@ -1131,6 +1131,8 @@ chronyd_features="`get_features CMDMON REFCLOCK RTC PRIVDROP SCFILTER SIGND NTS`
 add_def CHRONYC_FEATURES "\"$chronyc_features $common_features\""
 add_def CHRONYD_FEATURES "\"$chronyd_features $common_features\""
 echo "Features : $chronyd_features $chronyc_features $common_features"
+echo "Default chronyd user : $default_user"
+echo "Default chronyc user : $default_chronyc_user"
 
 if [ -f version.txt ]; then
   CHRONY_VERSION="`cat version.txt`"
