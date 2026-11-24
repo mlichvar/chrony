@@ -62,7 +62,7 @@ struct LogFile {
 static int n_filelogs = 0;
 
 /* Increase this when adding a new logfile */
-#define MAX_FILELOGS 6
+#define MAX_FILELOGS 7
 
 static struct LogFile logfiles[MAX_FILELOGS];
 
